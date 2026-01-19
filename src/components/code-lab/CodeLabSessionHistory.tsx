@@ -488,8 +488,8 @@ export function CodeLabSessionHistory({
 
         .results-breakdown {
           padding: 0.75rem 1.25rem;
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
+          background: var(--cl-bg-secondary, #f9fafb);
+          border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
         }
 
         .breakdown-label {
@@ -544,8 +544,8 @@ export function CodeLabSessionHistory({
         }
 
         .result-item:hover {
-          background: #f9fafb;
-          border-color: #e5e7eb;
+          background: var(--cl-bg-secondary, #f9fafb);
+          border-color: var(--cl-border-primary, #e5e7eb);
         }
 
         .result-item.current {

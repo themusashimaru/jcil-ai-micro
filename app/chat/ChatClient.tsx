@@ -403,7 +403,8 @@ export function ChatClient() {
         log.debug('Cleared base64 images from old messages to save memory');
       }
     }
-  }, [messages.length]); // Only run when message count changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally only depend on length, not content, to avoid unnecessary iterations
+  }, [messages.length]);
 
   // CRITICAL FIX: Ref to track streaming state for visibility handler
   // This prevents stale closures when the effect re-runs

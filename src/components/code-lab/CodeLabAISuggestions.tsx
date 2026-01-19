@@ -342,7 +342,7 @@ export function CodeLabAISuggestions({
       <style jsx>{`
         .ai-suggestions {
           padding: 0.75rem 1rem;
-          background: linear-gradient(135deg, #f9fafb 0%, #eef2ff 100%);
+          background: var(--cl-gradient-subtle, linear-gradient(135deg, #f9fafb 0%, #eef2ff 100%));
           border-top: 1px solid var(--cl-border-primary, #e5e7eb);
         }
 
@@ -394,7 +394,7 @@ export function CodeLabAISuggestions({
           align-items: center;
           gap: 0.375rem;
           padding: 0.5rem 0.75rem;
-          background: white;
+          background: var(--cl-bg-primary, white);
           border: 1px solid var(--cl-border-primary, #e5e7eb);
           border-radius: 999px;
           font-size: 0.8125rem;
@@ -406,26 +406,26 @@ export function CodeLabAISuggestions({
 
         .suggestion-chip:hover {
           border-color: var(--cl-accent-primary, #1e3a5f);
-          background: #f8f9ff;
+          background: var(--cl-info-bg-light, #f8f9ff);
         }
 
         .suggestion-chip.quick {
-          background: #eef2ff;
-          border-color: #c7d2fe;
+          background: var(--cl-info-bg, #eef2ff);
+          border-color: var(--cl-border-secondary, #c7d2fe);
           color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .suggestion-chip.quick:hover {
-          background: #e0e7ff;
+          background: var(--cl-info-bg-medium, #e0e7ff);
         }
 
         .suggestion-chip.action {
-          background: #f0fdf4;
-          border-color: #bbf7d0;
+          background: var(--cl-success-bg-light, #f0fdf4);
+          border-color: var(--cl-border-secondary, #bbf7d0);
         }
 
         .suggestion-chip.action:hover {
-          background: #dcfce7;
+          background: var(--cl-success-bg, #dcfce7);
         }
 
         .chip-icon {

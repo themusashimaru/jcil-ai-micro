@@ -140,6 +140,23 @@ export function useDebugSession(options: UseDebugSessionOptions): UseDebugSessio
   });
 
   // ============================================================================
+  // HELPERS (defined early to be available in event handlers)
+  // ============================================================================
+
+  const addOutput = useCallback(
+    (category: 'stdout' | 'stderr' | 'console', output: string) => {
+      const debugOutput: DebugOutput = {
+        category,
+        output,
+        timestamp: new Date(),
+      };
+      setOutputs((prev) => [...prev, debugOutput]);
+      onOutput?.(debugOutput);
+    },
+    [onOutput]
+  );
+
+  // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
 
@@ -185,71 +202,63 @@ export function useDebugSession(options: UseDebugSessionOptions): UseDebugSessio
       unsubTerminated();
       unsubOutput();
     };
-  }, [isConnected, on]);
+  }, [isConnected, on, addOutput]);
 
   // Notify on state change
   useEffect(() => {
     onStateChange?.(state);
   }, [state, onStateChange]);
 
-  // ============================================================================
-  // HELPERS
-  // ============================================================================
+  const callAPI = useCallback(
+    async (action: string, params: Record<string, unknown> = {}) => {
+      const response = await fetch('/api/code-lab/debug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          sessionId,
+          ...params,
+        }),
+      });
 
-  const addOutput = useCallback((category: 'stdout' | 'stderr' | 'console', output: string) => {
-    const debugOutput: DebugOutput = {
-      category,
-      output,
-      timestamp: new Date(),
-    };
-    setOutputs((prev) => [...prev, debugOutput]);
-    onOutput?.(debugOutput);
-  }, [onOutput]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'API request failed');
+      }
 
-  const callAPI = useCallback(async (action: string, params: Record<string, unknown> = {}) => {
-    const response = await fetch('/api/code-lab/debug', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        sessionId,
-        ...params,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'API request failed');
-    }
-
-    return response.json();
-  }, [sessionId]);
+      return response.json();
+    },
+    [sessionId]
+  );
 
   // ============================================================================
   // ACTIONS
   // ============================================================================
 
-  const start = useCallback(async (config: DebugConfiguration) => {
-    try {
-      setError(null);
-      setState('starting');
-      setOutputs([]);
+  const start = useCallback(
+    async (config: DebugConfiguration) => {
+      try {
+        setError(null);
+        setState('starting');
+        setOutputs([]);
 
-      addOutput('console', `Starting ${config.type} debugger for ${config.program}...`);
+        addOutput('console', `Starting ${config.type} debugger for ${config.program}...`);
 
-      const result = await callAPI('start', {
-        config,
-        workspaceId,
-      });
+        const result = await callAPI('start', {
+          config,
+          workspaceId,
+        });
 
-      setSessionId(result.session.id);
-      addOutput('console', `Debug session started: ${result.session.id}`);
-    } catch (err) {
-      setError((err as Error).message);
-      setState('error');
-      addOutput('console', `Error: ${(err as Error).message}`);
-    }
-  }, [callAPI, workspaceId, addOutput]);
+        setSessionId(result.session.id);
+        addOutput('console', `Debug session started: ${result.session.id}`);
+      } catch (err) {
+        setError((err as Error).message);
+        setState('error');
+        addOutput('console', `Error: ${(err as Error).message}`);
+      }
+    },
+    [callAPI, workspaceId, addOutput]
+  );
 
   const stop = useCallback(async () => {
     if (!sessionId) return;
@@ -264,37 +273,43 @@ export function useDebugSession(options: UseDebugSessionOptions): UseDebugSessio
     }
   }, [sessionId, callAPI, addOutput]);
 
-  const setBreakpointsForFile = useCallback(async (
-    filePath: string,
-    lines: number[]
-  ): Promise<Breakpoint[]> => {
-    if (!sessionId) return [];
+  const setBreakpointsForFile = useCallback(
+    async (filePath: string, lines: number[]): Promise<Breakpoint[]> => {
+      if (!sessionId) return [];
 
-    try {
-      const result = await callAPI('setBreakpoints', {
-        source: { path: filePath },
-        breakpoints: lines.map((line) => ({ line })),
-      });
+      try {
+        const result = await callAPI('setBreakpoints', {
+          source: { path: filePath },
+          breakpoints: lines.map((line) => ({ line })),
+        });
 
-      const verified = result.breakpoints as Breakpoint[];
-      setBreakpoints((prev) => {
-        const next = new Map(prev);
-        next.set(filePath, verified);
-        return next;
-      });
+        const verified = result.breakpoints as Breakpoint[];
+        setBreakpoints((prev) => {
+          const next = new Map(prev);
+          next.set(filePath, verified);
+          return next;
+        });
 
-      return verified;
-    } catch (err) {
-      setError((err as Error).message);
-      return [];
-    }
-  }, [sessionId, callAPI]);
+        return verified;
+      } catch (err) {
+        setError((err as Error).message);
+        return [];
+      }
+    },
+    [sessionId, callAPI]
+  );
 
-  const removeBreakpoint = useCallback(async (filePath: string, line: number) => {
-    const current = breakpoints.get(filePath) || [];
-    const remaining = current.filter((bp) => bp.line !== line);
-    await setBreakpointsForFile(filePath, remaining.map((bp) => bp.line));
-  }, [breakpoints, setBreakpointsForFile]);
+  const removeBreakpoint = useCallback(
+    async (filePath: string, line: number) => {
+      const current = breakpoints.get(filePath) || [];
+      const remaining = current.filter((bp) => bp.line !== line);
+      await setBreakpointsForFile(
+        filePath,
+        remaining.map((bp) => bp.line)
+      );
+    },
+    [breakpoints, setBreakpointsForFile]
+  );
 
   const continueExecution = useCallback(async () => {
     if (!sessionId) return;
@@ -321,55 +336,67 @@ export function useDebugSession(options: UseDebugSessionOptions): UseDebugSessio
     await callAPI('pause', { threadId: currentThreadRef.current });
   }, [sessionId, callAPI]);
 
-  const evaluate = useCallback(async (expression: string, frameId?: number): Promise<string> => {
-    if (!sessionId) return '';
+  const evaluate = useCallback(
+    async (expression: string, frameId?: number): Promise<string> => {
+      if (!sessionId) return '';
 
-    try {
-      const result = await callAPI('evaluate', { expression, frameId });
-      return result.result;
-    } catch (err) {
-      return `Error: ${(err as Error).message}`;
-    }
-  }, [sessionId, callAPI]);
+      try {
+        const result = await callAPI('evaluate', { expression, frameId });
+        return result.result;
+      } catch (err) {
+        return `Error: ${(err as Error).message}`;
+      }
+    },
+    [sessionId, callAPI]
+  );
 
   // ============================================================================
   // DATA LOADING
   // ============================================================================
 
-  const loadStackTrace = useCallback(async (threadId?: number) => {
-    if (!sessionId) return;
+  const loadStackTrace = useCallback(
+    async (threadId?: number) => {
+      if (!sessionId) return;
 
-    try {
-      const result = await callAPI('getStackTrace', {
-        threadId: threadId || currentThreadRef.current,
-      });
-      setStackFrames(result.stackFrames);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, [sessionId, callAPI]);
+      try {
+        const result = await callAPI('getStackTrace', {
+          threadId: threadId || currentThreadRef.current,
+        });
+        setStackFrames(result.stackFrames);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [sessionId, callAPI]
+  );
 
-  const loadScopes = useCallback(async (frameId: number) => {
-    if (!sessionId) return;
+  const loadScopes = useCallback(
+    async (frameId: number) => {
+      if (!sessionId) return;
 
-    try {
-      const result = await callAPI('getScopes', { frameId });
-      setScopes(result.scopes);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, [sessionId, callAPI]);
+      try {
+        const result = await callAPI('getScopes', { frameId });
+        setScopes(result.scopes);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [sessionId, callAPI]
+  );
 
-  const loadVariables = useCallback(async (variablesReference: number) => {
-    if (!sessionId) return;
+  const loadVariables = useCallback(
+    async (variablesReference: number) => {
+      if (!sessionId) return;
 
-    try {
-      const result = await callAPI('getVariables', { variablesReference });
-      setVariables(result.variables);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, [sessionId, callAPI]);
+      try {
+        const result = await callAPI('getVariables', { variablesReference });
+        setVariables(result.variables);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [sessionId, callAPI]
+  );
 
   // ============================================================================
   // RETURN

@@ -598,7 +598,7 @@ export function CodeLabCommandPalette({
         }
 
         .command-item.selected {
-          background: #e0e7ff;
+          background: var(--cl-info-bg-medium, #e0e7ff);
         }
 
         .command-icon {
@@ -649,8 +649,8 @@ export function CodeLabCommandPalette({
           display: flex;
           gap: 1rem;
           padding: 0.75rem 1rem;
-          border-top: 1px solid #e5e7eb;
-          background: #f9fafb;
+          border-top: 1px solid var(--cl-border-primary, #e5e7eb);
+          background: var(--cl-bg-secondary, #f9fafb);
         }
 
         .footer-hint {

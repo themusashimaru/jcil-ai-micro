@@ -95,8 +95,65 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'mcp' | 'memory'
+    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'mcp' | 'memory' | 'tasks'
   >('files');
+
+  // Background agents state (Claude Code Ctrl+B parity)
+  const [backgroundAgents, setBackgroundAgents] = useState<
+    Array<{
+      id: string;
+      name: string;
+      status: 'running' | 'completed' | 'failed';
+      startedAt: Date;
+      output?: string;
+    }>
+  >([]);
+
+  // Background agent management functions (Claude Code parity)
+  // Underscore prefix indicates these are exposed via context/API for tools to spawn parallel agents
+  const _spawnBackgroundAgent = useCallback((name: string) => {
+    const id = `agent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setBackgroundAgents((prev) => [
+      ...prev,
+      { id, name, status: 'running', startedAt: new Date() },
+    ]);
+    return id;
+  }, []);
+
+  const _updateBackgroundAgent = useCallback(
+    (
+      id: string,
+      update: Partial<{ status: 'running' | 'completed' | 'failed'; output: string }>
+    ) => {
+      setBackgroundAgents((prev) =>
+        prev.map((agent) => (agent.id === id ? { ...agent, ...update } : agent))
+      );
+    },
+    []
+  );
+
+  // Export for external use (context provider would expose these)
+  // This enables spawning background agents from AI tools
+  if (typeof window !== 'undefined') {
+    (window as unknown as Record<string, unknown>).__codeLabAgentAPI = {
+      spawn: _spawnBackgroundAgent,
+      update: _updateBackgroundAgent,
+    };
+  }
+
+  // Clean up completed agents after 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBackgroundAgents((prev) =>
+        prev.filter(
+          (agent) =>
+            agent.status === 'running' ||
+            new Date().getTime() - agent.startedAt.getTime() < 5 * 60 * 1000
+        )
+      );
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
@@ -667,7 +724,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         log.error('MCP toggle error', err as Error);
       }
     },
-    [currentSessionId, toast]
+    [toast]
   );
 
   // MCP server add handler (Claude Code parity)
@@ -1124,8 +1181,15 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
       }
 
-      // Cmd/Ctrl+B - Toggle sidebar
-      if (cmdKey && e.key === 'b') {
+      // Cmd/Ctrl+B - Open background tasks panel (Claude Code parity)
+      if (cmdKey && e.key === 'b' && !e.shiftKey) {
+        e.preventDefault();
+        setActiveWorkspaceTab('tasks');
+        setWorkspacePanelOpen(true);
+      }
+
+      // Cmd/Ctrl+Shift+B - Toggle sidebar
+      if (cmdKey && e.shiftKey && e.key === 'b') {
         e.preventDefault();
         setSidebarCollapsed((prev) => !prev);
       }
@@ -1354,6 +1418,15 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   >
                     Memory {memoryFile?.exists && '●'}
                   </button>
+                  <button
+                    className={activeWorkspaceTab === 'tasks' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('tasks')}
+                    title="Background Tasks (Ctrl+B)"
+                  >
+                    Tasks{' '}
+                    {backgroundAgents.filter((a) => a.status === 'running').length > 0 &&
+                      `(${backgroundAgents.filter((a) => a.status === 'running').length})`}
+                  </button>
                 </div>
                 <div className="workspace-content">
                   {activeWorkspaceTab === 'files' && (
@@ -1481,6 +1554,46 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                       onLoad={loadMemoryFile}
                       isLoading={memoryLoading}
                     />
+                  )}
+                  {activeWorkspaceTab === 'tasks' && (
+                    <div className="tasks-panel">
+                      <div className="tasks-header">
+                        <h3>Background Tasks</h3>
+                        <span className="tasks-hint">
+                          Ctrl+B to spawn • Like Claude Code parallel execution
+                        </span>
+                      </div>
+                      {backgroundAgents.length === 0 ? (
+                        <div className="tasks-empty">
+                          <p>No background tasks running</p>
+                          <p className="hint">
+                            Background agents allow parallel task execution.
+                            <br />
+                            Claude will automatically spawn agents for complex tasks.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="tasks-list">
+                          {backgroundAgents.map((agent) => (
+                            <div key={agent.id} className={`task-item ${agent.status}`}>
+                              <div className="task-header">
+                                <span className="task-name">{agent.name}</span>
+                                <span className={`task-status ${agent.status}`}>
+                                  {agent.status === 'running' && '⏳'}
+                                  {agent.status === 'completed' && '✓'}
+                                  {agent.status === 'failed' && '✗'}
+                                  {agent.status}
+                                </span>
+                              </div>
+                              <div className="task-time">
+                                Started {agent.startedAt.toLocaleTimeString()}
+                              </div>
+                              {agent.output && <pre className="task-output">{agent.output}</pre>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 {currentSession?.repo && (
@@ -2024,6 +2137,123 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .diff-empty .hint {
           font-size: 0.8125rem;
           color: var(--cl-text-muted);
+        }
+
+        /* Tasks panel (Background Agents - Claude Code Ctrl+B parity) */
+        .tasks-panel {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
+        .tasks-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid var(--cl-border-primary);
+          margin-bottom: 1rem;
+        }
+
+        .tasks-header h3 {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .tasks-hint {
+          font-size: 0.75rem;
+          color: var(--cl-text-muted);
+        }
+
+        .tasks-empty {
+          text-align: center;
+          padding: 2rem 1rem;
+          color: var(--cl-text-tertiary);
+        }
+
+        .tasks-empty p {
+          margin: 0 0 0.5rem;
+        }
+
+        .tasks-empty .hint {
+          font-size: 0.8125rem;
+          color: var(--cl-text-muted);
+          line-height: 1.5;
+        }
+
+        .tasks-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .task-item {
+          padding: 0.75rem 1rem;
+          background: var(--cl-bg-secondary);
+          border: 1px solid var(--cl-border-primary);
+          border-radius: 8px;
+        }
+
+        .task-item.running {
+          border-color: var(--cl-accent-primary);
+          background: var(--cl-accent-bg);
+        }
+
+        .task-item.completed {
+          border-color: var(--cl-success);
+        }
+
+        .task-item.failed {
+          border-color: var(--cl-error);
+        }
+
+        .task-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .task-name {
+          font-weight: 500;
+          font-size: 0.875rem;
+        }
+
+        .task-status {
+          font-size: 0.75rem;
+          padding: 0.125rem 0.5rem;
+          border-radius: 4px;
+          background: var(--cl-bg-tertiary);
+        }
+
+        .task-status.running {
+          color: var(--cl-accent-primary);
+        }
+
+        .task-status.completed {
+          color: var(--cl-success);
+        }
+
+        .task-status.failed {
+          color: var(--cl-error);
+        }
+
+        .task-time {
+          font-size: 0.75rem;
+          color: var(--cl-text-muted);
+          margin-top: 0.25rem;
+        }
+
+        .task-output {
+          margin-top: 0.5rem;
+          padding: 0.5rem;
+          background: var(--cl-bg-code);
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-family: monospace;
+          overflow-x: auto;
+          max-height: 100px;
+          color: var(--cl-text-secondary);
         }
 
         /* Plan empty state */

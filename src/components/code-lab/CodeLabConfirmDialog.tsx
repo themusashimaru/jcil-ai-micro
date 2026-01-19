@@ -228,7 +228,7 @@ export function CodeLabConfirmDialog({
 
         .confirm-details {
           padding: 1rem 1.5rem;
-          background: #f9fafb;
+          background: var(--cl-bg-secondary, #f9fafb);
         }
 
         .details-label {
@@ -325,11 +325,11 @@ export function CodeLabConfirmDialog({
 
         .confirm-hint {
           padding: 0.75rem 1.5rem;
-          background: #f9fafb;
-          border-top: 1px solid #e5e7eb;
+          background: var(--cl-bg-secondary, #f9fafb);
+          border-top: 1px solid var(--cl-border-primary, #e5e7eb);
           text-align: center;
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
         }
 
         .confirm-hint kbd {

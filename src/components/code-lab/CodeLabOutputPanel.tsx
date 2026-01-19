@@ -410,10 +410,10 @@ export function CodeLabOutputPanel({
           display: flex;
           gap: 1rem;
           padding: 0.5rem 1rem;
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
+          background: var(--cl-bg-secondary, #f9fafb);
+          border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--cl-text-muted, #6b7280);
         }
 
         .stat-value {
@@ -463,8 +463,8 @@ export function CodeLabOutputPanel({
         }
 
         .file-item.selected {
-          background: #eef2ff;
-          color: #4f46e5;
+          background: var(--cl-info-bg, #eef2ff);
+          color: var(--cl-accent-primary, #4f46e5);
         }
 
         .file-icon {
@@ -491,8 +491,8 @@ export function CodeLabOutputPanel({
         }
 
         .file-badge.new {
-          background: #dcfce7;
-          color: #16a34a;
+          background: var(--cl-success-bg, #dcfce7);
+          color: var(--cl-success, #16a34a);
         }
 
         .file-badge.modified {
@@ -516,8 +516,8 @@ export function CodeLabOutputPanel({
         }
 
         .file-copy:hover {
-          color: #1e3a5f;
-          background: #eef2ff;
+          color: var(--cl-accent-primary, #1e3a5f);
+          background: var(--cl-info-bg, #eef2ff);
         }
 
         .file-copy svg {

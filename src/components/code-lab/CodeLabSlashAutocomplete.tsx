@@ -187,8 +187,8 @@ export function CodeLabSlashAutocomplete({
           justify-content: space-between;
           align-items: center;
           padding: 0.5rem 0.75rem;
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
+          background: var(--cl-bg-secondary, #f9fafb);
+          border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
         }
 
         .autocomplete-title {
@@ -228,7 +228,7 @@ export function CodeLabSlashAutocomplete({
         }
 
         .autocomplete-item.selected {
-          background: #e0e7ff;
+          background: var(--cl-info-bg-medium, #e0e7ff);
         }
 
         .item-main {

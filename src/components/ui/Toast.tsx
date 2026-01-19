@@ -143,6 +143,14 @@ function ToastContainer({
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const [isExiting, setIsExiting] = useState(false);
 
+  // Define handleDismiss before useEffect to satisfy dependency rules
+  const handleDismiss = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onDismiss(toast.id);
+    }, 200); // Match animation duration
+  }, [onDismiss, toast.id]);
+
   // Auto-dismiss
   useEffect(() => {
     if (toast.duration && toast.duration > 0) {
@@ -152,14 +160,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
       return () => clearTimeout(timer);
     }
-  }, [toast.duration, toast.id]);
-
-  const handleDismiss = useCallback(() => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onDismiss(toast.id);
-    }, 200); // Match animation duration
-  }, [onDismiss, toast.id]);
+  }, [toast.duration, toast.id, handleDismiss]);
 
   const getIcon = () => {
     switch (toast.type) {
