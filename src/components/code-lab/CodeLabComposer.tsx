@@ -486,31 +486,31 @@ export function CodeLabComposer({
       <style jsx>{`
         .code-lab-composer {
           padding: 1rem 1.5rem 1.5rem;
-          background: white;
-          border-top: 1px solid #e5e7eb;
+          background: #1a1a1a;
+          border-top: 1px solid #333;
           position: relative;
           transition: all 0.2s ease;
         }
 
         /* Drag and drop indicator (Claude Code parity) */
         .code-lab-composer.dragging {
-          background: #f0f9ff;
-          border-top-color: #3b82f6;
+          background: #2a2a2a;
+          border-top-color: #555;
         }
 
         .code-lab-composer.dragging::before {
           content: 'Drop images or files here';
           position: absolute;
           inset: 0;
-          background: rgba(59, 130, 246, 0.1);
-          border: 2px dashed #3b82f6;
+          background: rgba(255, 255, 255, 0.1);
+          border: 2px dashed #666;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 0.9375rem;
           font-weight: 500;
-          color: #2563eb;
+          color: #ffffff;
           z-index: 10;
           pointer-events: none;
         }
@@ -527,9 +527,10 @@ export function CodeLabComposer({
           align-items: center;
           gap: 0.5rem;
           padding: 0.375rem 0.5rem;
-          background: #f3f4f6;
+          background: #333;
           border-radius: 8px;
           font-size: 0.75rem;
+          color: #ffffff;
         }
 
         .attachment-item img {
@@ -545,9 +546,9 @@ export function CodeLabComposer({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #e5e7eb;
+          background: #444;
           border-radius: 4px;
-          color: #4b5563;
+          color: #ffffff;
         }
 
         .attachment-icon svg {
@@ -560,7 +561,7 @@ export function CodeLabComposer({
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: #374151;
+          color: #ffffff;
         }
 
         .attachment-remove {
@@ -568,12 +569,12 @@ export function CodeLabComposer({
           border: none;
           padding: 0.25rem;
           cursor: pointer;
-          color: #9ca3af;
+          color: #888;
           border-radius: 4px;
         }
 
         .attachment-remove:hover {
-          background: #e5e7eb;
+          background: #444;
           color: #ef4444;
         }
 
@@ -587,12 +588,12 @@ export function CodeLabComposer({
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 0.75rem;
-          background: var(--cl-info-bg, #eef2ff);
-          border: 1px solid var(--cl-border-secondary, #c7d2fe);
+          background: #333;
+          border: 1px solid #555;
           border-radius: 8px;
           margin-bottom: 0.75rem;
           font-size: 0.8125rem;
-          color: var(--cl-accent-primary, #4f46e5);
+          color: #ffffff;
         }
 
         .search-mode-indicator svg {
@@ -609,7 +610,7 @@ export function CodeLabComposer({
           background: none;
           border: none;
           font-size: 1.25rem;
-          color: #1e3a5f;
+          color: #ffffff;
           cursor: pointer;
           padding: 0;
           line-height: 1;
@@ -620,8 +621,8 @@ export function CodeLabComposer({
           flex-direction: column;
           gap: 0.5rem;
           padding: 0.75rem 1rem;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: #000000;
+          border: 1px solid #444;
           border-radius: 12px;
           transition:
             border-color 0.2s,
@@ -629,8 +630,8 @@ export function CodeLabComposer({
         }
 
         .composer-container:focus-within {
-          border-color: #1e3a5f;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+          border-color: #666;
+          box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
         }
 
         .composer-input {
@@ -639,7 +640,7 @@ export function CodeLabComposer({
           background: transparent;
           font-size: 0.9375rem;
           line-height: 1.5;
-          color: #1a1f36;
+          color: #ffffff;
           resize: none;
           outline: none;
           min-height: 60px;
@@ -647,11 +648,11 @@ export function CodeLabComposer({
         }
 
         .composer-input::placeholder {
-          color: #9ca3af;
+          color: #888;
         }
 
         .composer-input:disabled {
-          color: #9ca3af;
+          color: #666;
         }
 
         .composer-actions {
@@ -660,7 +661,7 @@ export function CodeLabComposer({
           justify-content: flex-end;
           gap: 0.5rem;
           padding-top: 0.25rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid #333;
         }
 
         .composer-btn {
@@ -673,13 +674,13 @@ export function CodeLabComposer({
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          color: #4b5563;
+          color: #888;
           transition: all 0.2s;
         }
 
         .composer-btn:hover:not(:disabled) {
-          background: #e5e7eb;
-          color: #374151;
+          background: #333;
+          color: #ffffff;
         }
 
         .composer-btn:disabled {
@@ -693,24 +694,24 @@ export function CodeLabComposer({
         }
 
         .composer-btn.search.active {
-          background: var(--cl-info-bg, #eef2ff);
-          color: var(--cl-accent-primary, #1e3a5f);
+          background: #333;
+          color: #ffffff;
         }
 
         .composer-btn.send {
-          background: #1a1f36;
-          color: white;
+          background: #ffffff;
+          color: #000000;
           padding: 0.5rem 0.75rem;
         }
 
         .composer-btn.send:hover:not(:disabled) {
-          background: #2d3348;
-          color: white;
+          background: #e5e5e5;
+          color: #000000;
         }
 
         .composer-btn.send:disabled {
-          background: #e5e7eb;
-          color: #9ca3af;
+          background: #333;
+          color: #666;
         }
 
         .composer-btn.stop {
@@ -732,11 +733,11 @@ export function CodeLabComposer({
           gap: 0.5rem;
           margin-top: 0.5rem;
           font-size: 0.75rem;
-          color: #6b7280;
+          color: #888;
         }
 
         .separator {
-          color: #d1d5db;
+          color: #555;
         }
 
         /* Mobile responsive styles */

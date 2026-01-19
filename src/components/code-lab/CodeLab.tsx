@@ -1735,11 +1735,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           display: flex;
           height: 100vh;
           height: 100dvh; /* Dynamic viewport height for mobile */
-          background: var(--cl-bg-primary);
-          color: var(--cl-text-primary);
+          width: 100%;
+          max-width: 100vw;
+          background: #1a1a1a;
+          color: #ffffff;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           position: relative;
           overflow: hidden;
+          box-sizing: border-box;
         }
 
         .code-lab-main {
@@ -1747,9 +1750,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           display: flex;
           flex-direction: column;
           min-width: 0;
-          background: var(--cl-bg-secondary);
+          max-width: 100%;
+          background: #1a1a1a;
           position: relative;
           z-index: 1;
+          overflow-x: hidden;
         }
 
         /* Mobile backdrop */
@@ -1842,8 +1847,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             padding: 0.75rem 1rem;
             padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
             min-height: 56px;
-            background: var(--cl-bg-primary);
-            border-bottom: 1px solid var(--cl-border-primary);
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
             flex-shrink: 0;
             width: 100%;
             box-sizing: border-box;
@@ -1859,7 +1864,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: var(--cl-text-secondary);
+            color: #888;
             border-radius: 8px;
             -webkit-tap-highlight-color: transparent;
             flex-shrink: 0;
@@ -1867,7 +1872,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
           .mobile-menu-btn:hover,
           .mobile-menu-btn:active {
-            background: var(--cl-bg-hover);
+            background: #333;
+            color: #ffffff;
           }
 
           .mobile-menu-btn svg {
@@ -1877,7 +1883,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
           .mobile-title {
             font-weight: 600;
-            color: var(--cl-text-primary);
+            color: #ffffff;
             flex: 1;
             font-size: 0.9375rem;
             overflow: hidden;
@@ -1940,7 +1946,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           width: 64px;
           height: 64px;
           margin: 0 auto 1.5rem;
-          color: var(--cl-accent-primary);
+          color: #ffffff;
         }
 
         .code-lab-empty-icon svg {
@@ -1951,18 +1957,18 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .code-lab-empty h2 {
           font-size: 1.5rem;
           font-weight: 600;
-          color: var(--cl-text-primary);
+          color: #ffffff;
           margin: 0 0 0.5rem;
         }
 
         .code-lab-empty p {
-          color: var(--cl-text-tertiary);
+          color: #888;
           margin: 0 0 1.5rem;
         }
 
         .code-lab-empty-btn {
-          background: var(--cl-accent-primary);
-          color: white;
+          background: #ffffff;
+          color: #000000;
           border: none;
           padding: 0.75rem 1.5rem;
           min-height: 44px;
@@ -1974,7 +1980,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .code-lab-empty-btn:hover {
-          background: var(--cl-accent-secondary);
+          background: #e5e5e5;
         }
 
         /* Header actions */
@@ -1994,19 +2000,19 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          color: var(--cl-text-tertiary);
+          color: #888;
           border-radius: 8px;
           transition: all 0.2s;
         }
 
         .header-btn:hover {
-          background: var(--cl-bg-hover);
-          color: var(--cl-text-secondary);
+          background: #333;
+          color: #ffffff;
         }
 
         .header-btn.active {
-          background: var(--cl-accent-primary);
-          color: white;
+          background: #ffffff;
+          color: #000000;
         }
 
         .header-btn svg {
@@ -2039,8 +2045,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           width: 40%;
           min-width: 300px;
           max-width: 600px;
-          background: var(--cl-bg-primary);
-          border-left: 1px solid var(--cl-border-primary);
+          background: #1a1a1a;
+          border-left: 1px solid #333;
           display: flex;
           flex-direction: column;
           animation: slideIn 0.2s ease;
@@ -2059,9 +2065,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
         .workspace-tabs {
           display: flex;
-          border-bottom: 1px solid var(--cl-border-primary);
+          border-bottom: 1px solid #333;
           padding: 0 0.5rem;
-          background: var(--cl-bg-secondary);
+          background: #222;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
@@ -2079,7 +2085,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           min-height: 44px;
           font-size: 0.8125rem;
           font-weight: 500;
-          color: var(--cl-text-tertiary);
+          color: #888;
           cursor: pointer;
           border-bottom: 2px solid transparent;
           margin-bottom: -1px;
@@ -2089,12 +2095,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .workspace-tabs button:hover {
-          color: var(--cl-text-secondary);
+          color: #ffffff;
         }
 
         .workspace-tabs button.active {
-          color: var(--cl-accent-primary);
-          border-bottom-color: var(--cl-accent-primary);
+          color: #ffffff;
+          border-bottom-color: #ffffff;
         }
 
         .workspace-content {
@@ -2107,8 +2113,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           display: flex;
           gap: 0.5rem;
           padding: 0.75rem 1rem;
-          border-top: 1px solid var(--cl-border-primary);
-          background: var(--cl-bg-secondary);
+          border-top: 1px solid #333;
+          background: #222;
         }
 
         .git-btn {
@@ -2119,9 +2125,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           gap: 0.5rem;
           padding: 0.625rem 1rem;
           min-height: 44px;
-          border: 1px solid var(--cl-border-primary);
+          border: 1px solid #333;
           border-radius: 8px;
-          background: var(--cl-bg-primary);
+          background: #1a1a1a;
           font-size: 0.8125rem;
           font-weight: 500;
           cursor: pointer;
@@ -2134,21 +2140,21 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .git-btn.pull {
-          color: var(--cl-info);
+          color: #3b82f6;
         }
 
         .git-btn.pull:hover {
-          background: color-mix(in srgb, var(--cl-info) 10%, var(--cl-bg-primary));
-          border-color: var(--cl-info);
+          background: rgba(59, 130, 246, 0.15);
+          border-color: #3b82f6;
         }
 
         .git-btn.push {
-          color: var(--cl-success);
+          color: #22c55e;
         }
 
         .git-btn.push:hover {
-          background: color-mix(in srgb, var(--cl-success) 10%, var(--cl-bg-primary));
-          border-color: var(--cl-success);
+          background: rgba(34, 197, 94, 0.15);
+          border-color: #22c55e;
         }
 
         /* Diff list */
@@ -2161,7 +2167,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .diff-empty {
           text-align: center;
           padding: 2rem 1rem;
-          color: var(--cl-text-tertiary);
+          color: #888;
         }
 
         .diff-empty p {
@@ -2170,7 +2176,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
         .diff-empty .hint {
           font-size: 0.8125rem;
-          color: var(--cl-text-muted);
+          color: #666;
         }
 
         /* Tasks panel (Background Agents - Claude Code Ctrl+B parity) */
@@ -2185,7 +2191,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           justify-content: space-between;
           align-items: center;
           padding-bottom: 1rem;
-          border-bottom: 1px solid var(--cl-border-primary);
+          border-bottom: 1px solid #333;
           margin-bottom: 1rem;
         }
 
@@ -2193,17 +2199,18 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           margin: 0;
           font-size: 1rem;
           font-weight: 600;
+          color: #ffffff;
         }
 
         .tasks-hint {
           font-size: 0.75rem;
-          color: var(--cl-text-muted);
+          color: #666;
         }
 
         .tasks-empty {
           text-align: center;
           padding: 2rem 1rem;
-          color: var(--cl-text-tertiary);
+          color: #888;
         }
 
         .tasks-empty p {
@@ -2212,7 +2219,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
         .tasks-empty .hint {
           font-size: 0.8125rem;
-          color: var(--cl-text-muted);
+          color: #666;
           line-height: 1.5;
         }
 
@@ -2224,22 +2231,22 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
         .task-item {
           padding: 0.75rem 1rem;
-          background: var(--cl-bg-secondary);
-          border: 1px solid var(--cl-border-primary);
+          background: #222;
+          border: 1px solid #333;
           border-radius: 8px;
         }
 
         .task-item.running {
-          border-color: var(--cl-accent-primary);
-          background: var(--cl-accent-bg);
+          border-color: #ffffff;
+          background: rgba(255, 255, 255, 0.1);
         }
 
         .task-item.completed {
-          border-color: var(--cl-success);
+          border-color: #22c55e;
         }
 
         .task-item.failed {
-          border-color: var(--cl-error);
+          border-color: #ef4444;
         }
 
         .task-header {
@@ -2251,50 +2258,51 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .task-name {
           font-weight: 500;
           font-size: 0.875rem;
+          color: #ffffff;
         }
 
         .task-status {
           font-size: 0.75rem;
           padding: 0.125rem 0.5rem;
           border-radius: 4px;
-          background: var(--cl-bg-tertiary);
+          background: #333;
         }
 
         .task-status.running {
-          color: var(--cl-accent-primary);
+          color: #ffffff;
         }
 
         .task-status.completed {
-          color: var(--cl-success);
+          color: #22c55e;
         }
 
         .task-status.failed {
-          color: var(--cl-error);
+          color: #ef4444;
         }
 
         .task-time {
           font-size: 0.75rem;
-          color: var(--cl-text-muted);
+          color: #666;
           margin-top: 0.25rem;
         }
 
         .task-output {
           margin-top: 0.5rem;
           padding: 0.5rem;
-          background: var(--cl-bg-code);
+          background: #0d0d0d;
           border-radius: 4px;
           font-size: 0.75rem;
           font-family: monospace;
           overflow-x: auto;
           max-height: 100px;
-          color: var(--cl-text-secondary);
+          color: #aaa;
         }
 
         /* Plan empty state */
         .plan-empty {
           text-align: center;
           padding: 2rem 1rem;
-          color: var(--cl-text-tertiary);
+          color: #888;
         }
 
         .plan-empty-icon {

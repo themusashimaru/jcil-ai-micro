@@ -19,8 +19,29 @@
 .code-lab-container {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
+  max-width: 100vw;
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Mobile viewport fix - prevent oversized content */
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .code-lab-container,
+  .code-lab,
+  .code-lab-main {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
 }
 
 /* ============================================
@@ -30,8 +51,8 @@
 .code-lab-sidebar {
   display: flex;
   flex-direction: column;
-  background: var(--cl-bg-secondary);
-  border-right: 1px solid var(--cl-border-primary);
+  background: #1a1a1a;
+  border-right: 1px solid #333;
   transition:
     width 0.25s ease,
     min-width 0.25s ease;
@@ -43,7 +64,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--cl-border-primary);
+  border-bottom: 1px solid #333;
 }
 
 .sidebar-logo {
@@ -52,13 +73,13 @@
   gap: 8px;
   font-weight: 600;
   font-size: 15px;
-  color: var(--cl-text-primary);
+  color: #ffffff;
 }
 
 .sidebar-logo svg {
   width: 20px;
   height: 20px;
-  color: var(--cl-accent-primary);
+  color: #ffffff;
 }
 
 /* Clean toggle button */
@@ -71,14 +92,14 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--cl-text-tertiary);
+  color: #888;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .sidebar-toggle:hover {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-primary);
+  background: #333;
+  color: #ffffff;
 }
 
 /* New Session Button - Clean, prominent */
@@ -89,10 +110,10 @@
   gap: 8px;
   margin: 12px;
   padding: 12px;
-  background: var(--cl-accent-primary);
-  border: none;
+  background: #000000;
+  border: 1px solid #444;
   border-radius: 8px;
-  color: var(--cl-bg-primary);
+  color: #ffffff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -100,8 +121,8 @@
 }
 
 .new-session-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  background: #333;
+  border-color: #555;
 }
 
 /* Section Headers */
@@ -110,7 +131,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  color: var(--cl-text-muted);
+  color: #888;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -127,7 +148,7 @@
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: var(--cl-text-secondary);
+  color: #aaa;
   font-size: 14px;
   text-align: left;
   cursor: pointer;
@@ -136,25 +157,25 @@
 }
 
 .session-item:hover {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-primary);
+  background: #333;
+  color: #ffffff;
 }
 
 .session-item.active {
-  background: var(--cl-accent-bg);
-  color: var(--cl-accent-primary);
+  background: #2a2a2a;
+  color: #ffffff;
 }
 
 .session-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--cl-text-muted);
+  background: #666;
   flex-shrink: 0;
 }
 
 .session-item.active .session-dot {
-  background: var(--cl-accent-primary);
+  background: #ffffff;
 }
 
 /* ============================================
@@ -165,8 +186,8 @@
 .workspace-tabs {
   display: flex;
   gap: 0;
-  background: var(--cl-bg-tertiary);
-  border-bottom: 1px solid var(--cl-border-primary);
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -182,7 +203,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--cl-text-tertiary);
+  color: #888;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -191,13 +212,13 @@
 }
 
 .workspace-tabs button:hover {
-  color: var(--cl-text-primary);
-  background: var(--cl-bg-hover);
+  color: #ffffff;
+  background: #333;
 }
 
 .workspace-tabs button.active {
-  color: var(--cl-accent-primary);
-  border-bottom-color: var(--cl-accent-primary);
+  color: #ffffff;
+  border-bottom-color: #ffffff;
 }
 
 /* Files Panel Header */
@@ -206,13 +227,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px;
-  border-bottom: 1px solid var(--cl-border-primary);
+  border-bottom: 1px solid #333;
 }
 
 .files-title {
   font-weight: 600;
   font-size: 14px;
-  color: var(--cl-text-primary);
+  color: #ffffff;
 }
 
 .files-actions {
@@ -229,14 +250,14 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--cl-text-tertiary);
+  color: #888;
   cursor: pointer;
   transition: all 0.1s ease;
 }
 
 .files-action-btn:hover {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-primary);
+  background: #333;
+  color: #ffffff;
 }
 
 /* File Search */
@@ -245,22 +266,22 @@
   padding: 8px 12px;
   margin: 8px 12px;
   width: calc(100% - 24px);
-  background: var(--cl-bg-tertiary);
-  border: 1px solid var(--cl-border-primary);
+  background: #222;
+  border: 1px solid #333;
   border-radius: 6px;
-  color: var(--cl-text-primary);
+  color: #ffffff;
   font-size: 13px;
   outline: none;
   transition: all 0.1s ease;
 }
 
 .files-search:focus {
-  border-color: var(--cl-accent-primary);
-  box-shadow: 0 0 0 3px var(--cl-accent-bg);
+  border-color: #555;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .files-search::placeholder {
-  color: var(--cl-text-muted);
+  color: #666;
 }
 
 /* Empty State */
@@ -269,7 +290,7 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: var(--cl-text-muted);
+  color: #888;
   font-size: 14px;
 }
 
@@ -280,20 +301,20 @@
   gap: 8px;
   padding: 6px 12px;
   border-radius: 4px;
-  color: var(--cl-text-secondary);
+  color: #aaa;
   cursor: pointer;
   transition: all 0.1s ease;
   font-size: 13px;
 }
 
 .file-tree-item:hover {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-primary);
+  background: #333;
+  color: #ffffff;
 }
 
 .file-tree-item.selected {
-  background: var(--cl-accent-bg);
-  color: var(--cl-accent-primary);
+  background: #2a2a2a;
+  color: #ffffff;
 }
 
 /* ============================================
@@ -314,10 +335,10 @@
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  background: var(--cl-bg-secondary);
-  border: 1px solid var(--cl-border-primary);
+  background: #000000;
+  border: 1px solid #444;
   border-radius: 9999px;
-  color: var(--cl-text-primary);
+  color: #ffffff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -325,8 +346,8 @@
 }
 
 .quick-action-btn:hover {
-  background: var(--cl-bg-hover);
-  border-color: var(--cl-border-secondary);
+  background: #333;
+  border-color: #555;
   transform: translateY(-1px);
 }
 
@@ -339,15 +360,15 @@
   align-items: flex-end;
   gap: 8px;
   padding: 12px;
-  background: var(--cl-bg-secondary);
-  border: 1px solid var(--cl-border-primary);
+  background: #000000;
+  border: 1px solid #444;
   border-radius: 12px;
   transition: all 0.15s ease;
 }
 
 .composer-box:focus-within {
-  border-color: var(--cl-accent-primary);
-  box-shadow: 0 0 0 3px var(--cl-accent-bg);
+  border-color: #666;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .composer-textarea {
@@ -357,7 +378,7 @@
   padding: 6px;
   background: transparent;
   border: none;
-  color: var(--cl-text-primary);
+  color: #ffffff;
   font-size: 15px;
   line-height: 1.5;
   resize: none;
@@ -365,7 +386,7 @@
 }
 
 .composer-textarea::placeholder {
-  color: var(--cl-text-muted);
+  color: #888;
 }
 
 .composer-btn {
@@ -377,28 +398,28 @@
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: var(--cl-text-tertiary);
+  color: #888;
   cursor: pointer;
   transition: all 0.1s ease;
 }
 
 .composer-btn:hover {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-primary);
+  background: #333;
+  color: #ffffff;
 }
 
 .composer-btn.send {
-  background: var(--cl-accent-primary);
-  color: var(--cl-bg-primary);
+  background: #ffffff;
+  color: #000000;
 }
 
 .composer-btn.send:hover {
-  opacity: 0.9;
+  background: #e5e5e5;
 }
 
 .composer-btn.send:disabled {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-muted);
+  background: #333;
+  color: #666;
   cursor: not-allowed;
 }
 
@@ -412,8 +433,8 @@
   justify-content: space-between;
   height: 26px;
   padding: 0 12px;
-  background: var(--cl-bg-tertiary);
-  border-top: 1px solid var(--cl-border-primary);
+  background: #1a1a1a;
+  border-top: 1px solid #333;
   font-size: 11px;
   user-select: none;
 }
@@ -426,7 +447,7 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--cl-text-tertiary);
+  color: #888;
   cursor: default;
   transition: all 0.1s ease;
 }
@@ -436,8 +457,8 @@
 }
 
 .status-item.clickable:hover {
-  background: var(--cl-bg-hover);
-  color: var(--cl-text-primary);
+  background: #333;
+  color: #ffffff;
 }
 
 .status-dot {
@@ -447,15 +468,15 @@
 }
 
 .status-dot.success {
-  background: var(--cl-success);
+  background: #22c55e;
 }
 
 .status-dot.warning {
-  background: var(--cl-warning);
+  background: #f59e0b;
 }
 
 .status-dot.error {
-  background: var(--cl-error);
+  background: #ef4444;
 }
 
 /* ============================================
@@ -472,18 +493,18 @@
 }
 
 .code-lab-container ::-webkit-scrollbar-thumb {
-  background: var(--cl-border-secondary);
+  background: #444;
   border-radius: 4px;
 }
 
 .code-lab-container ::-webkit-scrollbar-thumb:hover {
-  background: var(--cl-text-muted);
+  background: #666;
 }
 
 /* Firefox */
 .code-lab-container * {
   scrollbar-width: thin;
-  scrollbar-color: var(--cl-border-secondary) transparent;
+  scrollbar-color: #444 transparent;
 }
 
 /* ============================================
@@ -523,6 +544,25 @@
  * ============================================ */
 
 @media (max-width: 768px) {
+  /* Prevent viewport overflow on mobile */
+  html,
+  body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Code Lab root container */
+  .code-lab,
+  .code-lab-main,
+  .code-lab-content,
+  .code-lab-container {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   .workspace-tabs button {
     padding: 8px 10px;
     font-size: 12px;
@@ -544,5 +584,47 @@
 
   .composer-box {
     border-radius: 16px;
+  }
+
+  /* Ensure thread messages don't overflow */
+  .thread-messages {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Code blocks should scroll horizontally */
+  .code-block,
+  .terminal-block {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  /* User messages should not overflow */
+  .message-user,
+  .message-assistant {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .code-lab,
+  .code-lab-main {
+    font-size: 14px;
+  }
+
+  .thread-header h1 {
+    font-size: 0.9rem;
+  }
+
+  .thread-messages {
+    padding: 0.75rem;
+  }
+
+  .code-lab-composer {
+    padding: 0.75rem;
   }
 }
