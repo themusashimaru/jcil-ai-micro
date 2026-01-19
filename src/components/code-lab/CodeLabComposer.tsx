@@ -6,13 +6,12 @@
  * Professional input area for the Code Lab:
  * - File attachments (images, PDFs, documents)
  * - Search toggle for Perplexity web search
- * - Voice input with Whisper transcription
  * - Auto-expanding textarea
  * - Keyboard shortcuts
+ * - Image paste and drag-drop
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { CodeLabSlashAutocomplete } from './CodeLabSlashAutocomplete';
 
 // Attachment type
@@ -59,29 +58,6 @@ export function CodeLabComposer({
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Voice input - with comfortable settings for natural speech
-  const {
-    isRecording,
-    isProcessing,
-    audioLevel,
-    isSupported: voiceSupported,
-    toggleRecording,
-    cancelRecording,
-    duration: recordingDuration,
-  } = useVoiceInput({
-    onTranscript: (text) => {
-      // Append transcribed text to current content
-      setContent((prev) => (prev ? `${prev} ${text}` : text));
-      // Focus the textarea after transcription
-      textareaRef.current?.focus();
-    },
-    onError: (error) => {
-      console.error('[Voice Input] Error:', error);
-    },
-    silenceTimeout: 4000, // Stop after 4s of silence (comfortable pause)
-    maxDuration: 120000, // 2 minute max recording
-  });
 
   // Auto-resize textarea
   useEffect(() => {
@@ -383,29 +359,6 @@ export function CodeLabComposer({
         </div>
       )}
 
-      {/* Recording indicator */}
-      {(isRecording || isProcessing) && (
-        <div
-          className={`recording-indicator ${isRecording ? 'active' : 'processing'}`}
-          role="status"
-          aria-live="polite"
-          aria-label={
-            isProcessing
-              ? 'Transcribing voice input'
-              : `Recording voice input: ${recordingDuration} seconds`
-          }
-        >
-          <div className="recording-dot" aria-hidden="true" />
-          <span>{isProcessing ? 'Transcribing...' : `Recording... ${recordingDuration}s`}</span>
-          {isRecording && (
-            <div className="audio-level" style={{ width: `${audioLevel}%` }} aria-hidden="true" />
-          )}
-          <button onClick={cancelRecording} aria-label="Cancel voice recording">
-            ×
-          </button>
-        </div>
-      )}
-
       <div className="composer-container">
         <textarea
           ref={textareaRef}
@@ -476,59 +429,6 @@ export function CodeLabComposer({
               />
             </svg>
           </button>
-
-          {/* Voice input button */}
-          {voiceSupported && (
-            <button
-              className={`composer-btn voice ${isRecording ? 'recording' : ''} ${isProcessing ? 'processing' : ''}`}
-              onClick={isRecording ? cancelRecording : toggleRecording}
-              disabled={disabled || isStreaming || isProcessing}
-              title={
-                isRecording ? 'Stop recording' : isProcessing ? 'Processing...' : 'Voice input'
-              }
-              aria-label={
-                isRecording
-                  ? 'Stop voice recording'
-                  : isProcessing
-                    ? 'Processing voice input'
-                    : 'Start voice input'
-              }
-              aria-pressed={isRecording}
-              style={
-                isRecording
-                  ? ({ '--audio-level': `${audioLevel}%` } as React.CSSProperties)
-                  : undefined
-              }
-            >
-              {isProcessing ? (
-                <svg
-                  className="spinner"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                  />
-                </svg>
-              ) : isRecording ? (
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="6" width="12" height="12" rx="2" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-                  />
-                </svg>
-              )}
-            </button>
-          )}
 
           {/* Send/Stop button */}
           {isStreaming ? (
@@ -715,76 +615,6 @@ export function CodeLabComposer({
           line-height: 1;
         }
 
-        .recording-indicator {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 8px;
-          margin-bottom: 0.75rem;
-          font-size: 0.8125rem;
-          color: #dc2626;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .recording-indicator.processing {
-          background: #f0fdf4;
-          border-color: #bbf7d0;
-          color: #16a34a;
-        }
-
-        .recording-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #dc2626;
-          animation: pulse 1s ease-in-out infinite;
-        }
-
-        .recording-indicator.processing .recording-dot {
-          background: #16a34a;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.5;
-            transform: scale(0.8);
-          }
-        }
-
-        .audio-level {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #dc2626, #f87171);
-          transition: width 0.1s ease-out;
-        }
-
-        .recording-indicator span {
-          flex: 1;
-        }
-
-        .recording-indicator button {
-          background: none;
-          border: none;
-          font-size: 1.25rem;
-          color: currentColor;
-          cursor: pointer;
-          padding: 0;
-          line-height: 1;
-          z-index: 1;
-        }
-
         .composer-container {
           display: flex;
           flex-direction: column;
@@ -865,65 +695,6 @@ export function CodeLabComposer({
         .composer-btn.search.active {
           background: #eef2ff;
           color: #1e3a5f;
-        }
-
-        .composer-btn.voice {
-          position: relative;
-        }
-
-        .composer-btn.voice.recording {
-          background: #dc2626;
-          color: white;
-          animation: voice-pulse 1.5s ease-in-out infinite;
-        }
-
-        .composer-btn.voice.recording::before {
-          content: '';
-          position: absolute;
-          inset: -4px;
-          border-radius: 12px;
-          border: 2px solid #dc2626;
-          opacity: 0.3;
-          animation: voice-ring 1.5s ease-out infinite;
-        }
-
-        @keyframes voice-pulse {
-          0%,
-          100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
-        }
-
-        @keyframes voice-ring {
-          0% {
-            transform: scale(0.8);
-            opacity: 0.5;
-          }
-          100% {
-            transform: scale(1.2);
-            opacity: 0;
-          }
-        }
-
-        .composer-btn.voice.processing {
-          background: #f3f4f6;
-          color: #16a34a;
-        }
-
-        .composer-btn.voice .spinner {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
         }
 
         .composer-btn.send {
