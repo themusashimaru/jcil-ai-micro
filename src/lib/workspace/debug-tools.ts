@@ -537,7 +537,7 @@ function formatEvaluationResult(
  * Check if a tool name is a debug tool
  */
 export function isDebugTool(toolName: string): boolean {
-  return toolName.startsWith('debug_');
+  return toolName.startsWith('debug_') || toolName.startsWith('cognitive_');
 }
 
 /**
@@ -545,4 +545,576 @@ export function isDebugTool(toolName: string): boolean {
  */
 export function getActiveDebugSession(workspaceId: string): string | undefined {
   return workspaceDebugSessions.get(workspaceId);
+}
+
+// ============================================================================
+// ADVANCED COGNITIVE DEBUGGING TOOLS
+// ============================================================================
+
+import { getCognitiveDebugger } from '@/lib/cognitive-debugger';
+import type { DebugLanguage as CognitiveDebugLanguage } from '@/lib/cognitive-debugger/types';
+
+// Track cognitive debug sessions
+const workspaceCognitiveSessions = new Map<string, string>();
+
+/**
+ * Cognitive debugging tools - AI-powered predictive analysis
+ */
+export function getCognitiveDebugTools(): Anthropic.Tool[] {
+  return [
+    {
+      name: 'cognitive_analyze',
+      description: `Advanced AI-powered code analysis that thinks like a senior engineer. Predicts runtime issues, security vulnerabilities, performance bottlenecks, logic errors, and more BEFORE code runs. Returns prioritized recommendations with fixes.`,
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          code: {
+            type: 'string',
+            description: 'The code to analyze',
+          },
+          language: {
+            type: 'string',
+            enum: [
+              'javascript',
+              'typescript',
+              'python',
+              'go',
+              'rust',
+              'java',
+              'kotlin',
+              'swift',
+              'c',
+              'cpp',
+              'csharp',
+              'ruby',
+              'php',
+            ],
+            description: 'Programming language of the code',
+          },
+          userIntent: {
+            type: 'string',
+            description:
+              'What the user is trying to achieve with this code (optional but recommended)',
+          },
+          focusAreas: {
+            type: 'array',
+            items: {
+              type: 'string',
+              enum: [
+                'security',
+                'performance',
+                'logic',
+                'architecture',
+                'maintainability',
+                'testability',
+                'reliability',
+              ],
+            },
+            description: 'Specific areas to focus the analysis on (optional)',
+          },
+        },
+        required: ['code', 'language'],
+      },
+    },
+    {
+      name: 'cognitive_predict',
+      description: `Quick prediction of potential issues in code. Use this for real-time feedback as the user is coding. Faster than full analysis but still catches major issues.`,
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          code: {
+            type: 'string',
+            description: 'The code to analyze',
+          },
+          language: {
+            type: 'string',
+            enum: [
+              'javascript',
+              'typescript',
+              'python',
+              'go',
+              'rust',
+              'java',
+              'kotlin',
+              'swift',
+              'c',
+              'cpp',
+              'csharp',
+              'ruby',
+              'php',
+            ],
+            description: 'Programming language of the code',
+          },
+          cursorLine: {
+            type: 'number',
+            description: 'Current cursor line (optional - focuses analysis around this area)',
+          },
+        },
+        required: ['code', 'language'],
+      },
+    },
+    {
+      name: 'cognitive_explain',
+      description: `Get a senior engineer-level explanation of what code does, how it executes, and what could go wrong. Great for understanding complex code or debugging issues.`,
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          code: {
+            type: 'string',
+            description: 'The code to explain',
+          },
+          language: {
+            type: 'string',
+            enum: [
+              'javascript',
+              'typescript',
+              'python',
+              'go',
+              'rust',
+              'java',
+              'kotlin',
+              'swift',
+              'c',
+              'cpp',
+              'csharp',
+              'ruby',
+              'php',
+            ],
+            description: 'Programming language of the code',
+          },
+          question: {
+            type: 'string',
+            description: 'Specific question about the code (optional)',
+          },
+        },
+        required: ['code', 'language'],
+      },
+    },
+    {
+      name: 'cognitive_intent_analysis',
+      description: `Map user intent to potential failure points. Describe what you want to achieve, and get a detailed analysis of all the ways it could fail with mitigations.`,
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          code: {
+            type: 'string',
+            description: 'The code to analyze',
+          },
+          language: {
+            type: 'string',
+            enum: [
+              'javascript',
+              'typescript',
+              'python',
+              'go',
+              'rust',
+              'java',
+              'kotlin',
+              'swift',
+              'c',
+              'cpp',
+              'csharp',
+              'ruby',
+              'php',
+            ],
+            description: 'Programming language of the code',
+          },
+          intent: {
+            type: 'string',
+            description:
+              'What you are trying to achieve (e.g., "process user payments securely", "handle file uploads without memory issues")',
+          },
+        },
+        required: ['code', 'language', 'intent'],
+      },
+    },
+    {
+      name: 'cognitive_visualize',
+      description: `Generate visual diagrams of code flow, execution paths, and data transformations. Returns Mermaid diagrams and ASCII art.`,
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          code: {
+            type: 'string',
+            description: 'The code to visualize',
+          },
+          language: {
+            type: 'string',
+            enum: [
+              'javascript',
+              'typescript',
+              'python',
+              'go',
+              'rust',
+              'java',
+              'kotlin',
+              'swift',
+              'c',
+              'cpp',
+              'csharp',
+              'ruby',
+              'php',
+            ],
+            description: 'Programming language of the code',
+          },
+        },
+        required: ['code', 'language'],
+      },
+    },
+  ];
+}
+
+/**
+ * Execute a cognitive debug tool
+ */
+export async function executeCognitiveDebugTool(
+  toolName: string,
+  input: Record<string, unknown>,
+  workspaceId: string,
+  userId: string
+): Promise<string> {
+  const cognitiveDebugger = getCognitiveDebugger();
+
+  try {
+    // Get or create cognitive session
+    let sessionId = workspaceCognitiveSessions.get(workspaceId);
+    if (!sessionId) {
+      const session = cognitiveDebugger.startSession(workspaceId, userId);
+      sessionId = session.id;
+      workspaceCognitiveSessions.set(workspaceId, sessionId);
+    }
+
+    const code = input.code as string;
+    const language = input.language as CognitiveDebugLanguage;
+
+    switch (toolName) {
+      case 'cognitive_analyze': {
+        const result = await cognitiveDebugger.analyzeCode(sessionId, code, language, {
+          userIntent: input.userIntent as string | undefined,
+          focusAreas: input.focusAreas as
+            | ('security' | 'performance' | 'logic' | 'reliability')[]
+            | undefined,
+        });
+
+        return formatCognitiveAnalysis(result);
+      }
+
+      case 'cognitive_predict': {
+        const predictions = await cognitiveDebugger.quickPredict(
+          code,
+          language,
+          input.cursorLine ? { line: input.cursorLine as number, column: 0 } : undefined
+        );
+
+        return formatPredictions(predictions);
+      }
+
+      case 'cognitive_explain': {
+        const explanation = await cognitiveDebugger.explainCode(
+          code,
+          language,
+          input.question as string | undefined
+        );
+
+        return formatExplanation(explanation);
+      }
+
+      case 'cognitive_intent_analysis': {
+        const { IntentFailureMapper } = await import(
+          '@/lib/cognitive-debugger/intent-failure-mapper'
+        );
+        const mapper = new IntentFailureMapper();
+
+        const parsedIntent = await mapper.parseIntent(input.intent as string);
+        const result = await cognitiveDebugger.analyzeWithIntent(
+          sessionId,
+          code,
+          language,
+          parsedIntent
+        );
+
+        return formatIntentAnalysis(result);
+      }
+
+      case 'cognitive_visualize': {
+        const visualization = await cognitiveDebugger.visualizeCodeFlow(sessionId, code, language);
+
+        return formatVisualization(visualization);
+      }
+
+      default:
+        return `Unknown cognitive debug tool: ${toolName}`;
+    }
+  } catch (error) {
+    log.error('Cognitive debug tool error', { toolName, error });
+    return `Cognitive debug error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  }
+}
+
+// ============================================================================
+// COGNITIVE DEBUG FORMATTING HELPERS
+// ============================================================================
+
+function formatCognitiveAnalysis(result: {
+  predictions: Array<{
+    type: string;
+    description: string;
+    location: { line: number };
+    severity: string;
+    confidence: string;
+  }>;
+  patterns: Array<{ pattern: { name: string; description: string }; location: { line: number } }>;
+  multiDimensional?: {
+    overallScore: number;
+    security: { score: number };
+    performance: { score: number };
+    logic: { score: number };
+  };
+  recommendations: Array<{ title: string; description: string; priority: string }>;
+  fixes: Array<{ location: { line: number }; newCode: string; explanation: string }>;
+}): string {
+  const lines: string[] = ['# Cognitive Analysis Report', ''];
+
+  // Overall scores
+  if (result.multiDimensional) {
+    lines.push('## Overall Scores');
+    lines.push(`- **Overall:** ${result.multiDimensional.overallScore}/100`);
+    lines.push(`- Security: ${result.multiDimensional.security.score}/100`);
+    lines.push(`- Performance: ${result.multiDimensional.performance.score}/100`);
+    lines.push(`- Logic: ${result.multiDimensional.logic.score}/100`);
+    lines.push('');
+  }
+
+  // Predictions
+  if (result.predictions.length > 0) {
+    lines.push('## Predicted Issues');
+    for (const pred of result.predictions.slice(0, 10)) {
+      const icon = pred.severity === 'critical' ? '🔴' : pred.severity === 'high' ? '🟠' : '🟡';
+      lines.push(`${icon} **Line ${pred.location.line}** [${pred.type}]: ${pred.description}`);
+      lines.push(`   Severity: ${pred.severity}, Confidence: ${pred.confidence}`);
+    }
+    lines.push('');
+  }
+
+  // Patterns
+  if (result.patterns.length > 0) {
+    lines.push('## Known Bug Patterns Detected');
+    for (const pattern of result.patterns.slice(0, 5)) {
+      lines.push(`- **${pattern.pattern.name}** (Line ${pattern.location.line})`);
+      lines.push(`  ${pattern.pattern.description}`);
+    }
+    lines.push('');
+  }
+
+  // Recommendations
+  if (result.recommendations.length > 0) {
+    lines.push('## Prioritized Recommendations');
+    for (let i = 0; i < Math.min(result.recommendations.length, 5); i++) {
+      const rec = result.recommendations[i];
+      const priority = rec.priority === 'critical' ? '🚨' : rec.priority === 'high' ? '⚠️' : '💡';
+      lines.push(`${i + 1}. ${priority} **${rec.title}** [${rec.priority}]`);
+      lines.push(`   ${rec.description}`);
+    }
+    lines.push('');
+  }
+
+  // Fixes
+  if (result.fixes.length > 0) {
+    lines.push('## Suggested Fixes');
+    for (const fix of result.fixes.slice(0, 3)) {
+      lines.push(`- **Line ${fix.location.line}**: ${fix.explanation}`);
+      if (fix.newCode) {
+        lines.push('  ```');
+        lines.push(`  ${fix.newCode.slice(0, 200)}${fix.newCode.length > 200 ? '...' : ''}`);
+        lines.push('  ```');
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function formatPredictions(
+  predictions: Array<{
+    type: string;
+    description: string;
+    location: { line: number };
+    severity: string;
+    probability: number;
+    preventionStrategy: string;
+  }>
+): string {
+  if (predictions.length === 0) {
+    return '✅ No issues predicted! Code looks good.';
+  }
+
+  const lines: string[] = ['# Quick Predictions', ''];
+
+  for (const pred of predictions) {
+    const icon =
+      pred.severity === 'critical'
+        ? '🔴'
+        : pred.severity === 'high'
+          ? '🟠'
+          : pred.severity === 'medium'
+            ? '🟡'
+            : '🔵';
+    const probability = Math.round(pred.probability * 100);
+
+    lines.push(`${icon} **Line ${pred.location.line}** - ${pred.type} (${probability}% likely)`);
+    lines.push(`   ${pred.description}`);
+    lines.push(`   💡 Prevention: ${pred.preventionStrategy}`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function formatExplanation(explanation: {
+  explanation: string;
+  executionFlow: string;
+  dataTransformations: string;
+  potentialIssues: string[];
+  suggestions: string[];
+}): string {
+  const lines: string[] = ['# Code Explanation', ''];
+
+  lines.push('## What This Code Does');
+  lines.push(explanation.explanation);
+  lines.push('');
+
+  if (explanation.executionFlow) {
+    lines.push('## Execution Flow');
+    lines.push(explanation.executionFlow);
+    lines.push('');
+  }
+
+  if (explanation.dataTransformations) {
+    lines.push('## Data Transformations');
+    lines.push(explanation.dataTransformations);
+    lines.push('');
+  }
+
+  if (explanation.potentialIssues.length > 0) {
+    lines.push('## Potential Issues');
+    for (const issue of explanation.potentialIssues) {
+      lines.push(`- ⚠️ ${issue}`);
+    }
+    lines.push('');
+  }
+
+  if (explanation.suggestions.length > 0) {
+    lines.push('## Suggestions');
+    for (const suggestion of explanation.suggestions) {
+      lines.push(`- 💡 ${suggestion}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function formatIntentAnalysis(result: {
+  intent: { description: string; goals: string[] };
+  possibleFailures: Array<{
+    description: string;
+    severity: string;
+    likelihood: number;
+    mitigations: Array<{ strategy: string }>;
+  }>;
+  criticalPaths: Array<{ steps: Array<{ description: string }> }>;
+  assumptionRisks: Array<{ assumption: string; validity: string; consequence: string }>;
+  edgeCases: Array<{ description: string; handled: boolean }>;
+  successProbability: number;
+}): string {
+  const lines: string[] = ['# Intent-to-Failure Analysis', ''];
+
+  lines.push('## Your Intent');
+  lines.push(`**Goal:** ${result.intent.description}`);
+  lines.push('');
+  lines.push(`**Success Probability:** ${Math.round(result.successProbability * 100)}%`);
+  lines.push('');
+
+  if (result.possibleFailures.length > 0) {
+    lines.push('## Possible Failures');
+    for (const failure of result.possibleFailures.slice(0, 5)) {
+      const likelihood = Math.round(failure.likelihood * 100);
+      lines.push(`- **${failure.description}** (${failure.severity}, ${likelihood}% likely)`);
+      if (failure.mitigations.length > 0) {
+        lines.push(`  - Mitigation: ${failure.mitigations[0].strategy}`);
+      }
+    }
+    lines.push('');
+  }
+
+  if (result.assumptionRisks.length > 0) {
+    lines.push('## Risky Assumptions');
+    for (const risk of result.assumptionRisks.filter((r) => r.validity !== 'valid')) {
+      const icon = risk.validity === 'invalid' ? '🔴' : '🟡';
+      lines.push(`${icon} **Assumption:** ${risk.assumption}`);
+      lines.push(`   **If wrong:** ${risk.consequence}`);
+    }
+    lines.push('');
+  }
+
+  if (result.edgeCases.length > 0) {
+    lines.push('## Edge Cases to Test');
+    for (const edge of result.edgeCases) {
+      const status = edge.handled ? '✅' : '❌';
+      lines.push(`${status} ${edge.description}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function formatVisualization(visualization: {
+  mermaid: string;
+  ascii: string;
+  hotspots: Array<{ line: number; severity: string; reason: string }>;
+}): string {
+  const lines: string[] = ['# Code Flow Visualization', ''];
+
+  lines.push('## ASCII Visualization');
+  lines.push('```');
+  lines.push(visualization.ascii);
+  lines.push('```');
+  lines.push('');
+
+  if (visualization.hotspots.length > 0) {
+    lines.push('## Hotspots (High-Risk Areas)');
+    for (const hotspot of visualization.hotspots) {
+      const icon = hotspot.severity === 'high' ? '🔴' : hotspot.severity === 'medium' ? '🟠' : '🟡';
+      lines.push(`${icon} **Line ${hotspot.line}**: ${hotspot.reason}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## Mermaid Diagram');
+  lines.push('```mermaid');
+  lines.push(visualization.mermaid);
+  lines.push('```');
+
+  return lines.join('\n');
+}
+
+/**
+ * Get all debug tools (standard + cognitive)
+ */
+export function getAllDebugTools(): Anthropic.Tool[] {
+  return [...getDebugTools(), ...getCognitiveDebugTools()];
+}
+
+/**
+ * Execute any debug tool (standard or cognitive)
+ */
+export async function executeAnyDebugTool(
+  toolName: string,
+  input: Record<string, unknown>,
+  workspaceId: string,
+  userId: string
+): Promise<string> {
+  if (toolName.startsWith('cognitive_')) {
+    return executeCognitiveDebugTool(toolName, input, workspaceId, userId);
+  }
+  return executeDebugTool(toolName, input, workspaceId, userId);
 }

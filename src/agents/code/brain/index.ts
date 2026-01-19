@@ -34,19 +34,8 @@ export { CodeGenerator, codeGenerator } from './CodeGenerator';
 export { ErrorAnalyzer, errorAnalyzer } from './ErrorAnalyzer';
 
 // Advanced reasoning
-export {
-  Reasoner,
-  reasoner,
-  ChainOfThought,
-  TreeOfThought,
-  SelfReflector,
-} from './Reasoner';
-export type {
-  ThoughtNode,
-  ReasoningPath,
-  ReasoningResult,
-  SelfReflection,
-} from './Reasoner';
+export { Reasoner, reasoner, ChainOfThought, TreeOfThought, SelfReflector } from './Reasoner';
+export type { ThoughtNode, ReasoningPath, ReasoningResult, SelfReflection } from './Reasoner';
 
 // Codebase understanding
 export { CodebaseAnalyzer, codebaseAnalyzer } from './CodebaseAnalyzer';
@@ -78,27 +67,15 @@ export type {
 
 // Testing
 export { TestGenerator, testGenerator } from './TestGenerator';
-export type {
-  TestSuite,
-  TestCase,
-  TestGenerationResult,
-  MockDefinition,
-} from './TestGenerator';
+export type { TestSuite, TestCase, TestGenerationResult, MockDefinition } from './TestGenerator';
 
 // Auto-fixing
 export { AutoFixer, autoFixer } from './AutoFixer';
-export type {
-  CodeIssue,
-  Fix,
-  FixResult,
-} from './AutoFixer';
+export type { CodeIssue, Fix, FixResult } from './AutoFixer';
 
 // Documentation
 export { DocGenerator, docGenerator } from './DocGenerator';
-export type {
-  DocumentationResult,
-  DocConfig,
-} from './DocGenerator';
+export type { DocumentationResult, DocConfig } from './DocGenerator';
 
 // Memory & Learning
 export { MemorySystem, memorySystem } from './MemorySystem';
@@ -109,3 +86,82 @@ export type {
   LearnedPattern,
   ContextMemory,
 } from './MemorySystem';
+
+// ============================================================================
+// ADVANCED COGNITIVE DEBUGGING
+// ============================================================================
+// The most advanced debugging system - thinks like a senior engineer
+
+// Core cognitive debugger
+export { CognitiveDebugger, getCognitiveDebugger } from '@/lib/cognitive-debugger';
+
+// Specialized analyzers
+export { PredictiveAnalyzer } from '@/lib/cognitive-debugger/predictive-analyzer';
+export { IntentFailureMapper } from '@/lib/cognitive-debugger/intent-failure-mapper';
+export { DeepExecutionTracer } from '@/lib/cognitive-debugger/deep-execution-tracer';
+export { PatternRecognizer } from '@/lib/cognitive-debugger/pattern-recognizer';
+export { MultiDimensionalAnalyzer } from '@/lib/cognitive-debugger/multi-dimensional-analyzer';
+export { CognitiveReasoningEngine } from '@/lib/cognitive-debugger/cognitive-reasoning-engine';
+export { CodeFlowVisualizer } from '@/lib/cognitive-debugger/code-flow-visualizer';
+export { UniversalDebugger } from '@/lib/cognitive-debugger/universal-debugger';
+
+// Types
+export type {
+  // Core types
+  DebugLanguage,
+  Severity,
+  Confidence,
+  SourceLocation,
+  CodeContext,
+
+  // Predictive analysis
+  PredictedIssue,
+  PredictiveAnalysisResult,
+  CodeHotspot,
+
+  // Intent mapping
+  UserIntent,
+  IntentFailureMap,
+  FailurePoint,
+  CriticalPath,
+  AssumptionRisk,
+  EdgeCase,
+  Mitigation,
+
+  // Execution tracing
+  ExecutionPath,
+  ExecutionStep,
+  Variable,
+  SideEffect,
+  DataFlowPath,
+
+  // Pattern recognition
+  BugPattern,
+  PatternMatch,
+
+  // Multi-dimensional analysis
+  MultiDimensionalReport,
+  SecurityAnalysis,
+  PerformanceAnalysis,
+  LogicAnalysis,
+  ArchitectureAnalysis,
+  MaintainabilityAnalysis,
+  TestabilityAnalysis,
+  ReliabilityAnalysis,
+  PrioritizedAction,
+
+  // Cognitive reasoning
+  CognitiveAnalysis,
+  ReasoningChain,
+  Hypothesis,
+  Conclusion,
+  MentalModel,
+  Recommendation,
+
+  // Code fixes
+  CodeFix,
+
+  // Session
+  CognitiveDebugSession,
+  CognitiveDebugEvent,
+} from '@/lib/cognitive-debugger/types';
