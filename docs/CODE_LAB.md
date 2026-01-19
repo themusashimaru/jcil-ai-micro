@@ -2,8 +2,8 @@
 
 > JCIL.AI Code Lab — Beyond Claude Code: The Ultimate AI-Powered IDE
 
-**Last Updated:** 2026-01-18
-**Version:** 3.0.0
+**Last Updated:** 2026-01-19
+**Version:** 3.1.0 (Container-Based Debugging)
 
 ---
 
@@ -79,11 +79,32 @@ type PairMode = 'active' | 'passive' | 'off';
 
 ### Visual Debugging
 
-Full debugging experience in the browser.
+Full debugging experience in the browser with **real debugging inside E2B containers**.
 
 ```typescript
-// src/components/code-lab/CodeLabDebugger.tsx
+// src/lib/debugger/container-debug-adapter.ts
 
+// Real debugging inside E2B containers
+export class ContainerDebugAdapter extends EventEmitter {
+  // Node.js debugging via Chrome DevTools Protocol (CDP)
+  private cdpClients: Map<string, CDPClient> = new Map();
+
+  // Python debugging via Debug Adapter Protocol (DAP)
+  private dapClients: Map<string, DAPClient> = new Map();
+
+  // Automatic debug server bootstrapping in containers
+  async startNodeDebugServer(sessionId: string, sandbox: Sandbox): Promise<void> {
+    // Starts node --inspect inside E2B container
+    // Tunnels debug port via sandbox.getHost()
+  }
+
+  async startPythonDebugServer(sessionId: string, sandbox: Sandbox): Promise<void> {
+    // Installs debugpy, starts debug server
+    // Connects via DAP protocol
+  }
+}
+
+// src/components/code-lab/CodeLabDebugger.tsx
 interface DebugSession {
   state: 'idle' | 'running' | 'paused' | 'stopped';
   currentFrame?: StackFrame;
@@ -92,27 +113,25 @@ interface DebugSession {
   variables: Variable[];
   watches: WatchExpression[];
 }
-
-// Variable inspection with tree view
-interface Variable {
-  name: string;
-  value: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function';
-  expandable?: boolean;
-  children?: Variable[];
-  scope: 'local' | 'closure' | 'global';
-  changed?: boolean;
-}
 ```
+
+**Architecture:**
+
+| Environment | Debug Mode      | Protocol | Description                     |
+| ----------- | --------------- | -------- | ------------------------------- |
+| Development | Local Debugging | CDP/DAP  | Direct connection for speed     |
+| Production  | Container Debug | CDP/DAP  | E2B sandbox with port tunneling |
 
 **Features:**
 
+- **Container-Based Debugging** - Real `node --inspect` and `debugpy` in E2B
 - Step controls (over, into, out, continue)
 - Breakpoint management (line, conditional, logpoint, exception)
 - Variable inspection with expandable tree view
 - Watch expressions
 - Call stack visualization
 - AI-powered debug analysis ("Ask Claude to analyze")
+- **Automatic environment detection** - Uses containers in production
 
 ---
 

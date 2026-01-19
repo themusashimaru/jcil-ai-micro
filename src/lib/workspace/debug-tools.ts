@@ -11,21 +11,11 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { DebugManager, DebugSessionInfo } from '@/lib/debugger/debug-manager';
+import { DebugSessionInfo, getDebugManager } from '@/lib/debugger/debug-manager';
 import { DebugConfiguration, Source } from '@/lib/debugger/debug-adapter';
 import { logger } from '@/lib/logger';
 
 const log = logger('DebugTools');
-
-// Singleton debug manager instance
-let debugManagerInstance: DebugManager | null = null;
-
-function getDebugManager(): DebugManager {
-  if (!debugManagerInstance) {
-    debugManagerInstance = new DebugManager();
-  }
-  return debugManagerInstance;
-}
 
 // Track active debug sessions per workspace
 const workspaceDebugSessions = new Map<string, string>();
