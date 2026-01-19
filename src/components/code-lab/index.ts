@@ -28,6 +28,7 @@ export { CodeLabThemeToggle } from './CodeLabThemeToggle';
 // Workspace components
 export { CodeLabWorkspacePanel } from './CodeLabWorkspacePanel';
 export { CodeLabTerminal } from './CodeLabTerminal';
+export { XTermTerminal, useXTermTerminal } from './XTermTerminal';
 export { CodeLabToolDisplay } from './CodeLabToolDisplay';
 export { CodeLabFileBrowser } from './CodeLabFileBrowser';
 export { CodeLabDiffView } from './CodeLabDiffView';
