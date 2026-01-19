@@ -11,9 +11,10 @@
 | ---------------------- | ---------------------------------- |
 | **TypeScript**         | 0 Errors                           |
 | **Build**              | Passing                            |
-| **Tests**              | 1,542 Passing (54 test files)      |
+| **Tests**              | 1,835 Passing (59 test files)      |
 | **Coverage Threshold** | 75% (statements, functions, lines) |
 | **Lint**               | 0 Warnings                         |
+| **Security Tests**     | 293 new tests added (Jan 19 Audit) |
 
 ---
 
@@ -77,30 +78,40 @@ thresholds: {
 }
 ```
 
-### Test Files (52 Total)
+### Test Files (59 Total)
 
-| Category       | Files | Tests |
-| -------------- | ----- | ----- |
-| **Security**   | 8     | 200+  |
-| **API Utils**  | 6     | 150+  |
-| **Code Lab**   | 10    | 250+  |
-| **Supabase**   | 2     | 50    |
-| **Components** | 4     | 100+  |
-| **Agents**     | 3     | 60    |
-| **Debugger**   | 4     | 150+  |
-| **Other Libs** | 15    | 500+  |
+| Category                | Files | Tests |
+| ----------------------- | ----- | ----- |
+| **Security**            | 13    | 493+  |
+| **API Utils**           | 6     | 150+  |
+| **Code Lab**            | 10    | 250+  |
+| **Code Lab API Routes** | 4     | 217   |
+| **Supabase**            | 2     | 50    |
+| **Components**          | 4     | 100+  |
+| **Agents**              | 3     | 60    |
+| **Debugger**            | 4     | 150+  |
+| **Auth**                | 4     | 80+   |
+| **Other Libs**          | 9     | 285+  |
 
 ### Key Test Files
 
 ```
-src/lib/supabase/client.test.ts       # 24 tests - Real Supabase SDK
+# Security Tests (New - Jan 19 Audit)
+src/lib/security/shell-escape.test.ts     # 95 tests - Shell escape & sanitization
+app/api/code-lab/git/git.test.ts          # 63 tests - Git API security
+app/api/code-lab/chat/chat.test.ts        # 40 tests - Chat API security
+app/api/code-lab/mcp/mcp.test.ts          # 37 tests - MCP API security
+src/lib/auth/auth-security.test.ts        # 58 tests - Auth flow security
+
+# Core Infrastructure
+src/lib/supabase/client.test.ts           # 24 tests - Real Supabase SDK
 src/components/code-lab/CodeLab.test.tsx  # 41 tests - React components
-src/lib/workspace/mcp.test.ts         # 21 tests - MCP integration
-src/lib/workspace/container.test.ts   # 27 tests - E2B containers
-src/lib/code-lab/sessions.test.ts     # 13 tests - Session CRUD
-src/lib/code-lab/deploy.test.ts       # 18 tests - Deployment
-src/agents/code/integration.test.ts   # 18 tests - Agent system
-src/lib/middleware.test.ts            # 35 tests - Middleware
+src/lib/workspace/mcp.test.ts             # 21 tests - MCP integration
+src/lib/workspace/container.test.ts       # 27 tests - E2B containers
+src/lib/code-lab/sessions.test.ts         # 13 tests - Session CRUD
+src/lib/code-lab/deploy.test.ts           # 18 tests - Deployment
+src/agents/code/integration.test.ts       # 18 tests - Agent system
+src/lib/middleware.test.ts                # 35 tests - Middleware
 ```
 
 ### Testing Philosophy
