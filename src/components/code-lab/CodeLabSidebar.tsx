@@ -1165,17 +1165,31 @@ export function CodeLabSidebar({
             position: fixed;
             top: 0;
             left: 0;
+            bottom: 0;
             height: 100vh;
+            height: 100dvh;
+            width: 280px;
+            min-width: 280px;
+            max-width: 85vw;
             z-index: 45;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
             transform: translateX(0);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            /* Safe area for notched devices */
+            padding-top: env(safe-area-inset-top, 0);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            padding-left: env(safe-area-inset-left, 0);
           }
 
           .code-lab-sidebar.collapsed {
             transform: translateX(-100%);
-            width: 280px;
-            min-width: 280px;
+            box-shadow: none;
+          }
+
+          .sidebar-header {
+            padding-top: max(1rem, env(safe-area-inset-top, 1rem));
           }
 
           .sidebar-changes {
@@ -1199,13 +1213,34 @@ export function CodeLabSidebar({
             opacity: 1;
           }
 
+          .sidebar-footer {
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+          }
+
           .repo-dropdown {
             position: fixed;
             left: 1rem;
             right: 1rem;
             top: auto;
             bottom: 1rem;
+            bottom: calc(1rem + env(safe-area-inset-bottom, 0));
             max-height: 60vh;
+            z-index: 110;
+          }
+
+          /* Improve touch targets on mobile */
+          .session-item {
+            min-height: 52px;
+            padding: 0.75rem;
+          }
+
+          .new-session-btn {
+            min-height: 48px;
+          }
+
+          .sidebar-toggle {
+            min-width: 44px;
+            min-height: 44px;
           }
         }
       `}</style>

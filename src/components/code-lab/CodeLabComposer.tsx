@@ -739,13 +739,12 @@ export function CodeLabComposer({
           color: #d1d5db;
         }
 
-        @media (max-width: 640px) {
-          .composer-hint {
-            display: none;
-          }
-
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
           .code-lab-composer {
-            padding: 0.75rem 1rem 1rem;
+            padding: 0.75rem 1rem;
+            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+            flex-shrink: 0;
           }
 
           .composer-container {
@@ -755,24 +754,64 @@ export function CodeLabComposer({
 
           .composer-input {
             font-size: 16px; /* Prevents zoom on iOS */
+            min-height: 44px;
+          }
+
+          .composer-btn {
+            min-width: 44px;
+            min-height: 44px;
           }
 
           .composer-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
+          }
+
+          .composer-btn.send,
+          .composer-btn.stop {
+            padding: 0.625rem 1rem;
           }
 
           .attachment-previews {
             gap: 0.375rem;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.25rem;
+          }
+
+          .attachment-item {
+            flex-shrink: 0;
           }
 
           .attachment-name {
-            max-width: 80px;
+            max-width: 100px;
           }
 
           .search-mode-indicator {
             font-size: 0.75rem;
-            padding: 0.375rem 0.5rem;
+            padding: 0.5rem 0.625rem;
+          }
+
+          .composer-hint {
+            display: none;
+          }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+          .code-lab-composer {
+            padding: 0.5rem 0.75rem;
+            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
+          }
+
+          .composer-container {
+            padding: 0.5rem;
+            border-radius: 10px;
+          }
+
+          .attachment-name {
+            max-width: 80px;
           }
         }
       `}</style>
