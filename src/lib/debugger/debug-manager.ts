@@ -21,6 +21,7 @@ import {
   Thread,
   createDebugAdapter,
 } from './debug-adapter';
+import type { DebugLanguage } from './multi-language-adapters';
 import {
   ContainerDebugAdapter,
   ContainerDebugConfig,
@@ -37,7 +38,7 @@ const log = logger('DebugManager');
 
 export interface DebugSessionInfo {
   id: string;
-  type: 'node' | 'python';
+  type: DebugLanguage;
   state: 'idle' | 'running' | 'paused' | 'stopped';
   configuration: DebugConfiguration;
   startedAt: Date;

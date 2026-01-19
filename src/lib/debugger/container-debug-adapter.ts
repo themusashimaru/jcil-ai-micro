@@ -28,7 +28,8 @@ import { ContainerManager } from '@/lib/workspace/container';
 import { CDPClient } from './cdp-client';
 import { DAPClient, DAPSource } from './dap-client';
 import { logger } from '@/lib/logger';
-import { DebugLanguage, LANGUAGE_CONFIGS, LanguageDebugConfig } from './multi-language-adapters';
+import { LANGUAGE_CONFIGS } from './multi-language-adapters';
+import type { DebugLanguage, LanguageDebugConfig } from './multi-language-adapters';
 
 const log = logger('ContainerDebugAdapter');
 
@@ -224,8 +225,12 @@ export class ContainerDebugAdapter extends EventEmitter {
         cwd,
         envs: config.env,
         timeoutMs: 120000,
-        onStdout: (data) => this.emit('output', { sessionId, category: 'stdout', output: data }),
-        onStderr: (data) => this.emit('output', { sessionId, category: 'stderr', output: data }),
+        onStdout: (data) => {
+          this.emit('output', { sessionId, category: 'stdout', output: data });
+        },
+        onStderr: (data) => {
+          this.emit('output', { sessionId, category: 'stderr', output: data });
+        },
       });
 
       if (compileResult.exitCode !== 0) {
@@ -418,74 +423,6 @@ export class ContainerDebugAdapter extends EventEmitter {
   }
 
   /**
-   * Start Node.js debug server in container (legacy method for backwards compatibility)
-   */
-  private async startNodeDebugServer(
-    sessionId: string,
-    sandbox: Sandbox,
-    config: ContainerDebugConfig
-  ): Promise<void> {
-    const langConfig = LANGUAGE_CONFIGS['node'];
-    await this.startDebugServer(sessionId, sandbox, config, langConfig);
-  }
-
-  /**
-   * Connect to Node.js inspector in container
-   */
-  private async connectNodeDebugger(sessionId: string, sandbox: Sandbox): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-
-    try {
-      // Get the host URL for the debug port
-      const hostUrl = sandbox.getHost(9229);
-      session.debugUrl = `http://${hostUrl}`;
-
-      log.info('Connecting to Node.js debugger', { url: session.debugUrl });
-
-      // Create CDP client
-      const cdp = new CDPClient();
-      this.cdpClients.set(sessionId, cdp);
-
-      // Set up CDP event handlers
-      this.setupCDPEventHandlers(sessionId, cdp);
-
-      // Connect via E2B's exposed port
-      // E2B provides HTTP access, so we need to fetch the WebSocket URL from /json
-      const jsonUrl = `http://${hostUrl}/json`;
-      const response = await fetch(jsonUrl);
-      const targets = await response.json();
-
-      if (targets && targets.length > 0) {
-        // The webSocketDebuggerUrl needs to be adjusted for E2B access
-        let wsUrl = targets[0].webSocketDebuggerUrl;
-
-        // Replace localhost with E2B's host
-        if (wsUrl) {
-          wsUrl = wsUrl.replace('127.0.0.1:9229', hostUrl).replace('localhost:9229', hostUrl);
-          wsUrl = wsUrl.replace('ws://', 'wss://'); // E2B uses HTTPS
-        }
-
-        log.info('Connecting to debugger WebSocket', { wsUrl });
-
-        // Connect CDP client directly to WebSocket URL
-        await cdp.connect(hostUrl.split(':')[0], parseInt(hostUrl.split(':')[1] || '9229'));
-      }
-
-      session.state = 'running';
-      this.emit('connected', { sessionId });
-    } catch (error) {
-      log.error('Failed to connect to Node.js debugger', error as Error);
-      session.state = 'error';
-      this.emit('output', {
-        sessionId,
-        category: 'stderr',
-        output: `Failed to connect to debugger: ${(error as Error).message}`,
-      });
-    }
-  }
-
-  /**
    * Set up CDP event handlers
    */
   private setupCDPEventHandlers(sessionId: string, cdp: CDPClient): void {
@@ -550,109 +487,6 @@ export class ContainerDebugAdapter extends EventEmitter {
       session.state = 'stopped';
       this.emit('terminated', { sessionId });
     });
-  }
-
-  /**
-   * Start Python debug server in container
-   */
-  private async startPythonDebugServer(
-    sessionId: string,
-    sandbox: Sandbox,
-    config: ContainerDebugConfig
-  ): Promise<void> {
-    const session = this.sessions.get(sessionId)!;
-
-    // Install debugpy if not present
-    await sandbox.commands.run(
-      'pip install debugpy 2>/dev/null || pip3 install debugpy 2>/dev/null',
-      {
-        timeoutMs: 60000,
-      }
-    );
-
-    const cwd = config.cwd || '/workspace';
-    const args = config.args?.join(' ') || '';
-    const waitFlag = config.stopOnEntry ? '--wait-for-client' : '';
-
-    // Start Python with debugpy
-    const command = `cd ${cwd} && python3 -m debugpy --listen 0.0.0.0:5678 ${waitFlag} ${config.program} ${args}`;
-
-    log.info('Starting Python debug server', { command });
-
-    // Run the debug command
-    sandbox.commands
-      .run(command, {
-        cwd,
-        envs: config.env,
-        timeoutMs: 600000,
-        onStdout: (data) => {
-          this.emit('output', { sessionId, category: 'stdout', output: data });
-        },
-        onStderr: (data) => {
-          this.emit('output', { sessionId, category: 'stderr', output: data });
-        },
-      })
-      .then((result) => {
-        session.state = 'stopped';
-        this.emit('exited', { sessionId, exitCode: result.exitCode });
-        this.emit('terminated', { sessionId });
-      })
-      .catch((error) => {
-        log.error('Debug process error', error);
-        session.state = 'error';
-      });
-
-    // Wait for debugpy to start then connect
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    await this.connectPythonDebugger(sessionId, sandbox);
-  }
-
-  /**
-   * Connect to Python debugpy in container
-   */
-  private async connectPythonDebugger(sessionId: string, sandbox: Sandbox): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-
-    try {
-      // Get the host URL for the debug port
-      const hostUrl = sandbox.getHost(5678);
-      session.debugUrl = `tcp://${hostUrl}`;
-
-      log.info('Connecting to Python debugger', { url: session.debugUrl });
-
-      // Create DAP client
-      const dap = new DAPClient();
-      this.dapClients.set(sessionId, dap);
-
-      // Set up DAP event handlers
-      this.setupDAPEventHandlers(sessionId, dap);
-
-      // Connect via E2B's exposed port
-      const [host, portStr] = hostUrl.split(':');
-      const port = parseInt(portStr) || 5678;
-
-      await dap.connect(host, port);
-
-      // Launch the program
-      await dap.launch({
-        program: session.config.program,
-        args: session.config.args,
-        cwd: session.config.cwd || '/workspace',
-        stopOnEntry: session.config.stopOnEntry,
-      });
-
-      session.state = 'running';
-      this.emit('connected', { sessionId });
-    } catch (error) {
-      log.error('Failed to connect to Python debugger', error as Error);
-      session.state = 'error';
-      this.emit('output', {
-        sessionId,
-        category: 'stderr',
-        output: `Failed to connect to debugger: ${(error as Error).message}`,
-      });
-    }
   }
 
   /**

@@ -29,11 +29,11 @@ export {
 } from './debug-adapter';
 
 // Universal Multi-Language Debug Adapter (30+ languages)
+export type { DebugLanguage } from './debug-adapter';
 export {
   createUniversalDebugAdapter,
   getAllSupportedLanguages,
   createDebugAdapterForFile,
-  DebugLanguage,
   UniversalDebugAdapter,
   getSupportedLanguages,
   getLanguageConfig,

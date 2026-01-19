@@ -29,6 +29,9 @@ import {
   DAPSource,
 } from './dap-client';
 
+// Forward import for DebugLanguage type
+import type { DebugLanguage as DebugLanguageType } from './multi-language-adapters';
+
 const log = logger('DebugAdapter');
 
 // ============================================================================
@@ -36,7 +39,7 @@ const log = logger('DebugAdapter');
 // ============================================================================
 
 export interface DebugConfiguration {
-  type: 'node' | 'python';
+  type: 'node' | 'python' | DebugLanguageType;
   name: string;
   request: 'launch' | 'attach';
   program?: string;
@@ -1320,7 +1323,6 @@ export class PythonDebugAdapter extends DebugAdapter {
 // ============================================================================
 
 import {
-  DebugLanguage,
   UniversalDebugAdapter,
   getSupportedLanguages,
   getLanguageConfig,
@@ -1330,9 +1332,11 @@ import {
   LANGUAGE_CONFIGS,
 } from './multi-language-adapters';
 
+import type { DebugLanguage } from './multi-language-adapters';
+
 // Re-export multi-language types and utilities
+export type { DebugLanguage };
 export {
-  DebugLanguage,
   UniversalDebugAdapter,
   getSupportedLanguages,
   getLanguageConfig,
@@ -1344,15 +1348,18 @@ export {
 
 /**
  * Legacy factory for node/python (backwards compatibility)
+ * For other languages, use container debugging instead
  */
-export function createDebugAdapter(type: 'node' | 'python'): DebugAdapter {
+export function createDebugAdapter(type: DebugLanguage): DebugAdapter {
   switch (type) {
     case 'node':
       return new NodeDebugAdapter();
     case 'python':
       return new PythonDebugAdapter();
     default:
-      throw new Error(`Unsupported debug type: ${type}`);
+      throw new Error(
+        `Local debugging for '${type}' is not supported. Use container debugging for this language.`
+      );
   }
 }
 
