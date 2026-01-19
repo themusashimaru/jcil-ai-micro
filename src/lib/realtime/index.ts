@@ -6,20 +6,14 @@
  * - Presence tracking
  * - Live updates
  * - Debugger events
+ *
+ * NOTE: This index exports only CLIENT-SAFE modules.
+ * For server-only modules, import directly:
+ * - import { getWebSocketServer } from '@/lib/realtime/websocket-server'
+ * - import { getPresenceService } from '@/lib/realtime/presence-service'
  */
 
-// Server-side
-export {
-  CodeLabWebSocketServer,
-  getWebSocketServer,
-  initializeWebSocketServer,
-  type WebSocketClient,
-  type WebSocketMessage,
-  type PresenceInfo,
-  type MessageHandler,
-} from './websocket-server';
-
-// Client-side
+// Client-side hooks (safe to use in components)
 export {
   useWebSocket,
   usePresence,
@@ -28,3 +22,13 @@ export {
   type ConnectionState,
   type SessionMember,
 } from './useWebSocket';
+
+// Re-export types only (no runtime imports)
+export type {
+  WebSocketClient,
+  WebSocketMessage,
+  PresenceInfo,
+  MessageHandler,
+} from './websocket-server';
+
+export type { PresenceData, SessionPresence } from './presence-service';

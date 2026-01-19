@@ -17,7 +17,7 @@ import {
   Thread,
   createDebugAdapter,
 } from './debug-adapter';
-import { getWebSocketServer } from '@/lib/realtime';
+import { getWebSocketServer } from '@/lib/realtime/websocket-server';
 import { logger } from '@/lib/logger';
 
 const log = logger('DebugManager');
@@ -41,10 +41,13 @@ export interface DebugSessionInfo {
 // ============================================================================
 
 export class DebugManager extends EventEmitter {
-  private sessions: Map<string, {
-    adapter: DebugAdapter;
-    info: DebugSessionInfo;
-  }> = new Map();
+  private sessions: Map<
+    string,
+    {
+      adapter: DebugAdapter;
+      info: DebugSessionInfo;
+    }
+  > = new Map();
 
   /**
    * Start a new debug session
@@ -288,11 +291,7 @@ export class DebugManager extends EventEmitter {
   /**
    * Set up event forwarding to WebSocket
    */
-  private setupEventForwarding(
-    sessionId: string,
-    adapter: DebugAdapter,
-    userId: string
-  ): void {
+  private setupEventForwarding(sessionId: string, adapter: DebugAdapter, userId: string): void {
     const ws = getWebSocketServer();
 
     // Forward debug events to WebSocket clients
@@ -301,13 +300,13 @@ export class DebugManager extends EventEmitter {
         type: `debug:${event}`,
         payload: {
           sessionId,
-          ...data as object,
+          ...(data as object),
         },
         timestamp: Date.now(),
       });
 
       // Also emit on the manager for local listeners
-      this.emit(event, { sessionId, ...data as object });
+      this.emit(event, { sessionId, ...(data as object) });
     };
 
     adapter.on('initialized', () => {
