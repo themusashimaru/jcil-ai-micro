@@ -253,24 +253,40 @@ ask_user           Request clarification
 
 ---
 
-## Feature Comparison: Code Lab vs Claude Code
+## Claude Code Parity Status
 
-| Feature            | Claude Code (CLI) | JCIL Code Lab              |
-| ------------------ | ----------------- | -------------------------- |
-| Shell execution    | Local machine     | Cloud sandbox (E2B)        |
-| File operations    | Local filesystem  | Persistent cloud workspace |
-| Git integration    | Local git         | Full git + GitHub MCP      |
-| GitHub PRs         | Via gh CLI        | Native MCP integration     |
-| Planning mode      | Yes               | Yes                        |
-| MCP servers        | Local only        | 5 cloud-hosted servers     |
-| Hooks system       | Yes               | Yes                        |
-| Project memory     | Yes               | Yes                        |
-| Background tasks   | Yes               | Yes                        |
-| Browser automation | No                | Puppeteer MCP              |
-| Database queries   | No                | PostgreSQL MCP             |
-| One-click deploy   | No                | 4 platforms                |
-| Web-based          | No                | Yes                        |
-| Zero local setup   | No                | Yes                        |
+**Current Parity Score: ~85%** | **Target: 100%**
+
+### Feature Comparison: Code Lab vs Claude Code
+
+| Feature                      | Claude Code (CLI) | JCIL Code Lab       | Status     |
+| ---------------------------- | ----------------- | ------------------- | ---------- |
+| Shell execution              | Local machine     | Cloud sandbox (E2B) | ✅ Parity  |
+| File operations              | Local filesystem  | Cloud workspace     | ✅ Parity  |
+| Git integration              | Local git         | Full git + GitHub   | ✅ Parity  |
+| Planning mode                | Yes               | Yes                 | ✅ Parity  |
+| MCP servers                  | Local + remote    | 5 cloud-hosted      | ✅ Parity  |
+| Project memory (CLAUDE.md)   | Yes               | Yes                 | ✅ Parity  |
+| Background tasks             | Yes               | Yes                 | ✅ Parity  |
+| Extended thinking            | Yes               | Yes                 | ✅ Parity  |
+| Context compaction           | Yes               | Yes                 | ✅ Parity  |
+| LSP support                  | Yes               | Yes                 | ✅ Parity  |
+| **Event-driven hooks**       | Yes               | ❌ Not yet          | 🔴 Gap     |
+| **Custom slash commands**    | Yes               | ❌ Not yet          | 🔴 Gap     |
+| **Plugin system**            | Yes               | ❌ Not yet          | 🔴 Gap     |
+| **Subagent architecture**    | Yes               | Partial             | 🟡 Partial |
+| **Tool permission patterns** | Yes               | ❌ Not yet          | 🔴 Gap     |
+| **Session forking**          | Yes               | ❌ Not yet          | 🔴 Gap     |
+| **Rewind/checkpointing**     | Yes               | ❌ Not yet          | 🔴 Gap     |
+| Browser automation           | Via MCP           | Puppeteer MCP       | ✅ Parity  |
+| Database queries             | Via MCP           | PostgreSQL MCP      | ✅ Parity  |
+| One-click deploy             | No                | 4 platforms         | ✅ Beyond  |
+| Web-based                    | No                | Yes                 | ✅ Beyond  |
+| Zero local setup             | No                | Yes                 | ✅ Beyond  |
+
+### Parity Roadmap
+
+See [CLAUDE_CODE_PARITY.md](./CLAUDE_CODE_PARITY.md) for detailed tracking.
 
 ---
 
@@ -486,10 +502,10 @@ VERCEL_TOKEN=         # Vercel deployments
 
 ## Roadmap
 
-### Completed
+### Completed (Phase 1-15)
 
 - [x] Multi-agent architecture (Research, Code, Document, Memory)
-- [x] Code Lab with 55+ tools and full Claude Code parity
+- [x] Code Lab with 55+ tools
 - [x] 5 MCP servers (Filesystem, GitHub, Memory, Puppeteer, PostgreSQL)
 - [x] E2B sandboxed execution
 - [x] Multi-platform deployment (Vercel, Netlify, Railway, Cloudflare)
@@ -498,15 +514,28 @@ VERCEL_TOKEN=         # Vercel deployments
 - [x] Document generation (PDF, DOCX, XLSX)
 - [x] WebAuthn/Passkey authentication
 - [x] GDPR-compliant memory management
+- [x] LSP support (TypeScript, Python, Go)
+- [x] Real PTY terminal with xterm.js
+- [x] Extended thinking visualization
+- [x] Context compaction
+- [x] Session management with history
 
-### In Progress
+### In Progress (Phase 16: 100% Claude Code Parity)
+
+- [ ] **Event-driven hook system** (PreToolUse, PostToolUse, SessionStart, etc.)
+- [ ] **Custom slash commands** (`.claude/commands/` support)
+- [ ] **Subagent architecture** (spawnable specialized agents)
+- [ ] **Tool permission patterns** (glob-based allow/deny rules)
+- [ ] **Plugin system** (extensible marketplace)
+- [ ] **Session forking** (parallel workspaces)
+- [ ] **Rewind/checkpointing** (file change rollback)
+- [ ] **MCP scopes** (local, project, user configurations)
+
+### Planned (Phase 17+)
 
 - [ ] SOC 2 Type II certification
 - [ ] API access for developers
 - [ ] Team workspaces with RBAC
-
-### Planned
-
 - [ ] Additional MCP servers (Slack, Linear, Notion)
 - [ ] Enterprise SSO (SAML, OIDC)
 - [ ] VS Code extension
