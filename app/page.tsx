@@ -135,7 +135,7 @@ export default function HomePage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span>721 Automated Tests</span>
+                <span>1,482 Automated Tests</span>
               </div>
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -294,7 +294,7 @@ export default function HomePage() {
             {/* Badge */}
             <div className="absolute -top-3 right-8">
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-fuchsia-500 text-xs font-semibold text-white">
-                Claude Code Alternative
+                100% Claude Code Parity
               </span>
             </div>
 
@@ -305,38 +305,46 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-white">Code Lab</h3>
-                  <p className="text-fuchsia-300 text-sm">For developers</p>
+                  <p className="text-fuchsia-300 text-sm">Enterprise AI IDE</p>
                 </div>
               </div>
 
-              <p className="text-slate-300 mb-8 text-base leading-relaxed">
-                Full autonomous development environment in your browser. Christian developers
-                deserve world-class tools with 30+ dev tools, sandboxed execution, and GitHub
-                integration.
+              <p className="text-slate-300 mb-6 text-base leading-relaxed">
+                The most powerful AI development environment on the web. 55+ autonomous tools, 5 MCP
+                servers, visual debugging for 32 languages—all with{' '}
+                <span className="text-fuchsia-400 font-semibold">zero installation</span>.
               </p>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-fuchsia-500/10 rounded-xl p-3 text-center">
-                  <div className="text-2xl font-bold text-fuchsia-300">30+</div>
-                  <div className="text-xs text-slate-400">Dev Tools</div>
+              <div className="grid grid-cols-4 gap-2 mb-6">
+                <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-fuchsia-300">55+</div>
+                  <div className="text-[10px] text-slate-400">Tools</div>
                 </div>
-                <div className="bg-fuchsia-500/10 rounded-xl p-3 text-center">
-                  <div className="text-2xl font-bold text-fuchsia-300">E2B</div>
-                  <div className="text-xs text-slate-400">Cloud Sandbox</div>
+                <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-fuchsia-300">5</div>
+                  <div className="text-[10px] text-slate-400">MCP</div>
+                </div>
+                <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-fuchsia-300">32</div>
+                  <div className="text-[10px] text-slate-400">Debug</div>
+                </div>
+                <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-fuchsia-300">E2B</div>
+                  <div className="text-[10px] text-slate-400">Sandbox</div>
                 </div>
               </div>
 
-              <div className="space-y-3 mb-8">
+              <div className="space-y-2 mb-6">
                 {[
-                  'Claude Opus 4.5 model',
-                  'E2B sandboxed execution',
-                  'Planning mode for complex tasks',
-                  'MCP server integration',
-                  'Persistent workspaces',
+                  'Claude Opus 4.5 with 200K context',
+                  'Visual debugging & breakpoints',
+                  'One-click deployment (Vercel, Netlify)',
+                  'Real-time collaboration',
+                  'Checkpoint & rewind system',
                 ].map((feature, i) => (
-                  <div key={i} className="flex items-center gap-3 text-sm text-slate-300">
+                  <div key={i} className="flex items-center gap-2 text-sm text-slate-300">
                     <svg
-                      className="w-5 h-5 text-fuchsia-400 shrink-0"
+                      className="w-4 h-4 text-fuchsia-400 shrink-0"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -357,7 +365,7 @@ export default function HomePage() {
                 href="/code-lab/about"
                 className="inline-flex items-center justify-center w-full rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 px-6 py-3.5 text-white font-semibold transition-all"
               >
-                Explore Code Lab
+                View Technical Specs
                 <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"

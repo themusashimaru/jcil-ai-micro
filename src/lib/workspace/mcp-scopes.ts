@@ -1,13 +1,19 @@
 /**
  * MCP SCOPE PERMISSIONS
  *
- * Scope-based permission system for MCP servers and tools.
- * Supports global, workspace, and session scopes.
+ * Full Claude Code-compatible scope-based permission system for MCP servers.
  *
- * Claude Code Parity:
+ * Scope Hierarchy (highest to lowest priority):
+ * 1. managed  - Organization/enterprise managed settings (cannot be overridden)
+ * 2. user     - User-level settings (~/.claude/mcp.json)
+ * 3. project  - Project-level settings (.claude/mcp.json)
+ * 4. local    - Local/session-specific overrides
+ *
+ * Features:
  * - Allow/deny tool patterns per scope
  * - Auto-approve mode per server
- * - Hierarchical scope resolution (session > workspace > global)
+ * - Hierarchical scope resolution (managed > user > project > local)
+ * - Managed scope for enterprise control
  */
 
 import { logger } from '@/lib/logger';
@@ -19,7 +25,21 @@ const log = logger('MCPScopes');
 // TYPES
 // ============================================================================
 
-export type MCPScope = 'global' | 'workspace' | 'session';
+/**
+ * Full Claude Code scope hierarchy
+ * Priority: managed > user > project > local
+ */
+export type MCPScope = 'managed' | 'user' | 'project' | 'local';
+
+/**
+ * Legacy scope aliases for backwards compatibility
+ */
+export type LegacyMCPScope = 'global' | 'workspace' | 'session';
+
+/**
+ * Combined scope type for backwards compatibility
+ */
+export type MCPScopeAll = MCPScope | LegacyMCPScope;
 
 export interface MCPServerPermission {
   serverId: string;
@@ -28,12 +48,46 @@ export interface MCPServerPermission {
   allowedTools: string[];
   deniedTools: string[];
   autoApprove: boolean;
+  /** For managed scope: cannot be overridden by lower scopes */
+  locked?: boolean;
+  /** Source of the configuration */
+  source?: 'database' | 'file' | 'managed';
 }
 
 export interface MCPToolCheck {
   allowed: boolean;
   reason: string;
   scope?: MCPScope;
+  /** If true, this permission cannot be overridden */
+  locked?: boolean;
+}
+
+/**
+ * MCP server configuration from file (.claude/mcp.json)
+ */
+export interface MCPConfigFile {
+  servers?: Record<
+    string,
+    {
+      command: string;
+      args?: string[];
+      env?: Record<string, string>;
+      enabled?: boolean;
+      allowedTools?: string[];
+      deniedTools?: string[];
+      autoApprove?: boolean;
+    }
+  >;
+}
+
+/**
+ * Scope resolution context
+ */
+export interface MCPScopeContext {
+  userId: string;
+  sessionId?: string;
+  projectId?: string;
+  organizationId?: string;
 }
 
 // ============================================================================
@@ -85,50 +139,87 @@ export class MCPScopeManager {
     }
   }
 
+  /**
+   * Check if a tool is allowed using full Claude Code scope hierarchy.
+   *
+   * Priority: managed > user > project > local
+   * - managed: Organization-enforced settings (cannot be overridden)
+   * - user: User-level preferences (~/.claude/mcp.json)
+   * - project: Project settings (.claude/mcp.json)
+   * - local: Session-specific overrides
+   */
   checkTool(
     serverId: string,
     toolName: string,
-    sessionId?: string,
-    workspaceId?: string
+    context?: {
+      sessionId?: string;
+      projectId?: string;
+      organizationId?: string;
+    }
   ): MCPToolCheck {
+    const { sessionId, projectId, organizationId } = context || {};
+
+    // Full Claude Code scope hierarchy (highest to lowest priority)
     const scopes: Array<{ scope: MCPScope; scopeId?: string }> = [
-      { scope: 'session', scopeId: sessionId },
-      { scope: 'workspace', scopeId: workspaceId },
-      { scope: 'global' },
+      // Managed scope - organization/enterprise (highest priority)
+      { scope: 'managed', scopeId: organizationId },
+      // User scope - user-level settings
+      { scope: 'user', scopeId: this.userId },
+      // Project scope - project-level settings
+      { scope: 'project', scopeId: projectId },
+      // Local scope - session-specific (lowest priority)
+      { scope: 'local', scopeId: sessionId },
     ];
 
     for (const { scope, scopeId } of scopes) {
-      if (!scopeId && scope !== 'global') continue;
+      // Skip scopes without IDs (except user which uses userId)
+      if (!scopeId && scope !== 'user') continue;
 
       const key = this.getKey(serverId, scope, scopeId);
       const perm = this.permissions.get(key);
 
       if (!perm) continue;
 
+      // Check denied tools first
       if (this.matchesPattern(toolName, perm.deniedTools)) {
         return {
           allowed: false,
-          reason: 'Tool denied at ' + scope + ' scope',
+          reason: `Tool denied at ${scope} scope`,
           scope,
+          locked: perm.locked || scope === 'managed',
         };
       }
 
+      // Check allowed tools
       if (perm.allowedTools.length > 0) {
         if (this.matchesPattern(toolName, perm.allowedTools)) {
           return {
             allowed: true,
-            reason: 'Tool allowed at ' + scope + ' scope',
+            reason: `Tool allowed at ${scope} scope`,
             scope,
+            locked: perm.locked || scope === 'managed',
+          };
+        }
+        // If allowed list exists but doesn't match, continue to next scope
+        // unless this is a managed scope with locked setting
+        if (perm.locked || scope === 'managed') {
+          return {
+            allowed: false,
+            reason: `Tool not in managed allowlist at ${scope} scope`,
+            scope,
+            locked: true,
           };
         }
         continue;
       }
 
+      // Check auto-approve
       if (perm.autoApprove) {
         return {
           allowed: true,
-          reason: 'Auto-approved at ' + scope + ' scope',
+          reason: `Auto-approved at ${scope} scope`,
           scope,
+          locked: perm.locked || scope === 'managed',
         };
       }
     }
@@ -137,6 +228,21 @@ export class MCPScopeManager {
       allowed: false,
       reason: 'No permission configured - requires confirmation',
     };
+  }
+
+  /**
+   * Legacy method for backwards compatibility
+   */
+  checkToolLegacy(
+    serverId: string,
+    toolName: string,
+    sessionId?: string,
+    workspaceId?: string
+  ): MCPToolCheck {
+    return this.checkTool(serverId, toolName, {
+      sessionId,
+      projectId: workspaceId,
+    });
   }
 
   private matchesPattern(toolName: string, patterns: string[]): boolean {
@@ -260,15 +366,16 @@ export function getMCPScopeTools(): Array<{
     },
     {
       name: 'mcp_scope_set',
-      description: 'Set permissions for an MCP server at a specific scope.',
+      description:
+        'Set permissions for an MCP server at a specific scope. Scopes: managed (org-enforced), user, project, local.',
       input_schema: {
         type: 'object' as const,
         properties: {
           server_id: { type: 'string', description: 'MCP server ID' },
           scope: {
             type: 'string',
-            enum: ['global', 'workspace', 'session'],
-            description: 'Permission scope',
+            enum: ['managed', 'user', 'project', 'local'],
+            description: 'Permission scope. Priority: managed > user > project > local',
           },
           allowed_tools: {
             type: 'array',
@@ -284,13 +391,17 @@ export function getMCPScopeTools(): Array<{
             type: 'boolean',
             description: 'Auto-approve all tools not explicitly denied',
           },
+          locked: {
+            type: 'boolean',
+            description: 'Lock this permission (cannot be overridden by lower scopes)',
+          },
         },
         required: ['server_id', 'scope'],
       },
     },
     {
       name: 'mcp_scope_check',
-      description: 'Check if a specific MCP tool is allowed.',
+      description: 'Check if a specific MCP tool is allowed using full scope hierarchy.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -309,12 +420,17 @@ export function getMCPScopeTools(): Array<{
           server_id: { type: 'string', description: 'MCP server ID' },
           scope: {
             type: 'string',
-            enum: ['global', 'workspace', 'session'],
+            enum: ['managed', 'user', 'project', 'local'],
             description: 'Permission scope to delete',
           },
         },
         required: ['server_id', 'scope'],
       },
+    },
+    {
+      name: 'mcp_scope_hierarchy',
+      description: 'Show the MCP scope hierarchy and explain priority resolution.',
+      input_schema: { type: 'object' as const, properties: {}, required: [] },
     },
   ];
 }
@@ -330,6 +446,7 @@ export async function executeMCPScopeTool(
     userId: string;
     sessionId: string;
     workspaceId: string;
+    organizationId?: string;
   }
 ): Promise<string> {
   const manager = getMCPScopeManager(context.userId);
@@ -342,19 +459,45 @@ export async function executeMCPScopeTool(
         return 'No MCP permissions configured. All tools require confirmation by default.';
       }
 
-      const lines = ['**MCP Permissions:**\n'];
-      for (const perm of permissions) {
-        const scopeInfo = perm.scopeId ? perm.scope + ': ' + perm.scopeId : perm.scope;
-        lines.push('**' + perm.serverId + '** (' + scopeInfo + ')');
+      // Group by scope for better display
+      const byScope: Record<MCPScope, MCPServerPermission[]> = {
+        managed: [],
+        user: [],
+        project: [],
+        local: [],
+      };
 
-        if (perm.allowedTools.length > 0) {
-          lines.push('  ✓ Allowed: ' + perm.allowedTools.join(', '));
+      for (const perm of permissions) {
+        byScope[perm.scope]?.push(perm);
+      }
+
+      const lines = ['# MCP Permissions\n'];
+      const scopeOrder: MCPScope[] = ['managed', 'user', 'project', 'local'];
+      const scopeLabels: Record<MCPScope, string> = {
+        managed: '🔒 Managed (Organization)',
+        user: '👤 User',
+        project: '📁 Project',
+        local: '💻 Local',
+      };
+
+      for (const scope of scopeOrder) {
+        const perms = byScope[scope];
+        if (perms.length === 0) continue;
+
+        lines.push(`## ${scopeLabels[scope]}\n`);
+        for (const perm of perms) {
+          const lockIcon = perm.locked ? ' 🔒' : '';
+          lines.push(`**${perm.serverId}**${lockIcon}`);
+
+          if (perm.allowedTools.length > 0) {
+            lines.push(`  ✓ Allowed: ${perm.allowedTools.join(', ')}`);
+          }
+          if (perm.deniedTools.length > 0) {
+            lines.push(`  ✗ Denied: ${perm.deniedTools.join(', ')}`);
+          }
+          lines.push(`  Auto-approve: ${perm.autoApprove ? 'Yes' : 'No'}`);
+          lines.push('');
         }
-        if (perm.deniedTools.length > 0) {
-          lines.push('  ✗ Denied: ' + perm.deniedTools.join(', '));
-        }
-        lines.push('  Auto-approve: ' + (perm.autoApprove ? 'Yes' : 'No'));
-        lines.push('');
       }
       return lines.join('\n');
     }
@@ -365,14 +508,28 @@ export async function executeMCPScopeTool(
       const allowedTools = (input.allowed_tools as string[]) || [];
       const deniedTools = (input.denied_tools as string[]) || [];
       const autoApprove = (input.auto_approve as boolean) || false;
+      const locked = (input.locked as boolean) || false;
 
       if (!serverId || !scope) {
         return 'Error: server_id and scope are required';
       }
 
+      // Map scopes to IDs
       let scopeId: string | undefined;
-      if (scope === 'session') scopeId = context.sessionId;
-      else if (scope === 'workspace') scopeId = context.workspaceId;
+      switch (scope) {
+        case 'managed':
+          scopeId = context.organizationId;
+          break;
+        case 'user':
+          scopeId = context.userId;
+          break;
+        case 'project':
+          scopeId = context.workspaceId;
+          break;
+        case 'local':
+          scopeId = context.sessionId;
+          break;
+      }
 
       const success = await manager.setPermission({
         serverId,
@@ -381,10 +538,12 @@ export async function executeMCPScopeTool(
         allowedTools,
         deniedTools,
         autoApprove,
+        locked,
       });
 
+      const lockNote = locked ? ' (locked - cannot be overridden)' : '';
       return success
-        ? 'Permissions set for **' + serverId + '** at ' + scope + ' scope.'
+        ? `Permissions set for **${serverId}** at ${scope} scope${lockNote}.`
         : 'Failed to set permissions.';
     }
 
@@ -396,12 +555,20 @@ export async function executeMCPScopeTool(
         return 'Error: server_id and tool_name are required';
       }
 
-      const result = manager.checkTool(serverId, toolName, context.sessionId, context.workspaceId);
+      const result = manager.checkTool(serverId, toolName, {
+        sessionId: context.sessionId,
+        projectId: context.workspaceId,
+        organizationId: context.organizationId,
+      });
 
       const icon = result.allowed ? '✓' : '✗';
-      let response = icon + ' **' + serverId + ':' + toolName + '**\n\n' + result.reason;
+      const lockIcon = result.locked ? ' 🔒' : '';
+      let response = `${icon} **${serverId}:${toolName}**${lockIcon}\n\n${result.reason}`;
       if (result.scope) {
-        response += ' (' + result.scope + ' scope)';
+        response += ` (${result.scope} scope)`;
+      }
+      if (result.locked) {
+        response += '\n\n*This permission is locked and cannot be overridden.*';
       }
       return response;
     }
@@ -415,13 +582,63 @@ export async function executeMCPScopeTool(
       }
 
       let scopeId: string | undefined;
-      if (scope === 'session') scopeId = context.sessionId;
-      else if (scope === 'workspace') scopeId = context.workspaceId;
+      switch (scope) {
+        case 'managed':
+          scopeId = context.organizationId;
+          break;
+        case 'user':
+          scopeId = context.userId;
+          break;
+        case 'project':
+          scopeId = context.workspaceId;
+          break;
+        case 'local':
+          scopeId = context.sessionId;
+          break;
+      }
 
       const success = await manager.deletePermission(serverId, scope, scopeId);
       return success
-        ? 'Permissions deleted for **' + serverId + '** at ' + scope + ' scope.'
+        ? `Permissions deleted for **${serverId}** at ${scope} scope.`
         : 'Failed to delete permissions.';
+    }
+
+    case 'mcp_scope_hierarchy': {
+      return `# MCP Scope Hierarchy
+
+MCP permissions are resolved using a 4-tier hierarchy, from highest to lowest priority:
+
+## 🔒 1. Managed (Organization)
+- Set by organization administrators
+- Cannot be overridden by lower scopes
+- Used for enterprise policy enforcement
+- Location: Managed by admin console
+
+## 👤 2. User
+- User-level preferences
+- Applies across all projects
+- Location: \`~/.claude/mcp.json\`
+
+## 📁 3. Project
+- Project-specific settings
+- Overrides user settings (unless locked)
+- Location: \`.claude/mcp.json\`
+
+## 💻 4. Local (Session)
+- Session-specific overrides
+- Lowest priority
+- Temporary, cleared on session end
+
+---
+
+**Resolution Order:**
+When checking a tool, the system checks scopes from highest to lowest priority.
+The first matching rule is applied. Locked permissions at higher scopes
+cannot be overridden by lower scopes.
+
+**Example:**
+If \`managed\` scope denies \`dangerous_tool\`, no lower scope can allow it.
+If \`user\` scope allows \`file_*\`, that applies unless \`project\` denies a specific file tool.`;
     }
 
     default:

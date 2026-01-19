@@ -36,6 +36,10 @@ export interface ThemeSettings {
   tabSize?: number;
   /** Word wrap */
   wordWrap?: boolean;
+  /** Output style for message formatting */
+  outputStyle?: 'concise' | 'verbose' | 'markdown' | 'minimal';
+  /** Enable vim mode in editor */
+  vimMode?: boolean;
 }
 
 export interface ModelSettings {
@@ -124,6 +128,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
     minimap: true,
     tabSize: 2,
     wordWrap: true,
+    outputStyle: 'concise',
+    vimMode: false,
   },
   model: {
     default: 'sonnet',
