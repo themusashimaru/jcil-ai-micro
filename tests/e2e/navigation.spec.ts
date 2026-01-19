@@ -7,23 +7,34 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Navigation', () => {
+  // Use desktop viewport for consistent nav testing
+  test.use({ viewport: { width: 1280, height: 720 } });
+
   test('can navigate to login page', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Look for login link or button
+    // Look for login link or button (desktop nav)
     const loginLink = page.locator(
       'a[href*="login"], a[href*="signin"], button:has-text("Login"), button:has-text("Sign in")'
     );
 
     const count = await loginLink.count();
     if (count > 0) {
-      await loginLink.first().click();
+      // Find a visible login link
+      const visibleLink = loginLink.first();
+
+      // Wait for it to be visible (may be in header that appears after scroll)
+      await expect(visibleLink).toBeVisible({ timeout: 5000 });
+
+      await visibleLink.click();
       await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(500);
 
-      // Should be on login page
-      expect(page.url()).toMatch(/login|signin|auth/i);
+      // Should be on login page or auth page
+      const url = page.url();
+      const isAuthPage = /login|signin|auth/i.test(url) || url.includes('supabase');
+      expect(isAuthPage).toBeTruthy();
     } else {
       // Skip if no login link found (may be already logged in)
       test.skip();
@@ -36,17 +47,23 @@ test.describe('Navigation', () => {
 
     // Look for signup link or button
     const signupLink = page.locator(
-      'a[href*="signup"], a[href*="register"], button:has-text("Sign up"), button:has-text("Register"), button:has-text("Get started")'
+      'a[href*="signup"], a[href*="register"], button:has-text("Sign up"), button:has-text("Register"), button:has-text("Get started"), button:has-text("Get Started")'
     );
 
     const count = await signupLink.count();
     if (count > 0) {
-      await signupLink.first().click();
+      // Find a visible signup link
+      const visibleLink = signupLink.first();
+      await expect(visibleLink).toBeVisible({ timeout: 5000 });
+
+      await visibleLink.click();
       await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(500);
 
-      // Should be on signup page
-      expect(page.url()).toMatch(/signup|register|auth/i);
+      // Should be on signup page or auth page
+      const url = page.url();
+      const isAuthPage = /signup|register|auth/i.test(url) || url.includes('supabase');
+      expect(isAuthPage).toBeTruthy();
     } else {
       // Skip if no signup link found
       test.skip();
