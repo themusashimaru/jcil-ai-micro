@@ -1915,12 +1915,20 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           border-bottom: 1px solid var(--cl-border-primary);
           padding: 0 0.5rem;
           background: var(--cl-bg-secondary);
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+
+        .workspace-tabs::-webkit-scrollbar {
+          display: none;
         }
 
         .workspace-tabs button {
           background: none;
           border: none;
-          padding: 0.75rem 1rem;
+          padding: 0.75rem 0.75rem;
           min-height: 44px;
           font-size: 0.8125rem;
           font-weight: 500;
@@ -1929,6 +1937,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           border-bottom: 2px solid transparent;
           margin-bottom: -1px;
           transition: all 0.2s;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .workspace-tabs button:hover {
@@ -2077,6 +2087,76 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
           .header-actions {
             display: flex;
+            gap: 0.25rem;
+          }
+
+          /* Smaller padding on mobile header buttons */
+          .header-btn {
+            padding: 0.5rem;
+            min-width: 40px;
+            min-height: 40px;
+          }
+
+          .header-btn svg {
+            width: 18px;
+            height: 18px;
+          }
+
+          /* More compact workspace tabs on mobile */
+          .workspace-tabs button {
+            padding: 0.5rem 0.625rem;
+            font-size: 0.75rem;
+            min-height: 40px;
+          }
+
+          /* Stack git buttons on very small screens */
+          .workspace-git-actions {
+            padding: 0.5rem;
+          }
+
+          .git-btn {
+            padding: 0.5rem 0.75rem;
+            min-height: 40px;
+            font-size: 0.75rem;
+          }
+
+          /* Ensure workspace content is scrollable */
+          .workspace-content {
+            padding: 0.75rem;
+          }
+        }
+
+        /* Extra small screens (phones in portrait) */
+        @media (max-width: 480px) {
+          .mobile-title {
+            font-size: 0.875rem;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .header-actions {
+            gap: 0.125rem;
+          }
+
+          .header-btn {
+            padding: 0.375rem;
+            min-width: 36px;
+            min-height: 36px;
+          }
+
+          .code-lab-empty-content {
+            padding: 1.5rem 1rem;
+          }
+
+          .code-lab-empty-icon {
+            width: 48px;
+            height: 48px;
+          }
+
+          .code-lab-empty h2 {
+            font-size: 1.25rem;
           }
         }
       `}</style>
