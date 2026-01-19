@@ -72,7 +72,6 @@ export interface CommandManagerConfig {
 export class CommandManager implements CommandRegistry {
   private config: CommandManagerConfig;
   private commands: Map<string, CommandDefinition> = new Map();
-  private loaded = false;
 
   constructor(config: CommandManagerConfig) {
     this.config = config;
@@ -101,17 +100,6 @@ export class CommandManager implements CommandRegistry {
     // Add custom commands
     for (const cmd of customCommands) {
       this.commands.set(cmd.metadata.name, cmd);
-    }
-
-    this.loaded = true;
-  }
-
-  /**
-   * Ensure commands are loaded
-   */
-  private async ensureLoaded(): Promise<void> {
-    if (!this.loaded) {
-      await this.reload();
     }
   }
 

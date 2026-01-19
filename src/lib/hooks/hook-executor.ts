@@ -84,7 +84,7 @@ async function executeBashHook(
   const timeout = hook.timeout || 30000;
 
   // Build environment variables
-  const env = {
+  const baseEnv: Record<string, string | undefined> = {
     ...process.env,
     ...options.env,
     // Expose context as environment variables
@@ -98,14 +98,14 @@ async function executeBashHook(
 
   // Add tool input as JSON
   if (context.toolInput) {
-    env.HOOK_TOOL_INPUT = JSON.stringify(context.toolInput);
+    baseEnv.HOOK_TOOL_INPUT = JSON.stringify(context.toolInput);
   }
 
   try {
     const { stdout, stderr } = await execAsync(command, {
       timeout,
       cwd: options.cwd || process.cwd(),
-      env,
+      env: baseEnv as NodeJS.ProcessEnv,
       maxBuffer: 10 * 1024 * 1024, // 10MB
     });
 
