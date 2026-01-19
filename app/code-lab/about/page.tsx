@@ -636,7 +636,7 @@ export default function CodeLabTechnicalPage() {
       <Section padding="lg">
         <SectionHeader
           badge="32 Languages"
-          badgeColor="cyan"
+          badgeColor="blue"
           title="Visual Debugging System"
           description="Not just print statements. Full breakpoint debugging with variables, call stacks, and expression evaluation."
         />
