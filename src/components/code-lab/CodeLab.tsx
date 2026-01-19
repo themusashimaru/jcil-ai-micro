@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import './code-lab.css';
 import { logger } from '@/lib/logger';
 
 const log = logger('CodeLab');
