@@ -216,7 +216,7 @@ describe('Tool Execution Security', () => {
     });
 
     it('should handle missing args', () => {
-      const params = {
+      const params: { serverId: string; toolName: string; args?: Record<string, unknown> } = {
         serverId: 'filesystem',
         toolName: 'list_directory',
       };

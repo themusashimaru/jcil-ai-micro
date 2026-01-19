@@ -150,8 +150,8 @@ describe('Session Ownership Verification', () => {
   });
 
   it('should reject access to sessions owned by other users', () => {
-    const sessionUserId = 'user-abc';
-    const requestingUserId = 'user-xyz';
+    const sessionUserId: string = 'user-abc';
+    const requestingUserId: string = 'user-xyz';
     expect(sessionUserId !== requestingUserId).toBe(true);
   });
 
