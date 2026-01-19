@@ -44,6 +44,7 @@ import {
   CodeLabFileChangeIndicator,
   useFileChangeNotifications,
 } from './CodeLabFileChangeIndicator';
+import { CodeLabSessionHistory } from './CodeLabSessionHistory';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
@@ -73,6 +74,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Toast notifications for better UX
   const toast = useToastActions();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Permission manager for dangerous operations (Claude Code parity)
   const {
@@ -1183,6 +1185,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setActiveWorkspaceTab('plan');
         setWorkspacePanelOpen(true);
       }
+
+      // Cmd/Ctrl+H - Open session history search (Claude Code parity)
+      if (cmdKey && e.key === 'h') {
+        e.preventDefault();
+        setHistoryOpen(true);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1570,6 +1578,17 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
       {/* Keyboard Shortcuts Help */}
       <CodeLabKeyboardShortcuts isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      {/* Session History Search (Claude Code parity) */}
+      <CodeLabSessionHistory
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onSelectSession={(sessionId) => {
+          setCurrentSessionId(sessionId);
+          setHistoryOpen(false);
+        }}
+        currentSessionId={currentSessionId}
+      />
 
       {/* File Change Indicator (Claude Code parity) */}
       {hasFileChanges && (
