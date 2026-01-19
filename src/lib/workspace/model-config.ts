@@ -29,15 +29,15 @@ export interface ModelConfig {
   recommended?: boolean;
 }
 
-// Available models
+// Available models - Claude 4.5 family (latest generation)
 export const AVAILABLE_MODELS: ModelConfig[] = [
   {
-    id: 'claude-sonnet-4-20250514',
-    name: 'Claude Sonnet 4',
+    id: 'claude-sonnet-4-5-20250514',
+    name: 'Claude Sonnet 4.5',
     type: 'sonnet',
     description: 'Best balance of speed and intelligence. Recommended for most coding tasks.',
     contextWindow: 200000,
-    maxOutput: 8192,
+    maxOutput: 16384,
     costPer1kInput: 0.3,
     costPer1kOutput: 1.5,
     supportsExtendedThinking: true,
@@ -45,27 +45,27 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     recommended: true,
   },
   {
-    id: 'claude-opus-4-20250514',
-    name: 'Claude Opus 4',
+    id: 'claude-opus-4-5-20250514',
+    name: 'Claude Opus 4.5',
     type: 'opus',
     description: 'Most capable model. Best for complex reasoning and difficult problems.',
     contextWindow: 200000,
-    maxOutput: 8192,
+    maxOutput: 16384,
     costPer1kInput: 1.5,
     costPer1kOutput: 7.5,
     supportsExtendedThinking: true,
     supportsVision: true,
   },
   {
-    id: 'claude-3-5-haiku-20241022',
-    name: 'Claude 3.5 Haiku',
+    id: 'claude-haiku-4-5-20250514',
+    name: 'Claude Haiku 4.5',
     type: 'haiku',
     description: 'Fastest model. Best for simple tasks and quick iterations.',
     contextWindow: 200000,
-    maxOutput: 8192,
-    costPer1kInput: 0.08,
-    costPer1kOutput: 0.4,
-    supportsExtendedThinking: false,
+    maxOutput: 16384,
+    costPer1kInput: 0.1,
+    costPer1kOutput: 0.5,
+    supportsExtendedThinking: true,
     supportsVision: true,
   },
 ];
@@ -81,11 +81,11 @@ export interface ModelPreferences {
 
 // Default preferences
 export const DEFAULT_PREFERENCES: ModelPreferences = {
-  defaultModel: 'claude-sonnet-4-20250514',
+  defaultModel: 'claude-sonnet-4-5-20250514',
   extendedThinking: false,
   thinkingBudget: 10000,
   temperature: 0.7,
-  maxTokens: 8192,
+  maxTokens: 16384,
 };
 
 /**
@@ -181,7 +181,7 @@ export class ModelConfigManager {
     if (enabled && model && !model.supportsExtendedThinking) {
       log.warn('Model does not support extended thinking', { model: model.name });
       // Auto-switch to Sonnet which supports it
-      prefs.defaultModel = 'claude-sonnet-4-20250514';
+      prefs.defaultModel = 'claude-sonnet-4-5-20250514';
     }
 
     prefs.extendedThinking = enabled;

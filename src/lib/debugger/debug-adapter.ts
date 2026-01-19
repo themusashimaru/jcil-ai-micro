@@ -1319,6 +1319,32 @@ export class PythonDebugAdapter extends DebugAdapter {
 // DEBUG ADAPTER FACTORY
 // ============================================================================
 
+import {
+  DebugLanguage,
+  UniversalDebugAdapter,
+  getSupportedLanguages,
+  getLanguageConfig,
+  detectLanguageFromFile,
+  getLanguageDisplayNames,
+  getLanguageCapabilitiesSummary,
+  LANGUAGE_CONFIGS,
+} from './multi-language-adapters';
+
+// Re-export multi-language types and utilities
+export {
+  DebugLanguage,
+  UniversalDebugAdapter,
+  getSupportedLanguages,
+  getLanguageConfig,
+  detectLanguageFromFile,
+  getLanguageDisplayNames,
+  getLanguageCapabilitiesSummary,
+  LANGUAGE_CONFIGS,
+};
+
+/**
+ * Legacy factory for node/python (backwards compatibility)
+ */
 export function createDebugAdapter(type: 'node' | 'python'): DebugAdapter {
   switch (type) {
     case 'node':
@@ -1328,4 +1354,27 @@ export function createDebugAdapter(type: 'node' | 'python'): DebugAdapter {
     default:
       throw new Error(`Unsupported debug type: ${type}`);
   }
+}
+
+/**
+ * Create a universal debug adapter for any of the 30+ supported languages
+ */
+export function createUniversalDebugAdapter(language: DebugLanguage): UniversalDebugAdapter {
+  return new UniversalDebugAdapter(language);
+}
+
+/**
+ * Get list of all supported debug languages (30+)
+ */
+export function getAllSupportedLanguages(): DebugLanguage[] {
+  return getSupportedLanguages();
+}
+
+/**
+ * Auto-detect language from file path and create appropriate adapter
+ */
+export function createDebugAdapterForFile(filePath: string): UniversalDebugAdapter | null {
+  const language = detectLanguageFromFile(filePath);
+  if (!language) return null;
+  return new UniversalDebugAdapter(language);
 }
