@@ -236,6 +236,126 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
           --cl-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
         }
+
+        /* Pro Mode - Charcoal with baby blue accents (matches main app) */
+        :root.pro-mode {
+          --cl-bg-primary: #2f2f2f;
+          --cl-bg-secondary: #3a3a3a;
+          --cl-bg-tertiary: #454545;
+          --cl-bg-input: #1a1a1a;
+          --cl-bg-hover: #404040;
+          --cl-bg-selected: #4a4a4a;
+          --cl-bg-code: #1a1a1a;
+
+          --cl-border-primary: rgba(255, 255, 255, 0.1);
+          --cl-border-secondary: rgba(255, 255, 255, 0.15);
+
+          --cl-text-primary: #ffffff;
+          --cl-text-secondary: #c4c4c4;
+          --cl-text-tertiary: #a8a8a8;
+          --cl-text-muted: #888888;
+
+          /* Baby blue accents - matches main app pro mode */
+          --cl-accent-primary: #7de8ff;
+          --cl-accent-secondary: #9ef0ff;
+          --cl-accent-bg: rgba(125, 232, 255, 0.15);
+
+          --cl-success: #4ade80;
+          --cl-warning: #fbbf24;
+          --cl-error: #f87171;
+          --cl-info: #60a5fa;
+          --cl-critical: #ef4444;
+
+          /* Extended semantic colors */
+          --cl-purple: #a78bfa;
+          --cl-cyan: #7de8ff;
+          --cl-pink: #f472b6;
+          --cl-gray: #9ca3af;
+          --cl-orange: #fb923c;
+          --cl-teal: #2dd4bf;
+
+          /* Terminal colors */
+          --cl-terminal-prompt: #7de8ff;
+          --cl-terminal-success: #4ade80;
+
+          /* Model colors */
+          --cl-model-opus: #c084fc;
+          --cl-model-sonnet: #7de8ff;
+          --cl-model-haiku: #4ade80;
+
+          /* Agent colors */
+          --cl-agent-workspace: #4ade80;
+          --cl-agent-workspace-bg: rgba(74, 222, 128, 0.15);
+          --cl-agent-standard: #7de8ff;
+          --cl-agent-standard-bg: rgba(125, 232, 255, 0.15);
+          --cl-agent-code: #9ef0ff;
+          --cl-agent-code-bg: rgba(158, 240, 255, 0.15);
+
+          --cl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+          --cl-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+          --cl-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+          --cl-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Ocean Mode - Deep navy with cyan accents (matches main app) */
+        :root.ocean-mode {
+          --cl-bg-primary: #030810;
+          --cl-bg-secondary: #081020;
+          --cl-bg-tertiary: #0d1a30;
+          --cl-bg-input: #030810;
+          --cl-bg-hover: #0f1a2a;
+          --cl-bg-selected: #152238;
+          --cl-bg-code: #030810;
+
+          --cl-border-primary: rgba(77, 200, 255, 0.15);
+          --cl-border-secondary: rgba(77, 200, 255, 0.2);
+
+          --cl-text-primary: #e8f4ff;
+          --cl-text-secondary: #8ab4d8;
+          --cl-text-tertiary: #6a94b8;
+          --cl-text-muted: #5a7a9a;
+
+          /* Cyan accents - matches main app ocean mode */
+          --cl-accent-primary: #4dc8ff;
+          --cl-accent-secondary: #6dd8ff;
+          --cl-accent-bg: rgba(77, 200, 255, 0.12);
+
+          --cl-success: #4ade80;
+          --cl-warning: #fbbf24;
+          --cl-error: #f87171;
+          --cl-info: #60a5fa;
+          --cl-critical: #ef4444;
+
+          /* Extended semantic colors */
+          --cl-purple: #a78bfa;
+          --cl-cyan: #4dc8ff;
+          --cl-pink: #f472b6;
+          --cl-gray: #8ab4d8;
+          --cl-orange: #fb923c;
+          --cl-teal: #2dd4bf;
+
+          /* Terminal colors */
+          --cl-terminal-prompt: #4dc8ff;
+          --cl-terminal-success: #4ade80;
+
+          /* Model colors */
+          --cl-model-opus: #c084fc;
+          --cl-model-sonnet: #4dc8ff;
+          --cl-model-haiku: #4ade80;
+
+          /* Agent colors */
+          --cl-agent-workspace: #4ade80;
+          --cl-agent-workspace-bg: rgba(74, 222, 128, 0.15);
+          --cl-agent-standard: #4dc8ff;
+          --cl-agent-standard-bg: rgba(77, 200, 255, 0.12);
+          --cl-agent-code: #6dd8ff;
+          --cl-agent-code-bg: rgba(109, 216, 255, 0.12);
+
+          --cl-shadow-sm: 0 1px 2px rgba(0, 10, 30, 0.3);
+          --cl-shadow-md: 0 4px 6px rgba(0, 10, 30, 0.4);
+          --cl-shadow-lg: 0 10px 15px rgba(0, 10, 30, 0.5);
+          --cl-shadow-xl: 0 20px 25px rgba(0, 10, 30, 0.6);
+        }
       `}</style>
     </ThemeContext.Provider>
   );

@@ -251,7 +251,8 @@ describe('Session Data Validation', () => {
         .replace(/[^\w\s-]/g, '')
         .trim();
 
-    expect(sanitize('<script>alert(1)</script>')).toBe('scriptalert1script');
+    // HTML tags are stripped first, then non-word chars removed
+    expect(sanitize('<script>alert(1)</script>')).toBe('alert1');
     expect(sanitize('Normal Title')).toBe('Normal Title');
   });
 });

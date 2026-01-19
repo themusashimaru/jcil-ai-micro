@@ -12,6 +12,7 @@
 import { CodeLab } from '@/components/code-lab';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
+import { CodeLabThemeProvider } from '@/components/code-lab/CodeLabThemeProvider';
 
 interface CodeLabClientProps {
   userId: string;
@@ -107,17 +108,19 @@ function CodeLabErrorFallback() {
 
 export function CodeLabClient({ userId }: CodeLabClientProps) {
   return (
-    <ErrorBoundary
-      fallback={<CodeLabErrorFallback />}
-      onError={(error, errorInfo) => {
-        // Log to monitoring (Sentry, etc.)
-        console.error('[CodeLab Error]', error, errorInfo);
-        // Could also send to error tracking service here
-      }}
-    >
-      <ToastProvider>
-        <CodeLab userId={userId} />
-      </ToastProvider>
-    </ErrorBoundary>
+    <CodeLabThemeProvider>
+      <ErrorBoundary
+        fallback={<CodeLabErrorFallback />}
+        onError={(error, errorInfo) => {
+          // Log to monitoring (Sentry, etc.)
+          console.error('[CodeLab Error]', error, errorInfo);
+          // Could also send to error tracking service here
+        }}
+      >
+        <ToastProvider>
+          <CodeLab userId={userId} />
+        </ToastProvider>
+      </ErrorBoundary>
+    </CodeLabThemeProvider>
   );
 }
