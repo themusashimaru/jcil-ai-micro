@@ -6,6 +6,16 @@
  */
 
 // ============================================================================
+// SHARED CONSTANTS
+// ============================================================================
+
+/** Duration to show "Copied!" feedback in UI before resetting */
+export const COPY_FEEDBACK_DURATION_MS = 2000;
+
+/** Duration to show refresh indicator in preview panel */
+export const PREVIEW_REFRESH_FEEDBACK_MS = 500;
+
+// ============================================================================
 // SESSION TYPES
 // ============================================================================
 
@@ -148,11 +158,11 @@ export interface SendMessageResponse {
 // ============================================================================
 
 export type CodeLabTool =
-  | 'code_generation'   // Trigger Code Agent V2
-  | 'web_search'        // Trigger Perplexity
-  | 'read_file'         // Read from repo
-  | 'search_code'       // Search codebase
-  | 'none';             // Just chat
+  | 'code_generation' // Trigger Code Agent V2
+  | 'web_search' // Trigger Perplexity
+  | 'read_file' // Read from repo
+  | 'search_code' // Search codebase
+  | 'none'; // Just chat
 
 export interface ToolDecision {
   tool: CodeLabTool;

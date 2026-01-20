@@ -14,6 +14,7 @@
 
 import { useState, useMemo } from 'react';
 import { CodeLabDiffView } from './CodeLabDiffView';
+import { COPY_FEEDBACK_DURATION_MS } from './types';
 
 interface GeneratedFile {
   path: string;
@@ -75,8 +76,9 @@ export function CodeLabOutputPanel({
     try {
       await navigator.clipboard.writeText(file.content);
       setCopiedFile(filePath);
-      setTimeout(() => setCopiedFile(null), 2000);
+      setTimeout(() => setCopiedFile(null), COPY_FEEDBACK_DURATION_MS);
     } catch (err) {
+      // Client-side only - browser console for user debugging
       console.error('Failed to copy:', err);
     }
   };
