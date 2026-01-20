@@ -2664,18 +2664,30 @@ SECURITY:
       log.debug('Query might need real-time info, checking for knowledge cutoff');
 
       try {
-        // Quick non-streaming call to check if Claude knows the answer
+        // Quick check specifically asking if Claude can answer from training data
         const quickCheck = await createClaudeChat({
-          messages: truncatedMessages,
-          systemPrompt: fullSystemPrompt,
-          maxTokens: 500, // Short response just to check
-          temperature: 0.3,
+          messages: [
+            {
+              role: 'user',
+              content: `Can you answer this question accurately from your training data, or would it require a web search for current/real-time information? Question: "${lastUserContent}"
+
+Reply with ONLY one of these:
+- "SEARCH_NEEDED" if this requires current/real-time data (sports scores, schedules, news, prices, weather, etc.)
+- "CAN_ANSWER" if you can answer accurately from your training data`,
+            },
+          ],
+          systemPrompt: 'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
+          maxTokens: 50,
+          temperature: 0,
         });
 
+        const needsSearch = quickCheck.text.toUpperCase().includes('SEARCH_NEEDED');
+
         // Check if Claude's response indicates knowledge cutoff
-        if (detectKnowledgeCutoff(quickCheck.text)) {
+        if (needsSearch || detectKnowledgeCutoff(quickCheck.text)) {
           log.info('Knowledge cutoff detected, auto-triggering web search', {
             queryPreview: lastUserContent.substring(0, 50),
+            needsSearch,
           });
 
           // Check research-specific rate limit
