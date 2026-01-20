@@ -206,7 +206,7 @@ export async function GET() {
     capabilities: ['edit', 'open', 'complete', 'analyze'],
     model: 'claude-sonnet-4-20250514',
     rateLimit: {
-      limit: RATE_LIMIT,
+      limit: 60, // Centralized rate limit: 60 requests per minute
       window: '1 minute',
     },
   });

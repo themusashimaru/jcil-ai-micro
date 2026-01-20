@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabGit');
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
