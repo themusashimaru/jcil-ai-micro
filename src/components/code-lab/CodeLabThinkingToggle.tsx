@@ -285,11 +285,30 @@ export function CodeLabThinkingToggle({
           border-radius: 6px 0 0 6px;
         }
 
-        /* Mobile: Compact view - hide label, show only icon */
+        /* Mobile: Compact view - borderless icon only */
         @media (max-width: 768px) {
+          .thinking-toggle-container {
+            gap: 0;
+          }
+
           .thinking-toggle {
-            padding: 0.375rem 0.5rem;
+            padding: 0.5rem;
             gap: 0.25rem;
+            background: transparent;
+            border: none;
+            min-width: 40px;
+            min-height: 40px;
+            justify-content: center;
+          }
+
+          .thinking-toggle:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          .thinking-toggle.enabled {
+            background: rgba(139, 92, 246, 0.2);
+            border: none;
+            border-radius: 6px;
           }
 
           .thinking-label {
@@ -297,13 +316,11 @@ export function CodeLabThinkingToggle({
           }
 
           .thinking-badge {
-            font-size: 0.5625rem;
-            padding: 0.0625rem 0.1875rem;
+            display: none;
           }
 
           .budget-trigger {
-            width: 20px;
-            height: 24px;
+            display: none;
           }
 
           .budget-menu {
@@ -314,7 +331,9 @@ export function CodeLabThinkingToggle({
         /* Extra small screens */
         @media (max-width: 480px) {
           .thinking-toggle {
-            padding: 0.25rem 0.375rem;
+            padding: 0.375rem;
+            min-width: 36px;
+            min-height: 36px;
           }
 
           .thinking-icon {
