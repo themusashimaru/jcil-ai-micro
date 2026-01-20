@@ -22,6 +22,10 @@ vi.mock('@/lib/workspace/container', () => ({
     executeCommand: vi.fn().mockResolvedValue({ stdout: 'mock output', stderr: '' }),
     readFile: vi.fn().mockResolvedValue('mock file content'),
   })),
+  getContainerManager: vi.fn().mockReturnValue({
+    executeCommand: vi.fn().mockResolvedValue({ stdout: 'mock output', stderr: '' }),
+    readFile: vi.fn().mockResolvedValue('mock file content'),
+  }),
 }));
 
 vi.mock('@/lib/logger', () => ({
