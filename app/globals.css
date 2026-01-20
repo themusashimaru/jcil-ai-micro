@@ -106,50 +106,50 @@
 /* ========================================
  * PRO THEME - "Refined"
  * Coding Lab inspired dark aesthetic
- * Deep dark backgrounds with navy blue accents
+ * True dark gray/black backgrounds (no blue tint)
  * Clean, minimal, professional design
  * ======================================== */
 :root.pro-mode {
-  /* Deep dark backgrounds - matching Coding Lab theme */
-  --background: #0f1419;
-  --foreground: #e6edf3;
-  --glass-bg: rgba(15, 20, 25, 0.98);
-  --glass-border: rgba(48, 54, 61, 0.5);
+  /* True dark backgrounds - matching Coding Lab theme exactly */
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --glass-bg: rgba(10, 10, 10, 0.98);
+  --glass-border: rgba(51, 51, 51, 0.5);
   --glass-shadow: rgba(0, 0, 0, 0.4);
 
-  /* Navy blue accents - matching Coding Lab theme */
-  --primary: #5b8dc9;
-  --primary-hover: rgba(91, 141, 201, 0.25);
-  --primary-glow: rgba(91, 141, 201, 0.5);
-  --avatar-bg: rgba(91, 141, 201, 0.4); /* Navy for avatars/indicators */
-  --button-disabled-bg: #484f58; /* Muted gray when disabled */
-  --text-primary: #e6edf3;
-  --text-secondary: #b1bac4;
-  --text-muted: #8b949e;
-  --surface: #0f1419;
-  --surface-elevated: #161b22; /* Secondary background */
-  --border: #30363d;
+  /* Green accent for pro identity */
+  --primary: #22c55e;
+  --primary-hover: rgba(34, 197, 94, 0.25);
+  --primary-glow: rgba(34, 197, 94, 0.5);
+  --avatar-bg: rgba(34, 197, 94, 0.4); /* Green for avatars/indicators */
+  --button-disabled-bg: #444444; /* Muted gray when disabled */
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --text-muted: #888888;
+  --surface: #0a0a0a;
+  --surface-elevated: #1a1a1a; /* Dark gray like Code Lab sidebar */
+  --border: #333333;
 
   /* Chat styling - clean, dark */
-  --chat-input-bg: #161b22;
-  --chat-user-bubble-bg: #161b22;
-  --chat-user-bubble-text: #e6edf3;
+  --chat-input-bg: #1a1a1a;
+  --chat-user-bubble-bg: #1a1a1a;
+  --chat-user-bubble-text: #ffffff;
   --chat-ai-bubble-bg: transparent;
-  --chat-ai-bubble-text: #e6edf3;
+  --chat-ai-bubble-text: #ffffff;
   --chat-ai-bubble-border: transparent;
   --chat-ai-bubble-shadow: none;
   --chat-user-bubble-shadow: none;
 
   /* Pro-specific styling */
-  --pro-code-bg: #0d1117;
-  --pro-code-border: #30363d;
-  --pro-accent: #5b8dc9;
-  --pro-accent-light: #79a3d6; /* Lighter navy for hover states */
-  --pro-highlight: rgba(91, 141, 201, 0.25);
+  --pro-code-bg: #000000;
+  --pro-code-border: #333333;
+  --pro-accent: #22c55e;
+  --pro-accent-light: #4ade80; /* Lighter green for hover states */
+  --pro-highlight: rgba(34, 197, 94, 0.25);
 
   /* Sidebar styling */
   --sidebar-bg: #1a1a1a;
-  --sidebar-hover: #21262d;
+  --sidebar-hover: #2a2a2a;
 }
 
 @layer base {
@@ -393,13 +393,13 @@
 
   /* Pro mode - User bubble: Clean dark container matching coding lab */
   :root.pro-mode .chat-bubble.user-bubble {
-    background: #161b22 !important;
+    background: #1a1a1a !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border: 1px solid #30363d !important;
+    border: 1px solid #333333 !important;
     border-radius: 1.25rem !important;
     box-shadow: none !important;
-    color: #e6edf3 !important;
+    color: #ffffff !important;
     overflow: hidden;
   }
 
@@ -411,7 +411,7 @@
   /* Pro mode - subtle hover effect */
   :root.pro-mode .chat-bubble.user-bubble:hover {
     transform: none !important;
-    background: #21262d !important;
+    background: #2a2a2a !important;
     box-shadow: none !important;
   }
 
@@ -438,16 +438,16 @@
   /* Pro mode AI message - clean flow on dark background */
   :root.pro-mode .ai-message-clean {
     background: transparent;
-    color: #e6edf3;
+    color: #ffffff;
     line-height: 1.6;
   }
 
   /* Pro mode code blocks - dark styling matching coding lab */
   :root.pro-mode pre,
   :root.pro-mode code {
-    background: #0d1117 !important;
-    border: 1px solid #30363d !important;
-    color: #e6edf3 !important;
+    background: #000000 !important;
+    border: 1px solid #333333 !important;
+    color: #ffffff !important;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   }
 
@@ -463,23 +463,23 @@
     font-size: 0.9em;
   }
 
-  /* Pro mode inline code - navy blue tint */
+  /* Pro mode inline code - green tint */
   :root.pro-mode p code,
   :root.pro-mode li code {
-    background: rgba(91, 141, 201, 0.2) !important;
-    color: #79a3d6 !important;
+    background: rgba(34, 197, 94, 0.2) !important;
+    color: #4ade80 !important;
     border: none !important;
   }
 
-  /* Pro mode links - navy blue accent */
+  /* Pro mode links - green accent */
   :root.pro-mode a {
-    color: #5b8dc9;
+    color: #22c55e;
     text-decoration: none;
     transition: all 0.2s ease;
   }
 
   :root.pro-mode a:hover {
-    color: #79a3d6;
+    color: #4ade80;
   }
 
   /* Pro mode headings - light text on dark */
@@ -487,16 +487,16 @@
   :root.pro-mode h2,
   :root.pro-mode h3,
   :root.pro-mode h4 {
-    color: #e6edf3;
+    color: #ffffff;
     font-weight: 500;
   }
 
-  /* Pro mode blockquotes - navy blue left border */
+  /* Pro mode blockquotes - green left border */
   :root.pro-mode blockquote {
-    border-left: 3px solid #5b8dc9;
+    border-left: 3px solid #22c55e;
     padding-left: 1rem;
     margin-left: 0;
-    color: #b1bac4;
+    color: #aaaaaa;
     font-style: italic;
   }
 
@@ -511,40 +511,40 @@
   }
 
   :root.pro-mode li::marker {
-    color: #5b8dc9;
+    color: #22c55e;
   }
 
   /* Pro mode horizontal rules - subtle divider */
   :root.pro-mode hr {
     border: none;
     height: 1px;
-    background: #30363d;
+    background: #333333;
     margin: 2rem 0;
   }
 
-  /* Pro mode selection - navy blue highlight */
+  /* Pro mode selection - green highlight */
   :root.pro-mode ::selection {
-    background: rgba(91, 141, 201, 0.4);
-    color: #e6edf3;
+    background: rgba(34, 197, 94, 0.4);
+    color: #ffffff;
   }
 
   /* Pro mode chat input - dark styling matching coding lab */
   :root.pro-mode .chat-input-glass {
-    background: #161b22 !important;
-    border: 1px solid #30363d !important;
+    background: #1a1a1a !important;
+    border: 1px solid #333333 !important;
     border-radius: 1.5rem !important;
     box-shadow: none !important;
   }
 
   :root.pro-mode .chat-input-glass:focus-within {
-    border-color: #5b8dc9 !important;
-    box-shadow: 0 0 0 2px rgba(91, 141, 201, 0.2) !important;
+    border-color: #22c55e !important;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2) !important;
   }
 
   /* Pro mode glass-morphism - deep dark */
   :root.pro-mode .glass-morphism {
-    background: #161b22 !important;
-    border: 1px solid #30363d !important;
+    background: #1a1a1a !important;
+    border: 1px solid #333333 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
@@ -557,40 +557,40 @@
   }
 
   :root.pro-mode ::-webkit-scrollbar-track {
-    background: #0f1419;
+    background: #0a0a0a;
     border-radius: 4px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-thumb {
-    background: #30363d;
+    background: #333333;
     border-radius: 4px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
+    background: #444444;
   }
 
   /* Pro mode page background - deep dark */
   :root.pro-mode body {
-    background: #0f1419 !important;
+    background: #0a0a0a !important;
   }
 
   /* Pro mode header/nav styling - dark */
   :root.pro-mode header,
   :root.pro-mode nav {
-    background: #0f1419 !important;
-    border-color: #30363d !important;
+    background: #0a0a0a !important;
+    border-color: #333333 !important;
   }
 
-  /* Pro mode avatar styling - navy blue accent */
+  /* Pro mode avatar styling - green accent */
   :root.pro-mode .rounded-full[style*='--primary'] {
-    background: rgba(91, 141, 201, 0.35) !important;
-    color: #79a3d6 !important;
+    background: rgba(34, 197, 94, 0.35) !important;
+    color: #4ade80 !important;
   }
 
-  /* Pro mode loading dots - navy blue */
+  /* Pro mode loading dots - green */
   :root.pro-mode .animate-bounce {
-    background-color: #5b8dc9 !important;
+    background-color: #22c55e !important;
   }
 
   /* Pro mode focus - no visible outline for clean look */
@@ -603,26 +603,26 @@
   :root.pro-mode table {
     border-collapse: separate;
     border-spacing: 0;
-    border: 1px solid #30363d;
+    border: 1px solid #333333;
     border-radius: 0.75rem;
     overflow: hidden;
   }
 
   :root.pro-mode th {
-    background: #21262d;
-    color: #e6edf3;
+    background: #1a1a1a;
+    color: #ffffff;
     font-weight: 500;
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.05em;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #30363d;
+    border-bottom: 1px solid #333333;
   }
 
   :root.pro-mode td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #21262d;
-    color: #b1bac4;
+    border-bottom: 1px solid #1a1a1a;
+    color: #aaaaaa;
   }
 
   :root.pro-mode tr:last-child td {
@@ -630,66 +630,66 @@
   }
 
   :root.pro-mode tr:hover td {
-    background: rgba(91, 141, 201, 0.1);
+    background: rgba(34, 197, 94, 0.1);
   }
 
-  /* Pro mode buttons - navy blue for visibility */
+  /* Pro mode buttons - green for visibility */
   :root.pro-mode button.bg-blue-500,
   :root.pro-mode button.bg-blue-600,
   :root.pro-mode [class*='bg-blue-'] {
-    background-color: #5b8dc9 !important;
+    background-color: #22c55e !important;
   }
 
   :root.pro-mode button.bg-blue-500:hover,
   :root.pro-mode button.bg-blue-600:hover,
   :root.pro-mode [class*='bg-blue-']:hover {
-    background-color: #79a3d6 !important;
+    background-color: #4ade80 !important;
   }
 
   /* Pro mode primary colored elements */
   :root.pro-mode [style*='--primary'] {
-    color: #5b8dc9 !important;
+    color: #22c55e !important;
   }
 
   /* Pro mode sidebar - dark styling matching coding lab */
   :root.pro-mode aside,
   :root.pro-mode [class*='sidebar'] {
     background: #1a1a1a !important;
-    color: #e6edf3 !important;
+    color: #ffffff !important;
   }
 
   :root.pro-mode aside button,
   :root.pro-mode [class*='sidebar'] button {
-    color: #e6edf3 !important;
+    color: #ffffff !important;
   }
 
   :root.pro-mode aside a,
   :root.pro-mode [class*='sidebar'] a {
-    color: #e6edf3 !important;
+    color: #ffffff !important;
   }
 
-  /* Pro mode New Chat button - white text on navy blue */
+  /* Pro mode New Chat button - dark text on green */
   :root.pro-mode button[style*='--primary'][style*='--background'] {
-    color: #ffffff !important;
-    background-color: #5b8dc9 !important;
+    color: #000000 !important;
+    background-color: #22c55e !important;
   }
 
   :root.pro-mode button[style*='--primary'][style*='--background']:hover {
-    background-color: #79a3d6 !important;
+    background-color: #4ade80 !important;
   }
 
-  /* Pro mode - buttons with primary background need light text for contrast */
+  /* Pro mode - buttons with primary background need dark text for contrast on green */
   /* Target buttons with text-white class that use primary background */
   :root.pro-mode button.text-white[style*='--primary'],
   :root.pro-mode a.text-white[style*='--primary'],
   :root.pro-mode .btn-primary {
-    color: #ffffff !important;
+    color: #000000 !important;
   }
 
-  /* Pro mode - all buttons/links using var(--primary) background should have light text */
+  /* Pro mode - all buttons/links using var(--primary) background should have dark text */
   :root.pro-mode [style*='backgroundColor'][style*='--primary'],
   :root.pro-mode [style*='background-color'][style*='--primary'] {
-    color: #ffffff !important;
+    color: #000000 !important;
   }
 
   /* New Chat button - theme-aware text color */
@@ -698,7 +698,7 @@
   }
 
   :root.pro-mode .new-chat-btn {
-    color: #ffffff !important;
+    color: #000000 !important;
   }
 
   :root.ocean-mode .new-chat-btn {
@@ -966,43 +966,43 @@
       inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
   }
 
-  /* Premium sidebar buttons (pro mode - navy blue, minimal) */
+  /* Premium sidebar buttons (pro mode - green, minimal) */
   :root.pro-mode .sidebar-btn-glass {
-    background: rgba(91, 141, 201, 0.18) !important;
+    background: rgba(34, 197, 94, 0.18) !important;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border: 1px solid rgba(91, 141, 201, 0.35) !important;
-    color: #5b8dc9 !important;
+    border: 1px solid rgba(34, 197, 94, 0.35) !important;
+    color: #22c55e !important;
     box-shadow: none;
     transition: all 0.2s ease;
   }
 
   :root.pro-mode .sidebar-btn-glass:hover {
-    background: rgba(91, 141, 201, 0.28) !important;
-    border-color: rgba(91, 141, 201, 0.5) !important;
+    background: rgba(34, 197, 94, 0.28) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
   }
 
-  /* Code Command button (pro mode - navy blue) */
+  /* Code Command button (pro mode - green) */
   :root.pro-mode .code-cmd-btn-glass {
-    background: rgba(91, 141, 201, 0.18) !important;
+    background: rgba(34, 197, 94, 0.18) !important;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border: 1px solid rgba(91, 141, 201, 0.35) !important;
+    border: 1px solid rgba(34, 197, 94, 0.35) !important;
     box-shadow: none;
     transition: all 0.2s ease;
   }
 
   :root.pro-mode .code-cmd-btn-glass:hover {
-    background: rgba(91, 141, 201, 0.28) !important;
-    border-color: rgba(91, 141, 201, 0.5) !important;
+    background: rgba(34, 197, 94, 0.28) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
   }
 
   :root.pro-mode .code-cmd-btn-glass .code-cmd-title {
-    color: #5b8dc9 !important;
+    color: #22c55e !important;
   }
 
   :root.pro-mode .code-cmd-btn-glass .code-cmd-subtitle {
-    color: #79a3d6 !important;
+    color: #4ade80 !important;
   }
 
   /* Premium glassmorphic sidebar buttons (ocean mode - cyan glow) */
