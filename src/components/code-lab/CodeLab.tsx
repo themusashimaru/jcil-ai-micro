@@ -1852,6 +1852,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             flex-shrink: 0;
             width: 100%;
             box-sizing: border-box;
+            overflow: hidden;
           }
 
           .mobile-menu-btn {
@@ -2440,7 +2441,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           }
 
           .mobile-title {
-            font-size: 0.8125rem;
+            display: none;
           }
 
           .header-actions {

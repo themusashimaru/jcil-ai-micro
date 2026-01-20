@@ -373,6 +373,36 @@ export function CodeLabModelSelector({
             background: var(--cl-bg-primary);
           }
         }
+
+        /* Mobile: Compact view - hide model name, show only icon */
+        @media (max-width: 768px) {
+          .model-selector-trigger {
+            padding: 0.375rem 0.5rem;
+            gap: 0.25rem;
+          }
+
+          .model-selector-trigger .model-name {
+            display: none;
+          }
+
+          .model-selector-dropdown {
+            min-width: 280px;
+            right: 0;
+            left: auto;
+          }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+          .model-selector-trigger {
+            padding: 0.25rem 0.375rem;
+          }
+
+          .model-selector-dropdown {
+            min-width: 260px;
+            max-width: calc(100vw - 2rem);
+          }
+        }
       `}</style>
     </div>
   );
