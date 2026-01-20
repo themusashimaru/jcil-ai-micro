@@ -182,6 +182,18 @@ export interface UnifiedMessage {
       inputTokens?: number;
       outputTokens?: number;
     };
+    /** Whether this is a summary message (from context handoff) */
+    isSummary?: boolean;
+    /** Number of messages that were summarized */
+    summarizedMessageCount?: number;
+    /** Whether aggressive summarization was used */
+    aggressive?: boolean;
+    /** Whether the message was truncated */
+    truncated?: boolean;
+    /** Original provider if converted */
+    convertedFrom?: ProviderId;
+    /** Target provider if converted */
+    convertedTo?: ProviderId;
   };
 }
 
@@ -422,15 +434,26 @@ export interface AIAdapter {
 export interface HandoffResult {
   /** Converted messages for new provider */
   messages: UnifiedMessage[];
-  /** System prompt to inject */
+  /** Source provider */
+  fromProvider: ProviderId;
+  /** Target provider */
+  toProvider: ProviderId;
+  /** Warnings about capability loss or other issues */
+  warnings: string[];
+  /** System prompt to inject for continuity */
   systemPrompt?: string;
   /** Handoff metadata */
   metadata: {
-    fromProvider: ProviderId;
-    toProvider: ProviderId;
-    messagesConverted: number;
-    contextSummarized: boolean;
-    capabilityWarnings: string[];
+    /** When the handoff occurred */
+    handoffTime: string;
+    /** Original message count before conversion */
+    originalMessageCount: number;
+    /** Prepared message count after conversion */
+    preparedMessageCount: number;
+    /** Whether context was summarized to fit */
+    wasSummarized: boolean;
+    /** Processing time in milliseconds */
+    processingTimeMs: number;
   };
 }
 
@@ -438,10 +461,12 @@ export interface HandoffResult {
  * Options for context handoff
  */
 export interface HandoffOptions {
-  /** Maximum context length for target provider (auto-detected if not specified) */
-  maxContextTokens?: number;
-  /** Force summarization even if context fits */
-  forceSummarize?: boolean;
-  /** Number of recent messages to always preserve */
-  preserveRecentMessages?: number;
+  /** Summarize if context exceeds this fraction of window (0-1, default 0.8) */
+  summarizeIfExceeds?: number;
+  /** Include handoff system prompt for continuity */
+  includeSystemPrompt?: boolean;
+  /** Preserve tool call history in summary */
+  preserveToolHistory?: boolean;
+  /** Warn when capabilities will be lost */
+  warnOnCapabilityLoss?: boolean;
 }

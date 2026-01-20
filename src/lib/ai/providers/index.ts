@@ -165,3 +165,30 @@ export {
 } from './errors';
 
 export type { RetryConfig, ErrorRecoveryOptions } from './errors';
+
+// ============================================================================
+// CONTEXT HANDOFF EXPORTS
+// ============================================================================
+
+export {
+  // Handoff functions
+  prepareProviderHandoff,
+  analyzeCapabilityLoss,
+  isHandoffSafe,
+  prepareMessagesForProvider,
+  needsSummarization,
+  getMaxContextSize,
+  canHandoff,
+  getRecommendedHandoffProvider,
+  DEFAULT_HANDOFF_OPTIONS,
+  // Summarization functions
+  summarizeContext,
+  estimateTokenCount,
+  estimateMessageTokens,
+  estimateStringTokens,
+  isSummaryMessage,
+  getCompressionRatio,
+  DEFAULT_SUMMARIZATION_OPTIONS,
+} from './context';
+
+export type { SummarizationOptions, SummarizationResult } from './context';
