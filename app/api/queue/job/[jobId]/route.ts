@@ -17,7 +17,7 @@ interface RouteParams {
   params: Promise<{ jobId: string }>;
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
   // SECURITY FIX: Add authentication to prevent unauthorized job access
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
