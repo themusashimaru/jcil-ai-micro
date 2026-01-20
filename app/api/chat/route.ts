@@ -257,6 +257,91 @@ function getDocumentTypeName(type: string): string {
 }
 
 /**
+ * Detect if AI response indicates a knowledge cutoff limitation
+ * These phrases trigger automatic web search to help the user
+ */
+function detectKnowledgeCutoff(response: string): boolean {
+  const lowerResponse = response.toLowerCase();
+
+  const cutoffPhrases = [
+    'knowledge cutoff',
+    'knowledge cut-off',
+    'training cutoff',
+    'training cut-off',
+    'my training data',
+    'as of my last update',
+    'as of my knowledge cutoff',
+    'my information only goes up to',
+    'i don\'t have access to real-time',
+    'don\'t have access to real-time',
+    'i can\'t access real-time',
+    'can\'t access real-time',
+    'cannot access real-time',
+    'i don\'t have access to current',
+    'don\'t have access to current',
+    'i can\'t access current',
+    'can\'t access current',
+    'cannot access current',
+    'i don\'t have the ability to browse',
+    'don\'t have the ability to browse',
+    'i don\'t have the ability to perform live web searches',
+    'unable to browse the internet',
+    'unable to browse the web',
+    'cannot browse the internet',
+    'cannot browse the web',
+    'i cannot access the internet',
+    'i can\'t access the internet',
+    'don\'t have access to the internet',
+    'i\'m not able to browse',
+    'i am not able to browse',
+    'i don\'t have internet access',
+    'don\'t have internet access',
+    'i cannot perform web searches',
+    'i can\'t perform web searches',
+    'unable to search the web',
+    'unable to search the internet',
+    'i don\'t have live data',
+    'don\'t have live data',
+    'i don\'t have up-to-date information',
+    'don\'t have up-to-date information',
+    'my data doesn\'t include',
+    'i\'m unable to provide real-time',
+    'i am unable to provide real-time',
+    'would you like me to search',
+  ];
+
+  return cutoffPhrases.some(phrase => lowerResponse.includes(phrase));
+}
+
+/**
+ * Detect if the user's question likely needs current/real-time information
+ * This helps pre-emptively check for knowledge cutoff scenarios
+ */
+function mightNeedRealtimeInfo(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+
+  const realtimeIndicators = [
+    // Current events/news
+    'latest', 'recent', 'today', 'yesterday', 'this week', 'this month',
+    'current', 'now', 'breaking', 'news', 'update',
+    // Time-sensitive queries
+    '2024', '2025', '2026', 'this year', 'last year',
+    // Price/stock queries
+    'price of', 'stock price', 'market', 'bitcoin', 'crypto',
+    // Weather/live data
+    'weather', 'forecast', 'temperature',
+    // Sports/events
+    'score', 'game', 'match', 'winner', 'championship',
+    // Releases/launches
+    'release date', 'when does', 'when will', 'when is',
+    // Live information
+    'hours', 'open', 'closed', 'schedule',
+  ];
+
+  return realtimeIndicators.some(indicator => lowerQuery.includes(indicator));
+}
+
+/**
  * Detect if user is requesting a document and what type
  * Also detects edit/adjustment requests for recently generated documents
  * Returns the document type if detected, null otherwise
@@ -2516,6 +2601,86 @@ SECURITY:
 
     // Append user memory context to system prompt (if available)
     const fullSystemPrompt = memoryContext ? `${systemPrompt}\n\n${memoryContext}` : systemPrompt;
+
+    // ========================================
+    // AUTO-SEARCH TRIGGER: Check for knowledge cutoff
+    // ========================================
+    // If the query might need real-time info, do a quick check first
+    // If Claude indicates knowledge cutoff, automatically search the web
+    if (mightNeedRealtimeInfo(lastUserContent) && isPerplexityConfigured()) {
+      log.debug('Query might need real-time info, checking for knowledge cutoff');
+
+      try {
+        // Quick non-streaming call to check if Claude knows the answer
+        const quickCheck = await createClaudeChat({
+          messages: truncatedMessages,
+          systemPrompt: fullSystemPrompt,
+          maxTokens: 500, // Short response just to check
+          temperature: 0.3,
+        });
+
+        // Check if Claude's response indicates knowledge cutoff
+        if (detectKnowledgeCutoff(quickCheck.text)) {
+          log.info('Knowledge cutoff detected, auto-triggering web search', {
+            queryPreview: lastUserContent.substring(0, 50),
+          });
+
+          // Check research-specific rate limit
+          const researchRateCheck = checkResearchRateLimit(rateLimitIdentifier);
+          if (researchRateCheck.allowed) {
+            try {
+              // Trigger Perplexity search
+              const searchResult = await perplexitySearch({
+                query: lastUserContent,
+                systemPrompt: 'Search the web and provide accurate, up-to-date information with sources.',
+              });
+
+              // Post-process through Claude for consistent voice
+              const synthesis = await createClaudeChat({
+                messages: [
+                  { role: 'user', content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}` },
+                ],
+                maxTokens: 2048,
+                forceModel: 'sonnet',
+              });
+
+              // Release slot before returning
+              if (slotAcquired) {
+                await releaseSlot(requestId);
+                slotAcquired = false;
+              }
+
+              return new Response(
+                JSON.stringify({
+                  type: 'text',
+                  content: synthesis.text,
+                  model: synthesis.model,
+                  autoSearched: true,
+                }),
+                {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Search-Mode': 'auto',
+                    'X-Auto-Searched': 'true',
+                  },
+                }
+              );
+            } catch (searchError) {
+              log.warn('Auto-search failed, falling back to original response', searchError as Error);
+              // Fall through to streaming - let Claude respond normally
+            }
+          } else {
+            log.debug('Research rate limit reached, skipping auto-search');
+          }
+        } else {
+          log.debug('No knowledge cutoff detected, proceeding with streaming response');
+        }
+      } catch (checkError) {
+        log.warn('Quick check failed, proceeding with streaming', checkError as Error);
+        // Continue to normal streaming response
+      }
+    }
 
     const streamResult = await createClaudeStreamingChat({
       messages: truncatedMessages,
