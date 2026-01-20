@@ -453,14 +453,10 @@ export function CodeLabComposer({
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 aria-hidden="true"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-6 6m6-6l6 6" />
               </svg>
             </button>
           )}
@@ -701,7 +697,10 @@ export function CodeLabComposer({
         .composer-btn.send {
           background: #ffffff;
           color: #000000;
-          padding: 0.5rem 0.75rem;
+          width: 40px;
+          height: 40px;
+          padding: 0;
+          border-radius: 50%;
         }
 
         .composer-btn.send:hover:not(:disabled) {
@@ -768,7 +767,13 @@ export function CodeLabComposer({
             height: 20px;
           }
 
-          .composer-btn.send,
+          .composer-btn.send {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: 50%;
+          }
+
           .composer-btn.stop {
             padding: 0.625rem 1rem;
           }

@@ -277,32 +277,15 @@ export function CodeLabThread({
         /* Mobile responsive styles */
         @media (max-width: 768px) {
           .thread-header {
-            padding: 0.75rem 1rem;
-          }
-
-          .thread-title {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
-
-          .thread-title h1 {
-            font-size: 1rem;
-            width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .thread-repo {
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            /* Hide on mobile since mobile-header in CodeLab.tsx shows the title */
+            display: none;
           }
 
           .thread-messages {
             padding: 1rem;
             -webkit-overflow-scrolling: touch;
+            flex: 1;
+            min-height: 0;
           }
 
           .thread-welcome {
@@ -337,16 +320,17 @@ export function CodeLabThread({
 
         /* Extra small screens */
         @media (max-width: 480px) {
-          .thread-header {
-            padding: 0.5rem 0.75rem;
-          }
-
           .thread-messages {
             padding: 0.75rem;
           }
 
           .thread-welcome {
             margin: 1.5rem auto;
+          }
+
+          .welcome-suggestions button {
+            font-size: 0.8125rem;
+            padding: 0.625rem 1rem;
           }
         }
       `}</style>
