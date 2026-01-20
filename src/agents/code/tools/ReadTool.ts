@@ -14,7 +14,7 @@
  */
 
 import { BaseTool, ToolInput, ToolOutput, ToolDefinition } from './BaseTool';
-import { ContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
 
@@ -201,7 +201,7 @@ export class ReadTool extends BaseTool {
   private async readFromWorkspace(
     path: string
   ): Promise<{ success: boolean; content?: string; size?: number; error?: string }> {
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     try {
       // Sanitize path for security

@@ -14,7 +14,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { ContainerManager, WorkspaceExecutor } from './container';
+import { ContainerManager, getContainerManager, WorkspaceExecutor } from './container';
 import { CodebaseIndexer, BatchOperationManager } from './index';
 import { escapeShellArg, sanitizeCommitMessage } from '@/lib/security/shell-escape';
 
@@ -402,7 +402,7 @@ export class CodingAgent {
     };
 
     this.executor = new WorkspaceExecutor(config.workspaceId);
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
     this.indexer = new CodebaseIndexer(config.workspaceId);
     this.batchOps = new BatchOperationManager(config.workspaceId);
   }

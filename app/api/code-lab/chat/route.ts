@@ -29,46 +29,14 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
+// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
+import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
 
 const log = logger('CodeLabChat');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
-
-// Get encryption key (32 bytes for AES-256) - same as connectors API
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-// Decrypt token - with proper error handling
-function decryptToken(encryptedData: string): string | null {
-  try {
-    const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
-      log.warn('Invalid encrypted token format');
-      return null;
-    }
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    if (!decrypted) {
-      log.warn('Decrypted token is empty');
-      return null;
-    }
-
-    return decrypted;
-  } catch (error) {
-    log.error('Token decryption failed', error as Error);
-    return null;
-  }
-}
 
 // SECURITY FIX: Use cryptographically secure UUID generation
 // Math.random() is NOT secure and IDs could be predicted
@@ -162,12 +130,46 @@ function shouldUseSearch(message: string): boolean {
 }
 
 // In-memory rate limit store (per user, resets every minute)
+// MEMORY LEAK FIX: Add periodic cleanup of expired entries
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_REQUESTS = 30; // 30 requests per minute
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Cleanup every 5 minutes
+let lastCleanupTime = Date.now();
+
+/**
+ * Clean up expired rate limit entries to prevent memory leaks.
+ * Called periodically during rate limit checks.
+ */
+function cleanupExpiredRateLimits(): void {
+  const now = Date.now();
+
+  // Only run cleanup every CLEANUP_INTERVAL_MS
+  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
+    return;
+  }
+
+  lastCleanupTime = now;
+  let cleanedCount = 0;
+
+  for (const [userId, limit] of rateLimitStore.entries()) {
+    if (now > limit.resetTime) {
+      rateLimitStore.delete(userId);
+      cleanedCount++;
+    }
+  }
+
+  if (cleanedCount > 0) {
+    log.debug('Cleaned up expired rate limit entries', { count: cleanedCount, remaining: rateLimitStore.size });
+  }
+}
 
 function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
   const now = Date.now();
+
+  // MEMORY LEAK FIX: Periodically clean up expired entries
+  cleanupExpiredRateLimits();
+
   const userLimit = rateLimitStore.get(userId);
 
   if (!userLimit || now > userLimit.resetTime) {
@@ -377,12 +379,11 @@ export async function POST(request: NextRequest) {
             }))
           );
 
-          // Delete old messages and insert summary
-          const idsToDelete = toSummarize.map((m: { id: string }) => m.id);
-          await (supabase.from('code_lab_messages') as AnySupabase).delete().in('id', idsToDelete);
-
-          await (supabase.from('code_lab_messages') as AnySupabase).insert({
-            id: generateId(),
+          // SAFETY FIX: Insert summary FIRST, then delete old messages
+          // This ensures we never lose data - if insert fails, we keep old messages
+          const summaryId = generateId();
+          const { error: insertError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
+            id: summaryId,
             session_id: sessionId,
             role: 'system',
             content: summary,
@@ -390,11 +391,25 @@ export async function POST(request: NextRequest) {
             type: 'summary',
           });
 
-          await (supabase.from('code_lab_sessions') as AnySupabase)
-            .update({ has_summary: true, last_summary_at: new Date().toISOString() })
-            .eq('id', sessionId);
+          if (insertError) {
+            log.error('Failed to insert summary, keeping original messages', { error: insertError.message });
+          } else {
+            // Only delete old messages if summary was successfully saved
+            const idsToDelete = toSummarize.map((m: { id: string }) => m.id);
+            const { error: deleteError } = await (supabase.from('code_lab_messages') as AnySupabase)
+              .delete()
+              .in('id', idsToDelete);
 
-          log.info('Context compacted', { sessionId, summarizedCount: toSummarize.length });
+            if (deleteError) {
+              log.warn('Failed to delete old messages after summarization', { error: deleteError.message });
+            }
+
+            await (supabase.from('code_lab_sessions') as AnySupabase)
+              .update({ has_summary: true, last_summary_at: new Date().toISOString() })
+              .eq('id', sessionId);
+
+            log.info('Context compacted', { sessionId, summarizedCount: toSummarize.length });
+          }
         }
       }
 
@@ -480,8 +495,8 @@ export async function POST(request: NextRequest) {
             }))
           );
 
-          // Save summary to database
-          await (supabase.from('code_lab_messages') as AnySupabase).insert({
+          // SAFETY FIX: Check insert result before updating session state
+          const { error: insertError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
             id: generateId(),
             session_id: sessionId,
             role: 'system',
@@ -490,22 +505,31 @@ export async function POST(request: NextRequest) {
             type: 'summary',
           });
 
-          // Update session has_summary flag
-          await (supabase.from('code_lab_sessions') as AnySupabase)
-            .update({ has_summary: true, last_summary_at: new Date().toISOString() })
-            .eq('id', sessionId);
+          if (insertError) {
+            log.error('Failed to save summary', { error: insertError.message });
+            // Fall back to recent messages only
+            history = (allMessages || []).slice(-20).map((m: { role: string; content: string }) => ({
+              role: m.role,
+              content: m.content,
+            }));
+          } else {
+            // Update session has_summary flag only if insert succeeded
+            await (supabase.from('code_lab_sessions') as AnySupabase)
+              .update({ has_summary: true, last_summary_at: new Date().toISOString() })
+              .eq('id', sessionId);
 
-          // Use summary + recent messages
-          history = [
-            { role: 'system', content: `[Previous conversation summary]\n${summary}` },
-            ...(allMessages || [])
-              .filter((m: { type: string }) => m.type !== 'summary')
-              .slice(-RECENT_MESSAGES_AFTER_SUMMARY)
-              .map((m: { role: string; content: string }) => ({
-                role: m.role,
-                content: m.content,
-              })),
-          ];
+            // Use summary + recent messages
+            history = [
+              { role: 'system', content: `[Previous conversation summary]\n${summary}` },
+              ...(allMessages || [])
+                .filter((m: { type: string }) => m.type !== 'summary')
+                .slice(-RECENT_MESSAGES_AFTER_SUMMARY)
+                .map((m: { role: string; content: string }) => ({
+                  role: m.role,
+                  content: m.content,
+                })),
+            ];
+          }
         } catch (err) {
           log.error('Summary generation failed', err as Error);
           // Fall back to recent messages only
@@ -580,12 +604,19 @@ export async function POST(request: NextRequest) {
     // ========================================
     // Check if user has an active workspace for THIS SESSION (not any session)
     // CRITICAL FIX: Query by session_id to get session-specific workspace
-    const { data: workspaceData } = await (supabase.from('code_lab_workspaces') as AnySupabase)
+    // SAFETY FIX: Use .maybeSingle() instead of .single() to avoid crash on 0 or multiple rows
+    const { data: workspaceData, error: workspaceError } = await (supabase.from('code_lab_workspaces') as AnySupabase)
       .select('id, sandbox_id, status')
       .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .single();
+      .limit(1)
+      .maybeSingle();
+
+    if (workspaceError) {
+      log.warn('Failed to query workspace', { error: workspaceError.message, sessionId });
+      // Continue without workspace - don't crash the entire chat
+    }
 
     // Use workspace agent if: has active workspace AND request is agentic (high confidence)
     // OR if user explicitly asks for workspace mode with keywords

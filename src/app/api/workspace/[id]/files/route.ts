@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
 import { sanitizeFilePath } from '@/lib/workspace/security';
@@ -51,7 +51,7 @@ export async function GET(
     const path = sanitizeFilePath(rawPath, '/workspace');
     const action = url.searchParams.get('action') || 'read'; // 'read' or 'list'
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     if (action === 'list') {
       const files = await container.listDirectory(workspaceId, path);
@@ -115,7 +115,7 @@ export async function POST(
     // SECURITY: Sanitize path
     const path = sanitizeFilePath(rawPath, '/workspace');
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     await container.writeFile(workspaceId, path, content || '');
 
     return NextResponse.json({ success: true, path });
@@ -171,7 +171,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Operations array is required' }, { status: 400 });
     }
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     const results: Array<{ path: string; success: boolean; error?: string }> = [];
 
     for (const op of operations) {
@@ -251,7 +251,7 @@ export async function DELETE(
     // SECURITY: Sanitize path
     const path = sanitizeFilePath(rawPath, '/workspace');
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     await container.deleteFile(workspaceId, path);
 
     return NextResponse.json({ success: true, path });

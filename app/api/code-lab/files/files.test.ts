@@ -45,6 +45,15 @@ vi.mock('@/lib/workspace/container', () => ({
       { name: 'src', type: 'directory' },
     ]),
   })),
+  getContainerManager: vi.fn().mockReturnValue({
+    readFile: vi.fn().mockResolvedValue('file content'),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    deleteFile: vi.fn().mockResolvedValue(undefined),
+    listDirectory: vi.fn().mockResolvedValue([
+      { name: 'package.json', type: 'file', size: 1000 },
+      { name: 'src', type: 'directory' },
+    ]),
+  }),
 }));
 
 vi.mock('@/lib/security/rate-limit', () => ({

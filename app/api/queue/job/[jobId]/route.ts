@@ -5,9 +5,11 @@
  * Used for polling job completion in async processing.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getChatJob } from '@/lib/queue/bull-queue';
 import { logger } from '@/lib/logger';
+import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('JobStatus');
 
@@ -15,7 +17,15 @@ interface RouteParams {
   params: Promise<{ jobId: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
+  // SECURITY FIX: Add authentication to prevent unauthorized job access
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { jobId } = await params;
 
   if (!jobId) {
@@ -81,7 +91,21 @@ export async function GET(_request: Request, { params }: RouteParams) {
 /**
  * Cancel a job
  */
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  // SECURITY FIX: Add CSRF protection for state-changing operation
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) {
+    return csrfCheck.response!;
+  }
+
+  // SECURITY FIX: Add authentication to prevent unauthorized job cancellation
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { jobId } = await params;
 
   if (!jobId) {

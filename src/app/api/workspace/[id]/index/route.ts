@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { sanitizeFilePath, sanitizeGlobPattern } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
@@ -124,7 +124,7 @@ export async function POST(
     const rawPath = body.path || '/workspace';
     const safePath = sanitizeFilePath(rawPath, '/workspace');
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     // Get all source files
     const filePatterns = ['*.ts', '*.tsx', '*.js', '*.jsx', '*.py', '*.go', '*.rs', '*.java'];

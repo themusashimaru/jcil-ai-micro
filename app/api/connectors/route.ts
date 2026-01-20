@@ -11,7 +11,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import {
   listUserRepos,
@@ -29,42 +28,13 @@ import {
   compareBranches,
   parseGitHubUrl,
 } from '@/lib/connectors';
+// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
+// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
+import { decrypt as decryptToken } from '@/lib/security/crypto';
 
 const log = logger('ConnectorsAPI');
 
 export const runtime = 'nodejs';
-
-// Get encryption key (32 bytes for AES-256)
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-// Decrypt token
-function decryptToken(encryptedData: string): string {
-  try {
-    const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
-      throw new Error('Invalid encrypted format');
-    }
-
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
-  } catch (error) {
-    log.error('[Connectors] Decryption error:', error instanceof Error ? error : { error });
-    throw new Error('Failed to decrypt token');
-  }
-}
 
 /**
  * Get GitHub token from database (stored via Personal Access Token)

@@ -95,7 +95,10 @@ export default function ConnectorsSection() {
     }
 
     try {
-      await fetch('/api/user/github-token', { method: 'DELETE' });
+      const response = await fetch('/api/user/github-token', { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to disconnect GitHub: ${response.status}`);
+      }
       setGithubStatus({ connected: false });
       setSuccess('GitHub disconnected');
     } catch (err) {

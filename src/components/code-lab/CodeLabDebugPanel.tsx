@@ -399,8 +399,8 @@ export function CodeLabDebugPanel({
         <div className="debug-console">
           <div className="console-header">Console Output</div>
           <div className="console-content">
-            {debugSession.outputs.map((output, i) => (
-              <div key={i} className={`console-line ${output.category}`}>
+            {debugSession.outputs.map((output) => (
+              <div key={`${output.timestamp.getTime()}-${output.category}`} className={`console-line ${output.category}`}>
                 <span className="console-time">{output.timestamp.toLocaleTimeString()}</span>
                 <span className="console-text">{output.output}</span>
               </div>

@@ -17,36 +17,18 @@ import {
   getTaskStatus,
   getUserTasks,
 } from '@/lib/autonomous-task';
-import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
+// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
+import { safeDecrypt } from '@/lib/security/crypto';
 
 const log = logger('CodeLabTasks');
 
-// Get encryption key
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-// Decrypt token
+// Decrypt token - wrapper for backward compatibility (returns empty string on failure)
 function decryptToken(encryptedData: string): string {
-  try {
-    const parts = encryptedData.split(':');
-    if (parts.length !== 3) return '';
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  } catch {
-    return '';
-  }
+  return safeDecrypt(encryptedData) || '';
 }
 
 /**

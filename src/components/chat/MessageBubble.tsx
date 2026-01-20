@@ -733,7 +733,7 @@ export function MessageBubble({
                   <div className="text-xs text-gray-400">Completed segments:</div>
                   {message.videoJob.completed_segments.map((url, idx) => (
                     <a
-                      key={idx}
+                      key={url}
                       href={url}
                       download={`segment-${idx + 1}.mp4`}
                       className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300"
@@ -819,9 +819,9 @@ export function MessageBubble({
               className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              {message.products.map((product, index) => (
+              {message.products.map((product) => (
                 <a
-                  key={index}
+                  key={product.url || product.title}
                   href={product.url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -906,7 +906,7 @@ export function MessageBubble({
                 <span>Sources ({message.citations.length})</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {message.citations.slice(0, 5).map((citation, index) => {
+                {message.citations.slice(0, 5).map((citation) => {
                   // Handle multiple citation formats:
                   // - String URL directly
                   // - Object with url/link/source/href field
@@ -937,7 +937,7 @@ export function MessageBubble({
 
                   return (
                     <a
-                      key={index}
+                      key={url}
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -1184,7 +1184,7 @@ export function MessageBubble({
                   const { icon, label } = getFileInfo(file.mime_type, file.filename);
 
                   return (
-                    <div key={index} className="flex flex-col gap-1">
+                    <div key={file.download_url || `${file.filename}-${index}`} className="flex flex-col gap-1">
                       {/* Download to Device Button */}
                       <button
                         className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full text-left"

@@ -184,7 +184,7 @@ export function ChatClient() {
     if (!text.trim()) return;
 
     const newMessage: Message = {
-      id: crypto.randomUUID?.() || Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: text,
       timestamp: new Date(),
@@ -243,7 +243,7 @@ export function ChatClient() {
       }
 
       // Create new message
-      const newId = crypto.randomUUID?.() || Date.now().toString();
+      const newId = crypto.randomUUID();
       currentAssistantMsgId.current = done ? null : newId;
 
       return [...prev, {
@@ -259,7 +259,7 @@ export function ChatClient() {
   // Start a voice chat - creates a new chat if needed
   const startVoiceChat = useCallback(() => {
     if (!currentChatId) {
-      const newChatId = Date.now().toString();
+      const newChatId = crypto.randomUUID();
       const timestamp = new Date();
       const newChat: Chat = {
         id: newChatId,
@@ -552,7 +552,7 @@ export function ChatClient() {
           if (result.status === 'completed' && result.content) {
             // Add the new message to the UI
             const newMessage: Message = {
-              id: Date.now().toString(),
+              id: crypto.randomUUID(),
               role: 'assistant',
               content: result.content,
               timestamp: new Date(),
@@ -825,13 +825,13 @@ export function ChatClient() {
   /* REMOVED: handleImageGenerated, Code and Data handlers - all handled naturally in chat
   const handleCodeGenerated = (response: string, request: string) => {
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: request,
       timestamp: new Date(),
     };
     const codeMessage: Message = {
-      id: (Date.now() + 1).toString(),
+      id: crypto.randomUUID(),
       role: 'assistant',
       content: response,
       timestamp: new Date(),
@@ -841,13 +841,13 @@ export function ChatClient() {
 
   const handleSearchComplete = (response: string, query: string) => {
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: `Search: ${query}`,
       timestamp: new Date(),
     };
     const searchMessage: Message = {
-      id: (Date.now() + 1).toString(),
+      id: crypto.randomUUID(),
       role: 'assistant',
       content: response,
       timestamp: new Date(),
@@ -1011,7 +1011,7 @@ export function ChatClient() {
       }
 
       // Create new chat with context
-      const newChatId = Date.now().toString();
+      const newChatId = crypto.randomUUID();
       const contextMessage = `## Continuing from Previous Chat\n\n${summaryContent}\n\n---\n\n*This is a continuation of our previous conversation. I have the context above to help maintain continuity.*`;
 
       const newChat: Chat = {
@@ -1028,7 +1028,7 @@ export function ChatClient() {
       setCurrentChatId(newChatId);
       setMessages([
         {
-          id: crypto.randomUUID?.() || Date.now().toString(),
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: contextMessage,
           timestamp: new Date(),
@@ -1068,7 +1068,7 @@ export function ChatClient() {
       // Handle /help and unknown commands - show as assistant message
       if (parsed.helpText) {
         const helpMessage: Message = {
-          id: crypto.randomUUID?.() || Date.now().toString(),
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: parsed.helpText,
           timestamp: new Date(),
@@ -1131,7 +1131,7 @@ export function ChatClient() {
 
     // Auto-create chat if none exists
     if (!currentChatId) {
-      const tempId = Date.now().toString();
+      const tempId = crypto.randomUUID();
       const newChat: Chat = {
         id: tempId,
         title: 'New Chat',
@@ -1201,7 +1201,7 @@ export function ChatClient() {
       setReplyingTo(null);
     }
 
-    const userMessageId = Date.now().toString();
+    const userMessageId = crypto.randomUUID();
     const userMessage: Message = {
       id: userMessageId,
       role: 'user',
@@ -1240,7 +1240,7 @@ export function ChatClient() {
       // Database save failed - show error to user instead of ghost message
       log.error('Failed to save user message:', saveError as Error);
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         content:
           'Sorry, your message could not be sent. Please check your connection and try again.',
@@ -1472,7 +1472,7 @@ export function ChatClient() {
 
       let finalContent = '';
       let isImageResponse = false;
-      const assistantMessageId = (Date.now() + 1).toString();
+      const assistantMessageId = crypto.randomUUID();
 
       if (isJsonResponse) {
         // Non-streaming response (for images or fallback)
@@ -2355,6 +2355,18 @@ export function ChatClient() {
         log.debug('Request interrupted:', {
           message: error instanceof Error ? error.message : 'unknown',
         });
+
+        // CRITICAL FIX: Save partial content before returning
+        // This prevents data loss when user navigates away during streaming
+        if (finalContent && finalContent.length > 0) {
+          log.debug('Saving partial content before abort cleanup', { contentLength: finalContent.length });
+          try {
+            await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
+          } catch (saveErr) {
+            log.warn('Failed to save partial content on abort', { error: saveErr });
+          }
+        }
+
         // Clean up abort controller to prevent memory leaks
         abortControllerRef.current = null;
         // Only update state if component is still mounted
@@ -2420,7 +2432,7 @@ export function ChatClient() {
       }
 
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         content: errorContent,
         timestamp: new Date(),

@@ -18,7 +18,7 @@
  */
 
 import { BaseTool, ToolInput, ToolOutput, ToolDefinition } from './BaseTool';
-import { ContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
 
@@ -212,7 +212,7 @@ export class WriteTool extends BaseTool {
     path: string,
     content: string
   ): Promise<{ success: boolean; existed?: boolean; error?: string }> {
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     try {
       // Check if file exists (optional - for tracking)

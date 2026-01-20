@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 // Sample conversation demonstrating faith-based response
 const DEMO_CONVERSATION = {
@@ -67,30 +68,33 @@ export default function ChatDemo() {
   }, [showAnswer]);
 
   // Parse markdown-like formatting
+  // SECURITY FIX: Use sanitizeHtml to prevent XSS attacks
   const formatText = (text: string) => {
     return text.split('\n').map((line, i) => {
       // Bold text
       let formatted = line.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
       // Italic text
       formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-slate-300 italic">$1</em>');
+      // Sanitize the HTML to prevent XSS
+      const safeHtml = sanitizeHtml(formatted);
       // Bullet points
       if (formatted.startsWith('•')) {
         return (
           <p key={i} className="flex items-start gap-2 my-1">
             <span className="text-blue-400 mt-0.5">•</span>
-            <span dangerouslySetInnerHTML={{ __html: formatted.slice(1).trim() }} />
+            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatted.slice(1).trim()) }} />
           </p>
         );
       }
       // Scripture reference
       if (formatted.includes('—')) {
         return (
-          <p key={i} className="text-right text-slate-400 mt-2 italic text-sm" dangerouslySetInnerHTML={{ __html: formatted }} />
+          <p key={i} className="text-right text-slate-400 mt-2 italic text-sm" dangerouslySetInnerHTML={{ __html: safeHtml }} />
         );
       }
       // Regular paragraph
       return formatted.trim() ? (
-        <p key={i} className="my-2" dangerouslySetInnerHTML={{ __html: formatted }} />
+        <p key={i} className="my-2" dangerouslySetInnerHTML={{ __html: safeHtml }} />
       ) : (
         <div key={i} className="h-2" />
       );

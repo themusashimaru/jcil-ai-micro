@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     if (path) {
       // Sanitize and read specific file
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Sanitize path
     const safePath = sanitizeFilePath(path);
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     await container.writeFile(sessionId, safePath, content);
 
     return NextResponse.json({ success: true, path: safePath });
@@ -197,7 +197,7 @@ export async function PUT(request: NextRequest) {
     // Sanitize path
     const safePath = sanitizeFilePath(path);
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     await container.writeFile(sessionId, safePath, content);
 
     return NextResponse.json({ success: true, path: safePath });
@@ -256,7 +256,7 @@ export async function DELETE(request: NextRequest) {
     // Sanitize path
     const safePath = sanitizeFilePath(path);
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     await container.deleteFile(sessionId, safePath);
 
     return NextResponse.json({ success: true });

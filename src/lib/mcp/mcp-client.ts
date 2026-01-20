@@ -14,7 +14,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 
 const log = logger('MCPClient');
 
@@ -199,7 +199,7 @@ class ContainerTransport implements MCPTransport {
     env: Record<string, string>,
     cwd: string
   ) {
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
     this.workspaceId = workspaceId;
     this.command = command;
     this.args = args;

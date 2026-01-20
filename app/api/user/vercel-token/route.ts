@@ -10,61 +10,15 @@ import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
+// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
+import { encrypt as encryptToken, decrypt as decryptToken } from '@/lib/security/crypto';
 
 const log = logger('VercelToken');
 
 export const runtime = 'nodejs';
-
-// Get encryption key (32 bytes for AES-256)
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  // Hash the key to ensure it's exactly 32 bytes
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-// Encrypt token using AES-256-GCM
-function encryptToken(token: string): string {
-  const key = getEncryptionKey();
-  const iv = crypto.randomBytes(16); // 16 bytes IV for GCM
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-  let encrypted = cipher.update(token, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-
-  const authTag = cipher.getAuthTag();
-
-  // Combine IV + authTag + encrypted data
-  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
-}
-
-// Decrypt token
-function decryptToken(encryptedData: string): string {
-  try {
-    const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
-      throw new Error('Invalid encrypted format');
-    }
-
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
-  } catch (error) {
-    log.error('[Vercel Token] Decryption error:', error instanceof Error ? error : { error });
-    throw new Error('Failed to decrypt token');
-  }
-}
 
 async function getUser() {
   const cookieStore = await cookies();

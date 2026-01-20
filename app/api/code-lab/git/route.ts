@@ -12,14 +12,12 @@ import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-import { ContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
-import {
-  sanitizeCommitMessage,
-  validateEncryptedTokenFormat,
-  TokenDecryptionError,
-} from '@/lib/workspace/security';
-import crypto from 'crypto';
+import { sanitizeCommitMessage } from '@/lib/workspace/security';
+// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
+// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
+import { decrypt as decryptToken } from '@/lib/security/crypto';
 
 type GitOperation =
   | 'clone'
@@ -30,44 +28,6 @@ type GitOperation =
   | 'branch'
   | 'checkout'
   | 'diff';
-
-// Encryption key for token decryption
-function getEncryptionKey() {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-// Decrypt token with proper error handling
-function decryptToken(encryptedData: string): string {
-  // Validate format first
-  const validation = validateEncryptedTokenFormat(encryptedData);
-  if (!validation.valid) {
-    throw new TokenDecryptionError(validation.error || 'Invalid token format', 'INVALID_FORMAT');
-  }
-
-  try {
-    const parts = encryptedData.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    if (!decrypted) {
-      throw new TokenDecryptionError('Decrypted token is empty', 'EMPTY_RESULT');
-    }
-
-    return decrypted;
-  } catch (error) {
-    if (error instanceof TokenDecryptionError) {
-      throw error;
-    }
-    throw new TokenDecryptionError('Token decryption failed', 'DECRYPTION_FAILED');
-  }
-}
 
 export async function POST(request: NextRequest) {
   // CSRF protection
@@ -146,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize container
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     // Create shell executor function for GitHubSyncBridge
     const executeShell = async (cmd: string) => {

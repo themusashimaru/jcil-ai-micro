@@ -19,7 +19,7 @@ import {
   generateUnifiedDiff,
 } from '@/lib/workspace/surgical-edit';
 import { getBackup, listBackups, restoreFromBackup } from '@/lib/workspace/backup-service';
-import { ContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
@@ -48,7 +48,7 @@ async function verifySessionOwnership(
 
 // Container-based file operations (matches Files API backend)
 async function readFileFromWorkspace(sessionId: string, filePath: string): Promise<string> {
-  const container = new ContainerManager();
+  const container = getContainerManager();
   const safePath = sanitizeFilePath(filePath);
   return await container.readFile(sessionId, safePath);
 }
@@ -58,7 +58,7 @@ async function writeFileToWorkspace(
   filePath: string,
   content: string
 ): Promise<void> {
-  const container = new ContainerManager();
+  const container = getContainerManager();
   const safePath = sanitizeFilePath(filePath);
   await container.writeFile(sessionId, safePath, content);
 }

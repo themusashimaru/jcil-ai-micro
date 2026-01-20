@@ -18,50 +18,118 @@ import { logger } from '@/lib/logger';
 
 const log = logger('ExecuteAPI');
 
-// Dangerous commands that should be blocked
-const BLOCKED_COMMANDS = [
-  'rm -rf /',
-  'rm -rf /*',
-  'rm -rf ~',
-  'dd if=/dev/zero',
-  'dd if=/dev/random',
-  ':(){ :|:& };:',
-  'mkfs',
-  'shutdown',
-  'reboot',
-  'init 0',
-  'init 6',
-  'halt',
-  'poweroff',
-  'chmod -R 777 /',
-  'chown -R',
-  'passwd',
-  'useradd',
-  'userdel',
-  'wget -O - | sh',
-  'curl -s | sh',
-  'wget -O - | bash',
-  'curl -s | bash',
+/**
+ * COMMAND VALIDATION - SECURITY CRITICAL
+ *
+ * This module uses DEFENSE-IN-DEPTH with multiple layers:
+ * 1. Regex-based pattern blocking (more robust than substring matching)
+ * 2. Detection of shell injection patterns
+ * 3. System path protection
+ * 4. Fork bomb and resource exhaustion protection
+ *
+ * Note: The E2B sandbox provides the PRIMARY security boundary.
+ * These checks are additional protection layers.
+ */
+
+// Dangerous command patterns (regex-based for robust matching)
+// Using regex instead of substring matching to prevent bypasses like:
+// "rm -rf / && echo" passing when we block "rm -rf /"
+const DANGEROUS_PATTERNS: RegExp[] = [
+  // Destructive file operations
+  /\brm\s+(-[a-zA-Z]*\s+)*(-r|-f|--recursive|--force)/i, // rm with -r or -f flags on root
+  /\brm\s+(-[a-zA-Z]*\s+)*(\/|~)($|\s|;|&|\|)/i, // rm targeting root or home
+  /\bdd\s+.*if=\/dev\/(zero|random|urandom)/i, // dd with dangerous input
+  /\bdd\s+.*of=\/dev\/(sd|hd|nvme|vd)/i, // dd writing to disk devices
+
+  // System control commands
+  /\b(shutdown|reboot|halt|poweroff)\b/i,
+  /\binit\s+[06]\b/i,
+  /\bmkfs(\.[a-z0-9]+)?\s/i, // Filesystem formatting
+
+  // Fork bombs and resource exhaustion
+  /:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;?\s*:/i, // Classic fork bomb
+  /\byes\s*\|/i, // yes piped (potential DoS)
+
+  // Privilege escalation attempts
+  /\b(passwd|useradd|userdel|usermod|groupadd|groupdel)\b/i,
+  /\bchmod\s+(-[a-zA-Z]*\s+)*[0-7]*777\s+\//i, // chmod 777 on system paths
+  /\bchown\s+(-[a-zA-Z]*\s+)*\S+\s+\//i, // chown on system paths
+  /\bsudo\b/i, // Any sudo usage
+  /\bsu\s+(-|root)/i, // su to root
+
+  // Network-based attacks - remote code execution
+  /\b(wget|curl)\s+[^|]*\|\s*(sh|bash|zsh|dash|ksh)/i, // wget/curl piped to shell
+  /\bnc\s+.*-e\s/i, // Netcat with execute
 ];
 
-// Check if command is safe to execute
-function isCommandSafe(command: string): { safe: boolean; reason?: string } {
-  const lowerCommand = command.toLowerCase().trim();
+// System paths that should not be modified
+const PROTECTED_PATHS = [
+  '/etc/', '/var/', '/usr/', '/bin/', '/sbin/',
+  '/boot/', '/dev/', '/proc/', '/sys/', '/root/',
+  '/lib/', '/lib64/', '/opt/',
+];
 
-  // Check for blocked commands
-  for (const blocked of BLOCKED_COMMANDS) {
-    if (lowerCommand.includes(blocked.toLowerCase())) {
-      return { safe: false, reason: `Command contains blocked pattern: ${blocked}` };
+/**
+ * SECURITY FIX: Robust command validation using regex pattern matching
+ * instead of simple substring matching (which can be easily bypassed).
+ */
+function isCommandSafe(command: string): { safe: boolean; reason?: string } {
+  const trimmedCommand = command.trim();
+
+  // Empty command is safe (no-op)
+  if (!trimmedCommand) {
+    return { safe: true };
+  }
+
+  // Check against dangerous patterns
+  for (const pattern of DANGEROUS_PATTERNS) {
+    if (pattern.test(trimmedCommand)) {
+      log.warn('Blocked dangerous command pattern', {
+        command: trimmedCommand.substring(0, 100),
+        pattern: pattern.source.substring(0, 50),
+      });
+      return { safe: false, reason: 'Command matches a dangerous pattern' };
     }
   }
 
-  // Check for suspicious patterns
-  if (lowerCommand.includes('> /dev/sda') || lowerCommand.includes('> /dev/hda')) {
-    return { safe: false, reason: 'Direct disk writes are not allowed' };
+  // Check for attempts to modify protected system paths
+  for (const protectedPath of PROTECTED_PATHS) {
+    const escapedPath = protectedPath.replace(/\//g, '\\/');
+
+    // Check for destructive operations targeting protected paths
+    const destructivePatterns = [
+      new RegExp(`>\\s*${escapedPath}`, 'i'), // Redirect to protected path
+      new RegExp(`\\brm\\s+.*${escapedPath}`, 'i'), // rm targeting protected path
+      new RegExp(`\\bchmod\\s+.*${escapedPath}`, 'i'), // chmod on protected path
+      new RegExp(`\\bchown\\s+.*${escapedPath}`, 'i'), // chown on protected path
+    ];
+
+    for (const destructivePattern of destructivePatterns) {
+      if (destructivePattern.test(trimmedCommand)) {
+        log.warn('Blocked command targeting protected path', {
+          command: trimmedCommand.substring(0, 100),
+          path: protectedPath,
+        });
+        return { safe: false, reason: `Cannot modify protected system path: ${protectedPath}` };
+      }
+    }
   }
 
-  if (lowerCommand.includes('/etc/passwd') && lowerCommand.includes('>')) {
-    return { safe: false, reason: 'Modifying system files is not allowed' };
+  // Check for shell injection patterns with dangerous commands
+  const shellInjectionPatterns = [
+    /;\s*(rm|dd|mkfs|shutdown|reboot|halt)/i, // Command chaining with dangerous commands
+    /&&\s*(rm|dd|mkfs|shutdown|reboot|halt)/i, // AND chaining with dangerous commands
+    /\|\|\s*(rm|dd|mkfs|shutdown|reboot|halt)/i, // OR chaining with dangerous commands
+    /\|\s*(sh|bash|zsh|dash)\s*$/i, // Piping to shell at end of command
+  ];
+
+  for (const pattern of shellInjectionPatterns) {
+    if (pattern.test(trimmedCommand)) {
+      log.warn('Blocked shell injection attempt', {
+        command: trimmedCommand.substring(0, 100),
+      });
+      return { safe: false, reason: 'Shell injection pattern detected' };
+    }
   }
 
   return { safe: true };

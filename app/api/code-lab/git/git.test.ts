@@ -52,6 +52,13 @@ vi.mock('@/lib/workspace/container', () => ({
       exitCode: 0,
     }),
   })),
+  getContainerManager: vi.fn().mockReturnValue({
+    executeCommand: vi.fn().mockResolvedValue({
+      stdout: 'command output',
+      stderr: '',
+      exitCode: 0,
+    }),
+  }),
 }));
 
 vi.mock('@/lib/workspace/github-sync', () => ({
