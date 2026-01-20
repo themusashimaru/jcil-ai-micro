@@ -107,6 +107,44 @@ export function CodeLabTokenDisplay({
             border-radius: 50%;
             margin-left: 0.25rem;
           }
+
+          /* Mobile: More compact display */
+          @media (max-width: 768px) {
+            .token-display-compact {
+              padding: 0.1875rem 0.375rem;
+              font-size: 0.6875rem;
+              gap: 0.25rem;
+            }
+
+            .token-divider,
+            .token-cost {
+              display: none;
+            }
+
+            .context-indicator {
+              margin-left: 0.125rem;
+            }
+          }
+
+          /* Extra small screens: Show only context indicator */
+          @media (max-width: 480px) {
+            .token-count {
+              display: none;
+            }
+
+            .token-display-compact {
+              padding: 0.25rem;
+              min-width: 24px;
+              min-height: 24px;
+              justify-content: center;
+            }
+
+            .context-indicator {
+              width: 8px;
+              height: 8px;
+              margin-left: 0;
+            }
+          }
         `}</style>
       </button>
     );
