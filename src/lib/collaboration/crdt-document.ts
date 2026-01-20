@@ -60,6 +60,9 @@ export class CRDTDocument extends EventEmitter {
 
   constructor(documentId: string, userId: string, initialContent: string = '') {
     super();
+    // MEDIUM-007: Set max listeners to prevent memory leak warnings
+    // Each collaborative user adds listeners for cursor/selection updates
+    this.setMaxListeners(50);
     this.documentId = documentId;
     this.userId = userId;
     this.content = initialContent;
