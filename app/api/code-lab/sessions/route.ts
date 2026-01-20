@@ -166,6 +166,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create session', code: 'SESSION_CREATE_FAILED' }, { status: 500 });
   }
 }

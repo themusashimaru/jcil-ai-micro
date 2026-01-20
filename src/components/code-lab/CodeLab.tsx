@@ -1336,6 +1336,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
               className={`header-btn ${workspacePanelOpen ? 'active' : ''}`}
               onClick={() => setWorkspacePanelOpen(!workspacePanelOpen)}
               title="Workspace Panel (Cmd+E)"
+              aria-label="Toggle Workspace Panel"
+              aria-pressed={workspacePanelOpen}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path

@@ -7,6 +7,7 @@
 
 // Main components
 export { CodeLab } from './CodeLab';
+export { CodeLabErrorBoundary } from './CodeLabErrorBoundary';
 export { CodeLabSidebar } from './CodeLabSidebar';
 export { CodeLabThread } from './CodeLabThread';
 export { CodeLabMessage } from './CodeLabMessage';

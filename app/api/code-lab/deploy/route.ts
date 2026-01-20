@@ -145,7 +145,14 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[Deploy API] Error:', error);
-    return NextResponse.json({ error: 'Deployment failed' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Deployment failed',
+        code: 'DEPLOY_FAILED',
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 

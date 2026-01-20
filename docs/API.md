@@ -335,6 +335,23 @@ All error responses follow a consistent format:
 | `SERVER_ERROR` | 500         | Internal server error    |
 | `BAD_REQUEST`  | 400         | Invalid request data     |
 
+### Code Lab Error Codes
+
+| Code | HTTP Status | Description |
+| ---- | ----------- | ----------- |
+| `CONTENT_TOO_LONG` | 400 | Message exceeds 100KB limit |
+| `SESSION_NOT_FOUND` | 404 | Code Lab session not found |
+| `SESSION_CREATE_FAILED` | 500 | Failed to create new session |
+| `FILES_ACCESS_FAILED` | 500 | File read/list operation failed |
+| `FILE_CREATE_FAILED` | 500 | File creation failed |
+| `FILE_UPDATE_FAILED` | 500 | File update/write failed |
+| `FILE_DELETE_FAILED` | 500 | File deletion failed |
+| `VISUAL_TO_CODE_FAILED` | 500 | Image to code conversion failed |
+| `DEPLOY_FAILED` | 500 | Deployment to platform failed |
+| `INDEX_CHECK_FAILED` | 500 | Codebase index check failed |
+| `INDEX_CREATE_FAILED` | 500 | Codebase index creation failed |
+| `INDEX_DELETE_FAILED` | 500 | Codebase index deletion failed |
+
 ---
 
 ## CORS
@@ -348,6 +365,12 @@ API endpoints support CORS for the following origins:
 ---
 
 ## Changelog
+
+### v1.1.0 (January 20, 2026)
+
+- Added Code Lab error codes for consistent error handling
+- Added input validation for message content length (100KB max)
+- Improved error responses with detailed error codes and messages
 
 ### v1.0.0 (January 2026)
 

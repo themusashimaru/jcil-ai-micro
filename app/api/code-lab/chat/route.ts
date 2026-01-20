@@ -224,6 +224,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { sessionId, content, repo, attachments, forceSearch, modelId, thinking } = body;
 
+    // P2a: Input validation - max content length to prevent abuse
+    const MAX_CONTENT_LENGTH = 100000; // 100KB reasonable limit for chat messages
+    if (content && typeof content === 'string' && content.length > MAX_CONTENT_LENGTH) {
+      return new Response(
+        JSON.stringify({
+          error: 'Message too long',
+          code: 'CONTENT_TOO_LONG',
+          maxLength: MAX_CONTENT_LENGTH,
+          actualLength: content.length,
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Model selection (Claude Code parity) - default to Opus 4.5
     const selectedModel = modelId || 'claude-opus-4-5-20251101';
 
