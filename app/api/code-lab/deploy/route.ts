@@ -16,6 +16,31 @@ const log = logger('DeployAPI');
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
+// MEDIUM-003: Request timeout for external API calls (30 seconds)
+const EXTERNAL_API_TIMEOUT_MS = 30000;
+
+/**
+ * Fetch with timeout to prevent hanging connections
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = EXTERNAL_API_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 type DeployPlatform = 'vercel' | 'netlify' | 'railway' | 'cloudflare';
 
 interface DeployConfig {
@@ -163,7 +188,7 @@ export async function POST(request: NextRequest) {
 async function deployToVercel(token: string, config: DeployConfig, _sessionId: string) {
   try {
     // Create project if it doesn't exist
-    const projectResponse = await fetch('https://api.vercel.com/v9/projects', {
+    const projectResponse = await fetchWithTimeout('https://api.vercel.com/v9/projects', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -185,7 +210,7 @@ async function deployToVercel(token: string, config: DeployConfig, _sessionId: s
     // Set environment variables
     if (config.envVars && Object.keys(config.envVars).length > 0) {
       for (const [key, value] of Object.entries(config.envVars)) {
-        await fetch(`https://api.vercel.com/v10/projects/${config.projectName}/env`, {
+        await fetchWithTimeout(`https://api.vercel.com/v10/projects/${config.projectName}/env`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -222,7 +247,7 @@ async function deployToVercel(token: string, config: DeployConfig, _sessionId: s
 async function deployToNetlify(token: string, config: DeployConfig, _sessionId: string) {
   try {
     // Create site
-    const siteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+    const siteResponse = await fetchWithTimeout('https://api.netlify.com/api/v1/sites', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -245,7 +270,7 @@ async function deployToNetlify(token: string, config: DeployConfig, _sessionId: 
 
     // Set environment variables
     if (config.envVars && Object.keys(config.envVars).length > 0) {
-      await fetch(`https://api.netlify.com/api/v1/sites/${site.id}/env`, {
+      await fetchWithTimeout(`https://api.netlify.com/api/v1/sites/${site.id}/env`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -286,7 +311,7 @@ async function deployToRailway(token: string, config: DeployConfig, _sessionId: 
       }
     `;
 
-    const response = await fetch('https://backboard.railway.app/graphql/v2', {
+    const response = await fetchWithTimeout('https://backboard.railway.app/graphql/v2', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -329,11 +354,14 @@ async function deployToRailway(token: string, config: DeployConfig, _sessionId: 
 async function deployToCloudflare(token: string, config: DeployConfig, _sessionId: string) {
   try {
     // First get account ID
-    const accountsResponse = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const accountsResponse = await fetchWithTimeout(
+      'https://api.cloudflare.com/client/v4/accounts',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!accountsResponse.ok) {
       throw new Error('Failed to get Cloudflare account');
@@ -347,7 +375,7 @@ async function deployToCloudflare(token: string, config: DeployConfig, _sessionI
     }
 
     // Create Pages project
-    const projectResponse = await fetch(
+    const projectResponse = await fetchWithTimeout(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects`,
       {
         method: 'POST',
@@ -431,7 +459,7 @@ export async function GET(request: NextRequest) {
     // Check deployment status based on platform
     switch (platform) {
       case 'vercel': {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `https://api.vercel.com/v9/projects/${projectName || projectId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -449,7 +477,7 @@ export async function GET(request: NextRequest) {
         const project = await response.json();
 
         // Get latest deployment
-        const deploymentsRes = await fetch(
+        const deploymentsRes = await fetchWithTimeout(
           `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -472,9 +500,12 @@ export async function GET(request: NextRequest) {
       }
 
       case 'netlify': {
-        const response = await fetch(`https://api.netlify.com/api/v1/sites/${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetchWithTimeout(
+          `https://api.netlify.com/api/v1/sites/${projectId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         if (!response.ok) {
           return NextResponse.json({
@@ -487,7 +518,7 @@ export async function GET(request: NextRequest) {
         const site = await response.json();
 
         // Get latest deploy
-        const deploysRes = await fetch(
+        const deploysRes = await fetchWithTimeout(
           `https://api.netlify.com/api/v1/sites/${projectId}/deploys?per_page=1`,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -530,7 +561,7 @@ export async function GET(request: NextRequest) {
           }
         `;
 
-        const response = await fetch('https://backboard.railway.app/graphql/v2', {
+        const response = await fetchWithTimeout('https://backboard.railway.app/graphql/v2', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -568,9 +599,12 @@ export async function GET(request: NextRequest) {
 
       case 'cloudflare': {
         // Get account ID first
-        const accountsResponse = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const accountsResponse = await fetchWithTimeout(
+          'https://api.cloudflare.com/client/v4/accounts',
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         const accountsData = await accountsResponse.json();
         const accountId = accountsData.result?.[0]?.id;
@@ -583,7 +617,7 @@ export async function GET(request: NextRequest) {
           });
         }
 
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName || projectId}`,
           {
             headers: { Authorization: `Bearer ${token}` },

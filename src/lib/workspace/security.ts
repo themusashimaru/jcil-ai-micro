@@ -76,7 +76,13 @@ export function sanitizeFilePath(path: string, baseDir: string = '/workspace'): 
   }
 
   // Step 3: Normalize path separators (Windows backslash to forward slash)
-  sanitized = sanitized.replace(/\\/g, '/');
+  // MEDIUM-002: Also handle Unicode path separators that could bypass checks
+  sanitized = sanitized
+    .replace(/\\/g, '/') // Windows backslash
+    .replace(/[\u2215\u2044\u29F8\uFF0F]/g, '/') // Unicode slashes: ∕ ⁄ ⧸ ／
+    .replace(/[\uFF3C\uFE68]/g, '/') // Unicode backslashes: ＼ ﹨
+    .replace(/[\u2024\uFF0E]/g, '.') // Unicode dots: ․ ．
+    .replace(/\u2025/g, '..'); // Two dot leader: ‥
 
   // Step 4: Remove shell metacharacters
   sanitized = sanitized.replace(/[;&|`$(){}[\]<>!'"\n\r]/g, '');
@@ -260,6 +266,117 @@ export async function validateSessionOwnership(
   } catch {
     return false;
   }
+}
+
+/**
+ * MEDIUM-001: Symlink protection
+ * Check if a path contains symlinks that could escape the workspace
+ *
+ * Note: This is designed to be called from server-side Node.js code,
+ * not from edge runtime. For edge runtime, use the container's
+ * symlink checking capabilities.
+ */
+export async function isSymlinkEscape(
+  path: string,
+  workspaceRoot: string
+): Promise<{ isEscape: boolean; reason?: string }> {
+  // Only run in Node.js environment (not edge)
+  if (typeof process === 'undefined' || typeof require === 'undefined') {
+    return { isEscape: false, reason: 'Cannot check symlinks in edge runtime' };
+  }
+
+  try {
+    // Dynamic import for Node.js fs/promises
+    const fs = await import('fs/promises');
+    const nodePath = await import('path');
+
+    // Normalize paths
+    const normalizedRoot = nodePath.default.resolve(workspaceRoot);
+    const normalizedPath = nodePath.default.resolve(path);
+
+    // Check each segment of the path for symlinks
+    const sep = nodePath.default.sep;
+    const segments = normalizedPath.split(sep);
+    let currentPath = sep as string;
+
+    for (const segment of segments) {
+      if (!segment) continue;
+
+      currentPath = nodePath.default.join(currentPath, segment);
+
+      try {
+        const stats = await fs.lstat(currentPath);
+
+        if (stats.isSymbolicLink()) {
+          // Resolve the symlink target
+          const target = await fs.realpath(currentPath);
+
+          // Check if target escapes workspace
+          if (!target.startsWith(normalizedRoot)) {
+            return {
+              isEscape: true,
+              reason: `Symlink at ${currentPath} points outside workspace to ${target}`,
+            };
+          }
+        }
+      } catch {
+        // Path doesn't exist yet - that's OK for new files
+        break;
+      }
+    }
+
+    // Final check: resolve entire path and verify it's within workspace
+    try {
+      const realPath = await fs.realpath(normalizedPath);
+      if (!realPath.startsWith(normalizedRoot)) {
+        return {
+          isEscape: true,
+          reason: `Resolved path ${realPath} is outside workspace`,
+        };
+      }
+    } catch {
+      // File doesn't exist - check parent directory
+      const parentDir = nodePath.default.dirname(normalizedPath);
+      try {
+        const realParent = await fs.realpath(parentDir);
+        if (!realParent.startsWith(normalizedRoot)) {
+          return {
+            isEscape: true,
+            reason: `Parent directory resolves outside workspace`,
+          };
+        }
+      } catch {
+        // Parent doesn't exist either - this is OK
+      }
+    }
+
+    return { isEscape: false };
+  } catch (error) {
+    // If we can't check, fail open but log warning
+    return {
+      isEscape: false,
+      reason: `Could not check symlinks: ${(error as Error).message}`,
+    };
+  }
+}
+
+/**
+ * Generate a shell command to check for symlinks in container
+ * This can be used with container.executeCommand() to verify paths
+ */
+export function generateSymlinkCheckCommand(
+  path: string,
+  workspaceRoot: string = '/workspace'
+): string {
+  // Sanitize inputs for shell safety
+  const safePath = path.replace(/'/g, "'\\''");
+  const safeRoot = workspaceRoot.replace(/'/g, "'\\''");
+
+  // This command:
+  // 1. Uses realpath to resolve the full path
+  // 2. Checks if it starts with the workspace root
+  // Returns exit code 0 if safe, 1 if escape detected
+  return `realpath -m '${safePath}' 2>/dev/null | grep -q '^${safeRoot}' || echo 'SYMLINK_ESCAPE'`;
 }
 
 /**

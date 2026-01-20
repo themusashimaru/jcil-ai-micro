@@ -106,6 +106,9 @@ export class CollaborationManager extends EventEmitter {
 
   constructor() {
     super();
+    // MEDIUM-007: Set max listeners to prevent memory leak warnings
+    // Sessions and users add event listeners for broadcasts
+    this.setMaxListeners(100);
     this.redisEnabled = isRedisAvailable();
 
     if (this.redisEnabled) {

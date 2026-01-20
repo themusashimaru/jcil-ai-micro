@@ -19,6 +19,105 @@ import { ContainerManager, getContainerManager } from '@/lib/workspace/container
 const log = logger('MCPClient');
 
 // ============================================================================
+// ENVIRONMENT VARIABLE SECURITY (HIGH-007 FIX)
+// ============================================================================
+
+/**
+ * Dangerous environment variables that should never be overridden by user config
+ * These can lead to code execution, library injection, or security bypass
+ */
+const BLOCKED_ENV_VARS = new Set([
+  // Path manipulation
+  'PATH',
+  'LD_LIBRARY_PATH',
+  'LD_PRELOAD',
+  'DYLD_LIBRARY_PATH',
+  'DYLD_INSERT_LIBRARIES',
+  // Home/config directory hijacking
+  'HOME',
+  'USERPROFILE',
+  'XDG_CONFIG_HOME',
+  'XDG_DATA_HOME',
+  // Node.js security
+  'NODE_OPTIONS',
+  'NODE_PATH',
+  'NODE_ENV',
+  'NODE_DEBUG',
+  'NODE_EXTRA_CA_CERTS',
+  // Shell/command execution
+  'SHELL',
+  'COMSPEC',
+  'IFS',
+  'BASH_ENV',
+  'ENV',
+  'CDPATH',
+  // Python security
+  'PYTHONPATH',
+  'PYTHONSTARTUP',
+  'PYTHONHOME',
+  // Ruby security
+  'RUBYLIB',
+  'RUBYOPT',
+  // Proxy hijacking (could redirect traffic)
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'ALL_PROXY',
+  'NO_PROXY',
+  'http_proxy',
+  'https_proxy',
+  // SSL/TLS certificate manipulation
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
+  'CURL_CA_BUNDLE',
+  'REQUESTS_CA_BUNDLE',
+  // Git security
+  'GIT_SSH',
+  'GIT_SSH_COMMAND',
+  'GIT_ASKPASS',
+  'GIT_EXEC_PATH',
+  // AWS/Cloud credentials (prevent exfiltration vectors)
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_SESSION_TOKEN',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'AZURE_CLIENT_SECRET',
+]);
+
+/**
+ * Sanitize environment variables from user config
+ * Removes blocked variables and validates format
+ */
+function sanitizeEnvVars(env: Record<string, string> | undefined): Record<string, string> {
+  if (!env) return {};
+
+  const sanitized: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(env)) {
+    // Check if key is blocked (case-insensitive)
+    if (BLOCKED_ENV_VARS.has(key) || BLOCKED_ENV_VARS.has(key.toUpperCase())) {
+      log.warn('Blocked dangerous environment variable', { key });
+      continue;
+    }
+
+    // Validate key format (alphanumeric and underscore only)
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      log.warn('Invalid environment variable name', { key });
+      continue;
+    }
+
+    // Validate value (no null bytes or shell metacharacters in value)
+    if (value.includes('\0') || /[`$]/.test(value)) {
+      log.warn('Invalid environment variable value', { key });
+      continue;
+    }
+
+    sanitized[key] = value;
+  }
+
+  return sanitized;
+}
+
+// ============================================================================
 // MCP PROTOCOL TYPES (Based on official MCP spec)
 // ============================================================================
 
@@ -337,13 +436,14 @@ export class MCPClient extends EventEmitter {
       workspaceId: this.config.workspaceId,
     });
 
-    // Resolve environment variables - spread process.env and add custom vars
+    // HIGH-007 FIX: Sanitize environment variables to prevent injection attacks
+    // 1. First sanitize raw env vars (block dangerous keys)
+    const sanitizedConfig = sanitizeEnvVars(this.config.env);
+
+    // 2. Resolve ${VAR} patterns from process.env
     const customEnv: Record<string, string> = {};
-    if (this.config.env) {
-      for (const [key, value] of Object.entries(this.config.env)) {
-        // Resolve ${VAR} patterns from process.env
-        customEnv[key] = value.replace(/\$\{(\w+)\}/g, (_, varName) => process.env[varName] || '');
-      }
+    for (const [key, value] of Object.entries(sanitizedConfig)) {
+      customEnv[key] = value.replace(/\$\{(\w+)\}/g, (_, varName) => process.env[varName] || '');
     }
 
     // Choose transport based on configuration
