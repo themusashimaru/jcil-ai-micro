@@ -42,6 +42,12 @@ import {
 import { LiveTodoList } from '@/components/chat/LiveTodoList';
 import { parseSlashCommand } from '@/lib/slashCommands';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import {
+  analyzeResponse,
+  isConfirmation,
+  isDecline,
+  type SuggestedAction,
+} from '@/lib/response-analysis';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -155,6 +161,11 @@ export function ChatClient() {
   const [quickPromptText, setQuickPromptText] = useState<string>('');
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
+  // Pending tool suggestion from AI response analysis (for auto web search/fact check)
+  const [pendingToolSuggestion, setPendingToolSuggestion] = useState<{
+    action: SuggestedAction;
+    originalQuestion: string | null;
+  } | null>(null);
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
   // Polling interval ref for background reply checking
@@ -676,6 +687,7 @@ export function ChatClient() {
     // This prevents blank/empty chats from accumulating
     setCurrentChatId(null);
     setMessages([]);
+    setPendingToolSuggestion(null); // Clear any pending tool suggestion
 
     // Auto-close sidebar on mobile after creating new chat
     if (window.innerWidth < 768) {
@@ -686,6 +698,7 @@ export function ChatClient() {
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
     setContinuationDismissed(false); // Reset continuation banner for new chat
+    setPendingToolSuggestion(null); // Clear any pending tool suggestion
     // Auto-close sidebar on mobile after selecting chat
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
@@ -1067,6 +1080,42 @@ export function ChatClient() {
       // For other commands, replace content with the generated prompt
       if (parsed.prompt) {
         content = parsed.prompt;
+      }
+    }
+
+    // SMART TOOL SUGGESTIONS: Check if this is a response to a pending tool suggestion
+    // If user confirms ("yes", "sure", etc.), auto-trigger the suggested tool
+    if (pendingToolSuggestion) {
+      const userConfirmed = isConfirmation(content);
+      const userDeclined = isDecline(content);
+
+      if (userConfirmed) {
+        log.debug('User confirmed tool suggestion:', {
+          action: pendingToolSuggestion.action,
+          originalQuestion: pendingToolSuggestion.originalQuestion?.slice(0, 50),
+        });
+
+        // Map the suggested action to the appropriate search mode
+        if (pendingToolSuggestion.action === 'search') {
+          searchMode = 'search';
+        } else if (pendingToolSuggestion.action === 'factcheck') {
+          searchMode = 'factcheck';
+        }
+
+        // Use the original question for the search, not just "yes"
+        if (pendingToolSuggestion.originalQuestion) {
+          content = pendingToolSuggestion.originalQuestion;
+        }
+
+        // Clear the pending suggestion
+        setPendingToolSuggestion(null);
+      } else if (userDeclined) {
+        log.debug('User declined tool suggestion');
+        // Clear the pending suggestion and continue with normal message flow
+        setPendingToolSuggestion(null);
+      } else {
+        // User sent a different message entirely - clear suggestion and process normally
+        setPendingToolSuggestion(null);
       }
     }
 
@@ -2173,6 +2222,42 @@ export function ChatClient() {
       setPendingDocumentType(null); // Clear document type indicator
       // Clear the abort controller after successful completion
       abortControllerRef.current = null;
+
+      // SMART TOOL SUGGESTIONS: Analyze AI response for knowledge cutoff or uncertainty
+      // If detected, append a suggestion prompt and track for confirmation handling
+      // Skip analysis if search was already used (searchProvider is set)
+      if (!searchProvider && finalContent && !isImageResponse) {
+        const analysisResult = analyzeResponse(finalContent);
+
+        if (
+          analysisResult.triggerType !== 'none' &&
+          analysisResult.suggestedAction !== 'none' &&
+          analysisResult.suggestedPrompt
+        ) {
+          log.debug('Response trigger detected:', {
+            type: analysisResult.triggerType,
+            action: analysisResult.suggestedAction,
+            confidence: analysisResult.confidence,
+          });
+
+          // Append the suggestion prompt to the message
+          const updatedContent = finalContent + analysisResult.suggestedPrompt;
+          finalContent = updatedContent;
+
+          // Update the message in the UI with the appended prompt
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId ? { ...msg, content: updatedContent } : msg
+            )
+          );
+
+          // Store the pending suggestion for confirmation handling
+          setPendingToolSuggestion({
+            action: analysisResult.suggestedAction,
+            originalQuestion: content, // The user's original question
+          });
+        }
+      }
 
       // Save assistant message to database (skip for images - already saved above)
       if (!isImageResponse) {
