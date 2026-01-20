@@ -1085,6 +1085,8 @@ export function ChatClient() {
 
     // SMART TOOL SUGGESTIONS: Check if this is a response to a pending tool suggestion
     // If user confirms ("yes", "sure", etc.), auto-trigger the suggested tool
+    // contentForAI holds what the AI should process (may differ from what user typed)
+    let contentForAI = content;
     if (pendingToolSuggestion) {
       const userConfirmed = isConfirmation(content);
       const userDeclined = isDecline(content);
@@ -1102,9 +1104,9 @@ export function ChatClient() {
           searchMode = 'factcheck';
         }
 
-        // Use the original question for the search, not just "yes"
+        // Use the original question for the AI to search, but keep user's actual input ("yes") for display
         if (pendingToolSuggestion.originalQuestion) {
-          content = pendingToolSuggestion.originalQuestion;
+          contentForAI = pendingToolSuggestion.originalQuestion;
         }
 
         // Clear the pending suggestion
@@ -1252,6 +1254,16 @@ export function ChatClient() {
     try {
       // Get all messages including the new one
       const allMessages = [...messages, userMessage];
+
+      // If this was a confirmation (user typed "yes"), override the last message's content
+      // for AI processing with the original question, while keeping "yes" displayed in UI
+      if (contentForAI !== content) {
+        const lastIndex = allMessages.length - 1;
+        allMessages[lastIndex] = {
+          ...allMessages[lastIndex],
+          content: contentForAI, // AI receives the original question
+        };
+      }
 
       // Find the index of the last user message with images (should be the new one)
       let lastImageMessageIndex = -1;
