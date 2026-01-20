@@ -551,17 +551,20 @@ export function CodeLabSidebar({
 
           {/* Footer */}
           <div className="sidebar-footer">
-            <Link href="/chat" className="back-to-chat">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                />
-              </svg>
-              Back to Chat
-            </Link>
-            <div className="powered-by">Powered by Claude Opus 4.5</div>
+            <div className="footer-links">
+              <Link href="/chat" className="back-to-chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 19.5L8.25 12l7.5-7.5"
+                  />
+                </svg>
+                Chat
+              </Link>
+              <span className="footer-divider">·</span>
+              <span className="powered-by">Claude Opus 4.5</span>
+            </div>
           </div>
         </>
       )}
@@ -1122,44 +1125,43 @@ export function CodeLabSidebar({
         }
 
         .sidebar-footer {
-          padding: 1rem;
+          padding: 0.75rem 1rem;
           border-top: 1px solid #333;
           margin-top: auto;
         }
 
-        .back-to-chat {
+        .footer-links {
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          width: 100%;
-          padding: 0.625rem 1rem;
-          margin-bottom: 0.75rem;
-          background: #222;
-          border: 1px solid #333;
-          border-radius: 8px;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #ffffff;
+          font-size: 0.75rem;
+        }
+
+        .back-to-chat {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          color: #888;
           text-decoration: none;
-          transition: all 0.2s;
+          transition: color 0.2s;
         }
 
         .back-to-chat:hover {
-          background: #333;
-          border-color: #444;
           color: #ffffff;
         }
 
         .back-to-chat svg {
-          width: 18px;
-          height: 18px;
+          width: 14px;
+          height: 14px;
+        }
+
+        .footer-divider {
+          color: #555;
         }
 
         .powered-by {
-          font-size: 0.75rem;
-          color: #888;
-          text-align: center;
+          color: #666;
         }
 
         /* Mobile: sidebar as slide-over drawer
@@ -1220,7 +1222,12 @@ export function CodeLabSidebar({
           }
 
           .sidebar-footer {
-            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+            padding: 0.625rem 1rem;
+            padding-bottom: calc(0.625rem + env(safe-area-inset-bottom, 0));
+          }
+
+          .footer-links {
+            font-size: 0.6875rem;
           }
 
           .repo-dropdown {
