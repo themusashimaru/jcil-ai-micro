@@ -14,7 +14,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
-import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 
 const log = logger('MCPClient');
 

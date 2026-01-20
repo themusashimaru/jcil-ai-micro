@@ -906,7 +906,7 @@ export function MessageBubble({
                 <span>Sources ({message.citations.length})</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {message.citations.slice(0, 5).map((citation, index) => {
+                {message.citations.slice(0, 5).map((citation) => {
                   // Handle multiple citation formats:
                   // - String URL directly
                   // - Object with url/link/source/href field

@@ -12,12 +12,12 @@ import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
 import { sanitizeCommitMessage } from '@/lib/workspace/security';
 // SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
 // (no fallback to SERVICE_ROLE_KEY for separation of concerns)
-import { decrypt as decryptToken, DecryptionError } from '@/lib/security/crypto';
+import { decrypt as decryptToken } from '@/lib/security/crypto';
 
 type GitOperation =
   | 'clone'

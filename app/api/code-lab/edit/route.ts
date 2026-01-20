@@ -19,7 +19,7 @@ import {
   generateUnifiedDiff,
 } from '@/lib/workspace/surgical-edit';
 import { getBackup, listBackups, restoreFromBackup } from '@/lib/workspace/backup-service';
-import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';

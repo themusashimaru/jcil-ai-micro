@@ -231,7 +231,7 @@ export class ShellSessionManager {
     }
 
     // CONCURRENCY FIX: Use mutex when accessing session state Map
-    let state = await this.stateMutex.withLock(async () => {
+    const state = await this.stateMutex.withLock(async () => {
       let s = this.sessionStates.get(sessionId);
       if (!s) {
         s = { cwd: session.cwd, env: session.env };

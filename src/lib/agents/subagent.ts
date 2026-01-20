@@ -12,7 +12,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
-import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { getContainerManager } from '@/lib/workspace/container';
 
 const log = logger('Subagent');
 

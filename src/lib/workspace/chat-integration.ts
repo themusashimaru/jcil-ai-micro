@@ -11,7 +11,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { ContainerManager, getContainerManager } from './container';
+import { getContainerManager } from './container';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 
