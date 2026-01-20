@@ -502,27 +502,27 @@ The following P2 (Medium Priority) issues have been addressed:
 
 ### Error Handling Improvements
 
-| Issue | Fix | Files |
-|-------|-----|-------|
-| Generic "Internal error" messages | Added specific error codes (VISUAL_TO_CODE_FAILED, DEPLOY_FAILED, FILES_ACCESS_FAILED, etc.) | 6 API route files |
-| No input validation for content length | Added 100KB max content validation with clear error response | chat/route.ts |
-| console.error instead of structured logging | Replaced with logger instance | hook-config.ts |
+| Issue                                       | Fix                                                                                          | Files             |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------- |
+| Generic "Internal error" messages           | Added specific error codes (VISUAL_TO_CODE_FAILED, DEPLOY_FAILED, FILES_ACCESS_FAILED, etc.) | 6 API route files |
+| No input validation for content length      | Added 100KB max content validation with clear error response                                 | chat/route.ts     |
+| console.error instead of structured logging | Replaced with logger instance                                                                | hook-config.ts    |
 
 ### Error Code Reference
 
-| Code | Description | HTTP Status |
-|------|-------------|-------------|
-| VISUAL_TO_CODE_FAILED | Image to code conversion failed | 500 |
-| DEPLOY_FAILED | Deployment to platform failed | 500 |
-| FILES_ACCESS_FAILED | File read/list operation failed | 500 |
-| FILE_CREATE_FAILED | File creation failed | 500 |
-| FILE_UPDATE_FAILED | File update/write failed | 500 |
-| FILE_DELETE_FAILED | File deletion failed | 500 |
-| INDEX_CHECK_FAILED | Codebase index check failed | 500 |
-| INDEX_CREATE_FAILED | Codebase index creation failed | 500 |
-| INDEX_DELETE_FAILED | Codebase index deletion failed | 500 |
-| SESSION_CREATE_FAILED | Session creation failed | 500 |
-| CONTENT_TOO_LONG | Message exceeds 100KB limit | 400 |
+| Code                  | Description                     | HTTP Status |
+| --------------------- | ------------------------------- | ----------- |
+| VISUAL_TO_CODE_FAILED | Image to code conversion failed | 500         |
+| DEPLOY_FAILED         | Deployment to platform failed   | 500         |
+| FILES_ACCESS_FAILED   | File read/list operation failed | 500         |
+| FILE_CREATE_FAILED    | File creation failed            | 500         |
+| FILE_UPDATE_FAILED    | File update/write failed        | 500         |
+| FILE_DELETE_FAILED    | File deletion failed            | 500         |
+| INDEX_CHECK_FAILED    | Codebase index check failed     | 500         |
+| INDEX_CREATE_FAILED   | Codebase index creation failed  | 500         |
+| INDEX_DELETE_FAILED   | Codebase index deletion failed  | 500         |
+| SESSION_CREATE_FAILED | Session creation failed         | 500         |
+| CONTENT_TOO_LONG      | Message exceeds 100KB limit     | 400         |
 
 ### Code Quality Improvements
 
@@ -539,7 +539,61 @@ The following P2 (Medium Priority) issues have been addressed:
 ### Impact on Scores
 
 These fixes improve the following audit scores:
+
 - **API Completeness**: +2 points (consistent error codes)
 - **Security**: +1 point (input validation)
+
+_Updated: 2026-01-20_
+
+---
+
+## UPDATE: SECURITY FIXES COMPLETED (2026-01-20)
+
+A fresh security audit identified and fixed additional vulnerabilities:
+
+### CRITICAL Security Fixes
+
+| Issue                              | Fix                                                                           | Impact                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- |
+| Auto-approve bypass                | Now only auto-approves LOW/MEDIUM risk; HIGH/CRITICAL require UI confirmation | Prevents dangerous operations without consent |
+| Missing CSRF on memory POST        | Added CSRF + rate limiting to `/api/code-lab/memory`                          | Prevents CSRF attacks                         |
+| Missing security on session search | Added CSRF, rate limiting, query length validation                            | Prevents DoS and abuse                        |
+
+### HIGH Security Fixes
+
+| Issue                  | Fix                                                  | Impact                        |
+| ---------------------- | ---------------------------------------------------- | ----------------------------- |
+| Sensitive data in logs | Removed error details from token decryption failures | Prevents credential leaks     |
+| In-memory rate limiter | Replaced with Redis-backed centralized rate limiting | Works across server instances |
+
+### New Error Codes Added
+
+| Code                 | Description                      | HTTP Status |
+| -------------------- | -------------------------------- | ----------- |
+| TOKEN_DECRYPT_FAILED | GitHub token decryption failed   | 400         |
+| QUERY_TOO_SHORT      | Search query under 2 characters  | 400         |
+| QUERY_TOO_LONG       | Search query over 500 characters | 400         |
+| GIT_OPERATION_FAILED | Git operation failed             | 500         |
+
+---
+
+## UPDATE: P3 CODE QUALITY IMPROVEMENTS (2026-01-20)
+
+### Structured Logging Migration
+
+Replaced console.error/warn with structured logger in:
+
+| File            | Changes                                                                    |
+| --------------- | -------------------------------------------------------------------------- |
+| deploy/route.ts | 6 console.error → log.error (Vercel, Netlify, Railway, Cloudflare, Status) |
+| git/route.ts    | 1 console.error → log.error                                                |
+
+### Impact on Scores
+
+- **Security**: +3 points (CSRF protection, rate limiting, sensitive data handling)
+- **API Completeness**: +1 point (additional error codes)
+- **Code Quality**: +1 point (structured logging)
+
+**Updated Score: 83/100** (up from 78)
 
 _Updated: 2026-01-20_

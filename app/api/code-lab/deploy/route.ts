@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { logger } from '@/lib/logger';
+
+const log = logger('DeployAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unsupported platform' }, { status: 400 });
     }
   } catch (error) {
-    console.error('[Deploy API] Error:', error);
+    log.error('Deploy API error', error instanceof Error ? error : { error });
     return NextResponse.json(
       {
         error: 'Deployment failed',
@@ -206,7 +209,7 @@ async function deployToVercel(token: string, config: DeployConfig, _sessionId: s
       message: 'Project created. Connect your GitHub repo in Vercel dashboard to deploy.',
     };
   } catch (error) {
-    console.error('[Deploy] Vercel error:', error);
+    log.error('Vercel deployment failed', error instanceof Error ? error : { error });
     return {
       success: false,
       platform: 'vercel',
@@ -261,7 +264,7 @@ async function deployToNetlify(token: string, config: DeployConfig, _sessionId: 
       message: 'Site created. Connect your GitHub repo to deploy.',
     };
   } catch (error) {
-    console.error('[Deploy] Netlify error:', error);
+    log.error('Netlify deployment failed', error instanceof Error ? error : { error });
     return {
       success: false,
       platform: 'netlify',
@@ -313,7 +316,7 @@ async function deployToRailway(token: string, config: DeployConfig, _sessionId: 
       message: 'Project created. Deploy via Railway dashboard or CLI.',
     };
   } catch (error) {
-    console.error('[Deploy] Railway error:', error);
+    log.error('Railway deployment failed', error instanceof Error ? error : { error });
     return {
       success: false,
       platform: 'railway',
@@ -378,7 +381,7 @@ async function deployToCloudflare(token: string, config: DeployConfig, _sessionI
       message: 'Project created. Connect your GitHub repo to deploy.',
     };
   } catch (error) {
-    console.error('[Deploy] Cloudflare error:', error);
+    log.error('Cloudflare deployment failed', error instanceof Error ? error : { error });
     return {
       success: false,
       platform: 'cloudflare',
@@ -614,7 +617,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unsupported platform' }, { status: 400 });
     }
   } catch (error) {
-    console.error('[Deploy Status] Error:', error);
+    log.error('Deploy status check failed', error instanceof Error ? error : { error });
     return NextResponse.json(
       {
         status: 'error',
