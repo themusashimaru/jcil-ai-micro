@@ -145,18 +145,6 @@ function startCleanupInterval(): void {
   log.info('SSE cleanup interval started');
 }
 
-/**
- * Stop the cleanup interval (call on shutdown)
- * Exported for use by application lifecycle hooks
- */
-export function stopCleanupInterval(): void {
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-    cleanupInterval = null;
-    log.info('SSE cleanup interval stopped');
-  }
-}
-
 // Start cleanup on module load
 startCleanupInterval();
 
