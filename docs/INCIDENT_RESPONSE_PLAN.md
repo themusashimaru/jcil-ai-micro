@@ -2,10 +2,12 @@
 
 > JCIL.AI Security Incident Response Procedures
 
-**Document Version:** 1.0
-**Last Updated:** January 2025
+**Document Version:** 2.0
+**Last Updated:** January 2026
 **Owner:** Security Team
 **Review Frequency:** Annually
+
+> **January 2026 Update**: Enhanced audit logging capabilities now provide structured security event logging for SIEM integration. See `src/lib/logger.ts` for audit event types including `security.service_role_access`, `auth.login_attempt`, `session.join`, and more.
 
 ---
 
@@ -18,6 +20,7 @@ This Incident Response Plan (IRP) establishes procedures for detecting, respondi
 ## 2. Scope
 
 This plan applies to:
+
 - All JCIL.AI production systems and infrastructure
 - All employee and contractor access
 - All customer data and intellectual property
@@ -29,23 +32,23 @@ This plan applies to:
 
 ### Severity Levels
 
-| Level | Name | Description | Response Time | Examples |
-|-------|------|-------------|---------------|----------|
-| **P1** | Critical | Active breach, data exfiltration, complete outage | Immediate (< 15 min) | Confirmed data breach, ransomware, total service down |
-| **P2** | High | Potential breach, significant degradation | < 1 hour | Suspicious access patterns, partial outage, vulnerability actively exploited |
-| **P3** | Medium | Security concern, minor impact | < 4 hours | Failed intrusion attempt, single user compromise, minor service degradation |
-| **P4** | Low | Informational, no immediate impact | < 24 hours | Vulnerability disclosure, policy violation, suspicious but unconfirmed activity |
+| Level  | Name     | Description                                       | Response Time        | Examples                                                                        |
+| ------ | -------- | ------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------- |
+| **P1** | Critical | Active breach, data exfiltration, complete outage | Immediate (< 15 min) | Confirmed data breach, ransomware, total service down                           |
+| **P2** | High     | Potential breach, significant degradation         | < 1 hour             | Suspicious access patterns, partial outage, vulnerability actively exploited    |
+| **P3** | Medium   | Security concern, minor impact                    | < 4 hours            | Failed intrusion attempt, single user compromise, minor service degradation     |
+| **P4** | Low      | Informational, no immediate impact                | < 24 hours           | Vulnerability disclosure, policy violation, suspicious but unconfirmed activity |
 
 ### Incident Categories
 
-| Category | Description |
-|----------|-------------|
-| **Data Breach** | Unauthorized access to or exfiltration of customer/company data |
-| **System Compromise** | Unauthorized access to systems, malware, ransomware |
-| **Service Disruption** | DDoS, outage, degraded performance |
-| **Access Violation** | Unauthorized access attempts, credential compromise |
-| **Vulnerability** | Discovery of exploitable security weakness |
-| **Policy Violation** | Employee/contractor security policy breach |
+| Category               | Description                                                     |
+| ---------------------- | --------------------------------------------------------------- |
+| **Data Breach**        | Unauthorized access to or exfiltration of customer/company data |
+| **System Compromise**  | Unauthorized access to systems, malware, ransomware             |
+| **Service Disruption** | DDoS, outage, degraded performance                              |
+| **Access Violation**   | Unauthorized access attempts, credential compromise             |
+| **Vulnerability**      | Discovery of exploitable security weakness                      |
+| **Policy Violation**   | Employee/contractor security policy breach                      |
 
 ---
 
@@ -53,12 +56,12 @@ This plan applies to:
 
 ### Core Team
 
-| Role | Responsibility | Primary | Backup |
-|------|----------------|---------|--------|
-| **Incident Commander** | Overall coordination, decisions, communications | CEO/CTO | Senior Engineer |
-| **Technical Lead** | Investigation, containment, remediation | Lead Engineer | Senior Engineer |
-| **Communications Lead** | Internal/external communications, customer notification | CEO | Operations |
-| **Legal/Compliance** | Legal guidance, regulatory notification | External Counsel | CEO |
+| Role                    | Responsibility                                          | Primary          | Backup          |
+| ----------------------- | ------------------------------------------------------- | ---------------- | --------------- |
+| **Incident Commander**  | Overall coordination, decisions, communications         | CEO/CTO          | Senior Engineer |
+| **Technical Lead**      | Investigation, containment, remediation                 | Lead Engineer    | Senior Engineer |
+| **Communications Lead** | Internal/external communications, customer notification | CEO              | Operations      |
+| **Legal/Compliance**    | Legal guidance, regulatory notification                 | External Counsel | CEO             |
 
 ### Contact Information
 
@@ -104,6 +107,7 @@ immediately
 **Objective:** Identify and confirm the incident
 
 **Actions:**
+
 1. Receive alert or report
 2. Gather initial information:
    - What happened?
@@ -115,6 +119,7 @@ immediately
 5. Notify appropriate team members
 
 **Detection Sources:**
+
 - Automated monitoring alerts
 - Security log analysis
 - User/customer reports
@@ -126,6 +131,7 @@ immediately
 **Objective:** Limit the scope and impact of the incident
 
 **Immediate Containment (Short-term):**
+
 - Isolate affected systems
 - Block malicious IPs/accounts
 - Revoke compromised credentials
@@ -133,14 +139,15 @@ immediately
 
 **Actions by Incident Type:**
 
-| Type | Containment Actions |
-|------|---------------------|
-| **Data Breach** | Revoke access tokens, rotate API keys, block exfiltration paths |
-| **System Compromise** | Isolate system, preserve state, block network access |
-| **DDoS** | Enable rate limiting, engage Vercel DDoS protection, block attack sources |
-| **Credential Compromise** | Force password reset, revoke sessions, enable MFA |
+| Type                      | Containment Actions                                                       |
+| ------------------------- | ------------------------------------------------------------------------- |
+| **Data Breach**           | Revoke access tokens, rotate API keys, block exfiltration paths           |
+| **System Compromise**     | Isolate system, preserve state, block network access                      |
+| **DDoS**                  | Enable rate limiting, engage Vercel DDoS protection, block attack sources |
+| **Credential Compromise** | Force password reset, revoke sessions, enable MFA                         |
 
 **Evidence Preservation:**
+
 - Capture system state before changes
 - Preserve logs (do not delete/modify)
 - Document all actions taken
@@ -151,6 +158,7 @@ immediately
 **Objective:** Remove the threat from the environment
 
 **Actions:**
+
 1. Identify root cause
 2. Remove malware/backdoors
 3. Patch vulnerabilities
@@ -158,6 +166,7 @@ immediately
 5. Verify threat is eliminated
 
 **Verification Checklist:**
+
 - [ ] All compromised accounts identified and secured
 - [ ] All malicious code/files removed
 - [ ] All exploited vulnerabilities patched
@@ -169,6 +178,7 @@ immediately
 **Objective:** Restore normal operations safely
 
 **Actions:**
+
 1. Restore systems from clean backups if needed
 2. Verify system integrity
 3. Monitor for re-compromise
@@ -176,6 +186,7 @@ immediately
 5. Verify customer data integrity
 
 **Recovery Checklist:**
+
 - [ ] Systems restored to known-good state
 - [ ] All credentials rotated
 - [ ] Security patches applied
@@ -188,6 +199,7 @@ immediately
 **Objective:** Learn and improve
 
 **Actions:**
+
 1. Conduct post-incident review (within 5 business days)
 2. Document lessons learned
 3. Update security controls
@@ -195,6 +207,7 @@ immediately
 5. Provide final report to stakeholders
 
 **Post-Incident Review Agenda:**
+
 1. Timeline of events
 2. What worked well
 3. What could be improved
@@ -207,26 +220,29 @@ immediately
 
 ### Internal Communications
 
-| Severity | Notify | Method | Timing |
-|----------|--------|--------|--------|
-| P1 | All team members | Phone + Slack | Immediately |
-| P2 | Technical team + Leadership | Slack + Email | Within 1 hour |
-| P3 | Technical team | Slack | Within 4 hours |
-| P4 | Technical lead | Email | Within 24 hours |
+| Severity | Notify                      | Method        | Timing          |
+| -------- | --------------------------- | ------------- | --------------- |
+| P1       | All team members            | Phone + Slack | Immediately     |
+| P2       | Technical team + Leadership | Slack + Email | Within 1 hour   |
+| P3       | Technical team              | Slack         | Within 4 hours  |
+| P4       | Technical lead              | Email         | Within 24 hours |
 
 ### External Communications
 
 **Customer Notification Required When:**
+
 - Customer data confirmed accessed/exfiltrated
 - Service outage > 4 hours
 - Regulatory requirement triggered
 
 **Notification Timeline:**
+
 - Initial notification: Within 72 hours of confirmation
 - Detailed notification: Within 30 days
 - Final report: After investigation complete
 
 **Notification Template:**
+
 ```
 Subject: Security Notice from JCIL.AI
 
@@ -256,11 +272,11 @@ JCIL.AI Security Team
 
 ### Regulatory Notification
 
-| Regulation | Requirement | Timeline |
-|------------|-------------|----------|
-| GDPR | DPA notification if EU data affected | 72 hours |
-| CCPA | AG notification if CA residents affected | Expedient |
-| HIPAA | HHS notification if PHI affected | 60 days |
+| Regulation | Requirement                              | Timeline  |
+| ---------- | ---------------------------------------- | --------- |
+| GDPR       | DPA notification if EU data affected     | 72 hours  |
+| CCPA       | AG notification if CA residents affected | Expedient |
+| HIPAA      | HHS notification if PHI affected         | 60 days   |
 
 ---
 
@@ -350,11 +366,11 @@ JCIL.AI Security Team
 
 ### Logging and Monitoring
 
-| System | Purpose | Access |
-|--------|---------|--------|
-| Vercel Logs | Application logs, deployments | Vercel Dashboard |
-| Supabase Logs | Database queries, auth events | Supabase Dashboard |
-| Application Logs | Structured security events | Log aggregator |
+| System           | Purpose                       | Access             |
+| ---------------- | ----------------------------- | ------------------ |
+| Vercel Logs      | Application logs, deployments | Vercel Dashboard   |
+| Supabase Logs    | Database queries, auth events | Supabase Dashboard |
+| Application Logs | Structured security events    | Log aggregator     |
 
 ### Key Commands
 
@@ -371,12 +387,12 @@ grep -i "security\|error\|unauthorized" /logs/app.log
 
 ### External Resources
 
-| Resource | Purpose | Contact |
-|----------|---------|---------|
-| Vercel Support | Infrastructure issues | support.vercel.com |
-| Supabase Support | Database issues | supabase.com/support |
-| Anthropic Support | AI service issues | support@anthropic.com |
-| Legal Counsel | Regulatory guidance | [External counsel] |
+| Resource          | Purpose               | Contact               |
+| ----------------- | --------------------- | --------------------- |
+| Vercel Support    | Infrastructure issues | support.vercel.com    |
+| Supabase Support  | Database issues       | supabase.com/support  |
+| Anthropic Support | AI service issues     | support@anthropic.com |
+| Legal Counsel     | Regulatory guidance   | [External counsel]    |
 
 ---
 
@@ -384,27 +400,27 @@ grep -i "security\|error\|unauthorized" /logs/app.log
 
 ### Training Requirements
 
-| Role | Training | Frequency |
-|------|----------|-----------|
-| All Engineers | IRP overview, reporting procedures | Annually |
-| Incident Team | Full IRP, tabletop exercises | Quarterly |
-| Leadership | Communication procedures, decision authority | Annually |
+| Role          | Training                                     | Frequency |
+| ------------- | -------------------------------------------- | --------- |
+| All Engineers | IRP overview, reporting procedures           | Annually  |
+| Incident Team | Full IRP, tabletop exercises                 | Quarterly |
+| Leadership    | Communication procedures, decision authority | Annually  |
 
 ### Testing Schedule
 
-| Test Type | Frequency | Description |
-|-----------|-----------|-------------|
-| Tabletop Exercise | Quarterly | Walk through incident scenarios |
-| Technical Drill | Semi-annually | Simulate actual incident response |
-| Full Exercise | Annually | End-to-end incident simulation |
+| Test Type         | Frequency     | Description                       |
+| ----------------- | ------------- | --------------------------------- |
+| Tabletop Exercise | Quarterly     | Walk through incident scenarios   |
+| Technical Drill   | Semi-annually | Simulate actual incident response |
+| Full Exercise     | Annually      | End-to-end incident simulation    |
 
 ---
 
 ## 10. Document Control
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | Jan 2025 | Security Team | Initial version |
+| Version | Date     | Author        | Changes         |
+| ------- | -------- | ------------- | --------------- |
+| 1.0     | Jan 2025 | Security Team | Initial version |
 
 ### Review Schedule
 
@@ -468,4 +484,4 @@ External:
 
 ---
 
-*This document is confidential and intended for internal use only.*
+_This document is confidential and intended for internal use only._
