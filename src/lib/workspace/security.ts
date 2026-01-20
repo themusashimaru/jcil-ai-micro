@@ -62,6 +62,8 @@ export function sanitizeCommitMessage(message: string): string {
 export function sanitizeFilePath(path: string, baseDir: string = '/workspace'): string {
   if (!path) return baseDir;
 
+  const allowedPrefixes = ['/workspace', '/tmp', '/home'];
+
   // Step 1: Remove null bytes (both literal and URL-encoded)
   let sanitized = path.replace(/\0/g, '');
 
@@ -79,34 +81,19 @@ export function sanitizeFilePath(path: string, baseDir: string = '/workspace'): 
   // Step 4: Remove shell metacharacters
   sanitized = sanitized.replace(/[;&|`$(){}[\]<>!'"\n\r]/g, '');
 
-  // Step 5: Recursively remove path traversal patterns until none remain
-  // This handles patterns like "....//", "./..", "...", etc.
-  let prevLength = 0;
-  while (sanitized.length !== prevLength) {
-    prevLength = sanitized.length;
-    sanitized = sanitized
-      .replace(/\.{2,}\//g, '') // Two or more dots followed by slash
-      .replace(/\/\.{2,}/g, '/') // Slash followed by two or more dots
-      .replace(/^\.{2,}/g, '') // Leading dots
-      .replace(/\.{2,}$/g, '') // Trailing dots
-      .replace(/\/\.\//g, '/') // /./ -> /
-      .replace(/\/+/g, '/'); // Collapse multiple slashes
-  }
+  // Step 5: Collapse multiple slashes
+  sanitized = sanitized.replace(/\/+/g, '/');
 
-  // Step 6: Remove leading slashes and dots
-  sanitized = sanitized.replace(/^[.\/]+/, '');
+  // Step 6: Check if this is an absolute path
+  const isAbsolute = sanitized.startsWith('/');
 
-  // Step 7: Construct full path within base directory
-  const fullPath = sanitized ? `${baseDir}/${sanitized}`.replace(/\/+/g, '/') : baseDir;
-
-  // Step 8: Normalize the path by resolving . and .. segments
-  // Use a simple algorithm since we can't use path.resolve in edge runtime
-  const segments = fullPath.split('/').filter(Boolean);
+  // Step 7: Normalize the path by resolving . and .. segments
+  const segments = sanitized.split('/').filter(Boolean);
   const normalized: string[] = [];
 
   for (const segment of segments) {
     if (segment === '..') {
-      // Only pop if we have something and it's not the base
+      // Pop if we have segments (but never escape root)
       if (normalized.length > 0) {
         normalized.pop();
       }
@@ -115,16 +102,50 @@ export function sanitizeFilePath(path: string, baseDir: string = '/workspace'): 
     }
   }
 
-  const resolvedPath = '/' + normalized.join('/');
+  // Step 8: Build the final path
+  let resolvedPath: string;
 
-  // Step 9: Final validation - must start with allowed prefix
-  const allowedPrefixes = ['/workspace', '/tmp', '/home'];
-  const isAllowed = allowedPrefixes.some(
-    (prefix) => resolvedPath === prefix || resolvedPath.startsWith(prefix + '/')
-  );
+  if (isAbsolute) {
+    // For absolute paths, check if it starts with an allowed prefix
+    resolvedPath = '/' + normalized.join('/');
 
-  if (!isAllowed) {
-    return baseDir;
+    const isAllowed = allowedPrefixes.some(
+      (prefix) => resolvedPath === prefix || resolvedPath.startsWith(prefix + '/')
+    );
+
+    if (!isAllowed) {
+      // Absolute path to disallowed location - reject
+      return baseDir;
+    }
+  } else {
+    // For relative paths, prepend baseDir
+    const relativePath = normalized.join('/');
+    resolvedPath = relativePath ? `${baseDir}/${relativePath}` : baseDir;
+
+    // Re-normalize to handle any remaining .. that might escape
+    const finalSegments = resolvedPath.split('/').filter(Boolean);
+    const finalNormalized: string[] = [];
+
+    for (const segment of finalSegments) {
+      if (segment === '..') {
+        if (finalNormalized.length > 0) {
+          finalNormalized.pop();
+        }
+      } else if (segment !== '.') {
+        finalNormalized.push(segment);
+      }
+    }
+
+    resolvedPath = '/' + finalNormalized.join('/');
+
+    // Final validation
+    const isAllowed = allowedPrefixes.some(
+      (prefix) => resolvedPath === prefix || resolvedPath.startsWith(prefix + '/')
+    );
+
+    if (!isAllowed) {
+      return baseDir;
+    }
   }
 
   return resolvedPath;
