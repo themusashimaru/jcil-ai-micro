@@ -195,9 +195,33 @@ export class PermissionManager {
       return true;
     }
 
-    // Auto-approve mode
+    // Auto-approve mode with risk-level awareness
+    // SECURITY FIX: Even in sandbox, require confirmation for HIGH/CRITICAL operations
     if (this.autoApproveMode) {
-      return true;
+      const riskLevel = assessRiskLevel(type, {
+        command: details.command,
+        filePath: details.filePath,
+      });
+
+      // Auto-approve LOW and MEDIUM risk in sandboxed environment
+      if (riskLevel === 'low' || riskLevel === 'medium') {
+        log.debug('Auto-approved (sandbox, low/medium risk)', { type, riskLevel });
+        return true;
+      }
+
+      // For HIGH/CRITICAL risk, still require UI confirmation if callback exists
+      if (this.callback) {
+        log.info('High/critical risk operation requires confirmation', {
+          type,
+          riskLevel,
+          description,
+        });
+        // Fall through to callback flow below
+      } else {
+        // No callback but high risk - deny for safety
+        log.warn('High-risk operation denied - no confirmation callback', { type, riskLevel });
+        return false;
+      }
     }
 
     // No callback set - deny by default for safety
