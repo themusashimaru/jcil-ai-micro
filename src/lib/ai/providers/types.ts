@@ -3,10 +3,9 @@
  *
  * Provider-agnostic type definitions that normalize differences between:
  * - Anthropic (Claude)
- * - OpenAI (GPT-4, o1)
+ * - OpenAI (GPT-5 series)
  * - xAI (Grok)
  * - DeepSeek
- * - Groq
  *
  * These types allow the core machine to work identically regardless of provider.
  */
@@ -18,12 +17,12 @@
 /**
  * Supported AI provider identifiers
  */
-export type ProviderId = 'claude' | 'openai' | 'xai' | 'deepseek' | 'groq';
+export type ProviderId = 'claude' | 'openai' | 'xai' | 'deepseek';
 
 /**
  * Provider API family - determines which adapter to use
  * - anthropic: Claude (unique message/tool format)
- * - openai-compatible: OpenAI, xAI, DeepSeek, Groq (shared format)
+ * - openai-compatible: OpenAI, xAI, DeepSeek (shared format)
  * - google: Gemini (future)
  */
 export type ProviderFamily = 'anthropic' | 'openai-compatible' | 'google';

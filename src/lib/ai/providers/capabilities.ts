@@ -259,8 +259,8 @@ export function getBestProviderForConversation(
     return preferredProvider;
   }
 
-  // Default priority: claude > openai > xai > deepseek > groq
-  const priority: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek', 'groq'];
+  // Default priority: claude > openai > xai > deepseek
+  const priority: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek'];
 
   for (const providerId of priority) {
     if (candidates.includes(providerId)) {
@@ -283,7 +283,7 @@ export function getCapabilityMatrix(): Record<
   ProviderId,
   Record<keyof ProviderCapabilities, boolean>
 > {
-  const providers: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek', 'groq'];
+  const providers: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek'];
   const matrix: Record<ProviderId, Record<keyof ProviderCapabilities, boolean>> = {} as Record<
     ProviderId,
     Record<keyof ProviderCapabilities, boolean>
@@ -303,7 +303,7 @@ export function getCapabilityMatrix(): Record<
 export function getProvidersWithAllCapabilities(
   capabilities: (keyof ProviderCapabilities)[]
 ): ProviderId[] {
-  const providers: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek', 'groq'];
+  const providers: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek'];
 
   return providers.filter((providerId) => {
     return capabilities.every((cap) => hasCapability(providerId, cap));

@@ -134,7 +134,6 @@ export {
   createOpenAIAdapter,
   createXAIAdapter,
   createDeepSeekAdapter,
-  createGroqAdapter,
   // Adapter factory
   createAdapter,
   getAdapter,

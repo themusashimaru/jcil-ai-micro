@@ -5,7 +5,6 @@
  * - OpenAI (GPT-5 series)
  * - xAI (Grok 4)
  * - DeepSeek (V3.2)
- * - Groq (Llama, Mixtral)
  *
  * These providers all use the same API format, just with different base URLs and API keys.
  */
@@ -52,10 +51,6 @@ const PROVIDER_ENDPOINTS: Record<string, ProviderEndpoint> = {
   deepseek: {
     baseURL: 'https://api.deepseek.com/v1',
     apiKeyEnv: 'DEEPSEEK_API_KEY',
-  },
-  groq: {
-    baseURL: 'https://api.groq.com/openai/v1',
-    apiKeyEnv: 'GROQ_API_KEY',
   },
 };
 
@@ -694,11 +689,4 @@ export function createXAIAdapter(): OpenAICompatibleAdapter {
  */
 export function createDeepSeekAdapter(): OpenAICompatibleAdapter {
   return new OpenAICompatibleAdapter('deepseek');
-}
-
-/**
- * Create a Groq adapter instance
- */
-export function createGroqAdapter(): OpenAICompatibleAdapter {
-  return new OpenAICompatibleAdapter('groq');
 }

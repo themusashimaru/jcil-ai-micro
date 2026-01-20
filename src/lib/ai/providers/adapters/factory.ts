@@ -7,12 +7,7 @@
 
 import type { ProviderId, AIAdapter } from '../types';
 import { createAnthropicAdapter } from './anthropic';
-import {
-  createOpenAIAdapter,
-  createXAIAdapter,
-  createDeepSeekAdapter,
-  createGroqAdapter,
-} from './openai-compatible';
+import { createOpenAIAdapter, createXAIAdapter, createDeepSeekAdapter } from './openai-compatible';
 
 // ============================================================================
 // ADAPTER CACHE
@@ -65,10 +60,6 @@ export function createAdapter(providerId: ProviderId, forceNew: boolean = false)
       adapter = createDeepSeekAdapter();
       break;
 
-    case 'groq':
-      adapter = createGroqAdapter();
-      break;
-
     default:
       throw new Error(`Unsupported provider: ${providerId}`);
   }
@@ -109,12 +100,7 @@ export function hasAdapterCached(providerId: ProviderId): boolean {
  * Determine if a provider uses the OpenAI-compatible API
  */
 export function isOpenAICompatible(providerId: ProviderId): boolean {
-  return (
-    providerId === 'openai' ||
-    providerId === 'xai' ||
-    providerId === 'deepseek' ||
-    providerId === 'groq'
-  );
+  return providerId === 'openai' || providerId === 'xai' || providerId === 'deepseek';
 }
 
 /**

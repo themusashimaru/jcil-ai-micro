@@ -222,57 +222,6 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   ],
 };
 
-/**
- * Groq Provider Configuration
- */
-const GROQ_CONFIG: ProviderConfig = {
-  id: 'groq',
-  name: 'Groq',
-  family: 'openai-compatible',
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKeyEnv: 'GROQ_API_KEY',
-  icon: 'groq',
-  description: 'Ultra-fast inference with open models',
-  capabilities: {
-    vision: false,
-    parallelToolCalls: true,
-    streaming: true,
-    systemMessages: true,
-    jsonMode: true,
-    toolCalling: true,
-  },
-  models: [
-    {
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B',
-      contextWindow: 128000,
-      maxOutputTokens: 32768,
-      inputPricePer1M: 0.59,
-      outputPricePer1M: 0.79,
-      tier: 'budget',
-      isDefault: true,
-    },
-    {
-      id: 'llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B',
-      contextWindow: 128000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.05,
-      outputPricePer1M: 0.08,
-      tier: 'budget',
-    },
-    {
-      id: 'mixtral-8x7b-32768',
-      name: 'Mixtral 8x7B',
-      contextWindow: 32768,
-      maxOutputTokens: 32768,
-      inputPricePer1M: 0.24,
-      outputPricePer1M: 0.24,
-      tier: 'budget',
-    },
-  ],
-};
-
 // ============================================================================
 // PROVIDER REGISTRY
 // ============================================================================
@@ -285,7 +234,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   openai: OPENAI_CONFIG,
   xai: XAI_CONFIG,
   deepseek: DEEPSEEK_CONFIG,
-  groq: GROQ_CONFIG,
 };
 
 // ============================================================================

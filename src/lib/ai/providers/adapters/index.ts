@@ -16,7 +16,6 @@ export {
   createOpenAIAdapter,
   createXAIAdapter,
   createDeepSeekAdapter,
-  createGroqAdapter,
 } from './openai-compatible';
 
 // Adapter factory

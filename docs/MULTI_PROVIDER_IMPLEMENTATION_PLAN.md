@@ -37,7 +37,6 @@
   - OpenAI: gpt-5.2, gpt-5.2-pro, gpt-5.2-codex, gpt-5-mini, gpt-5-nano
   - xAI: x-ai/grok-4, x-ai/grok-4.1-fast, x-ai/grok-code-fast-1
   - DeepSeek: deepseek-ai/DeepSeek-V3.2, deepseek-ai/DeepSeek-V3.2-Speciale
-  - Groq: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
   - getProvider(), getAvailableProviders(), getModel() functions
   - estimateCost() utility
 
@@ -66,7 +65,7 @@
   - Stream parsing (Anthropic events → UnifiedStreamChunk)
 
 - [x] `src/lib/ai/providers/adapters/openai-compatible.ts` - Multi-provider adapter
-  - Single adapter handles: OpenAI, xAI, DeepSeek, Groq
+  - Single adapter handles: OpenAI, xAI, DeepSeek
   - Configurable baseURL per provider
   - API key pool management with rate limiting
   - Message format conversion (UnifiedMessage ↔ OpenAI)
@@ -113,7 +112,6 @@ This document outlines the implementation plan for adding multi-provider AI supp
 | **OpenAI**   | gpt-5.2, gpt-5.2-pro, gpt-5.2-codex, gpt-5-mini, gpt-5-nano   | Yes    | Yes        | Yes       | Premium    |
 | **xAI**      | x-ai/grok-4, x-ai/grok-4.1-fast, x-ai/grok-code-fast-1        | Yes    | Yes        | Yes       | Standard   |
 | **DeepSeek** | deepseek-ai/DeepSeek-V3.2, deepseek-ai/DeepSeek-V3.2-Speciale | No     | Yes        | Yes       | Budget     |
-| **Groq**     | llama-3.3-70b-versatile, llama-3.1-8b-instant                 | No     | Yes        | Yes       | Budget     |
 
 ### Anthropic Adapter (Wrap Existing)
 
@@ -162,7 +160,6 @@ This document outlines the implementation plan for adding multi-provider AI supp
 │  │ • Claude        │  │ • OpenAI        │  │ • Gemini        │            │
 │  │                 │  │ • xAI           │  │                 │            │
 │  │                 │  │ • DeepSeek      │  │                 │            │
-│  │                 │  │ • Groq          │  │                 │            │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘            │
 │                                                                              │
 │  Each adapter implements:                                                   │
@@ -212,7 +209,7 @@ src/lib/ai/
 │   ├── adapters/
 │   │   ├── base.ts                 # Abstract base adapter class
 │   │   ├── anthropic.ts            # Claude adapter (wraps existing)
-│   │   ├── openai-compatible.ts    # OpenAI/xAI/DeepSeek/Groq
+│   │   ├── openai-compatible.ts    # OpenAI/xAI/DeepSeek
 │   │   └── index.ts                # Exports
 │   │
 │   ├── streaming/
@@ -304,8 +301,8 @@ src/hooks/
 - [x] Anthropic stream → UnifiedStreamChunk parser (integrated)
 - [x] Anthropic tool format converter (integrated)
 - [x] Anthropic message format converter (integrated)
-- [x] OpenAICompatibleAdapter class supporting 4 providers
-- [x] Custom baseURL support (xAI, DeepSeek, Groq)
+- [x] OpenAICompatibleAdapter class supporting 3 providers
+- [x] Custom baseURL support (xAI, DeepSeek)
 - [x] OpenAI stream → UnifiedStreamChunk parser (integrated)
 - [x] OpenAI tool format converter with JSON string handling (integrated)
 - [x] OpenAI message format converter (integrated)
