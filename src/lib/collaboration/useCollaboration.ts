@@ -89,14 +89,33 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
   // Refs
   const documentRef = useRef<CRDTDocument | null>(null);
 
+  // MEDIUM-008: Stale closure protection - use refs to hold latest callback values
+  // This prevents callbacks from capturing stale values when parent re-renders
+  const onContentChangeRef = useRef(onContentChange);
+  const onUsersChangeRef = useRef(onUsersChange);
+  const onRemoteCursorRef = useRef(onRemoteCursor);
+
+  // Keep refs updated with latest callbacks
+  useEffect(() => {
+    onContentChangeRef.current = onContentChange;
+  }, [onContentChange]);
+
+  useEffect(() => {
+    onUsersChangeRef.current = onUsersChange;
+  }, [onUsersChange]);
+
+  useEffect(() => {
+    onRemoteCursorRef.current = onRemoteCursor;
+  }, [onRemoteCursor]);
+
   // Initialize document
   useEffect(() => {
     documentRef.current = new CRDTDocument(documentId, userId, initialContent);
 
-    // Listen for local changes
+    // Listen for local changes - use ref to avoid stale closure
     documentRef.current.on('change', ({ content: newContent }) => {
       setContent(newContent);
-      onContentChange?.(newContent);
+      onContentChangeRef.current?.(newContent);
     });
 
     // Listen for cursor updates
@@ -107,7 +126,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
     return () => {
       documentRef.current?.removeAllListeners();
     };
-  }, [documentId, userId, initialContent, onContentChange]);
+  }, [documentId, userId, initialContent]); // Removed onContentChange - using ref instead
 
   // WebSocket for real-time events
   const { send, on, isConnected } = useWebSocket({
@@ -130,20 +149,20 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
       }
     });
 
-    // Listen for remote cursor updates
+    // Listen for remote cursor updates - use ref to avoid stale closure
     const unsubCursor = on('collaboration:cursor', (msg) => {
       const payload = msg.payload as CursorPosition;
       if (payload.userId !== userId) {
         documentRef.current?.applyRemoteCursor(payload);
-        onRemoteCursor?.(payload);
+        onRemoteCursorRef.current?.(payload);
       }
     });
 
-    // Listen for presence changes
+    // Listen for presence changes - use ref to avoid stale closure
     const unsubPresence = on('collaboration:presence', (msg) => {
       const payload = msg.payload as { users: CollaborationUser[] };
       setUsers(payload.users);
-      onUsersChange?.(payload.users);
+      onUsersChangeRef.current?.(payload.users);
     });
 
     // Listen for sync events
@@ -163,7 +182,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
       unsubPresence();
       unsubSync();
     };
-  }, [isConnected, sessionId, userId, on, onRemoteCursor, onUsersChange]);
+  }, [isConnected, sessionId, userId, on]); // Removed callback deps - using refs instead
 
   // ============================================================================
   // API CALLS
@@ -191,27 +210,33 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
   // DOCUMENT OPERATIONS
   // ============================================================================
 
-  const insert = useCallback((position: number, text: string) => {
-    if (!documentRef.current) return;
+  const insert = useCallback(
+    (position: number, text: string) => {
+      if (!documentRef.current) return;
 
-    const op = documentRef.current.insert(position, text);
+      const op = documentRef.current.insert(position, text);
 
-    // Broadcast to other users
-    if (sessionId && isConnected) {
-      send('collaboration:operation', { sessionId, operation: op });
-    }
-  }, [sessionId, isConnected, send]);
+      // Broadcast to other users
+      if (sessionId && isConnected) {
+        send('collaboration:operation', { sessionId, operation: op });
+      }
+    },
+    [sessionId, isConnected, send]
+  );
 
-  const deleteText = useCallback((position: number, length: number) => {
-    if (!documentRef.current) return;
+  const deleteText = useCallback(
+    (position: number, length: number) => {
+      if (!documentRef.current) return;
 
-    const op = documentRef.current.delete(position, length);
+      const op = documentRef.current.delete(position, length);
 
-    // Broadcast to other users
-    if (sessionId && isConnected) {
-      send('collaboration:operation', { sessionId, operation: op });
-    }
-  }, [sessionId, isConnected, send]);
+      // Broadcast to other users
+      if (sessionId && isConnected) {
+        send('collaboration:operation', { sessionId, operation: op });
+      }
+    },
+    [sessionId, isConnected, send]
+  );
 
   const setContentDirect = useCallback((newContent: string) => {
     if (!documentRef.current) return;
@@ -232,25 +257,25 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
   // CURSOR OPERATIONS
   // ============================================================================
 
-  const updateCursor = useCallback((
-    position: number,
-    selection?: { start: number; end: number }
-  ) => {
-    if (!documentRef.current) return;
+  const updateCursor = useCallback(
+    (position: number, selection?: { start: number; end: number }) => {
+      if (!documentRef.current) return;
 
-    documentRef.current.updateCursor(position, selection);
+      documentRef.current.updateCursor(position, selection);
 
-    // Broadcast to other users
-    if (sessionId && isConnected) {
-      send('collaboration:cursor', {
-        sessionId,
-        userId,
-        userName,
-        position,
-        selection,
-      });
-    }
-  }, [sessionId, userId, userName, isConnected, send]);
+      // Broadcast to other users
+      if (sessionId && isConnected) {
+        send('collaboration:cursor', {
+          sessionId,
+          userId,
+          userName,
+          position,
+          selection,
+        });
+      }
+    },
+    [sessionId, userId, userName, isConnected, send]
+  );
 
   // ============================================================================
   // SESSION OPERATIONS
@@ -276,36 +301,39 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
     }
   }, [documentId, initialContent, callAPI]);
 
-  const joinSession = useCallback(async (targetSessionId: string): Promise<boolean> => {
-    try {
-      setError(null);
+  const joinSession = useCallback(
+    async (targetSessionId: string): Promise<boolean> => {
+      try {
+        setError(null);
 
-      const result = await callAPI('join', { sessionId: targetSessionId });
+        const result = await callAPI('join', { sessionId: targetSessionId });
 
-      if (result.success) {
-        setSessionId(targetSessionId);
-        setUsers(result.users || []);
+        if (result.success) {
+          setSessionId(targetSessionId);
+          setUsers(result.users || []);
 
-        // Sync content
-        if (result.content !== undefined) {
-          documentRef.current?.syncWithState({
-            content: result.content,
-            operations: [],
-            vectorClock: {},
-            version: 0,
-          });
+          // Sync content
+          if (result.content !== undefined) {
+            documentRef.current?.syncWithState({
+              content: result.content,
+              operations: [],
+              vectorClock: {},
+              version: 0,
+            });
+          }
+
+          return true;
         }
 
-        return true;
+        return false;
+      } catch (err) {
+        const message = (err as Error).message;
+        setError(message);
+        return false;
       }
-
-      return false;
-    } catch (err) {
-      const message = (err as Error).message;
-      setError(message);
-      return false;
-    }
-  }, [callAPI]);
+    },
+    [callAPI]
+  );
 
   const leaveSession = useCallback(async (): Promise<void> => {
     if (!sessionId) return;

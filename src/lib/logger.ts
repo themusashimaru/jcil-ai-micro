@@ -253,3 +253,200 @@ export const stripeLogger = logger('Stripe');
 export const anthropicLogger = logger('Anthropic');
 export const workspaceLogger = logger('Workspace');
 export const codeLabLogger = logger('CodeLab');
+
+// ============================================================================
+// MEDIUM-009: STRUCTURED AUDIT LOGGING
+// ============================================================================
+
+/**
+ * Audit event types for security and compliance tracking
+ */
+export type AuditEventType =
+  | 'auth.login'
+  | 'auth.logout'
+  | 'auth.failed'
+  | 'auth.password_change'
+  | 'auth.mfa_enabled'
+  | 'auth.mfa_disabled'
+  | 'session.created'
+  | 'session.joined'
+  | 'session.left'
+  | 'session.deleted'
+  | 'file.created'
+  | 'file.read'
+  | 'file.updated'
+  | 'file.deleted'
+  | 'code.executed'
+  | 'deploy.started'
+  | 'deploy.completed'
+  | 'deploy.failed'
+  | 'api.rate_limited'
+  | 'security.csrf_failed'
+  | 'security.path_traversal'
+  | 'security.unauthorized_access'
+  | 'security.suspicious_activity'
+  | 'admin.user_modified'
+  | 'admin.settings_changed'
+  | 'billing.subscription_changed'
+  | 'billing.payment_failed';
+
+/**
+ * Structured audit event
+ */
+export interface AuditEvent {
+  /** Event type for categorization and filtering */
+  type: AuditEventType;
+  /** ISO timestamp */
+  timestamp: string;
+  /** User ID who triggered the event (null for system events) */
+  userId: string | null;
+  /** Session ID if applicable */
+  sessionId?: string;
+  /** IP address of the request */
+  ipAddress?: string;
+  /** User agent string */
+  userAgent?: string;
+  /** Resource that was acted upon */
+  resource?: {
+    type: string;
+    id: string;
+    name?: string;
+  };
+  /** Outcome of the action */
+  outcome: 'success' | 'failure' | 'blocked';
+  /** Additional context */
+  details?: Record<string, unknown>;
+  /** Request ID for correlation */
+  requestId?: string;
+}
+
+/**
+ * Audit logger for security and compliance events
+ * Logs in a consistent, structured format suitable for SIEM integration
+ */
+class AuditLogger {
+  private moduleLog = logger('Audit');
+
+  /**
+   * Log an audit event
+   */
+  log(event: Omit<AuditEvent, 'timestamp'>): void {
+    const auditEvent: AuditEvent = {
+      ...event,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Always output audit events (regardless of log level)
+    if (config.jsonOutput) {
+      // Structured JSON for production SIEM
+      console.log(
+        JSON.stringify({
+          _type: 'audit',
+          ...auditEvent,
+          details: event.details ? redactSensitive(event.details) : undefined,
+        })
+      );
+    } else {
+      // Human readable for development
+      const resourceStr = auditEvent.resource
+        ? ` [${auditEvent.resource.type}:${auditEvent.resource.id}]`
+        : '';
+      this.moduleLog.info(`${auditEvent.type}${resourceStr} - ${auditEvent.outcome}`, {
+        userId: auditEvent.userId,
+        sessionId: auditEvent.sessionId,
+        ipAddress: auditEvent.ipAddress,
+        ...auditEvent.details,
+      });
+    }
+  }
+
+  /**
+   * Log authentication event
+   */
+  auth(
+    type: 'login' | 'logout' | 'failed' | 'password_change' | 'mfa_enabled' | 'mfa_disabled',
+    userId: string | null,
+    outcome: AuditEvent['outcome'],
+    details?: { ipAddress?: string; userAgent?: string; reason?: string }
+  ): void {
+    this.log({
+      type: `auth.${type}` as AuditEventType,
+      userId,
+      outcome,
+      ipAddress: details?.ipAddress,
+      userAgent: details?.userAgent,
+      details: details?.reason ? { reason: details.reason } : undefined,
+    });
+  }
+
+  /**
+   * Log session event
+   */
+  session(
+    type: 'created' | 'joined' | 'left' | 'deleted',
+    userId: string,
+    sessionId: string,
+    outcome: AuditEvent['outcome'] = 'success'
+  ): void {
+    this.log({
+      type: `session.${type}` as AuditEventType,
+      userId,
+      sessionId,
+      outcome,
+      resource: { type: 'session', id: sessionId },
+    });
+  }
+
+  /**
+   * Log file operation
+   */
+  file(
+    type: 'created' | 'read' | 'updated' | 'deleted',
+    userId: string,
+    filePath: string,
+    outcome: AuditEvent['outcome'] = 'success'
+  ): void {
+    this.log({
+      type: `file.${type}` as AuditEventType,
+      userId,
+      outcome,
+      resource: { type: 'file', id: filePath },
+    });
+  }
+
+  /**
+   * Log security event
+   */
+  security(
+    type: 'csrf_failed' | 'path_traversal' | 'unauthorized_access' | 'suspicious_activity',
+    userId: string | null,
+    details: { ipAddress?: string; userAgent?: string; path?: string; reason?: string }
+  ): void {
+    this.log({
+      type: `security.${type}` as AuditEventType,
+      userId,
+      outcome: 'blocked',
+      ipAddress: details.ipAddress,
+      userAgent: details.userAgent,
+      details: { path: details.path, reason: details.reason },
+    });
+  }
+
+  /**
+   * Log API rate limiting
+   */
+  rateLimited(userId: string, endpoint: string, ipAddress?: string): void {
+    this.log({
+      type: 'api.rate_limited',
+      userId,
+      outcome: 'blocked',
+      ipAddress,
+      resource: { type: 'endpoint', id: endpoint },
+    });
+  }
+}
+
+/**
+ * Singleton audit logger instance
+ */
+export const auditLog = new AuditLogger();

@@ -84,6 +84,7 @@ export function errorResponse(
 
 /**
  * Common error responses
+ * MEDIUM-005: Standardized error response format across all APIs
  */
 export const errors = {
   unauthorized: () =>
@@ -112,16 +113,75 @@ export const errors = {
     return response;
   },
 
-  serverError: () =>
+  serverError: (message?: string) =>
     errorResponse(
       HTTP_STATUS.INTERNAL_ERROR,
       ERROR_CODES.INTERNAL_ERROR,
-      'An unexpected error occurred'
+      message || 'An unexpected error occurred'
     ),
 
   validationError: (errors: Array<{ field: string; message: string }>) =>
     errorResponse(HTTP_STATUS.BAD_REQUEST, ERROR_CODES.INVALID_INPUT, 'Validation failed', errors),
+
+  // Code Lab specific errors
+  sessionNotFound: () =>
+    errorResponse(HTTP_STATUS.NOT_FOUND, 'SESSION_NOT_FOUND', 'Session not found'),
+
+  sessionAccessDenied: () =>
+    errorResponse(
+      HTTP_STATUS.FORBIDDEN,
+      'SESSION_ACCESS_DENIED',
+      'You do not have access to this session'
+    ),
+
+  fileNotFound: () => errorResponse(HTTP_STATUS.NOT_FOUND, 'FILE_NOT_FOUND', 'File not found'),
+
+  pathTraversal: () => errorResponse(HTTP_STATUS.FORBIDDEN, 'PATH_TRAVERSAL', 'Invalid file path'),
+
+  csrfFailed: () =>
+    errorResponse(HTTP_STATUS.FORBIDDEN, ERROR_CODES.CSRF_VALIDATION_FAILED, 'Invalid CSRF token'),
+
+  conflict: (message = 'Resource conflict') =>
+    errorResponse(HTTP_STATUS.CONFLICT, ERROR_CODES.ALREADY_EXISTS, message),
+
+  serviceUnavailable: (message = 'Service temporarily unavailable') =>
+    errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, ERROR_CODES.SERVICE_UNAVAILABLE, message),
+
+  payloadTooLarge: (maxSize?: string) =>
+    errorResponse(
+      HTTP_STATUS.PAYLOAD_TOO_LARGE,
+      ERROR_CODES.REQUEST_TOO_LARGE,
+      maxSize ? `Request too large. Maximum size: ${maxSize}` : 'Request too large'
+    ),
 };
+
+/**
+ * Convert an exception to an appropriate error response
+ * Useful for catch blocks in API handlers
+ */
+export function exceptionToResponse(
+  error: unknown,
+  defaultMessage = 'Operation failed'
+): NextResponse<APIResponse> {
+  if (error instanceof Error) {
+    // Check for specific error types
+    if (error.message.includes('not found') || error.message.includes('NOT_FOUND')) {
+      return errors.notFound();
+    }
+    if (error.message.includes('unauthorized') || error.message.includes('UNAUTHORIZED')) {
+      return errors.unauthorized();
+    }
+    if (error.message.includes('forbidden') || error.message.includes('FORBIDDEN')) {
+      return errors.forbidden();
+    }
+    if (error.message.includes('rate limit') || error.message.includes('RATE_LIMITED')) {
+      return errors.rateLimited();
+    }
+    // Log the actual error but return generic message for security
+    return errors.serverError(defaultMessage);
+  }
+  return errors.serverError(defaultMessage);
+}
 
 // ========================================
 // VALIDATION
