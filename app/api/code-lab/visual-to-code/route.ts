@@ -81,6 +81,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Visual-to-Code API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to generate code from image',
+        code: 'VISUAL_TO_CODE_FAILED',
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

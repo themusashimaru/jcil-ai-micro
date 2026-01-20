@@ -10,6 +10,9 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import type { HookConfig, HookDefinition, HookEventType } from './types';
+import { logger } from '@/lib/logger';
+
+const log = logger('HookConfig');
 
 // ============================================
 // CONFIGURATION PATHS
@@ -41,7 +44,7 @@ export function loadHookConfig(projectDir: string): HookConfig {
         // Merge configurations
         mergeHookConfig(config, hooksSection);
       } catch (error) {
-        console.error(`Failed to load hook config from ${filepath}:`, error);
+        log.error(`Failed to load hook config from ${filepath}`, error as Error);
       }
     }
   }
@@ -57,7 +60,7 @@ export function parseHookConfig(json: string): HookConfig {
     const parsed = JSON.parse(json);
     return normalizeHookConfig(parsed.hooks || parsed);
   } catch (error) {
-    console.error('Failed to parse hook config:', error);
+    log.error('Failed to parse hook config', error as Error);
     return {};
   }
 }

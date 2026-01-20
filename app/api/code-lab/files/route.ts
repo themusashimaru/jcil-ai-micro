@@ -89,7 +89,14 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     log.error('[Files API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to access files' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to access files',
+        code: 'FILES_ACCESS_FAILED',
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -146,7 +153,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
     log.error('[Files API] Error creating file:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to create file' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to create file',
+        code: 'FILE_CREATE_FAILED',
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -203,7 +217,14 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
     log.error('[Files API] Error updating file:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to update file' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to update file',
+        code: 'FILE_UPDATE_FAILED',
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -262,6 +283,13 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     log.error('[Files API] Error deleting file:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to delete file',
+        code: 'FILE_DELETE_FAILED',
+        details: error instanceof Error ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

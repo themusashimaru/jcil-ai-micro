@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Codebase Index API] GET error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: 'Index check failed', code: 'INDEX_CHECK_FAILED' }, { status: 500 });
   }
 }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Codebase Index API] POST error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: 'Index creation failed', code: 'INDEX_CREATE_FAILED' }, { status: 500 });
   }
 }
 
@@ -99,6 +99,6 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Codebase Index API] DELETE error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: 'Index deletion failed', code: 'INDEX_DELETE_FAILED' }, { status: 500 });
   }
 }
