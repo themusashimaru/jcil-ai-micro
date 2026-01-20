@@ -516,6 +516,68 @@ export class MCPClient extends EventEmitter {
   }
 
   /**
+   * Subscribe to resource updates (MCP spec feature)
+   * Server will send notifications when the resource changes
+   */
+  async subscribeToResource(uri: string): Promise<boolean> {
+    if (!this.initialized) {
+      throw new Error('MCP client not initialized');
+    }
+
+    // Check if server supports resource subscriptions
+    if (!this.capabilities?.resources?.subscribe) {
+      log.warn('Server does not support resource subscriptions', { id: this.config.id });
+      return false;
+    }
+
+    log.debug('Subscribing to resource', { id: this.config.id, uri });
+
+    try {
+      await this.sendRequest('resources/subscribe', { uri });
+      log.info('Subscribed to resource', { id: this.config.id, uri });
+      return true;
+    } catch (error) {
+      log.error('Failed to subscribe to resource', { id: this.config.id, uri, error });
+      return false;
+    }
+  }
+
+  /**
+   * Unsubscribe from resource updates
+   */
+  async unsubscribeFromResource(uri: string): Promise<boolean> {
+    if (!this.initialized) {
+      throw new Error('MCP client not initialized');
+    }
+
+    if (!this.capabilities?.resources?.subscribe) {
+      return false;
+    }
+
+    log.debug('Unsubscribing from resource', { id: this.config.id, uri });
+
+    try {
+      await this.sendRequest('resources/unsubscribe', { uri });
+      log.info('Unsubscribed from resource', { id: this.config.id, uri });
+      return true;
+    } catch (error) {
+      log.error('Failed to unsubscribe from resource', { id: this.config.id, uri, error });
+      return false;
+    }
+  }
+
+  /**
+   * Set handler for resource update notifications
+   */
+  onResourceUpdated(handler: (uri: string) => void): () => void {
+    const listener = (data: { uri: string }) => {
+      handler(data.uri);
+    };
+    this.on('resourceUpdated', listener);
+    return () => this.off('resourceUpdated', listener);
+  }
+
+  /**
    * Get a prompt
    */
   async getPrompt(
@@ -641,8 +703,25 @@ export class MCPClient extends EventEmitter {
       this.emit('notification', notification);
 
       // Handle specific notifications
-      if (notification.method === 'notifications/tools/list_changed') {
-        this.discoverCapabilities();
+      switch (notification.method) {
+        case 'notifications/tools/list_changed':
+          this.discoverCapabilities();
+          break;
+        case 'notifications/resources/list_changed':
+          this.discoverCapabilities();
+          break;
+        case 'notifications/resources/updated': {
+          // MCP spec: Resource subscription update notification
+          const params = notification.params as { uri: string } | undefined;
+          if (params?.uri) {
+            log.debug('Resource updated notification', { id: this.config.id, uri: params.uri });
+            this.emit('resourceUpdated', { uri: params.uri });
+          }
+          break;
+        }
+        case 'notifications/prompts/list_changed':
+          this.discoverCapabilities();
+          break;
       }
     }
   }
