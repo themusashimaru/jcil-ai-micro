@@ -49,6 +49,7 @@ export function useCodeLabSessions(
   const currentSession = sessions.find((s) => s.id === currentSessionId);
 
   const loadSessions = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await fetch('/api/code-lab/sessions');
       if (response.ok) {
@@ -58,6 +59,8 @@ export function useCodeLabSessions(
       }
     } catch (err) {
       log.error('Error loading sessions', err as Error);
+    } finally {
+      setIsLoading(false);
     }
     return [];
   }, []);
