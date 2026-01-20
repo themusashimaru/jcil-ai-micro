@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { sanitizeFilePath, sanitizeGlobPattern } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';

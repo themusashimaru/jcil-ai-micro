@@ -24,7 +24,7 @@
 
 import { EventEmitter } from 'events';
 import { Sandbox } from '@e2b/code-interpreter';
-import { getContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { CDPClient } from './cdp-client';
 import { DAPClient, DAPSource } from './dap-client';
 import { logger } from '@/lib/logger';
