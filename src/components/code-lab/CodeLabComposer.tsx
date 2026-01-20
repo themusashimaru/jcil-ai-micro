@@ -360,6 +360,17 @@ export function CodeLabComposer({
       )}
 
       <div className="composer-container">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ACCEPTED_TYPES.join(',')}
+          onChange={(e) => handleFileSelect(e.target.files)}
+          style={{ display: 'none' }}
+          aria-label="Upload files"
+        />
+
         <textarea
           ref={textareaRef}
           value={content}
@@ -384,18 +395,7 @@ export function CodeLabComposer({
         />
 
         <div className="composer-actions">
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={ACCEPTED_TYPES.join(',')}
-            onChange={(e) => handleFileSelect(e.target.files)}
-            style={{ display: 'none' }}
-            aria-label="Upload files"
-          />
-
-          {/* File attach button */}
+          {/* File attach button - left side */}
           <button
             className="composer-btn attach"
             onClick={() => fileInputRef.current?.click()}
@@ -430,7 +430,9 @@ export function CodeLabComposer({
             </svg>
           </button>
 
-          {/* Send/Stop button */}
+          <div className="actions-spacer" />
+
+          {/* Send/Stop button - right side */}
           {isStreaming ? (
             <button
               className="composer-btn stop"
@@ -654,10 +656,13 @@ export function CodeLabComposer({
         .composer-actions {
           display: flex;
           align-items: center;
-          justify-content: flex-end;
-          gap: 0.5rem;
+          gap: 0.25rem;
           padding-top: 0.25rem;
           border-top: 1px solid #333;
+        }
+
+        .actions-spacer {
+          flex: 1;
         }
 
         .composer-btn {
@@ -671,11 +676,16 @@ export function CodeLabComposer({
           border-radius: 8px;
           cursor: pointer;
           color: #888;
-          transition: all 0.2s;
+          transition: color 0.2s;
         }
 
-        .composer-btn:hover:not(:disabled) {
-          background: #333;
+        .composer-btn.attach,
+        .composer-btn.search {
+          padding: 0.375rem;
+        }
+
+        .composer-btn.attach:hover:not(:disabled),
+        .composer-btn.search:hover:not(:disabled) {
           color: #ffffff;
         }
 
@@ -690,7 +700,6 @@ export function CodeLabComposer({
         }
 
         .composer-btn.search.active {
-          background: #333;
           color: #ffffff;
         }
 
@@ -760,6 +769,12 @@ export function CodeLabComposer({
           .composer-btn {
             min-width: 44px;
             min-height: 44px;
+          }
+
+          .composer-btn.attach,
+          .composer-btn.search {
+            min-width: 36px;
+            min-height: 36px;
           }
 
           .composer-btn svg {
