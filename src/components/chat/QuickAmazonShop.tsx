@@ -280,9 +280,9 @@ Example response:
                         className="flex gap-4 overflow-x-auto pb-3 pr-1 scrollbar-hide snap-x snap-mandatory"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                       >
-                        {products.map((product, index) => (
+                        {products.map((product) => (
                           <button
-                            key={index}
+                            key={product.url || product.title}
                             onClick={() => handleProductClick(product)}
                             className="group relative flex w-72 flex-shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]"
                           >

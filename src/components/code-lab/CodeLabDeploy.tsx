@@ -100,7 +100,10 @@ export function CodeLabDeploy({
   // Disconnect Vercel
   const disconnectVercel = useCallback(async () => {
     try {
-      await fetch('/api/user/vercel-token', { method: 'DELETE' });
+      const response = await fetch('/api/user/vercel-token', { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to disconnect Vercel: ${response.status}`);
+      }
       setVercelStatus({ connected: false });
     } catch (err) {
       console.error('[Deploy] Error disconnecting:', err);

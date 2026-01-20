@@ -107,7 +107,10 @@ export function useCodeLabSessions(
   const deleteSession = useCallback(
     async (sessionId: string) => {
       try {
-        await fetch(`/api/code-lab/sessions/${sessionId}`, { method: 'DELETE' });
+        const response = await fetch(`/api/code-lab/sessions/${sessionId}`, { method: 'DELETE' });
+        if (!response.ok) {
+          throw new Error(`Failed to delete session: ${response.status}`);
+        }
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
         if (currentSessionId === sessionId) {

@@ -69,6 +69,8 @@ export interface StreamHandler {
 export class ContainerManager {
   private supabase;
   private activeSandboxes: Map<string, Sandbox> = new Map();
+  // RACE CONDITION FIX: Track pending sandbox creations to prevent duplicate creation
+  private pendingSandboxCreations: Map<string, Promise<Sandbox>> = new Map();
 
   constructor() {
     this.supabase = createClient(
@@ -202,36 +204,71 @@ export class ContainerManager {
 
   /**
    * Get or create sandbox for workspace
+   * RACE CONDITION FIX: Uses promise deduplication to prevent multiple concurrent
+   * sandbox creations for the same workspace.
    */
   async getSandbox(workspaceId: string): Promise<Sandbox> {
-    // Check if we have an active sandbox
+    // Check if we have an active sandbox in cache
     // Note: workspaceId is actually the session_id
+    const cachedSandbox = this.activeSandboxes.get(workspaceId);
+    if (cachedSandbox) {
+      return cachedSandbox;
+    }
+
+    // Check if there's already a pending creation for this workspace
+    const pendingCreation = this.pendingSandboxCreations.get(workspaceId);
+    if (pendingCreation) {
+      log.debug('Waiting for pending sandbox creation', { workspaceId });
+      return pendingCreation;
+    }
+
+    // Create the sandbox with deduplication
+    const creationPromise = this.createOrReconnectSandbox(workspaceId);
+    this.pendingSandboxCreations.set(workspaceId, creationPromise);
+
+    try {
+      const sandbox = await creationPromise;
+      return sandbox;
+    } finally {
+      // Clean up pending creation tracker
+      this.pendingSandboxCreations.delete(workspaceId);
+    }
+  }
+
+  /**
+   * Internal method to create or reconnect to sandbox
+   * Should only be called through getSandbox() to ensure deduplication
+   */
+  private async createOrReconnectSandbox(workspaceId: string): Promise<Sandbox> {
+    // Double-check cache (another request might have completed while we waited)
     let sandbox = this.activeSandboxes.get(workspaceId);
+    if (sandbox) {
+      return sandbox;
+    }
 
-    if (!sandbox) {
-      // Try to reconnect to existing sandbox
-      // Query code_lab_workspaces using session_id
-      const { data: workspace } = await this.supabase
-        .from('code_lab_workspaces')
-        .select('sandbox_id')
-        .eq('session_id', workspaceId)
-        .single();
+    // Try to reconnect to existing sandbox
+    // Query code_lab_workspaces using session_id
+    const { data: workspace } = await this.supabase
+      .from('code_lab_workspaces')
+      .select('sandbox_id')
+      .eq('session_id', workspaceId)
+      .single();
 
-      if (workspace?.sandbox_id) {
-        try {
-          sandbox = await Sandbox.connect(workspace.sandbox_id);
-          this.activeSandboxes.set(workspaceId, sandbox);
-        } catch {
-          // Sandbox expired, create new one
-          await this.createContainer(workspaceId);
-          sandbox = this.activeSandboxes.get(workspaceId);
-        }
-      } else {
-        // No container exists, create one
-        await this.createContainer(workspaceId);
-        sandbox = this.activeSandboxes.get(workspaceId);
+    if (workspace?.sandbox_id) {
+      try {
+        sandbox = await Sandbox.connect(workspace.sandbox_id);
+        this.activeSandboxes.set(workspaceId, sandbox);
+        log.debug('Reconnected to existing sandbox', { workspaceId, sandboxId: workspace.sandbox_id });
+        return sandbox;
+      } catch (connectError) {
+        // Sandbox expired, create new one
+        log.debug('Sandbox connection failed, creating new one', { workspaceId, error: connectError });
       }
     }
+
+    // No existing sandbox or reconnection failed - create new one
+    await this.createContainer(workspaceId);
+    sandbox = this.activeSandboxes.get(workspaceId);
 
     if (!sandbox) {
       throw new Error('Failed to get or create sandbox');

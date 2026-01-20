@@ -291,7 +291,10 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      await fetch(`/api/code-lab/sessions/${sessionId}`, { method: 'DELETE' });
+      const response = await fetch(`/api/code-lab/sessions/${sessionId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to delete session: ${response.status}`);
+      }
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
       if (currentSessionId === sessionId) {
@@ -305,6 +308,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       }
     } catch (err) {
       log.error('Error deleting session', err as Error);
+      toast.error('Delete Failed', 'Failed to delete session');
     }
   };
 
@@ -481,16 +485,20 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     }
 
     try {
-      await fetch(
+      const response = await fetch(
         `/api/code-lab/files?sessionId=${currentSessionId}&path=${encodeURIComponent(path)}`,
         {
           method: 'DELETE',
         }
       );
+      if (!response.ok) {
+        throw new Error(`Failed to delete file: ${response.status}`);
+      }
       loadWorkspaceFiles(currentSessionId);
       toast.success('Deleted', `${path} has been deleted`);
     } catch (err) {
       log.error('Error deleting file', err as Error);
+      toast.error('Delete Failed', 'Failed to delete file');
     }
   };
 

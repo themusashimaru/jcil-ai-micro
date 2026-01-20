@@ -187,9 +187,11 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
       )}
 
       {parsedContent.map((block, index) => {
+        // Generate stable key from block type and content prefix
+        const blockKey = `${block.type}-${index}-${block.content.slice(0, 20).replace(/\s/g, '')}`;
         if (block.type === 'code') {
           return (
-            <div key={index} className="code-block">
+            <div key={blockKey} className="code-block">
               <div className="code-header">
                 <span className="code-lang">{block.language || 'code'}</span>
                 <button className="code-copy" onClick={() => handleCopyCode(block.content, index)}>
@@ -227,7 +229,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
 
         if (block.type === 'terminal') {
           return (
-            <div key={index} className="terminal-block">
+            <div key={blockKey} className="terminal-block">
               <div className="terminal-header">
                 <span className="terminal-dots">
                   <span />
@@ -244,7 +246,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
         // Regular text - SANITIZED to prevent XSS
         return (
           <div
-            key={index}
+            key={blockKey}
             className="text-block"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
           />

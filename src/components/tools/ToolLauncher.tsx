@@ -100,9 +100,9 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
             <div className="mt-4 pt-4 border-t border-white/10">
               <p className="text-sm font-medium text-white/50 mb-2">Example uses:</p>
               <div className="flex flex-wrap gap-2">
-                {config.examples.map((example, idx) => (
+                {config.examples.map((example) => (
                   <button
-                    key={idx}
+                    key={example}
                     onClick={() => {
                       // Prefill first field with example
                       const firstField = config.fields[0];

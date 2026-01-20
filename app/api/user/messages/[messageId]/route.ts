@@ -10,6 +10,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('MessageDetailAPI');
 
@@ -147,6 +148,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  * PATCH - Update message status
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  // SECURITY: CSRF protection for state-changing operation
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) {
+    return csrfCheck.response!;
+  }
+
   try {
     const { messageId } = await params;
     const body = await request.json();
@@ -209,7 +216,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 /**
  * DELETE - Soft delete message for user
  */
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  // SECURITY: CSRF protection for state-changing operation
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) {
+    return csrfCheck.response!;
+  }
+
   try {
     const { messageId } = await params;
 

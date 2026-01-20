@@ -18,6 +18,50 @@ import { logger } from '@/lib/logger';
 
 const log = logger('Sandbox');
 
+// ============================================
+// MUTEX FOR OIDC TOKEN RACE CONDITION FIX
+// ============================================
+// The Vercel SDK reads VERCEL_OIDC_TOKEN from process.env.
+// When multiple concurrent requests need different OIDC tokens,
+// we must serialize access to prevent race conditions.
+
+class OIDCMutex {
+  private _locked = false;
+  private _waiting: Array<() => void> = [];
+
+  async acquire(): Promise<void> {
+    if (!this._locked) {
+      this._locked = true;
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      this._waiting.push(resolve);
+    });
+  }
+
+  release(): void {
+    if (this._waiting.length > 0) {
+      const next = this._waiting.shift()!;
+      next();
+    } else {
+      this._locked = false;
+    }
+  }
+
+  async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    await this.acquire();
+    try {
+      return await fn();
+    } finally {
+      this.release();
+    }
+  }
+}
+
+// Singleton mutex for OIDC token operations
+const oidcMutex = new OIDCMutex();
+
 // Types for sandbox operations
 export interface SandboxConfig {
   // For OIDC auth (preferred on Vercel)
@@ -84,24 +128,27 @@ export async function executeSandbox(
     // Create sandbox - prefer OIDC, fall back to access token
     if (hasOIDC) {
       // OIDC auth - SDK handles authentication via VERCEL_OIDC_TOKEN env var
-      // We need to set it temporarily for the SDK to pick up
-      const originalOidcToken = process.env.VERCEL_OIDC_TOKEN;
-      process.env.VERCEL_OIDC_TOKEN = config.oidcToken;
+      // RACE CONDITION FIX: Use mutex to serialize OIDC token env var manipulation
+      // This prevents concurrent requests from interfering with each other's tokens
+      sandbox = await oidcMutex.withLock(async () => {
+        const originalOidcToken = process.env.VERCEL_OIDC_TOKEN;
+        process.env.VERCEL_OIDC_TOKEN = config.oidcToken;
 
-      try {
-        sandbox = await Sandbox.create({
-          runtime: options.runtime || 'node22',
-          timeout: options.timeout || ms('5m'),
-          resources: { vcpus: options.vcpus || 2 },
-        });
-      } finally {
-        // Restore original value
-        if (originalOidcToken) {
-          process.env.VERCEL_OIDC_TOKEN = originalOidcToken;
-        } else {
-          delete process.env.VERCEL_OIDC_TOKEN;
+        try {
+          return await Sandbox.create({
+            runtime: options.runtime || 'node22',
+            timeout: options.timeout || ms('5m'),
+            resources: { vcpus: options.vcpus || 2 },
+          });
+        } finally {
+          // Restore original value
+          if (originalOidcToken) {
+            process.env.VERCEL_OIDC_TOKEN = originalOidcToken;
+          } else {
+            delete process.env.VERCEL_OIDC_TOKEN;
+          }
         }
-      }
+      });
     } else {
       // Access token auth - requires teamId, projectId, token
       sandbox = await Sandbox.create({

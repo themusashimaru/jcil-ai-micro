@@ -139,7 +139,10 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
 
   const handleDelete = async (messageId: string) => {
     try {
-      await fetch(`/api/user/messages/${messageId}`, { method: 'DELETE' });
+      const response = await fetch(`/api/user/messages/${messageId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to delete message: ${response.status}`);
+      }
 
       const deletedMessage = messages.find(m => m.id === messageId);
       setMessages(prev => prev.filter(m => m.id !== messageId));

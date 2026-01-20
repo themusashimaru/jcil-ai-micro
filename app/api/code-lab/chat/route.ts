@@ -29,46 +29,14 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
+// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
+import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
 
 const log = logger('CodeLabChat');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
-
-// Get encryption key (32 bytes for AES-256) - same as connectors API
-function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-// Decrypt token - with proper error handling
-function decryptToken(encryptedData: string): string | null {
-  try {
-    const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
-      log.warn('Invalid encrypted token format');
-      return null;
-    }
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    if (!decrypted) {
-      log.warn('Decrypted token is empty');
-      return null;
-    }
-
-    return decrypted;
-  } catch (error) {
-    log.error('Token decryption failed', error as Error);
-    return null;
-  }
-}
 
 // SECURITY FIX: Use cryptographically secure UUID generation
 // Math.random() is NOT secure and IDs could be predicted
@@ -162,12 +130,46 @@ function shouldUseSearch(message: string): boolean {
 }
 
 // In-memory rate limit store (per user, resets every minute)
+// MEMORY LEAK FIX: Add periodic cleanup of expired entries
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_REQUESTS = 30; // 30 requests per minute
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Cleanup every 5 minutes
+let lastCleanupTime = Date.now();
+
+/**
+ * Clean up expired rate limit entries to prevent memory leaks.
+ * Called periodically during rate limit checks.
+ */
+function cleanupExpiredRateLimits(): void {
+  const now = Date.now();
+
+  // Only run cleanup every CLEANUP_INTERVAL_MS
+  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
+    return;
+  }
+
+  lastCleanupTime = now;
+  let cleanedCount = 0;
+
+  for (const [userId, limit] of rateLimitStore.entries()) {
+    if (now > limit.resetTime) {
+      rateLimitStore.delete(userId);
+      cleanedCount++;
+    }
+  }
+
+  if (cleanedCount > 0) {
+    log.debug('Cleaned up expired rate limit entries', { count: cleanedCount, remaining: rateLimitStore.size });
+  }
+}
 
 function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
   const now = Date.now();
+
+  // MEMORY LEAK FIX: Periodically clean up expired entries
+  cleanupExpiredRateLimits();
+
   const userLimit = rateLimitStore.get(userId);
 
   if (!userLimit || now > userLimit.resetTime) {
