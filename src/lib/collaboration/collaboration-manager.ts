@@ -6,13 +6,31 @@
  * - User presence tracking
  * - Operation broadcasting
  * - Conflict resolution via CRDT
+ * - Redis-backed persistence for horizontal scaling
  *
  * This is REAL collaboration, not a mock.
  */
 
 import { EventEmitter } from 'events';
-import { CRDTDocument, CRDTOperation, CursorPosition, getDocumentStore } from './crdt-document';
+import {
+  CRDTDocument,
+  CRDTOperation,
+  CursorPosition,
+  getDocumentStore,
+  CRDTState,
+} from './crdt-document';
 import { logger } from '@/lib/logger';
+import {
+  saveSession,
+  loadSession,
+  saveDocumentState,
+  publishEvent,
+  subscribeToEvents,
+  startEventPolling,
+  isRedisAvailable,
+  type SerializedSession,
+  type CollaborationEvent as RedisCollaborationEvent,
+} from './redis-persistence';
 
 const log = logger('CollaborationManager');
 
@@ -63,14 +81,173 @@ export class CollaborationManager extends EventEmitter {
   private sessions: Map<string, CollaborationSession> = new Map();
   private userSessions: Map<string, Set<string>> = new Map(); // userId -> sessionIds
   private documentStore = getDocumentStore();
+  private redisEnabled: boolean;
+  private unsubscribeFromRedis: (() => void) | null = null;
 
   // User colors for cursors
   private colors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-    '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
-    '#BB8FCE', '#85C1E9', '#82E0AA', '#F8C471',
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEAA7',
+    '#DDA0DD',
+    '#98D8C8',
+    '#F7DC6F',
+    '#BB8FCE',
+    '#85C1E9',
+    '#82E0AA',
+    '#F8C471',
   ];
   private colorIndex = 0;
+
+  constructor() {
+    super();
+    this.redisEnabled = isRedisAvailable();
+
+    if (this.redisEnabled) {
+      log.info('Redis persistence enabled for collaboration');
+      // Subscribe to cross-server events
+      this.unsubscribeFromRedis = subscribeToEvents((event) => {
+        this.handleRemoteEvent(event);
+      });
+      // Start polling for events (Upstash doesn't support real pub/sub)
+      startEventPolling(500);
+    } else {
+      log.info('Redis not available, using in-memory collaboration only');
+    }
+  }
+
+  /**
+   * Cleanup resources (call on shutdown)
+   */
+  cleanup(): void {
+    if (this.unsubscribeFromRedis) {
+      this.unsubscribeFromRedis();
+      this.unsubscribeFromRedis = null;
+    }
+    log.info('CollaborationManager cleaned up');
+  }
+
+  /**
+   * Handle events from other servers (Redis pub/sub)
+   */
+  private handleRemoteEvent(event: RedisCollaborationEvent): void {
+    const session = this.sessions.get(event.sessionId);
+    if (!session) return;
+
+    switch (event.type) {
+      case 'operation': {
+        const document = this.documentStore.getDocument(session.documentId, event.userId);
+        document.applyRemoteOperation(event.payload as CRDTOperation);
+        this.emit('remoteOperation', { sessionId: event.sessionId, operation: event.payload });
+        break;
+      }
+      case 'cursor': {
+        const payload = event.payload as {
+          position: number;
+          selection?: { start: number; end: number };
+        };
+        const document = this.documentStore.getDocument(session.documentId, event.userId);
+        document.applyRemoteCursor({
+          userId: event.userId,
+          userName: session.users.get(event.userId)?.name || 'Unknown',
+          position: payload.position,
+          selection: payload.selection,
+          color: session.users.get(event.userId)?.color || '#888',
+        });
+        break;
+      }
+      case 'join':
+      case 'leave':
+        // Reload session from Redis to get updated user list
+        this.reloadSessionFromRedis(event.sessionId);
+        break;
+    }
+  }
+
+  /**
+   * Reload session from Redis (for cross-server sync)
+   */
+  private async reloadSessionFromRedis(sessionId: string): Promise<void> {
+    if (!this.redisEnabled) return;
+
+    const serialized = await loadSession(sessionId);
+    if (serialized) {
+      const session = this.deserializeSession(serialized);
+      this.sessions.set(sessionId, session);
+      this.emit('sessionUpdated', session);
+    }
+  }
+
+  /**
+   * Serialize session for Redis storage
+   */
+  private serializeSession(session: CollaborationSession): SerializedSession {
+    return {
+      id: session.id,
+      documentId: session.documentId,
+      ownerId: session.ownerId,
+      createdAt: session.createdAt.toISOString(),
+      users: Array.from(session.users.values()).map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        color: user.color,
+        joinedAt: user.joinedAt.toISOString(),
+        lastActivity: user.lastActivity.toISOString(),
+        cursor: user.cursor,
+        isTyping: user.isTyping,
+      })),
+      isActive: session.isActive,
+    };
+  }
+
+  /**
+   * Deserialize session from Redis storage
+   */
+  private deserializeSession(serialized: SerializedSession): CollaborationSession {
+    const users = new Map<string, CollaborationUser>();
+    for (const u of serialized.users) {
+      users.set(u.id, {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        color: u.color,
+        joinedAt: new Date(u.joinedAt),
+        lastActivity: new Date(u.lastActivity),
+        cursor: u.cursor,
+        isTyping: u.isTyping,
+      });
+    }
+
+    return {
+      id: serialized.id,
+      documentId: serialized.documentId,
+      ownerId: serialized.ownerId,
+      createdAt: new Date(serialized.createdAt),
+      users,
+      isActive: serialized.isActive,
+    };
+  }
+
+  /**
+   * Persist session to Redis
+   */
+  private async persistSession(session: CollaborationSession): Promise<void> {
+    if (!this.redisEnabled) return;
+
+    const serialized = this.serializeSession(session);
+    await saveSession(serialized);
+  }
+
+  /**
+   * Persist document state to Redis
+   */
+  private async persistDocumentState(documentId: string, state: CRDTState): Promise<void> {
+    if (!this.redisEnabled) return;
+    await saveDocumentState(documentId, state);
+  }
 
   /**
    * Create a new collaboration session
@@ -114,7 +291,15 @@ export class CollaborationManager extends EventEmitter {
     // Set up document event listeners
     this.setupDocumentListeners(sessionId, document);
 
-    log.info('Created collaboration session', { sessionId, documentId, ownerId });
+    // Persist to Redis for cross-server sync
+    this.persistSession(session);
+
+    log.info('Created collaboration session', {
+      sessionId,
+      documentId,
+      ownerId,
+      redisEnabled: this.redisEnabled,
+    });
 
     return session;
   }
@@ -122,11 +307,7 @@ export class CollaborationManager extends EventEmitter {
   /**
    * Join an existing collaboration session
    */
-  joinSession(
-    sessionId: string,
-    userId: string,
-    userName: string
-  ): JoinSessionResult | null {
+  joinSession(sessionId: string, userId: string, userName: string): JoinSessionResult | null {
     const session = this.sessions.get(sessionId);
     if (!session || !session.isActive) {
       log.warn('Session not found or inactive', { sessionId });
@@ -149,6 +330,10 @@ export class CollaborationManager extends EventEmitter {
 
       // Notify others
       this.broadcastPresence(sessionId, userId, 'joined');
+
+      // Persist to Redis and publish event for cross-server sync
+      this.persistSession(session);
+      publishEvent('join', sessionId, userId, { userName });
     }
 
     // Get document
@@ -184,8 +369,14 @@ export class CollaborationManager extends EventEmitter {
     // If no users left, mark session as inactive
     if (session.users.size === 0) {
       session.isActive = false;
+      // Persist final document state to Redis
+      this.persistDocumentState(session.documentId, document.getState());
       log.info('Session became inactive', { sessionId });
     }
+
+    // Persist to Redis and publish event for cross-server sync
+    this.persistSession(session);
+    publishEvent('leave', sessionId, userId, {});
 
     log.info('User left session', { sessionId, userId });
   }
@@ -193,11 +384,7 @@ export class CollaborationManager extends EventEmitter {
   /**
    * Apply an operation to a session's document
    */
-  applyOperation(
-    sessionId: string,
-    userId: string,
-    operation: CRDTOperation
-  ): boolean {
+  applyOperation(sessionId: string, userId: string, operation: CRDTOperation): boolean {
     const session = this.sessions.get(sessionId);
     if (!session || !session.isActive) {
       return false;
@@ -222,6 +409,9 @@ export class CollaborationManager extends EventEmitter {
 
       // Broadcast to other users
       this.broadcastOperation(sessionId, userId, operation);
+
+      // Publish to Redis for cross-server sync
+      publishEvent('operation', sessionId, userId, operation);
     }
 
     return applied;
@@ -257,6 +447,9 @@ export class CollaborationManager extends EventEmitter {
 
     // Broadcast cursor update
     this.broadcastCursor(sessionId, userId, position, selection);
+
+    // Publish to Redis for cross-server sync
+    publishEvent('cursor', sessionId, userId, { position, selection });
   }
 
   /**
@@ -290,12 +483,16 @@ export class CollaborationManager extends EventEmitter {
   /**
    * Sync document state with a remote state
    */
-  syncDocument(sessionId: string, userId: string, remoteState: {
-    content: string;
-    operations: CRDTOperation[];
-    vectorClock: Record<string, number>;
-    version: number;
-  }): void {
+  syncDocument(
+    sessionId: string,
+    userId: string,
+    remoteState: {
+      content: string;
+      operations: CRDTOperation[];
+      vectorClock: Record<string, number>;
+      version: number;
+    }
+  ): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
@@ -331,11 +528,7 @@ export class CollaborationManager extends EventEmitter {
     });
   }
 
-  private broadcastOperation(
-    sessionId: string,
-    userId: string,
-    operation: CRDTOperation
-  ): void {
+  private broadcastOperation(sessionId: string, userId: string, operation: CRDTOperation): void {
     this.emit('broadcast', {
       type: 'operation',
       sessionId,
@@ -372,11 +565,7 @@ export class CollaborationManager extends EventEmitter {
     } as CollaborationEvent);
   }
 
-  private broadcastPresence(
-    sessionId: string,
-    userId: string,
-    action: 'joined' | 'left'
-  ): void {
+  private broadcastPresence(sessionId: string, userId: string, action: 'joined' | 'left'): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 

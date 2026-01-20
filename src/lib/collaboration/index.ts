@@ -27,3 +27,12 @@ export {
   type UseCollaborationOptions,
   type UseCollaborationReturn,
 } from './useCollaboration';
+
+export {
+  checkRedisHealth,
+  isRedisAvailable,
+  startEventPolling,
+  stopEventPolling,
+  type SerializedSession,
+  type SerializedUser,
+} from './redis-persistence';
