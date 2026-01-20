@@ -142,3 +142,26 @@ export {
   isOpenAICompatible,
   isAnthropicProvider,
 } from './adapters';
+
+// ============================================================================
+// ERROR HANDLING EXPORTS
+// ============================================================================
+
+export {
+  // Error parsers
+  parseAnthropicError,
+  parseOpenAIError,
+  parseProviderError,
+  // Retry logic
+  withRetry,
+  createRetryWrapper,
+  calculateRetryDelay,
+  sleep,
+  DEFAULT_RETRY_CONFIG,
+  // Error recovery
+  canRecoverWithFallback,
+  getUserFriendlyMessage,
+  shouldReportError,
+} from './errors';
+
+export type { RetryConfig, ErrorRecoveryOptions } from './errors';
