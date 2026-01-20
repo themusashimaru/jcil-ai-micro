@@ -82,7 +82,16 @@ export function validatePositiveInt(
 
 /**
  * Validate path parameter is safe (no traversal)
- * Checks both literal and URL-encoded path traversal attempts
+ * HIGH-004: Comprehensive path traversal detection
+ *
+ * Checks:
+ * - Null bytes (literal and encoded)
+ * - URL-encoded traversal attempts
+ * - Double-encoding attacks
+ * - Windows-style backslashes
+ * - Shell metacharacters
+ * - Suspicious patterns (/./, //)
+ *
  * Basic check - use sanitizeFilePath for full sanitization
  */
 export function isPathSafe(path: string): boolean {
@@ -102,15 +111,33 @@ export function isPathSafe(path: string): boolean {
     return false;
   }
 
+  // HIGH-004: Check for double-encoding attacks
+  // e.g., %252e%252e = %2e%2e = ..
+  try {
+    const doubleDecoded = decodeURIComponent(decodedPath);
+    if (doubleDecoded !== decodedPath) {
+      // Path was double-encoded, check if it reveals traversal
+      if (doubleDecoded.includes('..') || doubleDecoded.includes('\\')) {
+        return false;
+      }
+    }
+  } catch {
+    // Double-decoding failed, that's OK - continue with single decoded path
+  }
+
   // Check for path traversal (both original and decoded)
   if (path.includes('..') || decodedPath.includes('..')) return false;
 
   // Check for backslash traversal (Windows-style)
   if (path.includes('\\') || decodedPath.includes('\\')) return false;
 
-  // Check for shell metacharacters
-  if (/[;&|`$(){}[\]<>!]/.test(path)) return false;
-  if (/[;&|`$(){}[\]<>!]/.test(decodedPath)) return false;
+  // Check for shell metacharacters (extended list)
+  if (/[;&|`$(){}[\]<>!'"\n\r]/.test(path)) return false;
+  if (/[;&|`$(){}[\]<>!'"\n\r]/.test(decodedPath)) return false;
+
+  // HIGH-004: Check for suspicious patterns that could confuse path resolution
+  // e.g., /./  or multiple slashes
+  if (/\/\.\/|\/\//.test(decodedPath)) return false;
 
   return true;
 }
@@ -147,7 +174,7 @@ export async function safeParseJSON<T = Record<string, unknown>>(
   request: Request
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
   try {
-    const data = await request.json() as T;
+    const data = (await request.json()) as T;
     return { success: true, data };
   } catch (error) {
     // SyntaxError indicates malformed JSON

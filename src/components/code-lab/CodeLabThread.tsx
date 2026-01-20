@@ -8,12 +8,17 @@
  * - User messages in subtle containers
  * - Code blocks with syntax highlighting
  * - Terminal-style output for code generation
+ * - HIGH-002: Virtualized rendering for large message lists
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { CodeLabMessage } from './CodeLabMessage';
+import { CodeLabLazyList } from './CodeLabVirtualizedList';
 import { ThreadSkeleton } from '@/components/ui/Skeleton';
 import type { CodeLabMessage as Message, CodeLabSession } from './types';
+
+/** HIGH-002: Threshold for enabling virtualization */
+const VIRTUALIZATION_THRESHOLD = 50;
 
 interface CodeLabThreadProps {
   messages: Message[];
@@ -39,6 +44,20 @@ export function CodeLabThread({
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // HIGH-002: Memoized render function for virtualized list
+  const renderMessage = useCallback(
+    (message: Message, index: number) => (
+      <CodeLabMessage key={message.id} message={message} isLast={index === messages.length - 1} />
+    ),
+    [messages.length]
+  );
+
+  // HIGH-002: Key extractor for virtualized list
+  const keyExtractor = useCallback((message: Message) => message.id, []);
+
+  // HIGH-002: Determine if we should virtualize based on message count
+  const shouldVirtualize = messages.length >= VIRTUALIZATION_THRESHOLD;
 
   return (
     <div className="code-lab-thread" ref={threadRef}>
@@ -84,7 +103,17 @@ export function CodeLabThread({
               <button>Search docs</button>
             </div>
           </div>
+        ) : shouldVirtualize ? (
+          /* HIGH-002: Use virtualized list for large message counts */
+          <CodeLabLazyList
+            items={messages}
+            renderItem={renderMessage}
+            keyExtractor={keyExtractor}
+            threshold={VIRTUALIZATION_THRESHOLD}
+            className="virtualized-messages"
+          />
         ) : (
+          /* Standard rendering for smaller message counts */
           messages.map((message, index) => (
             <CodeLabMessage
               key={message.id}

@@ -195,12 +195,16 @@ export class GitHubSyncBridge {
       // Fetch from remote without merging
       await executeShell('cd /workspace/repo && git fetch origin');
 
+      // SECURITY: Sanitize and escape branch name for shell commands
+      const safeBranch = sanitizeBranchName(this.currentBranch);
+      const escapedBranch = escapeShellArg(safeBranch);
+
       // Count commits ahead/behind
       const aheadResult = await executeShell(
-        `cd /workspace/repo && git rev-list --count origin/${this.currentBranch}..HEAD`
+        `cd /workspace/repo && git rev-list --count origin/${escapedBranch}..HEAD`
       );
       const behindResult = await executeShell(
-        `cd /workspace/repo && git rev-list --count HEAD..origin/${this.currentBranch}`
+        `cd /workspace/repo && git rev-list --count HEAD..origin/${escapedBranch}`
       );
 
       const localCommits = parseInt(aheadResult.stdout.trim()) || 0;

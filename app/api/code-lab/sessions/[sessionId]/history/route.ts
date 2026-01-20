@@ -11,8 +11,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+// HIGH-006: Add rate limiting
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('CodeLabHistory');
+
+/**
+ * Escape special characters in LIKE patterns to prevent SQL injection
+ * SECURITY: Prevents pattern injection and ReDoS attacks
+ */
+function escapeLikePattern(pattern: string): string {
+  return pattern.replace(/[%_\\]/g, '\\$&');
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -52,6 +63,21 @@ export async function GET(
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // HIGH-006: Rate limiting for GET
+    const rateLimit = await rateLimiters.codeLabRead(user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter),
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          },
+        }
+      );
     }
 
     // Verify session belongs to user
@@ -120,6 +146,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
@@ -138,6 +168,20 @@ export async function POST(
       return NextResponse.json({ error: 'Search query required' }, { status: 400 });
     }
 
+    // SECURITY: Validate query length to prevent DoS
+    if (query.length < 2) {
+      return NextResponse.json(
+        { error: 'Query too short', code: 'QUERY_TOO_SHORT' },
+        { status: 400 }
+      );
+    }
+    if (query.length > 500) {
+      return NextResponse.json(
+        { error: 'Query too long', code: 'QUERY_TOO_LONG' },
+        { status: 400 }
+      );
+    }
+
     // Verify session belongs to user
     const { data: session } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .select('id')
@@ -150,12 +194,14 @@ export async function POST(
     }
 
     // Search messages with ILIKE for case-insensitive search
+    // SECURITY: Escape special LIKE characters to prevent SQL injection
+    const escapedQuery = escapeLikePattern(query);
     let messageQuery = (supabase.from('code_lab_messages') as AnySupabase)
       .select('*')
       .eq('session_id', sessionId)
-      .ilike('content', `%${query}%`)
+      .ilike('content', `%${escapedQuery}%`)
       .order('created_at', { ascending: true })
-      .limit(limit);
+      .limit(Math.min(limit, 100)); // Cap limit to prevent excessive results
 
     // Filter by role if specified
     if (role && ['user', 'assistant', 'system'].includes(role)) {

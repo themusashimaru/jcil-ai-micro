@@ -18,6 +18,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './code-lab.css';
 import { logger } from '@/lib/logger';
+// HIGH-003: Import async state helpers for race condition protection
+import { useMountedRef } from './useAsyncState';
 
 const log = logger('CodeLab');
 
@@ -54,6 +56,8 @@ import {
   useFileChangeNotifications,
 } from './CodeLabFileChangeIndicator';
 import { CodeLabSessionHistory } from './CodeLabSessionHistory';
+// HIGH-005: Error boundary for sub-components
+import { CodeLabComponentBoundary } from './CodeLabComponentBoundary';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
@@ -217,6 +221,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // HIGH-003: Race condition protection refs
+  const mountedRef = useMountedRef();
+  const selectSessionRequestIdRef = useRef(0);
+  const loadWorkspaceFilesRequestIdRef = useRef(0);
+
   // Current session helper
   const currentSession = sessions.find((s) => s.id === currentSessionId);
 
@@ -281,19 +290,35 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   };
 
   const selectSession = async (sessionId: string) => {
+    // HIGH-003: Track request ID to prevent race conditions
+    const requestId = ++selectSessionRequestIdRef.current;
+
     setCurrentSessionId(sessionId);
     setIsLoading(true);
 
     try {
       const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
+
+      // HIGH-003: Only update state if this is still the latest request
+      if (!mountedRef.current || selectSessionRequestIdRef.current !== requestId) {
+        log.debug('Ignoring stale selectSession response', { sessionId, requestId });
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
       }
     } catch (err) {
-      log.error('Error loading messages', err as Error);
+      // HIGH-003: Only log error if this is still the relevant request
+      if (mountedRef.current && selectSessionRequestIdRef.current === requestId) {
+        log.error('Error loading messages', err as Error);
+      }
     } finally {
-      setIsLoading(false);
+      // HIGH-003: Only clear loading if this is still the relevant request
+      if (mountedRef.current && selectSessionRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -431,14 +456,27 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // ========================================
 
   const loadWorkspaceFiles = async (sessionId: string) => {
+    // HIGH-003: Track request ID to prevent race conditions
+    const requestId = ++loadWorkspaceFilesRequestIdRef.current;
+
     try {
       const response = await fetch(`/api/code-lab/files?sessionId=${sessionId}`);
+
+      // HIGH-003: Only update state if this is still the latest request
+      if (!mountedRef.current || loadWorkspaceFilesRequestIdRef.current !== requestId) {
+        log.debug('Ignoring stale loadWorkspaceFiles response', { sessionId, requestId });
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setWorkspaceFiles(data.files || []);
       }
     } catch (err) {
-      log.error('Error loading workspace files', err as Error);
+      // HIGH-003: Only log error if this is still the relevant request
+      if (mountedRef.current && loadWorkspaceFilesRequestIdRef.current === requestId) {
+        log.error('Error loading workspace files', err as Error);
+      }
     }
   };
 
@@ -1448,62 +1486,75 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   </button>
                 </div>
                 <div className="workspace-content">
+                  {/* HIGH-005: Wrap each panel with error boundary */}
                   {activeWorkspaceTab === 'files' && (
-                    <CodeLabLiveFileTree
-                      files={workspaceFiles}
-                      selectedPath={selectedFile ?? undefined}
-                      onFileSelect={handleFileSelect}
-                      onFileCreate={(path) => handleFileCreate(path)}
-                      onFileDelete={handleFileDelete}
-                      onRefresh={() => {
-                        if (currentSessionId) loadWorkspaceFiles(currentSessionId);
-                      }}
-                    />
+                    <CodeLabComponentBoundary componentName="File Browser">
+                      <CodeLabLiveFileTree
+                        files={workspaceFiles}
+                        selectedPath={selectedFile ?? undefined}
+                        onFileSelect={handleFileSelect}
+                        onFileCreate={(path) => handleFileCreate(path)}
+                        onFileDelete={handleFileDelete}
+                        onRefresh={() => {
+                          if (currentSessionId) loadWorkspaceFiles(currentSessionId);
+                        }}
+                      />
+                    </CodeLabComponentBoundary>
                   )}
                   {activeWorkspaceTab === 'diff' && (
-                    <div className="diff-list">
-                      {diffFiles.length === 0 ? (
-                        <div className="diff-empty">
-                          <p>No changes to display</p>
-                          <p className="hint">Push or pull from GitHub to see file changes</p>
-                        </div>
-                      ) : (
-                        diffFiles.map((fileDiff, index) => (
-                          <CodeLabDiffViewer
-                            key={`${fileDiff.oldPath || fileDiff.newPath}-${index}`}
-                            diff={fileDiff}
-                            onAcceptHunk={(hunkIndex) =>
-                              log.debug('Accept hunk', { hunkIndex, file: fileDiff.newPath })
-                            }
-                            onRejectHunk={(hunkIndex) =>
-                              log.debug('Reject hunk', { hunkIndex, file: fileDiff.newPath })
-                            }
-                          />
-                        ))
-                      )}
-                    </div>
+                    <CodeLabComponentBoundary componentName="Diff Viewer">
+                      <div className="diff-list">
+                        {diffFiles.length === 0 ? (
+                          <div className="diff-empty">
+                            <p>No changes to display</p>
+                            <p className="hint">Push or pull from GitHub to see file changes</p>
+                          </div>
+                        ) : (
+                          diffFiles.map((fileDiff, index) => (
+                            <CodeLabDiffViewer
+                              key={`${fileDiff.oldPath || fileDiff.newPath}-${index}`}
+                              diff={fileDiff}
+                              onAcceptHunk={(hunkIndex) =>
+                                log.debug('Accept hunk', { hunkIndex, file: fileDiff.newPath })
+                              }
+                              onRejectHunk={(hunkIndex) =>
+                                log.debug('Reject hunk', { hunkIndex, file: fileDiff.newPath })
+                              }
+                            />
+                          ))
+                        )}
+                      </div>
+                    </CodeLabComponentBoundary>
                   )}
-                  {activeWorkspaceTab === 'deploy' && <CodeLabDeployFlow onDeploy={handleDeploy} />}
+                  {activeWorkspaceTab === 'deploy' && (
+                    <CodeLabComponentBoundary componentName="Deploy">
+                      <CodeLabDeployFlow onDeploy={handleDeploy} />
+                    </CodeLabComponentBoundary>
+                  )}
                   {activeWorkspaceTab === 'visual' && (
-                    <CodeLabVisualToCode
-                      onGenerate={handleVisualToCode}
-                      onInsertCode={(code) =>
-                        sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)
-                      }
-                    />
+                    <CodeLabComponentBoundary componentName="Visual to Code">
+                      <CodeLabVisualToCode
+                        onGenerate={handleVisualToCode}
+                        onInsertCode={(code) =>
+                          sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)
+                        }
+                      />
+                    </CodeLabComponentBoundary>
                   )}
                   {activeWorkspaceTab === 'debug' && currentSessionId && (
-                    <CodeLabDebugPanel
-                      sessionId={currentSessionId}
-                      token={currentSessionId}
-                      workspaceId={currentSessionId}
-                      onAIAnalysis={(debugState) => {
-                        const debugContext = JSON.stringify(debugState, null, 2);
-                        sendMessage(
-                          `/analyze this debug state and help me understand what's happening:\n\`\`\`json\n${debugContext}\n\`\`\``
-                        );
-                      }}
-                    />
+                    <CodeLabComponentBoundary componentName="Debug Panel">
+                      <CodeLabDebugPanel
+                        sessionId={currentSessionId}
+                        token={currentSessionId}
+                        workspaceId={currentSessionId}
+                        onAIAnalysis={(debugState) => {
+                          const debugContext = JSON.stringify(debugState, null, 2);
+                          sendMessage(
+                            `/analyze this debug state and help me understand what's happening:\n\`\`\`json\n${debugContext}\n\`\`\``
+                          );
+                        }}
+                      />
+                    </CodeLabComponentBoundary>
                   )}
                   {activeWorkspaceTab === 'plan' &&
                     (currentPlan ? (
@@ -1558,21 +1609,25 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                       </div>
                     ))}
                   {activeWorkspaceTab === 'mcp' && (
-                    <CodeLabMCPSettings
-                      servers={mcpServers}
-                      onServerToggle={handleMCPServerToggle}
-                      onServerAdd={handleMCPServerAdd}
-                      onServerRemove={handleMCPServerRemove}
-                      isLoading={mcpLoading}
-                    />
+                    <CodeLabComponentBoundary componentName="MCP Settings">
+                      <CodeLabMCPSettings
+                        servers={mcpServers}
+                        onServerToggle={handleMCPServerToggle}
+                        onServerAdd={handleMCPServerAdd}
+                        onServerRemove={handleMCPServerRemove}
+                        isLoading={mcpLoading}
+                      />
+                    </CodeLabComponentBoundary>
                   )}
                   {activeWorkspaceTab === 'memory' && (
-                    <CodeLabMemoryEditor
-                      memoryFile={memoryFile}
-                      onSave={saveMemoryFile}
-                      onLoad={loadMemoryFile}
-                      isLoading={memoryLoading}
-                    />
+                    <CodeLabComponentBoundary componentName="Memory Editor">
+                      <CodeLabMemoryEditor
+                        memoryFile={memoryFile}
+                        onSave={saveMemoryFile}
+                        onLoad={loadMemoryFile}
+                        isLoading={memoryLoading}
+                      />
+                    </CodeLabComponentBoundary>
                   )}
                   {activeWorkspaceTab === 'tasks' && (
                     <div className="tasks-panel">

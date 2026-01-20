@@ -24,10 +24,13 @@ import {
   saveSession,
   loadSession,
   saveDocumentState,
+  loadDocumentState,
   publishEvent,
   subscribeToEvents,
   startEventPolling,
   isRedisAvailable,
+  getBufferedOperations,
+  clearBufferedOperations,
   type SerializedSession,
   type CollaborationEvent as RedisCollaborationEvent,
 } from './redis-persistence';
@@ -306,9 +309,34 @@ export class CollaborationManager extends EventEmitter {
 
   /**
    * Join an existing collaboration session
+   * Supports session recovery from Redis on reconnect
    */
-  joinSession(sessionId: string, userId: string, userName: string): JoinSessionResult | null {
-    const session = this.sessions.get(sessionId);
+  async joinSession(
+    sessionId: string,
+    userId: string,
+    userName: string
+  ): Promise<JoinSessionResult | null> {
+    let session = this.sessions.get(sessionId);
+
+    // CRITICAL-005: Try to recover session from Redis if not found locally
+    if (!session && this.redisEnabled) {
+      log.info('Attempting session recovery from Redis', { sessionId, userId });
+      const serialized = await loadSession(sessionId);
+      if (serialized && serialized.isActive) {
+        session = this.deserializeSession(serialized);
+        this.sessions.set(sessionId, session);
+        log.info('Session recovered from Redis', { sessionId });
+
+        // Also try to recover document state
+        const docState = await loadDocumentState(session.documentId);
+        if (docState) {
+          const document = this.documentStore.getDocument(session.documentId, userId);
+          document.syncWithState(docState);
+          log.info('Document state recovered from Redis', { documentId: session.documentId });
+        }
+      }
+    }
+
     if (!session || !session.isActive) {
       log.warn('Session not found or inactive', { sessionId });
       return null;
@@ -338,6 +366,22 @@ export class CollaborationManager extends EventEmitter {
 
     // Get document
     const document = this.documentStore.getDocument(session.documentId, userId);
+
+    // Setup listeners if not already done
+    this.setupDocumentListeners(sessionId, document);
+
+    // CRITICAL-005: Replay any buffered operations for this user
+    if (this.redisEnabled) {
+      const bufferedOps = await getBufferedOperations(sessionId, userId);
+      if (bufferedOps.length > 0) {
+        log.info('Replaying buffered operations', { sessionId, userId, count: bufferedOps.length });
+        for (const op of bufferedOps) {
+          document.applyRemoteOperation(op);
+        }
+        // Clear the buffer after replay
+        await clearBufferedOperations(sessionId, userId);
+      }
+    }
 
     log.info('User joined session', { sessionId, userId });
 
@@ -382,11 +426,24 @@ export class CollaborationManager extends EventEmitter {
   }
 
   /**
+   * SECURITY: Check if user is a member of the session
+   */
+  private isSessionMember(session: CollaborationSession, userId: string): boolean {
+    return session.users.has(userId);
+  }
+
+  /**
    * Apply an operation to a session's document
    */
   applyOperation(sessionId: string, userId: string, operation: CRDTOperation): boolean {
     const session = this.sessions.get(sessionId);
     if (!session || !session.isActive) {
+      return false;
+    }
+
+    // CRITICAL-007: Verify user is a member of the session
+    if (!this.isSessionMember(session, userId)) {
+      log.warn('Unauthorized operation attempt', { sessionId, userId });
       return false;
     }
 
@@ -428,6 +485,12 @@ export class CollaborationManager extends EventEmitter {
   ): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
+
+    // CRITICAL-007: Verify user is a member of the session
+    if (!this.isSessionMember(session, userId)) {
+      log.warn('Unauthorized cursor update attempt', { sessionId, userId });
+      return;
+    }
 
     const document = this.documentStore.getDocument(session.documentId, userId);
     document.updateCursor(position, selection);

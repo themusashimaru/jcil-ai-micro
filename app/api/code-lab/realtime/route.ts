@@ -19,8 +19,32 @@ import {
   type CollaborationEvent,
 } from '@/lib/collaboration/collaboration-manager';
 import { getDebugEventBroadcaster, type DebugEvent } from '@/lib/debugger/debug-event-broadcaster';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('RealtimeAPI');
+
+// ============================================================================
+// CONSTANTS - HIGH-001 FIX: Memory leak prevention
+// ============================================================================
+
+/** Heartbeat interval in ms */
+const HEARTBEAT_INTERVAL_MS = 30000;
+
+/** Connection idle timeout in ms (5 minutes) */
+const CONNECTION_IDLE_TIMEOUT_MS = 300000;
+
+/** Max connection age in ms (1 hour) */
+const MAX_CONNECTION_AGE_MS = 3600000;
+
+/** Stale connection cleanup interval in ms (1 minute) */
+const CLEANUP_INTERVAL_MS = 60000;
+
+/** Max connections per user */
+const MAX_CONNECTIONS_PER_USER = 5;
+
+/** Singleton TextEncoder for performance */
+const textEncoder = new TextEncoder();
 
 // Event types
 type SSEEvent =
@@ -58,18 +82,71 @@ interface PresenceUpdate {
 }
 
 // Active SSE connections (in-memory for single server)
-const activeConnections = new Map<
-  string,
-  {
-    controller: ReadableStreamDefaultController;
-    userId: string;
-    sessionId?: string;
-    lastActivity: number;
-  }
->();
+interface SSEConnection {
+  controller: ReadableStreamDefaultController;
+  userId: string;
+  sessionId?: string;
+  lastActivity: number;
+  createdAt: number;
+  cleanup: () => void; // HIGH-001: Cleanup function for listeners
+}
+
+const activeConnections = new Map<string, SSEConnection>();
 
 // Client ID counter
 let clientIdCounter = 0;
+
+// HIGH-001: Start stale connection cleanup interval
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+function startCleanupInterval(): void {
+  if (cleanupInterval) return;
+
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    const staleConnections: string[] = [];
+
+    for (const [clientId, conn] of activeConnections) {
+      // Check for idle timeout
+      const idleTime = now - conn.lastActivity;
+      if (idleTime > CONNECTION_IDLE_TIMEOUT_MS) {
+        log.info('Closing idle SSE connection', { clientId, idleTime });
+        staleConnections.push(clientId);
+        continue;
+      }
+
+      // Check for max age
+      const age = now - conn.createdAt;
+      if (age > MAX_CONNECTION_AGE_MS) {
+        log.info('Closing aged SSE connection', { clientId, age });
+        staleConnections.push(clientId);
+      }
+    }
+
+    // Clean up stale connections
+    for (const clientId of staleConnections) {
+      const conn = activeConnections.get(clientId);
+      if (conn) {
+        try {
+          conn.cleanup();
+          conn.controller.close();
+        } catch {
+          // Already closed
+        }
+        activeConnections.delete(clientId);
+      }
+    }
+
+    if (staleConnections.length > 0) {
+      log.info('Cleaned up stale SSE connections', { count: staleConnections.length });
+    }
+  }, CLEANUP_INTERVAL_MS);
+
+  log.info('SSE cleanup interval started');
+}
+
+// Start cleanup on module load
+startCleanupInterval();
 
 /**
  * GET /api/code-lab/realtime
@@ -95,6 +172,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // HIGH-001: Check max connections per user
+    let userConnectionCount = 0;
+    for (const conn of activeConnections.values()) {
+      if (conn.userId === user.id) {
+        userConnectionCount++;
+      }
+    }
+    if (userConnectionCount >= MAX_CONNECTIONS_PER_USER) {
+      log.warn('Max connections exceeded for user', {
+        userId: user.id,
+        count: userConnectionCount,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Too many connections', code: 'MAX_CONNECTIONS_EXCEEDED' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId') || undefined;
 
@@ -103,15 +198,41 @@ export async function GET(request: NextRequest) {
 
     log.info('SSE connection requested', { clientId, userId: user.id, sessionId });
 
+    // HIGH-001: Track cleanup functions for proper resource management
+    const cleanupFunctions: (() => void)[] = [];
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+
     // Create SSE stream
     const stream = new ReadableStream({
       start(controller) {
-        // Store connection
+        // HIGH-001: Central cleanup function
+        const cleanup = () => {
+          // Clear heartbeat
+          if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+          }
+          // Run all registered cleanup functions (event listeners)
+          for (const fn of cleanupFunctions) {
+            try {
+              fn();
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+          cleanupFunctions.length = 0;
+        };
+
+        const now = Date.now();
+
+        // Store connection with cleanup function
         activeConnections.set(clientId, {
           controller,
           userId: user.id,
           sessionId,
-          lastActivity: Date.now(),
+          lastActivity: now,
+          createdAt: now,
+          cleanup,
         });
 
         // Send connected event
@@ -122,15 +243,19 @@ export async function GET(request: NextRequest) {
 
         // If session provided, set up collaboration and debug listeners
         if (sessionId) {
-          setupCollaborationListeners(clientId, sessionId, controller);
-          setupDebugListeners(clientId, sessionId, controller);
+          const collabCleanup = setupCollaborationListeners(clientId, sessionId, controller);
+          const debugCleanup = setupDebugListeners(clientId, sessionId, controller);
+          cleanupFunctions.push(collabCleanup, debugCleanup);
         }
 
         // Set up heartbeat
-        const heartbeatInterval = setInterval(() => {
+        heartbeatInterval = setInterval(() => {
           const conn = activeConnections.get(clientId);
           if (!conn) {
-            clearInterval(heartbeatInterval);
+            if (heartbeatInterval) {
+              clearInterval(heartbeatInterval);
+              heartbeatInterval = null;
+            }
             return;
           }
 
@@ -139,17 +264,19 @@ export async function GET(request: NextRequest) {
               type: 'heartbeat',
               payload: { timestamp: Date.now() },
             });
+            // Update last activity on successful heartbeat
+            conn.lastActivity = Date.now();
           } catch {
-            // Connection closed
-            clearInterval(heartbeatInterval);
+            // Connection closed - full cleanup
+            cleanup();
             activeConnections.delete(clientId);
           }
-        }, 30000); // 30 second heartbeat
+        }, HEARTBEAT_INTERVAL_MS);
 
         // Clean up on close
         request.signal.addEventListener('abort', () => {
           log.info('SSE connection closed', { clientId, userId: user.id });
-          clearInterval(heartbeatInterval);
+          cleanup();
           activeConnections.delete(clientId);
 
           // Notify session if applicable
@@ -166,6 +293,10 @@ export async function GET(request: NextRequest) {
         });
       },
       cancel() {
+        const conn = activeConnections.get(clientId);
+        if (conn) {
+          conn.cleanup();
+        }
         activeConnections.delete(clientId);
       },
     });
@@ -193,6 +324,15 @@ export async function GET(request: NextRequest) {
  * Send event to session (for clients that need to push updates)
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) {
+    return new Response(JSON.stringify({ error: 'Invalid CSRF token' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     // Auth check
     const supabase = await createServerSupabaseClient();
@@ -206,6 +346,15 @@ export async function POST(request: NextRequest) {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Rate limiting
+    const rateLimit = await rateLimiters.codeLabEdit(user.id);
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     const body = await request.json();
@@ -270,11 +419,13 @@ export async function POST(request: NextRequest) {
 
 function sendSSEEvent(controller: ReadableStreamDefaultController, event: SSEEvent): void {
   const data = `data: ${JSON.stringify(event)}\n\n`;
-  controller.enqueue(new TextEncoder().encode(data));
+  // HIGH-001: Use singleton TextEncoder to avoid memory churn
+  controller.enqueue(textEncoder.encode(data));
 }
 
 function broadcastToSession(sessionId: string, event: SSEEvent, excludeClientId?: string): number {
   let sent = 0;
+  const deadConnections: string[] = [];
 
   for (const [clientId, conn] of activeConnections) {
     if (conn.sessionId === sessionId && clientId !== excludeClientId) {
@@ -282,20 +433,37 @@ function broadcastToSession(sessionId: string, event: SSEEvent, excludeClientId?
         sendSSEEvent(conn.controller, event);
         sent++;
       } catch {
-        // Connection dead, remove it
-        activeConnections.delete(clientId);
+        // HIGH-001: Mark connection for cleanup
+        deadConnections.push(clientId);
       }
+    }
+  }
+
+  // HIGH-001: Clean up dead connections outside the loop
+  for (const clientId of deadConnections) {
+    const conn = activeConnections.get(clientId);
+    if (conn) {
+      try {
+        conn.cleanup();
+      } catch {
+        // Ignore
+      }
+      activeConnections.delete(clientId);
     }
   }
 
   return sent;
 }
 
+/**
+ * Set up collaboration event listeners
+ * HIGH-001: Returns cleanup function to prevent memory leaks
+ */
 function setupCollaborationListeners(
   clientId: string,
   sessionId: string,
   controller: ReadableStreamDefaultController
-): void {
+): () => void {
   const manager = getCollaborationManager();
 
   // Listen for collaboration broadcasts
@@ -315,23 +483,28 @@ function setupCollaborationListeners(
       } as SSEEvent);
     } catch {
       // Connection dead
-      activeConnections.delete(clientId);
       manager.off('broadcast', handleBroadcast);
     }
   };
 
   manager.on('broadcast', handleBroadcast);
+
+  // HIGH-001: Return cleanup function
+  return () => {
+    manager.off('broadcast', handleBroadcast);
+  };
 }
 
 /**
  * Set up debug event listeners for a connected client
  * Forwards debug events from the broadcaster to the SSE client
+ * HIGH-001: Returns cleanup function to prevent memory leaks
  */
 function setupDebugListeners(
   clientId: string,
   sessionId: string,
   controller: ReadableStreamDefaultController
-): void {
+): () => void {
   const broadcaster = getDebugEventBroadcaster();
 
   // Listen for all debug broadcasts
@@ -352,7 +525,6 @@ function setupDebugListeners(
       } as SSEEvent);
     } catch {
       // Connection dead
-      activeConnections.delete(clientId);
       broadcaster.off('debug:broadcast', handleDebugBroadcast);
     }
   };
@@ -360,4 +532,9 @@ function setupDebugListeners(
   broadcaster.on('debug:broadcast', handleDebugBroadcast);
 
   log.debug('Debug listeners set up', { clientId, sessionId });
+
+  // HIGH-001: Return cleanup function
+  return () => {
+    broadcaster.off('debug:broadcast', handleDebugBroadcast);
+  };
 }

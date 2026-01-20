@@ -258,6 +258,13 @@ export const rateLimiters = {
       limit: RATE_LIMITS.CODE_LAB_LSP_PER_MINUTE,
       windowMs: 60_000,
     }),
+
+  // HIGH-006: Rate limiter for GET endpoints
+  codeLabRead: (userId: string) =>
+    checkRateLimit(`codelab:read:${userId}`, {
+      limit: RATE_LIMITS.CODE_LAB_READ_PER_MINUTE,
+      windowMs: 60_000,
+    }),
 };
 
 // ========================================

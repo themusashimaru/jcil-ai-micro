@@ -20,13 +20,13 @@ const log = logger('CRDTDocument');
 // ============================================================================
 
 export interface CRDTOperation {
-  id: string;           // Unique operation ID
+  id: string; // Unique operation ID
   type: 'insert' | 'delete';
-  position: number;     // Position in document
-  content?: string;     // For insert operations
-  length?: number;      // For delete operations
-  userId: string;       // User who made the operation
-  timestamp: number;    // Lamport timestamp
+  position: number; // Position in document
+  content?: string; // For insert operations
+  length?: number; // For delete operations
+  userId: string; // User who made the operation
+  timestamp: number; // Lamport timestamp
   vectorClock: Record<string, number>; // Vector clock for ordering
 }
 
@@ -74,8 +74,7 @@ export class CRDTDocument extends EventEmitter {
     position = Math.max(0, Math.min(position, this.content.length));
 
     // Update local state
-    this.content =
-      this.content.slice(0, position) + content + this.content.slice(position);
+    this.content = this.content.slice(0, position) + content + this.content.slice(position);
 
     // Create operation
     const op = this.createOperation('insert', position, content);
@@ -108,8 +107,7 @@ export class CRDTDocument extends EventEmitter {
     }
 
     // Update local state
-    this.content =
-      this.content.slice(0, position) + this.content.slice(position + length);
+    this.content = this.content.slice(0, position) + this.content.slice(position + length);
 
     // Create operation
     const op = this.createOperation('delete', position, undefined, length);
@@ -153,10 +151,7 @@ export class CRDTDocument extends EventEmitter {
     }
 
     // Update vector clock
-    this.vectorClock[op.userId] = Math.max(
-      this.vectorClock[op.userId] || 0,
-      op.timestamp
-    );
+    this.vectorClock[op.userId] = Math.max(this.vectorClock[op.userId] || 0, op.timestamp);
 
     // Store operation
     this.operations.push(op);
@@ -174,21 +169,37 @@ export class CRDTDocument extends EventEmitter {
   }
 
   /**
+   * Check if two operations are concurrent (neither causally precedes the other)
+   *
+   * Two operations are concurrent if:
+   * - a does NOT know about b (a.vectorClock[b.userId] < b.timestamp)
+   * - b does NOT know about a (b.vectorClock[a.userId] < a.timestamp)
+   */
+  private isConcurrent(a: CRDTOperation, b: CRDTOperation): boolean {
+    if (a.userId === b.userId) return false;
+
+    // a knows about b if a's vector clock for b's user >= b's timestamp
+    const aKnowsB = (a.vectorClock[b.userId] || 0) >= b.timestamp;
+    // b knows about a if b's vector clock for a's user >= a's timestamp
+    const bKnowsA = (b.vectorClock[a.userId] || 0) >= a.timestamp;
+
+    // Concurrent if neither knows about the other
+    return !aKnowsB && !bKnowsA;
+  }
+
+  /**
    * Transform position for concurrent operations (OT)
    */
   private transformPosition(op: CRDTOperation): number {
     let position = op.position;
 
-    // Find concurrent operations (operations with vector clock not dominated)
-    const concurrentOps = this.operations.filter((o) => {
-      if (o.userId === op.userId) return false;
-      // Check if o is concurrent with op
-      const oClock = o.vectorClock[op.userId] || 0;
-      const opClock = op.vectorClock[o.userId] || 0;
-      return oClock <= op.timestamp && opClock <= o.timestamp;
-    });
+    // Find concurrent operations (operations where neither causally precedes the other)
+    const concurrentOps = this.operations.filter((o) => this.isConcurrent(o, op));
 
     // Transform position based on concurrent operations
+    // Sort by operation ID for deterministic ordering when timestamps are equal
+    concurrentOps.sort((a, b) => a.id.localeCompare(b.id));
+
     for (const concurrent of concurrentOps) {
       if (concurrent.position <= position) {
         if (concurrent.type === 'insert' && concurrent.content) {
@@ -263,9 +274,7 @@ export class CRDTDocument extends EventEmitter {
    * Get all cursors
    */
   getCursors(): CursorPosition[] {
-    return Array.from(this.cursors.values()).filter(
-      (c) => c.userId !== this.userId
-    );
+    return Array.from(this.cursors.values()).filter((c) => c.userId !== this.userId);
   }
 
   /**
@@ -304,10 +313,7 @@ export class CRDTDocument extends EventEmitter {
 
     // Merge vector clocks
     for (const [userId, timestamp] of Object.entries(remoteState.vectorClock)) {
-      this.vectorClock[userId] = Math.max(
-        this.vectorClock[userId] || 0,
-        timestamp
-      );
+      this.vectorClock[userId] = Math.max(this.vectorClock[userId] || 0, timestamp);
     }
 
     log.info('Synced with remote state', {
@@ -321,8 +327,14 @@ export class CRDTDocument extends EventEmitter {
    */
   private getUserColor(userId: string): string {
     const colors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-      '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
+      '#FF6B6B',
+      '#4ECDC4',
+      '#45B7D1',
+      '#96CEB4',
+      '#FFEAA7',
+      '#DDA0DD',
+      '#98D8C8',
+      '#F7DC6F',
     ];
     const hash = userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     return colors[hash % colors.length];
@@ -353,11 +365,7 @@ export class DocumentStore {
   /**
    * Get or create a document
    */
-  getDocument(
-    documentId: string,
-    userId: string,
-    initialContent?: string
-  ): CRDTDocument {
+  getDocument(documentId: string, userId: string, initialContent?: string): CRDTDocument {
     let doc = this.documents.get(documentId);
 
     if (!doc) {

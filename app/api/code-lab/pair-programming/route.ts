@@ -15,6 +15,7 @@ import {
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('PairProgrammingAPI');
 
@@ -78,6 +79,10 @@ function convertSuggestion(suggestion: PairProgrammerSuggestion): {
  * - analyze: Get proactive analysis of current code
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     // Auth check
     const auth = await requireUser(request);

@@ -96,7 +96,11 @@ export async function POST(request: NextRequest) {
           sessionId,
         });
 
-        const result = manager.joinSession(sessionId, auth.user.id, auth.user.email || 'Anonymous');
+        const result = await manager.joinSession(
+          sessionId,
+          auth.user.id,
+          auth.user.email || 'Anonymous'
+        );
 
         if (!result) {
           return NextResponse.json({ error: 'Session not found or inactive' }, { status: 404 });

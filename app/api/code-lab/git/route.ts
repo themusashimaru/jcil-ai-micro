@@ -17,7 +17,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 import { getContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
-import { sanitizeCommitMessage } from '@/lib/workspace/security';
+import { sanitizeCommitMessage, escapeShellArg } from '@/lib/security/shell-escape';
 // SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
 // (no fallback to SERVICE_ROLE_KEY for separation of concerns)
 import { decrypt as decryptToken } from '@/lib/security/crypto';
@@ -215,10 +215,11 @@ export async function POST(request: NextRequest) {
       }
 
       case 'commit': {
-        // Sanitize commit message to prevent command injection
+        // SECURITY: Sanitize and escape commit message to prevent command injection
         const safeMessage = sanitizeCommitMessage(message || 'Update');
+        const escapedMessage = escapeShellArg(safeMessage);
         const commitResult = await executeShell(
-          `cd /workspace/repo && git add -A && git commit -m '${safeMessage}'`
+          `cd /workspace/repo && git add -A && git commit -m ${escapedMessage}`
         );
 
         return NextResponse.json({

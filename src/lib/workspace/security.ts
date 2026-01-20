@@ -51,38 +51,104 @@ export function sanitizeCommitMessage(message: string): string {
 
 /**
  * Sanitize a file path for shell commands
- * Prevents path traversal and command injection
+ * HIGH-004: Comprehensive path traversal prevention
+ *
+ * Features:
+ * - Recursive traversal pattern removal
+ * - Path normalization
+ * - Strict allowlist validation
+ * - URL-encoding attack prevention
  */
 export function sanitizeFilePath(path: string, baseDir: string = '/workspace'): string {
   if (!path) return baseDir;
 
-  // Remove null bytes
+  const allowedPrefixes = ['/workspace', '/tmp', '/home'];
+
+  // Step 1: Remove null bytes (both literal and URL-encoded)
   let sanitized = path.replace(/\0/g, '');
 
-  // Normalize path separators
-  sanitized = sanitized.replace(/\\/g, '/');
-
-  // Remove dangerous patterns
-  sanitized = sanitized
-    .replace(/\.\.\//g, '')  // Path traversal
-    .replace(/\.\.$/g, '')   // Trailing ..
-    .replace(/^\.\./, '')    // Leading ..
-    .replace(/[;&|`$(){}[\]<>!]/g, ''); // Shell metacharacters
-
-  // Ensure path is within base directory
-  if (!sanitized.startsWith('/')) {
-    sanitized = `${baseDir}/${sanitized}`;
-  }
-
-  // Must start with allowed directories
-  const allowedPrefixes = ['/workspace', '/tmp', '/home'];
-  const isAllowed = allowedPrefixes.some(prefix => sanitized.startsWith(prefix));
-
-  if (!isAllowed) {
+  // Step 2: URL-decode to catch encoded attacks like %2e%2e%2f (..)
+  try {
+    sanitized = decodeURIComponent(sanitized);
+  } catch {
+    // Invalid encoding - reject entirely
     return baseDir;
   }
 
-  return sanitized;
+  // Step 3: Normalize path separators (Windows backslash to forward slash)
+  sanitized = sanitized.replace(/\\/g, '/');
+
+  // Step 4: Remove shell metacharacters
+  sanitized = sanitized.replace(/[;&|`$(){}[\]<>!'"\n\r]/g, '');
+
+  // Step 5: Collapse multiple slashes
+  sanitized = sanitized.replace(/\/+/g, '/');
+
+  // Step 6: Check if this is an absolute path
+  const isAbsolute = sanitized.startsWith('/');
+
+  // Step 7: Normalize the path by resolving . and .. segments
+  const segments = sanitized.split('/').filter(Boolean);
+  const normalized: string[] = [];
+
+  for (const segment of segments) {
+    if (segment === '..') {
+      // Pop if we have segments (but never escape root)
+      if (normalized.length > 0) {
+        normalized.pop();
+      }
+    } else if (segment !== '.') {
+      normalized.push(segment);
+    }
+  }
+
+  // Step 8: Build the final path
+  let resolvedPath: string;
+
+  if (isAbsolute) {
+    // For absolute paths, check if it starts with an allowed prefix
+    resolvedPath = '/' + normalized.join('/');
+
+    const isAllowed = allowedPrefixes.some(
+      (prefix) => resolvedPath === prefix || resolvedPath.startsWith(prefix + '/')
+    );
+
+    if (!isAllowed) {
+      // Absolute path to disallowed location - reject
+      return baseDir;
+    }
+  } else {
+    // For relative paths, prepend baseDir
+    const relativePath = normalized.join('/');
+    resolvedPath = relativePath ? `${baseDir}/${relativePath}` : baseDir;
+
+    // Re-normalize to handle any remaining .. that might escape
+    const finalSegments = resolvedPath.split('/').filter(Boolean);
+    const finalNormalized: string[] = [];
+
+    for (const segment of finalSegments) {
+      if (segment === '..') {
+        if (finalNormalized.length > 0) {
+          finalNormalized.pop();
+        }
+      } else if (segment !== '.') {
+        finalNormalized.push(segment);
+      }
+    }
+
+    resolvedPath = '/' + finalNormalized.join('/');
+
+    // Final validation
+    const isAllowed = allowedPrefixes.some(
+      (prefix) => resolvedPath === prefix || resolvedPath.startsWith(prefix + '/')
+    );
+
+    if (!isAllowed) {
+      return baseDir;
+    }
+  }
+
+  return resolvedPath;
 }
 
 /**
@@ -117,7 +183,7 @@ export function sanitizeSearchPattern(pattern: string): string {
   // Escape characters that could cause issues in shell or regex
   // Keep basic regex capabilities but prevent injection
   sanitized = sanitized
-    .replace(/'/g, "'\\''")  // Escape single quotes
+    .replace(/'/g, "'\\''") // Escape single quotes
     .replace(/\\/g, '\\\\'); // Escape backslashes
 
   // Limit length
@@ -162,7 +228,21 @@ export function sanitizeBranchName(branch: string): string {
  * Returns true if the session belongs to the user
  */
 export async function validateSessionOwnership(
-  supabase: { from: (table: string) => { select: (cols: string) => { eq: (col: string, val: string) => { eq: (col: string, val: string) => { single: () => Promise<{ data: unknown; error: unknown }> } } } } },
+  supabase: {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string
+        ) => {
+          eq: (
+            col: string,
+            val: string
+          ) => { single: () => Promise<{ data: unknown; error: unknown }> };
+        };
+      };
+    };
+  },
   sessionId: string,
   userId: string
 ): Promise<boolean> {
@@ -186,7 +266,10 @@ export async function validateSessionOwnership(
  * Token decryption error types
  */
 export class TokenDecryptionError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = 'TokenDecryptionError';
   }
@@ -195,7 +278,10 @@ export class TokenDecryptionError extends Error {
 /**
  * Validate encrypted token format
  */
-export function validateEncryptedTokenFormat(encryptedData: string): { valid: boolean; error?: string } {
+export function validateEncryptedTokenFormat(encryptedData: string): {
+  valid: boolean;
+  error?: string;
+} {
   if (!encryptedData) {
     return { valid: false, error: 'Token is empty' };
   }
