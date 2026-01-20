@@ -12,7 +12,7 @@ import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
 import {
   sanitizeCommitMessage,
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize container
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     // Create shell executor function for GitHubSyncBridge
     const executeShell = async (cmd: string) => {

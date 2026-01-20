@@ -11,7 +11,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { ContainerManager } from './container';
+import { ContainerManager, getContainerManager, getContainerManager } from './container';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 
@@ -565,7 +565,7 @@ export class WorkspaceAgent {
       ...config,
     };
 
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
 
     this.supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

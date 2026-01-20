@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Get container status
-    const container = new ContainerManager();
+    const container = getContainerManager();
     const containerStatus = await container.getStatus(id);
 
     // Get workspace stats (custom RPC function from workspace schema)
@@ -132,7 +132,7 @@ export async function DELETE(
     }
 
     // Terminate container first
-    const container = new ContainerManager();
+    const container = getContainerManager();
     await container.terminateContainer(id);
 
     // Delete from database

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { validatePositiveInt, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -68,7 +68,7 @@ export async function GET(
     const url = new URL(request.url);
     const action = url.searchParams.get('action') || 'status';
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     switch (action) {
       case 'status': {
@@ -233,7 +233,7 @@ export async function POST(
     }
     const { action, ...options } = jsonResult.data;
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     switch (action) {
       case 'init': {

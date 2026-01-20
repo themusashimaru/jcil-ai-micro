@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { validateQueryLimit, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -59,7 +59,7 @@ export async function POST(
     }
 
     // Execute command
-    const container = new ContainerManager();
+    const container = getContainerManager();
     const result = await container.executeCommand(workspaceId, command, {
       cwd: cwd || '/workspace',
       timeout,

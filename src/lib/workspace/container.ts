@@ -766,7 +766,7 @@ export class StreamingShell {
   private workspaceId: string;
 
   constructor(workspaceId: string) {
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
     this.workspaceId = workspaceId;
   }
 
@@ -828,7 +828,7 @@ export class WorkspaceExecutor {
   private workspaceId: string;
 
   constructor(workspaceId: string) {
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
     this.workspaceId = workspaceId;
   }
 
@@ -904,6 +904,43 @@ export class WorkspaceExecutor {
   async terminate(): Promise<void> {
     return this.container.terminateContainer(this.workspaceId);
   }
+}
+
+// ============================================
+// CONTAINER MANAGER SINGLETON
+// ============================================
+
+/**
+ * CRITICAL FIX: Singleton instance of ContainerManager
+ *
+ * Multiple API routes were creating new ContainerManager instances,
+ * causing:
+ * - Sandbox resource waste (each instance has its own Map)
+ * - Memory leaks (sandboxes not properly shared)
+ * - Inconsistent state across requests
+ *
+ * Always use getContainerManager() instead of new ContainerManager()
+ */
+let containerManagerInstance: ContainerManager | null = null;
+
+/**
+ * Get the singleton ContainerManager instance
+ *
+ * @returns The shared ContainerManager instance
+ */
+export function getContainerManager(): ContainerManager {
+  if (!containerManagerInstance) {
+    containerManagerInstance = new ContainerManager();
+    log.info('ContainerManager singleton initialized');
+  }
+  return containerManagerInstance;
+}
+
+/**
+ * Reset the singleton (for testing purposes only)
+ */
+export function resetContainerManager(): void {
+  containerManagerInstance = null;
 }
 
 // All exports are inline with their class declarations

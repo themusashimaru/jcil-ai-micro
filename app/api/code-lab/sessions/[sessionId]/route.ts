@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabSessionDetail');
 
@@ -71,6 +72,12 @@ export async function PATCH(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    // SECURITY: Validate CSRF for state-changing operation
+    const csrfCheck = validateCSRF(request);
+    if (!csrfCheck.valid) {
+      return csrfCheck.response!;
+    }
+
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -142,10 +149,16 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    // SECURITY: Validate CSRF for state-changing operation
+    const csrfCheck = validateCSRF(request);
+    if (!csrfCheck.valid) {
+      return csrfCheck.response!;
+    }
+
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -154,11 +167,29 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Delete messages first
-    await (supabase
+    // SECURITY FIX: First verify the session belongs to the user BEFORE deleting anything
+    const { data: session, error: verifyError } = await (supabase
+      .from('code_lab_sessions') as AnySupabase)
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (verifyError || !session) {
+      log.warn('[CodeLab API] Unauthorized delete attempt', { sessionId, userId: user.id });
+      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 404 });
+    }
+
+    // Now safe to delete messages - ownership verified
+    const { error: messagesError } = await (supabase
       .from('code_lab_messages') as AnySupabase)
       .delete()
       .eq('session_id', sessionId);
+
+    if (messagesError) {
+      log.error('[CodeLab API] Error deleting messages:', messagesError);
+      return NextResponse.json({ error: 'Failed to delete session messages' }, { status: 500 });
+    }
 
     // Delete session
     const { error } = await (supabase

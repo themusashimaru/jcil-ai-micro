@@ -13,10 +13,55 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { ContainerManager, ExecutionResult } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, ExecutionResult } from '@/lib/workspace/container';
 import { logger } from '@/lib/logger';
 
 const log = logger('ShellSessionManager');
+
+// ============================================================================
+// MUTEX FOR THREAD-SAFE SESSION STATE ACCESS
+// ============================================================================
+
+/**
+ * Simple mutex implementation for protecting critical sections
+ * in async JavaScript code where multiple operations may interleave.
+ */
+class Mutex {
+  private _locked = false;
+  private _waiting: Array<() => void> = [];
+
+  async acquire(): Promise<void> {
+    if (!this._locked) {
+      this._locked = true;
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      this._waiting.push(resolve);
+    });
+  }
+
+  release(): void {
+    if (this._waiting.length > 0) {
+      const next = this._waiting.shift()!;
+      next();
+    } else {
+      this._locked = false;
+    }
+  }
+
+  /**
+   * Execute a function while holding the mutex lock
+   */
+  async withLock<T>(fn: () => Promise<T>): Promise<T> {
+    await this.acquire();
+    try {
+      return await fn();
+    } finally {
+      this.release();
+    }
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -58,13 +103,15 @@ export class ShellSessionManager {
   private supabase;
   private container: ContainerManager;
   private sessionStates = new Map<string, SessionState>();
+  // CONCURRENCY FIX: Mutex to protect session state Map from race conditions
+  private stateMutex = new Mutex();
 
   constructor() {
     this.supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
   }
 
   /**
@@ -101,8 +148,10 @@ export class ShellSessionManager {
       throw new Error(`Failed to create session: ${error.message}`);
     }
 
-    // Store in memory for quick access
-    this.sessionStates.set(sessionId, initialState);
+    // CONCURRENCY FIX: Use mutex when modifying session state Map
+    await this.stateMutex.withLock(async () => {
+      this.sessionStates.set(sessionId, initialState);
+    });
 
     log.info('Session created', { sessionId, workspaceId });
 
@@ -181,12 +230,16 @@ export class ShellSessionManager {
       throw new Error('Session not found');
     }
 
-    // Get current session state
-    let state = this.sessionStates.get(sessionId);
-    if (!state) {
-      state = { cwd: session.cwd, env: session.env };
-      this.sessionStates.set(sessionId, state);
-    }
+    // CONCURRENCY FIX: Use mutex when accessing session state Map
+    let state = await this.stateMutex.withLock(async () => {
+      let s = this.sessionStates.get(sessionId);
+      if (!s) {
+        s = { cwd: session.cwd, env: session.env };
+        this.sessionStates.set(sessionId, s);
+      }
+      // Return a copy to work with outside the lock
+      return { ...s, env: { ...s.env } };
+    });
 
     log.debug('Executing command in session', {
       sessionId,
@@ -233,6 +286,11 @@ export class ShellSessionManager {
     state.lastOutput = result.stdout.substring(0, 10000); // Limit stored output
     state.lastExitCode = result.exitCode;
 
+    // CONCURRENCY FIX: Update Map with mutex protection
+    await this.stateMutex.withLock(async () => {
+      this.sessionStates.set(sessionId, state);
+    });
+
     // Persist state to database
     await this.updateSessionState(sessionId, state);
 
@@ -246,15 +304,19 @@ export class ShellSessionManager {
    * Update environment variables
    */
   async setEnvVar(sessionId: string, key: string, value: string): Promise<void> {
-    let state = this.sessionStates.get(sessionId);
-    if (!state) {
-      const session = await this.getSession(sessionId);
-      if (!session) throw new Error('Session not found');
-      state = { cwd: session.cwd, env: session.env };
-      this.sessionStates.set(sessionId, state);
-    }
+    // CONCURRENCY FIX: Use mutex when modifying session state Map
+    const state = await this.stateMutex.withLock(async () => {
+      let s = this.sessionStates.get(sessionId);
+      if (!s) {
+        const session = await this.getSession(sessionId);
+        if (!session) throw new Error('Session not found');
+        s = { cwd: session.cwd, env: session.env };
+        this.sessionStates.set(sessionId, s);
+      }
+      s.env[key] = value;
+      return s;
+    });
 
-    state.env[key] = value;
     await this.updateSessionState(sessionId, state);
   }
 
@@ -262,10 +324,13 @@ export class ShellSessionManager {
    * Get session state (for restoration)
    */
   async getSessionState(sessionId: string): Promise<SessionState | null> {
-    // Check memory first
-    const memState = this.sessionStates.get(sessionId);
+    // CONCURRENCY FIX: Use mutex when accessing session state Map
+    const memState = await this.stateMutex.withLock(async () => {
+      return this.sessionStates.get(sessionId);
+    });
+
     if (memState) {
-      return memState;
+      return { ...memState, env: { ...memState.env } }; // Return copy
     }
 
     // Load from database
@@ -294,8 +359,10 @@ export class ShellSessionManager {
       state.lastExitCode = lastCmd.exit_code;
     }
 
-    // Cache in memory
-    this.sessionStates.set(sessionId, state);
+    // CONCURRENCY FIX: Cache with mutex protection
+    await this.stateMutex.withLock(async () => {
+      this.sessionStates.set(sessionId, state);
+    });
 
     return state;
   }
@@ -338,29 +405,57 @@ export class ShellSessionManager {
    * Mark session as idle
    */
   async markIdle(sessionId: string): Promise<void> {
-    await this.supabase.from('shell_sessions').update({ status: 'idle' }).eq('id', sessionId);
+    // ERROR HANDLING FIX: Check for database errors
+    const { error } = await this.supabase
+      .from('shell_sessions')
+      .update({ status: 'idle' })
+      .eq('id', sessionId);
+
+    if (error) {
+      log.error('Failed to mark session as idle', { sessionId, error: error.message });
+      throw new Error(`Failed to mark session as idle: ${error.message}`);
+    }
   }
 
   /**
    * Mark session as active
    */
   async markActive(sessionId: string): Promise<void> {
-    await this.supabase
+    // ERROR HANDLING FIX: Check for database errors
+    const { error } = await this.supabase
       .from('shell_sessions')
       .update({
         status: 'active',
         last_activity: new Date().toISOString(),
       })
       .eq('id', sessionId);
+
+    if (error) {
+      log.error('Failed to mark session as active', { sessionId, error: error.message });
+      throw new Error(`Failed to mark session as active: ${error.message}`);
+    }
   }
 
   /**
    * Terminate a session
    */
   async terminateSession(sessionId: string): Promise<void> {
-    await this.supabase.from('shell_sessions').update({ status: 'terminated' }).eq('id', sessionId);
+    // ERROR HANDLING FIX: Check for database errors
+    const { error } = await this.supabase
+      .from('shell_sessions')
+      .update({ status: 'terminated' })
+      .eq('id', sessionId);
 
-    this.sessionStates.delete(sessionId);
+    if (error) {
+      log.error('Failed to terminate session in database', { sessionId, error: error.message });
+      // Don't throw - still clean up memory state
+    }
+
+    // CONCURRENCY FIX: Use mutex when modifying session state Map
+    await this.stateMutex.withLock(async () => {
+      this.sessionStates.delete(sessionId);
+    });
+
     log.info('Session terminated', { sessionId });
   }
 
@@ -382,10 +477,12 @@ export class ShellSessionManager {
       return 0;
     }
 
-    // Clear from memory
-    for (const row of data || []) {
-      this.sessionStates.delete(row.id);
-    }
+    // CONCURRENCY FIX: Use mutex when modifying session state Map
+    await this.stateMutex.withLock(async () => {
+      for (const row of data || []) {
+        this.sessionStates.delete(row.id);
+      }
+    });
 
     log.info('Cleaned up old sessions', { count: data?.length || 0 });
     return data?.length || 0;
@@ -396,7 +493,8 @@ export class ShellSessionManager {
   // ============================================================================
 
   private async updateSessionState(sessionId: string, state: SessionState): Promise<void> {
-    await this.supabase
+    // ERROR HANDLING FIX: Check for database errors and log them
+    const { error } = await this.supabase
       .from('shell_sessions')
       .update({
         cwd: state.cwd,
@@ -404,6 +502,11 @@ export class ShellSessionManager {
         last_activity: new Date().toISOString(),
       })
       .eq('id', sessionId);
+
+    if (error) {
+      log.error('Failed to update session state', { sessionId, error: error.message });
+      // Don't throw - state is still in memory, so operations can continue
+    }
   }
 
   private async logCommand(
@@ -412,7 +515,8 @@ export class ShellSessionManager {
     command: string,
     result: ExecutionResult
   ): Promise<void> {
-    await this.supabase.from('shell_commands').insert({
+    // ERROR HANDLING FIX: Check for database errors and log them
+    const { error } = await this.supabase.from('shell_commands').insert({
       session_id: sessionId,
       workspace_id: workspaceId,
       command,
@@ -422,6 +526,11 @@ export class ShellSessionManager {
       started_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),
     });
+
+    if (error) {
+      log.error('Failed to log command', { sessionId, command: command.substring(0, 50), error: error.message });
+      // Don't throw - command execution succeeded, just logging failed
+    }
   }
 
   private mapDbSession(row: Record<string, unknown>): ShellSession {

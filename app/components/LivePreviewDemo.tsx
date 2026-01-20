@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 // Demo code that builds progressively
 const DEMO_STAGES = [
@@ -274,10 +275,11 @@ export default function LivePreviewDemo() {
             </div>
 
             {/* Preview Content */}
+            {/* SECURITY FIX: Sanitize HTML to prevent XSS */}
             <div className="flex-1 bg-slate-950 flex items-center justify-center p-6">
               <div
                 className="transition-all duration-300"
-                dangerouslySetInnerHTML={{ __html: currentStage?.preview || '' }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentStage?.preview || '') }}
               />
             </div>
           </div>

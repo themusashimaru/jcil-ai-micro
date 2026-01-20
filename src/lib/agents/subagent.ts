@@ -12,7 +12,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 
 const log = logger('Subagent');
 
@@ -139,7 +139,7 @@ class SubagentManager extends EventEmitter {
   constructor() {
     super();
     this.anthropic = new Anthropic();
-    this.container = new ContainerManager();
+    this.container = getContainerManager();
   }
 
   /**

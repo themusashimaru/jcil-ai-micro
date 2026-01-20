@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WorkspaceManager } from '@/lib/workspace';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -41,7 +41,7 @@ export async function GET(_request: NextRequest) {
     // N+1 FIX: Batch container status checks
     // Instead of N sequential calls, get status for up to 10 workspaces in parallel
     // For larger lists, return "unknown" status to avoid performance issues
-    const container = new ContainerManager();
+    const container = getContainerManager();
     const MAX_STATUS_CHECKS = 10;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

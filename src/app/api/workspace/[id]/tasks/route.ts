@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { validateQueryLimit, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -158,7 +158,7 @@ async function executeTaskInBackground(
       })
       .eq('id', taskId);
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
     const outputChunks: string[] = [];
 
     const result = await container.executeCommand(workspaceId, command, {
@@ -242,7 +242,7 @@ export async function PUT(
     }
     const { preset } = jsonResult.data; // 'install', 'build', 'test', 'lint'
 
-    const container = new ContainerManager();
+    const container = getContainerManager();
 
     let result;
     switch (preset) {

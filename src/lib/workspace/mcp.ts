@@ -20,7 +20,7 @@ import {
   MCPServerConfig as RealMCPServerConfig,
 } from '@/lib/mcp/mcp-client';
 import Anthropic from '@anthropic-ai/sdk';
-import { ContainerManager } from './container';
+import { ContainerManager, getContainerManager, getContainerManager } from './container';
 import { Octokit } from '@octokit/rest';
 
 const log = logger('MCP');
@@ -171,7 +171,7 @@ class MCPManager {
 
   constructor() {
     this.realManager = getRealMCPManager();
-    this.containerManager = new ContainerManager();
+    this.containerManager = getContainerManager();
     this.initializeDefaultServers();
   }
 
