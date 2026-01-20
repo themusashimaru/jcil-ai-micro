@@ -274,8 +274,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid operation' }, { status: 400 });
     }
   } catch (error) {
-    console.error('[Git API] Error:', error);
-    return NextResponse.json({ error: 'Git operation failed' }, { status: 500 });
+    log.error('Git operation failed', error instanceof Error ? error : { error });
+    return NextResponse.json(
+      { error: 'Git operation failed', code: 'GIT_OPERATION_FAILED' },
+      { status: 500 }
+    );
   }
 }
 
