@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabGit');
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -97,10 +100,14 @@ export async function POST(request: NextRequest) {
     let githubToken: string;
     try {
       githubToken = decryptToken(userTokens.github_token);
-    } catch (error) {
-      console.error('[Git API] Token decryption failed:', error);
+    } catch {
+      // SECURITY FIX: Don't log error details - could expose encryption info
+      log.warn('Token decryption failed for user', { userId: user.id });
       return NextResponse.json(
-        { error: 'GitHub token decryption failed. Please reconnect your GitHub account.' },
+        {
+          error: 'GitHub token decryption failed. Please reconnect your GitHub account.',
+          code: 'TOKEN_DECRYPT_FAILED',
+        },
         { status: 400 }
       );
     }

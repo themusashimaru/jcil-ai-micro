@@ -6,33 +6,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPairProgrammer, CodeEdit, PairProgrammerContext, PairProgrammerSuggestion } from '@/lib/pair-programmer';
+import {
+  getPairProgrammer,
+  CodeEdit,
+  PairProgrammerContext,
+  PairProgrammerSuggestion,
+} from '@/lib/pair-programmer';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('PairProgrammingAPI');
 
-// Rate limiting: max 30 requests per minute per user
-const rateLimits = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 30;
-const RATE_WINDOW_MS = 60000;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const limit = rateLimits.get(userId);
-
-  if (!limit || now > limit.resetTime) {
-    rateLimits.set(userId, { count: 1, resetTime: now + RATE_WINDOW_MS });
-    return true;
-  }
-
-  if (limit.count >= RATE_LIMIT) {
-    return false;
-  }
-
-  limit.count++;
-  return true;
-}
+// SECURITY FIX: Use centralized rate limiting instead of in-memory Map
+// The centralized system is Redis-backed and works across multiple server instances
 
 // Convert backend suggestions to UI format
 function convertSuggestion(suggestion: PairProgrammerSuggestion): {
@@ -48,14 +35,15 @@ function convertSuggestion(suggestion: PairProgrammerSuggestion): {
   confidence: number;
 } {
   // Map backend types to UI types
-  const typeMap: Record<string, 'completion' | 'refactor' | 'bug' | 'docs' | 'test' | 'security'> = {
-    completion: 'completion',
-    fix: 'bug',
-    refactor: 'refactor',
-    explain: 'docs',
-    warning: 'bug',
-    optimization: 'refactor',
-  };
+  const typeMap: Record<string, 'completion' | 'refactor' | 'bug' | 'docs' | 'test' | 'security'> =
+    {
+      completion: 'completion',
+      fix: 'bug',
+      refactor: 'refactor',
+      explain: 'docs',
+      warning: 'bug',
+      optimization: 'refactor',
+    };
 
   // Determine priority based on type and confidence
   let priority: 'low' | 'medium' | 'high' | 'critical' = 'medium';
@@ -97,11 +85,16 @@ export async function POST(request: NextRequest) {
       return auth.response;
     }
 
-    // Rate limit check
-    if (!checkRateLimit(auth.user.id)) {
+    // SECURITY FIX: Use centralized rate limiting (Redis-backed)
+    const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded. Please slow down.' },
-        { status: 429 }
+        {
+          error: 'Rate limit exceeded. Please slow down.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
       );
     }
 
@@ -213,7 +206,7 @@ export async function GET() {
     capabilities: ['edit', 'open', 'complete', 'analyze'],
     model: 'claude-sonnet-4-20250514',
     rateLimit: {
-      limit: RATE_LIMIT,
+      limit: 60, // Centralized rate limit: 60 requests per minute
       window: '1 minute',
     },
   });

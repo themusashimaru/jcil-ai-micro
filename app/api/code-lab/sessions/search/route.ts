@@ -10,8 +10,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('CodeLabSearch');
+
+// SECURITY: Max query length to prevent resource exhaustion
+const MAX_QUERY_LENGTH = 500;
+const MAX_LIMIT = 500;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -30,6 +36,10 @@ interface SearchResult {
  * POST - Search across all sessions
  */
 export async function POST(request: NextRequest) {
+  // SECURITY FIX: Add CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
     const {
@@ -40,15 +50,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { query, role, limit = 100, sessionIds } = body;
+    // SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimiters.codeLabEdit(user.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
+      );
+    }
 
+    const body = await request.json();
+    const { query, role, limit: requestedLimit = 100, sessionIds } = body;
+
+    // SECURITY FIX: Validate query length and limit bounds
     if (!query || typeof query !== 'string' || query.length < 2) {
       return NextResponse.json(
-        { error: 'Search query must be at least 2 characters' },
+        { error: 'Search query must be at least 2 characters', code: 'QUERY_TOO_SHORT' },
         { status: 400 }
       );
     }
+
+    if (query.length > MAX_QUERY_LENGTH) {
+      return NextResponse.json(
+        {
+          error: `Search query must be at most ${MAX_QUERY_LENGTH} characters`,
+          code: 'QUERY_TOO_LONG',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Clamp limit to safe range
+    const limit = Math.min(Math.max(1, parseInt(String(requestedLimit)) || 100), MAX_LIMIT);
 
     // First, get user's sessions
     let sessionsQuery = (supabase.from('code_lab_sessions') as AnySupabase)
