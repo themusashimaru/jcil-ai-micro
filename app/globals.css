@@ -542,9 +542,9 @@
     box-shadow: none !important;
   }
 
-  /* Pro mode glass-morphism - black */
+  /* Pro mode glass-morphism - dark gray for sidebar distinction */
   :root.pro-mode .glass-morphism {
-    background: #000000 !important;
+    background: #242424 !important;
     border: 1px solid #444444 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -681,17 +681,41 @@
     background-color: #333333 !important;
   }
 
-  /* Pro mode - buttons with primary background */
-  :root.pro-mode button.text-white[style*='--primary'],
-  :root.pro-mode a.text-white[style*='--primary'],
+  /* Pro mode - buttons with primary background (btn-primary class) */
   :root.pro-mode .btn-primary {
+    background-color: #000000 !important;
     color: #ffffff !important;
+    border: 1px solid #444444 !important;
   }
 
-  /* Pro mode - all buttons/links using var(--primary) background */
-  :root.pro-mode [style*='backgroundColor'][style*='--primary'],
-  :root.pro-mode [style*='background-color'][style*='--primary'] {
+  :root.pro-mode .btn-primary:hover {
+    background-color: #333333 !important;
+  }
+
+  /* Pro mode - all buttons/links using var(--primary) background (exclude send button) */
+  :root.pro-mode [style*='backgroundColor'][style*='--primary']:not(.send-btn),
+  :root.pro-mode [style*='background-color'][style*='--primary']:not(.send-btn) {
+    background-color: #000000 !important;
     color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode [style*='backgroundColor'][style*='--primary']:not(.send-btn):hover,
+  :root.pro-mode [style*='background-color'][style*='--primary']:not(.send-btn):hover {
+    background-color: #333333 !important;
+  }
+
+  /* Pro mode - fix buttons with text-white class and primary background (exclude send button) */
+  :root.pro-mode button.text-white[style*='--primary']:not(.send-btn),
+  :root.pro-mode a.text-white[style*='--primary']:not(.send-btn) {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode button.text-white[style*='--primary']:not(.send-btn):hover,
+  :root.pro-mode a.text-white[style*='--primary']:not(.send-btn):hover {
+    background-color: #333333 !important;
   }
 
   /* New Chat button - theme-aware text color */
@@ -699,12 +723,35 @@
     color: var(--background);
   }
 
+  /* Pro mode New Chat button - black background with white text */
   :root.pro-mode .new-chat-btn {
+    background-color: #000000 !important;
     color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode .new-chat-btn:hover {
+    background-color: #333333 !important;
   }
 
   :root.ocean-mode .new-chat-btn {
     color: #030810 !important;
+  }
+
+  /* Send button styling - exclude from general primary button overrides */
+  /* Pro mode send button - disabled state blends in, enabled state stands out */
+  :root.pro-mode .send-btn-disabled {
+    background-color: #333333 !important;
+    color: #666666 !important;
+  }
+
+  :root.pro-mode .send-btn-enabled {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  :root.pro-mode .send-btn-enabled:hover {
+    background-color: #e0e0e0 !important;
   }
 
   /* AI Message - Clean, no bubble, flows into background */

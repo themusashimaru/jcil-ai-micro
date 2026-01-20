@@ -822,7 +822,11 @@ export function ChatComposer({
                   disabled={
                     (!message.trim() && attachments.length === 0) || isStreaming || disabled
                   }
-                  className="rounded-full p-2 transition-all flex items-center justify-center"
+                  className={`rounded-full p-2 transition-all flex items-center justify-center send-btn ${
+                    (!message.trim() && attachments.length === 0) || disabled
+                      ? 'send-btn-disabled'
+                      : 'send-btn-enabled'
+                  }`}
                   title="Send message"
                   style={{
                     backgroundColor:
@@ -831,7 +835,7 @@ export function ChatComposer({
                         : 'var(--primary)',
                     color:
                       (!message.trim() && attachments.length === 0) || disabled
-                        ? 'white'
+                        ? 'var(--text-muted)'
                         : theme === 'light'
                           ? 'white'
                           : 'black',

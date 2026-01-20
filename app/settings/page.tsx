@@ -260,8 +260,8 @@ function SettingsContent() {
                   <button
                     onClick={handleExportData}
                     disabled={exporting}
-                    className="rounded-lg px-6 py-3 font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                    style={{ backgroundColor: 'var(--primary)' }}
+                    className="rounded-lg px-6 py-3 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 btn-primary"
+                    style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
                   >
                     {exporting ? 'Exporting...' : 'Export My Data'}
                   </button>
