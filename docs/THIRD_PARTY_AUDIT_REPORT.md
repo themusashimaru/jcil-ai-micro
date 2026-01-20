@@ -588,12 +588,27 @@ Replaced console.error/warn with structured logger in:
 | deploy/route.ts | 6 console.error → log.error (Vercel, Netlify, Railway, Cloudflare, Status) |
 | git/route.ts    | 1 console.error → log.error                                                |
 
+### Magic Number Extraction
+
+Extracted hardcoded timing values to named constants for maintainability:
+
+| File                   | Constant                              | Value  | Purpose                       |
+| ---------------------- | ------------------------------------- | ------ | ----------------------------- |
+| CodeLab.tsx            | AGENT_CLEANUP_INTERVAL_MS             | 60000  | Agent cleanup timer interval  |
+| CodeLab.tsx            | AGENT_RETENTION_TIME_MS               | 300000 | Agent retention period (5min) |
+| CodeLab.tsx            | ERROR_AUTO_CLEAR_DELAY_MS             | 100    | Error state clear delay       |
+| types.ts               | COPY_FEEDBACK_DURATION_MS             | 2000   | "Copied!" feedback duration   |
+| types.ts               | PREVIEW_REFRESH_FEEDBACK_MS           | 500    | Refresh indicator duration    |
+| CodeLabMessage.tsx     | → imports COPY_FEEDBACK_DURATION_MS   |
+| CodeLabOutputPanel.tsx | → imports COPY_FEEDBACK_DURATION_MS   |
+| CodeLabPreview.tsx     | → imports PREVIEW_REFRESH_FEEDBACK_MS |
+
 ### Impact on Scores
 
 - **Security**: +3 points (CSRF protection, rate limiting, sensitive data handling)
 - **API Completeness**: +1 point (additional error codes)
-- **Code Quality**: +1 point (structured logging)
+- **Code Quality**: +2 points (structured logging, magic number extraction)
 
-**Updated Score: 83/100** (up from 78)
+**Updated Score: 84/100** (up from 78)
 
 _Updated: 2026-01-20_

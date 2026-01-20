@@ -15,6 +15,7 @@
 
 import { useState, useMemo } from 'react';
 import type { CodeLabMessage as MessageType } from './types';
+import { COPY_FEEDBACK_DURATION_MS } from './types';
 import { sanitizeHtml, escapeHtml, sanitizeUrl } from '@/lib/sanitize';
 import { CodeLabThinkingBlock, parseThinkingBlocks } from './CodeLabThinkingBlock';
 
@@ -90,8 +91,9 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
     try {
       await navigator.clipboard.writeText(code);
       setCopiedBlock(blockIndex);
-      setTimeout(() => setCopiedBlock(null), 2000);
+      setTimeout(() => setCopiedBlock(null), COPY_FEEDBACK_DURATION_MS);
     } catch (err) {
+      // Client-side only - browser console for user debugging
       console.error('Failed to copy:', err);
     }
   };

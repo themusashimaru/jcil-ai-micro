@@ -13,6 +13,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { PREVIEW_REFRESH_FEEDBACK_MS } from './types';
 
 interface GeneratedFile {
   path: string;
@@ -74,7 +75,7 @@ export function CodeLabPreview({ files, onClose }: CodeLabPreviewProps) {
       iframeRef.current.srcdoc = previewHtml;
     }
 
-    setTimeout(() => setIsRefreshing(false), 500);
+    setTimeout(() => setIsRefreshing(false), PREVIEW_REFRESH_FEEDBACK_MS);
   }, [previewHtml]);
 
   // Initial load

@@ -20,6 +20,14 @@ import './code-lab.css';
 import { logger } from '@/lib/logger';
 
 const log = logger('CodeLab');
+
+// ========================================
+// CONSTANTS
+// ========================================
+const AGENT_CLEANUP_INTERVAL_MS = 60000; // 1 minute - how often to check for stale agents
+const AGENT_RETENTION_TIME_MS = 5 * 60 * 1000; // 5 minutes - how long to keep completed agents
+const ERROR_AUTO_CLEAR_DELAY_MS = 100; // Clear error state after toast is shown
+
 import { CodeLabSidebar } from './CodeLabSidebar';
 import { CodeLabThread } from './CodeLabThread';
 import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
@@ -142,17 +150,17 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     };
   }
 
-  // Clean up completed agents after 5 minutes
+  // Clean up completed agents after retention period
   useEffect(() => {
     const interval = setInterval(() => {
       setBackgroundAgents((prev) =>
         prev.filter(
           (agent) =>
             agent.status === 'running' ||
-            new Date().getTime() - agent.startedAt.getTime() < 5 * 60 * 1000
+            new Date().getTime() - agent.startedAt.getTime() < AGENT_RETENTION_TIME_MS
         )
       );
-    }, 60000);
+    }, AGENT_CLEANUP_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
@@ -227,7 +235,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     if (error) {
       toast.error('Error', error);
       // Auto-clear error state after showing toast
-      const timer = setTimeout(() => setError(null), 100);
+      const timer = setTimeout(() => setError(null), ERROR_AUTO_CLEAR_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, [error, toast]);
