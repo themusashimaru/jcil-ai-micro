@@ -25,7 +25,11 @@ import {
   parseSlashCommand,
 } from '@/lib/workspace/slash-commands';
 import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
-import { createClient } from '@supabase/supabase-js';
+// CRITICAL-008 FIX: Use secure service role client instead of direct createClient
+import {
+  createSecureServiceClient,
+  extractRequestContext,
+} from '@/lib/supabase/secure-service-role';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -160,7 +164,10 @@ function cleanupExpiredRateLimits(): void {
   }
 
   if (cleanedCount > 0) {
-    log.debug('Cleaned up expired rate limit entries', { count: cleanedCount, remaining: rateLimitStore.size });
+    log.debug('Cleaned up expired rate limit entries', {
+      count: cleanedCount,
+      remaining: rateLimitStore.size,
+    });
   }
 }
 
@@ -396,7 +403,9 @@ export async function POST(request: NextRequest) {
           // SAFETY FIX: Insert summary FIRST, then delete old messages
           // This ensures we never lose data - if insert fails, we keep old messages
           const summaryId = generateId();
-          const { error: insertError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
+          const { error: insertError } = await (
+            supabase.from('code_lab_messages') as AnySupabase
+          ).insert({
             id: summaryId,
             session_id: sessionId,
             role: 'system',
@@ -406,7 +415,9 @@ export async function POST(request: NextRequest) {
           });
 
           if (insertError) {
-            log.error('Failed to insert summary, keeping original messages', { error: insertError.message });
+            log.error('Failed to insert summary, keeping original messages', {
+              error: insertError.message,
+            });
           } else {
             // Only delete old messages if summary was successfully saved
             const idsToDelete = toSummarize.map((m: { id: string }) => m.id);
@@ -415,7 +426,9 @@ export async function POST(request: NextRequest) {
               .in('id', idsToDelete);
 
             if (deleteError) {
-              log.warn('Failed to delete old messages after summarization', { error: deleteError.message });
+              log.warn('Failed to delete old messages after summarization', {
+                error: deleteError.message,
+              });
             }
 
             await (supabase.from('code_lab_sessions') as AnySupabase)
@@ -510,7 +523,9 @@ export async function POST(request: NextRequest) {
           );
 
           // SAFETY FIX: Check insert result before updating session state
-          const { error: insertError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
+          const { error: insertError } = await (
+            supabase.from('code_lab_messages') as AnySupabase
+          ).insert({
             id: generateId(),
             session_id: sessionId,
             role: 'system',
@@ -522,10 +537,12 @@ export async function POST(request: NextRequest) {
           if (insertError) {
             log.error('Failed to save summary', { error: insertError.message });
             // Fall back to recent messages only
-            history = (allMessages || []).slice(-20).map((m: { role: string; content: string }) => ({
-              role: m.role,
-              content: m.content,
-            }));
+            history = (allMessages || [])
+              .slice(-20)
+              .map((m: { role: string; content: string }) => ({
+                role: m.role,
+                content: m.content,
+              }));
           } else {
             // Update session has_summary flag only if insert succeeded
             await (supabase.from('code_lab_sessions') as AnySupabase)
@@ -619,7 +636,9 @@ export async function POST(request: NextRequest) {
     // Check if user has an active workspace for THIS SESSION (not any session)
     // CRITICAL FIX: Query by session_id to get session-specific workspace
     // SAFETY FIX: Use .maybeSingle() instead of .single() to avoid crash on 0 or multiple rows
-    const { data: workspaceData, error: workspaceError } = await (supabase.from('code_lab_workspaces') as AnySupabase)
+    const { data: workspaceData, error: workspaceError } = await (
+      supabase.from('code_lab_workspaces') as AnySupabase
+    )
       .select('id, sandbox_id, status')
       .eq('session_id', sessionId)
       .eq('user_id', user.id)
@@ -770,22 +789,19 @@ export async function POST(request: NextRequest) {
     // CODE AGENT V2 - Full Project Generation
     // ========================================
     if (useCodeAgent) {
-      // Get GitHub token from users table (stored via PAT in Settings > Connectors)
-      const adminClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { autoRefreshToken: false, persistSession: false } }
+      // CRITICAL-008 FIX: Use secure service role client with audit logging
+      // This ensures all privileged database access is authenticated and logged
+      const secureClient = createSecureServiceClient(
+        { id: user.id, email: user.email || undefined },
+        extractRequestContext(request, '/api/code-lab/chat')
       );
 
-      const { data: userData } = await adminClient
-        .from('users')
-        .select('github_token')
-        .eq('id', user.id)
-        .single();
+      // Get GitHub token using secure client (enforces user ownership)
+      const encryptedToken = await secureClient.getUserGitHubToken(user.id);
 
       let githubToken: string | undefined;
-      if (userData?.github_token) {
-        const decrypted = decryptToken(userData.github_token);
+      if (encryptedToken) {
+        const decrypted = decryptToken(encryptedToken);
         if (decrypted) {
           githubToken = decrypted;
         } else {
