@@ -264,6 +264,7 @@ function detectKnowledgeCutoff(response: string): boolean {
   const lowerResponse = response.toLowerCase();
 
   const cutoffPhrases = [
+    // Classic knowledge cutoff phrases
     'knowledge cutoff',
     'knowledge cut-off',
     'training cutoff',
@@ -272,16 +273,26 @@ function detectKnowledgeCutoff(response: string): boolean {
     'as of my last update',
     'as of my knowledge cutoff',
     'my information only goes up to',
+    // "access to real-time" variations
     'i don\'t have access to real-time',
     'don\'t have access to real-time',
     'i can\'t access real-time',
     'can\'t access real-time',
     'cannot access real-time',
+    // "real-time access" variations (reversed word order - from user's conversation)
+    'i don\'t have real-time access',
+    'don\'t have real-time access',
+    'no real-time access',
+    'real-time access to',
+    // Current info variations
     'i don\'t have access to current',
     'don\'t have access to current',
     'i can\'t access current',
     'can\'t access current',
     'cannot access current',
+    'don\'t have current information',
+    'i don\'t have current information',
+    // Browse/internet variations
     'i don\'t have the ability to browse',
     'don\'t have the ability to browse',
     'i don\'t have the ability to perform live web searches',
@@ -300,6 +311,7 @@ function detectKnowledgeCutoff(response: string): boolean {
     'i can\'t perform web searches',
     'unable to search the web',
     'unable to search the internet',
+    // Live data variations
     'i don\'t have live data',
     'don\'t have live data',
     'i don\'t have up-to-date information',
@@ -307,7 +319,36 @@ function detectKnowledgeCutoff(response: string): boolean {
     'my data doesn\'t include',
     'i\'m unable to provide real-time',
     'i am unable to provide real-time',
+    // Offering to search (means they need to look it up)
     'would you like me to search',
+    'want me to search',
+    'shall i search',
+    'i could search',
+    'like me to search',
+    'like me to look',
+    'want me to look',
+    // Schedule/availability specific (from user's conversation)
+    'schedule is not available',
+    'schedule isn\'t available',
+    'not yet available',
+    'hasn\'t been released',
+    'has not been released',
+    'won\'t be released until',
+    'won\'t be available until',
+    'typically releases in',
+    'usually releases in',
+    // Uncertainty about current events
+    'at this exact moment',
+    'i need to clarify',
+    'once i confirm',
+    'can you let me know if',
+    'let me know if they',
+    'i need to know',
+    // Sports/event specific hedging
+    'if they made the playoffs',
+    'if they made it',
+    'season is over',
+    'in the offseason',
   ];
 
   return cutoffPhrases.some(phrase => lowerResponse.includes(phrase));
@@ -325,17 +366,29 @@ function mightNeedRealtimeInfo(query: string): boolean {
     'latest', 'recent', 'today', 'yesterday', 'this week', 'this month',
     'current', 'now', 'breaking', 'news', 'update',
     // Time-sensitive queries
-    '2024', '2025', '2026', 'this year', 'last year',
+    '2024', '2025', '2026', '2027', 'this year', 'last year',
     // Price/stock queries
-    'price of', 'stock price', 'market', 'bitcoin', 'crypto',
+    'price of', 'stock price', 'market', 'bitcoin', 'crypto', 'ethereum',
     // Weather/live data
     'weather', 'forecast', 'temperature',
-    // Sports/events
-    'score', 'game', 'match', 'winner', 'championship',
+    // Sports teams and leagues
+    'patriots', 'cowboys', 'eagles', 'chiefs', 'bills', '49ers', 'ravens',
+    'lakers', 'celtics', 'warriors', 'heat', 'bulls', 'knicks',
+    'yankees', 'dodgers', 'red sox', 'cubs', 'mets',
+    'nfl', 'nba', 'mlb', 'nhl', 'mls', 'ufc', 'wwe',
+    'super bowl', 'world series', 'nba finals', 'stanley cup',
+    // Sports/events queries
+    'score', 'game', 'match', 'winner', 'championship', 'playoff', 'playoffs',
+    'standings', 'roster', 'lineup', 'draft', 'trade', 'injury', 'injured',
+    'next game', 'next match', 'upcoming game', 'upcoming match',
+    // Schedules
+    'schedule', 'scheduled', 'when do they play', 'when does', 'when will', 'when is',
     // Releases/launches
-    'release date', 'when does', 'when will', 'when is',
+    'release date', 'coming out', 'launches', 'announced',
     // Live information
-    'hours', 'open', 'closed', 'schedule',
+    'hours', 'open', 'closed', 'available',
+    // Queries that imply needing current info
+    'right now', 'at the moment', 'these days', 'still',
   ];
 
   return realtimeIndicators.some(indicator => lowerQuery.includes(indicator));
@@ -2611,18 +2664,30 @@ SECURITY:
       log.debug('Query might need real-time info, checking for knowledge cutoff');
 
       try {
-        // Quick non-streaming call to check if Claude knows the answer
+        // Quick check specifically asking if Claude can answer from training data
         const quickCheck = await createClaudeChat({
-          messages: truncatedMessages,
-          systemPrompt: fullSystemPrompt,
-          maxTokens: 500, // Short response just to check
-          temperature: 0.3,
+          messages: [
+            {
+              role: 'user',
+              content: `Can you answer this question accurately from your training data, or would it require a web search for current/real-time information? Question: "${lastUserContent}"
+
+Reply with ONLY one of these:
+- "SEARCH_NEEDED" if this requires current/real-time data (sports scores, schedules, news, prices, weather, etc.)
+- "CAN_ANSWER" if you can answer accurately from your training data`,
+            },
+          ],
+          systemPrompt: 'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
+          maxTokens: 50,
+          temperature: 0,
         });
 
+        const needsSearch = quickCheck.text.toUpperCase().includes('SEARCH_NEEDED');
+
         // Check if Claude's response indicates knowledge cutoff
-        if (detectKnowledgeCutoff(quickCheck.text)) {
+        if (needsSearch || detectKnowledgeCutoff(quickCheck.text)) {
           log.info('Knowledge cutoff detected, auto-triggering web search', {
             queryPreview: lastUserContent.substring(0, 50),
+            needsSearch,
           });
 
           // Check research-specific rate limit
