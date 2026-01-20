@@ -57,7 +57,6 @@ export interface CollaborationEvent {
 const REDIS_PREFIX = 'collab:';
 const SESSION_PREFIX = `${REDIS_PREFIX}session:`;
 const DOCUMENT_PREFIX = `${REDIS_PREFIX}doc:`;
-const EVENTS_CHANNEL = `${REDIS_PREFIX}events`;
 
 /** Session TTL in seconds (24 hours) */
 const SESSION_TTL_SECONDS = 86400;
@@ -189,6 +188,10 @@ const eventHandlers: EventHandler[] = [];
 
 /**
  * Publish collaboration event for cross-server sync
+ *
+ * NOTE: Uses list-based queue instead of pub/sub because Upstash REST API
+ * doesn't support real-time pub/sub subscriptions. Events are pushed to a
+ * list and polled by startEventPolling().
  */
 export async function publishEvent(
   type: CollaborationEvent['type'],
@@ -208,8 +211,10 @@ export async function publishEvent(
   };
 
   try {
-    await redis.publish(EVENTS_CHANNEL, JSON.stringify(event));
-    log.debug('Published collaboration event', { type, sessionId });
+    // FIXED: Use list-based queue instead of pub/sub for Upstash compatibility
+    // This ensures events are actually received by the polling mechanism
+    await redis.rpush(`${REDIS_PREFIX}event_queue`, JSON.stringify(event));
+    log.debug('Published collaboration event to queue', { type, sessionId });
     return true;
   } catch (error) {
     log.warn('Failed to publish event', error as Error);

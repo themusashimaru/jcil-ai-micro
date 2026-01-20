@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+// HIGH-006: Add rate limiting
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('CodeLabMessages');
 
@@ -20,15 +22,31 @@ export async function GET(
   try {
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // HIGH-006: Rate limiting for GET
+    const rateLimit = await rateLimiters.codeLabRead(user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter),
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          },
+        }
+      );
+    }
+
     // Verify session belongs to user
-    const { data: session } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: session } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .select('id')
       .eq('id', sessionId)
       .eq('user_id', user.id)
@@ -39,14 +57,16 @@ export async function GET(
     }
 
     // Get messages
-    const { data: messages, error } = await (supabase
-      .from('code_lab_messages') as AnySupabase)
+    const { data: messages, error } = await (supabase.from('code_lab_messages') as AnySupabase)
       .select('*')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
     if (error) {
-      log.error('[CodeLab API] Error fetching messages:', error instanceof Error ? error : { error });
+      log.error(
+        '[CodeLab API] Error fetching messages:',
+        error instanceof Error ? error : { error }
+      );
       return NextResponse.json({ messages: [] });
     }
 

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabIndex');
 
@@ -17,7 +18,9 @@ const log = logger('CodeLabIndex');
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -38,7 +41,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Codebase Index API] GET error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Index check failed', code: 'INDEX_CHECK_FAILED' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Index check failed', code: 'INDEX_CHECK_FAILED' },
+      { status: 500 }
+    );
   }
 }
 
@@ -46,9 +52,15 @@ export async function GET(request: NextRequest) {
  * POST - Index a repository (disabled)
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -68,7 +80,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Codebase Index API] POST error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Index creation failed', code: 'INDEX_CREATE_FAILED' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Index creation failed', code: 'INDEX_CREATE_FAILED' },
+      { status: 500 }
+    );
   }
 }
 
@@ -76,9 +91,15 @@ export async function POST(request: NextRequest) {
  * DELETE - Remove an index (disabled)
  */
 export async function DELETE(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -99,6 +120,9 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Codebase Index API] DELETE error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Index deletion failed', code: 'INDEX_DELETE_FAILED' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Index deletion failed', code: 'INDEX_DELETE_FAILED' },
+      { status: 500 }
+    );
   }
 }

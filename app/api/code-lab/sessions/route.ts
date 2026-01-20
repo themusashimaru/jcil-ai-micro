@@ -11,6 +11,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+// HIGH-006: Add rate limiting to GET endpoints
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('CodeLabSessions');
 
@@ -32,6 +34,21 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // HIGH-006: Rate limiting for GET
+    const rateLimit = await rateLimiters.codeLabRead(user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter),
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          },
+        }
+      );
     }
 
     // Fetch sessions for user
@@ -166,6 +183,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to create session', code: 'SESSION_CREATE_FAILED' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create session', code: 'SESSION_CREATE_FAILED' },
+      { status: 500 }
+    );
   }
 }

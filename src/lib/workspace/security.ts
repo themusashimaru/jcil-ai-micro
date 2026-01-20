@@ -51,38 +51,83 @@ export function sanitizeCommitMessage(message: string): string {
 
 /**
  * Sanitize a file path for shell commands
- * Prevents path traversal and command injection
+ * HIGH-004: Comprehensive path traversal prevention
+ *
+ * Features:
+ * - Recursive traversal pattern removal
+ * - Path normalization
+ * - Strict allowlist validation
+ * - URL-encoding attack prevention
  */
 export function sanitizeFilePath(path: string, baseDir: string = '/workspace'): string {
   if (!path) return baseDir;
 
-  // Remove null bytes
+  // Step 1: Remove null bytes (both literal and URL-encoded)
   let sanitized = path.replace(/\0/g, '');
 
-  // Normalize path separators
-  sanitized = sanitized.replace(/\\/g, '/');
-
-  // Remove dangerous patterns
-  sanitized = sanitized
-    .replace(/\.\.\//g, '')  // Path traversal
-    .replace(/\.\.$/g, '')   // Trailing ..
-    .replace(/^\.\./, '')    // Leading ..
-    .replace(/[;&|`$(){}[\]<>!]/g, ''); // Shell metacharacters
-
-  // Ensure path is within base directory
-  if (!sanitized.startsWith('/')) {
-    sanitized = `${baseDir}/${sanitized}`;
+  // Step 2: URL-decode to catch encoded attacks like %2e%2e%2f (..)
+  try {
+    sanitized = decodeURIComponent(sanitized);
+  } catch {
+    // Invalid encoding - reject entirely
+    return baseDir;
   }
 
-  // Must start with allowed directories
+  // Step 3: Normalize path separators (Windows backslash to forward slash)
+  sanitized = sanitized.replace(/\\/g, '/');
+
+  // Step 4: Remove shell metacharacters
+  sanitized = sanitized.replace(/[;&|`$(){}[\]<>!'"\n\r]/g, '');
+
+  // Step 5: Recursively remove path traversal patterns until none remain
+  // This handles patterns like "....//", "./..", "...", etc.
+  let prevLength = 0;
+  while (sanitized.length !== prevLength) {
+    prevLength = sanitized.length;
+    sanitized = sanitized
+      .replace(/\.{2,}\//g, '') // Two or more dots followed by slash
+      .replace(/\/\.{2,}/g, '/') // Slash followed by two or more dots
+      .replace(/^\.{2,}/g, '') // Leading dots
+      .replace(/\.{2,}$/g, '') // Trailing dots
+      .replace(/\/\.\//g, '/') // /./ -> /
+      .replace(/\/+/g, '/'); // Collapse multiple slashes
+  }
+
+  // Step 6: Remove leading slashes and dots
+  sanitized = sanitized.replace(/^[.\/]+/, '');
+
+  // Step 7: Construct full path within base directory
+  const fullPath = sanitized ? `${baseDir}/${sanitized}`.replace(/\/+/g, '/') : baseDir;
+
+  // Step 8: Normalize the path by resolving . and .. segments
+  // Use a simple algorithm since we can't use path.resolve in edge runtime
+  const segments = fullPath.split('/').filter(Boolean);
+  const normalized: string[] = [];
+
+  for (const segment of segments) {
+    if (segment === '..') {
+      // Only pop if we have something and it's not the base
+      if (normalized.length > 0) {
+        normalized.pop();
+      }
+    } else if (segment !== '.') {
+      normalized.push(segment);
+    }
+  }
+
+  const resolvedPath = '/' + normalized.join('/');
+
+  // Step 9: Final validation - must start with allowed prefix
   const allowedPrefixes = ['/workspace', '/tmp', '/home'];
-  const isAllowed = allowedPrefixes.some(prefix => sanitized.startsWith(prefix));
+  const isAllowed = allowedPrefixes.some(
+    (prefix) => resolvedPath === prefix || resolvedPath.startsWith(prefix + '/')
+  );
 
   if (!isAllowed) {
     return baseDir;
   }
 
-  return sanitized;
+  return resolvedPath;
 }
 
 /**
@@ -117,7 +162,7 @@ export function sanitizeSearchPattern(pattern: string): string {
   // Escape characters that could cause issues in shell or regex
   // Keep basic regex capabilities but prevent injection
   sanitized = sanitized
-    .replace(/'/g, "'\\''")  // Escape single quotes
+    .replace(/'/g, "'\\''") // Escape single quotes
     .replace(/\\/g, '\\\\'); // Escape backslashes
 
   // Limit length
@@ -162,7 +207,21 @@ export function sanitizeBranchName(branch: string): string {
  * Returns true if the session belongs to the user
  */
 export async function validateSessionOwnership(
-  supabase: { from: (table: string) => { select: (cols: string) => { eq: (col: string, val: string) => { eq: (col: string, val: string) => { single: () => Promise<{ data: unknown; error: unknown }> } } } } },
+  supabase: {
+    from: (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string
+        ) => {
+          eq: (
+            col: string,
+            val: string
+          ) => { single: () => Promise<{ data: unknown; error: unknown }> };
+        };
+      };
+    };
+  },
   sessionId: string,
   userId: string
 ): Promise<boolean> {
@@ -186,7 +245,10 @@ export async function validateSessionOwnership(
  * Token decryption error types
  */
 export class TokenDecryptionError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = 'TokenDecryptionError';
   }
@@ -195,7 +257,10 @@ export class TokenDecryptionError extends Error {
 /**
  * Validate encrypted token format
  */
-export function validateEncryptedTokenFormat(encryptedData: string): { valid: boolean; error?: string } {
+export function validateEncryptedTokenFormat(encryptedData: string): {
+  valid: boolean;
+  error?: string;
+} {
   if (!encryptedData) {
     return { valid: false, error: 'Token is empty' };
   }

@@ -49,6 +49,8 @@ export const RATE_LIMITS = {
   CODE_LAB_EDIT_PER_MINUTE: 60,
   /** Code Lab LSP operations per minute */
   CODE_LAB_LSP_PER_MINUTE: 200,
+  /** HIGH-006: Code Lab read operations per minute (GET endpoints) */
+  CODE_LAB_READ_PER_MINUTE: 120,
 } as const;
 
 // ========================================
