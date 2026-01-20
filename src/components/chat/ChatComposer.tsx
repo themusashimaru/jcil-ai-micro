@@ -744,8 +744,8 @@ export function ChatComposer({
                 </svg>
               </button>
 
-              {/* Active tool mode indicator */}
-              {toolMode !== 'none' && getToolModeInfo() && (
+              {/* Active tool mode indicator - excludes research since it shows inline */}
+              {toolMode !== 'none' && toolMode !== 'research' && getToolModeInfo() && (
                 <div
                   className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
                   style={{
@@ -779,24 +779,25 @@ export function ChatComposer({
                   <button
                     onClick={() => selectToolMode('research')}
                     disabled={isStreaming || disabled}
-                    className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
-                    style={{ color: '#8b5cf6' }}
+                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs"
+                    style={{ color: 'white' }}
                     title="Deep Research"
                   >
-                    <svg
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                      />
-                    </svg>
-                    <span>Research</span>
+                    <span>Deep Research</span>
+                  </button>
+                </div>
+              )}
+              {/* Deep Research active state - shows lighter purple when selected */}
+              {showSearchButtons && toolMode === 'research' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={clearToolMode}
+                    disabled={isStreaming || disabled}
+                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs"
+                    style={{ color: '#a78bfa' }}
+                    title="Click to deactivate Deep Research"
+                  >
+                    <span>Deep Research</span>
                   </button>
                 </div>
               )}
