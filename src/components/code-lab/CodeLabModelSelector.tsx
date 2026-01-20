@@ -374,15 +374,33 @@ export function CodeLabModelSelector({
           }
         }
 
-        /* Mobile: Compact view - hide model name, show only icon */
+        /* Mobile: Compact view - borderless icon only */
         @media (max-width: 768px) {
           .model-selector-trigger {
-            padding: 0.375rem 0.5rem;
+            padding: 0.5rem;
             gap: 0.25rem;
+            background: transparent;
+            border: none;
+            min-width: 40px;
+            min-height: 40px;
+            justify-content: center;
+          }
+
+          .model-selector-trigger:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
           }
 
           .model-selector-trigger .model-name {
             display: none;
+          }
+
+          .model-selector-trigger .chevron {
+            display: none;
+          }
+
+          .model-selector.open .model-selector-trigger {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
           }
 
           .model-selector-dropdown {
@@ -395,7 +413,9 @@ export function CodeLabModelSelector({
         /* Extra small screens */
         @media (max-width: 480px) {
           .model-selector-trigger {
-            padding: 0.25rem 0.375rem;
+            padding: 0.375rem;
+            min-width: 36px;
+            min-height: 36px;
           }
 
           .model-selector-dropdown {

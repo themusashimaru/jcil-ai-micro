@@ -2381,21 +2381,34 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
           .header-actions {
             display: flex;
-            gap: 0.25rem;
+            gap: 0.125rem;
             flex-shrink: 0;
             margin-left: auto;
+            align-items: center;
           }
 
-          /* Smaller padding on mobile header buttons */
+          /* Borderless icon buttons on mobile */
           .header-btn {
             padding: 0.5rem;
-            min-width: 36px;
-            min-height: 36px;
+            min-width: 40px;
+            min-height: 40px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+          }
+
+          .header-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          .header-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
           }
 
           .header-btn svg {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
           }
 
           /* More compact workspace tabs on mobile */
@@ -2445,18 +2458,18 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           }
 
           .header-actions {
-            gap: 0.125rem;
+            gap: 0;
           }
 
           .header-btn {
-            padding: 0.25rem;
-            min-width: 32px;
-            min-height: 32px;
+            padding: 0.375rem;
+            min-width: 36px;
+            min-height: 36px;
           }
 
           .header-btn svg {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
           }
 
           .code-lab-empty-content {

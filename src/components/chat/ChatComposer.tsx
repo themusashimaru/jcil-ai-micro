@@ -773,53 +773,9 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* Agent buttons - 3 individual buttons for all users */}
+              {/* Deep Research button - Search and Fact Check now auto-triggered via AI response analysis */}
               {showSearchButtons && toolMode === 'none' && (
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => selectToolMode('search')}
-                    disabled={isStreaming || disabled}
-                    className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
-                    style={{ color: '#3b82f6' }}
-                    title="Web Search"
-                  >
-                    <svg
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                      />
-                    </svg>
-                    <span>Search</span>
-                  </button>
-                  <button
-                    onClick={() => selectToolMode('factcheck')}
-                    disabled={isStreaming || disabled}
-                    className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
-                    style={{ color: '#10b981' }}
-                    title="Fact Check"
-                  >
-                    <svg
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>Fact Check</span>
-                  </button>
                   <button
                     onClick={() => selectToolMode('research')}
                     disabled={isStreaming || disabled}
