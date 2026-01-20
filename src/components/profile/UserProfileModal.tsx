@@ -395,8 +395,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
             <button
               onClick={handleSave}
               disabled={!formData.name.trim() || isSaving}
-              className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              style={{ backgroundColor: 'var(--primary)' }}
+              className="rounded-xl px-6 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition btn-primary"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
             >
               {isSaving ? 'Saving...' : 'Save Profile'}
             </button>
