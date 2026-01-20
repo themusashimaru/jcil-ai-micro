@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';

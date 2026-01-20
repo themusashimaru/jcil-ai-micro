@@ -14,7 +14,7 @@
  */
 
 import { BaseTool, ToolInput, ToolOutput, ToolDefinition } from './BaseTool';
-import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
 

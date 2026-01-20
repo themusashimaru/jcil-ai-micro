@@ -12,7 +12,7 @@ import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-import { ContainerManager, getContainerManager, getContainerManager } from '@/lib/workspace/container';
+import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
 import { sanitizeCommitMessage } from '@/lib/workspace/security';
 // SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
