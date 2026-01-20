@@ -119,3 +119,27 @@ export {
 } from './capabilities';
 
 export type { ProviderRequirements } from './capabilities';
+
+// ============================================================================
+// ADAPTER EXPORTS
+// ============================================================================
+
+export {
+  // Base adapter
+  BaseAIAdapter,
+  // Provider adapters
+  AnthropicAdapter,
+  createAnthropicAdapter,
+  OpenAICompatibleAdapter,
+  createOpenAIAdapter,
+  createXAIAdapter,
+  createDeepSeekAdapter,
+  createGroqAdapter,
+  // Adapter factory
+  createAdapter,
+  getAdapter,
+  clearAdapterCache,
+  hasAdapterCached,
+  isOpenAICompatible,
+  isAnthropicProvider,
+} from './adapters';
