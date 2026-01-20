@@ -499,9 +499,7 @@ export class MCPClient extends EventEmitter {
   /**
    * Read a resource
    */
-  async readResource(
-    uri: string
-  ): Promise<{
+  async readResource(uri: string): Promise<{
     contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }>;
   }> {
     if (!this.initialized) {
@@ -697,14 +695,148 @@ export class MCPClient extends EventEmitter {
     if (this.transport) return 'error';
     return 'stopped';
   }
+
+  /**
+   * Reconnect to the server (crash recovery)
+   */
+  async reconnect(): Promise<void> {
+    log.info('Reconnecting MCP server', { id: this.config.id });
+
+    // Clean up existing connection
+    if (this.transport) {
+      try {
+        await this.transport.close();
+      } catch {
+        // Ignore close errors during reconnect
+      }
+    }
+    this.cleanup();
+
+    // Reconnect
+    await this.connect();
+    log.info('MCP server reconnected', { id: this.config.id });
+  }
+
+  /**
+   * Health check - verify server is responsive
+   */
+  async healthCheck(): Promise<{ healthy: boolean; latencyMs: number }> {
+    if (!this.isConnected()) {
+      return { healthy: false, latencyMs: -1 };
+    }
+
+    const startTime = Date.now();
+    try {
+      // Try listing tools as a health probe (lightweight, always supported)
+      await Promise.race([
+        this.sendRequest('ping', {}),
+        // Fallback to tools/list if ping not supported
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+      ]).catch(async () => {
+        // If ping fails, try tools/list as alternative health check
+        await this.sendRequest('tools/list', {});
+      });
+
+      const latencyMs = Date.now() - startTime;
+      return { healthy: true, latencyMs };
+    } catch {
+      return { healthy: false, latencyMs: -1 };
+    }
+  }
 }
 
 // ============================================================================
 // MCP CLIENT MANAGER
 // ============================================================================
 
+/** Health monitoring interval in milliseconds */
+const MCP_HEALTH_CHECK_INTERVAL_MS = 60000; // 1 minute
+
+/** Maximum consecutive failures before restart */
+const MCP_MAX_CONSECUTIVE_FAILURES = 3;
+
 export class MCPClientManager {
   private clients: Map<string, MCPClient> = new Map();
+  private configs: Map<string, MCPServerConfig> = new Map();
+  private healthMonitorInterval: NodeJS.Timeout | null = null;
+  private failureCounts: Map<string, number> = new Map();
+  private autoRestartEnabled: boolean = true;
+
+  constructor() {
+    // Start health monitoring
+    this.startHealthMonitor();
+  }
+
+  /**
+   * Start health monitoring for all servers
+   */
+  private startHealthMonitor(): void {
+    if (this.healthMonitorInterval) return;
+
+    this.healthMonitorInterval = setInterval(async () => {
+      await this.runHealthChecks();
+    }, MCP_HEALTH_CHECK_INTERVAL_MS);
+
+    log.debug('MCP health monitor started', { interval: MCP_HEALTH_CHECK_INTERVAL_MS });
+  }
+
+  /**
+   * Run health checks on all active servers
+   */
+  private async runHealthChecks(): Promise<void> {
+    for (const [id, client] of this.clients.entries()) {
+      try {
+        const result = await client.healthCheck();
+
+        if (result.healthy) {
+          // Reset failure count on success
+          this.failureCounts.set(id, 0);
+          log.debug('MCP health check passed', { id, latencyMs: result.latencyMs });
+        } else {
+          // Increment failure count
+          const failures = (this.failureCounts.get(id) || 0) + 1;
+          this.failureCounts.set(id, failures);
+          log.warn('MCP health check failed', { id, failures });
+
+          // Auto-restart after max consecutive failures
+          if (this.autoRestartEnabled && failures >= MCP_MAX_CONSECUTIVE_FAILURES) {
+            const config = this.configs.get(id);
+            if (config) {
+              log.warn('MCP auto-restarting due to health failures', { id, failures });
+              try {
+                await client.reconnect();
+                this.failureCounts.set(id, 0);
+                log.info('MCP auto-restart successful', { id });
+              } catch (error) {
+                log.error('MCP auto-restart failed', { id, error });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        log.error('MCP health check error', { id, error });
+      }
+    }
+  }
+
+  /**
+   * Stop health monitoring
+   */
+  stopHealthMonitor(): void {
+    if (this.healthMonitorInterval) {
+      clearInterval(this.healthMonitorInterval);
+      this.healthMonitorInterval = null;
+      log.debug('MCP health monitor stopped');
+    }
+  }
+
+  /**
+   * Enable or disable auto-restart on failures
+   */
+  setAutoRestart(enabled: boolean): void {
+    this.autoRestartEnabled = enabled;
+    log.info('MCP auto-restart', { enabled });
+  }
 
   /**
    * Add and connect a server
@@ -716,6 +848,7 @@ export class MCPClientManager {
 
     const client = new MCPClient(config);
     this.clients.set(config.id, client);
+    this.configs.set(config.id, config);
 
     if (config.enabled) {
       await client.connect();
@@ -732,6 +865,8 @@ export class MCPClientManager {
     if (client) {
       await client.disconnect();
       this.clients.delete(id);
+      this.configs.delete(id);
+      this.failureCounts.delete(id);
     }
   }
 
@@ -782,10 +917,77 @@ export class MCPClientManager {
    * Disconnect all servers
    */
   async disconnectAll(): Promise<void> {
+    // Stop health monitoring first
+    this.stopHealthMonitor();
+
     for (const client of this.clients.values()) {
       await client.disconnect();
     }
     this.clients.clear();
+    this.configs.clear();
+    this.failureCounts.clear();
+  }
+
+  /**
+   * Get health status of all servers
+   */
+  async getHealthStatus(): Promise<
+    Array<{
+      id: string;
+      status: 'running' | 'stopped' | 'error';
+      healthy: boolean;
+      latencyMs: number;
+      failureCount: number;
+    }>
+  > {
+    const results = [];
+
+    for (const [id, client] of this.clients.entries()) {
+      const status = client.getStatus();
+      const failureCount = this.failureCounts.get(id) || 0;
+
+      if (status === 'running') {
+        const health = await client.healthCheck();
+        results.push({
+          id,
+          status,
+          healthy: health.healthy,
+          latencyMs: health.latencyMs,
+          failureCount,
+        });
+      } else {
+        results.push({
+          id,
+          status,
+          healthy: false,
+          latencyMs: -1,
+          failureCount,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Force restart a specific server
+   */
+  async restartServer(id: string): Promise<boolean> {
+    const client = this.clients.get(id);
+    if (!client) {
+      log.warn('Cannot restart: server not found', { id });
+      return false;
+    }
+
+    try {
+      await client.reconnect();
+      this.failureCounts.set(id, 0);
+      log.info('MCP server restarted manually', { id });
+      return true;
+    } catch (error) {
+      log.error('Failed to restart MCP server', { id, error });
+      return false;
+    }
   }
 }
 

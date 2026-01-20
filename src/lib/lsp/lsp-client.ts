@@ -334,6 +334,42 @@ export class LSPClient extends EventEmitter {
     return this.initialized && this.process !== null;
   }
 
+  /**
+   * Health check - verify server is responsive
+   * Returns latency in ms, or -1 if unhealthy
+   */
+  async healthCheck(): Promise<{ healthy: boolean; latencyMs: number }> {
+    if (!this.isReady()) {
+      return { healthy: false, latencyMs: -1 };
+    }
+
+    const startTime = Date.now();
+    try {
+      // Send a workspace/symbol request as a health probe
+      // This is lightweight and supported by all language servers
+      await Promise.race([
+        this.sendRequest('workspace/symbol', { query: '' }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Health check timeout')), 5000)
+        ),
+      ]);
+
+      const latencyMs = Date.now() - startTime;
+      return { healthy: true, latencyMs };
+    } catch {
+      return { healthy: false, latencyMs: -1 };
+    }
+  }
+
+  /**
+   * Restart the language server
+   */
+  async restart(): Promise<void> {
+    log.info('Restarting LSP server', { type: this.serverType });
+    await this.stop();
+    await this.start();
+  }
+
   // ============================================================================
   // DOCUMENT MANAGEMENT
   // ============================================================================
@@ -1002,12 +1038,85 @@ export class LSPClient extends EventEmitter {
 // LSP MANAGER - Manages multiple language server instances
 // ============================================================================
 
+/** Health monitoring interval in milliseconds */
+const HEALTH_CHECK_INTERVAL_MS = 60000; // 1 minute
+
+/** Maximum consecutive failures before restart */
+const MAX_CONSECUTIVE_FAILURES = 3;
+
 export class LSPManager {
   private clients: Map<string, LSPClient> = new Map();
   private workspaceRoot: string;
+  private healthMonitorInterval: NodeJS.Timeout | null = null;
+  private failureCounts: Map<string, number> = new Map();
 
   constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
+    // Start health monitoring
+    this.startHealthMonitor();
+  }
+
+  /**
+   * Start health monitoring for all servers
+   */
+  private startHealthMonitor(): void {
+    if (this.healthMonitorInterval) return;
+
+    this.healthMonitorInterval = setInterval(async () => {
+      await this.runHealthChecks();
+    }, HEALTH_CHECK_INTERVAL_MS);
+
+    log.debug('LSP health monitor started', { interval: HEALTH_CHECK_INTERVAL_MS });
+  }
+
+  /**
+   * Run health checks on all active servers
+   */
+  private async runHealthChecks(): Promise<void> {
+    for (const [key, client] of this.clients.entries()) {
+      try {
+        const result = await client.healthCheck();
+
+        if (result.healthy) {
+          // Reset failure count on success
+          this.failureCounts.set(key, 0);
+          log.debug('LSP health check passed', { key, latencyMs: result.latencyMs });
+        } else {
+          // Increment failure count
+          const failures = (this.failureCounts.get(key) || 0) + 1;
+          this.failureCounts.set(key, failures);
+          log.warn('LSP health check failed', { key, failures });
+
+          // Auto-restart after max consecutive failures
+          if (failures >= MAX_CONSECUTIVE_FAILURES) {
+            log.warn('LSP auto-restarting due to health failures', { key, failures });
+            try {
+              await client.restart();
+              this.failureCounts.set(key, 0);
+              log.info('LSP auto-restart successful', { key });
+            } catch (error) {
+              log.error('LSP auto-restart failed', { key, error });
+              // Remove the failed client so it can be recreated
+              this.clients.delete(key);
+              this.failureCounts.delete(key);
+            }
+          }
+        }
+      } catch (error) {
+        log.error('LSP health check error', { key, error });
+      }
+    }
+  }
+
+  /**
+   * Stop health monitoring
+   */
+  stopHealthMonitor(): void {
+    if (this.healthMonitorInterval) {
+      clearInterval(this.healthMonitorInterval);
+      this.healthMonitorInterval = null;
+      log.debug('LSP health monitor stopped');
+    }
   }
 
   /**
@@ -1052,9 +1161,13 @@ export class LSPManager {
    * Stop all language servers
    */
   async stopAll(): Promise<void> {
+    // Stop health monitoring first
+    this.stopHealthMonitor();
+
     const stopPromises = Array.from(this.clients.values()).map((client) => client.stop());
     await Promise.all(stopPromises);
     this.clients.clear();
+    this.failureCounts.clear();
   }
 
   /**
@@ -1065,6 +1178,70 @@ export class LSPManager {
       language: key.split(':')[0] as LanguageServerType,
       ready: client.isReady(),
     }));
+  }
+
+  /**
+   * Get detailed health status of all running servers
+   */
+  async getHealthStatus(): Promise<
+    Array<{
+      language: LanguageServerType;
+      ready: boolean;
+      healthy: boolean;
+      latencyMs: number;
+      failureCount: number;
+    }>
+  > {
+    const results = [];
+
+    for (const [key, client] of this.clients.entries()) {
+      const language = key.split(':')[0] as LanguageServerType;
+      const failureCount = this.failureCounts.get(key) || 0;
+
+      if (client.isReady()) {
+        const health = await client.healthCheck();
+        results.push({
+          language,
+          ready: true,
+          healthy: health.healthy,
+          latencyMs: health.latencyMs,
+          failureCount,
+        });
+      } else {
+        results.push({
+          language,
+          ready: false,
+          healthy: false,
+          latencyMs: -1,
+          failureCount,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Force restart a specific language server
+   */
+  async restartServer(language: LanguageServerType): Promise<boolean> {
+    const key = `${language}:${this.workspaceRoot}`;
+    const client = this.clients.get(key);
+
+    if (!client) {
+      log.warn('Cannot restart: server not found', { language });
+      return false;
+    }
+
+    try {
+      await client.restart();
+      this.failureCounts.set(key, 0);
+      log.info('LSP server restarted manually', { language });
+      return true;
+    } catch (error) {
+      log.error('Failed to restart LSP server', { language, error });
+      return false;
+    }
   }
 }
 
