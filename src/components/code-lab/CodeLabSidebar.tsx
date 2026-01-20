@@ -10,10 +10,11 @@
  * - Session renaming/deletion
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { CodeLabSession } from './types';
 import { CodeLabFileBrowser } from './CodeLabFileBrowser';
+import { useDebounceValue } from '@/hooks/useDebounce';
 
 interface GitHubRepo {
   id: number;
@@ -116,8 +117,15 @@ export function CodeLabSidebar({
     setShowRepoSelector(false);
   };
 
-  const filteredRepos = repos.filter((repo) =>
-    repo.full_name.toLowerCase().includes(repoSearch.toLowerCase())
+  // MEDIUM-010: Debounce search input to reduce filtering overhead
+  const debouncedRepoSearch = useDebounceValue(repoSearch, 200);
+
+  const filteredRepos = useMemo(
+    () =>
+      repos.filter((repo) =>
+        repo.full_name.toLowerCase().includes(debouncedRepoSearch.toLowerCase())
+      ),
+    [repos, debouncedRepoSearch]
   );
 
   // Focus input when editing starts

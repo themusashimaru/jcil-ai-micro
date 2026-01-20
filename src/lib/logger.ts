@@ -285,6 +285,7 @@ export type AuditEventType =
   | 'security.path_traversal'
   | 'security.unauthorized_access'
   | 'security.suspicious_activity'
+  | 'security.service_role_access'
   | 'admin.user_modified'
   | 'admin.settings_changed'
   | 'billing.subscription_changed'

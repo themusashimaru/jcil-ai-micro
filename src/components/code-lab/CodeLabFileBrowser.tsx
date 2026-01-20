@@ -210,11 +210,22 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
     const isDir = node.type === 'dir';
 
     return (
-      <div key={node.path} className="file-node">
+      <div
+        key={node.path}
+        className="file-node"
+        role="treeitem"
+        aria-expanded={isDir ? node.isExpanded : undefined}
+        aria-selected={selectedFile === node.path}
+      >
         <button
           className={`file-item ${selectedFile === node.path ? 'selected' : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => (isDir ? toggleDirectory(node.path) : handleFileClick(node.path))}
+          aria-label={
+            isDir
+              ? `${node.isExpanded ? 'Collapse' : 'Expand'} folder ${node.name}`
+              : `Open file ${node.name}`
+          }
         >
           {isDir ? (
             <span className={`folder-icon ${node.isExpanded ? 'expanded' : ''}`}>
@@ -257,9 +268,11 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
   };
 
   return (
-    <div className="file-browser">
+    <div className="file-browser" role="region" aria-label="File browser">
       <div className="file-browser-header">
-        <span className="file-browser-title">Files</span>
+        <span className="file-browser-title" id="file-browser-title">
+          Files
+        </span>
         <button
           className="file-browser-refresh"
           onClick={() => {
@@ -267,7 +280,8 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
             setTree([]);
             setTimeout(loadRoot, 0);
           }}
-          title="Refresh"
+          title="Refresh file list"
+          aria-label="Refresh file list"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path
@@ -280,7 +294,7 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
       </div>
 
       {!isLoaded && !isLoading && (
-        <button className="file-browser-load" onClick={loadRoot}>
+        <button className="file-browser-load" onClick={loadRoot} aria-label="Load repository files">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path
               strokeLinecap="round"
@@ -296,7 +310,11 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
 
       {error && <div className="file-browser-error">{error}</div>}
 
-      {tree.length > 0 && <div className="file-tree">{tree.map((node) => renderNode(node))}</div>}
+      {tree.length > 0 && (
+        <div className="file-tree" role="tree" aria-labelledby="file-browser-title">
+          {tree.map((node) => renderNode(node))}
+        </div>
+      )}
 
       <style jsx>{`
         .file-browser {
