@@ -64,7 +64,7 @@ export interface SubagentContext {
 const MODEL_MAP: Record<SubagentModel, string> = {
   sonnet: 'claude-sonnet-4-20250514',
   opus: 'claude-opus-4-5-20251101',
-  haiku: 'claude-3-5-haiku-20241022',
+  haiku: 'claude-haiku-4-5-20251001',
 };
 
 // ============================================================================

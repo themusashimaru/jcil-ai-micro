@@ -88,7 +88,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [messages, setMessages] = useState<CodeLabMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // Start collapsed, focus on chat
   const [error, setError] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
@@ -209,8 +209,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   >(undefined);
   const [memoryLoading, setMemoryLoading] = useState(false);
 
-  // Model selection state (Claude Code parity)
-  const [currentModelId, setCurrentModelId] = useState('claude-sonnet-4-20250514');
+  // Model selection state - default to DeepSeek for cost-effectiveness
+  const [currentModelId, setCurrentModelId] = useState('deepseek-reasoner');
 
   // Extended thinking state (Claude Code parity)
   const [thinkingConfig, setThinkingConfig] = useState<ExtendedThinkingConfig>({
@@ -273,6 +273,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         // Auto-select first session or create new one
         if (data.sessions?.length > 0) {
           selectSession(data.sessions[0].id);
+        } else {
+          // No sessions exist - create a new one automatically for better UX
+          createSession();
         }
       }
     } catch (err) {
@@ -693,40 +696,29 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // MODEL & THINKING HANDLERS (Claude Code parity)
   // ========================================
 
-  const handleModelChange = useCallback(
-    (modelId: string) => {
-      // Check if this is a "thinking" model variant
-      const isThinkingModel = modelId.endsWith('-thinking');
-      const baseModelId = isThinkingModel ? modelId.replace('-thinking', '') : modelId;
+  // Track model switch flash state for visual feedback
+  const [modelSwitchFlash, setModelSwitchFlash] = useState(false);
 
-      // Set the actual model ID (without -thinking suffix)
-      setCurrentModelId(baseModelId);
+  const handleModelChange = useCallback((modelId: string) => {
+    // Check if this is a "thinking" model variant
+    const isThinkingModel = modelId.endsWith('-thinking');
+    const baseModelId = isThinkingModel ? modelId.replace('-thinking', '') : modelId;
 
-      // Auto-enable/disable extended thinking based on model selection
-      setThinkingConfig((prev) => ({
-        ...prev,
-        enabled: isThinkingModel,
-      }));
+    // Set the actual model ID (without -thinking suffix)
+    setCurrentModelId(baseModelId);
 
-      // Determine display name
-      const displayName = modelId.includes('opus')
-        ? isThinkingModel
-          ? 'Opus (Thinking)'
-          : 'Opus'
-        : modelId.includes('haiku')
-          ? 'Haiku'
-          : isThinkingModel
-            ? 'Sonnet (Thinking)'
-            : 'Sonnet';
+    // Auto-enable/disable extended thinking based on model selection
+    setThinkingConfig((prev) => ({
+      ...prev,
+      enabled: isThinkingModel,
+    }));
 
-      log.info('Model changed', { modelId: baseModelId, thinking: isThinkingModel });
-      toast.success(
-        'Model Changed',
-        isThinkingModel ? `${displayName} - Deep reasoning enabled` : `Switched to ${displayName}`
-      );
-    },
-    [toast]
-  );
+    log.info('Model changed', { modelId: baseModelId, thinking: isThinkingModel });
+
+    // Trigger green flash animation instead of toast notification
+    setModelSwitchFlash(true);
+    setTimeout(() => setModelSwitchFlash(false), 800); // Flash for 800ms
+  }, []);
 
   // MCP server toggle handler (Claude Code parity)
   const handleMCPServerToggle = useCallback(
@@ -1493,6 +1485,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                 currentModel={currentModelId}
                 onModelChange={handleModelChange}
                 thinkingEnabled={thinkingConfig.enabled}
+                modelSwitchFlash={modelSwitchFlash}
               />
             </div>
 

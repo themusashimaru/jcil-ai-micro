@@ -33,6 +33,8 @@ interface CodeLabComposerProps {
   onModelChange?: (modelId: string) => void;
   // Thinking mode state (for showing correct selection)
   thinkingEnabled?: boolean;
+  // Model switch flash state for visual feedback
+  modelSwitchFlash?: boolean;
 }
 
 // Supported file types
@@ -70,8 +72,8 @@ const MODEL_DISPLAY_NAMES: Record<
     description: 'Most capable',
     provider: 'claude',
   },
-  'claude-3-5-haiku-20241022': {
-    name: 'Haiku',
+  'claude-haiku-4-5-20251001': {
+    name: 'Haiku 4.5',
     icon: '🍃',
     description: 'Fastest',
     provider: 'claude',
@@ -212,6 +214,7 @@ export function CodeLabComposer({
   currentModel,
   onModelChange,
   thinkingEnabled = false,
+  modelSwitchFlash = false,
 }: CodeLabComposerProps) {
   // Compute the display model ID (includes -thinking suffix if thinking is enabled)
   const displayModelId =
@@ -579,7 +582,7 @@ export function CodeLabComposer({
           {currentModel && onModelChange && (
             <div className="inline-model-selector" ref={modelSelectorRef}>
               <button
-                className="model-selector-trigger"
+                className={`model-selector-trigger ${modelSwitchFlash ? 'model-flash' : ''}`}
                 onClick={() =>
                   !disabled && !isStreaming && setModelSelectorOpen(!modelSelectorOpen)
                 }
@@ -965,13 +968,36 @@ export function CodeLabComposer({
           cursor: not-allowed;
         }
 
+        /* Green flash animation for model switch confirmation */
+        .model-selector-trigger.model-flash {
+          animation: modelSwitchFlash 0.8s ease-out;
+        }
+
+        @keyframes modelSwitchFlash {
+          0% {
+            background: #10b981;
+            border-color: #10b981;
+            color: #ffffff;
+          }
+          50% {
+            background: #059669;
+            border-color: #059669;
+            color: #ffffff;
+          }
+          100% {
+            background: #2a2a2a;
+            border-color: #444;
+            color: #ffffff;
+          }
+        }
+
         .model-selector-trigger .model-icon {
           font-size: 0.75rem;
         }
 
         .model-selector-trigger .model-name {
           font-weight: 500;
-          max-width: 100px;
+          max-width: 160px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -1253,7 +1279,7 @@ export function CodeLabComposer({
           }
 
           .inline-model-selector .model-selector-trigger .model-name {
-            max-width: 80px;
+            max-width: 100px;
           }
 
           .model-dropdown {
