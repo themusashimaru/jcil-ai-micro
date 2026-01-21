@@ -359,10 +359,16 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       lastUserMessage = [{ text: 'Continue.' }];
     }
 
+    // Ensure systemInstruction is properly formatted:
+    // - Trim whitespace
+    // - Return undefined if empty (some models don't accept empty strings)
+    const trimmedSystemText = systemText?.trim();
+
     return {
       history,
       lastUserMessage,
-      systemInstruction: systemText || undefined,
+      systemInstruction:
+        trimmedSystemText && trimmedSystemText.length > 0 ? trimmedSystemText : undefined,
     };
   }
 
@@ -650,6 +656,18 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       ) {
         return 'model_unavailable';
       }
+      // Handle 400 Bad Request / Invalid Argument errors
+      // These indicate malformed requests (invalid parameters, unsupported features, etc.)
+      if (
+        message.includes('400') ||
+        message.includes('invalid_argument') ||
+        message.includes('invalid argument') ||
+        message.includes('invalid value') ||
+        message.includes('bad request') ||
+        message.includes('malformed')
+      ) {
+        return 'invalid_request';
+      }
     }
     return 'unknown';
   }
@@ -671,6 +689,9 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
         return 'Google Gemini service encountered an error. Please try again in a moment.';
       case 'model_unavailable':
         return 'The selected Gemini model is currently unavailable. Please try a different model.';
+      case 'invalid_request':
+        // Provide more context for invalid request errors (common with preview models)
+        return 'The request format is not supported by this Gemini model. This can happen with preview models that have different API requirements. Please try a stable model like Gemini 2.5 Pro or Gemini 2.5 Flash.';
       default:
         // Return sanitized original message for unknown errors
         return originalMessage.length > 200
