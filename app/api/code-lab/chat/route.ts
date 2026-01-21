@@ -1456,6 +1456,24 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           let fullContent = '';
 
           try {
+            // Validate API key is available for the provider
+            const apiKeyEnvMap: Record<string, string[]> = {
+              openai: ['OPENAI_API_KEY'],
+              xai: ['XAI_API_KEY'],
+              deepseek: ['DEEPSEEK_API_KEY'],
+              google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'], // Google supports multiple keys
+            };
+            const requiredEnvVars = apiKeyEnvMap[providerId];
+            if (requiredEnvVars) {
+              const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
+              if (!hasAnyKey) {
+                const primaryKey = requiredEnvVars[0];
+                throw new Error(
+                  `${primaryKey} is not configured. Please set up the API key to use ${providerId} models.`
+                );
+              }
+            }
+
             // Get the appropriate adapter for this provider
             const adapter = getAdapter(providerId);
 
@@ -1562,10 +1580,38 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           } catch (error) {
             log.error('Stream error', error as Error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            const isTimeout = errorMessage.includes('timeout');
-            const userMessage = isTimeout
-              ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
-              : '\n\nI encountered an error. Please try again.';
+            const lowerError = errorMessage.toLowerCase();
+
+            // Provide specific error messages for common issues
+            let userMessage: string;
+            if (lowerError.includes('timeout')) {
+              userMessage = '\n\n*[Response interrupted: Connection timed out. Please try again.]*';
+            } else if (
+              lowerError.includes('api_key') ||
+              lowerError.includes('api key') ||
+              lowerError.includes('not configured') ||
+              lowerError.includes('gemini_api_key') ||
+              lowerError.includes('authentication')
+            ) {
+              userMessage = `\n\n**API Configuration Error**\n\nThe ${providerId?.toUpperCase() || 'provider'} API key is not configured. Please contact the administrator to set up the API key.`;
+            } else if (lowerError.includes('model') && lowerError.includes('not found')) {
+              userMessage = `\n\n**Model Error**\n\nThe model "${selectedModel}" was not found. It may be unavailable or incorrectly configured.`;
+            } else if (
+              lowerError.includes('rate') ||
+              lowerError.includes('quota') ||
+              lowerError.includes('429')
+            ) {
+              userMessage = `\n\n**Rate Limit**\n\nThe ${providerId || 'provider'} API rate limit has been reached. Please wait a moment and try again.`;
+            } else if (lowerError.includes('safety') || lowerError.includes('blocked')) {
+              userMessage =
+                '\n\n**Content Filtered**\n\nThe response was blocked by safety filters. Please rephrase your request.';
+            } else {
+              // Include actual error for debugging (sanitized)
+              const sanitizedError = errorMessage
+                .substring(0, 200)
+                .replace(/api[_-]?key[=:][^\s]*/gi, '[REDACTED]');
+              userMessage = `\n\n**Error**\n\nI encountered an error: ${sanitizedError}\n\nPlease try again or select a different model.`;
+            }
 
             fullContent += userMessage;
 
