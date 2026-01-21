@@ -18,6 +18,7 @@ import {
   Tool,
   FunctionDeclaration,
   FunctionCallingMode,
+  SchemaType,
 } from '@google/generative-ai';
 import { BaseAIAdapter } from './base';
 import type {
@@ -397,18 +398,54 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
   // ============================================================================
 
   /**
+   * Convert a unified property type to SchemaType
+   */
+  private toSchemaType(type: string): SchemaType {
+    switch (type.toLowerCase()) {
+      case 'string':
+        return SchemaType.STRING;
+      case 'number':
+      case 'integer':
+        return SchemaType.NUMBER;
+      case 'boolean':
+        return SchemaType.BOOLEAN;
+      case 'array':
+        return SchemaType.ARRAY;
+      case 'object':
+        return SchemaType.OBJECT;
+      default:
+        return SchemaType.STRING;
+    }
+  }
+
+  /**
    * Convert unified tools to Google format
    */
   formatTools(tools: UnifiedTool[]): Tool[] {
-    const functionDeclarations: FunctionDeclaration[] = tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: {
-        type: 'object' as const,
-        properties: tool.parameters.properties,
-        required: tool.parameters.required,
-      },
-    }));
+    const functionDeclarations = tools.map((tool) => {
+      // Convert properties to Google Schema format
+      const properties: Record<
+        string,
+        { type: SchemaType; description?: string; enum?: string[] }
+      > = {};
+      for (const [key, value] of Object.entries(tool.parameters.properties)) {
+        properties[key] = {
+          type: this.toSchemaType(value.type),
+          description: value.description,
+          enum: value.enum,
+        };
+      }
+
+      return {
+        name: tool.name,
+        description: tool.description,
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties,
+          required: tool.parameters.required,
+        },
+      };
+    }) as FunctionDeclaration[];
 
     return [{ functionDeclarations }];
   }
