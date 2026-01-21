@@ -114,11 +114,29 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
   readonly providerId: ProviderId = 'google';
   readonly family: ProviderFamily = 'google';
 
-  private client: GoogleGenerativeAI;
+  private client: GoogleGenerativeAI | null = null;
+  private initError: string | null = null;
 
   constructor() {
     super();
-    this.client = getGoogleClient();
+    try {
+      this.client = getGoogleClient();
+    } catch (error) {
+      this.initError =
+        error instanceof Error ? error.message : 'Failed to initialize Gemini client';
+    }
+  }
+
+  /**
+   * Check if the adapter is properly initialized
+   */
+  private ensureClient(): GoogleGenerativeAI {
+    if (!this.client) {
+      throw new Error(
+        this.initError || 'Gemini client not initialized. Please check your GEMINI_API_KEY.'
+      );
+    }
+    return this.client;
   }
 
   // ============================================================================
@@ -129,12 +147,13 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     messages: UnifiedMessage[],
     options: ChatOptions = {}
   ): AsyncIterable<UnifiedStreamChunk> {
+    const client = this.ensureClient();
     const modelId = options.model || this.getDefaultModelId();
     const maxTokens = options.maxTokens || 4096;
     const temperature = options.temperature ?? 0.7;
 
     // Get the model
-    const model = this.client.getGenerativeModel({
+    const model = client.getGenerativeModel({
       model: modelId,
       generationConfig: {
         maxOutputTokens: maxTokens,
@@ -168,56 +187,120 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       });
 
       // Stream the response
-      const result = await chat.sendMessageStream(lastUserMessage);
+      // Convert lastUserMessage to the format expected by the SDK
+      // Ensure we always have a valid message to send
+      let messageContent: string | Part[];
+      if (lastUserMessage.length === 0) {
+        messageContent = 'Continue.';
+      } else if (
+        lastUserMessage.length === 1 &&
+        'text' in lastUserMessage[0] &&
+        lastUserMessage[0].text
+      ) {
+        messageContent = lastUserMessage[0].text;
+      } else {
+        messageContent = lastUserMessage;
+      }
 
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) {
-          yield { type: 'text', text };
-        }
+      const result = await chat.sendMessageStream(messageContent);
 
-        // Handle function calls
-        const functionCalls = chunk.functionCalls();
-        if (functionCalls && functionCalls.length > 0) {
-          for (const fc of functionCalls) {
-            yield {
-              type: 'tool_call_start',
-              toolCall: {
-                id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-                name: fc.name,
-                arguments: fc.args as Record<string, unknown>,
-              },
-            };
-            yield { type: 'tool_call_end' };
+      let fullText = '';
+      let inputTokens = 0;
+      let outputTokens = 0;
+
+      // Iterate over the stream with proper error handling
+      try {
+        for await (const chunk of result.stream) {
+          // Safely extract text from chunk
+          try {
+            const text = chunk.text?.();
+            if (text) {
+              fullText += text;
+              yield { type: 'text', text };
+            }
+          } catch {
+            // Some chunks may not have text (e.g., function calls)
+            // Continue processing
           }
+
+          // Handle function calls
+          try {
+            const functionCalls = chunk.functionCalls?.();
+            if (functionCalls && functionCalls.length > 0) {
+              for (const fc of functionCalls) {
+                yield {
+                  type: 'tool_call_start',
+                  toolCall: {
+                    id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    name: fc.name,
+                    arguments: fc.args as Record<string, unknown>,
+                  },
+                };
+                yield { type: 'tool_call_end' };
+              }
+            }
+          } catch {
+            // Continue even if function call extraction fails
+          }
+
+          // Try to get usage metadata from each chunk
+          try {
+            const metadata = chunk.usageMetadata;
+            if (metadata) {
+              inputTokens = metadata.promptTokenCount || inputTokens;
+              outputTokens = metadata.candidatesTokenCount || outputTokens;
+            }
+          } catch {
+            // Usage metadata may not be available on all chunks
+          }
+        }
+      } catch (streamError) {
+        // If streaming fails partway, still try to return what we have
+        if (fullText) {
+          // We already yielded the text, so just continue to end the message
+        } else {
+          throw streamError; // Re-throw if no content was received
         }
       }
 
-      // Get usage info from the final response
-      const response = await result.response;
-      const usageMetadata = response.usageMetadata;
+      // Get final usage info from the response
+      try {
+        const response = await result.response;
+        const usageMetadata = response?.usageMetadata;
+        if (usageMetadata) {
+          inputTokens = usageMetadata.promptTokenCount || inputTokens;
+          outputTokens = usageMetadata.candidatesTokenCount || outputTokens;
+        }
+      } catch {
+        // Continue even if final response fails - we may have streamed content
+      }
 
       yield {
         type: 'message_end',
-        usage: usageMetadata
-          ? {
-              inputTokens: usageMetadata.promptTokenCount || 0,
-              outputTokens: usageMetadata.candidatesTokenCount || 0,
-            }
-          : undefined,
+        usage: {
+          inputTokens,
+          outputTokens,
+        },
       };
     } catch (error) {
       // Handle rate limiting
-      if (this.isRateLimitError(error)) {
+      if (this.client && this.isRateLimitError(error)) {
         markKeyRateLimited(this.client, this.extractRetryAfter(error));
-        this.client = getGoogleClient();
+        try {
+          this.client = getGoogleClient();
+        } catch {
+          // If we can't get a new client, keep the old one
+        }
       }
+
+      const errorCode = this.mapErrorCode(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       yield {
         type: 'error',
         error: {
-          code: this.mapErrorCode(error),
-          message: error instanceof Error ? error.message : 'Unknown error',
+          code: errorCode,
+          message: errorMessage,
         },
       };
     }

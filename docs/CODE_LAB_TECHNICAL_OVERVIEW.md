@@ -104,14 +104,31 @@ Unlike traditional CLI-based development tools, Code Lab operates entirely withi
 
 Simply authenticate and begin coding. The entire development environment—including terminal, debugger, and file system—runs in isolated cloud infrastructure.
 
-### 2.2 Claude Opus 4.5 Integration
+### 2.2 Multi-Provider AI Integration
 
-Code Lab leverages Claude Opus 4.5, Anthropic's most capable model, featuring:
+Code Lab supports multiple AI providers through a unified adapter system:
+
+| Provider               | Models                           | Capabilities                            |
+| ---------------------- | -------------------------------- | --------------------------------------- |
+| **Claude (Anthropic)** | Opus 4.5, Sonnet 4.5, Haiku 4.5  | Vision, Extended Thinking, Tool Calling |
+| **OpenAI**             | GPT-5.2, GPT-5 Codex, GPT-5 Mini | Vision, JSON Mode, Tool Calling         |
+| **xAI (Grok)**         | Grok 4, Grok 4.1 Fast            | Vision, 2M Context, Tool Calling        |
+| **DeepSeek**           | DeepSeek Reasoner                | Reasoning, Cost-Effective               |
+| **Google (Gemini)**    | Gemini 3 Pro/Flash, Gemini 2.5   | Vision, 1M Context, Tool Calling        |
+
+**Default: Claude Opus 4.5** - Anthropic's most capable model featuring:
 
 - **200,000 token context window** for comprehensive codebase understanding
 - **Extended thinking** with real-time visualization of reasoning processes
 - **Autonomous tool execution** with 55+ available operations
 - **Multi-turn conversation memory** with intelligent context compaction
+
+**Model Selector UI:**
+
+- Compact trigger button (28px height) with text indicators (S/O/H)
+- Expanded dropdown (380px) with model details, pricing, and capabilities
+- Keyboard shortcut: `Cmd+M` to toggle
+- Mobile-optimized responsive design
 
 ### 2.3 Extended Thinking Visualization
 
@@ -132,7 +149,30 @@ Extended thinking provides:
 - Thought chain visualization
 - Reasoning transparency for complex operations
 
-### 2.4 AI Pair Programming
+### 2.4 Context-Aware AI Behavior
+
+Code Lab's AI adapts its behavior based on available resources:
+
+**Dynamic Context Detection:**
+
+```
+Session Context:
+- Repository: Connected/Not Connected
+- Files Attached: Count and types
+- Project Memory: Custom instructions loaded
+```
+
+**Behavior Guidelines (enforced via system prompt):**
+
+- Only work with explicitly provided resources
+- Ask clarifying questions when context is ambiguous
+- Don't over-analyze or assume access to non-existent code
+- Be direct and helpful without volunteering unnecessary analysis
+- When code is shared, focus on that specific code
+
+This prevents the AI from attempting to analyze repositories or files that haven't been connected, creating a more natural conversational experience.
+
+### 2.5 AI Pair Programming
 
 Real-time code completion and suggestions powered by Claude:
 
@@ -967,10 +1007,11 @@ The achievement of 100% Claude Code parity—combined with exclusive features li
 
 ---
 
-**Version:** 3.0.0
-**Last Updated:** January 19, 2026
+**Version:** 3.1.0
+**Last Updated:** January 21, 2026
 **Tests Passing:** 1,482 across 52 files
 **Feature Parity:** 100% with Claude Code CLI
+**Supported Providers:** 5 (Claude, OpenAI, xAI, DeepSeek, Google)
 
 ---
 
