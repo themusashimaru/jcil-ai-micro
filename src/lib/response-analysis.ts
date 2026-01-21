@@ -86,6 +86,37 @@ const OUTDATED_INFO_PATTERNS: RegExp[] = [
   /(?:recommend|suggest) (?:checking|looking up|verifying) (?:the )?(?:latest|current)/i,
 ];
 
+/**
+ * Developer-specific patterns for technical information that changes rapidly
+ * AI/ML APIs, frameworks, and tools update frequently - trigger search for these
+ */
+const DEVELOPER_INFO_PATTERNS: RegExp[] = [
+  // Version uncertainty
+  /(?:version|release) (?:may|might|could) (?:be|have) (?:different|changed|updated)/i,
+  /(?:check|verify) (?:the )?(?:official|current) (?:documentation|docs|api)/i,
+  /(?:documentation|api|sdk) (?:may|might|could) have (?:changed|been updated)/i,
+
+  // API/SDK changes
+  /(?:api|sdk|endpoint|method) (?:may|might|could) (?:be|have been) (?:deprecated|changed|removed)/i,
+  /(?:syntax|parameters|arguments) (?:may|might|could) have (?:changed|been updated)/i,
+  /(?:refer to|check|see) (?:the )?(?:official|latest|current) (?:documentation|docs|api reference)/i,
+
+  // Framework/library updates
+  /(?:framework|library|package) (?:updates|releases) (?:frequently|often|rapidly)/i,
+  /(?:breaking changes|deprecations) (?:may|might|could) have (?:occurred|been introduced)/i,
+  /(?:migration|upgrade) (?:guide|documentation) (?:for|to) (?:the )?(?:latest|current)/i,
+
+  // AI/ML specific (changes extremely fast)
+  /(?:openai|anthropic|claude|gpt|gemini) (?:api|model|version) (?:may|might|could)/i,
+  /(?:model|api) (?:pricing|rate.?limits|quotas?) (?:may|might|could) have (?:changed|been updated)/i,
+  /(?:latest|newest|current) (?:model|version) (?:information|details)/i,
+
+  // General dev uncertainty about current state
+  /(?:as of|at the time of) my (?:last|latest) (?:update|training)/i,
+  /(?:new|recent) (?:features?|capabilities|updates?) (?:may|might|could) (?:be|have been) (?:added|released)/i,
+  /(?:best practices|recommended approach) (?:may|might|could) have (?:evolved|changed)/i,
+];
+
 // ========================================
 // CONFIRMATION DETECTION
 // ========================================
@@ -176,6 +207,23 @@ export function analyzeResponse(content: string): ResponseAnalysisResult {
         confidence: 'medium',
         matchedPhrase: match[0],
         suggestedPrompt: '\n\nWould you like me to search for the latest information on this?',
+      };
+    }
+  }
+
+  // Check for developer-specific patterns (technical docs, APIs, versions)
+  // These change rapidly and developers need current info
+  for (const pattern of DEVELOPER_INFO_PATTERNS) {
+    const match = sanitized.match(pattern);
+    if (match) {
+      log.debug('Developer info pattern detected', { pattern: pattern.source.slice(0, 50) });
+      return {
+        triggerType: 'outdated_info',
+        suggestedAction: 'search',
+        confidence: 'high',
+        matchedPhrase: match[0],
+        suggestedPrompt:
+          '\n\nWould you like me to search for the current documentation or latest release information?',
       };
     }
   }
