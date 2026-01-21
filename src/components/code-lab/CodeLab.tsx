@@ -18,6 +18,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './code-lab.css';
 import { logger } from '@/lib/logger';
+// AUTO-SEARCH TRIGGER: Detect knowledge cutoff mentions and suggest search
+import {
+  analyzeResponse,
+  isConfirmation,
+  isDecline,
+  type SuggestedAction,
+} from '@/lib/response-analysis';
 // HIGH-003: Import async state helpers for race condition protection
 import { useMountedRef } from './useAsyncState';
 
@@ -83,6 +90,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // AUTO-SEARCH TRIGGER: Track pending search suggestions after knowledge cutoff detection
+  const [pendingSearchSuggestion, setPendingSearchSuggestion] = useState<{
+    action: SuggestedAction;
+    originalQuestion: string | null;
+  } | null>(null);
 
   // Toast notifications for better UX
   const toast = useToastActions();
@@ -868,6 +881,37 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     async (content: string, attachments?: CodeLabAttachment[], forceSearch?: boolean) => {
       if (!currentSessionId || isStreaming) return;
 
+      // AUTO-SEARCH TRIGGER: Check if user is responding to a search suggestion
+      let effectiveForceSearch = forceSearch;
+      let contentForAI = content;
+
+      if (pendingSearchSuggestion) {
+        const userConfirmed = isConfirmation(content);
+        const userDeclined = isDecline(content);
+
+        if (userConfirmed) {
+          // User confirmed search - trigger Perplexity search
+          effectiveForceSearch = true;
+          // Use the original question for the search
+          if (pendingSearchSuggestion.originalQuestion) {
+            contentForAI = pendingSearchSuggestion.originalQuestion;
+          }
+          log.debug('User confirmed search suggestion', {
+            action: pendingSearchSuggestion.action,
+            originalQuestion: pendingSearchSuggestion.originalQuestion?.slice(0, 50),
+          });
+          setPendingSearchSuggestion(null);
+        } else if (userDeclined) {
+          // User declined - clear pending suggestion
+          log.debug('User declined search suggestion');
+          setPendingSearchSuggestion(null);
+        }
+        // If neither confirmed nor declined, treat as new question and clear suggestion
+        else {
+          setPendingSearchSuggestion(null);
+        }
+      }
+
       // Capture session info at the start (before any async operations)
       const sessionAtStart = sessions.find((s) => s.id === currentSessionId);
       const isFirstMessage =
@@ -933,10 +977,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId: currentSessionId,
-            content,
+            // Use contentForAI for search (may be original question after confirmation)
+            content: contentForAI,
             repo: currentSession?.repo,
             attachments: attachmentData,
-            forceSearch,
+            // Use effectiveForceSearch (true if user confirmed search suggestion)
+            forceSearch: effectiveForceSearch,
             // Model & thinking configuration (Claude Code parity)
             modelId: currentModelId,
             thinking: thinkingConfig.enabled
@@ -1071,6 +1117,37 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m))
           );
 
+          // AUTO-SEARCH TRIGGER: Analyze response for knowledge cutoff mentions
+          // If detected, append a suggestion and track for confirmation
+          if (fullContent && !forceSearch) {
+            const analysisResult = analyzeResponse(fullContent);
+
+            if (
+              analysisResult.triggerType !== 'none' &&
+              analysisResult.suggestedAction !== 'none' &&
+              analysisResult.suggestedPrompt
+            ) {
+              log.debug('Knowledge cutoff detected, suggesting search', {
+                triggerType: analysisResult.triggerType,
+                action: analysisResult.suggestedAction,
+                confidence: analysisResult.confidence,
+              });
+
+              // Append the suggestion to the message
+              const updatedContent = fullContent + analysisResult.suggestedPrompt;
+
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: updatedContent } : m))
+              );
+
+              // Track pending suggestion for confirmation handling
+              setPendingSearchSuggestion({
+                action: analysisResult.suggestedAction,
+                originalQuestion: content,
+              });
+            }
+          }
+
           // Refresh plan status in case plan tools were called
           fetchPlanStatus();
 
@@ -1167,7 +1244,15 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setIsStreaming(false);
       }
     },
-    [currentSessionId, currentSession?.repo, isStreaming, sessions, currentModelId, thinkingConfig]
+    [
+      currentSessionId,
+      currentSession?.repo,
+      isStreaming,
+      sessions,
+      currentModelId,
+      thinkingConfig,
+      pendingSearchSuggestion,
+    ]
   );
 
   const cancelStream = useCallback(() => {
