@@ -47,6 +47,12 @@ const PROVIDER_INFO: Record<ProviderId, ProviderInfo> = {
     icon: '🔵',
     color: '#3B82F6',
   },
+  google: {
+    id: 'google',
+    name: 'Google Gemini',
+    icon: '🔴',
+    color: '#EA4335',
+  },
 };
 
 interface CodeLabProviderStatusProps {

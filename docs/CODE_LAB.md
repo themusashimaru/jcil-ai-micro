@@ -536,6 +536,14 @@ Code Lab supports multiple AI providers with different models for various use ca
 | DeepSeek Chat     | 128K    | $0.27 (cache miss) / $0.07 (hit) | $1.10           | Budget   | General conversational & reasoning       |
 | DeepSeek Reasoner | 128K    | $0.55 (cache miss) / $0.14 (hit) | $2.19           | Standard | Math, logic, structured analysis, coding |
 
+#### Google (Gemini)
+
+| Model            | Context | Input (per 1M) | Output (per 1M) | Tier     | Best For                    |
+| ---------------- | ------- | -------------- | --------------- | -------- | --------------------------- |
+| Gemini 2.0 Flash | 1M      | $0.10          | $0.40           | Budget   | Fast, massive context       |
+| Gemini 1.5 Pro   | 2M      | $1.25          | $5.00           | Standard | Largest context window (2M) |
+| Gemini 1.5 Flash | 1M      | $0.075         | $0.30           | Budget   | Ultra-budget, 1M context    |
+
 ### Environment Variables
 
 ```bash
@@ -544,6 +552,7 @@ ANTHROPIC_API_KEY=           # Claude models
 OPENAI_API_KEY=              # OpenAI GPT models
 XAI_API_KEY=                 # xAI Grok models
 DEEPSEEK_API_KEY=            # DeepSeek models
+GOOGLE_API_KEY=              # Google Gemini models
 ```
 
 ---

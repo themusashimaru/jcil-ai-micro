@@ -17,7 +17,7 @@
 /**
  * Supported AI provider identifiers
  */
-export type ProviderId = 'claude' | 'openai' | 'xai' | 'deepseek';
+export type ProviderId = 'claude' | 'openai' | 'xai' | 'deepseek' | 'google';
 
 /**
  * Provider API family - determines which adapter to use

@@ -179,6 +179,40 @@ const MODEL_DISPLAY_NAMES: Record<
     description: 'Math, logic, coding ($0.55/$2.19)',
     provider: 'deepseek',
   },
+
+  // ========================================
+  // GOOGLE GEMINI MODELS
+  // ========================================
+  'gemini-3-pro-preview': {
+    name: 'Gemini 3 Pro',
+    icon: '🔮',
+    description: 'Deep reasoning, complex coding ($2/$12)',
+    provider: 'google',
+  },
+  'gemini-3-flash-preview': {
+    name: 'Gemini 3 Flash',
+    icon: '✨',
+    description: 'Fast general AI, production ($0.50/$3)',
+    provider: 'google',
+  },
+  'gemini-2.5-pro': {
+    name: 'Gemini 2.5 Pro',
+    icon: '💎',
+    description: 'Strong coding + reasoning ($1.25/$10)',
+    provider: 'google',
+  },
+  'gemini-2.5-flash': {
+    name: 'Gemini 2.5 Flash',
+    icon: '⚡',
+    description: 'Everyday chat, automation ($0.30/$2.50)',
+    provider: 'google',
+  },
+  'gemini-2.5-flash-lite': {
+    name: 'Gemini 2.5 Flash Lite',
+    icon: '🍃',
+    description: 'Ultra-low-cost, lightweight ($0.10/$0.40)',
+    provider: 'google',
+  },
 };
 
 export function CodeLabComposer({
@@ -639,6 +673,40 @@ export function CodeLabComposer({
               <div className="model-provider-header">DeepSeek</div>
               {Object.entries(MODEL_DISPLAY_NAMES)
                 .filter(([, { provider }]) => provider === 'deepseek')
+                .map(([modelId, { name, icon, description }]) => (
+                  <button
+                    key={modelId}
+                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                    onClick={() => {
+                      onModelChange(modelId);
+                      setModelSelectorOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={modelId === displayModelId}
+                  >
+                    <span className="model-icon">{icon}</span>
+                    <div className="model-info">
+                      <span className="model-name">{name}</span>
+                      {description && <span className="model-desc">{description}</span>}
+                    </div>
+                    {modelId === displayModelId && (
+                      <svg
+                        className="check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+
+              {/* Google Gemini Models */}
+              <div className="model-provider-header">Google (Gemini)</div>
+              {Object.entries(MODEL_DISPLAY_NAMES)
+                .filter(([, { provider }]) => provider === 'google')
                 .map(([modelId, { name, icon, description }]) => (
                   <button
                     key={modelId}

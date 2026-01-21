@@ -17,6 +17,7 @@ export {
   createXAIAdapter,
   createDeepSeekAdapter,
 } from './openai-compatible';
+export { GoogleGeminiAdapter, createGoogleAdapter } from './google';
 
 // Adapter factory
 export {
@@ -26,6 +27,7 @@ export {
   hasAdapterCached,
   isOpenAICompatible,
   isAnthropicProvider,
+  isGoogleProvider,
 } from './factory';
 
 // Re-export types used by adapters

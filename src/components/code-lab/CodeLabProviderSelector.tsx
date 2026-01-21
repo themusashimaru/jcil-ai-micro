@@ -78,6 +78,18 @@ const PROVIDERS: ProviderConfig[] = [
       streaming: true,
     },
   },
+  {
+    id: 'google',
+    name: 'Google Gemini',
+    description: 'Gemini 2.5 Pro - multimodal AI with strong reasoning',
+    icon: '🔴',
+    color: '#EA4335',
+    capabilities: {
+      vision: true,
+      toolCalling: true,
+      streaming: true,
+    },
+  },
 ];
 
 interface CodeLabProviderSelectorProps {
