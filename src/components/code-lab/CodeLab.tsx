@@ -270,13 +270,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         const data = await response.json();
         setSessions(data.sessions || []);
 
-        // Auto-select first session or create new one
-        if (data.sessions?.length > 0) {
-          selectSession(data.sessions[0].id);
-        } else {
-          // No sessions exist - create a new one automatically for better UX
-          createSession();
-        }
+        // Always start with a fresh new chat session for better UX
+        // Users can access previous sessions from the sidebar
+        createSession();
       }
     } catch (err) {
       log.error('Error loading sessions', err as Error);

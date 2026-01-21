@@ -24,11 +24,11 @@ interface CodeLabModelSelectorProps {
   className?: string;
 }
 
-// Model icons
-const modelIcons: Record<ModelType, string> = {
-  sonnet: '🎵',
-  opus: '🎼',
-  haiku: '🍃',
+// Model type indicators (simple text)
+const modelIndicators: Record<ModelType, string> = {
+  sonnet: 'S',
+  opus: 'O',
+  haiku: 'H',
 };
 
 export function CodeLabModelSelector({
@@ -100,12 +100,12 @@ export function CodeLabModelSelector({
         aria-haspopup="listbox"
         aria-label={`Select model: ${selectedModel.name}`}
       >
-        <span className="model-icon">{modelIcons[selectedModel.type]}</span>
+        <span className="model-indicator">{modelIndicators[selectedModel.type]}</span>
         <span className="model-name">{selectedModel.name}</span>
         <svg
           className="chevron"
-          width="12"
-          height="12"
+          width="10"
+          height="10"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -126,7 +126,7 @@ export function CodeLabModelSelector({
               aria-selected={model.id === currentModel}
             >
               <div className="model-option-header">
-                <span className="model-icon">{modelIcons[model.type]}</span>
+                <span className="model-indicator">{modelIndicators[model.type]}</span>
                 <span className="model-name">{model.name}</span>
                 {model.recommended && <span className="model-badge recommended">Recommended</span>}
                 {model.type === 'opus' && (
@@ -174,16 +174,17 @@ export function CodeLabModelSelector({
         .model-selector-trigger {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
+          gap: 0.375rem;
+          padding: 0.25rem 0.625rem;
           background: var(--cl-bg-secondary, #f9fafb);
           border: 1px solid var(--cl-border-primary, #e5e7eb);
-          border-radius: 8px;
-          font-size: 0.875rem;
+          border-radius: 6px;
+          font-size: 0.8125rem;
           font-weight: 500;
           color: var(--cl-text-primary, #1a1f36);
           cursor: pointer;
           transition: all 0.15s ease;
+          height: 28px;
         }
 
         .model-selector-trigger:hover:not(:disabled) {
@@ -201,8 +202,17 @@ export function CodeLabModelSelector({
           border-color: var(--cl-accent-primary, #1e3a5f);
         }
 
-        .model-icon {
-          font-size: 1rem;
+        .model-indicator {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border-radius: 4px;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          background: var(--cl-accent-primary, #1e3a5f);
+          color: white;
         }
 
         .model-name {
@@ -219,24 +229,24 @@ export function CodeLabModelSelector({
 
         .model-selector-dropdown {
           position: absolute;
-          top: calc(100% + 4px);
+          bottom: calc(100% + 4px);
           left: 0;
-          min-width: 320px;
+          min-width: 380px;
           background: var(--cl-bg-primary, #ffffff);
           border: 1px solid var(--cl-border-primary, #e5e7eb);
-          border-radius: 12px;
+          border-radius: 10px;
           box-shadow:
             0 10px 25px -5px rgba(0, 0, 0, 0.1),
             0 8px 10px -6px rgba(0, 0, 0, 0.1);
           z-index: 100;
           overflow: hidden;
-          animation: slideDown 0.15s ease;
+          animation: slideUp 0.15s ease;
         }
 
-        @keyframes slideDown {
+        @keyframes slideUp {
           from {
             opacity: 0;
-            transform: translateY(-8px);
+            transform: translateY(8px);
           }
           to {
             opacity: 1;
@@ -249,7 +259,7 @@ export function CodeLabModelSelector({
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 0.75rem 1rem;
+          padding: 0.625rem 0.875rem;
           background: none;
           border: none;
           border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
@@ -308,8 +318,8 @@ export function CodeLabModelSelector({
         }
 
         .model-option-details {
-          margin-top: 0.375rem;
-          padding-left: 1.5rem;
+          margin-top: 0.25rem;
+          padding-left: 1.625rem;
         }
 
         .model-description {
@@ -374,20 +384,12 @@ export function CodeLabModelSelector({
           }
         }
 
-        /* Mobile: Compact view - borderless icon only */
+        /* Mobile: Compact view */
         @media (max-width: 768px) {
           .model-selector-trigger {
-            padding: 0.5rem;
+            padding: 0.25rem 0.5rem;
             gap: 0.25rem;
-            background: transparent;
-            border: none;
-            min-width: 40px;
-            min-height: 40px;
-            justify-content: center;
-          }
-
-          .model-selector-trigger:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.1);
+            height: 26px;
           }
 
           .model-selector-trigger .model-name {
@@ -398,13 +400,8 @@ export function CodeLabModelSelector({
             display: none;
           }
 
-          .model-selector.open .model-selector-trigger {
-            background: rgba(255, 255, 255, 0.15);
-            border: none;
-          }
-
           .model-selector-dropdown {
-            min-width: 280px;
+            min-width: 320px;
             right: 0;
             left: auto;
           }
@@ -413,13 +410,12 @@ export function CodeLabModelSelector({
         /* Extra small screens */
         @media (max-width: 480px) {
           .model-selector-trigger {
-            padding: 0.375rem;
-            min-width: 36px;
-            min-height: 36px;
+            padding: 0.25rem 0.375rem;
+            height: 24px;
           }
 
           .model-selector-dropdown {
-            min-width: 260px;
+            min-width: 290px;
             max-width: calc(100vw - 2rem);
           }
         }
