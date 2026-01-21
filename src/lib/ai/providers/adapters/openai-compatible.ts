@@ -179,14 +179,26 @@ export class OpenAICompatibleAdapter extends BaseAIAdapter {
     const tools = options.tools ? this.formatTools(options.tools) : undefined;
 
     try {
-      const stream = await this.client.chat.completions.create({
+      // Newer OpenAI models (GPT-5.x) require max_completion_tokens instead of max_tokens
+      // Other providers (xAI, DeepSeek) still use max_tokens
+      const isOpenAINewModel = this.providerId === 'openai' && model.startsWith('gpt-5');
+
+      const requestParams: OpenAI.ChatCompletionCreateParamsStreaming = {
         model,
         messages: openaiMessages,
-        max_tokens: maxTokens,
         temperature,
         tools,
         stream: true,
-      });
+      };
+
+      // Use the appropriate token parameter based on model
+      if (isOpenAINewModel) {
+        requestParams.max_completion_tokens = maxTokens;
+      } else {
+        requestParams.max_tokens = maxTokens;
+      }
+
+      const stream = await this.client.chat.completions.create(requestParams);
 
       // Track current tool call being built
       const currentToolCalls: Map<number, Partial<UnifiedToolCall>> = new Map();
