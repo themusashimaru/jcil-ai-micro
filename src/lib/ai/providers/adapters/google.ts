@@ -283,9 +283,10 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
         },
       };
     } catch (error) {
-      // Handle rate limiting
+      // Handle rate limiting - mark key and try to get a fresh one
       if (this.client && this.isRateLimitError(error)) {
-        markKeyRateLimited(this.client, this.extractRetryAfter(error));
+        const retryAfter = this.extractRetryAfter(error);
+        markKeyRateLimited(this.client, retryAfter);
         try {
           this.client = getGoogleClient();
         } catch {
@@ -294,13 +295,15 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       }
 
       const errorCode = this.mapErrorCode(error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const rawMessage = error instanceof Error ? error.message : 'Unknown error';
+      // Use user-friendly message for better UX
+      const userMessage = this.getUserFriendlyMessage(errorCode, rawMessage);
 
       yield {
         type: 'error',
         error: {
           code: errorCode,
-          message: errorMessage,
+          message: userMessage,
         },
       };
     }
@@ -551,13 +554,19 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
 
   /**
    * Check if an error is a rate limit error
+   * Enhanced detection for various Google API error formats
    */
   private isRateLimitError(error: unknown): boolean {
     if (error instanceof Error) {
+      const message = error.message.toLowerCase();
       return (
-        error.message.includes('429') ||
-        error.message.toLowerCase().includes('rate') ||
-        error.message.toLowerCase().includes('quota')
+        message.includes('429') ||
+        message.includes('rate') ||
+        message.includes('quota') ||
+        message.includes('exhausted') ||
+        message.includes('too many requests') ||
+        message.includes('resource_exhausted') ||
+        message.includes('resourceexhausted')
       );
     }
     return false;
@@ -565,15 +574,26 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
 
   /**
    * Extract retry-after seconds from an error
+   * Handles various formats from Google API responses
    */
   private extractRetryAfter(error: unknown): number {
     if (error instanceof Error) {
-      const match = error.message.match(/retry.?after[:\s]*(\d+)/i);
-      if (match) {
-        return parseInt(match[1], 10);
+      // Try to match various retry-after patterns
+      const patterns = [
+        /retry.?after[:\s]*(\d+)/i,
+        /wait\s+(\d+)\s*seconds?/i,
+        /try again in\s+(\d+)/i,
+        /(\d+)\s*seconds?\s*(?:before|until)/i,
+      ];
+
+      for (const pattern of patterns) {
+        const match = error.message.match(pattern);
+        if (match) {
+          return parseInt(match[1], 10);
+        }
       }
     }
-    return 60;
+    return 60; // Default 60 seconds for rate limits
   }
 
   /**
@@ -582,23 +602,68 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
   private mapErrorCode(error: unknown): string {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
-      if (message.includes('401') || message.includes('api key')) {
+      if (
+        message.includes('401') ||
+        message.includes('api key') ||
+        message.includes('invalid_api_key')
+      ) {
         return 'auth_failed';
       }
-      if (message.includes('429') || message.includes('rate') || message.includes('quota')) {
+      if (
+        message.includes('429') ||
+        message.includes('rate') ||
+        message.includes('quota') ||
+        message.includes('exhausted') ||
+        message.includes('too many requests')
+      ) {
         return 'rate_limited';
       }
-      if (message.includes('context') || message.includes('too long')) {
+      if (
+        message.includes('context') ||
+        message.includes('too long') ||
+        message.includes('token')
+      ) {
         return 'context_too_long';
       }
-      if (message.includes('safety') || message.includes('blocked')) {
+      if (message.includes('safety') || message.includes('blocked') || message.includes('harm')) {
         return 'content_filtered';
       }
-      if (message.includes('500') || message.includes('503')) {
+      if (message.includes('500') || message.includes('503') || message.includes('internal')) {
         return 'server_error';
+      }
+      if (
+        message.includes('model') &&
+        (message.includes('not found') || message.includes('unavailable'))
+      ) {
+        return 'model_unavailable';
       }
     }
     return 'unknown';
+  }
+
+  /**
+   * Get a user-friendly error message based on error code
+   */
+  private getUserFriendlyMessage(code: string, originalMessage: string): string {
+    switch (code) {
+      case 'rate_limited':
+        return 'Google Gemini API rate limit reached. Please wait a moment and try again, or switch to a different model.';
+      case 'auth_failed':
+        return 'Google Gemini API authentication failed. Please check the API key configuration.';
+      case 'context_too_long':
+        return 'The conversation is too long for this model. Try starting a new conversation or using a model with a larger context window.';
+      case 'content_filtered':
+        return "The response was blocked by Google's safety filters. Please rephrase your request.";
+      case 'server_error':
+        return 'Google Gemini service encountered an error. Please try again in a moment.';
+      case 'model_unavailable':
+        return 'The selected Gemini model is currently unavailable. Please try a different model.';
+      default:
+        // Return sanitized original message for unknown errors
+        return originalMessage.length > 200
+          ? originalMessage.substring(0, 200) + '...'
+          : originalMessage;
+    }
   }
 }
 
