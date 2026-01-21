@@ -192,3 +192,44 @@ export {
 } from './context';
 
 export type { SummarizationOptions, SummarizationResult } from './context';
+
+// ============================================================================
+// PROVIDER SERVICE EXPORTS
+// ============================================================================
+
+export {
+  // Service class
+  ProviderService,
+  // Factory functions
+  getProviderService,
+  createProviderService,
+  // Convenience functions
+  isProviderAvailable as checkProviderAvailable,
+  getAvailableProviders as listAvailableProviders,
+  chat,
+} from './service';
+
+export type { ProviderChatOptions, ProviderChatResult, ProviderStatus } from './service';
+
+// ============================================================================
+// API INTEGRATION EXPORTS
+// ============================================================================
+
+export {
+  // Streaming helpers
+  createStreamingResponse,
+  createChatResponse,
+  // Route handler factory
+  createMultiProviderHandler,
+  // Utility functions
+  extractProviderFromRequest,
+  formatMessagesForProvider,
+  simplifyMessages,
+} from './api-integration';
+
+export type {
+  MultiProviderChatRequest,
+  MultiProviderChatResponse,
+  MultiProviderErrorResponse,
+  MultiProviderHandlerOptions,
+} from './api-integration';
