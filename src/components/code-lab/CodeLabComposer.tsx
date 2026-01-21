@@ -50,7 +50,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ATTACHMENTS = 10; // Maximum number of attachments
 
 // Model display names for the inline selector
-// Organized by provider: Claude, then OpenAI GPT
+// Organized by provider: Claude, OpenAI GPT, xAI Grok, DeepSeek
 const MODEL_DISPLAY_NAMES: Record<
   string,
   { name: string; icon: string; description?: string; provider?: string }
@@ -122,6 +122,62 @@ const MODEL_DISPLAY_NAMES: Record<
     icon: '💚',
     description: 'Ultra-hard reasoning/code',
     provider: 'openai',
+  },
+
+  // ========================================
+  // XAI GROK MODELS
+  // ========================================
+  'grok-4': {
+    name: 'Grok 4',
+    icon: '🔮',
+    description: 'Advanced reasoning ($3/$15)',
+    provider: 'xai',
+  },
+  'grok-4-1-fast-reasoning': {
+    name: 'Grok 4.1 Fast (R)',
+    icon: '⚡',
+    description: 'Reasoning, 2M context ($0.20/$0.50)',
+    provider: 'xai',
+  },
+  'grok-4-1-fast-non-reasoning': {
+    name: 'Grok 4.1 Fast',
+    icon: '⚡',
+    description: 'Fast general, 2M context ($0.20/$0.50)',
+    provider: 'xai',
+  },
+  'grok-4-fast-reasoning': {
+    name: 'Grok 4 Fast (R)',
+    icon: '⚡',
+    description: 'Cost-optimized reasoning ($0.20/$0.50)',
+    provider: 'xai',
+  },
+  'grok-4-fast-non-reasoning': {
+    name: 'Grok 4 Fast',
+    icon: '⚡',
+    description: 'Fast text tasks ($0.20/$0.50)',
+    provider: 'xai',
+  },
+  'grok-code-fast-1': {
+    name: 'Grok Code Fast',
+    icon: '💻',
+    description: 'Agentic coding ($0.20/$1.50)',
+    provider: 'xai',
+  },
+
+  // ========================================
+  // DEEPSEEK MODELS
+  // ========================================
+  'deepseek-chat': {
+    name: 'DeepSeek Chat',
+    icon: '🌊',
+    description: 'General tasks ($0.27/$1.10)',
+    provider: 'deepseek',
+  },
+  'deepseek-reasoner': {
+    name: 'DeepSeek Reasoner',
+    icon: '🧮',
+    description: 'Math, logic, coding ($0.55/$2.19)',
+    provider: 'deepseek',
   },
 };
 
@@ -515,6 +571,74 @@ export function CodeLabComposer({
               <div className="model-provider-header">OpenAI GPT</div>
               {Object.entries(MODEL_DISPLAY_NAMES)
                 .filter(([, { provider }]) => provider === 'openai')
+                .map(([modelId, { name, icon, description }]) => (
+                  <button
+                    key={modelId}
+                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                    onClick={() => {
+                      onModelChange(modelId);
+                      setModelSelectorOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={modelId === displayModelId}
+                  >
+                    <span className="model-icon">{icon}</span>
+                    <div className="model-info">
+                      <span className="model-name">{name}</span>
+                      {description && <span className="model-desc">{description}</span>}
+                    </div>
+                    {modelId === displayModelId && (
+                      <svg
+                        className="check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+
+              {/* xAI Grok Models */}
+              <div className="model-provider-header">xAI (Grok)</div>
+              {Object.entries(MODEL_DISPLAY_NAMES)
+                .filter(([, { provider }]) => provider === 'xai')
+                .map(([modelId, { name, icon, description }]) => (
+                  <button
+                    key={modelId}
+                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                    onClick={() => {
+                      onModelChange(modelId);
+                      setModelSelectorOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={modelId === displayModelId}
+                  >
+                    <span className="model-icon">{icon}</span>
+                    <div className="model-info">
+                      <span className="model-name">{name}</span>
+                      {description && <span className="model-desc">{description}</span>}
+                    </div>
+                    {modelId === displayModelId && (
+                      <svg
+                        className="check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+
+              {/* DeepSeek Models */}
+              <div className="model-provider-header">DeepSeek</div>
+              {Object.entries(MODEL_DISPLAY_NAMES)
+                .filter(([, { provider }]) => provider === 'deepseek')
                 .map(([modelId, { name, icon, description }]) => (
                   <button
                     key={modelId}

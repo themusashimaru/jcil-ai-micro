@@ -484,12 +484,11 @@ interface StatusBarProps {
 
 ## Model Configuration
 
-Code Lab uses **Claude Opus 4.5** for maximum capability:
+Code Lab supports multiple AI providers with different models for various use cases:
+
+### Default Model Selection
 
 ```typescript
-// src/lib/anthropic/client.ts
-const CODE_LAB_MODEL = 'claude-opus-4-5-20251101';
-
 // Model selection by use case
 | Use Case        | Model             | Reasoning                    |
 |-----------------|-------------------|------------------------------|
@@ -497,6 +496,54 @@ const CODE_LAB_MODEL = 'claude-opus-4-5-20251101';
 | Bug Oracle      | Sonnet 4.5        | Good balance for analysis    |
 | App Generator   | Sonnet 4.5        | Structured output            |
 | Regular Chat    | Haiku 4.5         | Fast, cost-effective         |
+```
+
+### Supported Providers & Pricing
+
+#### Claude (Anthropic)
+
+| Model             | Context | Input (per 1M) | Output (per 1M) | Tier     |
+| ----------------- | ------- | -------------- | --------------- | -------- |
+| Claude Opus 4.5   | 200K    | $15.00         | $75.00          | Premium  |
+| Claude Sonnet 4.5 | 200K    | $3.00          | $15.00          | Standard |
+| Claude Haiku 4.5  | 200K    | $0.80          | $4.00           | Budget   |
+
+#### OpenAI GPT
+
+| Model         | Context | Input (per 1M) | Output (per 1M) | Tier    |
+| ------------- | ------- | -------------- | --------------- | ------- |
+| GPT-5.2       | 200K    | $5.00          | $15.00          | Premium |
+| GPT-5.2 Pro   | 200K    | $10.00         | $30.00          | Premium |
+| GPT-5.2 Codex | 200K    | $5.00          | $15.00          | Premium |
+| GPT-5 Mini    | 128K    | $0.50          | $1.50           | Budget  |
+| GPT-5 Nano    | 64K     | $0.10          | $0.30           | Budget  |
+
+#### xAI (Grok)
+
+| Model                         | Context | Input (per 1M) | Output (per 1M) | Tier     | Best For                     |
+| ----------------------------- | ------- | -------------- | --------------- | -------- | ---------------------------- |
+| Grok 4                        | 256K    | $3.00          | $15.00          | Premium  | Advanced reasoning           |
+| Grok 4.1 Fast (Reasoning)     | 2M      | $0.20          | $0.50           | Budget   | Efficient reasoning w/ tools |
+| Grok 4.1 Fast (Non-Reasoning) | 2M      | $0.20          | $0.50           | Budget   | Fast general tasks           |
+| Grok 4 Fast (Reasoning)       | 2M      | $0.20          | $0.50           | Budget   | Cost-optimized reasoning     |
+| Grok 4 Fast (Non-Reasoning)   | 2M      | $0.20          | $0.50           | Budget   | Fast text tasks              |
+| Grok Code Fast                | 256K    | $0.20          | $1.50           | Standard | Agentic coding               |
+
+#### DeepSeek
+
+| Model             | Context | Input (per 1M)                   | Output (per 1M) | Tier     | Best For                                 |
+| ----------------- | ------- | -------------------------------- | --------------- | -------- | ---------------------------------------- |
+| DeepSeek Chat     | 128K    | $0.27 (cache miss) / $0.07 (hit) | $1.10           | Budget   | General conversational & reasoning       |
+| DeepSeek Reasoner | 128K    | $0.55 (cache miss) / $0.14 (hit) | $2.19           | Standard | Math, logic, structured analysis, coding |
+
+### Environment Variables
+
+```bash
+# Required for each provider
+ANTHROPIC_API_KEY=           # Claude models
+OPENAI_API_KEY=              # OpenAI GPT models
+XAI_API_KEY=                 # xAI Grok models
+DEEPSEEK_API_KEY=            # DeepSeek models
 ```
 
 ---
