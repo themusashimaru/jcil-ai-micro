@@ -143,13 +143,20 @@ describe('Provider Registry', () => {
 
   describe('estimateCost', () => {
     it('should estimate cost for token usage', () => {
-      const cost = estimateCost('claude', 1000, 500);
+      const claudeModel = getDefaultModel('claude');
+      const cost = estimateCost('claude', claudeModel?.id ?? 'claude-sonnet-4-20250514', 1000, 500);
       // Cost should be a number (may be 0 if model not found)
       expect(typeof cost).toBe('number');
       expect(cost).toBeGreaterThanOrEqual(0);
 
       // DeepSeek should also return a number
-      const deepseekCost = estimateCost('deepseek', 1000, 500);
+      const deepseekModel = getDefaultModel('deepseek');
+      const deepseekCost = estimateCost(
+        'deepseek',
+        deepseekModel?.id ?? 'deepseek-chat',
+        1000,
+        500
+      );
       expect(typeof deepseekCost).toBe('number');
     });
   });
@@ -238,28 +245,28 @@ describe('Provider Capabilities', () => {
 
   describe('findProvidersForRequirements', () => {
     it('should find providers matching requirements', () => {
-      const providers = findProvidersForRequirements({
+      const providerIds = findProvidersForRequirements({
         vision: true,
         toolCalling: true,
       });
 
       // Should find at least one provider with these capabilities
-      expect(providers.length).toBeGreaterThanOrEqual(0);
+      expect(providerIds.length).toBeGreaterThanOrEqual(0);
       // If we find providers, they should match the requirements
-      for (const provider of providers) {
-        expect(hasCapability(provider.id, 'vision')).toBe(true);
-        expect(hasCapability(provider.id, 'toolCalling')).toBe(true);
+      // findProvidersForRequirements returns ProviderId[] directly
+      for (const providerId of providerIds) {
+        expect(hasCapability(providerId, 'vision')).toBe(true);
+        expect(hasCapability(providerId, 'toolCalling')).toBe(true);
       }
     });
 
-    it('should filter by pricing tier', () => {
-      const budgetProviders = findProvidersForRequirements({
+    it('should filter by streaming capability', () => {
+      const streamingProviders = findProvidersForRequirements({
         streaming: true,
-        maxTier: 'budget',
       });
 
-      // Should return array (may be empty if no budget providers match)
-      expect(Array.isArray(budgetProviders)).toBe(true);
+      // Should return array (may be empty if no providers match)
+      expect(Array.isArray(streamingProviders)).toBe(true);
     });
   });
 
@@ -280,9 +287,8 @@ describe('Provider Capabilities', () => {
     it('should prefer current provider when suitable', () => {
       const simpleConversation: UnifiedMessage[] = [{ role: 'user', content: 'Hello' }];
 
-      const best = getBestProviderForConversation(simpleConversation, {
-        currentProvider: 'deepseek',
-      });
+      // getBestProviderForConversation takes preferredProvider as second arg directly
+      const best = getBestProviderForConversation(simpleConversation, 'deepseek');
 
       // Implementation may or may not prefer current provider
       // Just verify we get a valid provider back
@@ -429,7 +435,8 @@ describe('Context Handoff', () => {
         { role: 'assistant', content: 'Hi there!' },
       ];
 
-      const prepared = prepareMessagesForProvider(messages, 'claude', 'openai');
+      // prepareMessagesForProvider takes (messages, toProvider)
+      const prepared = prepareMessagesForProvider(messages, 'openai');
 
       // Should return prepared messages (implementation may vary on metadata)
       expect(prepared.length).toBe(2);
@@ -448,7 +455,8 @@ describe('Context Handoff', () => {
         },
       ];
 
-      const prepared = prepareMessagesForProvider(messages, 'claude', 'deepseek');
+      // prepareMessagesForProvider takes (messages, toProvider)
+      const prepared = prepareMessagesForProvider(messages, 'deepseek');
 
       // Should return messages (implementation handles image stripping)
       expect(prepared.length).toBe(1);
@@ -466,7 +474,9 @@ describe('Context Handoff', () => {
           content: 'This is a message with some content that takes up tokens. '.repeat(50),
         }));
 
-      const needs = needsSummarization(longConversation, 'deepseek', 0.5);
+      // needsSummarization(messages, toProvider, modelId?, threshold?)
+      // threshold is the 4th arg, modelId (optional string) is 3rd
+      const needs = needsSummarization(longConversation, 'deepseek', undefined, 0.5);
       // For very long conversations, should likely need summarization
       // But this depends on actual context window sizes
       expect(typeof needs).toBe('boolean');
@@ -478,7 +488,8 @@ describe('Context Handoff', () => {
         { role: 'assistant', content: 'Hi!' },
       ];
 
-      const needs = needsSummarization(shortConversation, 'claude', 0.8);
+      // needsSummarization(messages, toProvider, modelId?, threshold?)
+      const needs = needsSummarization(shortConversation, 'claude', undefined, 0.8);
       expect(needs).toBe(false);
     });
   });
