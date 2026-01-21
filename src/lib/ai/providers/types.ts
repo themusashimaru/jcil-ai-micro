@@ -23,7 +23,7 @@ export type ProviderId = 'claude' | 'openai' | 'xai' | 'deepseek' | 'google';
  * Provider API family - determines which adapter to use
  * - anthropic: Claude (unique message/tool format)
  * - openai-compatible: OpenAI, xAI, DeepSeek (shared format)
- * - google: Gemini (future)
+ * - google: Gemini
  */
 export type ProviderFamily = 'anthropic' | 'openai-compatible' | 'google';
 

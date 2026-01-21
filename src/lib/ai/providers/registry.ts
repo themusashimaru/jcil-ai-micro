@@ -91,15 +91,6 @@ const OPENAI_CONFIG: ProviderConfig = {
       isDefault: true,
     },
     {
-      id: 'gpt-5.2-pro',
-      name: 'GPT-5.2 Pro',
-      contextWindow: 200000,
-      maxOutputTokens: 64000,
-      inputPricePer1M: 10,
-      outputPricePer1M: 30,
-      tier: 'premium',
-    },
-    {
       id: 'gpt-5.2-codex',
       name: 'GPT-5.2 Codex',
       contextWindow: 200000,
@@ -241,16 +232,6 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'deepseek-chat',
-      name: 'DeepSeek Chat',
-      contextWindow: 128000,
-      maxOutputTokens: 16384,
-      inputPricePer1M: 0.27,
-      outputPricePer1M: 1.1,
-      tier: 'budget',
-      isDefault: true,
-    },
-    {
       id: 'deepseek-reasoner',
       name: 'DeepSeek Reasoner',
       contextWindow: 128000,
@@ -258,6 +239,7 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
       inputPricePer1M: 0.55,
       outputPricePer1M: 2.19,
       tier: 'standard',
+      isDefault: true,
     },
   ],
 };
@@ -276,7 +258,7 @@ const GOOGLE_CONFIG: ProviderConfig = {
   id: 'google',
   name: 'Google (Gemini)',
   family: 'google',
-  apiKeyEnv: 'GOOGLE_API_KEY',
+  apiKeyEnv: 'GEMINI_API_KEY',
   icon: 'google',
   description: 'Gemini models with massive context windows from Google',
   capabilities: {

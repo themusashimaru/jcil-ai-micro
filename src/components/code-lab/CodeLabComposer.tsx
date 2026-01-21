@@ -117,12 +117,6 @@ const MODEL_DISPLAY_NAMES: Record<
     description: 'Budget coding / tooling',
     provider: 'openai',
   },
-  'gpt-5.2-pro': {
-    name: 'GPT-5.2 Pro',
-    icon: '💚',
-    description: 'Ultra-hard reasoning/code',
-    provider: 'openai',
-  },
 
   // ========================================
   // XAI GROK MODELS
@@ -167,12 +161,6 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   // DEEPSEEK MODELS
   // ========================================
-  'deepseek-chat': {
-    name: 'DeepSeek Chat',
-    icon: '🌊',
-    description: 'General tasks ($0.27/$1.10)',
-    provider: 'deepseek',
-  },
   'deepseek-reasoner': {
     name: 'DeepSeek Reasoner',
     icon: '🧮',
