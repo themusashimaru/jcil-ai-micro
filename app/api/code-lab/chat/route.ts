@@ -1587,13 +1587,25 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             if (lowerError.includes('timeout')) {
               userMessage = '\n\n*[Response interrupted: Connection timed out. Please try again.]*';
             } else if (
-              lowerError.includes('api_key') ||
-              lowerError.includes('api key') ||
               lowerError.includes('not configured') ||
-              lowerError.includes('gemini_api_key') ||
-              lowerError.includes('authentication')
+              lowerError.includes('is not set') ||
+              lowerError.includes('missing api key') ||
+              lowerError.includes('no api key')
             ) {
+              // Key is genuinely not configured - admin needs to add it
               userMessage = `\n\n**API Configuration Error**\n\nThe ${providerId?.toUpperCase() || 'provider'} API key is not configured. Please contact the administrator to set up the API key.`;
+            } else if (
+              lowerError.includes('invalid api key') ||
+              lowerError.includes('invalid_api_key') ||
+              lowerError.includes('incorrect api key') ||
+              lowerError.includes('api key') ||
+              lowerError.includes('api_key') ||
+              lowerError.includes('authentication') ||
+              lowerError.includes('unauthorized') ||
+              lowerError.includes('401')
+            ) {
+              // Key exists but is invalid/expired - different message
+              userMessage = `\n\n**API Authentication Error**\n\nThe ${providerId?.toUpperCase() || 'provider'} API key authentication failed. The key may be invalid, expired, or lacking permissions. Please contact the administrator.`;
             } else if (lowerError.includes('model') && lowerError.includes('not found')) {
               userMessage = `\n\n**Model Error**\n\nThe model "${selectedModel}" was not found. It may be unavailable or incorrectly configured.`;
             } else if (
