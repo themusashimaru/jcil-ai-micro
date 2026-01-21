@@ -42,6 +42,7 @@
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
     "@e2b/code-interpreter": "^2.3.3",
+    "@google/generative-ai": "^0.24.1",
     "@octokit/rest": "^22.0.1",
     "@sentry/nextjs": "^10.32.1",
     "@simplewebauthn/browser": "^13.2.2",

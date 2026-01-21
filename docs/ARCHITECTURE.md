@@ -520,6 +520,7 @@ Code Lab supports multiple AI providers with configurable model selection:
 | **OpenAI**             | GPT-5.2, GPT-5.2 Pro, GPT-5.2 Codex, GPT-5 Mini/Nano             | $0.10-$10 input / $0.30-$30 output     | 64K-200K |
 | **xAI (Grok)**         | Grok 4, Grok 4.1 Fast (R/NR), Grok 4 Fast (R/NR), Grok Code Fast | $0.20-$3 input / $0.50-$15 output      | 256K-2M  |
 | **DeepSeek**           | DeepSeek Chat, DeepSeek Reasoner                                 | $0.27-$0.55 input / $1.10-$2.19 output | 128K     |
+| **Google (Gemini)**    | Gemini 2.0 Flash, Gemini 1.5 Pro, Gemini 1.5 Flash               | $0.075-$1.25 input / $0.30-$5 output   | 1M-2M    |
 
 Configuration: `src/lib/ai/providers/registry.ts`
 

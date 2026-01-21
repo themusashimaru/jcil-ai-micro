@@ -8,6 +8,7 @@
 import type { ProviderId, AIAdapter } from '../types';
 import { createAnthropicAdapter } from './anthropic';
 import { createOpenAIAdapter, createXAIAdapter, createDeepSeekAdapter } from './openai-compatible';
+import { createGoogleAdapter } from './google';
 
 // ============================================================================
 // ADAPTER CACHE
@@ -60,6 +61,10 @@ export function createAdapter(providerId: ProviderId, forceNew: boolean = false)
       adapter = createDeepSeekAdapter();
       break;
 
+    case 'google':
+      adapter = createGoogleAdapter();
+      break;
+
     default:
       throw new Error(`Unsupported provider: ${providerId}`);
   }
@@ -108,4 +113,11 @@ export function isOpenAICompatible(providerId: ProviderId): boolean {
  */
 export function isAnthropicProvider(providerId: ProviderId): boolean {
   return providerId === 'claude';
+}
+
+/**
+ * Determine if a provider uses the Google Gemini API
+ */
+export function isGoogleProvider(providerId: ProviderId): boolean {
+  return providerId === 'google';
 }

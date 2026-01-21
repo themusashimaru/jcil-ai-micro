@@ -262,6 +262,61 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   ],
 };
 
+/**
+ * Google (Gemini) Provider Configuration
+ *
+ * Pricing (per 1M tokens):
+ * - gemini-2.0-flash: Input $0.10 / Output $0.40 (1M context)
+ * - gemini-1.5-pro: Input $1.25 / Output $5.00 (2M context)
+ * - gemini-1.5-flash: Input $0.075 / Output $0.30 (1M context)
+ */
+const GOOGLE_CONFIG: ProviderConfig = {
+  id: 'google',
+  name: 'Google (Gemini)',
+  family: 'google',
+  apiKeyEnv: 'GOOGLE_API_KEY',
+  icon: 'google',
+  description: 'Gemini models with massive context windows from Google',
+  capabilities: {
+    vision: true,
+    parallelToolCalls: true,
+    streaming: true,
+    systemMessages: true,
+    jsonMode: true,
+    toolCalling: true,
+  },
+  models: [
+    {
+      id: 'gemini-2.0-flash',
+      name: 'Gemini 2.0 Flash',
+      contextWindow: 1000000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 0.1,
+      outputPricePer1M: 0.4,
+      tier: 'budget',
+      isDefault: true,
+    },
+    {
+      id: 'gemini-1.5-pro',
+      name: 'Gemini 1.5 Pro',
+      contextWindow: 2000000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 1.25,
+      outputPricePer1M: 5.0,
+      tier: 'standard',
+    },
+    {
+      id: 'gemini-1.5-flash',
+      name: 'Gemini 1.5 Flash',
+      contextWindow: 1000000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 0.075,
+      outputPricePer1M: 0.3,
+      tier: 'budget',
+    },
+  ],
+};
+
 // ============================================================================
 // PROVIDER REGISTRY
 // ============================================================================
@@ -274,6 +329,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   openai: OPENAI_CONFIG,
   xai: XAI_CONFIG,
   deepseek: DEEPSEEK_CONFIG,
+  google: GOOGLE_CONFIG,
 };
 
 // ============================================================================
