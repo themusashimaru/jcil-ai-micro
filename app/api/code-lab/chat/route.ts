@@ -1609,11 +1609,26 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             } else if (lowerError.includes('model') && lowerError.includes('not found')) {
               userMessage = `\n\n**Model Error**\n\nThe model "${selectedModel}" was not found. It may be unavailable or incorrectly configured.`;
             } else if (
-              lowerError.includes('rate') ||
+              lowerError.includes('429') ||
               lowerError.includes('quota') ||
-              lowerError.includes('429')
+              lowerError.includes('rate limit') ||
+              lowerError.includes('rate_limit') ||
+              lowerError.includes('ratelimit') ||
+              lowerError.includes('too many requests') ||
+              lowerError.includes('resource_exhausted')
             ) {
+              // Note: Avoid matching just 'rate' alone - it appears in URLs like "streamGenerateContent"
               userMessage = `\n\n**Rate Limit**\n\nThe ${providerId || 'provider'} API rate limit has been reached. Please wait a moment and try again.`;
+            } else if (
+              lowerError.includes('400') ||
+              lowerError.includes('invalid_argument') ||
+              lowerError.includes('invalid argument') ||
+              lowerError.includes('invalid value') ||
+              lowerError.includes('bad request') ||
+              lowerError.includes('malformed')
+            ) {
+              // Handle 400 Bad Request / Invalid Argument errors (common with preview models)
+              userMessage = `\n\n**Request Error**\n\nThe request format is not supported by this model. This can happen with preview models that have different API requirements. Please try a stable model.`;
             } else if (lowerError.includes('safety') || lowerError.includes('blocked')) {
               userMessage =
                 '\n\n**Content Filtered**\n\nThe response was blocked by safety filters. Please rephrase your request.';
