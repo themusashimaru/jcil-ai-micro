@@ -189,3 +189,113 @@ Apply the database migration:
 ## Keyboard Shortcuts
 
 - `Cmd+Shift+P` / `Ctrl+Shift+P` - Open provider selector
+
+## Agentic Interface
+
+The multi-provider system includes a simplified agentic interface for building autonomous agents. This allows all Code Lab agents (CodeAgent, ResearchAgent, ToolOrchestrator) to work with any provider.
+
+### Simple Chat (Brain Modules)
+
+For AI modules that just need text responses:
+
+```typescript
+import { agentChat, ProviderId } from '@/lib/ai/providers';
+
+class MyBrainModule {
+  private provider: ProviderId = 'claude';
+
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
+
+  async analyze(input: string): Promise<string> {
+    const response = await agentChat([{ role: 'user', content: input }], {
+      provider: this.provider,
+      maxTokens: 4000,
+    });
+    return response.text;
+  }
+}
+```
+
+### Tool Calling (Autonomous Agents)
+
+For agentic loops that need to call tools:
+
+```typescript
+import {
+  agentChatWithTools,
+  buildToolResultMessage,
+  buildToolCallMessage,
+  ProviderId,
+  UnifiedMessage,
+  UnifiedTool,
+} from '@/lib/ai/providers';
+
+class MyAgent {
+  private provider: ProviderId = 'claude';
+  private tools: UnifiedTool[] = [
+    {
+      name: 'read_file',
+      description: 'Read contents of a file',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File path to read' },
+        },
+        required: ['path'],
+      },
+    },
+  ];
+
+  async execute(task: string): Promise<string> {
+    const messages: UnifiedMessage[] = [{ role: 'user', content: task }];
+
+    while (true) {
+      const response = await agentChatWithTools(messages, this.tools, {
+        provider: this.provider,
+        maxTokens: 8192,
+      });
+
+      // Done - no more tool calls
+      if (response.done) {
+        return response.text;
+      }
+
+      // Execute tool calls
+      const results = [];
+      for (const call of response.toolCalls) {
+        const result = await this.executeTool(call.name, call.arguments);
+        results.push({
+          toolCallId: call.id,
+          content: JSON.stringify(result),
+        });
+      }
+
+      // Add to message history
+      messages.push(buildToolCallMessage(response.toolCalls));
+      messages.push(buildToolResultMessage(results));
+    }
+  }
+}
+```
+
+### Updated Agent Files
+
+All Code Lab agents now use the multi-provider system:
+
+| Module               | Location                                    | Uses                 |
+| -------------------- | ------------------------------------------- | -------------------- |
+| IntentAnalyzer       | `src/agents/code/brain/IntentAnalyzer.ts`   | `agentChat`          |
+| ProjectPlanner       | `src/agents/code/brain/ProjectPlanner.ts`   | `agentChat`          |
+| CodeGenerator        | `src/agents/code/brain/CodeGenerator.ts`    | `agentChat`          |
+| ErrorAnalyzer        | `src/agents/code/brain/ErrorAnalyzer.ts`    | `agentChat`          |
+| AutoFixer            | `src/agents/code/brain/AutoFixer.ts`        | `agentChat`          |
+| TestGenerator        | `src/agents/code/brain/TestGenerator.ts`    | `agentChat`          |
+| DocGenerator         | `src/agents/code/brain/DocGenerator.ts`     | `agentChat`          |
+| SecurityScanner      | `src/agents/code/brain/SecurityScanner.ts`  | `agentChat`          |
+| PerformanceAnalyzer  | `src/agents/code/brain/PerformanceAnalyzer` | `agentChat`          |
+| Reasoner             | `src/agents/code/brain/Reasoner.ts`         | `agentChat`          |
+| **ToolOrchestrator** | `src/agents/code/tools/ToolOrchestrator.ts` | `agentChatWithTools` |
+
+Each module has a `setProvider(provider: ProviderId)` method to switch providers.

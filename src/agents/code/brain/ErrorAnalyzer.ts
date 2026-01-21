@@ -8,7 +8,7 @@
  * Uses Opus 4.5 for maximum reasoning power.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import {
   CodeError,
   ErrorAnalysis,
@@ -18,13 +18,11 @@ import {
   SandboxTestResult,
 } from '../../core/types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
-
 export class ErrorAnalyzer {
-  // Opus 4.5 for maximum troubleshooting power
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Parse errors from sandbox output
@@ -207,17 +205,15 @@ export class ErrorAnalyzer {
     plan: ProjectPlan
   ): Promise<ErrorAnalysis> {
     // Find the relevant file
-    const relevantFile = files.find(f =>
-      f.path === error.file ||
-      f.path.endsWith(error.file) ||
-      error.file.endsWith(f.path)
+    const relevantFile = files.find(
+      (f) => f.path === error.file || f.path.endsWith(error.file) || error.file.endsWith(f.path)
     );
 
     const fileContent = relevantFile?.content || 'File not found';
     const context = files
-      .filter(f => f.path !== error.file)
+      .filter((f) => f.path !== error.file)
       .slice(0, 3)
-      .map(f => `// ${f.path}\n${f.content.substring(0, 500)}...`)
+      .map((f) => `// ${f.path}\n${f.content.substring(0, 500)}...`)
       .join('\n\n');
 
     const prompt = `You are a senior software engineer debugging an error. Analyze deeply and provide a fix.
@@ -269,13 +265,12 @@ ANALYSIS RULES:
 OUTPUT ONLY THE JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 4000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      const text = response.text;
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No JSON found in response');
@@ -354,7 +349,7 @@ OUTPUT ONLY THE JSON.`;
     const limitedErrors = errors.slice(0, 5);
 
     const analyses = await Promise.all(
-      limitedErrors.map(error => this.analyzeError(error, files, intent, plan))
+      limitedErrors.map((error) => this.analyzeError(error, files, intent, plan))
     );
 
     // Sort by confidence (high first) and whether it requires replan (no replan first)
@@ -392,10 +387,10 @@ OUTPUT ONLY THE JSON.`;
     if (errors.length > 5) return true;
 
     // Replan if any analysis suggests it
-    if (analyses.some(a => a.requiresReplan)) return true;
+    if (analyses.some((a) => a.requiresReplan)) return true;
 
     // Replan if all fixes are low confidence
-    if (analyses.length > 0 && analyses.every(a => a.confidence === 'low')) return true;
+    if (analyses.length > 0 && analyses.every((a) => a.confidence === 'low')) return true;
 
     return false;
   }

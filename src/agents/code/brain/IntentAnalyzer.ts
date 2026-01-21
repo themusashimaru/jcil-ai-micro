@@ -13,9 +13,13 @@
  * - Foresees potential issues and advises preemptively
  * - Suggests improvements and best practices
  * - Thinks critically like Claude Code
+ *
+ * MULTI-PROVIDER SUPPORT:
+ * - Works with any configured AI provider (Claude, OpenAI, xAI, DeepSeek)
+ * - User picks provider → same capabilities
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { CodeIntent, ProjectType, TechnologyStack, AgentContext } from '../../core/types';
 
 /**
@@ -23,7 +27,7 @@ import { CodeIntent, ProjectType, TechnologyStack, AgentContext } from '../../co
  */
 export interface ClarificationResult {
   needsClarification: boolean;
-  clarityScore: number;  // 0-100, below 60 needs clarification
+  clarityScore: number; // 0-100, below 60 needs clarification
   questions: ClarifyingQuestion[];
   assumptions: string[];
   potentialIssues: string[];
@@ -36,30 +40,31 @@ export interface ClarificationResult {
 export interface ClarifyingQuestion {
   question: string;
   reason: string;
-  options?: string[];  // Suggested answers
+  options?: string[]; // Suggested answers
   priority: 'critical' | 'important' | 'nice-to-have';
 }
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
-
 export class CodeIntentAnalyzer {
-  // Claude Opus 4.5 for comprehensive intent analysis
-  private model = 'claude-opus-4-5-20251101';
+  // Provider to use (can be changed by user)
+  private provider: ProviderId = 'claude';
+
+  /**
+   * Set the AI provider to use
+   */
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * PROACTIVE CHECK: Determine if request needs clarification
    * A senior engineer would ask questions before diving in
    */
-  async checkClarification(
-    request: string,
-    context: AgentContext
-  ): Promise<ClarificationResult> {
-    const conversationContext = context.previousMessages
-      ?.slice(-5)
-      .map(m => `${m.role}: ${m.content}`)
-      .join('\n') || '';
+  async checkClarification(request: string, context: AgentContext): Promise<ClarificationResult> {
+    const conversationContext =
+      context.previousMessages
+        ?.slice(-5)
+        .map((m) => `${m.role}: ${m.content}`)
+        .join('\n') || '';
 
     const prompt = `You are a senior software engineer receiving a project request. Before building anything, assess if you need more information.
 
@@ -113,13 +118,12 @@ BE HELPFUL, NOT ANNOYING:
 OUTPUT ONLY THE JSON OBJECT.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
+      const response = await agentChat([{ role: 'user', content: prompt }], {
+        provider: this.provider,
+        maxTokens: 2000,
       });
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return this.createDefaultClarificationResult();
@@ -167,10 +171,11 @@ OUTPUT ONLY THE JSON OBJECT.`;
    */
   async analyze(request: string, context: AgentContext): Promise<CodeIntent> {
     // Build context from previous messages
-    const conversationContext = context.previousMessages
-      ?.slice(-5)
-      .map(m => `${m.role}: ${m.content}`)
-      .join('\n') || '';
+    const conversationContext =
+      context.previousMessages
+        ?.slice(-5)
+        .map((m) => `${m.role}: ${m.content}`)
+        .join('\n') || '';
 
     const prompt = `You are a senior software architect with deep expertise in all programming languages and frameworks. Analyze this user request to understand EXACTLY what they want to build.
 
@@ -228,13 +233,12 @@ ANALYSIS RULES:
 OUTPUT ONLY THE JSON OBJECT.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
+      const response = await agentChat([{ role: 'user', content: prompt }], {
+        provider: this.provider,
+        maxTokens: 4000,
       });
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No JSON found in response');
@@ -274,8 +278,16 @@ OUTPUT ONLY THE JSON OBJECT.`;
    */
   private validateProjectType(type: unknown): ProjectType {
     const valid: ProjectType[] = [
-      'web_app', 'api', 'cli', 'library', 'script',
-      'full_stack', 'mobile', 'extension', 'automation', 'data'
+      'web_app',
+      'api',
+      'cli',
+      'library',
+      'script',
+      'full_stack',
+      'mobile',
+      'extension',
+      'automation',
+      'data',
     ];
     return valid.includes(type as ProjectType) ? (type as ProjectType) : 'unknown';
   }
@@ -294,7 +306,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
    * Validate and build technology stack
    */
   private validateTechStack(tech: unknown): TechnologyStack {
-    const t = tech as Record<string, unknown> || {};
+    const t = (tech as Record<string, unknown>) || {};
     return {
       primary: String(t.primary || 'TypeScript'),
       secondary: (t.secondary as string[]) || [],
@@ -316,7 +328,8 @@ OUTPUT ONLY THE JSON OBJECT.`;
     // Basic heuristics for fallback
     const lower = request.toLowerCase();
     const isApi = lower.includes('api') || lower.includes('backend') || lower.includes('server');
-    const isCli = lower.includes('cli') || lower.includes('command line') || lower.includes('terminal');
+    const isCli =
+      lower.includes('cli') || lower.includes('command line') || lower.includes('terminal');
     const isScript = lower.includes('script') || lower.includes('automate') || request.length < 100;
     const isPython = lower.includes('python');
 
@@ -362,18 +375,34 @@ OUTPUT ONLY THE JSON OBJECT.`;
     ];
 
     // Check patterns
-    if (codePatterns.some(p => p.test(message))) {
+    if (codePatterns.some((p) => p.test(message))) {
       return true;
     }
 
     // Keyword density check
     const codeKeywords = [
-      'code', 'build', 'create', 'app', 'api', 'function', 'class',
-      'typescript', 'javascript', 'python', 'react', 'node', 'express',
-      'github', 'npm', 'package', 'deploy', 'database', 'endpoint'
+      'code',
+      'build',
+      'create',
+      'app',
+      'api',
+      'function',
+      'class',
+      'typescript',
+      'javascript',
+      'python',
+      'react',
+      'node',
+      'express',
+      'github',
+      'npm',
+      'package',
+      'deploy',
+      'database',
+      'endpoint',
     ];
 
-    const matchCount = codeKeywords.filter(k => lower.includes(k)).length;
+    const matchCount = codeKeywords.filter((k) => lower.includes(k)).length;
     return matchCount >= 2;
   }
 }

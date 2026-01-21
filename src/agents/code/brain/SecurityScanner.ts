@@ -14,13 +14,9 @@
  * This is what separates amateur code from production-ready code.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { GeneratedFile } from '../../core/types';
 import { AgentStreamCallback } from '../../core/types';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // ============================================================================
 // TYPES
@@ -35,8 +31,8 @@ export interface SecurityVulnerability {
   file: string;
   line?: number;
   code?: string;
-  cwe?: string;  // Common Weakness Enumeration
-  owasp?: string;  // OWASP category
+  cwe?: string; // Common Weakness Enumeration
+  owasp?: string; // OWASP category
   fix: {
     description: string;
     code?: string;
@@ -46,26 +42,26 @@ export interface SecurityVulnerability {
 }
 
 export type VulnerabilityType =
-  | 'injection'           // SQL, NoSQL, OS command injection
-  | 'xss'                 // Cross-site scripting
-  | 'csrf'                // Cross-site request forgery
-  | 'auth'                // Authentication issues
-  | 'access-control'      // Broken access control
-  | 'crypto'              // Cryptographic failures
-  | 'secrets'             // Exposed secrets
-  | 'validation'          // Input validation
-  | 'dependencies'        // Vulnerable dependencies
-  | 'configuration'       // Security misconfiguration
-  | 'logging'             // Insufficient logging
-  | 'ssrf'                // Server-side request forgery
-  | 'path-traversal'      // Path traversal
+  | 'injection' // SQL, NoSQL, OS command injection
+  | 'xss' // Cross-site scripting
+  | 'csrf' // Cross-site request forgery
+  | 'auth' // Authentication issues
+  | 'access-control' // Broken access control
+  | 'crypto' // Cryptographic failures
+  | 'secrets' // Exposed secrets
+  | 'validation' // Input validation
+  | 'dependencies' // Vulnerable dependencies
+  | 'configuration' // Security misconfiguration
+  | 'logging' // Insufficient logging
+  | 'ssrf' // Server-side request forgery
+  | 'path-traversal' // Path traversal
   | 'prototype-pollution' // JavaScript prototype pollution
-  | 'deserialization'     // Insecure deserialization
-  | 'race-condition'      // Race conditions
+  | 'deserialization' // Insecure deserialization
+  | 'race-condition' // Race conditions
   | 'other';
 
 export interface SecurityScanResult {
-  overallScore: number;  // 0-100 (100 = secure)
+  overallScore: number; // 0-100 (100 = secure)
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   vulnerabilities: SecurityVulnerability[];
   summary: {
@@ -173,7 +169,8 @@ const SECURITY_PATTERNS: {
   // Secrets Exposure
   {
     type: 'secrets',
-    pattern: /(?:api[_-]?key|apikey|secret|password|token|auth)['"]\s*[:=]\s*['"][A-Za-z0-9+/=]{20,}/i,
+    pattern:
+      /(?:api[_-]?key|apikey|secret|password|token|auth)['"]\s*[:=]\s*['"][A-Za-z0-9+/=]{20,}/i,
     severity: 'critical',
     title: 'Hardcoded Secret',
     description: 'Hardcoded API keys, passwords, or tokens detected in source code.',
@@ -249,7 +246,8 @@ const SECURITY_PATTERNS: {
   // Path Traversal
   {
     type: 'path-traversal',
-    pattern: /(?:readFile|readFileSync|createReadStream)\s*\([^)]*(?:req\.|params\.|query\.|body\.)/,
+    pattern:
+      /(?:readFile|readFileSync|createReadStream)\s*\([^)]*(?:req\.|params\.|query\.|body\.)/,
     severity: 'high',
     title: 'Path Traversal Risk',
     description: 'Reading files with user-provided paths can lead to path traversal.',
@@ -354,15 +352,15 @@ const SECURITY_PATTERNS: {
 // ============================================================================
 
 export class SecurityScanner {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Scan files for security vulnerabilities
    */
-  async scan(
-    files: GeneratedFile[],
-    onStream?: AgentStreamCallback
-  ): Promise<SecurityScanResult> {
+  async scan(files: GeneratedFile[], onStream?: AgentStreamCallback): Promise<SecurityScanResult> {
     const startTime = Date.now();
     const vulnerabilities: SecurityVulnerability[] = [];
 
@@ -388,12 +386,13 @@ export class SecurityScanner {
     }
 
     // Step 2: AI-powered deep analysis for critical files
-    const criticalFiles = files.filter(f =>
-      f.path.includes('auth') ||
-      f.path.includes('api') ||
-      f.path.includes('server') ||
-      f.path.includes('middleware') ||
-      f.path.includes('route')
+    const criticalFiles = files.filter(
+      (f) =>
+        f.path.includes('auth') ||
+        f.path.includes('api') ||
+        f.path.includes('server') ||
+        f.path.includes('middleware') ||
+        f.path.includes('route')
     );
 
     if (criticalFiles.length > 0 && criticalFiles.length <= 5) {
@@ -410,11 +409,11 @@ export class SecurityScanner {
 
     // Step 3: Calculate score and grade
     const summary = {
-      critical: vulnerabilities.filter(v => v.severity === 'critical').length,
-      high: vulnerabilities.filter(v => v.severity === 'high').length,
-      medium: vulnerabilities.filter(v => v.severity === 'medium').length,
-      low: vulnerabilities.filter(v => v.severity === 'low').length,
-      info: vulnerabilities.filter(v => v.severity === 'info').length,
+      critical: vulnerabilities.filter((v) => v.severity === 'critical').length,
+      high: vulnerabilities.filter((v) => v.severity === 'high').length,
+      medium: vulnerabilities.filter((v) => v.severity === 'medium').length,
+      low: vulnerabilities.filter((v) => v.severity === 'low').length,
+      info: vulnerabilities.filter((v) => v.severity === 'info').length,
     };
 
     const score = this.calculateScore(summary);
@@ -493,7 +492,7 @@ export class SecurityScanner {
   private async aiAnalysis(files: GeneratedFile[]): Promise<SecurityVulnerability[]> {
     const vulnerabilities: SecurityVulnerability[] = [];
 
-    const filesContent = files.map(f => `=== ${f.path} ===\n${f.content}`).join('\n\n');
+    const filesContent = files.map((f) => `=== ${f.path} ===\n${f.content}`).join('\n\n');
 
     const prompt = `You are a senior security engineer performing a code review.
 Analyze this code for security vulnerabilities that pattern matching might miss.
@@ -528,13 +527,12 @@ If no additional vulnerabilities found, return: {"vulnerabilities": []}
 OUTPUT ONLY JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 2000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
@@ -593,10 +591,12 @@ OUTPUT ONLY JSON.`;
    */
   private generateRecommendations(vulnerabilities: SecurityVulnerability[]): string[] {
     const recommendations: string[] = [];
-    const types = new Set(vulnerabilities.map(v => v.type));
+    const types = new Set(vulnerabilities.map((v) => v.type));
 
     if (types.has('injection')) {
-      recommendations.push('Implement parameterized queries and input validation for all user inputs.');
+      recommendations.push(
+        'Implement parameterized queries and input validation for all user inputs.'
+      );
     }
     if (types.has('xss')) {
       recommendations.push('Use a Content Security Policy (CSP) and sanitize all HTML output.');
@@ -624,9 +624,12 @@ OUTPUT ONLY JSON.`;
   /**
    * Get list of passed security checks
    */
-  private getPassedChecks(files: GeneratedFile[], vulnerabilities: SecurityVulnerability[]): string[] {
+  private getPassedChecks(
+    files: GeneratedFile[],
+    vulnerabilities: SecurityVulnerability[]
+  ): string[] {
     const passed: string[] = [];
-    const vulnTypes = new Set(vulnerabilities.map(v => v.type));
+    const vulnTypes = new Set(vulnerabilities.map((v) => v.type));
 
     if (!vulnTypes.has('injection')) passed.push('No injection vulnerabilities detected');
     if (!vulnTypes.has('xss')) passed.push('No XSS vulnerabilities detected');
@@ -635,11 +638,13 @@ OUTPUT ONLY JSON.`;
     if (!vulnTypes.has('crypto')) passed.push('Cryptographic practices look good');
 
     // Check for positive patterns
-    const allContent = files.map(f => f.content).join('\n');
+    const allContent = files.map((f) => f.content).join('\n');
     if (allContent.includes('helmet')) passed.push('Using Helmet for HTTP security headers');
     if (allContent.includes('csrf')) passed.push('CSRF protection implemented');
-    if (allContent.includes('rate-limit') || allContent.includes('rateLimit')) passed.push('Rate limiting configured');
-    if (allContent.includes('sanitize') || allContent.includes('escape')) passed.push('Input sanitization detected');
+    if (allContent.includes('rate-limit') || allContent.includes('rateLimit'))
+      passed.push('Rate limiting configured');
+    if (allContent.includes('sanitize') || allContent.includes('escape'))
+      passed.push('Input sanitization detected');
 
     return passed;
   }
@@ -664,7 +669,9 @@ OUTPUT ONLY JSON.`;
 
   private validateSeverity(severity: unknown): SecurityVulnerability['severity'] {
     const valid = ['critical', 'high', 'medium', 'low', 'info'];
-    return valid.includes(String(severity)) ? (severity as SecurityVulnerability['severity']) : 'medium';
+    return valid.includes(String(severity))
+      ? (severity as SecurityVulnerability['severity'])
+      : 'medium';
   }
 
   /**

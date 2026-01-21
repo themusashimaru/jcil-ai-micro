@@ -10,20 +10,27 @@
  * 5. Repeat until task complete
  *
  * This is what makes the agent truly autonomous.
+ *
+ * MULTI-PROVIDER SUPPORT:
+ * - Works with any configured AI provider (Claude, OpenAI, xAI, DeepSeek)
+ * - User picks provider → same tool-calling capabilities
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import { BaseTool, ToolDefinition, ToolCall, ToolOutput } from './BaseTool';
+import {
+  agentChatWithTools,
+  buildToolResultMessage,
+  buildToolCallMessage,
+  ProviderId,
+  UnifiedMessage,
+  UnifiedTool,
+} from '@/lib/ai/providers';
+import { BaseTool, ToolDefinition, ToolOutput } from './BaseTool';
 import { readTool, ReadTool } from './ReadTool';
 import { searchTool, SearchTool } from './SearchTool';
 import { bashTool, BashTool } from './BashTool';
 import { writeTool, WriteTool } from './WriteTool';
 import { globTool, GlobTool } from './GlobTool';
 import { AgentStreamCallback } from '../../core/types';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 export interface OrchestratorConfig {
   githubToken?: string;
@@ -54,10 +61,17 @@ export interface OrchestratorResult {
 }
 
 export class ToolOrchestrator {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
   private tools: Map<string, BaseTool> = new Map();
   private maxIterations = 10;
   private maxTokens = 16000;
+
+  /**
+   * Set the AI provider to use for tool orchestration
+   */
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   constructor() {
     // Register all available tools
@@ -139,10 +153,11 @@ export class ToolOrchestrator {
     // Build system prompt with tool awareness
     const systemPrompt = this.buildSystemPrompt(context);
 
-    // Initialize message history
-    const messages: { role: 'user' | 'assistant'; content: string }[] = [
-      { role: 'user', content: task },
-    ];
+    // Initialize message history with unified format
+    const messages: UnifiedMessage[] = [{ role: 'user', content: task }];
+
+    // Convert tool definitions to unified format
+    const unifiedTools = this.getUnifiedToolDefinitions();
 
     // Stream initial thinking
     this.streamThinking(onStream, 'Analyzing task and planning approach...');
@@ -153,54 +168,39 @@ export class ToolOrchestrator {
       while (iteration < this.maxIterations) {
         iteration++;
 
-        // Call Claude with tool use
-        const response = await anthropic.messages.create({
-          model: this.model,
-          max_tokens: this.maxTokens,
-          system: systemPrompt,
-          tools: this.getAnthropicToolDefinitions(),
-          messages: messages as Anthropic.MessageParam[],
+        // Call AI provider with tools (works with Claude, OpenAI, xAI, DeepSeek)
+        const response = await agentChatWithTools(messages, unifiedTools, {
+          provider: this.provider,
+          systemPrompt,
+          maxTokens: this.maxTokens,
         });
 
-        totalTokens += response.usage.input_tokens + response.usage.output_tokens;
-
-        // Process response content
-        let assistantText = '';
-        const toolCalls: ToolCall[] = [];
-
-        for (const block of response.content) {
-          if (block.type === 'text') {
-            assistantText += block.text;
-
-            // Stream thinking
-            if (block.text.trim()) {
-              thinkingSteps.push({
-                type: 'thinking',
-                content: block.text,
-                timestamp: Date.now(),
-              });
-              this.streamThinking(onStream, block.text);
-            }
-          } else if (block.type === 'tool_use') {
-            toolCalls.push({
-              id: block.id,
-              name: block.name,
-              input: block.input as Record<string, unknown>,
-            });
-          }
+        // Track token usage
+        if (response.usage) {
+          totalTokens += response.usage.inputTokens + response.usage.outputTokens;
         }
 
-        // If no tool calls and stop reason is end_turn, we're done
-        if (toolCalls.length === 0 && response.stop_reason === 'end_turn') {
+        // Stream thinking text
+        if (response.text.trim()) {
+          thinkingSteps.push({
+            type: 'thinking',
+            content: response.text,
+            timestamp: Date.now(),
+          });
+          this.streamThinking(onStream, response.text);
+        }
+
+        // If done (no tool calls), return conclusion
+        if (response.done) {
           thinkingSteps.push({
             type: 'conclusion',
-            content: assistantText,
+            content: response.text,
             timestamp: Date.now(),
           });
 
           return {
             success: true,
-            conclusion: assistantText,
+            conclusion: response.text,
             thinkingSteps,
             toolsUsed: [...new Set(toolsUsed)],
             totalTokens,
@@ -209,33 +209,34 @@ export class ToolOrchestrator {
         }
 
         // Execute tool calls
-        const toolResults: { id: string; content: string }[] = [];
+        const toolResults: { toolCallId: string; content: string; isError?: boolean }[] = [];
 
-        for (const toolCall of toolCalls) {
+        for (const toolCall of response.toolCalls) {
           const tool = this.tools.get(toolCall.name);
 
           if (!tool) {
             toolResults.push({
-              id: toolCall.id,
+              toolCallId: toolCall.id,
               content: JSON.stringify({ error: `Unknown tool: ${toolCall.name}` }),
+              isError: true,
             });
             continue;
           }
 
           // Stream tool use
-          this.streamToolUse(onStream, toolCall.name, toolCall.input);
+          this.streamToolUse(onStream, toolCall.name, toolCall.arguments);
           toolsUsed.push(toolCall.name);
 
           thinkingSteps.push({
             type: 'tool_use',
             content: `Using ${toolCall.name}`,
             toolName: toolCall.name,
-            toolInput: toolCall.input,
+            toolInput: toolCall.arguments,
             timestamp: Date.now(),
           });
 
           // Execute tool
-          const result = await tool.execute(toolCall.input);
+          const result = await tool.execute(toolCall.arguments);
 
           // Stream tool result
           this.streamToolResult(onStream, toolCall.name, result);
@@ -249,22 +250,17 @@ export class ToolOrchestrator {
           });
 
           toolResults.push({
-            id: toolCall.id,
+            toolCallId: toolCall.id,
             content: JSON.stringify(result),
+            isError: !result.success,
           });
         }
 
-        // Add assistant message with tool use
-        messages.push({
-          role: 'assistant',
-          content: JSON.stringify(response.content),
-        });
+        // Add assistant message with tool calls to history
+        messages.push(buildToolCallMessage(response.toolCalls));
 
-        // Add tool results as user message
-        messages.push({
-          role: 'user',
-          content: toolResults.map((r) => `Tool ${r.id} result: ${r.content}`).join('\n'),
-        });
+        // Add tool results to history
+        messages.push(buildToolResultMessage(toolResults));
       }
 
       // Max iterations reached
@@ -320,18 +316,18 @@ When you have enough information to complete the task, provide a clear conclusio
   }
 
   /**
-   * Convert tools to Anthropic format
+   * Convert tools to unified format (works with all providers)
    */
-  private getAnthropicToolDefinitions(): Anthropic.Tool[] {
+  private getUnifiedToolDefinitions(): UnifiedTool[] {
     return Array.from(this.tools.values()).map((tool) => {
       const def = tool.getDefinition();
       return {
         name: def.name,
         description: def.description,
-        input_schema: {
+        parameters: {
           type: 'object' as const,
           properties: def.parameters.properties,
-          required: def.parameters.required,
+          required: def.parameters.required || [],
         },
       };
     });

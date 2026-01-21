@@ -8,22 +8,15 @@
  * Generates each file with full context awareness.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import {
-  CodeIntent,
-  ProjectPlan,
-  PlannedFile,
-  GeneratedFile,
-} from '../../core/types';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
+import { CodeIntent, ProjectPlan, PlannedFile, GeneratedFile } from '../../core/types';
 import type { AgentStreamCallback } from '../../core/types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
-
 export class CodeGenerator {
-  // Claude Opus 4.5 for high-quality code generation
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   // Already generated files (for context)
   private generatedFiles: Map<string, GeneratedFile> = new Map();
@@ -69,7 +62,7 @@ export class CodeGenerator {
   ): Promise<GeneratedFile> {
     // Get context from already-generated dependencies
     const dependencyContext = file.dependencies
-      .map(dep => {
+      .map((dep) => {
         const depFile = this.generatedFiles.get(dep);
         if (depFile) {
           return `// ${dep}\n${depFile.content.substring(0, 2000)}${depFile.content.length > 2000 ? '\n// ... (truncated)' : ''}`;
@@ -106,13 +99,15 @@ TECHNOLOGY STACK:
 ${dependencyContext ? `DEPENDENCY FILES (already generated):\n${dependencyContext}\n` : ''}
 
 PROJECT STRUCTURE:
-${plan.fileTree.map(f => `- ${f.path}: ${f.purpose}`).join('\n')}
+${plan.fileTree.map((f) => `- ${f.path}: ${f.purpose}`).join('\n')}
 
 DEPENDENCIES AVAILABLE:
-${Object.entries(plan.dependencies.production).map(([k, v]) => `- ${k}@${v}`).join('\n')}
+${Object.entries(plan.dependencies.production)
+  .map(([k, v]) => `- ${k}@${v}`)
+  .join('\n')}
 
 REQUIREMENTS:
-${intent.requirements.functional.map(r => `- ${r}`).join('\n')}
+${intent.requirements.functional.map((r) => `- ${r}`).join('\n')}
 
 Generate the COMPLETE file content. Follow these rules:
 1. Write PRODUCTION-QUALITY code - no placeholders, no "TODO" comments
@@ -128,13 +123,12 @@ OUTPUT ONLY THE FILE CONTENT - no markdown code blocks, no explanations.
 START WITH THE FIRST LINE OF THE FILE.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 8000 }
+      );
 
-      let content = response.content[0].type === 'text' ? response.content[0].text : '';
+      let content = response.text;
 
       // Clean up any markdown code blocks that might have slipped through
       content = this.cleanCodeContent(content, language);
@@ -189,13 +183,12 @@ Generate a standard, well-configured ${filename} file.
 OUTPUT ONLY THE FILE CONTENT - no markdown, no explanations.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 2000 }
+      );
 
-      let content = response.content[0].type === 'text' ? response.content[0].text : '';
+      let content = response.text;
       content = this.cleanCodeContent(content, language);
 
       return {
@@ -230,15 +223,19 @@ OUTPUT ONLY THE FILE CONTENT - no markdown, no explanations.`;
       main: isTypescript ? 'dist/index.js' : 'src/index.js',
       type: 'module',
       scripts: {
-        ...(isTypescript ? {
-          build: 'tsc',
-          dev: 'tsx watch src/index.ts',
-          start: 'node dist/index.js',
-        } : {
-          start: 'node src/index.js',
-          dev: 'node --watch src/index.js',
-        }),
-        test: intent.technologies.testFramework ? `${intent.technologies.testFramework}` : 'echo "No tests specified"',
+        ...(isTypescript
+          ? {
+              build: 'tsc',
+              dev: 'tsx watch src/index.ts',
+              start: 'node dist/index.js',
+            }
+          : {
+              start: 'node src/index.js',
+              dev: 'node --watch src/index.js',
+            }),
+        test: intent.technologies.testFramework
+          ? `${intent.technologies.testFramework}`
+          : 'echo "No tests specified"',
       },
       keywords: [],
       author: '',
@@ -246,11 +243,13 @@ OUTPUT ONLY THE FILE CONTENT - no markdown, no explanations.`;
       dependencies: plan.dependencies.production,
       devDependencies: {
         ...plan.dependencies.development,
-        ...(isTypescript && !plan.dependencies.development['typescript'] ? {
-          typescript: '^5.0.0',
-          '@types/node': '^20.0.0',
-          tsx: '^4.0.0',
-        } : {}),
+        ...(isTypescript && !plan.dependencies.development['typescript']
+          ? {
+              typescript: '^5.0.0',
+              '@types/node': '^20.0.0',
+              tsx: '^4.0.0',
+            }
+          : {}),
       },
     };
 
@@ -348,7 +347,9 @@ OUTPUT ONLY THE FILE CONTENT - no markdown, no explanations.`;
       '# Misc',
       '*.tmp',
       '*.temp',
-    ].filter(line => line !== '').join('\n');
+    ]
+      .filter((line) => line !== '')
+      .join('\n');
 
     return {
       path: file.path,
@@ -387,13 +388,12 @@ Fix the error and regenerate the COMPLETE file.
 OUTPUT ONLY THE FIXED FILE CONTENT - no markdown code blocks, no explanations.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 8000 }
+      );
 
-      let content = response.content[0].type === 'text' ? response.content[0].text : '';
+      let content = response.text;
       content = this.cleanCodeContent(content, file.language);
 
       return {
@@ -438,7 +438,10 @@ OUTPUT ONLY THE FIXED FILE CONTENT - no markdown code blocks, no explanations.`;
    */
   private cleanCodeContent(content: string, language: string): string {
     // Remove markdown code blocks if present
-    const codeBlockPattern = new RegExp(`\`\`\`(?:${language}|\\w+)?\\n?([\\s\\S]*?)\\n?\`\`\``, 'i');
+    const codeBlockPattern = new RegExp(
+      `\`\`\`(?:${language}|\\w+)?\\n?([\\s\\S]*?)\\n?\`\`\``,
+      'i'
+    );
     const match = content.match(codeBlockPattern);
     if (match) {
       content = match[1];

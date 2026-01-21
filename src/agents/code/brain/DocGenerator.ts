@@ -14,13 +14,9 @@
  * This is what makes code maintainable.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { GeneratedFile, CodeIntent, ProjectPlan } from '../../core/types';
 import { AgentStreamCallback } from '../../core/types';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // ============================================================================
 // TYPES
@@ -54,7 +50,10 @@ export interface DocConfig {
 // ============================================================================
 
 export class DocGenerator {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Generate all documentation
@@ -226,7 +225,7 @@ PROJECT INFO:
 - Package Manager: ${intent.technologies.packageManager}
 
 FILE STRUCTURE:
-${files.map(f => f.path).join('\n')}
+${files.map((f) => f.path).join('\n')}
 
 FEATURES:
 ${intent.requirements.functional.join('\n')}
@@ -249,13 +248,12 @@ Make it look like a top GitHub project.
 OUTPUT ONLY THE MARKDOWN.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 4000 }
+      );
 
-      return response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      return response.text.trim();
     } catch (error) {
       console.error('[DocGenerator] README error:', error);
       return this.generateDefaultReadme(config, intent, plan);
@@ -270,14 +268,15 @@ OUTPUT ONLY THE MARKDOWN.`;
     _intent: CodeIntent,
     _onStream?: AgentStreamCallback
   ): Promise<string> {
-    const apiFiles = files.filter(f =>
-      f.path.includes('/api/') ||
-      f.path.includes('/routes/') ||
-      f.content.includes('app.get') ||
-      f.content.includes('app.post')
+    const apiFiles = files.filter(
+      (f) =>
+        f.path.includes('/api/') ||
+        f.path.includes('/routes/') ||
+        f.content.includes('app.get') ||
+        f.content.includes('app.post')
     );
 
-    const apiCode = apiFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n');
+    const apiCode = apiFiles.map((f) => `// ${f.path}\n${f.content}`).join('\n\n');
 
     const prompt = `Generate comprehensive API documentation in Markdown.
 
@@ -300,13 +299,12 @@ Use tables, code blocks, and clear formatting.
 OUTPUT ONLY MARKDOWN.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 4000 }
+      );
 
-      return response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      return response.text.trim();
     } catch (error) {
       console.error('[DocGenerator] API docs error:', error);
       return '# API Documentation\n\nAPI documentation will be added soon.';
@@ -321,7 +319,7 @@ OUTPUT ONLY MARKDOWN.`;
     plan: ProjectPlan,
     _onStream?: AgentStreamCallback
   ): Promise<string> {
-    const fileList = files.map(f => f.path).join('\n');
+    const fileList = files.map((f) => f.path).join('\n');
 
     const prompt = `Generate architecture documentation with Mermaid diagrams.
 
@@ -345,13 +343,12 @@ Make diagrams clear and professional.
 OUTPUT ONLY MARKDOWN.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 3000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 3000 }
+      );
 
-      return response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      return response.text.trim();
     } catch (error) {
       console.error('[DocGenerator] Architecture docs error:', error);
       return this.generateDefaultArchitecture(plan);
@@ -467,13 +464,12 @@ Keep existing code exactly the same, only add comments.
 OUTPUT ONLY THE CODE.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 8000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const code = text.replace(/^```\w*\n?/, '').replace(/```$/, '');
 
       return {
@@ -514,29 +510,26 @@ OUTPUT ONLY THE CODE.`;
    * Check if project has API endpoints
    */
   private hasApiEndpoints(files: GeneratedFile[]): boolean {
-    return files.some(f =>
-      f.content.includes('app.get') ||
-      f.content.includes('app.post') ||
-      f.content.includes('router.') ||
-      f.path.includes('/api/')
+    return files.some(
+      (f) =>
+        f.content.includes('app.get') ||
+        f.content.includes('app.post') ||
+        f.content.includes('router.') ||
+        f.path.includes('/api/')
     );
   }
 
   /**
    * Generate default README
    */
-  private generateDefaultReadme(
-    config: DocConfig,
-    intent: CodeIntent,
-    _plan: ProjectPlan
-  ): string {
+  private generateDefaultReadme(config: DocConfig, intent: CodeIntent, _plan: ProjectPlan): string {
     return `# ${config.projectName}
 
 ${config.description}
 
 ## 🚀 Features
 
-${intent.requirements.functional.map(f => `- ${f}`).join('\n')}
+${intent.requirements.functional.map((f) => `- ${f}`).join('\n')}
 
 ## 📦 Installation
 
@@ -553,7 +546,7 @@ ${intent.technologies.packageManager} run dev
 ## 🛠️ Built With
 
 - ${intent.technologies.primary}
-${intent.technologies.secondary.map(t => `- ${t}`).join('\n')}
+${intent.technologies.secondary.map((t) => `- ${t}`).join('\n')}
 
 ## 📝 License
 
@@ -581,7 +574,7 @@ This project follows the **${plan.architecture.pattern}** pattern.
 
 ## Layers
 
-${plan.architecture.layers.map(l => `- ${l}`).join('\n')}
+${plan.architecture.layers.map((l) => `- ${l}`).join('\n')}
 
 ## Data Flow
 
@@ -592,7 +585,7 @@ ${plan.architecture.dataFlow}
 ## Directory Structure
 
 \`\`\`
-${plan.fileTree.map(f => f.path).join('\n')}
+${plan.fileTree.map((f) => f.path).join('\n')}
 \`\`\`
 `;
   }
