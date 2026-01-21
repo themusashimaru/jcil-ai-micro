@@ -31,6 +31,8 @@ interface CodeLabComposerProps {
   // Model selector props (moved from header for cleaner UX)
   currentModel?: string;
   onModelChange?: (modelId: string) => void;
+  // Thinking mode state (for showing correct selection)
+  thinkingEnabled?: boolean;
 }
 
 // Supported file types
@@ -48,10 +50,79 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ATTACHMENTS = 10; // Maximum number of attachments
 
 // Model display names for the inline selector
-const MODEL_DISPLAY_NAMES: Record<string, { name: string; icon: string }> = {
-  'claude-sonnet-4-20250514': { name: 'Sonnet', icon: '🎵' },
-  'claude-opus-4-5-20251101': { name: 'Opus', icon: '🎼' },
-  'claude-3-5-haiku-20241022': { name: 'Haiku', icon: '🍃' },
+// Organized by provider: Claude, then OpenAI GPT
+const MODEL_DISPLAY_NAMES: Record<
+  string,
+  { name: string; icon: string; description?: string; provider?: string }
+> = {
+  // ========================================
+  // CLAUDE MODELS (Anthropic)
+  // ========================================
+  'claude-sonnet-4-20250514': {
+    name: 'Sonnet',
+    icon: '🎵',
+    description: 'Fast & capable',
+    provider: 'claude',
+  },
+  'claude-opus-4-5-20251101': {
+    name: 'Opus',
+    icon: '🎼',
+    description: 'Most capable',
+    provider: 'claude',
+  },
+  'claude-3-5-haiku-20241022': {
+    name: 'Haiku',
+    icon: '🍃',
+    description: 'Fastest',
+    provider: 'claude',
+  },
+  // Extended thinking variants (deeper reasoning)
+  'claude-sonnet-4-20250514-thinking': {
+    name: 'Sonnet (Thinking)',
+    icon: '🧠',
+    description: 'Deep reasoning',
+    provider: 'claude',
+  },
+  'claude-opus-4-5-20251101-thinking': {
+    name: 'Opus (Thinking)',
+    icon: '🧠',
+    description: 'Deepest reasoning',
+    provider: 'claude',
+  },
+
+  // ========================================
+  // OPENAI GPT MODELS
+  // ========================================
+  'gpt-5.2-codex': {
+    name: 'GPT-5.2 Codex',
+    icon: '💚',
+    description: 'Top coding & multi-file apps',
+    provider: 'openai',
+  },
+  'gpt-5.2': {
+    name: 'GPT-5.2',
+    icon: '💚',
+    description: 'All-around + strong coding',
+    provider: 'openai',
+  },
+  'gpt-5.1-codex-max': {
+    name: 'GPT-5.1 Codex Max',
+    icon: '💚',
+    description: 'Strong, slightly cheaper coding',
+    provider: 'openai',
+  },
+  'gpt-5.1-codex-mini': {
+    name: 'GPT-5.1 Codex Mini',
+    icon: '💚',
+    description: 'Budget coding / tooling',
+    provider: 'openai',
+  },
+  'gpt-5.2-pro': {
+    name: 'GPT-5.2 Pro',
+    icon: '💚',
+    description: 'Ultra-hard reasoning/code',
+    provider: 'openai',
+  },
 };
 
 export function CodeLabComposer({
@@ -62,7 +133,13 @@ export function CodeLabComposer({
   disabled = false,
   currentModel,
   onModelChange,
+  thinkingEnabled = false,
 }: CodeLabComposerProps) {
+  // Compute the display model ID (includes -thinking suffix if thinking is enabled)
+  const displayModelId =
+    currentModel && thinkingEnabled && !currentModel.includes('haiku')
+      ? `${currentModel}-thinking`
+      : currentModel;
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<CodeLabAttachment[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -378,8 +455,12 @@ export function CodeLabComposer({
             aria-expanded={modelSelectorOpen}
             aria-haspopup="listbox"
           >
-            <span className="model-icon">{MODEL_DISPLAY_NAMES[currentModel]?.icon || '🤖'}</span>
-            <span className="model-name">{MODEL_DISPLAY_NAMES[currentModel]?.name || 'Model'}</span>
+            <span className="model-icon">
+              {MODEL_DISPLAY_NAMES[displayModelId || '']?.icon || '🤖'}
+            </span>
+            <span className="model-name">
+              {MODEL_DISPLAY_NAMES[displayModelId || '']?.name || 'Model'}
+            </span>
             <svg
               className={`model-chevron ${modelSelectorOpen ? 'open' : ''}`}
               width="12"
@@ -396,32 +477,74 @@ export function CodeLabComposer({
           {/* Model dropdown */}
           {modelSelectorOpen && (
             <div className="model-dropdown" role="listbox">
-              {Object.entries(MODEL_DISPLAY_NAMES).map(([modelId, { name, icon }]) => (
-                <button
-                  key={modelId}
-                  className={`model-option ${modelId === currentModel ? 'selected' : ''}`}
-                  onClick={() => {
-                    onModelChange(modelId);
-                    setModelSelectorOpen(false);
-                  }}
-                  role="option"
-                  aria-selected={modelId === currentModel}
-                >
-                  <span className="model-icon">{icon}</span>
-                  <span className="model-name">{name}</span>
-                  {modelId === currentModel && (
-                    <svg
-                      className="check"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                    </svg>
-                  )}
-                </button>
-              ))}
+              {/* Claude Models */}
+              <div className="model-provider-header">Claude (Anthropic)</div>
+              {Object.entries(MODEL_DISPLAY_NAMES)
+                .filter(([, { provider }]) => provider === 'claude')
+                .map(([modelId, { name, icon, description }]) => (
+                  <button
+                    key={modelId}
+                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                    onClick={() => {
+                      onModelChange(modelId);
+                      setModelSelectorOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={modelId === displayModelId}
+                  >
+                    <span className="model-icon">{icon}</span>
+                    <div className="model-info">
+                      <span className="model-name">{name}</span>
+                      {description && <span className="model-desc">{description}</span>}
+                    </div>
+                    {modelId === displayModelId && (
+                      <svg
+                        className="check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+
+              {/* OpenAI Models */}
+              <div className="model-provider-header">OpenAI GPT</div>
+              {Object.entries(MODEL_DISPLAY_NAMES)
+                .filter(([, { provider }]) => provider === 'openai')
+                .map(([modelId, { name, icon, description }]) => (
+                  <button
+                    key={modelId}
+                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                    onClick={() => {
+                      onModelChange(modelId);
+                      setModelSelectorOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={modelId === displayModelId}
+                  >
+                    <span className="model-icon">{icon}</span>
+                    <div className="model-info">
+                      <span className="model-name">{name}</span>
+                      {description && <span className="model-desc">{description}</span>}
+                    </div>
+                    {modelId === displayModelId && (
+                      <svg
+                        className="check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+
               <div className="model-hint">⌘M to toggle</div>
             </div>
           )}
@@ -745,9 +868,38 @@ export function CodeLabComposer({
           background: #333;
         }
 
+        .model-dropdown .model-option .model-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+          flex: 1;
+        }
+
+        .model-dropdown .model-option .model-desc {
+          font-size: 0.6875rem;
+          color: #888;
+        }
+
         .model-dropdown .model-option .check {
           margin-left: auto;
           color: #10b981;
+          flex-shrink: 0;
+        }
+
+        .model-provider-header {
+          padding: 0.5rem 0.75rem 0.375rem;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #666;
+          background: #1a1a1a;
+          border-bottom: 1px solid #333;
+        }
+
+        .model-provider-header:not(:first-child) {
+          border-top: 1px solid #333;
+          margin-top: 0.25rem;
         }
 
         .model-hint {

@@ -50,7 +50,8 @@ import { CodeLabDebugPanel } from './CodeLabDebugPanel';
 import { CodeLabPlanView } from './CodeLabPlanView';
 // CodeLabModelSelector is now integrated into CodeLabComposer for cleaner UX
 import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
-import { CodeLabThinkingToggle } from './CodeLabThinkingToggle';
+// CodeLabThinkingToggle removed - thinking mode now integrated into model selector
+// Users can select "Sonnet (Thinking)" or "Opus (Thinking)" from the dropdown
 import { CodeLabMCPSettings, MCPServer, DEFAULT_MCP_SERVERS } from './CodeLabMCPSettings';
 import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
 // Thinking block visualization ready for extended thinking (Claude Code parity)
@@ -694,35 +695,35 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   const handleModelChange = useCallback(
     (modelId: string) => {
-      setCurrentModelId(modelId);
-      log.info('Model changed', { modelId });
+      // Check if this is a "thinking" model variant
+      const isThinkingModel = modelId.endsWith('-thinking');
+      const baseModelId = isThinkingModel ? modelId.replace('-thinking', '') : modelId;
+
+      // Set the actual model ID (without -thinking suffix)
+      setCurrentModelId(baseModelId);
+
+      // Auto-enable/disable extended thinking based on model selection
+      setThinkingConfig((prev) => ({
+        ...prev,
+        enabled: isThinkingModel,
+      }));
+
+      // Determine display name
+      const displayName = modelId.includes('opus')
+        ? isThinkingModel
+          ? 'Opus (Thinking)'
+          : 'Opus'
+        : modelId.includes('haiku')
+          ? 'Haiku'
+          : isThinkingModel
+            ? 'Sonnet (Thinking)'
+            : 'Sonnet';
+
+      log.info('Model changed', { modelId: baseModelId, thinking: isThinkingModel });
       toast.success(
         'Model Changed',
-        `Switched to ${modelId.includes('opus') ? 'Opus' : modelId.includes('haiku') ? 'Haiku' : 'Sonnet'}`
+        isThinkingModel ? `${displayName} - Deep reasoning enabled` : `Switched to ${displayName}`
       );
-    },
-    [toast]
-  );
-
-  const handleThinkingToggle = useCallback(() => {
-    setThinkingConfig((prev) => {
-      const newEnabled = !prev.enabled;
-      if (newEnabled) {
-        toast.success(
-          'Thinking Enabled',
-          `Extended thinking with ${prev.budgetTokens / 1000}K token budget`
-        );
-      } else {
-        toast.success('Thinking Disabled', 'Normal response mode');
-      }
-      return { ...prev, enabled: newEnabled };
-    });
-  }, [toast]);
-
-  const handleThinkingBudgetChange = useCallback(
-    (budget: number) => {
-      setThinkingConfig((prev) => ({ ...prev, budgetTokens: budget }));
-      toast.success('Budget Updated', `Thinking budget set to ${budget / 1000}K tokens`);
     },
     [toast]
   );
@@ -1444,15 +1445,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           </button>
           <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
           <div className="header-actions">
-            {/* Model Selector moved to composer for cleaner UX (like Deep Research) */}
-
-            {/* Extended Thinking Toggle (Claude Code parity) */}
-            <CodeLabThinkingToggle
-              config={thinkingConfig}
-              onToggle={handleThinkingToggle}
-              onBudgetChange={handleThinkingBudgetChange}
-              disabled={isStreaming}
-            />
+            {/* Model Selector & Thinking mode moved to composer for cleaner UX */}
+            {/* Users can now select "Sonnet (Thinking)" or "Opus (Thinking)" from the model dropdown */}
 
             {/* Token Usage Display (Claude Code parity) */}
             <CodeLabTokenDisplay stats={tokenStats} compact />
@@ -1496,6 +1490,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                 disabled={!currentSessionId}
                 currentModel={currentModelId}
                 onModelChange={handleModelChange}
+                thinkingEnabled={thinkingConfig.enabled}
               />
             </div>
 
@@ -1503,6 +1498,17 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             {workspacePanelOpen && (
               <div className="workspace-panel">
                 <div className="workspace-tabs">
+                  {/* Close/Back button */}
+                  <button
+                    className="workspace-close-btn"
+                    onClick={() => setWorkspacePanelOpen(false)}
+                    title="Close panel (Esc)"
+                    aria-label="Close workspace panel"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
                   <button
                     className={activeWorkspaceTab === 'files' ? 'active' : ''}
                     onClick={() => setActiveWorkspaceTab('files')}
@@ -2257,6 +2263,29 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .workspace-tabs button.active {
           color: #ffffff;
           border-bottom-color: #ffffff;
+        }
+
+        /* Close/Back button for workspace panel */
+        .workspace-close-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          min-width: 36px;
+          height: 36px;
+          padding: 0 !important;
+          margin-right: 0.25rem;
+          border-radius: 6px;
+          border-bottom: none !important;
+        }
+
+        .workspace-close-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .workspace-close-btn svg {
+          width: 18px;
+          height: 18px;
         }
 
         .workspace-content {

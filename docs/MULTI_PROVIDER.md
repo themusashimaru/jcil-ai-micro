@@ -4,12 +4,50 @@ JCIL Code Lab supports multiple AI providers with seamless mid-conversation swit
 
 ## Supported Providers
 
-| Provider     | Models                          | Vision | Tool Calling | Notes                                        |
-| ------------ | ------------------------------- | ------ | ------------ | -------------------------------------------- |
-| **Claude**   | Opus 4.5, Sonnet 4.5, Haiku 4.5 | Yes    | Yes          | Default provider, best for complex reasoning |
-| **OpenAI**   | GPT-5, GPT-5 Turbo, O3          | Yes    | Yes          | Versatile general-purpose AI                 |
-| **xAI**      | Grok 4, Grok 4 Vision           | Yes    | Yes          | Excels at real-time knowledge                |
-| **DeepSeek** | V3.2, Coder V3.2                | No     | Yes          | Cost-effective coding assistant              |
+| Provider     | Models                              | Vision | Tool Calling | Notes                                        |
+| ------------ | ----------------------------------- | ------ | ------------ | -------------------------------------------- |
+| **Claude**   | Opus 4.5, Sonnet 4.5, Haiku 4.5     | Yes    | Yes          | Default provider, best for complex reasoning |
+| **OpenAI**   | GPT-5.2, GPT-5.2 Codex, GPT-5.2 Pro | Yes    | Yes          | Latest GPT models with strong coding         |
+| **xAI**      | Grok 4, Grok 4 Vision               | Yes    | Yes          | Excels at real-time knowledge                |
+| **DeepSeek** | V3.2, Coder V3.2                    | No     | Yes          | Cost-effective coding assistant              |
+
+## Model Pricing Reference (Base Costs)
+
+These are the base costs from each provider. JCIL pricing may differ.
+
+### Claude (Anthropic)
+
+| Model ID                    | Name      | Best For       | Input / 1M | Output / 1M |
+| --------------------------- | --------- | -------------- | ---------- | ----------- |
+| `claude-opus-4-5-20251101`  | Opus 4.5  | Most capable   | $15.00     | $75.00      |
+| `claude-sonnet-4-20250514`  | Sonnet 4  | Fast & capable | $3.00      | $15.00      |
+| `claude-3-5-haiku-20241022` | Haiku 3.5 | Fastest        | $0.25      | $1.25       |
+
+**Extended Thinking variants** - Same pricing but with additional thinking budget tokens.
+
+### OpenAI GPT
+
+| Model ID             | Name               | Best For                   | Input / 1M | Output / 1M |
+| -------------------- | ------------------ | -------------------------- | ---------- | ----------- |
+| `gpt-5.2-codex`      | GPT-5.2 Codex      | Top coding & multi-file    | $1.75      | $14.00      |
+| `gpt-5.2`            | GPT-5.2            | All-around + strong coding | $1.75      | $14.00      |
+| `gpt-5.1-codex-max`  | GPT-5.1 Codex Max  | Strong, cheaper coding     | $1.25      | $10.00      |
+| `gpt-5.1-codex-mini` | GPT-5.1 Codex Mini | Budget coding / tooling    | $0.25      | $2.00       |
+| `gpt-5.2-pro`        | GPT-5.2 Pro        | Ultra-hard reasoning/code  | ~$21.00    | ~$168.00    |
+
+### xAI Grok (Coming Soon)
+
+| Model ID        | Name          | Best For            | Input / 1M | Output / 1M |
+| --------------- | ------------- | ------------------- | ---------- | ----------- |
+| `grok-4`        | Grok 4        | Real-time knowledge | TBD        | TBD         |
+| `grok-4-vision` | Grok 4 Vision | Vision + knowledge  | TBD        | TBD         |
+
+### DeepSeek (Coming Soon)
+
+| Model ID              | Name           | Best For          | Input / 1M | Output / 1M |
+| --------------------- | -------------- | ----------------- | ---------- | ----------- |
+| `deepseek-v3.2`       | DeepSeek V3.2  | Cost-effective AI | TBD        | TBD         |
+| `deepseek-coder-v3.2` | DeepSeek Coder | Budget coding     | TBD        | TBD         |
 
 ## Architecture
 
