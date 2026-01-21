@@ -1307,5 +1307,36 @@ app/api/code-lab/
 
 ---
 
-_Last Updated: January 2026_
-_Version: 3.0.0 — Beyond Claude Code_
+## Changelog
+
+### January 21, 2026 - v3.1.1 (Multi-Provider Bug Fixes)
+
+**Bug Fixes:**
+
+1. **Gemini "conversation too long" false positive** (`google.ts`)
+   - **Problem:** Error detection was too broad. Patterns like `message.includes('token')` or `message.includes('too long')` incorrectly matched unrelated errors (e.g., "invalid token", "request took too long"), causing users to see "conversation too long" for simple "Hello" messages.
+   - **Solution:** Made error patterns more specific: `context length`, `token limit`, `exceeds the maximum`, `too many tokens`, etc. Generic terms no longer trigger false positives.
+   - **Files:** `src/lib/ai/providers/adapters/google.ts:625-640`
+
+2. **DeepSeek "API key not configured" false positive** (`route.ts`)
+   - **Problem:** Any error containing "authentication" was mapped to "API key not configured", even when the key WAS configured but failed authentication (invalid/expired key).
+   - **Solution:** Split error handling into two distinct cases:
+     - "not configured" errors → "Contact administrator to set up API key"
+     - "auth_failed" errors → "API key authentication failed, may be invalid/expired"
+   - **Files:** `app/api/code-lab/chat/route.ts:1589-1608`
+
+3. **OpenAI-compatible adapter initialization race condition** (`openai-compatible.ts`)
+   - **Problem:** The `initialized` flag was set to `true` BEFORE checking if API keys existed in environment. If initialization ran when env vars were temporarily unavailable (cold start edge case), subsequent requests would skip re-initialization, causing "not configured" errors even when keys existed.
+   - **Solution:** Only mark as `initialized` after successfully finding at least one key. Re-check for keys if the pool is empty, allowing retry on subsequent requests.
+   - **Files:** `src/lib/ai/providers/adapters/openai-compatible.ts:70-101`
+
+**Impact:**
+
+- Users will now see accurate error messages instead of misleading ones
+- DeepSeek and Gemini models will work correctly when API keys are properly configured
+- Better debugging experience with specific error codes for different failure modes
+
+---
+
+_Last Updated: January 21, 2026_
+_Version: 3.1.1 — Multi-Provider Bug Fixes_

@@ -622,10 +622,19 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       ) {
         return 'rate_limited';
       }
+      // Context length errors - be specific to avoid false positives
+      // Don't match generic "token" (could be auth token) or "too long" (could be timeout)
       if (
-        message.includes('context') ||
-        message.includes('too long') ||
-        message.includes('token')
+        message.includes('context length') ||
+        message.includes('context window') ||
+        message.includes('max context') ||
+        message.includes('input too long') ||
+        message.includes('prompt too long') ||
+        message.includes('token limit') ||
+        message.includes('exceeds the maximum') ||
+        message.includes('maximum token') ||
+        message.includes('too many tokens') ||
+        (message.includes('context') && message.includes('exceed'))
       ) {
         return 'context_too_long';
       }

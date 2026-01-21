@@ -68,11 +68,17 @@ const apiKeyPools: Record<string, ApiKeyState[]> = {};
 const initialized: Record<string, boolean> = {};
 
 function initializeApiKeys(providerId: ProviderId): void {
-  if (initialized[providerId]) return;
-  initialized[providerId] = true;
+  // Always re-check if pool is empty (handles case where env var wasn't available earlier)
+  const existingPool = apiKeyPools[providerId];
+  if (initialized[providerId] && existingPool && existingPool.length > 0) {
+    return; // Already initialized with keys
+  }
 
   const endpoint = PROVIDER_ENDPOINTS[providerId];
-  if (!endpoint) return;
+  if (!endpoint) {
+    initialized[providerId] = true;
+    return;
+  }
 
   apiKeyPools[providerId] = [];
 
@@ -91,6 +97,12 @@ function initializeApiKeys(providerId: ProviderId): void {
     if (singleKey) {
       apiKeyPools[providerId].push({ key: singleKey, rateLimitedUntil: 0, client: null });
     }
+  }
+
+  // Only mark as initialized if we found at least one key
+  // This allows retry if keys weren't available on first attempt
+  if (apiKeyPools[providerId].length > 0) {
+    initialized[providerId] = true;
   }
 }
 
