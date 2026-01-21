@@ -1,7 +1,7 @@
 # SESSION HANDOFF DOCUMENT
 
 **Purpose:** Ensure seamless context transfer between Claude Code sessions
-**Last Updated:** 2026-01-18
+**Last Updated:** 2026-01-21
 **Current Score:** 38/100
 **Target:** 100/100
 
@@ -261,7 +261,38 @@ pnpm type-check
 
 ## SESSION LOG
 
-### Session 2026-01-18 (Current)
+### Session 2026-01-21 (Current)
+
+**Completed:**
+
+1. ✅ Fixed multi-provider model routing bug (CRITICAL)
+2. ✅ Added `getProviderForModel()` and `getProviderAndModel()` to registry
+3. ✅ Updated chat route to route requests to correct provider
+4. ✅ Updated CODE_LAB_CRITICAL_BUGS.md with detailed documentation
+
+**Findings:**
+
+- Chat route was sending ALL model requests to Anthropic API
+- Non-Claude models (GPT-5.2, Grok 4, DeepSeek, Gemini) returned 404 errors
+- Key diagnostic: Anthropic request_id format (`req_011CXLt...`) in error responses
+- Fix: Route requests through provider-specific adapters
+
+**Key Files Changed:**
+
+- `app/api/code-lab/chat/route.ts` - Added multi-provider routing logic
+- `src/lib/ai/providers/registry.ts` - Added model-to-provider lookup functions
+
+**Commit:** `2e788a6 fix(code-lab): route chat requests to correct provider based on model ID`
+
+**Next Session Should:**
+
+1. Test the multi-provider routing with live API keys
+2. Verify all 5 providers work correctly (Claude, OpenAI, xAI, DeepSeek, Google)
+3. Continue with Phase 1: Security Hardening if no issues found
+
+---
+
+### Session 2026-01-18
 
 **Completed:**
 

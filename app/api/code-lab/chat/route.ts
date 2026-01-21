@@ -36,6 +36,10 @@ import { validateCSRF } from '@/lib/security/csrf';
 // SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
 // (no fallback to SERVICE_ROLE_KEY for separation of concerns)
 import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
+// Multi-provider support: import registry and adapter factory
+import { getProviderForModel, getProviderAndModel } from '@/lib/ai/providers/registry';
+import { getAdapter } from '@/lib/ai/providers/adapters/factory';
+import type { UnifiedMessage } from '@/lib/ai/providers/types';
 
 const log = logger('CodeLabChat');
 
@@ -1319,10 +1323,263 @@ Be honest about knowledge cutoff limitations when relevant.`,
     }
 
     // ========================================
-    // REGULAR CHAT - Claude Opus 4.5
+    // REGULAR CHAT - Multi-Provider Support
     // ========================================
-    // Note: Codebase RAG removed (used Google embeddings)
-    // Use Code Lab grep/find tools for code search instead
+    // Supports Claude, OpenAI (GPT-5), xAI (Grok), DeepSeek, and Google (Gemini)
+
+    // Determine which provider to use based on the selected model
+    const providerId = getProviderForModel(selectedModel);
+    const providerInfo = getProviderAndModel(selectedModel);
+
+    log.info('Chat request', {
+      model: selectedModel,
+      provider: providerId || 'unknown',
+      modelName: providerInfo?.model.name || 'unknown',
+    });
+
+    // Build system prompt (shared across all providers)
+    let systemPrompt = `You are a highly capable AI assistant in Code Lab - a professional developer workspace.
+
+You help developers with:
+- Building code and applications
+- Debugging and fixing issues
+- Searching documentation
+- Explaining concepts
+- Code review and best practices
+- Analyzing screenshots and images (you have vision capabilities)
+
+Keep your responses clear, professional, and focused.
+Use markdown for formatting. Use code blocks with language tags.
+When showing terminal commands, use \`\`\`bash blocks.
+
+${imageAttachments.length > 0 ? `The user has attached ${imageAttachments.length} image(s). Analyze them carefully and provide helpful feedback.` : ''}
+
+Style Guidelines:
+- Be concise but thorough
+- Use proper code formatting
+- Provide working, tested code
+- Explain your reasoning briefly`;
+
+    if (repo) {
+      systemPrompt += `
+
+The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
+    }
+
+    // Inject CLAUDE.md memory into context
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sessionWithSettings } = await (supabase as any)
+      .from('code_lab_sessions')
+      .select('settings')
+      .eq('id', sessionId)
+      .single();
+
+    const memoryContent = sessionWithSettings?.settings?.memory_content;
+    if (memoryContent && memoryContent.trim()) {
+      systemPrompt += `
+
+---
+# Project Memory
+
+The user has defined the following project-specific context and instructions:
+
+${memoryContent}
+
+---
+IMPORTANT: Follow the instructions above. They represent the user's preferences for this project.`;
+      log.info('Injected memory context', { length: memoryContent.length });
+    }
+
+    // Stream the response with reliability features
+    const encoder = new TextEncoder();
+
+    // Configuration for reliability
+    const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk
+    const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
+
+    // ========================================
+    // NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
+    // ========================================
+    if (providerId && providerId !== 'claude') {
+      log.info('Using non-Claude provider', { providerId, model: selectedModel });
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          let keepaliveInterval: NodeJS.Timeout | null = null;
+          let lastActivity = Date.now();
+
+          const startKeepalive = () => {
+            keepaliveInterval = setInterval(() => {
+              const timeSinceActivity = Date.now() - lastActivity;
+              if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
+                try {
+                  controller.enqueue(encoder.encode(' '));
+                  log.debug('Sent keepalive heartbeat');
+                } catch {
+                  // Controller might be closed
+                }
+              }
+            }, KEEPALIVE_INTERVAL_MS);
+          };
+
+          const stopKeepalive = () => {
+            if (keepaliveInterval) {
+              clearInterval(keepaliveInterval);
+              keepaliveInterval = null;
+            }
+          };
+
+          let fullContent = '';
+
+          try {
+            // Get the appropriate adapter for this provider
+            const adapter = getAdapter(providerId);
+
+            // Convert history to unified message format
+            const unifiedMessages: UnifiedMessage[] = (history || []).map(
+              (m: { role: string; content: string }) => ({
+                role: m.role as 'user' | 'assistant' | 'system',
+                content: m.content,
+              })
+            );
+
+            // Build the current user message content with vision support
+            const userContentBlocks: Array<
+              | { type: 'text'; text: string }
+              | { type: 'image'; source: { type: 'base64'; mediaType: string; data: string } }
+            > = [];
+
+            if (enhancedContent) {
+              userContentBlocks.push({ type: 'text', text: enhancedContent });
+            }
+
+            // Add images for vision
+            for (const img of imageAttachments) {
+              const base64Data = img.data.split(',')[1] || img.data;
+              userContentBlocks.push({
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  mediaType: img.type,
+                  data: base64Data,
+                },
+              });
+            }
+
+            // Add the user message
+            if (userContentBlocks.length > 0) {
+              unifiedMessages.push({
+                role: 'user',
+                content:
+                  userContentBlocks.length === 1 && userContentBlocks[0].type === 'text'
+                    ? userContentBlocks[0].text
+                    : userContentBlocks,
+              });
+            }
+
+            // Start keepalive
+            startKeepalive();
+
+            // Track token usage
+            let inputTokens = 0;
+            let outputTokens = 0;
+
+            // Stream from the adapter
+            const chatStream = adapter.chat(unifiedMessages, {
+              model: selectedModel,
+              maxTokens: providerInfo?.model.maxOutputTokens || 8192,
+              temperature: 0.7,
+              systemPrompt,
+            });
+
+            for await (const chunk of chatStream) {
+              lastActivity = Date.now();
+
+              if (chunk.type === 'text') {
+                fullContent += chunk.text;
+                controller.enqueue(encoder.encode(chunk.text));
+              } else if (chunk.type === 'error' && chunk.error) {
+                log.error('Adapter stream error', {
+                  code: chunk.error.code,
+                  message: chunk.error.message,
+                });
+                throw new Error(chunk.error.message);
+              } else if (chunk.type === 'message_end' && chunk.usage) {
+                inputTokens = chunk.usage.inputTokens || 0;
+                outputTokens = chunk.usage.outputTokens || 0;
+              }
+            }
+
+            // Send token usage marker
+            if (inputTokens > 0 || outputTokens > 0) {
+              const usageMarker = `\n<!--USAGE:${JSON.stringify({
+                input: inputTokens,
+                output: outputTokens,
+                cacheRead: 0,
+                cacheWrite: 0,
+                model: selectedModel,
+              })}-->`;
+              controller.enqueue(encoder.encode(usageMarker));
+              log.debug('Token usage', { inputTokens, outputTokens, provider: providerId });
+            }
+
+            // Save assistant message
+            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+              id: generateId(),
+              session_id: sessionId,
+              role: 'assistant',
+              content: fullContent,
+              created_at: new Date().toISOString(),
+              type: 'chat',
+              model_id: selectedModel,
+            });
+
+            controller.close();
+          } catch (error) {
+            log.error('Stream error', error as Error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const isTimeout = errorMessage.includes('timeout');
+            const userMessage = isTimeout
+              ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+              : '\n\nI encountered an error. Please try again.';
+
+            fullContent += userMessage;
+
+            try {
+              await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                id: generateId(),
+                session_id: sessionId,
+                role: 'assistant',
+                content: fullContent || userMessage,
+                created_at: new Date().toISOString(),
+                type: 'error',
+                model_id: selectedModel,
+              });
+            } catch (saveError) {
+              log.error('Failed to save error message', saveError as Error);
+            }
+
+            controller.enqueue(encoder.encode(userMessage));
+            controller.close();
+          } finally {
+            stopKeepalive();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
+
+    // ========================================
+    // CLAUDE PROVIDER (Anthropic) - Default
+    // ========================================
+    // Uses native Anthropic SDK for extended thinking support
     const messages: Anthropic.MessageParam[] = (history || []).map(
       (m: { role: string; content: string }) => ({
         role: m.role as 'user' | 'assistant',
@@ -1362,66 +1619,6 @@ Be honest about knowledge cutoff limitations when relevant.`,
         content: userContent,
       });
     }
-
-    // Build system prompt
-    let systemPrompt = `You are Claude, a highly capable AI assistant in Code Lab - a professional developer workspace.
-
-You help developers with:
-- Building code and applications
-- Debugging and fixing issues
-- Searching documentation
-- Explaining concepts
-- Code review and best practices
-- Analyzing screenshots and images (you have vision capabilities)
-
-Keep your responses clear, professional, and focused.
-Use markdown for formatting. Use code blocks with language tags.
-When showing terminal commands, use \`\`\`bash blocks.
-
-${imageAttachments.length > 0 ? `The user has attached ${imageAttachments.length} image(s). Analyze them carefully and provide helpful feedback.` : ''}
-
-Style Guidelines:
-- Be concise but thorough
-- Use proper code formatting
-- Provide working, tested code
-- Explain your reasoning briefly`;
-
-    if (repo) {
-      systemPrompt += `
-
-The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
-    }
-
-    // Inject CLAUDE.md memory into context (Claude Code parity)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sessionWithSettings } = await (supabase as any)
-      .from('code_lab_sessions')
-      .select('settings')
-      .eq('id', sessionId)
-      .single();
-
-    const memoryContent = sessionWithSettings?.settings?.memory_content;
-    if (memoryContent && memoryContent.trim()) {
-      systemPrompt += `
-
----
-# Project Memory (CLAUDE.md)
-
-The user has defined the following project-specific context and instructions:
-
-${memoryContent}
-
----
-IMPORTANT: Follow the instructions above. They represent the user's preferences for this project.`;
-      log.info('Injected memory context', { length: memoryContent.length });
-    }
-
-    // Stream the response with reliability features
-    const encoder = new TextEncoder();
-
-    // Configuration for reliability
-    const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk
-    const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -1594,6 +1791,7 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             content: fullContent,
             created_at: new Date().toISOString(),
             type: useSearch ? 'search' : 'chat',
+            model_id: selectedModel,
           });
 
           controller.close();
@@ -1618,6 +1816,7 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
               content: fullContent || userMessage,
               created_at: new Date().toISOString(),
               type: 'error',
+              model_id: selectedModel,
             });
           } catch (saveError) {
             log.error('Failed to save error message', saveError as Error);

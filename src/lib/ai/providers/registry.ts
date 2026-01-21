@@ -430,6 +430,36 @@ export function getModel(providerId: ProviderId, modelId: string): ModelConfig |
 }
 
 /**
+ * Get provider ID for a given model ID
+ * Searches all providers to find which one contains the model
+ * @returns The provider ID or undefined if not found
+ */
+export function getProviderForModel(modelId: string): ProviderId | undefined {
+  for (const provider of Object.values(PROVIDERS)) {
+    if (provider.models.some((m) => m.id === modelId)) {
+      return provider.id;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Get provider and model configuration for a given model ID
+ * @returns Object with provider and model, or undefined if not found
+ */
+export function getProviderAndModel(
+  modelId: string
+): { provider: ProviderConfig; model: ModelConfig } | undefined {
+  for (const provider of Object.values(PROVIDERS)) {
+    const model = provider.models.find((m) => m.id === modelId);
+    if (model) {
+      return { provider, model };
+    }
+  }
+  return undefined;
+}
+
+/**
  * Get the default model for a provider
  */
 export function getDefaultModel(providerId: ProviderId): ModelConfig | undefined {

@@ -1,15 +1,15 @@
 # CODE LAB CRITICAL BUGS REPORT
 
-**Date:** 2026-01-19
+**Date:** 2026-01-21
 **Auditor:** Claude Code Audit
-**Branch:** `claude/audit-coding-lab-hLMWt`
+**Branch:** `claude/audit-coding-lab-HTLuo`
 **Status:** FIXES APPLIED
 
 ---
 
 ## EXECUTIVE SUMMARY
 
-The Code Lab had **6 CRITICAL bugs** and **4 HIGH severity bugs** that break core functionality. **All critical bugs have been fixed.**
+The Code Lab had **7 CRITICAL bugs** and **4 HIGH severity bugs** that break core functionality. **All critical bugs have been fixed.**
 
 ### Fixed Issues:
 
@@ -22,6 +22,7 @@ The Code Lab had **6 CRITICAL bugs** and **4 HIGH severity bugs** that break cor
 7. ✅ **Path traversal vulnerability** - `normalizePath()` now sanitizes paths
 8. ✅ **Workspace upsert** - ContainerManager now uses upsert instead of update
 9. ✅ **Error message persistence** - All error handlers now save messages to maintain conversation history
+10. ✅ **Multi-provider routing** - Chat route now routes to correct provider based on model ID (2026-01-21)
 
 ---
 
@@ -520,7 +521,172 @@ await this.supabase
 7. ✅ ~~Add path traversal prevention in normalizePath~~ - DONE
 8. ✅ ~~Use upsert for workspace creation~~ - DONE
 9. ✅ ~~Save error messages to maintain conversation history~~ - DONE
-10. **Add integration tests** that actually exercise the full flow (PENDING)
+10. ✅ ~~Fix multi-provider routing in chat route~~ - DONE (2026-01-21)
+11. **Add integration tests** that actually exercise the full flow (PENDING)
+
+---
+
+## BUG #11: Multi-Provider Model Routing ✅ FIXED (2026-01-21)
+
+**Severity:** 🔴 CRITICAL → ✅ RESOLVED
+**Impact:** All non-Claude models (GPT-5.2, Grok 4, DeepSeek, Gemini) returned 404 errors
+**Files:**
+
+- `app/api/code-lab/chat/route.ts` - All requests sent to Anthropic API regardless of model
+- `src/lib/ai/providers/registry.ts` - Missing model-to-provider lookup functions
+
+### Symptoms
+
+Users selecting non-Claude models saw immediate errors:
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "not_found_error",
+    "message": "model: gpt-5.2"
+  },
+  "request_id": "req_011CXLt37YKqzfsBrXepcyEW"
+}
+```
+
+**Key Diagnostic:** The `request_id` format (`req_011CXLt...`) is Anthropic's format, proving requests were being sent to Anthropic's API even for non-Anthropic models.
+
+### Root Cause
+
+The chat route (`app/api/code-lab/chat/route.ts`) was hardcoded to use only the Anthropic client:
+
+```typescript
+// BEFORE: All models sent to Anthropic API
+const response = await anthropic.messages.create({
+  model: selectedModel, // e.g., "gpt-5.2" - doesn't exist in Anthropic!
+  ...
+});
+```
+
+The route did not:
+
+1. Check which provider the selected model belonged to
+2. Use the appropriate adapter (OpenAI, xAI, DeepSeek, or Google)
+3. Route requests to the correct API endpoint
+
+### Solution Applied
+
+**1. Added model-to-provider lookup functions to registry (`src/lib/ai/providers/registry.ts:437-458`):**
+
+```typescript
+/**
+ * Get provider ID for a given model ID
+ */
+export function getProviderForModel(modelId: string): ProviderId | undefined {
+  for (const provider of Object.values(PROVIDERS)) {
+    if (provider.models.some((m) => m.id === modelId)) {
+      return provider.id;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Get provider and model configuration for a given model ID
+ */
+export function getProviderAndModel(
+  modelId: string
+): { provider: ProviderConfig; model: ModelConfig } | undefined {
+  for (const provider of Object.values(PROVIDERS)) {
+    const model = provider.models.find((m) => m.id === modelId);
+    if (model) {
+      return { provider, model };
+    }
+  }
+  return undefined;
+}
+```
+
+**2. Updated chat route to route by provider (`app/api/code-lab/chat/route.ts:1326-1603`):**
+
+```typescript
+// Determine which provider to use based on the selected model
+const providerId = getProviderForModel(selectedModel);
+const providerInfo = getProviderAndModel(selectedModel);
+
+log.info('Chat request', {
+  model: selectedModel,
+  provider: providerId || 'unknown',
+  modelName: providerInfo?.model.name || 'unknown'
+});
+
+// NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
+if (providerId && providerId !== 'claude') {
+  const adapter = getAdapter(providerId);
+  const chatStream = adapter.chat(unifiedMessages, {
+    model: selectedModel,
+    maxTokens: providerInfo?.model.maxOutputTokens || 8192,
+    temperature: 0.7,
+    systemPrompt,
+  });
+  // ... stream handling ...
+}
+
+// CLAUDE PROVIDER (Anthropic) - Default
+// Uses native Anthropic SDK for extended thinking support
+const response = await anthropic.messages.create(...);
+```
+
+### How to Diagnose This Issue in Future
+
+1. **Check error request_id format:**
+   - Anthropic: `req_011CXLt...`
+   - OpenAI: `chatcmpl-...`
+   - If you see Anthropic format for non-Claude model, routing is broken
+
+2. **Check logs for provider detection:**
+
+   ```
+   [CodeLabChat] Chat request {"model":"gpt-5.2","provider":"openai","modelName":"GPT-5.2"}
+   [CodeLabChat] Using non-Claude provider {"providerId":"openai","model":"gpt-5.2"}
+   ```
+
+3. **Verify adapter factory is creating correct clients:**
+   - `src/lib/ai/providers/adapters/factory.ts` should cache and return correct adapters
+   - `src/lib/ai/providers/adapters/openai-compatible.ts` for OpenAI/xAI/DeepSeek
+   - `src/lib/ai/providers/adapters/google.ts` for Gemini models
+
+### Related Files for Multi-Provider Support
+
+| File                                                 | Purpose                                  |
+| ---------------------------------------------------- | ---------------------------------------- |
+| `src/lib/ai/providers/registry.ts`                   | Model configurations for all 5 providers |
+| `src/lib/ai/providers/types.ts`                      | Unified message/chunk types              |
+| `src/lib/ai/providers/adapters/factory.ts`           | Creates provider-specific adapters       |
+| `src/lib/ai/providers/adapters/openai-compatible.ts` | OpenAI, xAI, DeepSeek adapter            |
+| `src/lib/ai/providers/adapters/google.ts`            | Google Gemini adapter                    |
+| `app/api/code-lab/chat/route.ts`                     | Main chat endpoint with routing logic    |
+| `src/components/code-lab/CodeLabComposer.tsx`        | UI model selector                        |
+| `src/components/code-lab/CodeLabMessage.tsx`         | Model display names                      |
+
+### Test Commands
+
+```bash
+# Test Claude model (should use Anthropic API)
+curl -X POST /api/code-lab/chat -d '{"modelId":"claude-opus-4-5-20251101","content":"Hello"}'
+
+# Test OpenAI model (should use OpenAI-compatible adapter)
+curl -X POST /api/code-lab/chat -d '{"modelId":"gpt-5.2","content":"Hello"}'
+
+# Test xAI model (should use OpenAI-compatible adapter with xAI base URL)
+curl -X POST /api/code-lab/chat -d '{"modelId":"grok-4","content":"Hello"}'
+
+# Test Google model (should use Google adapter)
+curl -X POST /api/code-lab/chat -d '{"modelId":"gemini-3-pro-preview","content":"Hello"}'
+```
+
+### Commit Reference
+
+```
+commit 2e788a6
+fix(code-lab): route chat requests to correct provider based on model ID
+```
 
 ---
 
