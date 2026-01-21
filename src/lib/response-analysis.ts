@@ -111,6 +111,19 @@ const DEVELOPER_INFO_PATTERNS: RegExp[] = [
   /(?:model|api) (?:pricing|rate.?limits|quotas?) (?:may|might|could) have (?:changed|been updated)/i,
   /(?:latest|newest|current) (?:model|version) (?:information|details)/i,
 
+  // MODEL NAMES/IDs (change with every release - critical for developers)
+  // Examples: claude-sonnet-4-20250514, gpt-4-turbo-2024-04-09, claude-opus-4-5-20251101
+  /(?:model|models?) (?:name|names?|id|ids?|identifier) (?:may|might|could) (?:be|have) (?:different|changed|updated)/i,
+  /(?:model|models?) (?:string|parameter|value) (?:may|might|could) (?:be|have) (?:changed|outdated)/i,
+  /(?:exact|specific|correct) (?:model|models?) (?:name|id|string|identifier)/i,
+  /(?:check|verify|confirm) (?:the )?(?:model|models?) (?:name|id|string|version)/i,
+  /(?:model|models?) (?:may|might|could) have been (?:renamed|updated|deprecated|replaced)/i,
+  /(?:latest|current|newest) (?:model|models?) (?:name|id|identifier|string)/i,
+  /(?:available|supported) (?:model|models?) (?:may|might|could) have (?:changed|been updated)/i,
+  /(?:model|models?) (?:list|options|choices) (?:may|might|could) (?:be|have) (?:different|changed)/i,
+  /(?:dated|versioned) (?:model|models?) (?:identifier|id|name|string)/i,
+  /(?:model|models?) (?:format|naming|convention) (?:like|such as|e\.?g\.?)/i,
+
   // General dev uncertainty about current state
   /(?:as of|at the time of) my (?:last|latest) (?:update|training)/i,
   /(?:new|recent) (?:features?|capabilities|updates?) (?:may|might|could) (?:be|have been) (?:added|released)/i,

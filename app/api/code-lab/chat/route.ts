@@ -220,6 +220,42 @@ function shouldUseSearch(message: string): boolean {
     /\b(free.?tier|free.?plan|pricing.?table)/i,
   ];
 
+  // ========================================
+  // MODEL NAMES/IDs (change with every release - CRITICAL for API setup)
+  // Examples: claude-sonnet-4-20250514, gpt-4-turbo-2024-04-09, claude-opus-4-5-20251101
+  // ========================================
+  const modelNamePatterns = [
+    // Direct model name/ID queries
+    /\b(model|models?)\b.*\b(name|names?|id|ids?|identifier|string|code)\b/i,
+    /\bwhat('s| is)\b.*\b(model|models?)\b.*\b(name|id|call|use|string)\b/i,
+    /\bmodel.?(name|id|string|identifier)\b/i,
+
+    // Available/supported models
+    /\b(latest|current|newest|available|supported)\b.*\b(model|models)\b/i,
+    /\b(model|models)\b.*\b(list|available|supported|options|choices)\b/i,
+    /\bwhat.?models?\b.*\b(available|support|can.?i.?use|exist)/i,
+
+    // Model versions/releases
+    /\bmodel\b.*\b(version|release|update|date|[0-9]{8})\b/i,
+    /\b(claude|gpt|gemini|llama|mistral)\b.*\b(version|release|model.?id)\b/i,
+
+    // API model parameter
+    /\b(api|sdk|endpoint)\b.*\bmodel\b.*\b(parameter|argument|value|set)\b/i,
+    /\bmodel\b.*\b(parameter|argument)\b.*\b(api|sdk|client)\b/i,
+
+    // Environment variable setup for models
+    /\b(env|environment|\.env)\b.*\b(model|models?)\b/i,
+    /\bmodel\b.*\b(env|environment|config|variable)\b/i,
+
+    // Specific model ID patterns (dated versions)
+    /\b(claude|gpt|gemini)-[\w-]+-[0-9]{8}\b/i,
+    /\bmodel.?id\b.*\b(format|example|syntax)\b/i,
+
+    // Model deprecation/migration
+    /\bmodel\b.*\b(deprecat|obsolete|retire|sunset|migrat|replac)\b/i,
+    /\b(deprecat|sunset|replac)\b.*\bmodel/i,
+  ];
+
   // Check all pattern groups
   const allPatterns = [
     ...directSearchPatterns,
@@ -231,6 +267,7 @@ function shouldUseSearch(message: string): boolean {
     ...troubleshootPatterns,
     ...comparisonPatterns,
     ...pricingPatterns,
+    ...modelNamePatterns,
   ];
 
   // Check regex patterns
@@ -284,6 +321,34 @@ function shouldUseSearch(message: string): boolean {
 
   // If AI keyword + version/api/docs context, search
   if (aiKeywordsWithContext.some((kw) => lower.includes(kw))) {
+    return true;
+  }
+
+  // ========================================
+  // MODEL NAME/ID KEYWORDS (critical for API setup)
+  // ========================================
+  const modelKeywords = [
+    'model name',
+    'model names',
+    'model id',
+    'model ids',
+    'model identifier',
+    'model string',
+    'model list',
+    'available models',
+    'supported models',
+    'model parameter',
+    'model version',
+    'model release',
+    'which model',
+    'what model',
+    'latest model',
+    'current model',
+    'model deprecated',
+    'model sunset',
+  ];
+
+  if (modelKeywords.some((kw) => lower.includes(kw))) {
     return true;
   }
 
