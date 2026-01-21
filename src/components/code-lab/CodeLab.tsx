@@ -48,7 +48,7 @@ import { CodeLabVisualToCode } from './CodeLabVisualToCode';
 import { CodeLabDeployFlow } from './CodeLabDeployFlow';
 import { CodeLabDebugPanel } from './CodeLabDebugPanel';
 import { CodeLabPlanView } from './CodeLabPlanView';
-import { CodeLabModelSelector } from './CodeLabModelSelector';
+// CodeLabModelSelector is now integrated into CodeLabComposer for cleaner UX
 import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
 import { CodeLabThinkingToggle } from './CodeLabThinkingToggle';
 import { CodeLabMCPSettings, MCPServer, DEFAULT_MCP_SERVERS } from './CodeLabMCPSettings';
@@ -1444,12 +1444,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           </button>
           <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
           <div className="header-actions">
-            {/* Model Selector (Claude Code parity) */}
-            <CodeLabModelSelector
-              currentModel={currentModelId}
-              onModelChange={handleModelChange}
-              disabled={isStreaming}
-            />
+            {/* Model Selector moved to composer for cleaner UX (like Deep Research) */}
 
             {/* Extended Thinking Toggle (Claude Code parity) */}
             <CodeLabThinkingToggle
@@ -1492,13 +1487,15 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                 repo={currentSession?.repo}
               />
 
-              {/* Composer - Input */}
+              {/* Composer - Input with inline model selector */}
               <CodeLabComposer
                 onSend={sendMessage}
                 isStreaming={isStreaming}
                 onCancel={cancelStream}
                 placeholder="Ask anything, build anything..."
                 disabled={!currentSessionId}
+                currentModel={currentModelId}
+                onModelChange={handleModelChange}
               />
             </div>
 

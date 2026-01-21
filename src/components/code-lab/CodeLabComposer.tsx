@@ -28,6 +28,9 @@ interface CodeLabComposerProps {
   onCancel: () => void;
   placeholder?: string;
   disabled?: boolean;
+  // Model selector props (moved from header for cleaner UX)
+  currentModel?: string;
+  onModelChange?: (modelId: string) => void;
 }
 
 // Supported file types
@@ -44,20 +47,41 @@ const ACCEPTED_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ATTACHMENTS = 10; // Maximum number of attachments
 
+// Model display names for the inline selector
+const MODEL_DISPLAY_NAMES: Record<string, { name: string; icon: string }> = {
+  'claude-sonnet-4-20250514': { name: 'Sonnet', icon: '🎵' },
+  'claude-opus-4-5-20251101': { name: 'Opus', icon: '🎼' },
+  'claude-3-5-haiku-20241022': { name: 'Haiku', icon: '🍃' },
+};
+
 export function CodeLabComposer({
   onSend,
   isStreaming,
   onCancel,
   placeholder = 'Ask anything, build anything...',
   disabled = false,
+  currentModel,
+  onModelChange,
 }: CodeLabComposerProps) {
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<CodeLabAttachment[]>([]);
-  const [searchMode, setSearchMode] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modelSelectorRef = useRef<HTMLDivElement>(null);
+
+  // Close model selector when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modelSelectorRef.current && !modelSelectorRef.current.contains(e.target as Node)) {
+        setModelSelectorOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -175,7 +199,8 @@ export function CodeLabComposer({
   const handleSubmit = useCallback(() => {
     const trimmed = content.trim();
     if ((trimmed || attachments.length > 0) && !isStreaming && !disabled) {
-      onSend(trimmed, attachments.length > 0 ? attachments : undefined, searchMode);
+      // Search is now auto-triggered based on content patterns, no manual searchMode needed
+      onSend(trimmed, attachments.length > 0 ? attachments : undefined, false);
       setContent('');
 
       // Revoke ObjectURLs before clearing attachments to prevent memory leaks
@@ -185,14 +210,13 @@ export function CodeLabComposer({
         }
       });
       setAttachments([]);
-      setSearchMode(false);
 
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
     }
-  }, [content, attachments, isStreaming, disabled, onSend, searchMode]);
+  }, [content, attachments, isStreaming, disabled, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -205,14 +229,18 @@ export function CodeLabComposer({
     }
 
     // Cancel on Escape
-    if (e.key === 'Escape' && isStreaming) {
-      onCancel();
+    if (e.key === 'Escape') {
+      if (modelSelectorOpen) {
+        setModelSelectorOpen(false);
+      } else if (isStreaming) {
+        onCancel();
+      }
     }
 
-    // Toggle search mode with Cmd/Ctrl+K
-    if (cmdKey && e.key === 'k') {
+    // Toggle model selector with Cmd/Ctrl+M
+    if (cmdKey && e.key === 'm') {
       e.preventDefault();
-      setSearchMode((prev) => !prev);
+      setModelSelectorOpen((prev) => !prev);
     }
   };
 
@@ -339,23 +367,64 @@ export function CodeLabComposer({
         </div>
       )}
 
-      {/* Search mode indicator */}
-      {searchMode && (
-        <div className="search-mode-indicator" role="status" aria-live="polite">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
+      {/* Model selector bar (like Deep Research in regular chat) */}
+      {currentModel && onModelChange && (
+        <div className="model-selector-bar" ref={modelSelectorRef}>
+          <span className="model-label">Model:</span>
+          <button
+            className="model-selector-trigger"
+            onClick={() => !disabled && !isStreaming && setModelSelectorOpen(!modelSelectorOpen)}
+            disabled={disabled || isStreaming}
+            aria-expanded={modelSelectorOpen}
+            aria-haspopup="listbox"
           >
-            <circle cx="11" cy="11" r="8" />
-            <path strokeLinecap="round" d="M21 21l-4.35-4.35" />
-          </svg>
-          <span>Web search enabled - will search for relevant info</span>
-          <button onClick={() => setSearchMode(false)} aria-label="Disable web search">
-            ×
+            <span className="model-icon">{MODEL_DISPLAY_NAMES[currentModel]?.icon || '🤖'}</span>
+            <span className="model-name">{MODEL_DISPLAY_NAMES[currentModel]?.name || 'Model'}</span>
+            <svg
+              className={`model-chevron ${modelSelectorOpen ? 'open' : ''}`}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
+
+          {/* Model dropdown */}
+          {modelSelectorOpen && (
+            <div className="model-dropdown" role="listbox">
+              {Object.entries(MODEL_DISPLAY_NAMES).map(([modelId, { name, icon }]) => (
+                <button
+                  key={modelId}
+                  className={`model-option ${modelId === currentModel ? 'selected' : ''}`}
+                  onClick={() => {
+                    onModelChange(modelId);
+                    setModelSelectorOpen(false);
+                  }}
+                  role="option"
+                  aria-selected={modelId === currentModel}
+                >
+                  <span className="model-icon">{icon}</span>
+                  <span className="model-name">{name}</span>
+                  {modelId === currentModel && (
+                    <svg
+                      className="check"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+              <div className="model-hint">⌘M to toggle</div>
+            </div>
+          )}
         </div>
       )}
 
@@ -412,23 +481,7 @@ export function CodeLabComposer({
             </svg>
           </button>
 
-          {/* Search toggle button */}
-          <button
-            className={`composer-btn search ${searchMode ? 'active' : ''}`}
-            onClick={() => setSearchMode(!searchMode)}
-            disabled={disabled || isStreaming}
-            title={searchMode ? 'Disable web search' : 'Enable web search'}
-            aria-label={searchMode ? 'Disable web search' : 'Enable web search'}
-            aria-pressed={searchMode}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-              />
-            </svg>
-          </button>
+          {/* Search is now auto-triggered based on content patterns - no manual toggle needed */}
 
           <div className="actions-spacer" />
 
@@ -474,7 +527,7 @@ export function CodeLabComposer({
         <span className="separator" aria-hidden="true">
           ·
         </span>
-        <span>⌘K palette</span>
+        <span>⌘M model</span>
         <span className="separator" aria-hidden="true">
           ·
         </span>
@@ -581,37 +634,129 @@ export function CodeLabComposer({
           height: 14px;
         }
 
-        .search-mode-indicator {
+        /* Model selector bar - thin inline selector like Deep Research */
+        .model-selector-bar {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: #333;
-          border: 1px solid #555;
-          border-radius: 8px;
-          margin-bottom: 0.75rem;
+          padding: 0.5rem 0;
+          margin-bottom: 0.5rem;
+          position: relative;
+        }
+
+        .model-label {
+          font-size: 0.8125rem;
+          color: #888;
+          font-weight: 500;
+        }
+
+        .model-selector-trigger {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          padding: 0.25rem 0.5rem;
+          background: #2a2a2a;
+          border: 1px solid #444;
+          border-radius: 6px;
           font-size: 0.8125rem;
           color: #ffffff;
+          cursor: pointer;
+          transition: all 0.15s ease;
         }
 
-        .search-mode-indicator svg {
-          width: 16px;
-          height: 16px;
-          flex-shrink: 0;
+        .model-selector-trigger:hover:not(:disabled) {
+          background: #333;
+          border-color: #555;
         }
 
-        .search-mode-indicator span {
-          flex: 1;
+        .model-selector-trigger:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
-        .search-mode-indicator button {
+        .model-selector-trigger .model-icon {
+          font-size: 0.875rem;
+        }
+
+        .model-selector-trigger .model-name {
+          font-weight: 500;
+        }
+
+        .model-chevron {
+          transition: transform 0.2s ease;
+          color: #888;
+        }
+
+        .model-chevron.open {
+          transform: rotate(180deg);
+        }
+
+        .model-dropdown {
+          position: absolute;
+          bottom: 100%;
+          left: 2.5rem;
+          min-width: 160px;
+          background: #1a1a1a;
+          border: 1px solid #444;
+          border-radius: 8px;
+          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+          overflow: hidden;
+          animation: slideUp 0.15s ease;
+          z-index: 100;
+          margin-bottom: 0.25rem;
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .model-dropdown .model-option {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.625rem 0.75rem;
           background: none;
           border: none;
-          font-size: 1.25rem;
-          color: #ffffff;
+          border-bottom: 1px solid #333;
           cursor: pointer;
-          padding: 0;
-          line-height: 1;
+          text-align: left;
+          color: #ffffff;
+          font-size: 0.875rem;
+          transition: background 0.1s ease;
+        }
+
+        .model-dropdown .model-option:last-of-type {
+          border-bottom: none;
+        }
+
+        .model-dropdown .model-option:hover {
+          background: #2a2a2a;
+        }
+
+        .model-dropdown .model-option.selected {
+          background: #333;
+        }
+
+        .model-dropdown .model-option .check {
+          margin-left: auto;
+          color: #10b981;
+        }
+
+        .model-hint {
+          padding: 0.375rem 0.75rem;
+          background: #222;
+          border-top: 1px solid #333;
+          font-size: 0.6875rem;
+          color: #666;
+          text-align: center;
         }
 
         .composer-container {
@@ -679,13 +824,11 @@ export function CodeLabComposer({
           transition: color 0.2s;
         }
 
-        .composer-btn.attach,
-        .composer-btn.search {
+        .composer-btn.attach {
           padding: 0.375rem;
         }
 
-        .composer-btn.attach:hover:not(:disabled),
-        .composer-btn.search:hover:not(:disabled) {
+        .composer-btn.attach:hover:not(:disabled) {
           color: #ffffff;
         }
 
@@ -697,10 +840,6 @@ export function CodeLabComposer({
         .composer-btn svg {
           width: 20px;
           height: 20px;
-        }
-
-        .composer-btn.search.active {
-          color: #ffffff;
         }
 
         .composer-btn.send {
@@ -771,8 +910,7 @@ export function CodeLabComposer({
             min-height: 44px;
           }
 
-          .composer-btn.attach,
-          .composer-btn.search {
+          .composer-btn.attach {
             min-width: 36px;
             min-height: 36px;
           }
@@ -780,6 +918,16 @@ export function CodeLabComposer({
           .composer-btn svg {
             width: 20px;
             height: 20px;
+          }
+
+          /* Model selector mobile adjustments */
+          .model-selector-bar {
+            padding: 0.375rem 0;
+          }
+
+          .model-dropdown {
+            left: 0;
+            min-width: 140px;
           }
 
           .composer-btn.send {
@@ -807,11 +955,6 @@ export function CodeLabComposer({
 
           .attachment-name {
             max-width: 100px;
-          }
-
-          .search-mode-indicator {
-            font-size: 0.75rem;
-            padding: 0.5rem 0.625rem;
           }
 
           .composer-hint {
