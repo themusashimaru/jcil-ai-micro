@@ -561,9 +561,10 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       const message = error.message.toLowerCase();
       return (
         message.includes('429') ||
-        message.includes('rate') ||
+        message.includes('rate limit') ||
+        message.includes('rate_limit') ||
+        message.includes('ratelimit') ||
         message.includes('quota') ||
-        message.includes('exhausted') ||
         message.includes('too many requests') ||
         message.includes('resource_exhausted') ||
         message.includes('resourceexhausted')
@@ -611,10 +612,13 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       }
       if (
         message.includes('429') ||
-        message.includes('rate') ||
+        message.includes('rate limit') ||
+        message.includes('rate_limit') ||
+        message.includes('ratelimit') ||
         message.includes('quota') ||
-        message.includes('exhausted') ||
-        message.includes('too many requests')
+        message.includes('too many requests') ||
+        message.includes('resource_exhausted') ||
+        message.includes('resourceexhausted')
       ) {
         return 'rate_limited';
       }
