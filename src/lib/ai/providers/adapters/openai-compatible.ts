@@ -55,22 +55,34 @@ const PROVIDER_ENDPOINTS: Record<string, ProviderEndpoint> = {
 };
 
 // ============================================================================
-// API KEY MANAGEMENT
+// API KEY MANAGEMENT - DUAL-POOL SYSTEM
 // ============================================================================
+// Primary Pool: Round-robin load distribution (e.g., DEEPSEEK_API_KEY_1, _2, _3, ...)
+// Fallback Pool: Emergency reserve (e.g., DEEPSEEK_API_KEY_FALLBACK_1, _2, _3, ...)
+// Backward Compatible: Single key (e.g., DEEPSEEK_API_KEY) still works
+// NO HARDCODED LIMITS - just add keys and they're automatically detected!
 
 interface ApiKeyState {
   key: string;
   rateLimitedUntil: number;
   client: OpenAI | null;
+  pool: 'primary' | 'fallback';
+  index: number;
 }
 
-const apiKeyPools: Record<string, ApiKeyState[]> = {};
+// Separate pools for better management
+const primaryKeyPools: Record<string, ApiKeyState[]> = {};
+const fallbackKeyPools: Record<string, ApiKeyState[]> = {};
 const initialized: Record<string, boolean> = {};
 
+/**
+ * Initialize all available API keys into their pools for a provider
+ * FULLY DYNAMIC: Automatically detects ALL configured keys - no limits!
+ */
 function initializeApiKeys(providerId: ProviderId): void {
   // Always re-check if pool is empty (handles case where env var wasn't available earlier)
-  const existingPool = apiKeyPools[providerId];
-  if (initialized[providerId] && existingPool && existingPool.length > 0) {
+  const existingPrimary = primaryKeyPools[providerId];
+  if (initialized[providerId] && existingPrimary && existingPrimary.length > 0) {
     return; // Already initialized with keys
   }
 
@@ -80,54 +92,167 @@ function initializeApiKeys(providerId: ProviderId): void {
     return;
   }
 
-  apiKeyPools[providerId] = [];
+  primaryKeyPools[providerId] = [];
+  fallbackKeyPools[providerId] = [];
 
-  // Check for numbered keys first
+  // Dynamically detect ALL numbered primary keys (no limit!)
   let i = 1;
   while (true) {
     const key = process.env[`${endpoint.apiKeyEnv}_${i}`];
     if (!key) break;
-    apiKeyPools[providerId].push({ key, rateLimitedUntil: 0, client: null });
+    primaryKeyPools[providerId].push({
+      key,
+      rateLimitedUntil: 0,
+      client: null,
+      pool: 'primary',
+      index: i,
+    });
     i++;
   }
 
-  // Fall back to single key
-  if (apiKeyPools[providerId].length === 0) {
+  // Fall back to single key if no numbered keys found
+  if (primaryKeyPools[providerId].length === 0) {
     const singleKey = process.env[endpoint.apiKeyEnv];
     if (singleKey) {
-      apiKeyPools[providerId].push({ key: singleKey, rateLimitedUntil: 0, client: null });
+      primaryKeyPools[providerId].push({
+        key: singleKey,
+        rateLimitedUntil: 0,
+        client: null,
+        pool: 'primary',
+        index: 0,
+      });
     }
+  }
+
+  // Dynamically detect ALL fallback keys (no limit!)
+  let j = 1;
+  while (true) {
+    const key = process.env[`${endpoint.apiKeyEnv}_FALLBACK_${j}`];
+    if (!key) break;
+    fallbackKeyPools[providerId].push({
+      key,
+      rateLimitedUntil: 0,
+      client: null,
+      pool: 'fallback',
+      index: j,
+    });
+    j++;
+  }
+
+  // Log the detected configuration (only in development)
+  const totalKeys = primaryKeyPools[providerId].length + fallbackKeyPools[providerId].length;
+  if (totalKeys > 0 && process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[${providerId}] Initialized dual-pool system: ${primaryKeyPools[providerId].length} primary, ${fallbackKeyPools[providerId].length} fallback keys`
+    );
   }
 
   // Only mark as initialized if we found at least one key
   // This allows retry if keys weren't available on first attempt
-  if (apiKeyPools[providerId].length > 0) {
+  if (primaryKeyPools[providerId].length > 0) {
     initialized[providerId] = true;
   }
 }
 
-function getAvailableKeyState(providerId: ProviderId): ApiKeyState | null {
-  initializeApiKeys(providerId);
-  const pool = apiKeyPools[providerId] || [];
+/**
+ * Get an available key state from the primary pool
+ * Uses random selection for serverless-safe load distribution
+ */
+function getPrimaryKeyState(providerId: ProviderId): ApiKeyState | null {
+  const pool = primaryKeyPools[providerId] || [];
   if (pool.length === 0) return null;
 
   const now = Date.now();
   const available = pool.filter((k) => k.rateLimitedUntil <= now);
 
   if (available.length === 0) {
-    // All rate limited, return the one that will be available soonest
-    return pool.reduce((a, b) => (a.rateLimitedUntil < b.rateLimitedUntil ? a : b));
+    return null; // All primary keys are rate limited
   }
 
-  // Random selection for load distribution
+  // Random selection for serverless-safe load distribution
   return available[Math.floor(Math.random() * available.length)];
+}
+
+/**
+ * Get an available key state from the fallback pool
+ * Uses random selection for serverless-safe load distribution
+ */
+function getFallbackKeyState(providerId: ProviderId): ApiKeyState | null {
+  const pool = fallbackKeyPools[providerId] || [];
+  if (pool.length === 0) return null;
+
+  const now = Date.now();
+  const available = pool.filter((k) => k.rateLimitedUntil <= now);
+
+  if (available.length === 0) {
+    return null; // All fallback keys are also rate limited
+  }
+
+  // Random selection for serverless-safe load distribution
+  const keyState = available[Math.floor(Math.random() * available.length)];
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[${providerId}] Using fallback key (primary pool exhausted), index: ${keyState.index}`
+    );
+  }
+  return keyState;
+}
+
+/**
+ * Get the next available API key state
+ * Priority: Primary pool → Fallback pool → Wait for soonest available
+ */
+function getAvailableKeyState(providerId: ProviderId): ApiKeyState | null {
+  initializeApiKeys(providerId);
+
+  const primaryPool = primaryKeyPools[providerId] || [];
+  const fallbackPool = fallbackKeyPools[providerId] || [];
+
+  // No keys configured at all
+  if (primaryPool.length === 0 && fallbackPool.length === 0) {
+    return null;
+  }
+
+  // Try primary pool first (random selection for load distribution)
+  const primaryKeyState = getPrimaryKeyState(providerId);
+  if (primaryKeyState) {
+    return primaryKeyState;
+  }
+
+  // Primary pool exhausted - try fallback pool
+  const fallbackKeyState = getFallbackKeyState(providerId);
+  if (fallbackKeyState) {
+    return fallbackKeyState;
+  }
+
+  // All keys rate limited - find the one available soonest
+  const allKeys = [...primaryPool, ...fallbackPool];
+  let soonestKey = allKeys[0];
+
+  for (const key of allKeys) {
+    if (key.rateLimitedUntil < soonestKey.rateLimitedUntil) {
+      soonestKey = key;
+    }
+  }
+
+  const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[${providerId}] All keys rate limited (${allKeys.length} total), soonest available in ${waitTime}s from ${soonestKey.pool} pool`
+  );
+
+  return soonestKey;
 }
 
 function getOpenAIClient(providerId: ProviderId): OpenAI {
   const keyState = getAvailableKeyState(providerId);
   if (!keyState) {
     const endpoint = PROVIDER_ENDPOINTS[providerId];
-    throw new Error(`${endpoint?.apiKeyEnv || 'API_KEY'} is not configured`);
+    throw new Error(
+      `${endpoint?.apiKeyEnv || 'API_KEY'} is not configured. Set ${endpoint?.apiKeyEnv} or ${endpoint?.apiKeyEnv}_1, _2, etc.`
+    );
   }
 
   if (!keyState.client) {
@@ -141,15 +266,30 @@ function getOpenAIClient(providerId: ProviderId): OpenAI {
   return keyState.client;
 }
 
+/**
+ * Mark a specific API key as rate limited
+ */
 function markKeyRateLimited(
   providerId: ProviderId,
   client: OpenAI,
   retryAfterSeconds: number = 60
 ): void {
-  const pool = apiKeyPools[providerId] || [];
-  const keyState = pool.find((k) => k.client === client);
+  const primaryPool = primaryKeyPools[providerId] || [];
+  const fallbackPool = fallbackKeyPools[providerId] || [];
+  const allKeys = [...primaryPool, ...fallbackPool];
+
+  const keyState = allKeys.find((k) => k.client === client);
   if (keyState) {
     keyState.rateLimitedUntil = Date.now() + retryAfterSeconds * 1000;
+
+    // Log pool status
+    const now = Date.now();
+    const availablePrimary = primaryPool.filter((k) => k.rateLimitedUntil <= now).length;
+    const availableFallback = fallbackPool.filter((k) => k.rateLimitedUntil <= now).length;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[${providerId}] Key rate limited (pool: ${keyState.pool}, index: ${keyState.index}), retry after ${retryAfterSeconds}s. Available: ${availablePrimary} primary, ${availableFallback} fallback`
+    );
   }
 }
 
