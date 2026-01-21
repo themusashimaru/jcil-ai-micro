@@ -11,7 +11,7 @@
  * This is where we do methodical planning like senior engineers.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import {
   CodeIntent,
   ProjectPlan,
@@ -21,13 +21,11 @@ import {
   ArchitectureLayer,
 } from '../../core/types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
-
 export class ProjectPlanner {
-  // Claude Opus 4.5 for advanced reasoning
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Create a comprehensive project plan
@@ -134,13 +132,12 @@ PLANNING RULES:
 OUTPUT ONLY THE JSON OBJECT.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 8000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      const text = response.text;
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No JSON found in response');
@@ -212,18 +209,22 @@ OUTPUT ONLY THE JSON OBJECT.`;
   private buildFileTree(files: unknown[]): PlannedFile[] {
     if (!files || !Array.isArray(files)) return [];
 
-    return files.map((f: unknown, index: number) => {
-      const file = f as Record<string, unknown>;
-      return {
-        path: String(file.path || `file_${index}.ts`),
-        purpose: String(file.purpose || 'Source file'),
-        dependencies: (file.dependencies as string[]) || [],
-        priority: Number(file.priority) || index + 1,
-        estimatedLines: Number(file.estimatedLines) || 20,
-        isEntryPoint: Boolean(file.isEntryPoint),
-        isConfig: Boolean(file.isConfig) || String(file.path).match(/\.(json|yml|yaml|config\.\w+)$/) !== null,
-      };
-    }).sort((a, b) => a.priority - b.priority);
+    return files
+      .map((f: unknown, index: number) => {
+        const file = f as Record<string, unknown>;
+        return {
+          path: String(file.path || `file_${index}.ts`),
+          purpose: String(file.purpose || 'Source file'),
+          dependencies: (file.dependencies as string[]) || [],
+          priority: Number(file.priority) || index + 1,
+          estimatedLines: Number(file.estimatedLines) || 20,
+          isEntryPoint: Boolean(file.isEntryPoint),
+          isConfig:
+            Boolean(file.isConfig) ||
+            String(file.path).match(/\.(json|yml|yaml|config\.\w+)$/) !== null,
+        };
+      })
+      .sort((a, b) => a.priority - b.priority);
   }
 
   /**
@@ -232,22 +233,29 @@ OUTPUT ONLY THE JSON OBJECT.`;
   private buildBuildSteps(steps: unknown[]): BuildStep[] {
     if (!steps || !Array.isArray(steps)) {
       return [
-        { order: 1, command: 'npm install', description: 'Install dependencies', failureAction: 'stop' },
+        {
+          order: 1,
+          command: 'npm install',
+          description: 'Install dependencies',
+          failureAction: 'stop',
+        },
         { order: 2, command: 'npm run build', description: 'Build project', failureAction: 'stop' },
       ];
     }
 
-    return steps.map((s: unknown, index: number) => {
-      const step = s as Record<string, unknown>;
-      return {
-        order: Number(step.order) || index + 1,
-        command: String(step.command || 'npm run build'),
-        description: String(step.description || 'Build step'),
-        failureAction: (['stop', 'continue', 'retry'].includes(String(step.failureAction))
-          ? step.failureAction
-          : 'stop') as BuildStep['failureAction'],
-      };
-    }).sort((a, b) => a.order - b.order);
+    return steps
+      .map((s: unknown, index: number) => {
+        const step = s as Record<string, unknown>;
+        return {
+          order: Number(step.order) || index + 1,
+          command: String(step.command || 'npm run build'),
+          description: String(step.description || 'Build step'),
+          failureAction: (['stop', 'continue', 'retry'].includes(String(step.failureAction))
+            ? step.failureAction
+            : 'stop') as BuildStep['failureAction'],
+        };
+      })
+      .sort((a, b) => a.order - b.order);
   }
 
   /**
@@ -274,7 +282,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
    */
   private validatePlan(plan: ProjectPlan, intent: CodeIntent): ProjectPlan {
     // Ensure package.json exists
-    if (!plan.fileTree.some(f => f.path === 'package.json')) {
+    if (!plan.fileTree.some((f) => f.path === 'package.json')) {
       plan.fileTree.unshift({
         path: 'package.json',
         purpose: 'Project manifest and dependencies',
@@ -286,7 +294,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
     }
 
     // Ensure README.md exists
-    if (!plan.fileTree.some(f => f.path === 'README.md')) {
+    if (!plan.fileTree.some((f) => f.path === 'README.md')) {
       plan.fileTree.push({
         path: 'README.md',
         purpose: 'Project documentation',
@@ -298,7 +306,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
     }
 
     // Ensure .gitignore exists
-    if (!plan.fileTree.some(f => f.path === '.gitignore')) {
+    if (!plan.fileTree.some((f) => f.path === '.gitignore')) {
       plan.fileTree.splice(1, 0, {
         path: '.gitignore',
         purpose: 'Git ignore patterns',
@@ -311,7 +319,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
     // Add tsconfig.json for TypeScript projects
     if (intent.technologies.primary.toLowerCase().includes('typescript')) {
-      if (!plan.fileTree.some(f => f.path === 'tsconfig.json')) {
+      if (!plan.fileTree.some((f) => f.path === 'tsconfig.json')) {
         plan.fileTree.splice(2, 0, {
           path: 'tsconfig.json',
           purpose: 'TypeScript configuration',
@@ -342,25 +350,75 @@ OUTPUT ONLY THE JSON OBJECT.`;
       description: intent.refinedDescription,
       architecture: {
         pattern: 'Simple',
-        layers: [
-          { name: 'Source', purpose: 'Application code', files: [`src/index.${ext}`] },
-        ],
+        layers: [{ name: 'Source', purpose: 'Application code', files: [`src/index.${ext}`] }],
         rationale: 'Simple single-file structure for quick implementation',
       },
       fileTree: [
-        { path: 'package.json', purpose: 'Dependencies', dependencies: [], priority: 1, estimatedLines: 25, isConfig: true },
-        { path: '.gitignore', purpose: 'Git ignores', dependencies: [], priority: 2, estimatedLines: 15, isConfig: true },
-        ...(isTypescript ? [{ path: 'tsconfig.json', purpose: 'TypeScript config', dependencies: [], priority: 3, estimatedLines: 20, isConfig: true }] : []),
-        { path: `src/index.${ext}`, purpose: 'Main entry point', dependencies: [], priority: 4, estimatedLines: 50, isEntryPoint: true },
-        { path: 'README.md', purpose: 'Documentation', dependencies: [], priority: 5, estimatedLines: 30 },
+        {
+          path: 'package.json',
+          purpose: 'Dependencies',
+          dependencies: [],
+          priority: 1,
+          estimatedLines: 25,
+          isConfig: true,
+        },
+        {
+          path: '.gitignore',
+          purpose: 'Git ignores',
+          dependencies: [],
+          priority: 2,
+          estimatedLines: 15,
+          isConfig: true,
+        },
+        ...(isTypescript
+          ? [
+              {
+                path: 'tsconfig.json',
+                purpose: 'TypeScript config',
+                dependencies: [],
+                priority: 3,
+                estimatedLines: 20,
+                isConfig: true,
+              },
+            ]
+          : []),
+        {
+          path: `src/index.${ext}`,
+          purpose: 'Main entry point',
+          dependencies: [],
+          priority: 4,
+          estimatedLines: 50,
+          isEntryPoint: true,
+        },
+        {
+          path: 'README.md',
+          purpose: 'Documentation',
+          dependencies: [],
+          priority: 5,
+          estimatedLines: 30,
+        },
       ],
       dependencies: {
         production: {},
         development: isTypescript ? { typescript: '^5.0.0', '@types/node': '^20.0.0' } : {},
       },
       buildSteps: [
-        { order: 1, command: 'npm install', description: 'Install dependencies', failureAction: 'stop' },
-        ...(isTypescript ? [{ order: 2, command: 'npx tsc --noEmit', description: 'Type check', failureAction: 'stop' as const }] : []),
+        {
+          order: 1,
+          command: 'npm install',
+          description: 'Install dependencies',
+          failureAction: 'stop',
+        },
+        ...(isTypescript
+          ? [
+              {
+                order: 2,
+                command: 'npx tsc --noEmit',
+                description: 'Type check',
+                failureAction: 'stop' as const,
+              },
+            ]
+          : []),
       ],
       testStrategy: {
         approach: 'Manual testing',
@@ -368,9 +426,27 @@ OUTPUT ONLY THE JSON OBJECT.`;
       },
       risks: ['Basic fallback plan - may need manual adjustments'],
       taskBreakdown: [
-        { id: 'task_1', title: 'Setup project', description: 'Create configuration files', status: 'pending', files: ['package.json'] },
-        { id: 'task_2', title: 'Implement main logic', description: 'Write the core functionality', status: 'pending', files: [`src/index.${ext}`] },
-        { id: 'task_3', title: 'Add documentation', description: 'Create README', status: 'pending', files: ['README.md'] },
+        {
+          id: 'task_1',
+          title: 'Setup project',
+          description: 'Create configuration files',
+          status: 'pending',
+          files: ['package.json'],
+        },
+        {
+          id: 'task_2',
+          title: 'Implement main logic',
+          description: 'Write the core functionality',
+          status: 'pending',
+          files: [`src/index.${ext}`],
+        },
+        {
+          id: 'task_3',
+          title: 'Add documentation',
+          description: 'Create README',
+          status: 'pending',
+          files: ['README.md'],
+        },
       ],
     };
   }
@@ -381,7 +457,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
   updateTaskStatus(plan: ProjectPlan, taskId: string, status: PlanTask['status']): ProjectPlan {
     return {
       ...plan,
-      taskBreakdown: plan.taskBreakdown.map(task =>
+      taskBreakdown: plan.taskBreakdown.map((task) =>
         task.id === taskId ? { ...task, status } : task
       ),
     };

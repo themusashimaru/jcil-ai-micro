@@ -20,13 +20,9 @@
  * This is what separates demo code from production code.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { GeneratedFile, CodeIntent, ProjectPlan } from '../../core/types';
 import { AgentStreamCallback } from '../../core/types';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // ============================================================================
 // TYPES
@@ -88,7 +84,10 @@ export interface TestGenerationResult {
 // ============================================================================
 
 export class TestGenerator {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Generate comprehensive tests for all source files
@@ -110,7 +109,7 @@ export class TestGenerator {
     });
 
     // Filter files that need tests
-    const testableFiles = sourceFiles.filter(f => this.isTestable(f));
+    const testableFiles = sourceFiles.filter((f) => this.isTestable(f));
 
     onStream?.({
       type: 'thinking',
@@ -142,7 +141,7 @@ export class TestGenerator {
         totalTests += testSuite.tests.length;
 
         // Count test types
-        testSuite.tests.forEach(t => {
+        testSuite.tests.forEach((t) => {
           testTypes[t.type]++;
         });
       }
@@ -258,13 +257,12 @@ Generate at least 3-5 tests per function/component.
 OUTPUT ONLY JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 8000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
 
       if (!jsonMatch) {
@@ -310,18 +308,19 @@ OUTPUT ONLY JSON.`;
     framework: TestFramework,
     intent: CodeIntent
   ): Promise<GeneratedFile | null> {
-    const apiFiles = files.filter(f =>
-      f.path.includes('/api/') ||
-      f.path.includes('/routes/') ||
-      f.path.includes('server') ||
-      f.content.includes('app.get') ||
-      f.content.includes('app.post') ||
-      f.content.includes('router.')
+    const apiFiles = files.filter(
+      (f) =>
+        f.path.includes('/api/') ||
+        f.path.includes('/routes/') ||
+        f.path.includes('server') ||
+        f.content.includes('app.get') ||
+        f.content.includes('app.post') ||
+        f.content.includes('router.')
     );
 
     if (apiFiles.length === 0) return null;
 
-    const apiCode = apiFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n');
+    const apiCode = apiFiles.map((f) => `// ${f.path}\n${f.content}`).join('\n\n');
 
     const prompt = `Generate API integration tests for these endpoints.
 
@@ -344,13 +343,12 @@ Generate COMPLETE, RUNNABLE test code.
 OUTPUT ONLY THE CODE, NO JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 4000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const code = text.replace(/^```\w*\n?/, '').replace(/```$/, '');
 
       return {
@@ -386,7 +384,7 @@ OUTPUT ONLY THE CODE, NO JSON.`;
     // Add mocks
     if (suite.mocks.length > 0) {
       content += '// Mocks\n';
-      suite.mocks.forEach(mock => {
+      suite.mocks.forEach((mock) => {
         content += `// ${mock.description}\n`;
         content += mock.code + '\n\n';
       });
@@ -402,7 +400,7 @@ OUTPUT ONLY THE CODE, NO JSON.`;
     content += `describe('${suite.name}', () => {\n`;
 
     // Add tests
-    suite.tests.forEach(test => {
+    suite.tests.forEach((test) => {
       content += `  // ${test.description}\n`;
       content += `  // Priority: ${test.priority}\n`;
       if (test.edgeCases.length > 0) {
@@ -433,9 +431,12 @@ OUTPUT ONLY THE CODE, NO JSON.`;
   /**
    * Generate test setup file
    */
-  private generateSetupFile(framework: TestFramework, files: GeneratedFile[]): GeneratedFile | null {
+  private generateSetupFile(
+    framework: TestFramework,
+    files: GeneratedFile[]
+  ): GeneratedFile | null {
     if (framework === 'jest' || framework === 'vitest') {
-      const hasReact = files.some(f => f.content.includes('React') || f.path.endsWith('.tsx'));
+      const hasReact = files.some((f) => f.content.includes('React') || f.path.endsWith('.tsx'));
 
       let content = `/**
  * Test Setup Configuration
@@ -498,8 +499,10 @@ afterEach(() => {
     if (tech.primary.toLowerCase().includes('go')) return 'go-test';
 
     // For JavaScript/TypeScript, prefer Vitest for modern projects
-    if (tech.primary.toLowerCase().includes('vite') ||
-        tech.primary.toLowerCase().includes('next')) {
+    if (
+      tech.primary.toLowerCase().includes('vite') ||
+      tech.primary.toLowerCase().includes('next')
+    ) {
       return 'vitest';
     }
 
@@ -518,11 +521,12 @@ afterEach(() => {
     if (file.path.includes('types') && file.content.includes('interface')) return false;
 
     // Must have executable code
-    const hasCode = file.content.includes('function') ||
-                    file.content.includes('const ') ||
-                    file.content.includes('class ') ||
-                    file.content.includes('export ') ||
-                    file.content.includes('def ');
+    const hasCode =
+      file.content.includes('function') ||
+      file.content.includes('const ') ||
+      file.content.includes('class ') ||
+      file.content.includes('export ') ||
+      file.content.includes('def ');
 
     return hasCode && file.linesOfCode > 5;
   }
@@ -531,12 +535,13 @@ afterEach(() => {
    * Check if project has API endpoints
    */
   private hasApiEndpoints(files: GeneratedFile[]): boolean {
-    return files.some(f =>
-      f.content.includes('app.get') ||
-      f.content.includes('app.post') ||
-      f.content.includes('router.') ||
-      f.content.includes('createRoute') ||
-      f.path.includes('/api/')
+    return files.some(
+      (f) =>
+        f.content.includes('app.get') ||
+        f.content.includes('app.post') ||
+        f.content.includes('router.') ||
+        f.content.includes('createRoute') ||
+        f.path.includes('/api/')
     );
   }
 
@@ -548,15 +553,17 @@ afterEach(() => {
       name: this.getTestSuiteName(file),
       file: this.getTestFilePath(file, framework),
       framework,
-      tests: [{
-        name: 'should be defined',
-        type: 'unit',
-        description: 'Basic existence test',
-        code: `it('should be defined', () => {\n  expect(true).toBe(true);\n});`,
-        assertions: ['existence'],
-        edgeCases: [],
-        priority: 'low',
-      }],
+      tests: [
+        {
+          name: 'should be defined',
+          type: 'unit',
+          description: 'Basic existence test',
+          code: `it('should be defined', () => {\n  expect(true).toBe(true);\n});`,
+          assertions: ['existence'],
+          edgeCases: [],
+          priority: 'low',
+        },
+      ],
       mocks: [],
       coverage: { lines: 10, branches: 0, functions: 10, statements: 10 },
     };
@@ -593,7 +600,11 @@ afterEach(() => {
   }
 
   private getTestImports(framework: TestFramework, sourceFile: GeneratedFile): string {
-    const moduleName = sourceFile.path.split('/').pop()?.replace(/\.[^.]+$/, '') || 'module';
+    const moduleName =
+      sourceFile.path
+        .split('/')
+        .pop()
+        ?.replace(/\.[^.]+$/, '') || 'module';
     const relativePath = '../' + sourceFile.path.replace(/^src\//, '').replace(/\.[^.]+$/, '');
 
     switch (framework) {
@@ -643,7 +654,10 @@ afterEach(() => {
     }
   }
 
-  private estimateCoverage(sourceFiles: GeneratedFile[], testFiles: GeneratedFile[]): CoverageEstimate {
+  private estimateCoverage(
+    sourceFiles: GeneratedFile[],
+    testFiles: GeneratedFile[]
+  ): CoverageEstimate {
     const sourceLines = sourceFiles.reduce((sum, f) => sum + f.linesOfCode, 0);
     const testLines = testFiles.reduce((sum, f) => sum + f.linesOfCode, 0);
 

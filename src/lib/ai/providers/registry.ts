@@ -131,6 +131,14 @@ const OPENAI_CONFIG: ProviderConfig = {
 
 /**
  * xAI (Grok) Provider Configuration
+ *
+ * Pricing (per 1M tokens):
+ * - grok-4: Input $3.00 / Output $15.00 (256K context)
+ * - grok-4-1-fast-reasoning: Input $0.20 / Output $0.50 (2M context)
+ * - grok-4-1-fast-non-reasoning: Input $0.20 / Output $0.50 (2M context)
+ * - grok-4-fast-reasoning: Input $0.20 / Output $0.50 (2M context)
+ * - grok-4-fast-non-reasoning: Input $0.20 / Output $0.50 (2M context)
+ * - grok-code-fast-1: Input $0.20 / Output $1.50 (256K context) - Agentic coding
  */
 const XAI_CONFIG: ProviderConfig = {
   id: 'xai',
@@ -150,9 +158,9 @@ const XAI_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'x-ai/grok-4',
+      id: 'grok-4',
       name: 'Grok 4',
-      contextWindow: 200000,
+      contextWindow: 256000,
       maxOutputTokens: 32768,
       inputPricePer1M: 3,
       outputPricePer1M: 15,
@@ -160,21 +168,48 @@ const XAI_CONFIG: ProviderConfig = {
       isDefault: true,
     },
     {
-      id: 'x-ai/grok-4.1-fast',
-      name: 'Grok 4.1 Fast',
-      contextWindow: 131072,
+      id: 'grok-4-1-fast-reasoning',
+      name: 'Grok 4.1 Fast (Reasoning)',
+      contextWindow: 2000000,
       maxOutputTokens: 32768,
-      inputPricePer1M: 2,
-      outputPricePer1M: 10,
-      tier: 'standard',
+      inputPricePer1M: 0.2,
+      outputPricePer1M: 0.5,
+      tier: 'budget',
     },
     {
-      id: 'x-ai/grok-code-fast-1',
-      name: 'Grok Code Fast',
-      contextWindow: 131072,
+      id: 'grok-4-1-fast-non-reasoning',
+      name: 'Grok 4.1 Fast (Non-Reasoning)',
+      contextWindow: 2000000,
       maxOutputTokens: 32768,
-      inputPricePer1M: 2,
-      outputPricePer1M: 10,
+      inputPricePer1M: 0.2,
+      outputPricePer1M: 0.5,
+      tier: 'budget',
+    },
+    {
+      id: 'grok-4-fast-reasoning',
+      name: 'Grok 4 Fast (Reasoning)',
+      contextWindow: 2000000,
+      maxOutputTokens: 32768,
+      inputPricePer1M: 0.2,
+      outputPricePer1M: 0.5,
+      tier: 'budget',
+    },
+    {
+      id: 'grok-4-fast-non-reasoning',
+      name: 'Grok 4 Fast (Non-Reasoning)',
+      contextWindow: 2000000,
+      maxOutputTokens: 32768,
+      inputPricePer1M: 0.2,
+      outputPricePer1M: 0.5,
+      tier: 'budget',
+    },
+    {
+      id: 'grok-code-fast-1',
+      name: 'Grok Code Fast',
+      contextWindow: 256000,
+      maxOutputTokens: 32768,
+      inputPricePer1M: 0.2,
+      outputPricePer1M: 1.5,
       tier: 'standard',
     },
   ],
@@ -182,6 +217,11 @@ const XAI_CONFIG: ProviderConfig = {
 
 /**
  * DeepSeek Provider Configuration
+ *
+ * Pricing (per 1M tokens):
+ * - deepseek-chat: Input $0.27 (cache miss) / $0.07 (cache hit) / Output $1.10
+ * - deepseek-reasoner: Input $0.55 (cache miss) / $0.14 (cache hit) / Output $2.19
+ * - DeepSeek-V3 series: Similar cost band (low dozens of cents per 1M tokens)
  */
 const DEEPSEEK_CONFIG: ProviderConfig = {
   id: 'deepseek',
@@ -190,7 +230,7 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   baseURL: 'https://api.deepseek.com/v1',
   apiKeyEnv: 'DEEPSEEK_API_KEY',
   icon: 'deepseek',
-  description: 'Cost-effective V3.2 models from DeepSeek',
+  description: 'Cost-effective models from DeepSeek for reasoning and coding',
   capabilities: {
     vision: false, // DeepSeek doesn't support vision yet
     parallelToolCalls: true,
@@ -201,22 +241,22 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'deepseek-ai/DeepSeek-V3.2',
-      name: 'DeepSeek V3.2',
-      contextWindow: 128000,
-      maxOutputTokens: 16384,
-      inputPricePer1M: 0.14,
-      outputPricePer1M: 0.28,
-      tier: 'budget',
-      isDefault: true,
-    },
-    {
-      id: 'deepseek-ai/DeepSeek-V3.2-Speciale',
-      name: 'DeepSeek V3.2 Speciale',
+      id: 'deepseek-chat',
+      name: 'DeepSeek Chat',
       contextWindow: 128000,
       maxOutputTokens: 16384,
       inputPricePer1M: 0.27,
       outputPricePer1M: 1.1,
+      tier: 'budget',
+      isDefault: true,
+    },
+    {
+      id: 'deepseek-reasoner',
+      name: 'DeepSeek Reasoner',
+      contextWindow: 128000,
+      maxOutputTokens: 16384,
+      inputPricePer1M: 0.55,
+      outputPricePer1M: 2.19,
       tier: 'standard',
     },
   ],

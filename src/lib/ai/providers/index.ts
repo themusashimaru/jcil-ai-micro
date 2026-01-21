@@ -233,3 +233,27 @@ export type {
   MultiProviderErrorResponse,
   MultiProviderHandlerOptions,
 } from './api-integration';
+
+// ============================================================================
+// AGENTIC INTERFACE EXPORTS
+// ============================================================================
+
+export {
+  // Simple chat (for brain modules)
+  agentChat,
+  // Chat with tools (for ToolOrchestrator)
+  agentChatWithTools,
+  // Message builders
+  buildToolResultMessage,
+  buildToolCallMessage,
+  // Migration helpers
+  convertAnthropicTools,
+} from './agentic';
+
+export type {
+  AgentChatOptions,
+  AgentChatResponse,
+  AgentToolCall,
+  AgentToolResponse,
+  AgentToolResult,
+} from './agentic';

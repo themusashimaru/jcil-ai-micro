@@ -26,12 +26,8 @@
  * This is what makes the agent think like a senior engineer.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { AgentContext, AgentStreamCallback, CodeIntent } from '../../core/types';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // ============================================================================
 // TYPES
@@ -41,7 +37,7 @@ export interface ThoughtNode {
   id: string;
   content: string;
   type: 'observation' | 'hypothesis' | 'analysis' | 'decision' | 'action' | 'reflection';
-  confidence: number;  // 0-1
+  confidence: number; // 0-1
   children: ThoughtNode[];
   parent?: string;
   metadata?: Record<string, unknown>;
@@ -72,7 +68,7 @@ export interface SelfReflection {
   strengths: string[];
   weaknesses: string[];
   improvements: string[];
-  overallQuality: number;  // 0-100
+  overallQuality: number; // 0-100
   shouldProceed: boolean;
   blockers?: string[];
 }
@@ -82,8 +78,11 @@ export interface SelfReflection {
 // ============================================================================
 
 export class ChainOfThought {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
   private thoughts: ThoughtNode[] = [];
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Think through a problem step by step
@@ -126,13 +125,12 @@ A senior engineer would think about edge cases, security, performance, maintaina
 OUTPUT ONLY THE JSON ARRAY.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 4000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\[[\s\S]*\]/);
 
       if (jsonMatch) {
@@ -149,7 +147,7 @@ OUTPUT ONLY THE JSON ARRAY.`;
         // Stream thoughts to user
         for (const thought of this.thoughts) {
           this.streamThought(onStream, thought);
-          await this.delay(100);  // Brief pause for readability
+          await this.delay(100); // Brief pause for readability
         }
       }
 
@@ -193,7 +191,7 @@ OUTPUT ONLY THE JSON ARRAY.`;
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -202,7 +200,10 @@ OUTPUT ONLY THE JSON ARRAY.`;
 // ============================================================================
 
 export class TreeOfThought {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Explore multiple approaches and pick the best one
@@ -267,13 +268,12 @@ Format as JSON:
 OUTPUT ONLY THE JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 4000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
 
       if (!jsonMatch) {
@@ -305,7 +305,7 @@ OUTPUT ONLY THE JSON.`;
         await this.delay(200);
       }
 
-      const selected = paths.find(p => p.selected) || paths[0];
+      const selected = paths.find((p) => p.selected) || paths[0];
 
       onStream({
         type: 'thinking',
@@ -340,7 +340,8 @@ OUTPUT ONLY THE JSON.`;
    */
   private streamApproach(onStream: AgentStreamCallback, path: ReasoningPath): void {
     const selected = path.selected ? '→' : ' ';
-    const scoreBar = '█'.repeat(Math.round(path.score / 10)) + '░'.repeat(10 - Math.round(path.score / 10));
+    const scoreBar =
+      '█'.repeat(Math.round(path.score / 10)) + '░'.repeat(10 - Math.round(path.score / 10));
 
     onStream({
       type: 'thinking',
@@ -371,7 +372,7 @@ OUTPUT ONLY THE JSON.`;
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -380,7 +381,10 @@ OUTPUT ONLY THE JSON.`;
 // ============================================================================
 
 export class SelfReflector {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Critically evaluate generated output
@@ -434,13 +438,12 @@ Be specific. Don't just say "good error handling" - say exactly what's good or b
 OUTPUT ONLY THE JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 2000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
 
       if (!jsonMatch) {
@@ -478,8 +481,9 @@ OUTPUT ONLY THE JSON.`;
    * Stream reflection to user
    */
   private streamReflection(onStream: AgentStreamCallback, reflection: SelfReflection): void {
-    const qualityBar = '█'.repeat(Math.round(reflection.overallQuality / 10)) +
-                       '░'.repeat(10 - Math.round(reflection.overallQuality / 10));
+    const qualityBar =
+      '█'.repeat(Math.round(reflection.overallQuality / 10)) +
+      '░'.repeat(10 - Math.round(reflection.overallQuality / 10));
 
     let message = `📊 Quality: [${qualityBar}] ${reflection.overallQuality}%\n`;
 
@@ -513,6 +517,12 @@ export class Reasoner {
   private treeOfThought = new TreeOfThought();
   private selfReflector = new SelfReflector();
 
+  setProvider(provider: ProviderId): void {
+    this.chainOfThought.setProvider(provider);
+    this.treeOfThought.setProvider(provider);
+    this.selfReflector.setProvider(provider);
+  }
+
   /**
    * Full reasoning pipeline
    */
@@ -530,28 +540,22 @@ export class Reasoner {
     );
 
     // Step 2: Tree of Thought - explore approaches
-    const { paths, selected } = await this.treeOfThought.explore(
-      task,
-      intent,
-      context,
-      onStream
-    );
+    const { paths, selected } = await this.treeOfThought.explore(task, intent, context, onStream);
 
     // Calculate overall confidence
-    const avgThoughtConfidence = thoughts.length > 0
-      ? thoughts.reduce((sum, t) => sum + t.confidence, 0) / thoughts.length
-      : 0.5;
+    const avgThoughtConfidence =
+      thoughts.length > 0
+        ? thoughts.reduce((sum, t) => sum + t.confidence, 0) / thoughts.length
+        : 0.5;
 
     const confidence = (avgThoughtConfidence + selected.score / 100) / 2;
 
     // Identify uncertainties
-    const uncertainties = thoughts
-      .filter(t => t.confidence < 0.6)
-      .map(t => t.content);
+    const uncertainties = thoughts.filter((t) => t.confidence < 0.6).map((t) => t.content);
 
     return {
       selectedPath: selected,
-      alternativePaths: paths.filter(p => !p.selected),
+      alternativePaths: paths.filter((p) => !p.selected),
       chainOfThought: thoughts,
       selfReflection: {
         strengths: [],

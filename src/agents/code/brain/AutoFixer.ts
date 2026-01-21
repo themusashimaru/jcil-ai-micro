@@ -17,14 +17,10 @@
  * This is what makes the agent truly autonomous.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { GeneratedFile } from '../../core/types';
 import { AgentStreamCallback } from '../../core/types';
 import { SecurityVulnerability } from './SecurityScanner';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // ============================================================================
 // TYPES
@@ -39,7 +35,7 @@ export interface CodeIssue {
   line?: number;
   column?: number;
   code?: string;
-  rule?: string;  // ESLint rule, TS error code, etc.
+  rule?: string; // ESLint rule, TS error code, etc.
   autoFixable: boolean;
 }
 
@@ -62,7 +58,7 @@ export interface Fix {
   before: string;
   after: string;
   line?: number;
-  confidence: number;  // 0-1
+  confidence: number; // 0-1
   automated: boolean;
 }
 
@@ -235,30 +231,30 @@ const FIX_PATTERNS: FixPattern[] = [
 // ============================================================================
 
 const COMMON_IMPORTS: Record<string, string> = {
-  'useState': "import { useState } from 'react';",
-  'useEffect': "import { useEffect } from 'react';",
-  'useCallback': "import { useCallback } from 'react';",
-  'useMemo': "import { useMemo } from 'react';",
-  'useRef': "import { useRef } from 'react';",
-  'useContext': "import { useContext } from 'react';",
-  'useReducer': "import { useReducer } from 'react';",
-  'React': "import React from 'react';",
-  'NextResponse': "import { NextResponse } from 'next/server';",
-  'NextRequest': "import { NextRequest } from 'next/server';",
-  'useRouter': "import { useRouter } from 'next/navigation';",
-  'useSearchParams': "import { useSearchParams } from 'next/navigation';",
-  'usePathname': "import { usePathname } from 'next/navigation';",
-  'Link': "import Link from 'next/link';",
-  'Image': "import Image from 'next/image';",
-  'z': "import { z } from 'zod';",
-  'zod': "import { z } from 'zod';",
-  'prisma': "import { prisma } from '@/lib/prisma';",
-  'clsx': "import clsx from 'clsx';",
-  'cn': "import { cn } from '@/lib/utils';",
-  'axios': "import axios from 'axios';",
-  'fs': "import fs from 'fs';",
-  'path': "import path from 'path';",
-  'express': "import express from 'express';",
+  useState: "import { useState } from 'react';",
+  useEffect: "import { useEffect } from 'react';",
+  useCallback: "import { useCallback } from 'react';",
+  useMemo: "import { useMemo } from 'react';",
+  useRef: "import { useRef } from 'react';",
+  useContext: "import { useContext } from 'react';",
+  useReducer: "import { useReducer } from 'react';",
+  React: "import React from 'react';",
+  NextResponse: "import { NextResponse } from 'next/server';",
+  NextRequest: "import { NextRequest } from 'next/server';",
+  useRouter: "import { useRouter } from 'next/navigation';",
+  useSearchParams: "import { useSearchParams } from 'next/navigation';",
+  usePathname: "import { usePathname } from 'next/navigation';",
+  Link: "import Link from 'next/link';",
+  Image: "import Image from 'next/image';",
+  z: "import { z } from 'zod';",
+  zod: "import { z } from 'zod';",
+  prisma: "import { prisma } from '@/lib/prisma';",
+  clsx: "import clsx from 'clsx';",
+  cn: "import { cn } from '@/lib/utils';",
+  axios: "import axios from 'axios';",
+  fs: "import fs from 'fs';",
+  path: "import path from 'path';",
+  express: "import express from 'express';",
 };
 
 // ============================================================================
@@ -266,7 +262,10 @@ const COMMON_IMPORTS: Record<string, string> = {
 // ============================================================================
 
 export class AutoFixer {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Automatically fix all issues in files
@@ -299,7 +298,7 @@ export class AutoFixer {
 
     // Process each file
     for (const [filePath, fileIssues] of issuesByFile) {
-      const file = fixedFiles.find(f => f.path === filePath);
+      const file = fixedFiles.find((f) => f.path === filePath);
       if (!file) {
         remainingIssues.push(...fileIssues);
         continue;
@@ -336,7 +335,7 @@ export class AutoFixer {
       }
 
       // Update the file
-      fixedFiles = fixedFiles.map(f =>
+      fixedFiles = fixedFiles.map((f) =>
         f.path === filePath
           ? { ...f, content: currentContent, linesOfCode: currentContent.split('\n').length }
           : f
@@ -357,9 +356,11 @@ export class AutoFixer {
       appliedFixes.push(...aiFixResult.fixes);
 
       // Remove successfully fixed issues from remaining
-      const fixedIssueIds = new Set(aiFixResult.fixes.map(f => f.issueId));
-      remainingIssues.splice(0, remainingIssues.length,
-        ...remainingIssues.filter(i => !fixedIssueIds.has(i.id))
+      const fixedIssueIds = new Set(aiFixResult.fixes.map((f) => f.issueId));
+      remainingIssues.splice(
+        0,
+        remainingIssues.length,
+        ...remainingIssues.filter((i) => !fixedIssueIds.has(i.id))
       );
     }
 
@@ -403,7 +404,7 @@ export class AutoFixer {
     onStream?: AgentStreamCallback
   ): Promise<FixResult> {
     // Convert security vulnerabilities to code issues
-    const issues: CodeIssue[] = vulnerabilities.map(v => ({
+    const issues: CodeIssue[] = vulnerabilities.map((v) => ({
       id: v.id,
       type: 'security' as IssueType,
       severity: v.severity === 'critical' || v.severity === 'high' ? 'error' : 'warning',
@@ -481,7 +482,7 @@ export class AutoFixer {
       description: `Add import for ${identifier}`,
       before: '',
       after: importStatement + '\n',
-      line: 1,  // Add at top
+      line: 1, // Add at top
       confidence: 0.9,
       automated: true,
     };
@@ -494,8 +495,8 @@ export class AutoFixer {
     if (fix.line === 1 && fix.before === '') {
       // Import fix - add at top
       const lines = content.split('\n');
-      const lastImportIndex = lines.findIndex((l, i) =>
-        i > 0 && !l.startsWith('import') && lines[i - 1].startsWith('import')
+      const lastImportIndex = lines.findIndex(
+        (l, i) => i > 0 && !l.startsWith('import') && lines[i - 1].startsWith('import')
       );
       const insertIndex = lastImportIndex > 0 ? lastImportIndex : 0;
       lines.splice(insertIndex, 0, fix.after.trim());
@@ -512,8 +513,8 @@ export class AutoFixer {
   private buildContext(file: GeneratedFile, content: string): FixContext {
     const imports = content
       .split('\n')
-      .filter(l => l.startsWith('import'))
-      .map(l => l.trim());
+      .filter((l) => l.startsWith('import'))
+      .map((l) => l.trim());
 
     return {
       file,
@@ -541,11 +542,11 @@ export class AutoFixer {
     }
 
     for (const [filePath, fileIssues] of issuesByFile) {
-      const file = updatedFiles.find(f => f.path === filePath);
+      const file = updatedFiles.find((f) => f.path === filePath);
       if (!file) continue;
 
       const issueDescriptions = fileIssues
-        .map(i => `- Line ${i.line || '?'}: ${i.message}`)
+        .map((i) => `- Line ${i.line || '?'}: ${i.message}`)
         .join('\n');
 
       const prompt = `Fix these code issues without changing the overall logic or structure.
@@ -567,17 +568,16 @@ Rules:
 Return ONLY the fixed code, no explanations.`;
 
       try {
-        const response = await anthropic.messages.create({
-          model: this.model,
-          max_tokens: 8000,
-          messages: [{ role: 'user', content: prompt }],
-        });
+        const response = await agentChat(
+          [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+          { provider: this.provider, maxTokens: 8000 }
+        );
 
-        const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+        const text = response.text.trim();
         const fixedCode = text.replace(/^```\w*\n?/, '').replace(/```$/, '');
 
         if (fixedCode && fixedCode !== file.content) {
-          updatedFiles = updatedFiles.map(f =>
+          updatedFiles = updatedFiles.map((f) =>
             f.path === filePath
               ? { ...f, content: fixedCode, linesOfCode: fixedCode.split('\n').length }
               : f

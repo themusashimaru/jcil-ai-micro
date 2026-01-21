@@ -18,13 +18,9 @@
  * This is what separates a demo from a production app.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { GeneratedFile } from '../../core/types';
 import { AgentStreamCallback } from '../../core/types';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 // ============================================================================
 // TYPES
@@ -72,7 +68,7 @@ export type PerformanceIssueType =
   | 'other';
 
 export interface PerformanceReport {
-  overallScore: number;  // 0-100
+  overallScore: number; // 0-100
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   issues: PerformanceIssue[];
   summary: {
@@ -115,7 +111,8 @@ const PERFORMANCE_PATTERNS: {
   // N+1 Query Detection
   {
     type: 'n+1-query',
-    pattern: /(?:for|forEach|map)\s*\([^)]*\)\s*(?:=>)?\s*{[^}]*(?:await\s+)?(?:prisma|db|sequelize|mongoose)\./g,
+    pattern:
+      /(?:for|forEach|map)\s*\([^)]*\)\s*(?:=>)?\s*{[^}]*(?:await\s+)?(?:prisma|db|sequelize|mongoose)\./g,
     severity: 'critical',
     title: 'Potential N+1 Query',
     description: 'Database query inside a loop can cause N+1 query problem.',
@@ -139,7 +136,8 @@ const PERFORMANCE_PATTERNS: {
   // Missing Memoization (React)
   {
     type: 'missing-memoization',
-    pattern: /(?:const|let)\s+\w+\s*=\s*(?:\([^)]*\)\s*=>|\w+\.filter|\w+\.map|\w+\.reduce)\s*(?!\s*,\s*\[)/g,
+    pattern:
+      /(?:const|let)\s+\w+\s*=\s*(?:\([^)]*\)\s*=>|\w+\.filter|\w+\.map|\w+\.reduce)\s*(?!\s*,\s*\[)/g,
     severity: 'medium',
     title: 'Missing useMemo/useCallback',
     description: 'Expensive computation may run on every render.',
@@ -202,7 +200,7 @@ const PERFORMANCE_PATTERNS: {
     pattern: /(?:document\.querySelector|document\.getElementById|\.innerHTML|\.appendChild)/g,
     severity: 'medium',
     title: 'Direct DOM Manipulation',
-    description: 'Direct DOM manipulation can conflict with React\'s virtual DOM.',
+    description: "Direct DOM manipulation can conflict with React's virtual DOM.",
     impact: 'Can cause layout thrashing and bugs.',
     fix: 'Use refs and state instead of direct DOM manipulation.',
     effort: 'medium',
@@ -262,7 +260,10 @@ const PERFORMANCE_PATTERNS: {
 // ============================================================================
 
 export class PerformanceAnalyzer {
-  private model = 'claude-opus-4-5-20251101';
+  private provider: ProviderId = 'claude';
+  setProvider(provider: ProviderId): void {
+    this.provider = provider;
+  }
 
   /**
    * Analyze files for performance issues
@@ -310,10 +311,10 @@ export class PerformanceAnalyzer {
 
     // Step 3: Calculate score
     const summary = {
-      critical: issues.filter(i => i.severity === 'critical').length,
-      high: issues.filter(i => i.severity === 'high').length,
-      medium: issues.filter(i => i.severity === 'medium').length,
-      low: issues.filter(i => i.severity === 'low').length,
+      critical: issues.filter((i) => i.severity === 'critical').length,
+      high: issues.filter((i) => i.severity === 'high').length,
+      medium: issues.filter((i) => i.severity === 'medium').length,
+      low: issues.filter((i) => i.severity === 'low').length,
     };
 
     const score = this.calculateScore(summary);
@@ -396,7 +397,7 @@ export class PerformanceAnalyzer {
     const issues: PerformanceIssue[] = [];
 
     const filesContent = files
-      .map(f => `=== ${f.path} ===\n${f.content.substring(0, 3000)}`)
+      .map((f) => `=== ${f.path} ===\n${f.content.substring(0, 3000)}`)
       .join('\n\n');
 
     const prompt = `You are a performance expert analyzing code for bottlenecks.
@@ -432,13 +433,12 @@ Only return issues not covered by basic patterns.
 OUTPUT ONLY JSON.`;
 
     try {
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+      const response = await agentChat(
+        [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        { provider: this.provider, maxTokens: 2000 }
+      );
 
-      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const text = response.text.trim();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
@@ -475,7 +475,7 @@ OUTPUT ONLY JSON.`;
     _files: GeneratedFile[]
   ): OptimizationSuggestion[] {
     const suggestions: OptimizationSuggestion[] = [];
-    const types = new Set(issues.map(i => i.type));
+    const types = new Set(issues.map((i) => i.type));
 
     // Bundle optimization
     const hasLargeImports = types.has('large-import');
@@ -555,9 +555,9 @@ const users = await prisma.user.findMany({
     issues: PerformanceIssue[]
   ): PerformanceReport['metrics'] {
     const totalLines = files.reduce((sum, f) => sum + f.linesOfCode, 0);
-    const bundleEstimate = Math.round(totalLines * 0.05);  // ~50 bytes per line
+    const bundleEstimate = Math.round(totalLines * 0.05); // ~50 bytes per line
 
-    const criticalIssues = issues.filter(i => i.severity === 'critical').length;
+    const criticalIssues = issues.filter((i) => i.severity === 'critical').length;
     const loadTimeBase = 1.5; // seconds
     const loadTimePenalty = criticalIssues * 0.5;
 
