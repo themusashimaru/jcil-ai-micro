@@ -52,42 +52,37 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ATTACHMENTS = 10; // Maximum number of attachments
 
 // Model display names for the inline selector
-// Organized by provider: Claude, OpenAI GPT, xAI Grok, DeepSeek
+// Organized by provider: Claude, OpenAI GPT, xAI Grok, DeepSeek, Google
 const MODEL_DISPLAY_NAMES: Record<
   string,
-  { name: string; icon: string; description?: string; provider?: string }
+  { name: string; description?: string; provider?: string }
 > = {
   // ========================================
   // CLAUDE MODELS (Anthropic)
   // ========================================
   'claude-sonnet-4-20250514': {
     name: 'Sonnet',
-    icon: '🎵',
     description: 'Fast & capable',
     provider: 'claude',
   },
   'claude-opus-4-5-20251101': {
     name: 'Opus',
-    icon: '🎼',
     description: 'Most capable',
     provider: 'claude',
   },
   'claude-haiku-4-5-20251001': {
     name: 'Haiku 4.5',
-    icon: '🍃',
     description: 'Fastest',
     provider: 'claude',
   },
   // Extended thinking variants (deeper reasoning)
   'claude-sonnet-4-20250514-thinking': {
     name: 'Sonnet (Thinking)',
-    icon: '🧠',
     description: 'Deep reasoning',
     provider: 'claude',
   },
   'claude-opus-4-5-20251101-thinking': {
     name: 'Opus (Thinking)',
-    icon: '🧠',
     description: 'Deepest reasoning',
     provider: 'claude',
   },
@@ -97,25 +92,21 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   'gpt-5.2-codex': {
     name: 'GPT-5.2 Codex',
-    icon: '💚',
     description: 'Top coding & multi-file apps',
     provider: 'openai',
   },
   'gpt-5.2': {
     name: 'GPT-5.2',
-    icon: '💚',
     description: 'All-around + strong coding',
     provider: 'openai',
   },
   'gpt-5.1-codex-max': {
     name: 'GPT-5.1 Codex Max',
-    icon: '💚',
     description: 'Strong, slightly cheaper coding',
     provider: 'openai',
   },
   'gpt-5.1-codex-mini': {
     name: 'GPT-5.1 Codex Mini',
-    icon: '💚',
     description: 'Budget coding / tooling',
     provider: 'openai',
   },
@@ -125,37 +116,31 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   'grok-4': {
     name: 'Grok 4',
-    icon: '🔮',
     description: 'Advanced reasoning ($3/$15)',
     provider: 'xai',
   },
   'grok-4-1-fast-reasoning': {
     name: 'Grok 4.1 Fast (R)',
-    icon: '⚡',
     description: 'Reasoning, 2M context ($0.20/$0.50)',
     provider: 'xai',
   },
   'grok-4-1-fast-non-reasoning': {
     name: 'Grok 4.1 Fast',
-    icon: '⚡',
     description: 'Fast general, 2M context ($0.20/$0.50)',
     provider: 'xai',
   },
   'grok-4-fast-reasoning': {
     name: 'Grok 4 Fast (R)',
-    icon: '⚡',
     description: 'Cost-optimized reasoning ($0.20/$0.50)',
     provider: 'xai',
   },
   'grok-4-fast-non-reasoning': {
     name: 'Grok 4 Fast',
-    icon: '⚡',
     description: 'Fast text tasks ($0.20/$0.50)',
     provider: 'xai',
   },
   'grok-code-fast-1': {
     name: 'Grok Code Fast',
-    icon: '💻',
     description: 'Agentic coding ($0.20/$1.50)',
     provider: 'xai',
   },
@@ -165,7 +150,6 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   'deepseek-reasoner': {
     name: 'DeepSeek Reasoner',
-    icon: '🧮',
     description: 'Math, logic, coding ($0.55/$2.19)',
     provider: 'deepseek',
   },
@@ -175,31 +159,26 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   'gemini-3-pro-preview': {
     name: 'Gemini 3 Pro',
-    icon: '🔮',
     description: 'Deep reasoning, complex coding ($2/$12)',
     provider: 'google',
   },
   'gemini-3-flash-preview': {
     name: 'Gemini 3 Flash',
-    icon: '✨',
     description: 'Fast general AI, production ($0.50/$3)',
     provider: 'google',
   },
   'gemini-2.5-pro': {
     name: 'Gemini 2.5 Pro',
-    icon: '💎',
     description: 'Strong coding + reasoning ($1.25/$10)',
     provider: 'google',
   },
   'gemini-2.5-flash': {
     name: 'Gemini 2.5 Flash',
-    icon: '⚡',
     description: 'Everyday chat, automation ($0.30/$2.50)',
     provider: 'google',
   },
   'gemini-2.5-flash-lite': {
     name: 'Gemini 2.5 Flash Lite',
-    icon: '🍃',
     description: 'Ultra-low-cost, lightweight ($0.10/$0.40)',
     provider: 'google',
   },
@@ -590,9 +569,6 @@ export function CodeLabComposer({
                 aria-expanded={modelSelectorOpen}
                 aria-haspopup="listbox"
               >
-                <span className="model-icon">
-                  {MODEL_DISPLAY_NAMES[displayModelId || '']?.icon || '🤖'}
-                </span>
                 <span className="model-name">
                   {MODEL_DISPLAY_NAMES[displayModelId || '']?.name || 'Model'}
                 </span>
@@ -616,7 +592,7 @@ export function CodeLabComposer({
                   <div className="model-provider-header">Claude (Anthropic)</div>
                   {Object.entries(MODEL_DISPLAY_NAMES)
                     .filter(([, { provider }]) => provider === 'claude')
-                    .map(([modelId, { name, icon, description }]) => (
+                    .map(([modelId, { name, description }]) => (
                       <button
                         key={modelId}
                         className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
@@ -627,7 +603,6 @@ export function CodeLabComposer({
                         role="option"
                         aria-selected={modelId === displayModelId}
                       >
-                        <span className="model-icon">{icon}</span>
                         <div className="model-info">
                           <span className="model-name">{name}</span>
                           {description && <span className="model-desc">{description}</span>}
@@ -650,7 +625,7 @@ export function CodeLabComposer({
                   <div className="model-provider-header">OpenAI GPT</div>
                   {Object.entries(MODEL_DISPLAY_NAMES)
                     .filter(([, { provider }]) => provider === 'openai')
-                    .map(([modelId, { name, icon, description }]) => (
+                    .map(([modelId, { name, description }]) => (
                       <button
                         key={modelId}
                         className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
@@ -661,7 +636,6 @@ export function CodeLabComposer({
                         role="option"
                         aria-selected={modelId === displayModelId}
                       >
-                        <span className="model-icon">{icon}</span>
                         <div className="model-info">
                           <span className="model-name">{name}</span>
                           {description && <span className="model-desc">{description}</span>}
@@ -684,7 +658,7 @@ export function CodeLabComposer({
                   <div className="model-provider-header">xAI (Grok)</div>
                   {Object.entries(MODEL_DISPLAY_NAMES)
                     .filter(([, { provider }]) => provider === 'xai')
-                    .map(([modelId, { name, icon, description }]) => (
+                    .map(([modelId, { name, description }]) => (
                       <button
                         key={modelId}
                         className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
@@ -695,7 +669,6 @@ export function CodeLabComposer({
                         role="option"
                         aria-selected={modelId === displayModelId}
                       >
-                        <span className="model-icon">{icon}</span>
                         <div className="model-info">
                           <span className="model-name">{name}</span>
                           {description && <span className="model-desc">{description}</span>}
@@ -718,7 +691,7 @@ export function CodeLabComposer({
                   <div className="model-provider-header">DeepSeek</div>
                   {Object.entries(MODEL_DISPLAY_NAMES)
                     .filter(([, { provider }]) => provider === 'deepseek')
-                    .map(([modelId, { name, icon, description }]) => (
+                    .map(([modelId, { name, description }]) => (
                       <button
                         key={modelId}
                         className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
@@ -729,7 +702,6 @@ export function CodeLabComposer({
                         role="option"
                         aria-selected={modelId === displayModelId}
                       >
-                        <span className="model-icon">{icon}</span>
                         <div className="model-info">
                           <span className="model-name">{name}</span>
                           {description && <span className="model-desc">{description}</span>}
@@ -752,7 +724,7 @@ export function CodeLabComposer({
                   <div className="model-provider-header">Google (Gemini)</div>
                   {Object.entries(MODEL_DISPLAY_NAMES)
                     .filter(([, { provider }]) => provider === 'google')
-                    .map(([modelId, { name, icon, description }]) => (
+                    .map(([modelId, { name, description }]) => (
                       <button
                         key={modelId}
                         className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
@@ -763,7 +735,6 @@ export function CodeLabComposer({
                         role="option"
                         aria-selected={modelId === displayModelId}
                       >
-                        <span className="model-icon">{icon}</span>
                         <div className="model-info">
                           <span className="model-name">{name}</span>
                           {description && <span className="model-desc">{description}</span>}
@@ -991,13 +962,9 @@ export function CodeLabComposer({
           }
         }
 
-        .model-selector-trigger .model-icon {
-          font-size: 0.75rem;
-        }
-
         .model-selector-trigger .model-name {
           font-weight: 500;
-          max-width: 160px;
+          max-width: 200px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -1017,8 +984,8 @@ export function CodeLabComposer({
           position: absolute;
           bottom: calc(100% + 8px);
           left: 0;
-          min-width: 220px;
-          max-width: 300px;
+          min-width: 275px;
+          max-width: 375px;
           max-height: 50vh;
           overflow-y: auto;
           background: #1a1a1a;
@@ -1285,7 +1252,7 @@ export function CodeLabComposer({
           .model-dropdown {
             left: 0;
             right: auto;
-            min-width: 200px;
+            min-width: 250px;
             max-height: 45vh;
           }
 
