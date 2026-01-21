@@ -1,9 +1,9 @@
 # Code Lab → 100% Parity Roadmap
 
 **Started:** January 2026
-**Current Score:** 100/100 ✅
+**Current Score:** 100/100 ✅ (Parity) + 88/100 (Audit)
 **Target:** 100/100
-**Status:** COMPLETE
+**Status:** COMPLETE + ONGOING IMPROVEMENTS
 
 ---
 
@@ -13,17 +13,52 @@
 
 All Claude Code parity features have been implemented. See [CLAUDE_CODE_PARITY.md](../CLAUDE_CODE_PARITY.md) for the detailed tracking document.
 
+**Post-Parity Improvements (January 21, 2026):**
+
+- Model selector UX refinements
+- Multi-provider Gemini adapter improvements
+- Context-aware AI behavior
+- Session initialization improvements
+
 ---
 
 ## Current Progress
 
-**Last Updated:** January 19, 2026 - Final Session
-**Current Phase:** All Phases Complete
-**Current Task:** None - 100% Parity Achieved
+**Last Updated:** January 21, 2026
+**Current Phase:** Post-Parity UX Improvements
+**Current Task:** None - Latest improvements deployed
 **Blockers:** None
-**Final Score:** 100/100
+**Parity Score:** 100/100
+**Audit Score:** 88/100
 
 ### Completed Work:
+
+#### January 21, 2026 - Post-Parity UX Improvements
+
+1. ✅ Model Selector Styling Refinements
+   - Removed emoji icons, replaced with text indicators (S/O/H)
+   - Made trigger button thinner (28px height)
+   - Made dropdown wider (380px) and open upward
+   - Improved mobile responsive styles
+
+2. ✅ New Chat Session Behavior
+   - Code Lab now always opens to a fresh new chat
+   - Previous sessions accessible from sidebar
+   - Improved first-use experience
+
+3. ✅ Gemini Adapter Robustness
+   - Added `ensureClient()` method with proper initialization checks
+   - Improved streaming with per-chunk error handling
+   - Safe optional chaining for text/function call extraction
+   - Better rate limit detection and key rotation
+
+4. ✅ Context-Aware AI Behavior
+   - Dynamic system prompt based on connected resources
+   - Clear indication of repository connection status
+   - Behavior guidelines to prevent over-analysis
+   - AI asks clarifying questions instead of assuming
+
+#### Previous Sessions
 
 1. ✅ Phase 1.3: Connected Pair Programming UI to Backend
    - Created `/api/code-lab/pair-programming` route

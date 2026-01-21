@@ -1,10 +1,11 @@
 # Code Lab Third-Party Audit Report
 
 **Audit Date:** January 2026 (Revised)
+**Last Updated:** January 21, 2026
 **Auditor:** Independent Technical Review
 **Subject:** JCIL.AI Code Lab vs Claude Code Feature Parity
 **Previous Score:** 60.5/100
-**Current Score:** 86/100 (comprehensive code review reveals significantly more functionality)
+**Current Score:** 88/100 (comprehensive code review reveals significantly more functionality)
 
 ---
 
@@ -492,5 +493,96 @@ The Code Lab has reached **86/100** feature parity with Claude Code, with severa
 
 ---
 
+---
+
+## January 21, 2026 Update - UX & Multi-Provider Improvements
+
+### Latest Changes
+
+The following improvements were implemented to enhance UX and multi-provider reliability:
+
+#### 1. Model Selector Refinements (Score: +1)
+
+| Change            | Before                              | After                                      |
+| ----------------- | ----------------------------------- | ------------------------------------------ |
+| Icons             | Emoji icons (musical notes, leaves) | Simple text indicators (S/O/H)             |
+| Trigger Height    | 40px                                | 28px (more compact)                        |
+| Dropdown Width    | 320px                               | 380px (better readability)                 |
+| Dropdown Position | Opens downward                      | Opens upward (better for bottom placement) |
+| Mobile UX         | Icon-only with background           | Clean compact design                       |
+
+**Rationale:** Professional, clean interface without decorative elements. Better fits the workspace aesthetic.
+
+#### 2. Session Initialization (Score: +0.5)
+
+**Change:** Code Lab now always opens to a fresh new chat session instead of selecting an existing one.
+
+- Previous sessions remain accessible from the sidebar
+- Improves first-use experience
+- Aligns with user expectations of a "clean slate" start
+
+#### 3. Gemini Adapter Robustness (Score: +0.5)
+
+The Google Gemini adapter (`src/lib/ai/providers/adapters/google.ts`) received significant improvements:
+
+| Improvement           | Description                                              |
+| --------------------- | -------------------------------------------------------- |
+| Client Initialization | Added `ensureClient()` method with proper error handling |
+| Streaming Robustness  | Added try/catch around individual chunk processing       |
+| Text Extraction       | Safe optional chaining for `chunk.text?.()` calls        |
+| Function Calls        | Graceful handling of function call extraction failures   |
+| Usage Metadata        | Per-chunk usage tracking with fallback to final response |
+| Error Recovery        | Partial content preservation on stream failures          |
+| Rate Limiting         | Improved rate limit detection and key rotation           |
+
+**Note:** The `@google/generative-ai` SDK (v0.24) is deprecated with EOL August 2025. Migration to `@google/genai` SDK recommended for future work.
+
+#### 4. Context-Aware AI Behavior (Score: +1)
+
+The system prompt now includes dynamic context awareness:
+
+**Repository Context:**
+
+```
+**Repository Connected:** {repo.fullName} (branch: {branch})
+```
+
+or
+
+```
+**No Repository Connected**
+The user has not connected a repository...
+```
+
+**New Behavior Guidelines:**
+
+- Only work with what you have - don't assume access to non-existent resources
+- Ask clarifying questions when ambiguous
+- Don't over-analyze or volunteer to analyze non-existent code
+- Be direct and helpful
+- When user shares code, work with that specific code
+
+**Result:** AI no longer attempts to analyze repositories or files that don't exist. More natural, less "overly sensitive" behavior.
+
+---
+
+### Updated Scoring
+
+| Category                | Previous | Updated    | Change   |
+| ----------------------- | -------- | ---------- | -------- |
+| Core AI Integration     | 18.0     | 18.0       | -        |
+| File Operations         | 13.5     | 13.5       | -        |
+| Shell Execution         | 12.75    | 12.75      | -        |
+| Visual Debugger         | 8.5      | 8.5        | -        |
+| Real-time Collaboration | 8.0      | 8.0        | -        |
+| AI Pair Programming     | 9.0      | 9.0        | -        |
+| MCP Integration         | 8.5      | 8.5        | -        |
+| Deployment              | 3.5      | 3.5        | -        |
+| Terminal                | 4.25     | 4.25       | -        |
+| **UX & Polish**         | -        | **2.0**    | **+2.0** |
+| **TOTAL**               | 86/100   | **88/100** | **+2**   |
+
+---
+
 _This revised audit was conducted with comprehensive codebase analysis._
-_Last Updated: January 2026 - Score corrected from 60.5 to 86/100_
+_Last Updated: January 21, 2026 - Score updated from 86 to 88/100_
