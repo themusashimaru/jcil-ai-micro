@@ -965,6 +965,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         content: '',
         createdAt: new Date(),
         isStreaming: true,
+        modelId: currentModelId, // Track which model generated this response
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -1089,6 +1090,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   content: fullContent,
                   createdAt: new Date(),
                   isStreaming: false,
+                  modelId: currentModelId,
                 },
               ]);
               // Reset token stats

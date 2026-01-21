@@ -59,6 +59,9 @@ export interface CodeLabMessage {
   // Message metadata
   type?: 'chat' | 'code' | 'search' | 'summary';
 
+  // Model used for this message (for assistant messages)
+  modelId?: string;
+
   // For code generation responses
   codeOutput?: {
     projectName: string;

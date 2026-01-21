@@ -534,215 +534,6 @@ export function CodeLabComposer({
         </div>
       )}
 
-      {/* Model selector bar (like Deep Research in regular chat) */}
-      {currentModel && onModelChange && (
-        <div className="model-selector-bar" ref={modelSelectorRef}>
-          <span className="model-label">Model:</span>
-          <button
-            className="model-selector-trigger"
-            onClick={() => !disabled && !isStreaming && setModelSelectorOpen(!modelSelectorOpen)}
-            disabled={disabled || isStreaming}
-            aria-expanded={modelSelectorOpen}
-            aria-haspopup="listbox"
-          >
-            <span className="model-icon">
-              {MODEL_DISPLAY_NAMES[displayModelId || '']?.icon || '🤖'}
-            </span>
-            <span className="model-name">
-              {MODEL_DISPLAY_NAMES[displayModelId || '']?.name || 'Model'}
-            </span>
-            <svg
-              className={`model-chevron ${modelSelectorOpen ? 'open' : ''}`}
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Model dropdown */}
-          {modelSelectorOpen && (
-            <div className="model-dropdown" role="listbox">
-              {/* Claude Models */}
-              <div className="model-provider-header">Claude (Anthropic)</div>
-              {Object.entries(MODEL_DISPLAY_NAMES)
-                .filter(([, { provider }]) => provider === 'claude')
-                .map(([modelId, { name, icon, description }]) => (
-                  <button
-                    key={modelId}
-                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
-                    onClick={() => {
-                      onModelChange(modelId);
-                      setModelSelectorOpen(false);
-                    }}
-                    role="option"
-                    aria-selected={modelId === displayModelId}
-                  >
-                    <span className="model-icon">{icon}</span>
-                    <div className="model-info">
-                      <span className="model-name">{name}</span>
-                      {description && <span className="model-desc">{description}</span>}
-                    </div>
-                    {modelId === displayModelId && (
-                      <svg
-                        className="check"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-
-              {/* OpenAI Models */}
-              <div className="model-provider-header">OpenAI GPT</div>
-              {Object.entries(MODEL_DISPLAY_NAMES)
-                .filter(([, { provider }]) => provider === 'openai')
-                .map(([modelId, { name, icon, description }]) => (
-                  <button
-                    key={modelId}
-                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
-                    onClick={() => {
-                      onModelChange(modelId);
-                      setModelSelectorOpen(false);
-                    }}
-                    role="option"
-                    aria-selected={modelId === displayModelId}
-                  >
-                    <span className="model-icon">{icon}</span>
-                    <div className="model-info">
-                      <span className="model-name">{name}</span>
-                      {description && <span className="model-desc">{description}</span>}
-                    </div>
-                    {modelId === displayModelId && (
-                      <svg
-                        className="check"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-
-              {/* xAI Grok Models */}
-              <div className="model-provider-header">xAI (Grok)</div>
-              {Object.entries(MODEL_DISPLAY_NAMES)
-                .filter(([, { provider }]) => provider === 'xai')
-                .map(([modelId, { name, icon, description }]) => (
-                  <button
-                    key={modelId}
-                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
-                    onClick={() => {
-                      onModelChange(modelId);
-                      setModelSelectorOpen(false);
-                    }}
-                    role="option"
-                    aria-selected={modelId === displayModelId}
-                  >
-                    <span className="model-icon">{icon}</span>
-                    <div className="model-info">
-                      <span className="model-name">{name}</span>
-                      {description && <span className="model-desc">{description}</span>}
-                    </div>
-                    {modelId === displayModelId && (
-                      <svg
-                        className="check"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-
-              {/* DeepSeek Models */}
-              <div className="model-provider-header">DeepSeek</div>
-              {Object.entries(MODEL_DISPLAY_NAMES)
-                .filter(([, { provider }]) => provider === 'deepseek')
-                .map(([modelId, { name, icon, description }]) => (
-                  <button
-                    key={modelId}
-                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
-                    onClick={() => {
-                      onModelChange(modelId);
-                      setModelSelectorOpen(false);
-                    }}
-                    role="option"
-                    aria-selected={modelId === displayModelId}
-                  >
-                    <span className="model-icon">{icon}</span>
-                    <div className="model-info">
-                      <span className="model-name">{name}</span>
-                      {description && <span className="model-desc">{description}</span>}
-                    </div>
-                    {modelId === displayModelId && (
-                      <svg
-                        className="check"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-
-              {/* Google Gemini Models */}
-              <div className="model-provider-header">Google (Gemini)</div>
-              {Object.entries(MODEL_DISPLAY_NAMES)
-                .filter(([, { provider }]) => provider === 'google')
-                .map(([modelId, { name, icon, description }]) => (
-                  <button
-                    key={modelId}
-                    className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
-                    onClick={() => {
-                      onModelChange(modelId);
-                      setModelSelectorOpen(false);
-                    }}
-                    role="option"
-                    aria-selected={modelId === displayModelId}
-                  >
-                    <span className="model-icon">{icon}</span>
-                    <div className="model-info">
-                      <span className="model-name">{name}</span>
-                      {description && <span className="model-desc">{description}</span>}
-                    </div>
-                    {modelId === displayModelId && (
-                      <svg
-                        className="check"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-
-              <div className="model-hint">⌘M to toggle</div>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="composer-container">
         {/* Hidden file input */}
         <input
@@ -796,7 +587,215 @@ export function CodeLabComposer({
             </svg>
           </button>
 
-          {/* Search is now auto-triggered based on content patterns - no manual toggle needed */}
+          {/* Model selector - inline next to paperclip */}
+          {currentModel && onModelChange && (
+            <div className="inline-model-selector" ref={modelSelectorRef}>
+              <button
+                className="model-selector-trigger"
+                onClick={() =>
+                  !disabled && !isStreaming && setModelSelectorOpen(!modelSelectorOpen)
+                }
+                disabled={disabled || isStreaming}
+                aria-expanded={modelSelectorOpen}
+                aria-haspopup="listbox"
+              >
+                <span className="model-icon">
+                  {MODEL_DISPLAY_NAMES[displayModelId || '']?.icon || '🤖'}
+                </span>
+                <span className="model-name">
+                  {MODEL_DISPLAY_NAMES[displayModelId || '']?.name || 'Model'}
+                </span>
+                <svg
+                  className={`model-chevron ${modelSelectorOpen ? 'open' : ''}`}
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Model dropdown */}
+              {modelSelectorOpen && (
+                <div className="model-dropdown" role="listbox">
+                  {/* Claude Models */}
+                  <div className="model-provider-header">Claude (Anthropic)</div>
+                  {Object.entries(MODEL_DISPLAY_NAMES)
+                    .filter(([, { provider }]) => provider === 'claude')
+                    .map(([modelId, { name, icon, description }]) => (
+                      <button
+                        key={modelId}
+                        className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                        onClick={() => {
+                          onModelChange(modelId);
+                          setModelSelectorOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={modelId === displayModelId}
+                      >
+                        <span className="model-icon">{icon}</span>
+                        <div className="model-info">
+                          <span className="model-name">{name}</span>
+                          {description && <span className="model-desc">{description}</span>}
+                        </div>
+                        {modelId === displayModelId && (
+                          <svg
+                            className="check"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+
+                  {/* OpenAI Models */}
+                  <div className="model-provider-header">OpenAI GPT</div>
+                  {Object.entries(MODEL_DISPLAY_NAMES)
+                    .filter(([, { provider }]) => provider === 'openai')
+                    .map(([modelId, { name, icon, description }]) => (
+                      <button
+                        key={modelId}
+                        className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                        onClick={() => {
+                          onModelChange(modelId);
+                          setModelSelectorOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={modelId === displayModelId}
+                      >
+                        <span className="model-icon">{icon}</span>
+                        <div className="model-info">
+                          <span className="model-name">{name}</span>
+                          {description && <span className="model-desc">{description}</span>}
+                        </div>
+                        {modelId === displayModelId && (
+                          <svg
+                            className="check"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+
+                  {/* xAI Grok Models */}
+                  <div className="model-provider-header">xAI (Grok)</div>
+                  {Object.entries(MODEL_DISPLAY_NAMES)
+                    .filter(([, { provider }]) => provider === 'xai')
+                    .map(([modelId, { name, icon, description }]) => (
+                      <button
+                        key={modelId}
+                        className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                        onClick={() => {
+                          onModelChange(modelId);
+                          setModelSelectorOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={modelId === displayModelId}
+                      >
+                        <span className="model-icon">{icon}</span>
+                        <div className="model-info">
+                          <span className="model-name">{name}</span>
+                          {description && <span className="model-desc">{description}</span>}
+                        </div>
+                        {modelId === displayModelId && (
+                          <svg
+                            className="check"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+
+                  {/* DeepSeek Models */}
+                  <div className="model-provider-header">DeepSeek</div>
+                  {Object.entries(MODEL_DISPLAY_NAMES)
+                    .filter(([, { provider }]) => provider === 'deepseek')
+                    .map(([modelId, { name, icon, description }]) => (
+                      <button
+                        key={modelId}
+                        className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                        onClick={() => {
+                          onModelChange(modelId);
+                          setModelSelectorOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={modelId === displayModelId}
+                      >
+                        <span className="model-icon">{icon}</span>
+                        <div className="model-info">
+                          <span className="model-name">{name}</span>
+                          {description && <span className="model-desc">{description}</span>}
+                        </div>
+                        {modelId === displayModelId && (
+                          <svg
+                            className="check"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+
+                  {/* Google Gemini Models */}
+                  <div className="model-provider-header">Google (Gemini)</div>
+                  {Object.entries(MODEL_DISPLAY_NAMES)
+                    .filter(([, { provider }]) => provider === 'google')
+                    .map(([modelId, { name, icon, description }]) => (
+                      <button
+                        key={modelId}
+                        className={`model-option ${modelId === displayModelId ? 'selected' : ''}`}
+                        onClick={() => {
+                          onModelChange(modelId);
+                          setModelSelectorOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={modelId === displayModelId}
+                      >
+                        <span className="model-icon">{icon}</span>
+                        <div className="model-info">
+                          <span className="model-name">{name}</span>
+                          {description && <span className="model-desc">{description}</span>}
+                        </div>
+                        {modelId === displayModelId && (
+                          <svg
+                            className="check"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+
+                  <div className="model-hint">⌘M to toggle</div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="actions-spacer" />
 
@@ -949,31 +948,20 @@ export function CodeLabComposer({
           height: 14px;
         }
 
-        /* Model selector bar - thin inline selector like Deep Research */
-        .model-selector-bar {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0;
-          margin-bottom: 0.5rem;
+        /* Inline model selector - inside composer actions */
+        .inline-model-selector {
           position: relative;
-        }
-
-        .model-label {
-          font-size: 0.8125rem;
-          color: #888;
-          font-weight: 500;
         }
 
         .model-selector-trigger {
           display: flex;
           align-items: center;
-          gap: 0.375rem;
+          gap: 0.25rem;
           padding: 0.25rem 0.5rem;
           background: #2a2a2a;
           border: 1px solid #444;
           border-radius: 6px;
-          font-size: 0.8125rem;
+          font-size: 0.75rem;
           color: #ffffff;
           cursor: pointer;
           transition: all 0.15s ease;
@@ -990,16 +978,21 @@ export function CodeLabComposer({
         }
 
         .model-selector-trigger .model-icon {
-          font-size: 0.875rem;
+          font-size: 0.75rem;
         }
 
         .model-selector-trigger .model-name {
           font-weight: 500;
+          max-width: 100px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .model-chevron {
           transition: transform 0.2s ease;
           color: #888;
+          flex-shrink: 0;
         }
 
         .model-chevron.open {
@@ -1008,17 +1001,19 @@ export function CodeLabComposer({
 
         .model-dropdown {
           position: absolute;
-          bottom: 100%;
-          left: 2.5rem;
-          min-width: 160px;
+          bottom: calc(100% + 8px);
+          left: 0;
+          min-width: 220px;
+          max-width: 300px;
+          max-height: 50vh;
+          overflow-y: auto;
           background: #1a1a1a;
           border: 1px solid #444;
           border-radius: 8px;
-          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
-          overflow: hidden;
+          box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
           animation: slideUp 0.15s ease;
-          z-index: 100;
-          margin-bottom: 0.25rem;
+          z-index: 1000;
+          -webkit-overflow-scrolling: touch;
         }
 
         @keyframes slideUp {
@@ -1265,13 +1260,19 @@ export function CodeLabComposer({
           }
 
           /* Model selector mobile adjustments */
-          .model-selector-bar {
-            padding: 0.375rem 0;
+          .inline-model-selector .model-selector-trigger {
+            padding: 0.375rem 0.5rem;
+          }
+
+          .inline-model-selector .model-selector-trigger .model-name {
+            max-width: 80px;
           }
 
           .model-dropdown {
             left: 0;
-            min-width: 140px;
+            right: auto;
+            min-width: 200px;
+            max-height: 45vh;
           }
 
           .composer-btn.send {
