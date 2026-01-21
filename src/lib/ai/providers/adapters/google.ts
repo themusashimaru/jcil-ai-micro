@@ -147,6 +147,16 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     messages: UnifiedMessage[],
     options: ChatOptions = {}
   ): AsyncIterable<UnifiedStreamChunk> {
+    // CRITICAL FIX: Refresh client on EVERY request for proper key rotation
+    // The adapter is cached globally, but we need fresh key selection per-request
+    // to ensure proper load distribution across multiple API keys
+    try {
+      this.client = getGoogleClient();
+    } catch (error) {
+      this.initError =
+        error instanceof Error ? error.message : 'Failed to initialize Gemini client';
+    }
+
     const client = this.ensureClient();
     const modelId = options.model || this.getDefaultModelId();
     const maxTokens = options.maxTokens || 4096;

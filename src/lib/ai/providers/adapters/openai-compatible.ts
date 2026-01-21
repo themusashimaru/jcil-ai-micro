@@ -324,6 +324,11 @@ export class OpenAICompatibleAdapter extends BaseAIAdapter {
     const maxTokens = options.maxTokens || 4096;
     const temperature = options.temperature ?? 0.7;
 
+    // CRITICAL FIX: Refresh client on EVERY request for proper key rotation
+    // The adapter is cached globally, but we need fresh key selection per-request
+    // to ensure proper load distribution across multiple API keys
+    this.client = getOpenAIClient(this.providerId);
+
     // Convert messages to OpenAI format
     const openaiMessages = this.convertToOpenAIFormat(messages, options.systemPrompt);
 
