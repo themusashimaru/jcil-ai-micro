@@ -118,7 +118,7 @@ export class WorkspaceSummarizer {
     const maxTokens = options.maxTokens || 500;
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: maxTokens,
       system: `You are a code analyzer. Analyze the given file and provide a structured summary.
 Output JSON with this exact structure:
@@ -220,7 +220,7 @@ Output JSON with this exact structure:
       .join('\n');
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: options.maxTokens || 1000,
       system: `You are a project analyzer. Analyze the project structure and provide a comprehensive summary.
 Output JSON with this exact structure:
@@ -296,7 +296,7 @@ Output JSON with this exact structure:
       .join('\n\n');
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
       system: `Analyze code changes and provide a summary.
 Output JSON:
@@ -434,7 +434,7 @@ Exports: ${fileSummary.exports.slice(0, 5).join(', ')}
    */
   async extractTopics(text: string): Promise<string[]> {
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 100,
       system:
         'Extract 3-5 key topics from the text. Output only comma-separated topics, no other text.',

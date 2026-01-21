@@ -49,18 +49,18 @@ function initializeApiKeys(): void {
   if (initialized) return;
   initialized = true;
 
-  // Check for numbered keys first
+  // Check for numbered keys first (GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
   let i = 1;
   while (true) {
-    const key = process.env[`GOOGLE_API_KEY_${i}`];
+    const key = process.env[`GEMINI_API_KEY_${i}`];
     if (!key) break;
     apiKeyPool.push({ key, rateLimitedUntil: 0, client: null });
     i++;
   }
 
-  // Fall back to single key
+  // Fall back to single key (GEMINI_API_KEY matches registry.ts)
   if (apiKeyPool.length === 0) {
-    const singleKey = process.env.GOOGLE_API_KEY;
+    const singleKey = process.env.GEMINI_API_KEY;
     if (singleKey) {
       apiKeyPool.push({ key: singleKey, rateLimitedUntil: 0, client: null });
     }
@@ -86,7 +86,7 @@ function getAvailableKeyState(): ApiKeyState | null {
 function getGoogleClient(): GoogleGenerativeAI {
   const keyState = getAvailableKeyState();
   if (!keyState) {
-    throw new Error('GOOGLE_API_KEY is not configured');
+    throw new Error('GEMINI_API_KEY is not configured');
   }
 
   if (!keyState.client) {
