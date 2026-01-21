@@ -148,11 +148,20 @@ This document outlines the implementation plan for adding multi-provider AI supp
 | ---------- | ------------------------------------------------------------------------------- | ------ | ---------- | --------- | ---------- |
 | **Claude** | claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001 | Yes    | Yes        | Yes       | Premium    |
 
-### Future: Google Adapter
+### Google Adapter (Implemented)
 
-| Provider   | Models                           | Vision | Tool Calls | Streaming | Price Tier |
-| ---------- | -------------------------------- | ------ | ---------- | --------- | ---------- |
-| **Gemini** | gemini-2.0-flash, gemini-2.0-pro | Yes    | Yes        | Yes       | Standard   |
+| Provider   | Models                                                                                                | Vision | Tool Calls | Streaming | Price Tier              |
+| ---------- | ----------------------------------------------------------------------------------------------------- | ------ | ---------- | --------- | ----------------------- |
+| **Gemini** | gemini-3-pro-preview, gemini-3-flash-preview, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite | Yes    | Yes        | Yes       | Premium/Standard/Budget |
+
+**Model Details:**
+| Model Name | API Call Sign | Input Price (per 1M) | Output Price (per 1M) | Context | Best Used For |
+| ---------- | ------------- | -------------------- | --------------------- | ------- | ------------- |
+| Gemini 3 Pro (Preview) | gemini-3-pro-preview | $2.00 (≤200K) / $4.00 (>200K) | $12.00 (≤200K) / $18.00 (>200K) | ~1M tokens | Deep reasoning, complex coding, multi-file agents |
+| Gemini 3 Flash (Preview) | gemini-3-flash-preview | $0.50 | $3.00 | Large | Fast general AI, cost-efficient coding, production |
+| Gemini 2.5 Pro | gemini-2.5-pro | ~$1.25 (≤200K) / ~$2.50 (>200K) | ~$10.00 (≤200K) / ~$15.00 (>200K) | Large | Strong coding + reasoning at lower cost |
+| Gemini 2.5 Flash | gemini-2.5-flash | ~$0.30 | ~$2.50 | Medium–large | Everyday chat, automation, moderate coding |
+| Gemini 2.5 Flash Lite | gemini-2.5-flash-lite | ~$0.10 | ~$0.40 | Smaller | Ultra-low-cost workloads, lightweight automation |
 
 ---
 

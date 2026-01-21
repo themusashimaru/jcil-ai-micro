@@ -183,22 +183,34 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   // GOOGLE GEMINI MODELS
   // ========================================
-  'gemini-2.0-flash': {
-    name: 'Gemini 2.0 Flash',
+  'gemini-3-pro-preview': {
+    name: 'Gemini 3 Pro',
+    icon: '🔮',
+    description: 'Deep reasoning, complex coding ($2/$12)',
+    provider: 'google',
+  },
+  'gemini-3-flash-preview': {
+    name: 'Gemini 3 Flash',
     icon: '✨',
-    description: 'Fast, 1M context ($0.10/$0.40)',
+    description: 'Fast general AI, production ($0.50/$3)',
     provider: 'google',
   },
-  'gemini-1.5-pro': {
-    name: 'Gemini 1.5 Pro',
+  'gemini-2.5-pro': {
+    name: 'Gemini 2.5 Pro',
     icon: '💎',
-    description: '2M context ($1.25/$5.00)',
+    description: 'Strong coding + reasoning ($1.25/$10)',
     provider: 'google',
   },
-  'gemini-1.5-flash': {
-    name: 'Gemini 1.5 Flash',
+  'gemini-2.5-flash': {
+    name: 'Gemini 2.5 Flash',
     icon: '⚡',
-    description: 'Budget, 1M context ($0.075/$0.30)',
+    description: 'Everyday chat, automation ($0.30/$2.50)',
+    provider: 'google',
+  },
+  'gemini-2.5-flash-lite': {
+    name: 'Gemini 2.5 Flash Lite',
+    icon: '🍃',
+    description: 'Ultra-low-cost, lightweight ($0.10/$0.40)',
     provider: 'google',
   },
 };

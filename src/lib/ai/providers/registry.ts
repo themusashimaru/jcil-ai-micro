@@ -266,9 +266,11 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
  * Google (Gemini) Provider Configuration
  *
  * Pricing (per 1M tokens):
- * - gemini-2.0-flash: Input $0.10 / Output $0.40 (1M context)
- * - gemini-1.5-pro: Input $1.25 / Output $5.00 (2M context)
- * - gemini-1.5-flash: Input $0.075 / Output $0.30 (1M context)
+ * - gemini-3-pro-preview: Input $2.00 (≤200K) / $4.00 (>200K) / Output $12.00 (≤200K) / $18.00 (>200K) (~1M context)
+ * - gemini-3-flash-preview: Input $0.50 / Output $3.00 (Large context)
+ * - gemini-2.5-pro: Input ~$1.25 (≤200K) / ~$2.50 (>200K) / Output ~$10.00 (≤200K) / ~$15.00 (>200K)
+ * - gemini-2.5-flash: Input ~$0.30 / Output ~$2.50 (Medium-large context)
+ * - gemini-2.5-flash-lite: Input ~$0.10 / Output ~$0.40 (Smaller context)
  */
 const GOOGLE_CONFIG: ProviderConfig = {
   id: 'google',
@@ -287,31 +289,49 @@ const GOOGLE_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
+      id: 'gemini-3-pro-preview',
+      name: 'Gemini 3 Pro (Preview)',
       contextWindow: 1000000,
       maxOutputTokens: 8192,
-      inputPricePer1M: 0.1,
-      outputPricePer1M: 0.4,
-      tier: 'budget',
+      inputPricePer1M: 2.0,
+      outputPricePer1M: 12.0,
+      tier: 'premium',
+    },
+    {
+      id: 'gemini-3-flash-preview',
+      name: 'Gemini 3 Flash (Preview)',
+      contextWindow: 1000000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 0.5,
+      outputPricePer1M: 3.0,
+      tier: 'standard',
       isDefault: true,
     },
     {
-      id: 'gemini-1.5-pro',
-      name: 'Gemini 1.5 Pro',
-      contextWindow: 2000000,
+      id: 'gemini-2.5-pro',
+      name: 'Gemini 2.5 Pro',
+      contextWindow: 1000000,
       maxOutputTokens: 8192,
       inputPricePer1M: 1.25,
-      outputPricePer1M: 5.0,
+      outputPricePer1M: 10.0,
       tier: 'standard',
     },
     {
-      id: 'gemini-1.5-flash',
-      name: 'Gemini 1.5 Flash',
+      id: 'gemini-2.5-flash',
+      name: 'Gemini 2.5 Flash',
       contextWindow: 1000000,
       maxOutputTokens: 8192,
-      inputPricePer1M: 0.075,
-      outputPricePer1M: 0.3,
+      inputPricePer1M: 0.3,
+      outputPricePer1M: 2.5,
+      tier: 'budget',
+    },
+    {
+      id: 'gemini-2.5-flash-lite',
+      name: 'Gemini 2.5 Flash Lite',
+      contextWindow: 500000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 0.1,
+      outputPricePer1M: 0.4,
       tier: 'budget',
     },
   ],
