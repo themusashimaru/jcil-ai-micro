@@ -33,60 +33,190 @@ import type {
 } from '../types';
 
 // ============================================================================
-// API KEY MANAGEMENT
+// API KEY MANAGEMENT - DUAL-POOL SYSTEM
 // ============================================================================
+// Primary Pool: Round-robin load distribution (e.g., GEMINI_API_KEY_1, _2, _3, ...)
+// Fallback Pool: Emergency reserve (e.g., GEMINI_API_KEY_FALLBACK_1, _2, _3, ...)
+// Backward Compatible: Single key (e.g., GEMINI_API_KEY) still works
+// NO HARDCODED LIMITS - just add keys and they're automatically detected!
 
 interface ApiKeyState {
   key: string;
   rateLimitedUntil: number;
   client: GoogleGenerativeAI | null;
+  pool: 'primary' | 'fallback';
+  index: number;
 }
 
-const apiKeyPool: ApiKeyState[] = [];
+// Separate pools for better management
+const primaryKeyPool: ApiKeyState[] = [];
+const fallbackKeyPool: ApiKeyState[] = [];
 let initialized = false;
 
+/**
+ * Initialize all available API keys into their pools
+ * FULLY DYNAMIC: Automatically detects ALL configured keys - no limits!
+ */
 function initializeApiKeys(): void {
-  if (initialized) return;
-  initialized = true;
+  // Always re-check if pool is empty (handles case where env var wasn't available earlier)
+  if (initialized && primaryKeyPool.length > 0) {
+    return; // Already initialized with keys
+  }
 
-  // Check for numbered keys first (GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
+  // Clear existing pools if re-initializing
+  primaryKeyPool.length = 0;
+  fallbackKeyPool.length = 0;
+
+  // Dynamically detect ALL numbered primary keys (no limit!)
   let i = 1;
   while (true) {
     const key = process.env[`GEMINI_API_KEY_${i}`];
     if (!key) break;
-    apiKeyPool.push({ key, rateLimitedUntil: 0, client: null });
+    primaryKeyPool.push({
+      key,
+      rateLimitedUntil: 0,
+      client: null,
+      pool: 'primary',
+      index: i,
+    });
     i++;
   }
 
-  // Fall back to single key (GEMINI_API_KEY matches registry.ts)
-  if (apiKeyPool.length === 0) {
+  // Fall back to single key if no numbered keys found
+  if (primaryKeyPool.length === 0) {
     const singleKey = process.env.GEMINI_API_KEY;
     if (singleKey) {
-      apiKeyPool.push({ key: singleKey, rateLimitedUntil: 0, client: null });
+      primaryKeyPool.push({
+        key: singleKey,
+        rateLimitedUntil: 0,
+        client: null,
+        pool: 'primary',
+        index: 0,
+      });
     }
+  }
+
+  // Dynamically detect ALL fallback keys (no limit!)
+  let j = 1;
+  while (true) {
+    const key = process.env[`GEMINI_API_KEY_FALLBACK_${j}`];
+    if (!key) break;
+    fallbackKeyPool.push({
+      key,
+      rateLimitedUntil: 0,
+      client: null,
+      pool: 'fallback',
+      index: j,
+    });
+    j++;
+  }
+
+  // Log the detected configuration (only in development)
+  const totalKeys = primaryKeyPool.length + fallbackKeyPool.length;
+  if (totalKeys > 0 && process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[google] Initialized dual-pool system: ${primaryKeyPool.length} primary, ${fallbackKeyPool.length} fallback keys`
+    );
+  }
+
+  // Only mark as initialized if we found at least one key
+  // This allows retry if keys weren't available on first attempt
+  if (primaryKeyPool.length > 0) {
+    initialized = true;
   }
 }
 
-function getAvailableKeyState(): ApiKeyState | null {
-  initializeApiKeys();
-  if (apiKeyPool.length === 0) return null;
+/**
+ * Get an available key state from the primary pool
+ * Uses random selection for serverless-safe load distribution
+ */
+function getPrimaryKeyState(): ApiKeyState | null {
+  if (primaryKeyPool.length === 0) return null;
 
   const now = Date.now();
-  const available = apiKeyPool.filter((k) => k.rateLimitedUntil <= now);
+  const available = primaryKeyPool.filter((k) => k.rateLimitedUntil <= now);
 
   if (available.length === 0) {
-    // All rate limited, return the one that will be available soonest
-    return apiKeyPool.reduce((a, b) => (a.rateLimitedUntil < b.rateLimitedUntil ? a : b));
+    return null; // All primary keys are rate limited
   }
 
-  // Random selection for load distribution
+  // Random selection for serverless-safe load distribution
   return available[Math.floor(Math.random() * available.length)];
+}
+
+/**
+ * Get an available key state from the fallback pool
+ * Uses random selection for serverless-safe load distribution
+ */
+function getFallbackKeyState(): ApiKeyState | null {
+  if (fallbackKeyPool.length === 0) return null;
+
+  const now = Date.now();
+  const available = fallbackKeyPool.filter((k) => k.rateLimitedUntil <= now);
+
+  if (available.length === 0) {
+    return null; // All fallback keys are also rate limited
+  }
+
+  // Random selection for serverless-safe load distribution
+  const keyState = available[Math.floor(Math.random() * available.length)];
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log(`[google] Using fallback key (primary pool exhausted), index: ${keyState.index}`);
+  }
+  return keyState;
+}
+
+/**
+ * Get the next available API key state
+ * Priority: Primary pool → Fallback pool → Wait for soonest available
+ */
+function getAvailableKeyState(): ApiKeyState | null {
+  initializeApiKeys();
+
+  // No keys configured at all
+  if (primaryKeyPool.length === 0 && fallbackKeyPool.length === 0) {
+    return null;
+  }
+
+  // Try primary pool first (random selection for load distribution)
+  const primaryKeyState = getPrimaryKeyState();
+  if (primaryKeyState) {
+    return primaryKeyState;
+  }
+
+  // Primary pool exhausted - try fallback pool
+  const fallbackKeyState = getFallbackKeyState();
+  if (fallbackKeyState) {
+    return fallbackKeyState;
+  }
+
+  // All keys rate limited - find the one available soonest
+  const allKeys = [...primaryKeyPool, ...fallbackKeyPool];
+  let soonestKey = allKeys[0];
+
+  for (const key of allKeys) {
+    if (key.rateLimitedUntil < soonestKey.rateLimitedUntil) {
+      soonestKey = key;
+    }
+  }
+
+  const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[google] All keys rate limited (${allKeys.length} total), soonest available in ${waitTime}s from ${soonestKey.pool} pool`
+  );
+
+  return soonestKey;
 }
 
 function getGoogleClient(): GoogleGenerativeAI {
   const keyState = getAvailableKeyState();
   if (!keyState) {
-    throw new Error('GEMINI_API_KEY is not configured');
+    throw new Error(
+      'GEMINI_API_KEY is not configured. Set GEMINI_API_KEY or GEMINI_API_KEY_1, _2, etc.'
+    );
   }
 
   if (!keyState.client) {
@@ -96,10 +226,24 @@ function getGoogleClient(): GoogleGenerativeAI {
   return keyState.client;
 }
 
+/**
+ * Mark a specific API key as rate limited
+ */
 function markKeyRateLimited(client: GoogleGenerativeAI, retryAfterSeconds: number = 60): void {
-  const keyState = apiKeyPool.find((k) => k.client === client);
+  const allKeys = [...primaryKeyPool, ...fallbackKeyPool];
+  const keyState = allKeys.find((k) => k.client === client);
+
   if (keyState) {
     keyState.rateLimitedUntil = Date.now() + retryAfterSeconds * 1000;
+
+    // Log pool status
+    const now = Date.now();
+    const availablePrimary = primaryKeyPool.filter((k) => k.rateLimitedUntil <= now).length;
+    const availableFallback = fallbackKeyPool.filter((k) => k.rateLimitedUntil <= now).length;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[google] Key rate limited (pool: ${keyState.pool}, index: ${keyState.index}), retry after ${retryAfterSeconds}s. Available: ${availablePrimary} primary, ${availableFallback} fallback`
+    );
   }
 }
 
