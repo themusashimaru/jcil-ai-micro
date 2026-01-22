@@ -124,7 +124,8 @@ export class ProviderService {
    * Check availability of all providers
    */
   getProviderStatuses(): ProviderStatus[] {
-    const providers: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek'];
+    // CRITICAL-001 FIX: Include ALL providers including Google
+    const providers: ProviderId[] = ['claude', 'openai', 'xai', 'deepseek', 'google'];
     return providers.map((id) => {
       const configured = checkProviderAvailable(id);
       const modelConfig = configured ? getDefaultModel(id) : undefined;

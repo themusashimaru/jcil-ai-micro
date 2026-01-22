@@ -549,9 +549,9 @@ describe('Provider Service', () => {
       const service = new ProviderService();
       const statuses = service.getProviderStatuses();
 
-      expect(statuses.length).toBe(4);
+      expect(statuses.length).toBe(5);
       expect(statuses.map((s: { providerId: ProviderId }) => s.providerId)).toEqual(
-        expect.arrayContaining(['claude', 'openai', 'xai', 'deepseek'])
+        expect.arrayContaining(['claude', 'openai', 'xai', 'deepseek', 'google'])
       );
     });
 

@@ -209,16 +209,17 @@ const XAI_CONFIG: ProviderConfig = {
 /**
  * DeepSeek Provider Configuration
  *
+ * CRITICAL-003 FIX: Use verified DeepSeek model IDs
+ *
  * Pricing (per 1M tokens):
  * - deepseek-chat: Input $0.27 (cache miss) / $0.07 (cache hit) / Output $1.10
  * - deepseek-reasoner: Input $0.55 (cache miss) / $0.14 (cache hit) / Output $2.19
- * - DeepSeek-V3 series: Similar cost band (low dozens of cents per 1M tokens)
  */
 const DEEPSEEK_CONFIG: ProviderConfig = {
   id: 'deepseek',
   name: 'DeepSeek',
   family: 'openai-compatible',
-  baseURL: 'https://api.deepseek.com/v1',
+  baseURL: 'https://api.deepseek.com',
   apiKeyEnv: 'DEEPSEEK_API_KEY',
   icon: 'deepseek',
   description: 'Cost-effective models from DeepSeek for reasoning and coding',
@@ -233,13 +234,22 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   models: [
     {
       id: 'deepseek-reasoner',
-      name: 'DeepSeek Reasoner',
-      contextWindow: 128000,
-      maxOutputTokens: 16384,
+      name: 'DeepSeek Reasoner (R1)',
+      contextWindow: 64000,
+      maxOutputTokens: 8192,
       inputPricePer1M: 0.55,
       outputPricePer1M: 2.19,
       tier: 'standard',
       isDefault: true,
+    },
+    {
+      id: 'deepseek-chat',
+      name: 'DeepSeek Chat',
+      contextWindow: 64000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 0.27,
+      outputPricePer1M: 1.10,
+      tier: 'budget',
     },
   ],
 };
