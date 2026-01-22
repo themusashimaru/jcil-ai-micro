@@ -90,53 +90,18 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   // OPENAI GPT MODELS
   // ========================================
-  'gpt-5.2-codex': {
-    name: 'GPT-5.2 Codex',
-    description: 'Top coding & multi-file apps',
-    provider: 'openai',
-  },
   'gpt-5.2': {
     name: 'GPT-5.2',
     description: 'All-around + strong coding',
-    provider: 'openai',
-  },
-  'gpt-5.1-codex-max': {
-    name: 'GPT-5.1 Codex Max',
-    description: 'Strong, slightly cheaper coding',
-    provider: 'openai',
-  },
-  'gpt-5.1-codex-mini': {
-    name: 'GPT-5.1 Codex Mini',
-    description: 'Budget coding / tooling',
     provider: 'openai',
   },
 
   // ========================================
   // XAI GROK MODELS
   // ========================================
-  'grok-4': {
-    name: 'Grok 4',
-    description: 'Advanced reasoning ($3/$15)',
-    provider: 'xai',
-  },
   'grok-4-1-fast-reasoning': {
     name: 'Grok 4.1 Fast (R)',
     description: 'Reasoning, 2M context ($0.20/$0.50)',
-    provider: 'xai',
-  },
-  'grok-4-1-fast-non-reasoning': {
-    name: 'Grok 4.1 Fast',
-    description: 'Fast general, 2M context ($0.20/$0.50)',
-    provider: 'xai',
-  },
-  'grok-4-fast-reasoning': {
-    name: 'Grok 4 Fast (R)',
-    description: 'Cost-optimized reasoning ($0.20/$0.50)',
-    provider: 'xai',
-  },
-  'grok-4-fast-non-reasoning': {
-    name: 'Grok 4 Fast',
-    description: 'Fast text tasks ($0.20/$0.50)',
     provider: 'xai',
   },
   'grok-code-fast-1': {
@@ -165,21 +130,6 @@ const MODEL_DISPLAY_NAMES: Record<
   'gemini-3-flash-preview': {
     name: 'Gemini 3 Flash',
     description: 'Fast general AI, production ($0.50/$3)',
-    provider: 'google',
-  },
-  'gemini-2.5-pro': {
-    name: 'Gemini 2.5 Pro',
-    description: 'Strong coding + reasoning ($1.25/$10)',
-    provider: 'google',
-  },
-  'gemini-2.5-flash': {
-    name: 'Gemini 2.5 Flash',
-    description: 'Everyday chat, automation ($0.30/$2.50)',
-    provider: 'google',
-  },
-  'gemini-2.5-flash-lite': {
-    name: 'Gemini 2.5 Flash Lite',
-    description: 'Ultra-low-cost, lightweight ($0.10/$0.40)',
     provider: 'google',
   },
 };
