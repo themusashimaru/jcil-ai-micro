@@ -385,10 +385,15 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
             const functionCalls = chunk.functionCalls?.();
             if (functionCalls && functionCalls.length > 0) {
               for (const fc of functionCalls) {
+                // Generate unique ID for this tool call
+                const toolCallId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+                // CRITICAL-002 FIX: Store the mapping so we can look it up when tool result comes back
+                this.toolCallIdToName.set(toolCallId, fc.name);
+
                 yield {
                   type: 'tool_call_start',
                   toolCall: {
-                    id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    id: toolCallId,
                     name: fc.name,
                     arguments: fc.args as Record<string, unknown>,
                   },
