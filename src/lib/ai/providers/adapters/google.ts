@@ -3,14 +3,12 @@
  *
  * Adapter for Google's Gemini models using the official @google/generative-ai SDK.
  *
- * CRITICAL-004 FIX: Updated to use verified Google model IDs
- *
  * Supported models:
- * - Gemini 2.0 Flash (gemini-2.0-flash) - Fast multimodal, default
- * - Gemini 2.0 Flash Exp (gemini-2.0-flash-exp) - Experimental latest
- * - Gemini 1.5 Pro (gemini-1.5-pro) - Best quality, 2M context
- * - Gemini 1.5 Flash (gemini-1.5-flash) - Fast, cost-effective
- * - Gemini 1.5 Flash 8B (gemini-1.5-flash-8b) - Ultra-low-cost
+ * - Gemini 3 Pro (Preview) (gemini-3-pro-preview) - Deep reasoning, complex coding, multi-file agents
+ * - Gemini 3 Flash (Preview) (gemini-3-flash-preview) - Fast general AI, production workloads
+ * - Gemini 2.5 Pro (gemini-2.5-pro) - Strong coding + reasoning at lower cost
+ * - Gemini 2.5 Flash (gemini-2.5-flash) - Everyday chat, automation, moderate coding
+ * - Gemini 2.5 Flash Lite (gemini-2.5-flash-lite) - Ultra-low-cost, lightweight automation
  */
 
 import {
