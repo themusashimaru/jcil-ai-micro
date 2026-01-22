@@ -3,12 +3,14 @@
  *
  * Adapter for Google's Gemini models using the official @google/generative-ai SDK.
  *
+ * CRITICAL-004 FIX: Updated to use verified Google model IDs
+ *
  * Supported models:
- * - Gemini 3 Pro (Preview) (gemini-3-pro-preview) - Deep reasoning, complex coding, multi-file agents
- * - Gemini 3 Flash (Preview) (gemini-3-flash-preview) - Fast general AI, production workloads
- * - Gemini 2.5 Pro (gemini-2.5-pro) - Strong coding + reasoning at lower cost
- * - Gemini 2.5 Flash (gemini-2.5-flash) - Everyday chat, automation, moderate coding
- * - Gemini 2.5 Flash Lite (gemini-2.5-flash-lite) - Ultra-low-cost, lightweight automation
+ * - Gemini 2.0 Flash (gemini-2.0-flash) - Fast multimodal, default
+ * - Gemini 2.0 Flash Exp (gemini-2.0-flash-exp) - Experimental latest
+ * - Gemini 1.5 Pro (gemini-1.5-pro) - Best quality, 2M context
+ * - Gemini 1.5 Flash (gemini-1.5-flash) - Fast, cost-effective
+ * - Gemini 1.5 Flash 8B (gemini-1.5-flash-8b) - Ultra-low-cost
  */
 
 import {
@@ -260,6 +262,9 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
 
   private client: GoogleGenerativeAI | null = null;
   private initError: string | null = null;
+  // CRITICAL-002 FIX: Track tool call IDs to their function names
+  // Google API requires function name in functionResponse, but tool_result only has ID
+  private toolCallIdToName: Map<string, string> = new Map();
 
   constructor() {
     super();
@@ -469,6 +474,7 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
 
   /**
    * Prepare messages for Google format
+   * CRITICAL-002 FIX: Build tool call ID to name mapping for correct functionResponse names
    */
   private prepareMessages(
     messages: UnifiedMessage[],
@@ -480,6 +486,21 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
   } {
     const history: Content[] = [];
     let lastUserMessage: Part[] = [];
+
+    // CRITICAL-002 FIX: Build a map of tool call ID -> function name
+    // This is needed because tool_result only has toolUseId, but Google API needs function name
+    const toolCallIdToName = new Map<string, string>();
+    for (const msg of messages) {
+      if (typeof msg.content !== 'string') {
+        for (const block of msg.content) {
+          if (block.type === 'tool_use') {
+            toolCallIdToName.set(block.id, block.name);
+          }
+        }
+      }
+    }
+    // Store the mapping for use in convertToParts
+    this.toolCallIdToName = toolCallIdToName;
 
     // Find system messages and combine with provided system prompt
     const systemMessages = messages.filter((m) => m.role === 'system');
@@ -563,9 +584,12 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
           break;
 
         case 'tool_result':
+          // CRITICAL-002 FIX: Google API requires function NAME, not call ID
+          // Look up the original function name from the tool call ID
+          const functionName = this.toolCallIdToName.get(block.toolUseId) || block.toolUseId;
           parts.push({
             functionResponse: {
-              name: block.toolUseId, // Google uses the function name, not ID
+              name: functionName,
               response: { result: block.content },
             },
           });
@@ -698,11 +722,14 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
 
   /**
    * Format a tool result for Google
+   * CRITICAL-002 FIX: Use tracked function name instead of call ID
    */
   formatToolResult(result: UnifiedToolResult): Part {
+    // Look up the original function name from the tool call ID
+    const functionName = this.toolCallIdToName.get(result.toolCallId) || result.toolCallId;
     return {
       functionResponse: {
-        name: result.toolCallId,
+        name: functionName,
         response: { result: result.content },
       },
     };

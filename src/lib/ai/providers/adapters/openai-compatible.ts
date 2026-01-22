@@ -49,7 +49,8 @@ const PROVIDER_ENDPOINTS: Record<string, ProviderEndpoint> = {
     apiKeyEnv: 'XAI_API_KEY',
   },
   deepseek: {
-    baseURL: 'https://api.deepseek.com/v1',
+    // CRITICAL-003 FIX: Use correct DeepSeek API base URL (no /v1 suffix)
+    baseURL: 'https://api.deepseek.com',
     apiKeyEnv: 'DEEPSEEK_API_KEY',
   },
 };
