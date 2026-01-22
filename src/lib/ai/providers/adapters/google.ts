@@ -319,7 +319,11 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     const tools = options.tools ? this.formatTools(options.tools) : undefined;
 
     // Build generation config - only include defined values
-    const generationConfig: Record<string, unknown> = {
+    const generationConfig: {
+      maxOutputTokens: number;
+      temperature: number;
+      stopSequences?: string[];
+    } = {
       maxOutputTokens: maxTokens,
       temperature,
     };
@@ -328,39 +332,28 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
       generationConfig.stopSequences = options.stopSequences;
     }
 
-    // Get the model with systemInstruction (must be set here, not in startChat for newer API)
-    const modelConfig: Record<string, unknown> = {
+    // Get the model with proper configuration
+    const model = client.getGenerativeModel({
       model: modelId,
       generationConfig,
-    };
-    // Only add systemInstruction if we have one
-    if (systemInstruction) {
-      modelConfig.systemInstruction = systemInstruction;
-    }
-    // Add tools at model level if provided
-    if (tools) {
-      modelConfig.tools = tools;
-    }
-
-    const model = client.getGenerativeModel(modelConfig as Parameters<typeof client.getGenerativeModel>[0]);
+      ...(systemInstruction ? { systemInstruction } : {}),
+      ...(tools ? { tools } : {}),
+    });
 
     try {
-      // Start chat with history only (systemInstruction and tools are at model level)
-      const chatConfig: Record<string, unknown> = {};
-      // Only add history if non-empty
-      if (history && history.length > 0) {
-        chatConfig.history = history;
-      }
-      // Add tool config if tools are provided
-      if (tools) {
-        chatConfig.toolConfig = {
-          functionCallingConfig: {
-            mode: FunctionCallingMode.AUTO,
-          },
-        };
-      }
-
-      const chat = model.startChat(chatConfig as Parameters<typeof model.startChat>[0]);
+      // Start chat with history
+      const chat = model.startChat({
+        ...(history && history.length > 0 ? { history } : {}),
+        ...(tools
+          ? {
+              toolConfig: {
+                functionCallingConfig: {
+                  mode: FunctionCallingMode.AUTO,
+                },
+              },
+            }
+          : {}),
+      });
 
       // Stream the response
       // Convert lastUserMessage to the format expected by the SDK
