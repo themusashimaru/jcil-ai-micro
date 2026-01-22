@@ -309,16 +309,6 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     const maxTokens = options.maxTokens || 4096;
     const temperature = options.temperature ?? 0.7;
 
-    // Get the model
-    const model = client.getGenerativeModel({
-      model: modelId,
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature,
-        stopSequences: options.stopSequences,
-      },
-    });
-
     // Convert messages to Google format
     const { history, lastUserMessage, systemInstruction } = this.prepareMessages(
       messages,
@@ -328,19 +318,41 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     // Setup tools if provided
     const tools = options.tools ? this.formatTools(options.tools) : undefined;
 
+    // Build generation config - only include defined values
+    const generationConfig: {
+      maxOutputTokens: number;
+      temperature: number;
+      stopSequences?: string[];
+    } = {
+      maxOutputTokens: maxTokens,
+      temperature,
+    };
+    // Only add stopSequences if defined (some models reject undefined)
+    if (options.stopSequences && options.stopSequences.length > 0) {
+      generationConfig.stopSequences = options.stopSequences;
+    }
+
+    // Get the model with proper configuration
+    const model = client.getGenerativeModel({
+      model: modelId,
+      generationConfig,
+      ...(systemInstruction ? { systemInstruction } : {}),
+      ...(tools ? { tools } : {}),
+    });
+
     try {
       // Start chat with history
       const chat = model.startChat({
-        history,
-        systemInstruction,
-        tools,
-        toolConfig: tools
+        ...(history && history.length > 0 ? { history } : {}),
+        ...(tools
           ? {
-              functionCallingConfig: {
-                mode: FunctionCallingMode.AUTO,
+              toolConfig: {
+                functionCallingConfig: {
+                  mode: FunctionCallingMode.AUTO,
+                },
               },
             }
-          : undefined,
+          : {}),
       });
 
       // Stream the response
@@ -385,10 +397,15 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
             const functionCalls = chunk.functionCalls?.();
             if (functionCalls && functionCalls.length > 0) {
               for (const fc of functionCalls) {
+                // Generate unique ID for this tool call
+                const toolCallId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+                // CRITICAL-002 FIX: Store the mapping so we can look it up when tool result comes back
+                this.toolCallIdToName.set(toolCallId, fc.name);
+
                 yield {
                   type: 'tool_call_start',
                   toolCall: {
-                    id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+                    id: toolCallId,
                     name: fc.name,
                     arguments: fc.args as Record<string, unknown>,
                   },

@@ -1457,11 +1457,12 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
 
           try {
             // Validate API key is available for the provider
+            // All providers support numbered keys (_1, _2, etc.) for key rotation
             const apiKeyEnvMap: Record<string, string[]> = {
-              openai: ['OPENAI_API_KEY'],
-              xai: ['XAI_API_KEY'],
-              deepseek: ['DEEPSEEK_API_KEY'],
-              google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'], // Google supports multiple keys
+              openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
+              xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
+              deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
+              google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
             };
             const requiredEnvVars = apiKeyEnvMap[providerId];
             if (requiredEnvVars) {
