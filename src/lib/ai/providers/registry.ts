@@ -90,33 +90,6 @@ const OPENAI_CONFIG: ProviderConfig = {
       tier: 'premium',
       isDefault: true,
     },
-    {
-      id: 'gpt-5.2-codex',
-      name: 'GPT-5.2 Codex',
-      contextWindow: 200000,
-      maxOutputTokens: 32000,
-      inputPricePer1M: 5,
-      outputPricePer1M: 15,
-      tier: 'premium',
-    },
-    {
-      id: 'gpt-5-mini',
-      name: 'GPT-5 Mini',
-      contextWindow: 128000,
-      maxOutputTokens: 16384,
-      inputPricePer1M: 0.5,
-      outputPricePer1M: 1.5,
-      tier: 'budget',
-    },
-    {
-      id: 'gpt-5-nano',
-      name: 'GPT-5 Nano',
-      contextWindow: 64000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.1,
-      outputPricePer1M: 0.3,
-      tier: 'budget',
-    },
   ],
 };
 
@@ -124,11 +97,7 @@ const OPENAI_CONFIG: ProviderConfig = {
  * xAI (Grok) Provider Configuration
  *
  * Pricing (per 1M tokens):
- * - grok-4: Input $3.00 / Output $15.00 (256K context)
  * - grok-4-1-fast-reasoning: Input $0.20 / Output $0.50 (2M context)
- * - grok-4-1-fast-non-reasoning: Input $0.20 / Output $0.50 (2M context)
- * - grok-4-fast-reasoning: Input $0.20 / Output $0.50 (2M context)
- * - grok-4-fast-non-reasoning: Input $0.20 / Output $0.50 (2M context)
  * - grok-code-fast-1: Input $0.20 / Output $1.50 (256K context) - Agentic coding
  */
 const XAI_CONFIG: ProviderConfig = {
@@ -149,16 +118,6 @@ const XAI_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'grok-4',
-      name: 'Grok 4',
-      contextWindow: 256000,
-      maxOutputTokens: 32768,
-      inputPricePer1M: 3,
-      outputPricePer1M: 15,
-      tier: 'premium',
-      isDefault: true,
-    },
-    {
       id: 'grok-4-1-fast-reasoning',
       name: 'Grok 4.1 Fast (Reasoning)',
       contextWindow: 2000000,
@@ -166,33 +125,7 @@ const XAI_CONFIG: ProviderConfig = {
       inputPricePer1M: 0.2,
       outputPricePer1M: 0.5,
       tier: 'budget',
-    },
-    {
-      id: 'grok-4-1-fast-non-reasoning',
-      name: 'Grok 4.1 Fast (Non-Reasoning)',
-      contextWindow: 2000000,
-      maxOutputTokens: 32768,
-      inputPricePer1M: 0.2,
-      outputPricePer1M: 0.5,
-      tier: 'budget',
-    },
-    {
-      id: 'grok-4-fast-reasoning',
-      name: 'Grok 4 Fast (Reasoning)',
-      contextWindow: 2000000,
-      maxOutputTokens: 32768,
-      inputPricePer1M: 0.2,
-      outputPricePer1M: 0.5,
-      tier: 'budget',
-    },
-    {
-      id: 'grok-4-fast-non-reasoning',
-      name: 'Grok 4 Fast (Non-Reasoning)',
-      contextWindow: 2000000,
-      maxOutputTokens: 32768,
-      inputPricePer1M: 0.2,
-      outputPricePer1M: 0.5,
-      tier: 'budget',
+      isDefault: true,
     },
     {
       id: 'grok-code-fast-1',
@@ -209,10 +142,7 @@ const XAI_CONFIG: ProviderConfig = {
 /**
  * DeepSeek Provider Configuration
  *
- * CRITICAL-003 FIX: Use verified DeepSeek model IDs
- *
  * Pricing (per 1M tokens):
- * - deepseek-chat: Input $0.27 (cache miss) / $0.07 (cache hit) / Output $1.10
  * - deepseek-reasoner: Input $0.55 (cache miss) / $0.14 (cache hit) / Output $2.19
  */
 const DEEPSEEK_CONFIG: ProviderConfig = {
@@ -242,15 +172,6 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
       tier: 'standard',
       isDefault: true,
     },
-    {
-      id: 'deepseek-chat',
-      name: 'DeepSeek Chat',
-      contextWindow: 64000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.27,
-      outputPricePer1M: 1.10,
-      tier: 'budget',
-    },
   ],
 };
 
@@ -258,11 +179,8 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
  * Google (Gemini) Provider Configuration
  *
  * Pricing (per 1M tokens):
- * - gemini-3-pro-preview: Input $2.00 (≤200K) / $4.00 (>200K) / Output $12.00 (≤200K) / $18.00 (>200K) (~1M context)
- * - gemini-3-flash-preview: Input $0.50 / Output $3.00 (Large context)
- * - gemini-2.5-pro: Input ~$1.25 (≤200K) / ~$2.50 (>200K) / Output ~$10.00 (≤200K) / ~$15.00 (>200K)
- * - gemini-2.5-flash: Input ~$0.30 / Output ~$2.50 (Medium-large context)
- * - gemini-2.5-flash-lite: Input ~$0.10 / Output ~$0.40 (Smaller context)
+ * - gemini-3-pro-preview: Input $2.00 / Output $12.00 (~1M context)
+ * - gemini-3-flash-preview: Input $0.50 / Output $3.00 (~1M context)
  */
 const GOOGLE_CONFIG: ProviderConfig = {
   id: 'google',
@@ -298,33 +216,6 @@ const GOOGLE_CONFIG: ProviderConfig = {
       outputPricePer1M: 3.0,
       tier: 'standard',
       isDefault: true,
-    },
-    {
-      id: 'gemini-2.5-pro',
-      name: 'Gemini 2.5 Pro',
-      contextWindow: 1000000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 1.25,
-      outputPricePer1M: 10.0,
-      tier: 'standard',
-    },
-    {
-      id: 'gemini-2.5-flash',
-      name: 'Gemini 2.5 Flash',
-      contextWindow: 1000000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.3,
-      outputPricePer1M: 2.5,
-      tier: 'budget',
-    },
-    {
-      id: 'gemini-2.5-flash-lite',
-      name: 'Gemini 2.5 Flash Lite',
-      contextWindow: 500000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.1,
-      outputPricePer1M: 0.4,
-      tier: 'budget',
     },
   ],
 };
