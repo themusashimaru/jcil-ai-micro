@@ -233,16 +233,6 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'deepseek-chat',
-      name: 'DeepSeek Chat',
-      contextWindow: 64000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.27,
-      outputPricePer1M: 1.10,
-      tier: 'budget',
-      isDefault: true,
-    },
-    {
       id: 'deepseek-reasoner',
       name: 'DeepSeek Reasoner (R1)',
       contextWindow: 64000,
@@ -250,6 +240,16 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
       inputPricePer1M: 0.55,
       outputPricePer1M: 2.19,
       tier: 'standard',
+      isDefault: true,
+    },
+    {
+      id: 'deepseek-chat',
+      name: 'DeepSeek Chat',
+      contextWindow: 64000,
+      maxOutputTokens: 8192,
+      inputPricePer1M: 0.27,
+      outputPricePer1M: 1.10,
+      tier: 'budget',
     },
   ],
 };
