@@ -309,16 +309,6 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     const maxTokens = options.maxTokens || 4096;
     const temperature = options.temperature ?? 0.7;
 
-    // Get the model
-    const model = client.getGenerativeModel({
-      model: modelId,
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature,
-        stopSequences: options.stopSequences,
-      },
-    });
-
     // Convert messages to Google format
     const { history, lastUserMessage, systemInstruction } = this.prepareMessages(
       messages,
@@ -328,20 +318,49 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     // Setup tools if provided
     const tools = options.tools ? this.formatTools(options.tools) : undefined;
 
+    // Build generation config - only include defined values
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: maxTokens,
+      temperature,
+    };
+    // Only add stopSequences if defined (some models reject undefined)
+    if (options.stopSequences && options.stopSequences.length > 0) {
+      generationConfig.stopSequences = options.stopSequences;
+    }
+
+    // Get the model with systemInstruction (must be set here, not in startChat for newer API)
+    const modelConfig: Record<string, unknown> = {
+      model: modelId,
+      generationConfig,
+    };
+    // Only add systemInstruction if we have one
+    if (systemInstruction) {
+      modelConfig.systemInstruction = systemInstruction;
+    }
+    // Add tools at model level if provided
+    if (tools) {
+      modelConfig.tools = tools;
+    }
+
+    const model = client.getGenerativeModel(modelConfig as Parameters<typeof client.getGenerativeModel>[0]);
+
     try {
-      // Start chat with history
-      const chat = model.startChat({
-        history,
-        systemInstruction,
-        tools,
-        toolConfig: tools
-          ? {
-              functionCallingConfig: {
-                mode: FunctionCallingMode.AUTO,
-              },
-            }
-          : undefined,
-      });
+      // Start chat with history only (systemInstruction and tools are at model level)
+      const chatConfig: Record<string, unknown> = {};
+      // Only add history if non-empty
+      if (history && history.length > 0) {
+        chatConfig.history = history;
+      }
+      // Add tool config if tools are provided
+      if (tools) {
+        chatConfig.toolConfig = {
+          functionCallingConfig: {
+            mode: FunctionCallingMode.AUTO,
+          },
+        };
+      }
+
+      const chat = model.startChat(chatConfig as Parameters<typeof model.startChat>[0]);
 
       // Stream the response
       // Convert lastUserMessage to the format expected by the SDK
