@@ -6,7 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -57,7 +58,15 @@ export async function POST(request: NextRequest) {
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
+
+  // SECURITY FIX: Use service role client to access encrypted tokens
+  // Per migration design: tokens are only accessed via service_role
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
   const {
     data: { user },
@@ -103,7 +112,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's deployment tokens based on platform
-    const { data: userData } = await supabase
+    // SECURITY FIX: Must use adminClient for encrypted token access
+    const { data: userData } = await adminClient
       .from('users')
       .select('vercel_token, netlify_token, railway_token, cloudflare_token')
       .eq('id', user.id)
