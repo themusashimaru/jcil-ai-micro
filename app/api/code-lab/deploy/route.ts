@@ -430,7 +430,14 @@ async function deployToCloudflare(token: string, config: DeployConfig, _sessionI
 
 // GET - Check deployment status
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
+
+  // SECURITY FIX: Use service role client to access encrypted tokens
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
   const {
     data: { user },
@@ -453,7 +460,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Get user's token for the platform
-  const { data: userData } = await supabase
+  // SECURITY FIX: Must use adminClient for encrypted token access
+  const { data: userData } = await adminClient
     .from('users')
     .select(`${platform}_token`)
     .eq('id', user.id)
