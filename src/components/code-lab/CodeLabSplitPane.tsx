@@ -78,11 +78,9 @@ export function CodeLabSplitPane({
   const [leftCollapsed, setLeftCollapsed] = useState(left.collapsed || false);
   const [rightCollapsed, setRightCollapsed] = useState(right.collapsed || false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   // Load size from storage after hydration (client-side only)
   useEffect(() => {
-    setIsHydrated(true);
     if (storageKey) {
       const stored = localStorage.getItem(`split-pane-${storageKey}`);
       if (stored) {
