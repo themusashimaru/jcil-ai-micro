@@ -62,27 +62,15 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   'claude-sonnet-4-20250514-thinking': 'Sonnet 4 (Thinking)',
   'claude-opus-4-5-20251101-thinking': 'Opus 4.5 (Thinking)',
   // OpenAI models
-  'gpt-5.2-codex': 'GPT-5.2 Codex',
   'gpt-5.2': 'GPT-5.2',
-  'gpt-5.1-codex-max': 'GPT-5.1 Codex Max',
-  'gpt-5.1-codex-mini': 'GPT-5.1 Codex Mini',
-  'gpt-5.2-pro': 'GPT-5.2 Pro',
   // xAI Grok models
-  'grok-4': 'Grok 4',
   'grok-4-1-fast-reasoning': 'Grok 4.1 Fast (R)',
-  'grok-4-1-fast-non-reasoning': 'Grok 4.1 Fast',
-  'grok-4-fast-reasoning': 'Grok 4 Fast (R)',
-  'grok-4-fast-non-reasoning': 'Grok 4 Fast',
   'grok-code-fast-1': 'Grok Code Fast',
   // DeepSeek models
-  'deepseek-chat': 'DeepSeek Chat',
   'deepseek-reasoner': 'DeepSeek Reasoner',
   // Google Gemini models
   'gemini-3-pro-preview': 'Gemini 3 Pro',
   'gemini-3-flash-preview': 'Gemini 3 Flash',
-  'gemini-2.5-pro': 'Gemini 2.5 Pro',
-  'gemini-2.5-flash': 'Gemini 2.5 Flash',
-  'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
 };
 
 export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps) {
