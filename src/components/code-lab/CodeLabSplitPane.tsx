@@ -73,24 +73,24 @@ export function CodeLabSplitPane({
   const left: PanelConfig = { ...DEFAULT_CONFIG, id: 'left', ...leftConfig };
   const right: PanelConfig = { ...DEFAULT_CONFIG, id: 'right', ...rightConfig };
 
-  // Initialize size from storage or default
-  const getInitialSize = (): number => {
-    if (typeof window !== 'undefined' && storageKey) {
+  // Initialize with default - load from storage in useEffect to avoid hydration mismatch
+  const [leftSize, setLeftSize] = useState(left.defaultSize);
+  const [leftCollapsed, setLeftCollapsed] = useState(left.collapsed || false);
+  const [rightCollapsed, setRightCollapsed] = useState(right.collapsed || false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Load size from storage after hydration (client-side only)
+  useEffect(() => {
+    if (storageKey) {
       const stored = localStorage.getItem(`split-pane-${storageKey}`);
       if (stored) {
         const parsed = parseFloat(stored);
         if (!isNaN(parsed) && parsed >= left.minSize && parsed <= left.maxSize) {
-          return parsed;
+          setLeftSize(parsed);
         }
       }
     }
-    return left.defaultSize;
-  };
-
-  const [leftSize, setLeftSize] = useState(getInitialSize);
-  const [leftCollapsed, setLeftCollapsed] = useState(left.collapsed || false);
-  const [rightCollapsed, setRightCollapsed] = useState(right.collapsed || false);
-  const [isDragging, setIsDragging] = useState(false);
+  }, [storageKey, left.minSize, left.maxSize]);
 
   // Calculate actual sizes accounting for collapsed state
   const actualLeftSize = leftCollapsed ? 0 : rightCollapsed ? 100 : leftSize;
