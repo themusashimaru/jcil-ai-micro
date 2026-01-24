@@ -101,19 +101,70 @@ export async function POST(
       return NextResponse.json({ status: 'failed', error: 'Empty response' });
     }
 
-    // Save the message to the database
-    const { error: msgError } = await supabaseAdmin
+    // Check if there's already a recent assistant message (partial content from interrupted stream)
+    // If so, update it instead of creating a duplicate
+    const { data: lastMessages } = await supabaseAdmin
       .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'assistant',
-        content: responseText,
-        content_type: 'text',
-      });
+      .select('id, role, content, created_at')
+      .eq('conversation_id', conversationId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(2);
 
-    if (msgError) {
-      log.error('[ProcessPending] Failed to save message:', { error: msgError ?? 'Unknown error' });
+    let shouldUpdate = false;
+    let existingMessageId: string | null = null;
+
+    if (lastMessages && lastMessages.length > 0) {
+      const lastMessage = lastMessages[0];
+      // If last message is from assistant, check if it's incomplete (shorter than full response)
+      // or if it was created around the same time as the pending request
+      if (lastMessage.role === 'assistant') {
+        const pendingCreatedAt = new Date(pendingRequest.created_at).getTime();
+        const messageCreatedAt = new Date(lastMessage.created_at).getTime();
+        // If message was created within 30 seconds of pending request, it's likely a partial save
+        const timeDiff = Math.abs(messageCreatedAt - pendingCreatedAt);
+        if (timeDiff < 30000 && responseText.length > (lastMessage.content?.length || 0)) {
+          // This looks like a partial message - update it instead of creating new
+          shouldUpdate = true;
+          existingMessageId = lastMessage.id;
+          log.info('[ProcessPending] Found partial message to update:', {
+            messageId: existingMessageId,
+            oldLength: lastMessage.content?.length || 0,
+            newLength: responseText.length,
+          });
+        }
+      }
+    }
+
+    // Save or update the message in the database
+    if (shouldUpdate && existingMessageId) {
+      // Update existing partial message
+      const { error: updateError } = await supabaseAdmin
+        .from('messages')
+        .update({
+          content: responseText,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingMessageId);
+
+      if (updateError) {
+        log.error('[ProcessPending] Failed to update message:', { error: updateError ?? 'Unknown error' });
+      }
+    } else {
+      // Create new message
+      const { error: msgError } = await supabaseAdmin
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          user_id: user.id,
+          role: 'assistant',
+          content: responseText,
+          content_type: 'text',
+        });
+
+      if (msgError) {
+        log.error('[ProcessPending] Failed to save message:', { error: msgError ?? 'Unknown error' });
+      }
     }
 
     // Mark the pending request as completed and delete it

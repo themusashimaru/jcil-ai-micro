@@ -519,14 +519,23 @@ export function ChatClient() {
         return;
       }
 
-      // Check if last message is from user (meaning we're waiting for a reply)
-      // Also check fetched messages in case local state is stale
+      // Check if we need to process a pending request
+      // This happens when:
+      // 1. Last message is from user (waiting for a reply)
+      // 2. Last message is from assistant but might be incomplete (user left mid-stream)
       const lastFetchedMessage = fetchedMessages[fetchedMessages.length - 1];
       const lastLocalMessage = currentMessages[currentMessages.length - 1];
       const lastMessage = lastFetchedMessage || lastLocalMessage;
 
-      if (lastMessage && lastMessage.role === 'user') {
-        log.debug('Last message is from user, processing pending request...');
+      // Always check for pending requests - the server will tell us if there's nothing to process
+      // This catches both "waiting for reply" AND "incomplete streaming response" cases
+      const shouldCheckPending = lastMessage && (
+        lastMessage.role === 'user' || // Obvious case: waiting for reply
+        (lastMessage.role === 'assistant' && !isStreamingRef.current) // Could be incomplete
+      );
+
+      if (shouldCheckPending) {
+        log.debug('Checking for pending request...', { lastRole: lastMessage.role });
         isProcessingRef.current = true;
         setIsWaitingForReply(true);
         setIsStreaming(false); // Reset streaming state
@@ -1059,6 +1068,30 @@ export function ChatClient() {
     // This check uses the ref for immediate synchronous check, avoiding React state batching delays
     if (isStreaming) {
       log.debug('Blocked duplicate submission - already streaming');
+      return;
+    }
+
+    // PROACTIVE CONTEXT MANAGEMENT: If we're at or above the hard limit,
+    // trigger automatic continuation before even trying to send
+    const HARD_CONTEXT_LIMIT = 45; // Above this, continuation is mandatory
+    if (messages.length >= HARD_CONTEXT_LIMIT && !continuationDismissed) {
+      log.debug('Message count at hard limit, triggering proactive continuation', {
+        messageCount: messages.length,
+        limit: HARD_CONTEXT_LIMIT,
+      });
+      // Store the pending message so we can send it after continuation
+      const pendingContent = content;
+      const pendingAttachments = attachments;
+      const pendingSearchMode = searchMode;
+
+      // Trigger continuation
+      await handleChatContinuation();
+
+      // After continuation, automatically send the user's message in the new chat
+      // Give it a moment for the state to update
+      setTimeout(() => {
+        handleSendMessage(pendingContent, pendingAttachments, pendingSearchMode, selectedRepo);
+      }, 500);
       return;
     }
 
@@ -2394,6 +2427,33 @@ export function ChatClient() {
       let errorContent = '';
 
       // Check for specific error types and provide helpful messages
+
+      // CONTEXT EXHAUSTION - Auto-continue in new chat
+      if (
+        errorMsg.includes('context') ||
+        errorMsg.includes('context_length') ||
+        errorMsg.includes('maximum context') ||
+        errorMsg.includes('too long') ||
+        errorMsg.includes('exceeds the model')
+      ) {
+        log.debug('Context exhaustion detected, triggering automatic continuation');
+        // Trigger automatic continuation
+        handleChatContinuation().catch((e) => log.error('Auto-continuation failed:', e));
+        errorContent = 'This conversation has reached its context limit. Creating a new chat with your conversation summary...';
+        // Early return - the continuation will handle the rest
+        const contextErrorMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: errorContent,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, contextErrorMessage]);
+        setIsStreaming(false);
+        setPendingDocumentType(null);
+        abortControllerRef.current = null;
+        return;
+      }
+
       if (
         errorMsg.includes('rate limit') ||
         errorMsg.includes('429') ||
