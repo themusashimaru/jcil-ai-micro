@@ -306,15 +306,10 @@ export async function routeChat(
   // Convert messages to unified format
   let unifiedMessages = convertToUnifiedMessages(messages);
 
-  // Prepend system prompt if provided
-  if (systemPrompt) {
-    unifiedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...unifiedMessages.filter((m) => m.role !== 'system'),
-    ];
-  }
+  // Filter out any existing system messages (we'll use the systemPrompt option instead)
+  unifiedMessages = unifiedMessages.filter((m) => m.role !== 'system');
 
-  // Build chat options
+  // Build chat options - CRITICAL: pass systemPrompt here for Anthropic adapter
   const chatOptions: ProviderChatOptions = {
     providerId,
     fallbackProviderId: disableFallback ? undefined : fallbackProviderId,
@@ -323,6 +318,7 @@ export async function routeChat(
     model,
     maxTokens,
     temperature,
+    systemPrompt, // CRITICAL: This passes to the adapter's system parameter
     onProviderSwitch,
   };
 
