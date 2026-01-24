@@ -225,14 +225,19 @@ function extractKeyPoints(messages: CoreMessage[]): string[] {
   const keyPoints: string[] = [];
 
   for (const msg of messages) {
-    const content = typeof msg.content === 'string'
-      ? msg.content
-      : (Array.isArray(msg.content)
-        ? msg.content
-            .filter((p: { type: string }) => p.type === 'text')
-            .map((p: { text?: string }) => p.text || '')
-            .join(' ')
-        : '');
+    let content = '';
+
+    if (typeof msg.content === 'string') {
+      content = msg.content;
+    } else if (Array.isArray(msg.content)) {
+      // Extract text from content parts
+      for (const part of msg.content) {
+        if (part.type === 'text' && 'text' in part) {
+          content += (part as { type: 'text'; text: string }).text + ' ';
+        }
+      }
+      content = content.trim();
+    }
 
     if (content.length < 20) continue;
 
