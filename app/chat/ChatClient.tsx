@@ -559,14 +559,13 @@ export function ChatClient() {
           log.debug('Process pending result:', result.status);
 
           if (result.status === 'completed' && result.content) {
-            // Add the new message to the UI
-            const newMessage: Message = {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: result.content,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, newMessage]);
+            // Fetch messages from database to get the correct state
+            // This handles both UPDATE (partial message updated) and INSERT (new message created)
+            // Without this, we'd duplicate messages when an existing partial was updated
+            const updatedMessages = await fetchMessages(chatId);
+            if (updatedMessages && isMountedRef.current) {
+              setMessages(updatedMessages);
+            }
           } else if (result.status === 'no_pending_request') {
             // No pending request - maybe it was already processed or never created
             // Fetch messages again just in case
