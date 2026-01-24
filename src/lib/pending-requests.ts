@@ -211,6 +211,7 @@ export async function markRequestProcessing(requestId: string): Promise<boolean>
 
 /**
  * Save the completed response from background processing
+ * Handles partial messages: updates existing partial instead of creating duplicate
  */
 export async function saveBackgroundResponse(
   requestId: string,
@@ -223,20 +224,74 @@ export async function saveBackgroundResponse(
     const supabase = getSupabaseAdmin();
     if (!supabase) return;
 
-    // Save the message to the messages table
-    const { error: msgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        user_id: userId,
-        role: 'assistant',
-        content: content,
-        content_type: 'text',
-      });
+    // Get the pending request creation time for comparison
+    const { data: pendingRequest } = await supabase
+      .from('pending_requests')
+      .select('created_at')
+      .eq('id', requestId)
+      .single();
 
-    if (msgError) {
-      log.error('Failed to save message', { error: msgError.message });
-      throw msgError;
+    // Check if there's already a recent assistant message (partial content from interrupted stream)
+    const { data: lastMessages } = await supabase
+      .from('messages')
+      .select('id, role, content, created_at')
+      .eq('conversation_id', conversationId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(2);
+
+    let shouldUpdate = false;
+    let existingMessageId: string | null = null;
+
+    if (lastMessages && lastMessages.length > 0 && pendingRequest) {
+      const lastMessage = lastMessages[0];
+      // If last message is from assistant, check if it was created around the same time as pending request
+      if (lastMessage.role === 'assistant') {
+        const pendingCreatedAt = new Date(pendingRequest.created_at).getTime();
+        const messageCreatedAt = new Date(lastMessage.created_at).getTime();
+        // If message was created within 30 seconds of pending request, it's likely a partial save
+        const timeDiff = Math.abs(messageCreatedAt - pendingCreatedAt);
+        if (timeDiff < 30000 && content.length > (lastMessage.content?.length || 0)) {
+          shouldUpdate = true;
+          existingMessageId = lastMessage.id;
+          log.info('Found partial message to update', {
+            messageId: existingMessageId,
+            oldLength: lastMessage.content?.length || 0,
+            newLength: content.length,
+          });
+        }
+      }
+    }
+
+    // Save or update the message
+    if (shouldUpdate && existingMessageId) {
+      const { error: updateError } = await supabase
+        .from('messages')
+        .update({
+          content: content,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingMessageId);
+
+      if (updateError) {
+        log.error('Failed to update message', { error: updateError.message });
+        throw updateError;
+      }
+    } else {
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          user_id: userId,
+          role: 'assistant',
+          content: content,
+          content_type: 'text',
+        });
+
+      if (msgError) {
+        log.error('Failed to save message', { error: msgError.message });
+        throw msgError;
+      }
     }
 
     // Mark the pending request as completed

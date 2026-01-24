@@ -22,6 +22,7 @@ import { createClaudeStreamingChat, createClaudeChat } from '@/lib/anthropic/cli
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
+import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 import {
   generateResumeDocuments,
@@ -217,13 +218,73 @@ async function checkChatRateLimit(
 // HELPERS
 // ============================================================================
 
+/**
+ * Extract key points from older messages for summarization
+ */
+function extractKeyPoints(messages: CoreMessage[]): string[] {
+  const keyPoints: string[] = [];
+
+  for (const msg of messages) {
+    let content = '';
+
+    if (typeof msg.content === 'string') {
+      content = msg.content;
+    } else if (Array.isArray(msg.content)) {
+      // Extract text from content parts
+      for (const part of msg.content) {
+        if (part.type === 'text' && 'text' in part) {
+          content += (part as { type: 'text'; text: string }).text + ' ';
+        }
+      }
+      content = content.trim();
+    }
+
+    if (content.length < 20) continue;
+
+    const summary = content.length > 150 ? content.substring(0, 150) + '...' : content;
+
+    if (msg.role === 'user') {
+      keyPoints.push(`User asked: ${summary}`);
+    } else if (msg.role === 'assistant') {
+      keyPoints.push(`Assistant responded: ${summary}`);
+    }
+  }
+
+  return keyPoints.slice(0, 10); // Keep max 10 key points
+}
+
+/**
+ * Truncate messages with intelligent summarization
+ * Instead of just dropping old messages, creates a summary of them
+ */
 function truncateMessages(
   messages: CoreMessage[],
   maxMessages: number = MAX_CONTEXT_MESSAGES
 ): CoreMessage[] {
   if (messages.length <= maxMessages) return messages;
+
+  // Keep the first message (usually system context) and last (maxMessages - 2) messages
+  // Use one slot for the summary
   const keepFirst = messages[0];
-  const keepLast = messages.slice(-(maxMessages - 1));
+  const toSummarize = messages.slice(1, -(maxMessages - 2));
+  const keepLast = messages.slice(-(maxMessages - 2));
+
+  // If there are messages to summarize, create a summary
+  if (toSummarize.length > 0) {
+    const keyPoints = extractKeyPoints(toSummarize);
+
+    let summaryText = `[CONVERSATION CONTEXT: The following summarizes ${toSummarize.length} earlier messages]\n`;
+    summaryText += keyPoints.map(point => `• ${point}`).join('\n');
+    summaryText += `\n[END OF SUMMARY - Continue the conversation naturally]\n`;
+
+    const summaryMessage: CoreMessage = {
+      role: 'system',
+      content: summaryText,
+    };
+
+    return [keepFirst, summaryMessage, ...keepLast];
+  }
+
   return [keepFirst, ...keepLast];
 }
 
@@ -1685,7 +1746,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, temperature, max_tokens, searchMode } = validation.data;
+    const { messages, temperature, max_tokens, searchMode, conversationId } = validation.data;
 
     // Get user auth and plan info
     let rateLimitIdentifier: string;
@@ -2747,6 +2808,26 @@ Reply with ONLY one of these:
       }
     }
 
+    // ========================================
+    // PENDING REQUEST - Create before streaming starts
+    // This allows background worker to complete the request if user navigates away
+    // ========================================
+    let pendingRequestId: string | null = null;
+    if (isAuthenticated && conversationId) {
+      pendingRequestId = await createPendingRequest({
+        userId: rateLimitIdentifier,
+        conversationId,
+        messages: truncatedMessages.map(m => ({
+          role: m.role,
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+        model: 'claude-haiku-4-5',
+      });
+      if (pendingRequestId) {
+        log.debug('Created pending request for stream recovery', { pendingRequestId, conversationId });
+      }
+    }
+
     const streamResult = await createClaudeStreamingChat({
       messages: truncatedMessages,
       systemPrompt: fullSystemPrompt,
@@ -2776,6 +2857,16 @@ Reply with ONLY one of these:
       flush() {
         // Release slot when stream is fully consumed (normal completion)
         ensureSlotReleased();
+
+        // ========================================
+        // PENDING REQUEST - Mark as completed (stream finished successfully)
+        // This removes it from the queue so background worker won't reprocess
+        // ========================================
+        if (pendingRequestId) {
+          completePendingRequest(pendingRequestId).catch((err) => {
+            log.warn('Failed to complete pending request (non-critical)', err);
+          });
+        }
 
         // ========================================
         // TOKEN TRACKING - Increment usage after stream completes
