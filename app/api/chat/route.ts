@@ -2911,9 +2911,11 @@ Reply with ONLY one of these:
 
     // ========================================
     // MULTI-PROVIDER CHAT ROUTING
-    // Primary: Claude, Fallback: xAI (Grok 4.1)
+    // Primary: Claude Haiku 4.5 (fast, cost-effective)
+    // Fallback: xAI Grok 4.1 (full capability parity)
     // ========================================
     const routeOptions: ChatRouteOptions = {
+      model: 'claude-haiku-4-5-20251001', // Default to Haiku for cost-effective chat
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,

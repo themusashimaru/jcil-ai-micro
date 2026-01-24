@@ -235,8 +235,9 @@ export class ProviderService {
           usedFallback = true;
           fallbackReason = error.message;
 
-          const fallbackModel =
-            chatOptions.model ?? getDefaultModel(fallbackProviderId)?.id ?? undefined;
+          // Always use the fallback provider's default model
+          // (don't try to use the original provider's model ID with the fallback)
+          const fallbackModel = getDefaultModel(fallbackProviderId)?.id ?? undefined;
 
           try {
             yield* fallbackAdapter.chat(messages, { ...chatOptions, model: fallbackModel });
