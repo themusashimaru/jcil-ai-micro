@@ -18,6 +18,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createClaudeStreamingChat, createClaudeChat } from '@/lib/anthropic/client';
+import { routeChat, type ChatRouteOptions } from '@/lib/ai/chat-router';
 // detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
@@ -34,12 +35,7 @@ import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
-import {
-  canMakeRequest,
-  getTokenUsage,
-  getTokenLimitWarningMessage,
-  incrementTokenUsage,
-} from '@/lib/limits';
+import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 
@@ -274,7 +270,7 @@ function truncateMessages(
     const keyPoints = extractKeyPoints(toSummarize);
 
     let summaryText = `[CONVERSATION CONTEXT: The following summarizes ${toSummarize.length} earlier messages]\n`;
-    summaryText += keyPoints.map(point => `• ${point}`).join('\n');
+    summaryText += keyPoints.map((point) => `• ${point}`).join('\n');
     summaryText += `\n[END OF SUMMARY - Continue the conversation naturally]\n`;
 
     const summaryMessage: CoreMessage = {
@@ -335,50 +331,50 @@ function detectKnowledgeCutoff(response: string): boolean {
     'as of my knowledge cutoff',
     'my information only goes up to',
     // "access to real-time" variations
-    'i don\'t have access to real-time',
-    'don\'t have access to real-time',
-    'i can\'t access real-time',
-    'can\'t access real-time',
+    "i don't have access to real-time",
+    "don't have access to real-time",
+    "i can't access real-time",
+    "can't access real-time",
     'cannot access real-time',
     // "real-time access" variations (reversed word order - from user's conversation)
-    'i don\'t have real-time access',
-    'don\'t have real-time access',
+    "i don't have real-time access",
+    "don't have real-time access",
     'no real-time access',
     'real-time access to',
     // Current info variations
-    'i don\'t have access to current',
-    'don\'t have access to current',
-    'i can\'t access current',
-    'can\'t access current',
+    "i don't have access to current",
+    "don't have access to current",
+    "i can't access current",
+    "can't access current",
     'cannot access current',
-    'don\'t have current information',
-    'i don\'t have current information',
+    "don't have current information",
+    "i don't have current information",
     // Browse/internet variations
-    'i don\'t have the ability to browse',
-    'don\'t have the ability to browse',
-    'i don\'t have the ability to perform live web searches',
+    "i don't have the ability to browse",
+    "don't have the ability to browse",
+    "i don't have the ability to perform live web searches",
     'unable to browse the internet',
     'unable to browse the web',
     'cannot browse the internet',
     'cannot browse the web',
     'i cannot access the internet',
-    'i can\'t access the internet',
-    'don\'t have access to the internet',
-    'i\'m not able to browse',
+    "i can't access the internet",
+    "don't have access to the internet",
+    "i'm not able to browse",
     'i am not able to browse',
-    'i don\'t have internet access',
-    'don\'t have internet access',
+    "i don't have internet access",
+    "don't have internet access",
     'i cannot perform web searches',
-    'i can\'t perform web searches',
+    "i can't perform web searches",
     'unable to search the web',
     'unable to search the internet',
     // Live data variations
-    'i don\'t have live data',
-    'don\'t have live data',
-    'i don\'t have up-to-date information',
-    'don\'t have up-to-date information',
-    'my data doesn\'t include',
-    'i\'m unable to provide real-time',
+    "i don't have live data",
+    "don't have live data",
+    "i don't have up-to-date information",
+    "don't have up-to-date information",
+    "my data doesn't include",
+    "i'm unable to provide real-time",
     'i am unable to provide real-time',
     // Offering to search (means they need to look it up)
     'would you like me to search',
@@ -390,12 +386,12 @@ function detectKnowledgeCutoff(response: string): boolean {
     'want me to look',
     // Schedule/availability specific (from user's conversation)
     'schedule is not available',
-    'schedule isn\'t available',
+    "schedule isn't available",
     'not yet available',
-    'hasn\'t been released',
+    "hasn't been released",
     'has not been released',
-    'won\'t be released until',
-    'won\'t be available until',
+    "won't be released until",
+    "won't be available until",
     'typically releases in',
     'usually releases in',
     // Uncertainty about current events
@@ -412,7 +408,7 @@ function detectKnowledgeCutoff(response: string): boolean {
     'in the offseason',
   ];
 
-  return cutoffPhrases.some(phrase => lowerResponse.includes(phrase));
+  return cutoffPhrases.some((phrase) => lowerResponse.includes(phrase));
 }
 
 /**
@@ -424,35 +420,109 @@ function mightNeedRealtimeInfo(query: string): boolean {
 
   const realtimeIndicators = [
     // Current events/news
-    'latest', 'recent', 'today', 'yesterday', 'this week', 'this month',
-    'current', 'now', 'breaking', 'news', 'update',
+    'latest',
+    'recent',
+    'today',
+    'yesterday',
+    'this week',
+    'this month',
+    'current',
+    'now',
+    'breaking',
+    'news',
+    'update',
     // Time-sensitive queries
-    '2024', '2025', '2026', '2027', 'this year', 'last year',
+    '2024',
+    '2025',
+    '2026',
+    '2027',
+    'this year',
+    'last year',
     // Price/stock queries
-    'price of', 'stock price', 'market', 'bitcoin', 'crypto', 'ethereum',
+    'price of',
+    'stock price',
+    'market',
+    'bitcoin',
+    'crypto',
+    'ethereum',
     // Weather/live data
-    'weather', 'forecast', 'temperature',
+    'weather',
+    'forecast',
+    'temperature',
     // Sports teams and leagues
-    'patriots', 'cowboys', 'eagles', 'chiefs', 'bills', '49ers', 'ravens',
-    'lakers', 'celtics', 'warriors', 'heat', 'bulls', 'knicks',
-    'yankees', 'dodgers', 'red sox', 'cubs', 'mets',
-    'nfl', 'nba', 'mlb', 'nhl', 'mls', 'ufc', 'wwe',
-    'super bowl', 'world series', 'nba finals', 'stanley cup',
+    'patriots',
+    'cowboys',
+    'eagles',
+    'chiefs',
+    'bills',
+    '49ers',
+    'ravens',
+    'lakers',
+    'celtics',
+    'warriors',
+    'heat',
+    'bulls',
+    'knicks',
+    'yankees',
+    'dodgers',
+    'red sox',
+    'cubs',
+    'mets',
+    'nfl',
+    'nba',
+    'mlb',
+    'nhl',
+    'mls',
+    'ufc',
+    'wwe',
+    'super bowl',
+    'world series',
+    'nba finals',
+    'stanley cup',
     // Sports/events queries
-    'score', 'game', 'match', 'winner', 'championship', 'playoff', 'playoffs',
-    'standings', 'roster', 'lineup', 'draft', 'trade', 'injury', 'injured',
-    'next game', 'next match', 'upcoming game', 'upcoming match',
+    'score',
+    'game',
+    'match',
+    'winner',
+    'championship',
+    'playoff',
+    'playoffs',
+    'standings',
+    'roster',
+    'lineup',
+    'draft',
+    'trade',
+    'injury',
+    'injured',
+    'next game',
+    'next match',
+    'upcoming game',
+    'upcoming match',
     // Schedules
-    'schedule', 'scheduled', 'when do they play', 'when does', 'when will', 'when is',
+    'schedule',
+    'scheduled',
+    'when do they play',
+    'when does',
+    'when will',
+    'when is',
     // Releases/launches
-    'release date', 'coming out', 'launches', 'announced',
+    'release date',
+    'coming out',
+    'launches',
+    'announced',
     // Live information
-    'hours', 'open', 'closed', 'available',
+    'hours',
+    'open',
+    'closed',
+    'available',
     // Queries that imply needing current info
-    'right now', 'at the moment', 'these days', 'still',
+    'right now',
+    'at the moment',
+    'these days',
+    'still',
   ];
 
-  return realtimeIndicators.some(indicator => lowerQuery.includes(indicator));
+  return realtimeIndicators.some((indicator) => lowerQuery.includes(indicator));
 }
 
 /**
@@ -2737,7 +2807,8 @@ Reply with ONLY one of these:
 - "CAN_ANSWER" if you can answer accurately from your training data`,
             },
           ],
-          systemPrompt: 'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
+          systemPrompt:
+            'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
           maxTokens: 50,
           temperature: 0,
         });
@@ -2758,13 +2829,17 @@ Reply with ONLY one of these:
               // Trigger Perplexity search
               const searchResult = await perplexitySearch({
                 query: lastUserContent,
-                systemPrompt: 'Search the web and provide accurate, up-to-date information with sources.',
+                systemPrompt:
+                  'Search the web and provide accurate, up-to-date information with sources.',
               });
 
               // Post-process through Claude for consistent voice
               const synthesis = await createClaudeChat({
                 messages: [
-                  { role: 'user', content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}` },
+                  {
+                    role: 'user',
+                    content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}`,
+                  },
                 ],
                 maxTokens: 2048,
                 forceModel: 'sonnet',
@@ -2793,7 +2868,10 @@ Reply with ONLY one of these:
                 }
               );
             } catch (searchError) {
-              log.warn('Auto-search failed, falling back to original response', searchError as Error);
+              log.warn(
+                'Auto-search failed, falling back to original response',
+                searchError as Error
+              );
               // Fall through to streaming - let Claude respond normally
             }
           } else {
@@ -2817,25 +2895,41 @@ Reply with ONLY one of these:
       pendingRequestId = await createPendingRequest({
         userId: rateLimitIdentifier,
         conversationId,
-        messages: truncatedMessages.map(m => ({
+        messages: truncatedMessages.map((m) => ({
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
         model: 'claude-haiku-4-5',
       });
       if (pendingRequestId) {
-        log.debug('Created pending request for stream recovery', { pendingRequestId, conversationId });
+        log.debug('Created pending request for stream recovery', {
+          pendingRequestId,
+          conversationId,
+        });
       }
     }
 
-    const streamResult = await createClaudeStreamingChat({
-      messages: truncatedMessages,
+    // ========================================
+    // MULTI-PROVIDER CHAT ROUTING
+    // Primary: Claude, Fallback: xAI (Grok 4.1)
+    // ========================================
+    const routeOptions: ChatRouteOptions = {
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
-    });
+      onProviderSwitch: (from, to, reason) => {
+        log.info('Provider failover triggered', { from, to, reason });
+      },
+    };
 
-    log.debug('Using model', { model: streamResult.model });
+    const routeResult = await routeChat(truncatedMessages, routeOptions);
+
+    log.debug('Chat routed', {
+      provider: routeResult.providerId,
+      model: routeResult.model,
+      usedFallback: routeResult.usedFallback,
+      fallbackReason: routeResult.fallbackReason,
+    });
 
     // CRITICAL FIX: Track slot release with a promise-based cleanup
     // This ensures slot is released even if client disconnects mid-stream
@@ -2848,8 +2942,6 @@ Reply with ONLY one of these:
     };
 
     // Wrap the stream to release the slot when streaming completes
-    // Note: cancel() removed - not valid on Transformer type. Client disconnect
-    // is handled by the abort listener below instead.
     const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         controller.enqueue(chunk);
@@ -2866,28 +2958,6 @@ Reply with ONLY one of these:
           completePendingRequest(pendingRequestId).catch((err) => {
             log.warn('Failed to complete pending request (non-critical)', err);
           });
-        }
-
-        // ========================================
-        // TOKEN TRACKING - Increment usage after stream completes
-        // ========================================
-        if (isAuthenticated && !isAdmin) {
-          const tokenUsage = streamResult.getTokenUsage();
-          if (tokenUsage.totalTokens > 0) {
-            incrementTokenUsage(rateLimitIdentifier, userPlanKey, tokenUsage.totalTokens)
-              .then((usage) => {
-                log.debug('Token usage tracked', {
-                  userId: rateLimitIdentifier,
-                  tokens: tokenUsage.totalTokens,
-                  used: usage.used,
-                  limit: usage.limit,
-                  percentage: usage.percentage,
-                });
-              })
-              .catch((err) => {
-                log.warn('Token tracking failed (non-critical)', err);
-              });
-          }
         }
 
         // ========================================
@@ -2915,7 +2985,7 @@ Reply with ONLY one of these:
     });
 
     // Pipe through the wrapper - slot released when stream ends
-    const finalStream = streamResult.stream.pipeThrough(wrappedStream);
+    const finalStream = routeResult.stream.pipeThrough(wrappedStream);
 
     // Mark as streaming so finally block doesn't double-release
     isStreamingResponse = true;
@@ -2925,8 +2995,9 @@ Reply with ONLY one of these:
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Transfer-Encoding': 'chunked',
-        'X-Model-Used': streamResult.model,
-        'X-Provider': 'claude',
+        'X-Model-Used': routeResult.model,
+        'X-Provider': routeResult.providerId,
+        'X-Used-Fallback': routeResult.usedFallback ? 'true' : 'false',
       },
     });
   } finally {

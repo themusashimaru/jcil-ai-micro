@@ -9,8 +9,9 @@
  * PROVIDER: Claude (Anthropic) - Haiku for fast title generation
  */
 
-import { createClaudeChat } from '@/lib/anthropic/client';
+import { completeChat } from '@/lib/ai/chat-router';
 import { NextRequest } from 'next/server';
+import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 import { generateTitleSchema } from '@/lib/validation/schemas';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -78,20 +79,22 @@ Rules:
 
     let titleText = '';
     try {
-      // Use Claude Haiku for fast title generation
-      const result = await createClaudeChat({
-        messages: [{ role: 'user', content: userPrompt }],
+      // Use multi-provider chat with fallback for reliability
+      const messages: CoreMessage[] = [{ role: 'user', content: userPrompt }];
+      const result = await completeChat(messages, {
         systemPrompt,
         maxTokens: 50, // Titles are short
         temperature: 0.5,
-        forceModel: 'haiku', // Fast model for quick titles
       });
       titleText = result.text || '';
+
+      log.debug('[API] Title generated', {
+        provider: result.providerId,
+        model: result.model,
+        usedFallback: result.usedFallback,
+      });
     } catch (aiError) {
-      log.error(
-        '[API] Claude call failed',
-        aiError instanceof Error ? aiError : { error: aiError }
-      );
+      log.error('[API] AI call failed', aiError instanceof Error ? aiError : { error: aiError });
       // Return a generated fallback title based on the user message
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
       return new Response(JSON.stringify({ title: fallbackTitle }), {
