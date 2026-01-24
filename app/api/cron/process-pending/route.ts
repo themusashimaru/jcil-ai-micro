@@ -16,7 +16,7 @@ import {
   failPendingRequest,
   cleanupOldRequests,
 } from '@/lib/pending-requests';
-import { createAnthropicCompletion } from '@/lib/anthropic/client';
+import { completeChat } from '@/lib/ai/chat-router';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 
@@ -73,11 +73,16 @@ export async function GET(request: NextRequest) {
 
         log.info('[Cron] Processing request', { requestId: request.id, userId: request.user_id });
 
-        // Call Claude to complete the request
-        // Use non-streaming since there's no client to stream to
-        const result = await createAnthropicCompletion({
-          messages: request.messages as CoreMessage[],
-          userId: request.user_id,
+        // Complete the request with multi-provider support (Claude primary, xAI fallback)
+        const result = await completeChat(request.messages as CoreMessage[], {
+          maxTokens: 4096,
+        });
+
+        log.info('[Cron] AI response received', {
+          requestId: request.id,
+          provider: result.providerId,
+          model: result.model,
+          usedFallback: result.usedFallback,
         });
 
         // Extract the response text
@@ -102,11 +107,11 @@ export async function GET(request: NextRequest) {
         log.info('[Cron] Successfully processed request', { requestId: request.id });
         processed++;
       } catch (error) {
-        log.error('[Cron] Failed to process request', { requestId: request.id, error: error instanceof Error ? error.message : 'Unknown' });
-        await failPendingRequest(
-          request.id,
-          'Processing failed'
-        );
+        log.error('[Cron] Failed to process request', {
+          requestId: request.id,
+          error: error instanceof Error ? error.message : 'Unknown',
+        });
+        await failPendingRequest(request.id, 'Processing failed');
         failed++;
       }
     }
@@ -120,9 +125,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Cron] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to process pending requests' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to process pending requests' }, { status: 500 });
   }
 }

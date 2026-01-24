@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createAnthropicCompletion } from '@/lib/anthropic/client';
+import { completeChat } from '@/lib/ai/chat-router';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 
@@ -24,10 +24,7 @@ function getSupabaseAdmin() {
   return createClient(url, serviceKey);
 }
 
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: conversationId } = await params;
 
   // Get authenticated user
@@ -44,7 +41,9 @@ export async function POST(
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -79,10 +78,15 @@ export async function POST(
       .update({ status: 'processing', started_at: new Date().toISOString() })
       .eq('id', pendingRequest.id);
 
-    // Process the request with Claude
-    const result = await createAnthropicCompletion({
-      messages: pendingRequest.messages as CoreMessage[],
-      userId: user.id,
+    // Process the request with multi-provider support (Claude primary, xAI fallback)
+    const result = await completeChat(pendingRequest.messages as CoreMessage[], {
+      maxTokens: 4096,
+    });
+
+    log.info('[ProcessPending] AI response received', {
+      provider: result.providerId,
+      model: result.model,
+      usedFallback: result.usedFallback,
     });
 
     const responseText = result.text || '';
@@ -94,7 +98,7 @@ export async function POST(
         .update({
           status: 'failed',
           completed_at: new Date().toISOString(),
-          error_message: 'Empty response from AI'
+          error_message: 'Empty response from AI',
         })
         .eq('id', pendingRequest.id);
 
@@ -148,30 +152,29 @@ export async function POST(
         .eq('id', existingMessageId);
 
       if (updateError) {
-        log.error('[ProcessPending] Failed to update message:', { error: updateError ?? 'Unknown error' });
+        log.error('[ProcessPending] Failed to update message:', {
+          error: updateError ?? 'Unknown error',
+        });
       }
     } else {
       // Create new message
-      const { error: msgError } = await supabaseAdmin
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          user_id: user.id,
-          role: 'assistant',
-          content: responseText,
-          content_type: 'text',
-        });
+      const { error: msgError } = await supabaseAdmin.from('messages').insert({
+        conversation_id: conversationId,
+        user_id: user.id,
+        role: 'assistant',
+        content: responseText,
+        content_type: 'text',
+      });
 
       if (msgError) {
-        log.error('[ProcessPending] Failed to save message:', { error: msgError ?? 'Unknown error' });
+        log.error('[ProcessPending] Failed to save message:', {
+          error: msgError ?? 'Unknown error',
+        });
       }
     }
 
     // Mark the pending request as completed and delete it
-    await supabaseAdmin
-      .from('pending_requests')
-      .delete()
-      .eq('id', pendingRequest.id);
+    await supabaseAdmin.from('pending_requests').delete().eq('id', pendingRequest.id);
 
     log.info('[ProcessPending] Successfully processed request:', pendingRequest.id);
 
@@ -179,7 +182,6 @@ export async function POST(
       status: 'completed',
       content: responseText,
     });
-
   } catch (error) {
     log.error('[ProcessPending] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
