@@ -14,9 +14,11 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
 **Key Strengths:**
 
 - Robust dual-pool API key management with automatic failover
+- Multi-provider AI system with Claude primary and xAI fallback
 - Persistent user memory across conversations
 - Comprehensive document generation (PDF, DOCX, XLSX, PPTX)
-- Research Agent with Perplexity integration
+- Brave Search integration with intelligent query optimization
+- Research Agent with Perplexity integration for deep research
 - Row-level security (RLS) throughout
 - Prompt injection protection in memory system
 
@@ -39,7 +41,9 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
 | **Backend**        | Next.js API Routes (App Router)           |
 | **Database**       | Supabase (PostgreSQL)                     |
 | **AI Primary**     | Claude Haiku 4.5 / Sonnet 4.5 (Anthropic) |
-| **AI Research**    | Perplexity API                            |
+| **AI Fallback**    | xAI Grok 4.1 (automatic failover)         |
+| **Web Search**     | Brave Search API (search/factcheck)       |
+| **Deep Research**  | Perplexity API (Research Agent only)      |
 | **Authentication** | Supabase Auth + WebAuthn                  |
 | **Real-time**      | Server-Sent Events (SSE)                  |
 
@@ -77,10 +81,14 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
             ▼                    ▼                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      SERVICE LAYER                                   │
-│  ┌──────────────┐  ┌─────────────┐  ┌──────────────┐  ┌──────────┐  │
-│  │ Anthropic    │  │ Perplexity  │  │ User Memory  │  │ Document │  │
-│  │ Client       │  │ Client      │  │ Service      │  │ Generator│  │
-│  └──────────────┘  └─────────────┘  └──────────────┘  └──────────┘  │
+│  ┌──────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────┐  │
+│  │ Chat Router  │  │ Brave       │  │ User Memory │  │ Document │  │
+│  │ (Claude+xAI) │  │ Search      │  │ Service     │  │ Generator│  │
+│  └──────────────┘  └─────────────┘  └─────────────┘  └──────────┘  │
+│  ┌──────────────┐  ┌─────────────┐                                  │
+│  │ Anthropic    │  │ Perplexity  │  (Research Agent only)           │
+│  │ Client       │  │ Client      │                                  │
+│  └──────────────┘  └─────────────┘                                  │
 └─────────────────────────────────────────────────────────────────────┘
             │                    │                      │
             ▼                    ▼                      ▼
@@ -396,61 +404,163 @@ interface ApiKeyState {
 | `claude-haiku-4-5-20251001` | Simple queries, fast responses         | Low    |
 | `claude-sonnet-4-5`         | Complex reasoning, document generation | Medium |
 
-### 4.2 Perplexity Integration (Research)
+### 4.2 Brave Search Integration (Main Chat)
 
-**Location:** `src/lib/perplexity/client.ts`
+**Location:** `src/lib/brave/`
 
-Used exclusively by the Research Agent for:
+Used for main chat search features:
 
-- Real-time web search
-- Fact verification
-- Current events queries
+- **Button-triggered search** - User clicks Search or Fact-check in Tools menu
+- **Auto-search** - Automatically triggered when knowledge cutoff detected
+- **Rich data** - Weather, stocks, sports scores, cryptocurrency prices
+- **Local search** - Location-based business and POI results
 
-**Rate Limit:** 20 requests/hour (stricter due to cost)
+**Features:**
 
-### 4.3 Research Agent Architecture
+- Intelligent query optimization based on intent detection
+- Extra snippets (up to 5 per result) for comprehensive context
+- Freshness filtering (past day/week/month/year)
+- Double AI synthesis for intelligent, persona-consistent responses
+
+**Cost:** ~$5/1000 queries (significantly cheaper than Perplexity)
+
+### 4.3 Research Agent Architecture (v2.0)
 
 **Location:** `src/agents/research/ResearchAgent.ts`
 
+Enhanced Research Agent with Brave Search as primary, supporting up to 20 parallel queries:
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    RESEARCH AGENT PIPELINE                       │
+│                    RESEARCH AGENT PIPELINE v2.0                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │   PHASE 1: Intent Analysis                                       │
-│   └── IntentAnalyzer.ts                                          │
-│       • Refine user query                                        │
-│       • Identify topics                                          │
-│       • Determine depth (quick/standard/deep)                    │
+│   └── IntentAnalyzer.ts (Claude with xAI fallback)               │
+│       • Refine user query intelligently                          │
+│       • Identify all relevant topics                             │
+│       • Determine depth (quick: 1-5, standard: 5-12, deep: 12-20)│
+│       • Extract context clues (industry, location, timeframe)    │
 │                                                                  │
-│   PHASE 2: Strategy Generation                                   │
-│   └── StrategyGenerator.ts                                       │
-│       • Generate 1-10 search queries                             │
-│       • Plan search phases                                       │
-│       • Set iteration limits                                     │
+│   PHASE 2: Dynamic Strategy Generation                           │
+│   └── StrategyGenerator.ts (Claude with xAI fallback)            │
+│       • AI decides optimal number of queries (1-20)              │
+│       • Query types: general, news, local, comparison, data      │
+│       • Prioritized by importance (1-10 scale)                   │
+│       • No duplicates, each targets different aspect             │
 │                                                                  │
-│   PHASE 3: Execution (Parallel)                                  │
-│   └── PerplexityExecutor.ts                                      │
-│       • Execute searches via Perplexity API                      │
-│       • Heartbeat to prevent Vercel timeout                      │
-│       • Max 50s for search phase                                 │
+│   PHASE 3: Parallel Execution                                    │
+│   └── BraveExecutor.ts (PRIMARY)                                 │
+│       • Up to 20 parallel Brave searches                         │
+│       • Rich data integration (weather, stocks, sports, crypto)  │
+│       • Extra snippets (5 per result) for comprehensive context  │
+│       • Freshness filtering (past day/week/month/year)           │
+│       • Per-query AI synthesis with Claude/xAI fallback          │
+│       • Batched execution (10 at a time) to avoid overwhelming   │
+│   └── PerplexityExecutor.ts (FALLBACK)                           │
+│       • Used if Brave not configured                             │
+│       • Capped at 10 queries (cost consideration)                │
 │                                                                  │
 │   PHASE 4: Evaluation                                            │
 │   └── ResultEvaluator.ts                                         │
 │       • Score result relevance                                   │
 │       • Filter duplicates                                        │
-│       • Max 100 results to prevent memory exhaustion             │
+│       • Max 150 results to prevent memory exhaustion             │
+│       • Decide: synthesize, continue, or pivot                   │
 │                                                                  │
-│   PHASE 5: Synthesis                                             │
-│   └── Synthesizer.ts                                             │
-│       • Combine findings                                         │
-│       • Generate citations                                       │
-│       • Format final response                                    │
+│   PHASE 5: Comprehensive Synthesis                               │
+│   └── Synthesizer.ts (Claude with xAI fallback)                  │
+│       • Process up to 15 high-relevance results                  │
+│       • Bottom line + executive summary                          │
+│       • 5-8 key findings with confidence levels                  │
+│       • Comparison tables (for vs/competitor queries)            │
+│       • Data highlights (for statistics queries)                 │
+│       • Information gaps + suggested next steps                  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Time Budget:** 80 seconds total (50s search + 30s synthesis)
+**Time Budget:** 90 seconds total (60s search + 30s synthesis)
+
+**Cost Efficiency:** Brave Search at ~$5/1000 queries enables comprehensive research without cost concerns
+
+### 4.4 Perplexity Integration (Fallback)
+
+**Location:** `src/lib/perplexity/client.ts`
+
+Used as fallback when Brave Search is not configured:
+
+- Capped at 10 queries per research session
+- Single-sentence response format
+- Higher cost consideration
+
+**Rate Limit:** 20 requests/hour
+
+### 4.5 Brave Search System Architecture
+
+**Location:** `src/lib/brave/`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    BRAVE SEARCH PIPELINE                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   PHASE 1: Query Intent Detection                                │
+│   └── detectQueryIntent()                                        │
+│       • Weather queries (forecast, temperature, etc.)            │
+│       • Stock queries (AAPL, market cap, NYSE)                   │
+│       • Crypto queries (bitcoin price, ETH value)                │
+│       • Sports queries (scores, schedules, games)                │
+│       • News queries (latest, breaking, announced)               │
+│       • Local queries (near me, restaurants, stores)             │
+│       • Fact-check queries (is it true, verify, debunk)          │
+│                                                                  │
+│   PHASE 2: Intelligent Search                                    │
+│   └── intelligentSearch()                                        │
+│       • Brave API web search with extra snippets                 │
+│       • Freshness filtering (pd/pw/pm/py)                        │
+│       • Rich data callbacks (weather, stocks, sports)            │
+│       • Location-based results with POI enrichment               │
+│       • FAQ and discussion extraction                            │
+│                                                                  │
+│   PHASE 3: First AI Synthesis                                    │
+│   └── completeChat() via Brave search service                    │
+│       • Mode-specific prompts (factcheck, news, local, etc.)     │
+│       • Claude Sonnet 4.5 for high-quality synthesis             │
+│       • xAI fallback if Claude rate-limited                      │
+│                                                                  │
+│   PHASE 4: Second AI Synthesis (Voice Consistency)               │
+│   └── completeChat() in chat route                               │
+│       • Re-processes through AI for consistent persona           │
+│       • Matches system prompt voice and values                   │
+│       • Final quality enhancement                                │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Module Structure:**
+
+| File                | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| `client.ts`         | Brave API client, web search, rich data |
+| `search-service.ts` | High-level search with AI synthesis     |
+| `index.ts`          | Module exports                          |
+
+**Rich Data Types Supported:**
+
+| Type    | Trigger Keywords               | Data Retrieved                   |
+| ------- | ------------------------------ | -------------------------------- |
+| Weather | weather, forecast, temperature | Current/forecast conditions      |
+| Stocks  | stock, AAPL, market cap, NYSE  | Price, change, volume            |
+| Crypto  | bitcoin, ethereum, BTC price   | Current price, 24h change        |
+| Sports  | score, game, NFL, NBA today    | Live/recent scores               |
+| Local   | near me, restaurants, stores   | Business info, ratings, distance |
+
+**Environment Variables:**
+
+```bash
+BRAVE_SEARCH_API_KEY=your-brave-api-key
+```
 
 ---
 

@@ -10,20 +10,20 @@
 // =============================================================================
 
 export type AgentStreamEventType =
-  | 'thinking'      // Agent is planning/analyzing
-  | 'searching'     // Executing a search
-  | 'evaluating'    // Evaluating results
-  | 'pivoting'      // Changing strategy based on results
-  | 'synthesizing'  // Creating final output
-  | 'complete'      // Done
-  | 'error';        // Something went wrong
+  | 'thinking' // Agent is planning/analyzing
+  | 'searching' // Executing a search
+  | 'evaluating' // Evaluating results
+  | 'pivoting' // Changing strategy based on results
+  | 'synthesizing' // Creating final output
+  | 'complete' // Done
+  | 'error'; // Something went wrong
 
 export interface AgentStreamEvent {
   type: AgentStreamEventType;
   message: string;
-  progress?: number;        // 0-100
-  phase?: string;           // Current phase name
-  details?: unknown;        // Additional data for the UI
+  progress?: number; // 0-100
+  phase?: string; // Current phase name
+  details?: unknown; // Additional data for the UI
   timestamp: number;
 }
 
@@ -37,7 +37,7 @@ export interface AgentContext {
   userId: string;
   conversationId?: string;
   previousMessages?: Array<{ role: string; content: string }>;
-  userDocuments?: string[];  // RAG context if available
+  userDocuments?: string[]; // RAG context if available
   preferences?: {
     depth?: 'quick' | 'standard' | 'deep';
     maxIterations?: number;
@@ -57,7 +57,7 @@ export interface AgentResult<T = unknown> {
     executionTime: number;
     iterations: number;
     sourcesUsed: string[];
-    confidenceScore: number;  // 0-1
+    confidenceScore: number; // 0-1
   };
 }
 
@@ -90,7 +90,7 @@ export interface ResearchIntent {
   refinedQuery: string;
   topics: string[];
   requiredDepth: 'quick' | 'standard' | 'deep';
-  expectedOutputs: string[];  // What the user expects to learn
+  expectedOutputs: string[]; // What the user expects to learn
   contextClues: {
     industry?: string;
     location?: string;
@@ -112,18 +112,18 @@ export interface ResearchPhase {
   name: string;
   type: 'broad_scan' | 'deep_dive' | 'gap_fill' | 'validation';
   queries: GeneratedQuery[];
-  sources: ('google' | 'perplexity')[];
-  isConditional: boolean;  // Only runs if previous phase has gaps
-  dependsOn?: string;      // Phase ID this depends on
+  sources: ('google' | 'perplexity' | 'brave')[];
+  isConditional: boolean; // Only runs if previous phase has gaps
+  dependsOn?: string; // Phase ID this depends on
 }
 
 export interface GeneratedQuery {
   id: string;
   query: string;
-  purpose: string;         // Why this query?
-  expectedInfo: string[];  // What we expect to find
-  source: 'google' | 'perplexity';
-  priority: number;        // 1-10, higher = more important
+  purpose: string; // Why this query?
+  expectedInfo: string[]; // What we expect to find
+  source: 'google' | 'perplexity' | 'brave';
+  priority: number; // 1-10, higher = more important
 }
 
 export interface StopCondition {
@@ -138,25 +138,31 @@ export interface StopCondition {
 export interface SearchResult {
   id: string;
   query: string;
-  source: 'google' | 'perplexity';
+  source: 'google' | 'perplexity' | 'brave';
   content: string;
   url?: string;
   title?: string;
   timestamp: number;
   relevanceScore?: number;
+  metadata?: {
+    webResultCount?: number;
+    hasRichData?: boolean;
+    richDataType?: string;
+    executionTime?: number;
+  };
 }
 
 export interface EvaluatedResults {
   results: SearchResult[];
   coverage: {
-    score: number;           // 0-1
+    score: number; // 0-1
     topicsCovered: string[];
     topicsMissing: string[];
   };
   quality: {
-    score: number;           // 0-1
-    conflicts: string[];     // Contradicting information
-    gaps: string[];          // Missing information
+    score: number; // 0-1
+    conflicts: string[]; // Contradicting information
+    gaps: string[]; // Missing information
   };
   recommendation: {
     action: 'continue' | 'pivot' | 'synthesize';
@@ -170,14 +176,14 @@ export interface EvaluatedResults {
 // =============================================================================
 
 export interface ResearchOutput {
-  bottomLine: string;        // Single sentence key takeaway
+  bottomLine: string; // Single sentence key takeaway
   executiveSummary: string;
   keyFindings: KeyFinding[];
   detailedSections: ResearchSection[];
-  comparisonTable?: ComparisonTable;  // For competitor/comparison research
-  gaps: string[];           // What couldn't be found
-  suggestions: string[];    // What user should research next
-  followUpQuestions: string[];  // Suggested follow-up questions
+  comparisonTable?: ComparisonTable; // For competitor/comparison research
+  gaps: string[]; // What couldn't be found
+  suggestions: string[]; // What user should research next
+  followUpQuestions: string[]; // Suggested follow-up questions
   sources: SourceCitation[];
   metadata: {
     totalQueries: number;
@@ -186,7 +192,7 @@ export interface ResearchOutput {
     confidenceScore: number;
     executionTime: number;
     depth: 'quick' | 'standard' | 'deep';
-    completedAt: number;    // Timestamp
+    completedAt: number; // Timestamp
   };
 }
 
@@ -196,12 +202,12 @@ export interface ComparisonTable {
 }
 
 export interface ComparisonRow {
-  entity: string;           // Company/product name
-  values: string[];         // Values for each header column
+  entity: string; // Company/product name
+  values: string[]; // Values for each header column
 }
 
 export interface KeyFinding {
-  title?: string;           // Short title for scannability
+  title?: string; // Short title for scannability
   finding: string;
   confidence: 'high' | 'medium' | 'low';
   sources: string[];
@@ -217,7 +223,7 @@ export interface SourceCitation {
   id: string;
   title: string;
   url?: string;
-  source: 'google' | 'perplexity';
+  source: 'google' | 'perplexity' | 'brave';
   accessedAt: number;
 }
 
@@ -234,9 +240,9 @@ export interface CodeIntent {
   refinedDescription: string;
   projectType: ProjectType;
   requirements: {
-    functional: string[];      // What it should DO
-    technical: string[];       // Technologies/frameworks to use
-    constraints: string[];     // Limitations/requirements
+    functional: string[]; // What it should DO
+    technical: string[]; // Technologies/frameworks to use
+    constraints: string[]; // Limitations/requirements
   };
   complexity: 'simple' | 'moderate' | 'complex' | 'enterprise';
   estimatedFiles: number;
@@ -249,21 +255,21 @@ export interface CodeIntent {
 }
 
 export type ProjectType =
-  | 'web_app'           // React, Next.js, Vue, etc.
-  | 'api'               // Express, FastAPI, etc.
-  | 'cli'               // Command line tool
-  | 'library'           // NPM package, Python module
-  | 'script'            // Single file automation
-  | 'full_stack'        // Frontend + Backend
-  | 'mobile'            // React Native, etc.
-  | 'extension'         // Browser extension, VS Code, etc.
-  | 'automation'        // Bots, scrapers, workflows
-  | 'data'              // Data processing, ML
+  | 'web_app' // React, Next.js, Vue, etc.
+  | 'api' // Express, FastAPI, etc.
+  | 'cli' // Command line tool
+  | 'library' // NPM package, Python module
+  | 'script' // Single file automation
+  | 'full_stack' // Frontend + Backend
+  | 'mobile' // React Native, etc.
+  | 'extension' // Browser extension, VS Code, etc.
+  | 'automation' // Bots, scrapers, workflows
+  | 'data' // Data processing, ML
   | 'unknown';
 
 export interface TechnologyStack {
-  primary: string;           // Main language/framework
-  secondary: string[];       // Additional libs
+  primary: string; // Main language/framework
+  secondary: string[]; // Additional libs
   runtime: 'node' | 'python' | 'both';
   packageManager: 'npm' | 'yarn' | 'pnpm' | 'bun' | 'pip';
   buildTool?: string;
@@ -278,10 +284,10 @@ export interface ProjectPlan {
   name: string;
   description: string;
   architecture: {
-    pattern: string;         // MVC, Clean, Modular, etc.
+    pattern: string; // MVC, Clean, Modular, etc.
     layers: ArchitectureLayer[];
-    rationale: string;       // Why this architecture
-    dataFlow?: string;       // Optional data flow description
+    rationale: string; // Why this architecture
+    dataFlow?: string; // Optional data flow description
   };
   fileTree: PlannedFile[];
   dependencies: {
@@ -306,8 +312,8 @@ export interface ArchitectureLayer {
 export interface PlannedFile {
   path: string;
   purpose: string;
-  dependencies: string[];    // Other files this depends on
-  priority: number;          // Build order (1 = first)
+  dependencies: string[]; // Other files this depends on
+  priority: number; // Build order (1 = first)
   estimatedLines: number;
   isEntryPoint?: boolean;
   isConfig?: boolean;
@@ -397,7 +403,7 @@ export interface CodeEvaluation {
     percentComplete: number;
   };
   quality: {
-    score: number;           // 0-1
+    score: number; // 0-1
     issues: string[];
     strengths: string[];
   };
