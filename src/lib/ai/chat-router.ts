@@ -68,29 +68,49 @@ function convertContentPart(part: unknown): UnifiedContentBlock | null {
       } as UnifiedTextBlock;
 
     case 'image':
-      // Handle image parts
-      if (p.image && typeof p.image === 'object') {
-        const img = p.image as Record<string, unknown>;
-        if (typeof img === 'string') {
-          // URL format
+      // Handle image parts - client sends as string data URL or object
+      if (p.image) {
+        // Handle string format (data URL from client): "data:image/png;base64,..."
+        if (typeof p.image === 'string') {
+          const imageStr = p.image as string;
+          if (imageStr.startsWith('data:')) {
+            // Parse data URL: data:image/png;base64,iVBORw0KGgo...
+            const matches = imageStr.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+              return {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  data: matches[2], // The base64 data
+                  mediaType: matches[1], // e.g., 'image/png'
+                },
+              } as UnifiedImageBlock;
+            }
+          }
+          // Plain URL string
           return {
             type: 'image',
-            source: { type: 'url', url: img },
+            source: { type: 'url', url: imageStr },
           } as UnifiedImageBlock;
-        } else if (img.url) {
-          return {
-            type: 'image',
-            source: { type: 'url', url: String(img.url) },
-          } as UnifiedImageBlock;
-        } else if (img.base64) {
-          return {
-            type: 'image',
-            source: {
-              type: 'base64',
-              data: String(img.base64),
-              mediaType: String(img.mimeType || 'image/png'),
-            },
-          } as UnifiedImageBlock;
+        }
+        // Handle object format
+        if (typeof p.image === 'object') {
+          const img = p.image as Record<string, unknown>;
+          if (img.url) {
+            return {
+              type: 'image',
+              source: { type: 'url', url: String(img.url) },
+            } as UnifiedImageBlock;
+          } else if (img.base64) {
+            return {
+              type: 'image',
+              source: {
+                type: 'base64',
+                data: String(img.base64),
+                mediaType: String(img.mimeType || 'image/png'),
+              },
+            } as UnifiedImageBlock;
+          }
         }
       }
       return null;
