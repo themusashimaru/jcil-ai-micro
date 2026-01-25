@@ -17,6 +17,7 @@ import {
   cleanupOldRequests,
 } from '@/lib/pending-requests';
 import { completeChat } from '@/lib/ai/chat-router';
+import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 
@@ -74,7 +75,9 @@ export async function GET(request: NextRequest) {
         log.info('[Cron] Processing request', { requestId: request.id, userId: request.user_id });
 
         // Complete the request with multi-provider support (Claude primary, xAI fallback)
+        const systemPrompt = getMainChatSystemPrompt();
         const result = await completeChat(request.messages as CoreMessage[], {
+          systemPrompt,
           maxTokens: 4096,
         });
 

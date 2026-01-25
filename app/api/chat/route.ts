@@ -17,8 +17,7 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createClaudeStreamingChat, createClaudeChat } from '@/lib/anthropic/client';
-import { routeChat, type ChatRouteOptions } from '@/lib/ai/chat-router';
+import { routeChat, completeChat, type ChatRouteOptions } from '@/lib/ai/chat-router';
 // detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
@@ -2060,11 +2059,13 @@ export async function POST(request: NextRequest) {
 
         const result = await perplexitySearch({ query, systemPrompt });
 
-        // Post-process through Claude for consistent voice
-        const synthesis = await createClaudeChat({
-          messages: [{ role: 'user', content: `Summarize: ${result.answer}` }],
+        // Post-process through AI for consistent voice (with xAI fallback)
+        const synthesisMessages: CoreMessage[] = [
+          { role: 'user', content: `Summarize: ${result.answer}` },
+        ];
+        const synthesis = await completeChat(synthesisMessages, {
+          model: 'claude-sonnet-4-5-20250929',
           maxTokens: 2048,
-          forceModel: 'sonnet',
         });
 
         return new Response(
@@ -2106,16 +2107,16 @@ export async function POST(request: NextRequest) {
         // Get the appropriate JSON schema prompt based on document type
         const schemaPrompt = getDocumentSchemaPrompt(explicitDocType, lastUserContent);
 
-        // Have Claude generate the structured JSON
-        const result = await createClaudeChat({
-          messages: [
-            ...(messages as CoreMessage[]).slice(-5),
-            { role: 'user', content: lastUserContent },
-          ],
+        // Have Claude generate the structured JSON (with xAI fallback)
+        const docMessages: CoreMessage[] = [
+          ...(messages as CoreMessage[]).slice(-5),
+          { role: 'user', content: lastUserContent },
+        ];
+        const result = await completeChat(docMessages, {
           systemPrompt: schemaPrompt,
+          model: 'claude-sonnet-4-5-20250929', // Use Sonnet for document generation
           maxTokens: 4096,
           temperature: 0.3, // Lower temp for structured output
-          forceModel: 'sonnet',
         });
 
         // Extract JSON from response
@@ -2301,16 +2302,16 @@ If information is missing, make reasonable professional assumptions or leave opt
             )
             .join('\n\n');
 
-          const extractionResult = await createClaudeChat({
-            messages: [
-              {
-                role: 'user',
-                content: `${extractionPrompt}\n\n---\nCONVERSATION:\n${conversationContext}`,
-              },
-            ],
+          const extractionMessages: CoreMessage[] = [
+            {
+              role: 'user',
+              content: `${extractionPrompt}\n\n---\nCONVERSATION:\n${conversationContext}`,
+            },
+          ];
+          const extractionResult = await completeChat(extractionMessages, {
+            model: 'claude-sonnet-4-5-20250929',
             maxTokens: 4096,
             temperature: 0.1,
-            forceModel: 'sonnet',
           });
 
           // Parse the extracted data
@@ -2416,12 +2417,12 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
         const truncatedMessages = truncateMessages(messages as CoreMessage[]);
 
-        const streamResult = await createClaudeStreamingChat({
-          messages: truncatedMessages,
+        // Use routeChat for streaming with xAI fallback
+        const streamResult = await routeChat(truncatedMessages, {
           systemPrompt: resumeSystemPrompt,
+          model: 'claude-sonnet-4-5-20250929',
           maxTokens: 1024,
           temperature: 0.7,
-          forceModel: 'sonnet',
         });
 
         isStreamingResponse = true;
@@ -2442,7 +2443,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',
             'Transfer-Encoding': 'chunked',
-            'X-Provider': 'anthropic',
+            'X-Provider': streamResult.providerId,
             'X-Model': streamResult.model,
             'X-Search-Mode': 'resume_generator',
           },
@@ -2578,15 +2579,15 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
                 ? `${schemaPrompt}\n\nIMPORTANT: Your previous response was not valid JSON. Output ONLY the JSON object with no markdown, no explanation, no text before or after. Start with { and end with }.`
                 : schemaPrompt;
 
-            const result = await createClaudeChat({
-              messages: [
-                ...(messages as CoreMessage[]).slice(-5),
-                { role: 'user', content: lastUserContent },
-              ],
+            const retryMessages: CoreMessage[] = [
+              ...(messages as CoreMessage[]).slice(-5),
+              { role: 'user', content: lastUserContent },
+            ];
+            const result = await completeChat(retryMessages, {
               systemPrompt: retryPrompt,
+              model: 'claude-sonnet-4-5-20250929',
               maxTokens: 4096,
               temperature: attempt > 0 ? 0.1 : 0.3, // Lower temp on retry
-              forceModel: 'sonnet',
             });
 
             // Extract JSON from response
@@ -2796,17 +2797,17 @@ SECURITY:
 
       try {
         // Quick check specifically asking if Claude can answer from training data
-        const quickCheck = await createClaudeChat({
-          messages: [
-            {
-              role: 'user',
-              content: `Can you answer this question accurately from your training data, or would it require a web search for current/real-time information? Question: "${lastUserContent}"
+        const quickCheckMessages: CoreMessage[] = [
+          {
+            role: 'user',
+            content: `Can you answer this question accurately from your training data, or would it require a web search for current/real-time information? Question: "${lastUserContent}"
 
 Reply with ONLY one of these:
 - "SEARCH_NEEDED" if this requires current/real-time data (sports scores, schedules, news, prices, weather, etc.)
 - "CAN_ANSWER" if you can answer accurately from your training data`,
-            },
-          ],
+          },
+        ];
+        const quickCheck = await completeChat(quickCheckMessages, {
           systemPrompt:
             'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
           maxTokens: 50,
@@ -2833,16 +2834,16 @@ Reply with ONLY one of these:
                   'Search the web and provide accurate, up-to-date information with sources.',
               });
 
-              // Post-process through Claude for consistent voice
-              const synthesis = await createClaudeChat({
-                messages: [
-                  {
-                    role: 'user',
-                    content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}`,
-                  },
-                ],
+              // Post-process through AI for consistent voice (with xAI fallback)
+              const autoSynthesisMessages: CoreMessage[] = [
+                {
+                  role: 'user',
+                  content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}`,
+                },
+              ];
+              const synthesis = await completeChat(autoSynthesisMessages, {
+                model: 'claude-sonnet-4-5-20250929',
                 maxTokens: 2048,
-                forceModel: 'sonnet',
               });
 
               // Release slot before returning

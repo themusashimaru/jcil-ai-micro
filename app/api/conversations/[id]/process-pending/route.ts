@@ -10,6 +10,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { completeChat } from '@/lib/ai/chat-router';
+import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 
@@ -79,7 +80,9 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
       .eq('id', pendingRequest.id);
 
     // Process the request with multi-provider support (Claude primary, xAI fallback)
+    const systemPrompt = getMainChatSystemPrompt();
     const result = await completeChat(pendingRequest.messages as CoreMessage[], {
+      systemPrompt,
       maxTokens: 4096,
     });
 
