@@ -14,9 +14,11 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
 **Key Strengths:**
 
 - Robust dual-pool API key management with automatic failover
+- Multi-provider AI system with Claude primary and xAI fallback
 - Persistent user memory across conversations
 - Comprehensive document generation (PDF, DOCX, XLSX, PPTX)
-- Research Agent with Perplexity integration
+- Brave Search integration with intelligent query optimization
+- Research Agent with Perplexity integration for deep research
 - Row-level security (RLS) throughout
 - Prompt injection protection in memory system
 
@@ -39,7 +41,9 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
 | **Backend**        | Next.js API Routes (App Router)           |
 | **Database**       | Supabase (PostgreSQL)                     |
 | **AI Primary**     | Claude Haiku 4.5 / Sonnet 4.5 (Anthropic) |
-| **AI Research**    | Perplexity API                            |
+| **AI Fallback**    | xAI Grok 4.1 (automatic failover)         |
+| **Web Search**     | Brave Search API (search/factcheck)       |
+| **Deep Research**  | Perplexity API (Research Agent only)      |
 | **Authentication** | Supabase Auth + WebAuthn                  |
 | **Real-time**      | Server-Sent Events (SSE)                  |
 
@@ -77,10 +81,14 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
             ▼                    ▼                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      SERVICE LAYER                                   │
-│  ┌──────────────┐  ┌─────────────┐  ┌──────────────┐  ┌──────────┐  │
-│  │ Anthropic    │  │ Perplexity  │  │ User Memory  │  │ Document │  │
-│  │ Client       │  │ Client      │  │ Service      │  │ Generator│  │
-│  └──────────────┘  └─────────────┘  └──────────────┘  └──────────┘  │
+│  ┌──────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────┐  │
+│  │ Chat Router  │  │ Brave       │  │ User Memory │  │ Document │  │
+│  │ (Claude+xAI) │  │ Search      │  │ Service     │  │ Generator│  │
+│  └──────────────┘  └─────────────┘  └─────────────┘  └──────────┘  │
+│  ┌──────────────┐  ┌─────────────┐                                  │
+│  │ Anthropic    │  │ Perplexity  │  (Research Agent only)           │
+│  │ Client       │  │ Client      │                                  │
+│  └──────────────┘  └─────────────┘                                  │
 └─────────────────────────────────────────────────────────────────────┘
             │                    │                      │
             ▼                    ▼                      ▼
@@ -396,15 +404,36 @@ interface ApiKeyState {
 | `claude-haiku-4-5-20251001` | Simple queries, fast responses         | Low    |
 | `claude-sonnet-4-5`         | Complex reasoning, document generation | Medium |
 
-### 4.2 Perplexity Integration (Research)
+### 4.2 Brave Search Integration (Main Chat)
+
+**Location:** `src/lib/brave/`
+
+Used for main chat search features:
+
+- **Button-triggered search** - User clicks Search or Fact-check in Tools menu
+- **Auto-search** - Automatically triggered when knowledge cutoff detected
+- **Rich data** - Weather, stocks, sports scores, cryptocurrency prices
+- **Local search** - Location-based business and POI results
+
+**Features:**
+
+- Intelligent query optimization based on intent detection
+- Extra snippets (up to 5 per result) for comprehensive context
+- Freshness filtering (past day/week/month/year)
+- Double AI synthesis for intelligent, persona-consistent responses
+
+**Cost:** ~$5/1000 queries (significantly cheaper than Perplexity)
+
+### 4.3 Perplexity Integration (Research Agent)
 
 **Location:** `src/lib/perplexity/client.ts`
 
-Used exclusively by the Research Agent for:
+Used exclusively by the Research Agent for deep, multi-source research:
 
-- Real-time web search
-- Fact verification
-- Current events queries
+- Comprehensive research with strategy generation
+- Multi-phase search execution
+- Result evaluation and synthesis
+- Citation generation
 
 **Rate Limit:** 20 requests/hour (stricter due to cost)
 
@@ -451,6 +480,72 @@ Used exclusively by the Research Agent for:
 ```
 
 **Time Budget:** 80 seconds total (50s search + 30s synthesis)
+
+### 4.5 Brave Search System Architecture
+
+**Location:** `src/lib/brave/`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    BRAVE SEARCH PIPELINE                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   PHASE 1: Query Intent Detection                                │
+│   └── detectQueryIntent()                                        │
+│       • Weather queries (forecast, temperature, etc.)            │
+│       • Stock queries (AAPL, market cap, NYSE)                   │
+│       • Crypto queries (bitcoin price, ETH value)                │
+│       • Sports queries (scores, schedules, games)                │
+│       • News queries (latest, breaking, announced)               │
+│       • Local queries (near me, restaurants, stores)             │
+│       • Fact-check queries (is it true, verify, debunk)          │
+│                                                                  │
+│   PHASE 2: Intelligent Search                                    │
+│   └── intelligentSearch()                                        │
+│       • Brave API web search with extra snippets                 │
+│       • Freshness filtering (pd/pw/pm/py)                        │
+│       • Rich data callbacks (weather, stocks, sports)            │
+│       • Location-based results with POI enrichment               │
+│       • FAQ and discussion extraction                            │
+│                                                                  │
+│   PHASE 3: First AI Synthesis                                    │
+│   └── completeChat() via Brave search service                    │
+│       • Mode-specific prompts (factcheck, news, local, etc.)     │
+│       • Claude Sonnet 4.5 for high-quality synthesis             │
+│       • xAI fallback if Claude rate-limited                      │
+│                                                                  │
+│   PHASE 4: Second AI Synthesis (Voice Consistency)               │
+│   └── completeChat() in chat route                               │
+│       • Re-processes through AI for consistent persona           │
+│       • Matches system prompt voice and values                   │
+│       • Final quality enhancement                                │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Module Structure:**
+
+| File                | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| `client.ts`         | Brave API client, web search, rich data |
+| `search-service.ts` | High-level search with AI synthesis     |
+| `index.ts`          | Module exports                          |
+
+**Rich Data Types Supported:**
+
+| Type    | Trigger Keywords               | Data Retrieved                   |
+| ------- | ------------------------------ | -------------------------------- |
+| Weather | weather, forecast, temperature | Current/forecast conditions      |
+| Stocks  | stock, AAPL, market cap, NYSE  | Price, change, volume            |
+| Crypto  | bitcoin, ethereum, BTC price   | Current price, 24h change        |
+| Sports  | score, game, NFL, NBA today    | Live/recent scores               |
+| Local   | near me, restaurants, stores   | Business info, ratings, distance |
+
+**Environment Variables:**
+
+```bash
+BRAVE_SEARCH_API_KEY=your-brave-api-key
+```
 
 ---
 

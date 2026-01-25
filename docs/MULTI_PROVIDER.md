@@ -192,10 +192,14 @@ import { CodeLabProviderStatus } from '@/components/code-lab';
 
 ```bash
 # Required for each provider
-ANTHROPIC_API_KEY=your-key      # Claude
+ANTHROPIC_API_KEY=your-key      # Claude (primary)
 OPENAI_API_KEY=your-key         # OpenAI
-XAI_API_KEY=your-key            # xAI Grok
+XAI_API_KEY=your-key            # xAI Grok (fallback)
 DEEPSEEK_API_KEY=your-key       # DeepSeek
+
+# Search providers
+BRAVE_SEARCH_API_KEY=your-key   # Brave Search (main chat search/factcheck)
+PERPLEXITY_API_KEY=your-key     # Perplexity (Research Agent only)
 ```
 
 ## Error Handling
