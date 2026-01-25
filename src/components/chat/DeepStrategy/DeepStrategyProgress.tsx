@@ -5,9 +5,14 @@
  *
  * Real-time checkbox-style progress visualization for the Deep Strategy Agent.
  * Inspired by Claude Code's task list UI - clean checkboxes with streaming updates.
+ *
+ * Features:
+ * - Claude Code-style checkbox task list
+ * - Mid-execution messaging (add context while running)
+ * - Real-time metrics and findings
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, FormEvent } from 'react';
 import {
   Brain,
   Search,
@@ -19,6 +24,8 @@ import {
   ChevronRight,
   Sparkles,
   Lightbulb,
+  Send,
+  MessageSquarePlus,
 } from 'lucide-react';
 import type { StrategyStreamEvent, Finding } from '@/agents/strategy';
 
@@ -26,6 +33,8 @@ interface DeepStrategyProgressProps {
   events: StrategyStreamEvent[];
   isComplete: boolean;
   onCancel?: () => void;
+  onAddContext?: (message: string) => Promise<void>;
+  isAddingContext?: boolean;
 }
 
 interface Task {
@@ -36,8 +45,17 @@ interface Task {
   count?: number;
 }
 
-export function DeepStrategyProgress({ events, isComplete, onCancel }: DeepStrategyProgressProps) {
+export function DeepStrategyProgress({
+  events,
+  isComplete,
+  onCancel,
+  onAddContext,
+  isAddingContext = false,
+}: DeepStrategyProgressProps) {
   const [showFindings, setShowFindings] = useState(false);
+  const [showContextInput, setShowContextInput] = useState(false);
+  const [contextMessage, setContextMessage] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Calculate metrics from events
   const metrics = useMemo(() => {
@@ -72,6 +90,11 @@ export function DeepStrategyProgress({ events, isComplete, onCancel }: DeepStrat
           e.type === 'finding_discovered' && !!e.data?.finding
       )
       .map((e) => e.data.finding);
+  }, [events]);
+
+  // Get user-added context messages
+  const contextMessages = useMemo(() => {
+    return events.filter((e) => e.type === 'user_context_added').map((e) => e.message);
   }, [events]);
 
   // Build task list from events
@@ -172,6 +195,16 @@ export function DeepStrategyProgress({ events, isComplete, onCancel }: DeepStrat
   // Get current status message
   const statusMessage = events.length > 0 ? events[events.length - 1].message : 'Initializing...';
 
+  // Handle adding context
+  const handleAddContext = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!contextMessage.trim() || !onAddContext) return;
+
+    await onAddContext(contextMessage.trim());
+    setContextMessage('');
+    setShowContextInput(false);
+  };
+
   return (
     <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
       {/* Header */}
@@ -185,19 +218,77 @@ export function DeepStrategyProgress({ events, isComplete, onCancel }: DeepStrat
           </div>
           <div>
             <h3 className="font-medium text-white text-sm">Deep Strategy</h3>
-            <p className="text-xs text-gray-500">{statusMessage}</p>
+            <p className="text-xs text-gray-500 max-w-[200px] truncate">{statusMessage}</p>
           </div>
         </div>
-        {!isComplete && onCancel && (
-          <button
-            onClick={onCancel}
-            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-            title="Cancel"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {/* Add Context button - like Claude Code's interrupt */}
+          {!isComplete && onAddContext && (
+            <button
+              onClick={() => {
+                setShowContextInput(!showContextInput);
+                setTimeout(() => inputRef.current?.focus(), 100);
+              }}
+              className="p-1.5 text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+              title="Add more context"
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+            </button>
+          )}
+          {!isComplete && onCancel && (
+            <button
+              onClick={onCancel}
+              className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              title="Cancel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Mid-execution context input */}
+      {showContextInput && !isComplete && (
+        <form onSubmit={handleAddContext} className="p-3 border-b border-gray-800 bg-gray-800/30">
+          <p className="text-xs text-gray-400 mb-2">
+            Add more context while the strategy runs (like Claude Code):
+          </p>
+          <div className="flex gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={contextMessage}
+              onChange={(e) => setContextMessage(e.target.value)}
+              placeholder="I forgot to mention..."
+              disabled={isAddingContext}
+              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!contextMessage.trim() || isAddingContext}
+              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+            >
+              {isAddingContext ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* User-added context messages */}
+      {contextMessages.length > 0 && (
+        <div className="p-3 border-b border-gray-800 space-y-2">
+          <p className="text-xs text-gray-500">Added context:</p>
+          {contextMessages.map((msg, i) => (
+            <div key={i} className="text-xs text-purple-300 bg-purple-500/10 rounded px-2 py-1">
+              {msg}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Task List - Claude Code style checkboxes */}
       <div className="p-4 space-y-2">

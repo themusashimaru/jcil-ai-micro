@@ -159,6 +159,56 @@ Full filesystem access within the secure E2B sandbox.
 
 ---
 
+## Deep Strategy Agent (Premium)
+
+**The most advanced self-designing AI agent system.** Deep Strategy deploys an army of up to 100 AI agents conducting hundreds of real-time web searches to solve complex problems.
+
+```
+You: "I'm considering relocating to Austin for a tech job. I have a family,
+     budget of $5000/month for housing, and need good schools."
+
+Deep Strategy:
+  ✓ Forensic intake - understanding your situation
+  ✓ Opus 4.5 designing agent army
+  ✓ Spawning 15 specialized scouts
+  ● Conducting 47 parallel web searches...
+  ○ Processing findings
+  ○ Synthesizing strategic recommendations
+
+Result: Comprehensive relocation strategy with:
+  • Housing market analysis (12 neighborhoods evaluated)
+  • School district rankings with specific recommendations
+  • Cost of living comparison vs current location
+  • Tech job market data with salary benchmarks
+  • 90-day action plan with prioritized steps
+```
+
+### How It Works
+
+| Tier                 | Model      | Role                                                           |
+| -------------------- | ---------- | -------------------------------------------------------------- |
+| **Master Brain**     | Opus 4.5   | Designs the agent army, validates findings, synthesizes output |
+| **Project Managers** | Sonnet 4.5 | Coordinate groups of Scouts, aggregate research                |
+| **Scout Army**       | Haiku 4.5  | Execute targeted searches via Brave Search API                 |
+
+### Features
+
+- **Self-Designing**: Analyzes your problem and creates specialized agents dynamically
+- **Forensic Intake**: Deep interview process to understand full context
+- **Document Upload**: Attach resumes, contracts, photos, spreadsheets
+- **Mid-Execution Messaging**: Add context while running (like Claude Code)
+- **Real-Time Progress**: Claude Code-style task list with streaming updates
+
+### Safety Limits
+
+```
+$20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
+```
+
+📄 **Full documentation**: [docs/DEEP_STRATEGY.md](./docs/DEEP_STRATEGY.md)
+
+---
+
 ## Complete Tool Reference
 
 Code Lab provides **55+ tools** for autonomous software development:

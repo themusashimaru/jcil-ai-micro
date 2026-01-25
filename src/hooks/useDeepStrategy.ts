@@ -3,10 +3,16 @@
  *
  * React hook for managing Deep Strategy Agent sessions.
  * Handles streaming events, state management, and API communication.
+ *
+ * Features:
+ * - Document attachments before strategy execution
+ * - Mid-execution context messaging (like Claude Code)
+ * - Real-time streaming progress updates
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
+import type { StrategyAttachment } from '@/components/chat/DeepStrategy';
 
 export type StrategyPhase = 'idle' | 'intake' | 'executing' | 'complete' | 'error' | 'cancelled';
 
@@ -19,12 +25,14 @@ interface UseDeepStrategyReturn {
   result: StrategyOutput | null;
   error: string | null;
   isLoading: boolean;
+  isAddingContext: boolean;
 
   // Actions
-  startStrategy: () => Promise<void>;
+  startStrategy: (attachments?: StrategyAttachment[]) => Promise<void>;
   sendIntakeInput: (input: string) => Promise<void>;
   executeStrategy: () => Promise<void>;
   cancelStrategy: () => Promise<void>;
+  addContext: (message: string) => Promise<void>;
   reset: () => void;
 
   // Progress
@@ -49,6 +57,7 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   const [result, setResult] = useState<StrategyOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddingContext, setIsAddingContext] = useState(false);
   const [progress, setProgress] = useState({
     phase: 'idle',
     percent: 0,
@@ -64,122 +73,94 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture current ref values to avoid the cleanup warning
+    const eventSource = eventSourceRef.current;
+    const abortController = abortControllerRef.current;
     return () => {
-      eventSourceRef.current?.close();
-      abortControllerRef.current?.abort();
+      eventSource?.close();
+      abortController?.abort();
     };
   }, []);
 
   /**
    * Start a new strategy session
+   * @param attachments - Optional array of attachments (documents, images) to include
    */
-  const startStrategy = useCallback(async () => {
-    if (phase !== 'idle') return;
-
-    setIsLoading(true);
-    setError(null);
-    setPhase('intake');
-    setEvents([]);
-    setIntakeMessages([]);
-    setResult(null);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start' }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start strategy');
-      }
-
-      // Get session ID from header
-      const newSessionId = response.headers.get('X-Session-Id');
-      if (newSessionId) {
-        setSessionId(newSessionId);
-      }
-
-      // Read the streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            // Event type line, skip
-            continue;
-          }
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-            if (data) {
-              try {
-                const event = JSON.parse(data) as StrategyStreamEvent;
-                setEvents((prev) => [...prev, event]);
-
-                if (event.type === 'intake_start') {
-                  setIntakeMessages([{ role: 'assistant', content: event.message }]);
-                }
-              } catch (e) {
-                console.error('Failed to parse event:', e);
-              }
-            }
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setPhase('error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [phase]);
-
-  /**
-   * Send input during intake phase
-   */
-  const sendIntakeInput = useCallback(
-    async (input: string) => {
-      if (phase !== 'intake' || !sessionId) return;
+  const startStrategy = useCallback(
+    async (attachments?: StrategyAttachment[]) => {
+      if (phase !== 'idle') return;
 
       setIsLoading(true);
-
-      // Add user message to history
-      setIntakeMessages((prev) => [...prev, { role: 'user', content: input }]);
+      setError(null);
+      setPhase('intake');
+      setEvents([]);
+      setIntakeMessages([]);
+      setResult(null);
 
       try {
         const response = await fetch('/api/strategy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'input', sessionId, input }),
+          body: JSON.stringify({
+            action: 'start',
+            attachments: attachments?.map((a) => ({
+              id: a.id,
+              name: a.name,
+              type: a.type,
+              size: a.size,
+              content: a.content,
+            })),
+          }),
         });
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Failed to process input');
+          throw new Error(data.error || 'Failed to start strategy');
         }
 
-        const data = await response.json();
+        // Get session ID from header
+        const newSessionId = response.headers.get('X-Session-Id');
+        if (newSessionId) {
+          setSessionId(newSessionId);
+        }
 
-        // Add assistant response
-        setIntakeMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+        // Read the streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
 
-        // Check if intake is complete
-        if (data.isComplete) {
-          // Automatically start execution
-          await executeStrategy();
+        if (!reader) throw new Error('No response body');
+
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              // Event type line, skip
+              continue;
+            }
+            if (line.startsWith('data:')) {
+              const data = line.slice(5).trim();
+              if (data) {
+                try {
+                  const event = JSON.parse(data) as StrategyStreamEvent;
+                  setEvents((prev) => [...prev, event]);
+
+                  if (event.type === 'intake_start') {
+                    setIntakeMessages([{ role: 'assistant', content: event.message }]);
+                  }
+                } catch (e) {
+                  console.error('Failed to parse event:', e);
+                }
+              }
+            }
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -188,7 +169,7 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
         setIsLoading(false);
       }
     },
-    [phase, sessionId]
+    [phase]
   );
 
   /**
@@ -282,6 +263,50 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   }, [sessionId]);
 
   /**
+   * Send input during intake phase
+   */
+  const sendIntakeInput = useCallback(
+    async (input: string) => {
+      if (phase !== 'intake' || !sessionId) return;
+
+      setIsLoading(true);
+
+      // Add user message to history
+      setIntakeMessages((prev) => [...prev, { role: 'user', content: input }]);
+
+      try {
+        const response = await fetch('/api/strategy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'input', sessionId, input }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to process input');
+        }
+
+        const data = await response.json();
+
+        // Add assistant response
+        setIntakeMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+
+        // Check if intake is complete
+        if (data.isComplete) {
+          // Automatically start execution
+          await executeStrategy();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setPhase('error');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [phase, sessionId, executeStrategy]
+  );
+
+  /**
    * Cancel the current strategy
    */
   const cancelStrategy = useCallback(async () => {
@@ -302,6 +327,45 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   }, [sessionId]);
 
   /**
+   * Add context during execution (like Claude Code's interrupt feature)
+   * Allows user to provide additional information while strategy is running
+   */
+  const addContext = useCallback(
+    async (message: string) => {
+      if (!sessionId || phase !== 'executing') return;
+
+      setIsAddingContext(true);
+
+      try {
+        const response = await fetch('/api/strategy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'context', sessionId, message }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to add context');
+        }
+
+        // Add a local event to show the context was added
+        const contextEvent: StrategyStreamEvent = {
+          type: 'user_context_added',
+          message,
+          timestamp: Date.now(),
+        };
+        setEvents((prev) => [...prev, contextEvent]);
+      } catch (err) {
+        console.error('Failed to add context:', err);
+        throw err;
+      } finally {
+        setIsAddingContext(false);
+      }
+    },
+    [sessionId, phase]
+  );
+
+  /**
    * Reset all state
    */
   const reset = useCallback(() => {
@@ -315,6 +379,7 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
     setResult(null);
     setError(null);
     setIsLoading(false);
+    setIsAddingContext(false);
     setProgress({
       phase: 'idle',
       percent: 0,
@@ -333,10 +398,12 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
     result,
     error,
     isLoading,
+    isAddingContext,
     startStrategy,
     sendIntakeInput,
     executeStrategy,
     cancelStrategy,
+    addContext,
     reset,
     progress,
   };

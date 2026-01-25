@@ -57,6 +57,10 @@ JCIL.AI is a modern, cloud-native AI platform built on Next.js 14 with a multi-a
 │  │  │  │ Research │  │   Code   │  │ Document │  │  Memory  │     │   │  │
 │  │  │  │  Agent   │  │  Agent   │  │  Agent   │  │  Agent   │     │   │  │
 │  │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │   │  │
+│  │  │  ┌────────────────────────────────────────────────────────┐  │   │  │
+│  │  │  │         DEEP STRATEGY AGENT (Multi-Tier System)        │  │   │  │
+│  │  │  │  Opus 4.5 → Sonnet 4.5 PMs → Haiku 4.5 Scout Army     │  │   │  │
+│  │  │  └────────────────────────────────────────────────────────┘  │   │  │
 │  │  └───────────────────────────────────────────────────────────────┘   │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
@@ -264,7 +268,64 @@ User Query
 └──────────────┘
 ```
 
-### 5. Persistent Memory Agent
+### 5. Deep Strategy Agent (Premium)
+
+The Deep Strategy Agent is our most advanced feature—a self-designing multi-agent system for complex problem solving. See [DEEP_STRATEGY.md](./DEEP_STRATEGY.md) for full documentation.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DEEP STRATEGY ARCHITECTURE                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │               TIER 1: OPUS 4.5 (Master Brain)                  │  │
+│  │                                                                 │  │
+│  │   Master Architect → Quality Control → Final Synthesis         │  │
+│  │                                                                 │  │
+│  │   • Designs the agent army based on problem analysis           │  │
+│  │   • Validates all findings before synthesis                    │  │
+│  │   • Creates final strategic recommendations                    │  │
+│  └────────────────────────────┬──────────────────────────────────┘  │
+│                               │                                      │
+│                               ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │            TIER 2: SONNET 4.5 (Project Managers)               │  │
+│  │                                                                 │  │
+│  │   PM: Legal │ PM: Market │ PM: Strategy │ PM: Technical │ ...  │  │
+│  │                                                                 │  │
+│  │   • Coordinate groups of Scout agents                          │  │
+│  │   • Aggregate and validate findings from Scouts                │  │
+│  └────────────────────────────┬──────────────────────────────────┘  │
+│                               │                                      │
+│                               ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │               TIER 3: HAIKU 4.5 (Scout Army)                   │  │
+│  │                                                                 │  │
+│  │   Scout 1 │ Scout 2 │ Scout 3 │ ... │ Scout N  (up to 100)    │  │
+│  │                         │                                       │  │
+│  │                         ▼                                       │  │
+│  │              ┌─────────────────────┐                           │  │
+│  │              │   BRAVE SEARCH API   │  Hundreds of searches    │  │
+│  │              └─────────────────────┘                           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  SAFETY LIMITS:                                                      │
+│  • $20 max budget • 100 max scouts • 500 max searches              │
+│  • 10 min timeout • 10 concurrent API calls                         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+
+- **Self-Designing**: Opus 4.5 analyzes the problem and designs specialized agents
+- **Forensic Intake**: Deep interview process to understand the full context
+- **Document Upload**: Users can attach PDFs, images, contracts, resumes
+- **Mid-Execution Messaging**: Add context while the strategy runs (like Claude Code)
+- **Real-Time Progress**: Claude Code-style checkbox task list with streaming updates
+- **Graceful Degradation**: Always synthesizes partial results if limits are hit
+
+### 6. Persistent Memory Agent
 
 The Memory Agent provides cross-conversation context for personalized AI experiences:
 

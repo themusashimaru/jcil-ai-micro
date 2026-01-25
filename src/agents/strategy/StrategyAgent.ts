@@ -10,6 +10,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type {
   StrategyContext,
   SynthesizedProblem,
+  UserProblem,
   AgentBlueprint,
   AgentHierarchy,
   Finding,
@@ -64,6 +65,8 @@ export class StrategyAgent {
       startTime: Date.now(),
       limits: context.limits || DEFAULT_LIMITS,
       costTracker: this.initCostTracker(),
+      attachments: context.attachments,
+      userContext: [],
     };
 
     // Initialize components
@@ -120,6 +123,35 @@ export class StrategyAgent {
       response: result.response,
       isComplete: result.isComplete,
     };
+  }
+
+  /**
+   * Add context during execution (like Claude Code's interrupt feature)
+   * Allows user to provide additional information while strategy is running
+   */
+  async addContext(message: string): Promise<void> {
+    if (!this.isRunning) {
+      throw new Error('Cannot add context when strategy is not running');
+    }
+
+    // Store the context message
+    if (!this.context.userContext) {
+      this.context.userContext = [];
+    }
+    this.context.userContext.push(message);
+
+    // Stream the event
+    this.onStream?.({
+      type: 'user_context_added',
+      message,
+      timestamp: Date.now(),
+    });
+
+    log.info('User context added during execution', {
+      sessionId: this.context.sessionId,
+      messageLength: message.length,
+      totalContextMessages: this.context.userContext.length,
+    });
   }
 
   /**
@@ -369,6 +401,13 @@ export class StrategyAgent {
    */
   getFindings(): Finding[] {
     return [...this.allFindings];
+  }
+
+  /**
+   * Get the synthesized problem from intake
+   */
+  getProblem(): UserProblem | undefined {
+    return this.context.problem;
   }
 
   // ===========================================================================
