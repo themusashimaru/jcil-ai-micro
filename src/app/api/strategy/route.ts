@@ -12,6 +12,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
@@ -592,7 +593,8 @@ async function handleStart(
   isAdmin: boolean,
   attachments?: StrategyAttachment[]
 ): Promise<Response> {
-  const sessionId = `strategy_${userId}_${Date.now()}`;
+  // Use UUID for session ID to match database constraints
+  const sessionId = randomUUID();
 
   // Create session in database first
   let dbId: string;

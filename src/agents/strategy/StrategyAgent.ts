@@ -60,7 +60,7 @@ export class StrategyAgent {
     // Initialize context with defaults
     this.context = {
       userId: context.userId || 'unknown',
-      sessionId: context.sessionId || `strategy_${Date.now()}`,
+      sessionId: context.sessionId || crypto.randomUUID(),
       isAdmin: context.isAdmin ?? false,
       startTime: Date.now(),
       limits: context.limits || DEFAULT_LIMITS,
