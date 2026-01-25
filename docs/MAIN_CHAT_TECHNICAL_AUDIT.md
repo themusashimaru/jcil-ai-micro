@@ -424,62 +424,77 @@ Used for main chat search features:
 
 **Cost:** ~$5/1000 queries (significantly cheaper than Perplexity)
 
-### 4.3 Perplexity Integration (Research Agent)
-
-**Location:** `src/lib/perplexity/client.ts`
-
-Used exclusively by the Research Agent for deep, multi-source research:
-
-- Comprehensive research with strategy generation
-- Multi-phase search execution
-- Result evaluation and synthesis
-- Citation generation
-
-**Rate Limit:** 20 requests/hour (stricter due to cost)
-
-### 4.3 Research Agent Architecture
+### 4.3 Research Agent Architecture (v2.0)
 
 **Location:** `src/agents/research/ResearchAgent.ts`
 
+Enhanced Research Agent with Brave Search as primary, supporting up to 20 parallel queries:
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    RESEARCH AGENT PIPELINE                       │
+│                    RESEARCH AGENT PIPELINE v2.0                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │   PHASE 1: Intent Analysis                                       │
-│   └── IntentAnalyzer.ts                                          │
-│       • Refine user query                                        │
-│       • Identify topics                                          │
-│       • Determine depth (quick/standard/deep)                    │
+│   └── IntentAnalyzer.ts (Claude with xAI fallback)               │
+│       • Refine user query intelligently                          │
+│       • Identify all relevant topics                             │
+│       • Determine depth (quick: 1-5, standard: 5-12, deep: 12-20)│
+│       • Extract context clues (industry, location, timeframe)    │
 │                                                                  │
-│   PHASE 2: Strategy Generation                                   │
-│   └── StrategyGenerator.ts                                       │
-│       • Generate 1-10 search queries                             │
-│       • Plan search phases                                       │
-│       • Set iteration limits                                     │
+│   PHASE 2: Dynamic Strategy Generation                           │
+│   └── StrategyGenerator.ts (Claude with xAI fallback)            │
+│       • AI decides optimal number of queries (1-20)              │
+│       • Query types: general, news, local, comparison, data      │
+│       • Prioritized by importance (1-10 scale)                   │
+│       • No duplicates, each targets different aspect             │
 │                                                                  │
-│   PHASE 3: Execution (Parallel)                                  │
-│   └── PerplexityExecutor.ts                                      │
-│       • Execute searches via Perplexity API                      │
-│       • Heartbeat to prevent Vercel timeout                      │
-│       • Max 50s for search phase                                 │
+│   PHASE 3: Parallel Execution                                    │
+│   └── BraveExecutor.ts (PRIMARY)                                 │
+│       • Up to 20 parallel Brave searches                         │
+│       • Rich data integration (weather, stocks, sports, crypto)  │
+│       • Extra snippets (5 per result) for comprehensive context  │
+│       • Freshness filtering (past day/week/month/year)           │
+│       • Per-query AI synthesis with Claude/xAI fallback          │
+│       • Batched execution (10 at a time) to avoid overwhelming   │
+│   └── PerplexityExecutor.ts (FALLBACK)                           │
+│       • Used if Brave not configured                             │
+│       • Capped at 10 queries (cost consideration)                │
 │                                                                  │
 │   PHASE 4: Evaluation                                            │
 │   └── ResultEvaluator.ts                                         │
 │       • Score result relevance                                   │
 │       • Filter duplicates                                        │
-│       • Max 100 results to prevent memory exhaustion             │
+│       • Max 150 results to prevent memory exhaustion             │
+│       • Decide: synthesize, continue, or pivot                   │
 │                                                                  │
-│   PHASE 5: Synthesis                                             │
-│   └── Synthesizer.ts                                             │
-│       • Combine findings                                         │
-│       • Generate citations                                       │
-│       • Format final response                                    │
+│   PHASE 5: Comprehensive Synthesis                               │
+│   └── Synthesizer.ts (Claude with xAI fallback)                  │
+│       • Process up to 15 high-relevance results                  │
+│       • Bottom line + executive summary                          │
+│       • 5-8 key findings with confidence levels                  │
+│       • Comparison tables (for vs/competitor queries)            │
+│       • Data highlights (for statistics queries)                 │
+│       • Information gaps + suggested next steps                  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Time Budget:** 80 seconds total (50s search + 30s synthesis)
+**Time Budget:** 90 seconds total (60s search + 30s synthesis)
+
+**Cost Efficiency:** Brave Search at ~$5/1000 queries enables comprehensive research without cost concerns
+
+### 4.4 Perplexity Integration (Fallback)
+
+**Location:** `src/lib/perplexity/client.ts`
+
+Used as fallback when Brave Search is not configured:
+
+- Capped at 10 queries per research session
+- Single-sentence response format
+- Higher cost consideration
+
+**Rate Limit:** 20 requests/hour
 
 ### 4.5 Brave Search System Architecture
 

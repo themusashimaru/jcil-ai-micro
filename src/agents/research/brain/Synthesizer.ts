@@ -4,12 +4,18 @@
  * The final stage of the Research Brain.
  * Takes all collected research and creates a structured, actionable output.
  *
+ * Enhanced orchestration for comprehensive results:
+ * - Handles up to 20 search results from Brave
+ * - Intelligent grouping and deduplication
+ * - Rich data integration (weather, stocks, sports, crypto)
+ * - Multi-provider AI synthesis with fallback
+ *
  * This is where raw data becomes intelligence.
  *
- * POWERED BY: Claude Sonnet 4.5 (migrated from Gemini)
+ * POWERED BY: Claude Sonnet 4.5 with xAI fallback
  */
 
-import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
+import { completeChat } from '@/lib/ai/chat-router';
 import {
   ResearchIntent,
   SearchResult,
@@ -18,6 +24,7 @@ import {
   ComparisonTable,
 } from '../../core/types';
 import { logger } from '@/lib/logger';
+import type { CoreMessage } from 'ai';
 
 const log = logger('Synthesizer');
 
@@ -25,8 +32,11 @@ export class Synthesizer {
   /**
    * Synthesize all research into a structured output
    *
-   * ULTRA-OPTIMIZED: Perplexity returns one-sentence answers per query.
-   * We just combine and present them - minimal LLM processing.
+   * Enhanced for Brave Search with up to 20 results:
+   * - Intelligent grouping by topic/theme
+   * - Deduplication of similar findings
+   * - Rich data integration (weather, stocks, sports, crypto)
+   * - Comprehensive synthesis with multi-provider fallback
    */
   async synthesize(
     results: SearchResult[],
@@ -39,133 +49,164 @@ export class Synthesizer {
       depth: 'quick' | 'standard' | 'deep';
     }
   ): Promise<ResearchOutput> {
-    // Extract one-sentence answers from Perplexity responses
-    const oneSentenceAnswers = results
-      .slice(0, 6)
-      .map((r) => {
+    // Extract and clean answers from all results (up to 15 for comprehensive synthesis)
+    const cleanedAnswers = results
+      .filter((r) => (r.relevanceScore ?? 0) > 0.2) // Filter low-relevance results
+      .slice(0, 15)
+      .map((r, i) => {
         // Clean the content - remove sources section, get the core answer
         let answer = r.content.split('**Sources:**')[0].trim();
         // Remove markdown formatting
         answer = answer.replace(/\*\*/g, '').trim();
-        // Get first sentence if still too long
-        if (answer.length > 200) {
-          const firstSentence = answer.match(/^[^.!?]+[.!?]/);
-          answer = firstSentence ? firstSentence[0].trim() : answer.substring(0, 200);
+        // Truncate if too long but preserve more content
+        if (answer.length > 400) {
+          answer = answer.substring(0, 400) + '...';
         }
-        return answer;
+        return {
+          index: i + 1,
+          answer,
+          source: r.source,
+          hasRichData: !!r.metadata?.hasRichData,
+        };
       })
-      .filter((a) => a.length > 10);
+      .filter((a) => a.answer.length > 20);
 
-    // Detect if this is comparison research
+    // Extract any rich data from results
+    const richDataResults = results.filter((r) => r.metadata?.hasRichData);
+
+    // Detect research type for optimal synthesis
     const isComparisonResearch = /competitor|compare|comparison|versus|vs\.?|alternative/i.test(
       intent.originalQuery
     );
+    const isDataHeavy = /price|cost|statistic|number|percentage|rate|trend/i.test(
+      intent.originalQuery
+    );
+    const isNews = /news|recent|latest|update|announcement/i.test(intent.originalQuery);
 
-    // ULTRA-LEAN prompt - just combine one-liners
-    const prompt = `Combine these research findings into a brief report.
+    // Build comprehensive synthesis prompt
+    const prompt = `You are a senior research analyst. Synthesize these ${cleanedAnswers.length} research findings into a comprehensive, actionable report.
 
-QUESTION: "${intent.originalQuery}"
+RESEARCH QUESTION: "${intent.originalQuery}"
+REFINED FOCUS: "${intent.refinedQuery}"
+TOPICS COVERED: ${intent.topics.join(', ')}
+EXPECTED OUTPUTS: ${intent.expectedOutputs.join(', ')}
 
-FINDINGS (one per source):
-${oneSentenceAnswers.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+RESEARCH FINDINGS:
+${cleanedAnswers.map((a) => `[${a.index}] ${a.answer}`).join('\n\n')}
 
-Return JSON:
+${richDataResults.length > 0 ? `\nRICH DATA AVAILABLE: ${richDataResults.length} results with real-time data (weather/stocks/sports/crypto)` : ''}
+
+SYNTHESIS REQUIREMENTS:
+Return a JSON object with:
 {
-  "bottomLine": "One sentence answer synthesizing the findings",
+  "bottomLine": "The single most important takeaway - direct answer to the question (max 2 sentences)",
+  "executiveSummary": "Brief overview for quick understanding (2-3 sentences)",
   "keyFindings": [
-    {"title": "3-5 word title", "finding": "Unique insight under 120 chars"}
-  ]${
+    {
+      "title": "Short descriptive title (3-6 words)",
+      "finding": "Detailed insight with specific data/facts (max 200 chars)",
+      "confidence": "high" | "medium" | "low"
+    }
+  ],
+  "gaps": ["What information is missing or unclear"],
+  "suggestions": ["Recommended next steps or actions"]
+  ${
     isComparisonResearch
       ? `,
   "comparisonTable": {
-    "headers": ["Metric", "Entity1", "Entity2"],
-    "rows": [{"entity": "Metric", "values": ["val1", "val2"]}]
+    "headers": ["Metric/Feature", "Option A", "Option B", ...],
+    "rows": [{"entity": "Metric name", "values": ["value1", "value2", ...]}]
   }`
+      : ''
+  }
+  ${
+    isDataHeavy
+      ? `,
+  "dataHighlights": [{"metric": "Name", "value": "Data point", "context": "Brief context"}]`
       : ''
   }
 }
 
-Rules:
-- bottomLine: Direct answer, one sentence
-- keyFindings: 3-5 unique insights, no duplicates
-${isComparisonResearch ? '- comparisonTable: Key metrics comparison' : ''}
+SYNTHESIS RULES:
+1. bottomLine: THE answer - what the user really needs to know
+2. executiveSummary: Quick context for decision-makers
+3. keyFindings: 5-8 unique insights, prioritized by importance
+   - Include specific numbers, dates, percentages when available
+   - Each finding should be distinct, no overlapping information
+   - Mark confidence based on source quality and consistency
+4. gaps: Note what couldn't be fully answered
+5. suggestions: Actionable next steps
+${isComparisonResearch ? '6. comparisonTable: Side-by-side comparison of key metrics' : ''}
+${isDataHeavy ? '6. dataHighlights: Key statistics and numbers' : ''}
+${isNews ? '6. Focus on recency - what is NEW and different' : ''}
 
-JSON only:`;
+Prioritize accuracy over completeness. Be specific with data.
+OUTPUT ONLY THE JSON OBJECT.`;
 
     try {
-      const schema = {
-        type: 'object',
-        properties: {
-          bottomLine: { type: 'string' },
-          keyFindings: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string' },
-                finding: { type: 'string' },
-              },
-            },
-          },
-          comparisonTable: {
-            type: 'object',
-            properties: {
-              headers: { type: 'array', items: { type: 'string' } },
-              rows: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    entity: { type: 'string' },
-                    values: { type: 'array', items: { type: 'string' } },
-                  },
-                },
-              },
-            },
-          },
-        },
-        required: ['bottomLine', 'keyFindings'],
-      };
+      const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
+
+      // Use multi-provider synthesis with fallback
+      const result = await completeChat(messages, {
+        model: 'claude-sonnet-4-5-20250929',
+        maxTokens: 4096,
+        temperature: 0.3,
+        systemPrompt:
+          'You are a senior research analyst. Return valid JSON only. Be comprehensive but concise.',
+      });
+
+      log.info('Synthesis complete', {
+        provider: result.providerId,
+        usedFallback: result.usedFallback,
+        resultsProcessed: cleanedAnswers.length,
+      });
+
+      // Parse JSON from response
+      const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in synthesis response');
+      }
 
       interface SynthesisResponse {
         bottomLine?: string;
-        keyFindings?: { title?: string; finding?: string }[];
+        executiveSummary?: string;
+        keyFindings?: { title?: string; finding?: string; confidence?: string }[];
+        gaps?: string[];
+        suggestions?: string[];
         comparisonTable?: {
           headers?: string[];
           rows?: { entity?: string; values?: string[] }[];
         };
+        dataHighlights?: { metric?: string; value?: string; context?: string }[];
       }
 
-      const { data: parsed } = await createClaudeStructuredOutput<SynthesisResponse>({
-        messages: [{ role: 'user', content: prompt }],
-        systemPrompt: 'You are a research analyst. Return valid JSON only.',
-        schema,
-      });
+      const parsed = JSON.parse(jsonMatch[0]) as SynthesisResponse;
 
-      log.info(`Synthesis complete`);
-
-      // Build lean output
+      // Build comprehensive output
       const output: ResearchOutput = {
         bottomLine: String(parsed.bottomLine || 'Research complete.'),
-        executiveSummary: '',
-        keyFindings: (parsed.keyFindings || []).slice(0, 5).map((f) => ({
-          title: f.title,
+        executiveSummary: String(parsed.executiveSummary || ''),
+        keyFindings: (parsed.keyFindings || []).slice(0, 8).map((f) => ({
+          title: f.title || '',
           finding: String(f.finding || ''),
-          confidence: 'medium' as const,
+          confidence: (f.confidence as 'high' | 'medium' | 'low') || 'medium',
           sources: [],
         })),
         detailedSections: [],
         comparisonTable: this.buildComparisonTable(parsed.comparisonTable),
-        gaps: [],
-        suggestions: [],
+        gaps: parsed.gaps || [],
+        suggestions: parsed.suggestions || [],
         followUpQuestions: [],
-        sources: results.map((r, i) => ({
-          id: `source_${i}`,
-          title: r.title || `Source ${i + 1}`,
-          url: r.url,
-          source: r.source,
-          accessedAt: r.timestamp,
-        })),
+        sources: results
+          .filter((r) => (r.relevanceScore ?? 0) > 0.2)
+          .slice(0, 10)
+          .map((r, i) => ({
+            id: `source_${i}`,
+            title: r.title || `Source ${i + 1}`,
+            url: r.url,
+            source: r.source,
+            accessedAt: r.timestamp,
+          })),
         metadata: {
           totalQueries: metadata.totalQueries,
           iterations: metadata.iterations,
@@ -290,7 +331,7 @@ JSON only:`;
 
   /**
    * Format output as professional markdown report
-   * Optimized for mobile: concise, scannable, no clutter
+   * Enhanced for comprehensive research results
    */
   formatAsMarkdown(output: ResearchOutput): string {
     let md = '';
@@ -298,36 +339,61 @@ JSON only:`;
     // Bottom Line - THE key takeaway (most important, first)
     md += `**Bottom Line:** ${output.bottomLine}\n\n`;
 
-    // Key Findings - max 5, concise format
+    // Executive Summary (if available)
+    if (output.executiveSummary) {
+      md += `${output.executiveSummary}\n\n`;
+    }
+
+    // Key Findings - up to 8, with confidence indicators
     md += `---\n\n`;
     md += `**Key Findings**\n\n`;
-    const findings = output.keyFindings.slice(0, 5);
+    const findings = output.keyFindings.slice(0, 8);
     findings.forEach((f, i) => {
-      const title = f.title ? `**${f.title}:**` : `**${i + 1}.**`;
-      // Truncate long findings for mobile
-      const findingText = f.finding.length > 200 ? f.finding.substring(0, 200) + '...' : f.finding;
-      md += `${title} ${findingText}\n\n`;
+      const title = f.title ? `**${f.title}**` : `**Finding ${i + 1}**`;
+      const confidence = f.confidence === 'high' ? ' ✓' : f.confidence === 'low' ? ' ?' : '';
+      const findingText = f.finding.length > 250 ? f.finding.substring(0, 250) + '...' : f.finding;
+      md += `${title}${confidence}: ${findingText}\n\n`;
     });
 
     // Comparison Table (if present and relevant)
     if (
       output.comparisonTable &&
       output.comparisonTable.rows.length > 0 &&
-      output.comparisonTable.rows.length <= 5
+      output.comparisonTable.rows.length <= 8
     ) {
       md += `---\n\n`;
       md += `**Comparison**\n\n`;
       md += `| ${output.comparisonTable.headers.join(' | ')} |\n`;
       md += `| ${output.comparisonTable.headers.map(() => '---').join(' | ')} |\n`;
-      output.comparisonTable.rows.slice(0, 5).forEach((row) => {
+      output.comparisonTable.rows.slice(0, 8).forEach((row) => {
         md += `| ${row.entity} | ${row.values.join(' | ')} |\n`;
       });
       md += '\n';
     }
 
-    // Sources - minimal, just count
+    // Gaps (if any identified)
+    if (output.gaps && output.gaps.length > 0) {
+      md += `---\n\n`;
+      md += `**Information Gaps**\n\n`;
+      output.gaps.slice(0, 3).forEach((gap) => {
+        md += `• ${gap}\n`;
+      });
+      md += '\n';
+    }
+
+    // Suggestions (if any)
+    if (output.suggestions && output.suggestions.length > 0) {
+      md += `---\n\n`;
+      md += `**Next Steps**\n\n`;
+      output.suggestions.slice(0, 3).forEach((suggestion) => {
+        md += `• ${suggestion}\n`;
+      });
+      md += '\n';
+    }
+
+    // Sources and metadata
     md += `---\n\n`;
-    md += `*Based on ${output.sources.length} sources • ${(output.metadata.executionTime / 1000).toFixed(0)}s*\n\n`;
+    md += `*${output.metadata.totalQueries} searches • ${output.sources.length} sources • ${(output.metadata.executionTime / 1000).toFixed(0)}s*\n\n`;
 
     // Document conversion prompt - clean CTA
     md += `---\n\n`;
