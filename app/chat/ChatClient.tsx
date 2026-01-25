@@ -53,8 +53,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
 import { RepoSelector } from '@/components/chat/RepoSelector';
-import { DeepStrategyModal, DeepStrategyProgress } from '@/components/chat/DeepStrategy';
-import { useDeepStrategy } from '@/hooks/useDeepStrategy';
+// Deep Strategy - now handled in chat, not modals
+import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Chat, Message, Attachment } from './types';
 
@@ -143,10 +143,12 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  // Deep Strategy Agent state
-  const [showDeepStrategyModal, setShowDeepStrategyModal] = useState(false);
-  const [showDeepStrategyProgress, setShowDeepStrategyProgress] = useState(false);
-  const deepStrategy = useDeepStrategy();
+  // Deep Strategy Agent state - now chat-integrated (no modals)
+  const [isStrategyMode, setIsStrategyMode] = useState(false);
+  const [strategySessionId, setStrategySessionId] = useState<string | null>(null);
+  const [strategyPhase, setStrategyPhase] = useState<
+    'idle' | 'intake' | 'executing' | 'complete' | 'error'
+  >('idle');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1061,6 +1063,359 @@ export function ChatClient() {
     }
   };
 
+  // ===========================================================================
+  // DEEP STRATEGY - Chat-integrated (no modals)
+  // ===========================================================================
+
+  /**
+   * Start Deep Strategy mode - adds intro message to chat and begins intake
+   */
+  const startDeepStrategy = async () => {
+    if (isStrategyMode) return;
+
+    setIsStreaming(true);
+
+    // Add intro message to chat
+    const introMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 🧠 Deep Strategy Mode Activated
+
+**You've activated the most powerful AI strategy system ever built.**
+
+This isn't just ChatGPT with a fancy prompt. I'm about to deploy:
+- **Opus 4.5** as the Master Architect (designs your strategy)
+- **Sonnet 4.5** Project Managers (coordinate research teams)
+- **Up to 100 Haiku 4.5 Scouts** (parallel research army)
+- **Hundreds of web searches** for real-time data
+
+**But first, I need to understand your situation deeply.**
+
+Don't summarize. Don't filter. Don't worry about being organized. Just... tell me everything. Vent if you need to. The more context I have, the better strategy I can build.
+
+**What's going on? What are you trying to figure out?**
+
+---
+*Estimated: 2-5 min | $8-15 | Stop anytime by typing "cancel"*`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, introMessage]);
+
+    try {
+      // Start strategy session via API
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start strategy');
+      }
+
+      // Get session ID from response header
+      const sessionId = response.headers.get('X-Session-Id');
+      if (sessionId) {
+        setStrategySessionId(sessionId);
+        setIsStrategyMode(true);
+        setStrategyPhase('intake');
+      }
+    } catch (error) {
+      log.error('Failed to start strategy:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Strategy Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsStrategyMode(false);
+      setStrategyPhase('idle');
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Handle user input during strategy intake phase
+   */
+  const handleStrategyInput = async (input: string) => {
+    if (!strategySessionId) return;
+
+    // Check for cancel command
+    if (input.toLowerCase().trim() === 'cancel') {
+      await cancelStrategy();
+      return;
+    }
+
+    setIsStreaming(true);
+
+    // Add user message to chat
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'input',
+          sessionId: strategySessionId,
+          input,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to process input');
+      }
+
+      const data = await response.json();
+
+      // Add assistant response to chat
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // Check if intake is complete - start execution
+      if (data.isComplete) {
+        await executeStrategy();
+      }
+    } catch (error) {
+      log.error('Strategy input error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Execute the strategy after intake is complete
+   */
+  const executeStrategy = async () => {
+    if (!strategySessionId) return;
+
+    setStrategyPhase('executing');
+    setIsStreaming(true);
+
+    // Add execution message
+    const execMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## ⚡ Deploying Strategy Army...
+
+Research is now underway. This will take 2-5 minutes.
+
+I'll update you as scouts report back with findings.`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, execMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          sessionId: strategySessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to execute strategy');
+      }
+
+      // Read the streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('No response body');
+
+      let buffer = '';
+      let lastProgressUpdate = Date.now();
+      let progressMessageId: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim();
+            if (data) {
+              try {
+                const event = JSON.parse(data) as StrategyStreamEvent & {
+                  data?: { result?: StrategyOutput };
+                };
+
+                // Show periodic progress updates (every 5 seconds)
+                if (
+                  Date.now() - lastProgressUpdate > 5000 &&
+                  event.data?.completedAgents !== undefined
+                ) {
+                  lastProgressUpdate = Date.now();
+                  const progressContent = `📊 **Progress:** ${event.data.completedAgents}/${event.data.totalAgents || '?'} agents complete | $${(event.data.cost || 0).toFixed(2)}`;
+
+                  if (progressMessageId) {
+                    // Update existing progress message
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === progressMessageId ? { ...m, content: progressContent } : m
+                      )
+                    );
+                  } else {
+                    // Create new progress message
+                    progressMessageId = crypto.randomUUID();
+                    const progressMessage: Message = {
+                      id: progressMessageId,
+                      role: 'assistant',
+                      content: progressContent,
+                      timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, progressMessage]);
+                  }
+                }
+
+                // Check for completion
+                if (event.type === 'strategy_complete' && event.data?.result) {
+                  displayStrategyResult(event.data.result);
+                  setStrategyPhase('complete');
+                  setIsStrategyMode(false);
+                }
+
+                // Check for error
+                if (event.type === 'error') {
+                  throw new Error(event.message);
+                }
+
+                // Check for kill switch
+                if (event.type === 'kill_switch') {
+                  throw new Error(`Strategy stopped: ${event.message}`);
+                }
+              } catch (e) {
+                if (e instanceof Error && e.message.includes('Strategy stopped')) {
+                  throw e;
+                }
+                log.warn('Failed to parse event:', { error: e });
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.error('Strategy execution error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Strategy Failed**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setStrategyPhase('error');
+      setIsStrategyMode(false);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Display the final strategy result as a rich chat message
+   */
+  const displayStrategyResult = (result: StrategyOutput) => {
+    const content = `## 🎯 Strategy Complete
+
+### Recommendation
+**${result.recommendation.title}**
+
+${result.recommendation.summary}
+
+**Confidence:** ${result.recommendation.confidence}%
+**Best For:** ${result.recommendation.bestFor}
+
+### Key Reasoning
+${result.recommendation.reasoning.map((item, i) => `${i + 1}. ${item}`).join('\n')}
+
+### Trade-offs to Consider
+${result.recommendation.tradeoffs.map((item) => `- ${item}`).join('\n')}
+
+${result.alternatives.length > 0 ? `### Alternative Options\n${result.alternatives.map((alt) => `- **${alt.title}** (${alt.confidence}% confidence)\n  ${alt.summary}\n  *Why not top:* ${alt.whyNotTop}`).join('\n\n')}` : ''}
+
+### Action Plan
+${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority: ${item.priority} | Timeframe: ${item.timeframe}${item.details ? `\n   ${item.details}` : ''}`).join('\n\n')}
+
+### Next Steps
+${result.nextSteps.map((step) => `- ${step}`).join('\n')}
+
+${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- ${gap}`).join('\n')}` : ''}
+
+### Research Metadata
+- **Agents Deployed:** ${result.metadata.totalAgents}
+- **Searches Conducted:** ${result.metadata.totalSearches}
+- **Total Cost:** $${result.metadata.totalCost.toFixed(2)}
+- **Duration:** ${Math.round(result.metadata.executionTime / 1000)}s
+
+---
+*Strategy complete. Ask follow-up questions or start a new strategy.*`;
+
+    const resultMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, resultMessage]);
+  };
+
+  /**
+   * Cancel the current strategy
+   */
+  const cancelStrategy = async () => {
+    if (!strategySessionId) return;
+
+    try {
+      await fetch(`/api/strategy?sessionId=${strategySessionId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      log.warn('Cancel request failed:', { error: e });
+    }
+
+    const cancelMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '✋ **Strategy cancelled.** You can start a new one anytime.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+
+    setIsStrategyMode(false);
+    setStrategyPhase('idle');
+    setStrategySessionId(null);
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -1119,6 +1474,12 @@ export function ChatClient() {
       if (parsed.prompt) {
         content = parsed.prompt;
       }
+    }
+
+    // DEEP STRATEGY MODE: If we're in strategy intake, send to strategy API
+    if (isStrategyMode && strategyPhase === 'intake' && strategySessionId) {
+      await handleStrategyInput(content);
+      return;
     }
 
     // SMART TOOL SUGGESTIONS: Check if this is a response to a pending tool suggestion
@@ -2672,13 +3033,14 @@ export function ChatClient() {
               replyingTo={replyingTo}
               onClearReply={() => setReplyingTo(null)}
               initialText={quickPromptText}
-              showDeepStrategy={isAdmin}
-              deepStrategyActive={deepStrategy.phase !== 'idle'}
-              onDeepStrategyClick={() => {
-                if (deepStrategy.phase === 'idle') {
-                  setShowDeepStrategyModal(true);
-                } else {
-                  setShowDeepStrategyProgress(true);
+              isAdmin={isAdmin}
+              activeAgent={isStrategyMode ? 'strategy' : null}
+              onAgentSelect={(agent) => {
+                if (agent === 'strategy' && !isStrategyMode) {
+                  startDeepStrategy();
+                } else if (agent === 'research') {
+                  // Research agent handled by existing search mode
+                  // Could add dedicated research agent flow here
                 }
               }}
             />
@@ -2711,135 +3073,7 @@ export function ChatClient() {
         {/* GitHub Repo Selector Modal - for code push to GitHub */}
         <RepoSelectorWrapper />
 
-        {/* Deep Strategy Modal - Admin Only */}
-        {isAdmin && (
-          <>
-            <DeepStrategyModal
-              isOpen={showDeepStrategyModal}
-              onClose={() => setShowDeepStrategyModal(false)}
-              onStart={async (attachments) => {
-                setShowDeepStrategyModal(false);
-                setShowDeepStrategyProgress(true);
-                await deepStrategy.startStrategy(attachments);
-              }}
-            />
-
-            {/* Deep Strategy Progress Panel */}
-            {showDeepStrategyProgress && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
-                  <DeepStrategyProgress
-                    events={deepStrategy.events}
-                    isComplete={
-                      deepStrategy.phase === 'complete' ||
-                      deepStrategy.phase === 'error' ||
-                      deepStrategy.phase === 'cancelled'
-                    }
-                    onCancel={() => {
-                      deepStrategy.cancelStrategy();
-                      setShowDeepStrategyProgress(false);
-                      deepStrategy.reset();
-                    }}
-                    onAddContext={deepStrategy.addContext}
-                    isAddingContext={deepStrategy.isAddingContext}
-                  />
-                  {/* Intake conversation during intake phase */}
-                  {deepStrategy.phase === 'intake' && (
-                    <div className="mt-4 bg-gray-900 rounded-xl border border-gray-800 p-4">
-                      <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
-                        {deepStrategy.intakeMessages.map((msg, i) => (
-                          <div
-                            key={i}
-                            className={`p-3 rounded-lg ${
-                              msg.role === 'assistant'
-                                ? 'bg-purple-900/30 text-purple-100'
-                                : 'bg-gray-800 text-white ml-8'
-                            }`}
-                          >
-                            {msg.content}
-                          </div>
-                        ))}
-                      </div>
-                      <form
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const form = e.target as HTMLFormElement;
-                          const input = form.elements.namedItem('intake-input') as HTMLInputElement;
-                          if (input.value.trim()) {
-                            await deepStrategy.sendIntakeInput(input.value);
-                            input.value = '';
-                          }
-                        }}
-                        className="flex gap-2"
-                      >
-                        <input
-                          name="intake-input"
-                          type="text"
-                          placeholder="Share your situation..."
-                          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          disabled={deepStrategy.isLoading}
-                        />
-                        <button
-                          type="submit"
-                          disabled={deepStrategy.isLoading}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium disabled:opacity-50"
-                        >
-                          {deepStrategy.isLoading ? 'Thinking...' : 'Send'}
-                        </button>
-                      </form>
-                    </div>
-                  )}
-                  {/* Result display when complete */}
-                  {deepStrategy.phase === 'complete' && deepStrategy.result && (
-                    <div className="mt-4 bg-gray-900 rounded-xl border border-gray-800 p-6">
-                      <h3 className="text-xl font-bold text-white mb-4">
-                        {deepStrategy.result.recommendation.title}
-                      </h3>
-                      <p className="text-gray-300 mb-4">
-                        {deepStrategy.result.recommendation.summary}
-                      </p>
-                      <div className="flex items-center gap-4 mb-4">
-                        <span className="text-sm text-gray-500">
-                          Confidence: {deepStrategy.result.recommendation.confidence}%
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Cost: ${deepStrategy.result.metadata.totalCost.toFixed(2)}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Agents: {deepStrategy.result.metadata.totalAgents}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowDeepStrategyProgress(false);
-                          deepStrategy.reset();
-                        }}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  )}
-                  {/* Error display */}
-                  {deepStrategy.error && (
-                    <div className="mt-4 bg-red-900/30 border border-red-700 rounded-xl p-4">
-                      <p className="text-red-300">{deepStrategy.error}</p>
-                      <button
-                        onClick={() => {
-                          setShowDeepStrategyProgress(false);
-                          deepStrategy.reset();
-                        }}
-                        className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        {/* Deep Strategy - Now handled in chat, no modal needed */}
       </div>
     </CodeExecutionProvider>
   );
