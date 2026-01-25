@@ -3029,7 +3029,6 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               onStop={handleStop}
               isStreaming={isStreaming}
               disabled={isWaitingForReply}
-              showSearchButtons={true}
               replyingTo={replyingTo}
               onClearReply={() => setReplyingTo(null)}
               initialText={quickPromptText}

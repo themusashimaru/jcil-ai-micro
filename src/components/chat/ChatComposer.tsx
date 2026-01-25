@@ -54,7 +54,6 @@ interface ChatComposerProps {
   onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
-  showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
   replyingTo?: Message | null; // Message being replied to
   onClearReply?: () => void; // Clear the reply
   initialText?: string; // Pre-fill the input with text (for quick prompts)
@@ -131,7 +130,6 @@ export function ChatComposer({
   onStop,
   isStreaming,
   disabled,
-  showSearchButtons,
   replyingTo,
   onClearReply,
   initialText,
@@ -311,11 +309,6 @@ export function ChatComposer({
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (photoInputRef.current) photoInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
-  };
-
-  // Select a tool mode
-  const selectToolMode = (mode: ToolMode) => {
-    setToolMode(mode);
   };
 
   // Clear tool mode
@@ -799,36 +792,7 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* Deep Research button - Search and Fact Check now auto-triggered via AI response analysis */}
-              {showSearchButtons && toolMode === 'none' && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => selectToolMode('research')}
-                    disabled={isStreaming || disabled}
-                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs"
-                    style={{ color: 'white' }}
-                    title="Deep Research"
-                  >
-                    <span>Deep Research</span>
-                  </button>
-                </div>
-              )}
-              {/* Deep Research active state - shows lighter purple when selected */}
-              {showSearchButtons && toolMode === 'research' && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={clearToolMode}
-                    disabled={isStreaming || disabled}
-                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs"
-                    style={{ color: '#a78bfa' }}
-                    title="Click to deactivate Deep Research"
-                  >
-                    <span>Deep Research</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Agents dropdown button */}
+              {/* Agents dropdown button - unified entry point for all agents */}
               {onAgentSelect && (
                 <div className="relative flex items-center">
                   <button
@@ -836,12 +800,8 @@ export function ChatComposer({
                     onClick={() => setShowAgentsMenu(!showAgentsMenu)}
                     disabled={isStreaming || disabled}
                     className={`
-                      disabled:opacity-50 flex items-center gap-1 transition-all text-xs px-2 py-1 rounded-lg
-                      ${
-                        activeAgent
-                          ? 'bg-purple-600/30 text-purple-300'
-                          : 'hover:bg-purple-600/20 text-purple-400 hover:text-purple-300'
-                      }
+                      disabled:opacity-50 flex items-center gap-1 transition-all text-xs
+                      ${toolMode === 'research' || activeAgent === 'strategy' ? 'text-purple-300' : 'text-white hover:text-purple-300'}
                     `}
                     title="Select an AI Agent"
                   >
@@ -858,8 +818,14 @@ export function ChatComposer({
                         d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                       />
                     </svg>
-                    <span>Agents</span>
-                    {activeAgent && (
+                    <span>
+                      {toolMode === 'research'
+                        ? 'Research'
+                        : activeAgent === 'strategy'
+                          ? 'Strategy'
+                          : 'Agents'}
+                    </span>
+                    {(toolMode === 'research' || activeAgent === 'strategy') && (
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
                     )}
                     <svg
@@ -887,11 +853,16 @@ export function ChatComposer({
                         {/* Research Agent - Available to all */}
                         <button
                           onClick={() => {
-                            onAgentSelect('research');
+                            // Toggle research mode internally
+                            if (toolMode === 'research') {
+                              setToolMode('none');
+                            } else {
+                              setToolMode('research');
+                            }
                             setShowAgentsMenu(false);
                           }}
                           className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
-                            activeAgent === 'research'
+                            toolMode === 'research'
                               ? 'bg-blue-600/20 text-blue-300'
                               : 'hover:bg-gray-800 text-gray-300'
                           }`}
