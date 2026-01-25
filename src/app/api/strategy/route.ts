@@ -90,9 +90,17 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const jsonResult = await safeParseJSON<{
-      action: 'start' | 'input' | 'execute';
+      action: 'start' | 'input' | 'execute' | 'context';
       sessionId?: string;
       input?: string;
+      message?: string;
+      attachments?: Array<{
+        id: string;
+        name: string;
+        type: string;
+        size: number;
+        content: string;
+      }>;
     }>(request);
 
     if (!jsonResult.success) {
@@ -102,18 +110,21 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { action, sessionId, input } = jsonResult.data;
+    const { action, sessionId, input, message, attachments } = jsonResult.data;
 
     // Handle different actions
     switch (action) {
       case 'start':
-        return handleStart(user.id, isAdmin);
+        return handleStart(user.id, isAdmin, attachments);
 
       case 'input':
         return handleInput(sessionId, input);
 
       case 'execute':
         return handleExecute(sessionId);
+
+      case 'context':
+        return handleContext(sessionId, message);
 
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
@@ -197,10 +208,23 @@ export async function DELETE(request: NextRequest) {
 // HANDLERS
 // =============================================================================
 
+// Attachment type for strategy
+interface StrategyAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  content: string;
+}
+
 /**
  * Start a new strategy session
  */
-async function handleStart(userId: string, isAdmin: boolean): Promise<Response> {
+async function handleStart(
+  userId: string,
+  isAdmin: boolean,
+  attachments?: StrategyAttachment[]
+): Promise<Response> {
   const sessionId = `strategy_${userId}_${Date.now()}`;
 
   // Create the encoder and stream for SSE
@@ -232,11 +256,16 @@ async function handleStart(userId: string, isAdmin: boolean): Promise<Response> 
       userId,
       sessionId,
       isAdmin,
+      attachments: attachments?.map((a) => ({
+        name: a.name,
+        type: a.type,
+        content: a.content,
+      })),
     },
     onStream
   );
 
-  // Store session
+  // Store session with attachments
   activeSessions.set(sessionId, {
     agent,
     started: Date.now(),
@@ -254,7 +283,7 @@ async function handleStart(userId: string, isAdmin: boolean): Promise<Response> 
             type: 'intake_start',
             message: intakeMessage,
             timestamp: Date.now(),
-            data: { sessionId },
+            data: { sessionId, attachmentCount: attachments?.length || 0 },
           })}\n\n`
         )
       );
@@ -273,7 +302,11 @@ async function handleStart(userId: string, isAdmin: boolean): Promise<Response> 
     }
   })();
 
-  log.info('Strategy session started', { sessionId, userId });
+  log.info('Strategy session started', {
+    sessionId,
+    userId,
+    attachmentCount: attachments?.length || 0,
+  });
 
   return new Response(stream.readable, {
     headers: {
@@ -343,6 +376,78 @@ async function handleInput(
     return new Response(
       JSON.stringify({
         error: 'Failed to process input',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+/**
+ * Add context during execution (like Claude Code's interrupt feature)
+ * Allows user to provide additional information while strategy is running
+ */
+async function handleContext(
+  sessionId: string | undefined,
+  message: string | undefined
+): Promise<Response> {
+  if (!sessionId) {
+    return new Response(JSON.stringify({ error: 'Session ID required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!message) {
+    return new Response(JSON.stringify({ error: 'Message required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const session = activeSessions.get(sessionId);
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (session.phase !== 'executing') {
+    return new Response(
+      JSON.stringify({ error: `Cannot add context during ${session.phase} phase` }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  try {
+    // Add context to the running strategy
+    await session.agent.addContext(message);
+
+    log.info('Context added to strategy', { sessionId, messageLength: message.length });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Context added successfully',
+        sessionId,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    log.error('Add context error', error as Error);
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to add context',
         message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {

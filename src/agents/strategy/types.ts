@@ -468,6 +468,7 @@ export type StrategyStreamEventType =
   | 'synthesis_start'
   | 'synthesis_progress'
   | 'strategy_complete'
+  | 'user_context_added'
   | 'error'
   | 'kill_switch';
 
@@ -497,6 +498,13 @@ export type StrategyStreamCallback = (event: StrategyStreamEvent) => void;
 // AGENT CONTEXT
 // =============================================================================
 
+// Attachment for strategy (documents, images, etc.)
+export interface StrategyAttachment {
+  name: string;
+  type: string; // MIME type
+  content: string; // base64 encoded
+}
+
 export interface StrategyContext {
   userId: string;
   sessionId: string;
@@ -507,4 +515,6 @@ export interface StrategyContext {
   problem?: UserProblem;
   hierarchy?: AgentHierarchy;
   queue?: QueueProgress;
+  attachments?: StrategyAttachment[];
+  userContext?: string[]; // Mid-execution context messages from user
 }

@@ -2717,10 +2717,10 @@ export function ChatClient() {
             <DeepStrategyModal
               isOpen={showDeepStrategyModal}
               onClose={() => setShowDeepStrategyModal(false)}
-              onStart={async () => {
+              onStart={async (attachments) => {
                 setShowDeepStrategyModal(false);
                 setShowDeepStrategyProgress(true);
-                await deepStrategy.startStrategy();
+                await deepStrategy.startStrategy(attachments);
               }}
             />
 
@@ -2740,6 +2740,8 @@ export function ChatClient() {
                       setShowDeepStrategyProgress(false);
                       deepStrategy.reset();
                     }}
+                    onAddContext={deepStrategy.addContext}
+                    isAddingContext={deepStrategy.isAddingContext}
                   />
                   {/* Intake conversation during intake phase */}
                   {deepStrategy.phase === 'intake' && (
