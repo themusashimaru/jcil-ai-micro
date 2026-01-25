@@ -3,11 +3,11 @@
  *
  * PURPOSE:
  * - Handle chat messages with streaming responses
- * - Route research requests to Perplexity-powered Research Agent
+ * - Route research requests to Brave-powered Research Agent
  * - Use Claude Haiku 4.5 for simple queries, Sonnet 4.5 for complex
  *
  * ROUTING:
- * - Research requests → Research Agent (Perplexity searches)
+ * - Research requests → Research Agent (Brave web searches)
  * - Simple queries → Claude Haiku 4.5 (fast, cost-optimized)
  * - Complex queries → Claude Sonnet 4.5 (deep reasoning)
  */
@@ -20,7 +20,7 @@ import { cookies } from 'next/headers';
 import { routeChat, completeChat, type ChatRouteOptions } from '@/lib/ai/chat-router';
 // detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
-import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
+import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -43,7 +43,7 @@ const log = logger('ChatAPI');
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
 const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
-// Research agent has stricter limits (expensive Perplexity API calls)
+// Research agent has stricter limits (expensive Brave Search API calls)
 const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '20', 10);
 
 // Token limits
@@ -130,7 +130,7 @@ function cleanupExpiredEntries(force = false): void {
 
 /**
  * Check research-specific rate limit
- * Research agent is expensive (Perplexity API) so has stricter limits
+ * Research agent uses external search API so has stricter limits
  */
 function checkResearchRateLimit(identifier: string): { allowed: boolean; remaining: number } {
   cleanupExpiredEntries();
@@ -2040,41 +2040,46 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 2: PERPLEXITY SEARCH (Button-only - user must click Search/Fact-check)
+    // ROUTE 2: BRAVE SEARCH (Button-only - user must click Search/Fact-check)
     // ========================================
     if (
       (effectiveToolMode === 'search' || effectiveToolMode === 'factcheck') &&
-      isPerplexityConfigured()
+      isBraveConfigured()
     ) {
       log.info('Search mode activated', { toolMode: effectiveToolMode });
 
       try {
-        const systemPrompt =
-          effectiveToolMode === 'factcheck'
-            ? 'Verify the claim. Return TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE with evidence.'
-            : 'Search the web and provide accurate, up-to-date information with sources.';
-
-        const query =
-          effectiveToolMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
-
-        const result = await perplexitySearch({ query, systemPrompt });
-
-        // Post-process through AI for consistent voice (with xAI fallback)
-        const synthesisMessages: CoreMessage[] = [
-          { role: 'user', content: `Summarize: ${result.answer}` },
-        ];
-        const synthesis = await completeChat(synthesisMessages, {
-          model: 'claude-sonnet-4-5-20250929',
-          maxTokens: 2048,
+        const searchResult = await braveSearch({
+          query: lastUserContent,
+          mode: effectiveToolMode,
         });
 
+        // Build response with sources
+        let responseContent = searchResult.answer;
+
+        // Add sources footer
+        if (searchResult.sources.length > 0) {
+          responseContent += '\n\n**Sources:**\n';
+          searchResult.sources.forEach((source, i) => {
+            responseContent += `${i + 1}. [${source.title}](${source.url})\n`;
+          });
+        }
+
         return new Response(
-          JSON.stringify({ type: 'text', content: synthesis.text, model: synthesis.model }),
+          JSON.stringify({
+            type: 'text',
+            content: responseContent,
+            model: searchResult.model,
+            provider: searchResult.provider,
+            usedFallback: searchResult.usedFallback,
+          }),
           {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
               'X-Search-Mode': effectiveToolMode,
+              'X-Search-Provider': 'brave',
+              'X-Synthesis-Provider': searchResult.provider,
             },
           }
         );
@@ -2792,7 +2797,7 @@ SECURITY:
     // ========================================
     // If the query might need real-time info, do a quick check first
     // If Claude indicates knowledge cutoff, automatically search the web
-    if (mightNeedRealtimeInfo(lastUserContent) && isPerplexityConfigured()) {
+    if (mightNeedRealtimeInfo(lastUserContent) && isBraveConfigured()) {
       log.debug('Query might need real-time info, checking for knowledge cutoff');
 
       try {
@@ -2827,11 +2832,10 @@ Reply with ONLY one of these:
           const researchRateCheck = checkResearchRateLimit(rateLimitIdentifier);
           if (researchRateCheck.allowed) {
             try {
-              // Trigger Perplexity search
-              const searchResult = await perplexitySearch({
+              // Trigger Brave web search with AI synthesis
+              const searchResult = await braveSearch({
                 query: lastUserContent,
-                systemPrompt:
-                  'Search the web and provide accurate, up-to-date information with sources.',
+                mode: 'search',
               });
 
               // Post-process through AI for consistent voice (with xAI fallback)
