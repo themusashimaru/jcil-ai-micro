@@ -10,6 +10,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type {
   StrategyContext,
   SynthesizedProblem,
+  UserProblem,
   AgentBlueprint,
   AgentHierarchy,
   Finding,
@@ -400,6 +401,13 @@ export class StrategyAgent {
    */
   getFindings(): Finding[] {
     return [...this.allFindings];
+  }
+
+  /**
+   * Get the synthesized problem from intake
+   */
+  getProblem(): UserProblem | undefined {
+    return this.context.problem;
   }
 
   // ===========================================================================

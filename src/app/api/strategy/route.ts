@@ -1,12 +1,14 @@
 /**
  * DEEP STRATEGY AGENT API
  *
- * Streaming API for the Deep Strategy Agent.
+ * Production-ready streaming API for the Deep Strategy Agent.
+ * Uses Supabase for session persistence across server restarts.
  * Admin-only access with real-time event streaming.
  *
  * Endpoints:
  * - POST /api/strategy - Start strategy session or process intake
  * - DELETE /api/strategy - Cancel current strategy
+ * - GET /api/strategy - Get session status or list sessions
  */
 
 import { NextRequest } from 'next/server';
@@ -18,6 +20,7 @@ import {
   createStrategyAgent,
   type StrategyStreamEvent,
   type StrategyOutput,
+  type Finding,
 } from '@/agents/strategy';
 
 const log = logger('StrategyAPI');
@@ -25,16 +28,255 @@ const log = logger('StrategyAPI');
 export const runtime = 'nodejs';
 export const maxDuration = 600; // 10 minutes max (matches strategy limit)
 
-// Store active strategy sessions (in-memory for single instance)
-// In production, use Redis or similar for multi-instance support
-const activeSessions = new Map<
-  string,
-  {
-    agent: ReturnType<typeof createStrategyAgent>;
-    started: number;
-    phase: 'intake' | 'executing' | 'complete' | 'cancelled';
+// =============================================================================
+// TYPES
+// =============================================================================
+
+type SessionPhase = 'intake' | 'executing' | 'complete' | 'cancelled' | 'error';
+
+interface StrategyAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  content: string;
+}
+
+interface ActiveSession {
+  agent: ReturnType<typeof createStrategyAgent>;
+  dbId: string; // UUID from database
+  started: number;
+  phase: SessionPhase;
+}
+
+// =============================================================================
+// ACTIVE SESSIONS (In-memory for running agents)
+// Database provides persistence; this Map holds live agent instances
+// =============================================================================
+
+const activeSessions = new Map<string, ActiveSession>();
+
+// =============================================================================
+// DATABASE HELPERS
+// =============================================================================
+
+/**
+ * Create a new session in the database
+ * Note: Using 'as any' because strategy_sessions table was added after type generation
+ * Run `npx supabase gen types` to regenerate types if needed
+ */
+async function createSessionInDB(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  sessionId: string,
+  attachments?: StrategyAttachment[]
+): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('strategy_sessions')
+    .insert({
+      session_id: sessionId,
+      user_id: userId,
+      phase: 'intake',
+      attachments:
+        attachments?.map((a) => ({
+          id: a.id,
+          name: a.name,
+          type: a.type,
+          size: a.size,
+        })) || [],
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    log.error('Failed to create session in database', error);
+    throw new Error('Failed to create session');
   }
->();
+
+  return data.id;
+}
+
+/**
+ * Update session phase in the database
+ */
+async function updateSessionPhase(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  phase: SessionPhase,
+  additionalData?: Record<string, unknown>
+): Promise<void> {
+  const updateData: Record<string, unknown> = { phase, ...additionalData };
+
+  if (phase === 'complete' || phase === 'cancelled' || phase === 'error') {
+    updateData.completed_at = new Date().toISOString();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('strategy_sessions')
+    .update(updateData)
+    .eq('session_id', sessionId);
+
+  if (error) {
+    log.error('Failed to update session phase', { sessionId, phase, error });
+  }
+}
+
+/**
+ * Store problem data after intake
+ */
+async function storeProblemData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  problemSummary: string,
+  problemData: unknown
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('strategy_sessions')
+    .update({
+      problem_summary: problemSummary,
+      problem_data: problemData,
+    })
+    .eq('session_id', sessionId);
+
+  if (error) {
+    log.error('Failed to store problem data', { sessionId, error });
+  }
+}
+
+/**
+ * Store a finding in the database
+ */
+async function storeFinding(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  dbSessionId: string,
+  finding: Finding
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('strategy_findings').insert({
+    session_id: dbSessionId,
+    title: finding.title,
+    content: finding.content,
+    source_url: finding.sources?.[0]?.url || null,
+    agent_name: finding.agentName,
+    confidence: finding.confidence,
+    category: finding.type,
+  });
+
+  if (error) {
+    log.error('Failed to store finding', { dbSessionId, error });
+  }
+}
+
+/**
+ * Store final result and usage
+ */
+async function storeResultAndUsage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  dbSessionId: string,
+  userId: string,
+  result: StrategyOutput
+): Promise<void> {
+  // Update session with result
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: sessionError } = await (supabase as any)
+    .from('strategy_sessions')
+    .update({
+      phase: 'complete',
+      completed_at: new Date().toISOString(),
+      result: result,
+      total_agents: result.metadata.totalAgents,
+      completed_agents: result.metadata.totalAgents,
+      total_searches: result.metadata.totalSearches,
+      total_cost: result.metadata.totalCost,
+    })
+    .eq('session_id', sessionId);
+
+  if (sessionError) {
+    log.error('Failed to store result', { sessionId, error: sessionError });
+  }
+
+  // Store usage for billing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: usageError } = await (supabase as any).from('strategy_usage').insert({
+    user_id: userId,
+    session_id: dbSessionId,
+    opus_tokens: result.metadata.modelUsage.opus.tokens,
+    sonnet_tokens: result.metadata.modelUsage.sonnet.tokens,
+    haiku_tokens: result.metadata.modelUsage.haiku.tokens,
+    brave_searches: result.metadata.totalSearches,
+    total_cost: result.metadata.totalCost,
+  });
+
+  if (usageError) {
+    log.error('Failed to store usage', { sessionId, error: usageError });
+  }
+}
+
+/**
+ * Add user context to session
+ */
+async function addUserContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  message: string
+): Promise<void> {
+  // Get current context
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: session } = await (supabase as any)
+    .from('strategy_sessions')
+    .select('user_context')
+    .eq('session_id', sessionId)
+    .single();
+
+  const currentContext = (session?.user_context as string[]) || [];
+  currentContext.push(message);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('strategy_sessions')
+    .update({ user_context: currentContext })
+    .eq('session_id', sessionId);
+
+  if (error) {
+    log.error('Failed to add user context', { sessionId, error });
+  }
+}
+
+/**
+ * Get session from database
+ */
+async function getSessionFromDB(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string
+): Promise<{
+  id: string;
+  session_id: string;
+  user_id: string;
+  phase: SessionPhase;
+  started_at: string;
+  result: StrategyOutput | null;
+  total_agents: number;
+  completed_agents: number;
+  total_searches: number;
+  total_cost: number;
+} | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('strategy_sessions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
 
 /**
  * Check if user is admin
@@ -52,6 +294,10 @@ async function isUserAdmin(
   return !!adminUser;
 }
 
+// =============================================================================
+// API HANDLERS
+// =============================================================================
+
 /**
  * POST - Start strategy or process intake input
  */
@@ -60,8 +306,9 @@ export async function POST(request: NextRequest) {
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
 
+  const supabase = await createClient();
+
   try {
-    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -94,13 +341,7 @@ export async function POST(request: NextRequest) {
       sessionId?: string;
       input?: string;
       message?: string;
-      attachments?: Array<{
-        id: string;
-        name: string;
-        type: string;
-        size: number;
-        content: string;
-      }>;
+      attachments?: StrategyAttachment[];
     }>(request);
 
     if (!jsonResult.success) {
@@ -115,16 +356,16 @@ export async function POST(request: NextRequest) {
     // Handle different actions
     switch (action) {
       case 'start':
-        return handleStart(user.id, isAdmin, attachments);
+        return handleStart(supabase, user.id, isAdmin, attachments);
 
       case 'input':
-        return handleInput(sessionId, input);
+        return handleInput(supabase, sessionId, input);
 
       case 'execute':
-        return handleExecute(sessionId);
+        return handleExecute(supabase, user.id, sessionId);
 
       case 'context':
-        return handleContext(sessionId, message);
+        return handleContext(supabase, sessionId, message);
 
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
@@ -155,8 +396,9 @@ export async function DELETE(request: NextRequest) {
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
 
+  const supabase = await createClient();
+
   try {
-    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -176,18 +418,17 @@ export async function DELETE(request: NextRequest) {
       });
     }
 
-    const session = activeSessions.get(sessionId);
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Session not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    // Check if session exists in memory (active)
+    const activeSession = activeSessions.get(sessionId);
+    if (activeSession) {
+      // Cancel the running agent
+      activeSession.agent.cancel();
+      activeSession.phase = 'cancelled';
+      activeSessions.delete(sessionId);
     }
 
-    // Cancel the strategy
-    session.agent.cancel();
-    session.phase = 'cancelled';
-    activeSessions.delete(sessionId);
+    // Update database
+    await updateSessionPhase(supabase, sessionId, 'cancelled');
 
     log.info('Strategy session cancelled', { sessionId, userId: user.id });
 
@@ -204,28 +445,168 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// =============================================================================
-// HANDLERS
-// =============================================================================
+/**
+ * GET - Get session status or list sessions
+ */
+export async function GET(request: NextRequest) {
+  const supabase = await createClient();
 
-// Attachment type for strategy
-interface StrategyAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  content: string;
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const sessionId = request.nextUrl.searchParams.get('sessionId');
+
+    if (!sessionId) {
+      // Return list of sessions for this user from database
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: sessions, error } = await (supabase as any)
+        .from('strategy_sessions')
+        .select(
+          'session_id, phase, started_at, total_agents, completed_agents, total_searches, total_cost'
+        )
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        throw error;
+      }
+
+      // Define type for session list items
+      type SessionListItem = {
+        session_id: string;
+        phase: SessionPhase;
+        started_at: string;
+        total_agents: number;
+        completed_agents: number;
+        total_searches: number;
+        total_cost: number;
+      };
+
+      // Enrich with live progress for active sessions
+      const enrichedSessions = (sessions as SessionListItem[] | null)?.map((session) => {
+        const active = activeSessions.get(session.session_id);
+        if (active) {
+          return {
+            ...session,
+            phase: active.phase,
+            progress: active.agent.getProgress(),
+            isActive: true,
+          };
+        }
+        return { ...session, isActive: false };
+      });
+
+      return new Response(JSON.stringify({ sessions: enrichedSessions }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get specific session
+    const dbSession = await getSessionFromDB(supabase, sessionId);
+    if (!dbSession) {
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check ownership
+    if (dbSession.user_id !== user.id) {
+      // Check if admin
+      const isAdmin = await isUserAdmin(user.id, supabase);
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Access denied' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Check if session is active in memory
+    const activeSession = activeSessions.get(sessionId);
+    if (activeSession) {
+      return new Response(
+        JSON.stringify({
+          sessionId,
+          phase: activeSession.phase,
+          started: activeSession.started,
+          progress: activeSession.agent.getProgress(),
+          findings: activeSession.agent.getFindings().length,
+          isActive: true,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Return from database
+    return new Response(
+      JSON.stringify({
+        sessionId: dbSession.session_id,
+        phase: dbSession.phase,
+        started: dbSession.started_at,
+        totalAgents: dbSession.total_agents,
+        completedAgents: dbSession.completed_agents,
+        totalSearches: dbSession.total_searches,
+        totalCost: dbSession.total_cost,
+        result: dbSession.result,
+        isActive: false,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    log.error('Strategy status error', error as Error);
+    return new Response(JSON.stringify({ error: 'Failed to get status' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
+
+// =============================================================================
+// ACTION HANDLERS
+// =============================================================================
 
 /**
  * Start a new strategy session
  */
 async function handleStart(
+  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   isAdmin: boolean,
   attachments?: StrategyAttachment[]
 ): Promise<Response> {
   const sessionId = `strategy_${userId}_${Date.now()}`;
+
+  // Create session in database first
+  let dbId: string;
+  try {
+    dbId = await createSessionInDB(supabase, userId, sessionId, attachments);
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: 'Failed to create session', message: (error as Error).message }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
 
   // Create the encoder and stream for SSE
   const encoder = new TextEncoder();
@@ -238,6 +619,27 @@ async function handleStart(
     writer.write(encoder.encode(`event: ${event.type}\ndata: ${data}\n\n`)).catch(() => {
       // Writer closed, ignore
     });
+
+    // Store findings in database as they're discovered
+    if (event.type === 'finding_discovered' && event.data?.finding) {
+      storeFinding(supabase, dbId, event.data.finding as Finding).catch((err) => {
+        log.error('Failed to store finding', err);
+      });
+    }
+
+    // Update progress in database periodically
+    if (event.type === 'agent_complete') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any)
+        .from('strategy_sessions')
+        .update({
+          completed_agents: event.data?.completedAgents || 0,
+          total_cost: event.data?.cost || 0,
+        })
+        .eq('session_id', sessionId)
+        .then(() => {})
+        .catch(() => {});
+    }
   };
 
   // Get API key
@@ -265,9 +667,10 @@ async function handleStart(
     onStream
   );
 
-  // Store session with attachments
+  // Store in active sessions map
   activeSessions.set(sessionId, {
     agent,
+    dbId,
     started: Date.now(),
     phase: 'intake',
   });
@@ -288,6 +691,8 @@ async function handleStart(
         )
       );
     } catch (error) {
+      await updateSessionPhase(supabase, sessionId, 'error');
+
       await writer.write(
         encoder.encode(
           `event: error\ndata: ${JSON.stringify({
@@ -304,6 +709,7 @@ async function handleStart(
 
   log.info('Strategy session started', {
     sessionId,
+    dbId,
     userId,
     attachmentCount: attachments?.length || 0,
   });
@@ -322,6 +728,7 @@ async function handleStart(
  * Process intake input
  */
 async function handleInput(
+  supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string | undefined,
   input: string | undefined
 ): Promise<Response> {
@@ -339,12 +746,41 @@ async function handleInput(
     });
   }
 
+  // Check active session first
   const session = activeSessions.get(sessionId);
+
+  // If not in memory, check database and try to restore
   if (!session) {
-    return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const dbSession = await getSessionFromDB(supabase, sessionId);
+    if (!dbSession) {
+      return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Session exists in DB but not in memory - can't process intake
+    // (agent instance is lost)
+    if (dbSession.phase !== 'intake') {
+      return new Response(
+        JSON.stringify({ error: `Cannot process input during ${dbSession.phase} phase` }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'Session expired',
+        message: 'The session has expired. Please start a new strategy.',
+      }),
+      {
+        status: 410,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 
   if (session.phase !== 'intake') {
@@ -359,6 +795,19 @@ async function handleInput(
 
   try {
     const result = await session.agent.processIntakeInput(input);
+
+    // If intake is complete, store the problem data
+    if (result.isComplete) {
+      const problem = session.agent.getProblem?.();
+      if (problem) {
+        await storeProblemData(
+          supabase,
+          sessionId,
+          problem.synthesizedProblem?.summary || '',
+          problem
+        );
+      }
+    }
 
     return new Response(
       JSON.stringify({
@@ -387,10 +836,10 @@ async function handleInput(
 }
 
 /**
- * Add context during execution (like Claude Code's interrupt feature)
- * Allows user to provide additional information while strategy is running
+ * Add context during execution
  */
 async function handleContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string | undefined,
   message: string | undefined
 ): Promise<Response> {
@@ -430,6 +879,9 @@ async function handleContext(
     // Add context to the running strategy
     await session.agent.addContext(message);
 
+    // Store in database
+    await addUserContext(supabase, sessionId, message);
+
     log.info('Context added to strategy', { sessionId, messageLength: message.length });
 
     return new Response(
@@ -461,7 +913,11 @@ async function handleContext(
 /**
  * Execute the full strategy
  */
-async function handleExecute(sessionId: string | undefined): Promise<Response> {
+async function handleExecute(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  sessionId: string | undefined
+): Promise<Response> {
   if (!sessionId) {
     return new Response(JSON.stringify({ error: 'Session ID required' }), {
       status: 400,
@@ -491,6 +947,7 @@ async function handleExecute(sessionId: string | undefined): Promise<Response> {
 
   // Update session phase
   session.phase = 'executing';
+  await updateSessionPhase(supabase, sessionId, 'executing');
 
   // Execute strategy in background
   (async () => {
@@ -506,8 +963,11 @@ async function handleExecute(sessionId: string | undefined): Promise<Response> {
         )
       );
 
-      // The strategy agent already has the stream callback set up
+      // Execute the strategy
       const result: StrategyOutput = await session.agent.executeStrategy();
+
+      // Store result and usage in database
+      await storeResultAndUsage(supabase, sessionId, session.dbId, userId, result);
 
       // Send final result
       await writer.write(
@@ -536,6 +996,9 @@ async function handleExecute(sessionId: string | undefined): Promise<Response> {
         executionTime: result.metadata.executionTime,
       });
     } catch (error) {
+      session.phase = 'error';
+      await updateSessionPhase(supabase, sessionId, 'error');
+
       await writer.write(
         encoder.encode(
           `event: error\ndata: ${JSON.stringify({
@@ -549,10 +1012,11 @@ async function handleExecute(sessionId: string | undefined): Promise<Response> {
 
       log.error('Strategy execution failed', { sessionId, error });
     } finally {
-      // Clean up session after completion
+      // Clean up active session after completion
+      // Keep in memory briefly for status checks, then remove
       setTimeout(() => {
         activeSessions.delete(sessionId);
-      }, 60000); // Keep session for 1 minute after completion for result retrieval
+      }, 60000); // Keep for 1 minute after completion
 
       await writer.close();
     }
@@ -565,69 +1029,4 @@ async function handleExecute(sessionId: string | undefined): Promise<Response> {
       Connection: 'keep-alive',
     },
   });
-}
-
-/**
- * GET - Get session status
- */
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const sessionId = request.nextUrl.searchParams.get('sessionId');
-    if (!sessionId) {
-      // Return list of active sessions for this user
-      const userSessions = Array.from(activeSessions.entries())
-        .filter(([id]) => id.includes(user.id))
-        .map(([id, session]) => ({
-          sessionId: id,
-          phase: session.phase,
-          started: session.started,
-          progress: session.agent.getProgress(),
-        }));
-
-      return new Response(JSON.stringify({ sessions: userSessions }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const session = activeSessions.get(sessionId);
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Session not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(
-      JSON.stringify({
-        sessionId,
-        phase: session.phase,
-        started: session.started,
-        progress: session.agent.getProgress(),
-        findings: session.agent.getFindings().length,
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    log.error('Strategy status error', error as Error);
-    return new Response(JSON.stringify({ error: 'Failed to get status' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 }
