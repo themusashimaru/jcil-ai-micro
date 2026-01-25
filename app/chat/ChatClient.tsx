@@ -3033,11 +3033,14 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               replyingTo={replyingTo}
               onClearReply={() => setReplyingTo(null)}
               initialText={quickPromptText}
-              showDeepStrategy={isAdmin}
-              deepStrategyActive={isStrategyMode}
-              onDeepStrategyClick={() => {
-                if (!isStrategyMode) {
+              isAdmin={isAdmin}
+              activeAgent={isStrategyMode ? 'strategy' : null}
+              onAgentSelect={(agent) => {
+                if (agent === 'strategy' && !isStrategyMode) {
                   startDeepStrategy();
+                } else if (agent === 'research') {
+                  // Research agent handled by existing search mode
+                  // Could add dedicated research agent flow here
                 }
               }}
             />

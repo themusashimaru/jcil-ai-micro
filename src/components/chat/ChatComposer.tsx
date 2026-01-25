@@ -58,10 +58,10 @@ interface ChatComposerProps {
   replyingTo?: Message | null; // Message being replied to
   onClearReply?: () => void; // Clear the reply
   initialText?: string; // Pre-fill the input with text (for quick prompts)
-  // Deep Strategy props (admin only)
-  showDeepStrategy?: boolean;
-  deepStrategyActive?: boolean;
-  onDeepStrategyClick?: () => void;
+  // Agent props
+  isAdmin?: boolean;
+  activeAgent?: 'research' | 'strategy' | null;
+  onAgentSelect?: (agent: 'research' | 'strategy') => void;
 }
 
 /**
@@ -135,9 +135,9 @@ export function ChatComposer({
   replyingTo,
   onClearReply,
   initialText,
-  showDeepStrategy,
-  deepStrategyActive,
-  onDeepStrategyClick,
+  isAdmin,
+  activeAgent,
+  onAgentSelect,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -166,6 +166,9 @@ export function ChatComposer({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   // Track if component is mounted in browser (for portal)
   const [isMounted, setIsMounted] = useState(false);
+  // Agents dropdown state
+  const [showAgentsMenu, setShowAgentsMenu] = useState(false);
+  const agentsButtonRef = useRef<HTMLButtonElement>(null);
   // Track last applied initialText to prevent re-applying on message changes
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
@@ -245,6 +248,22 @@ export function ChatComposer({
   useEffect(() => {
     adjustTextareaHeight();
   }, [message]);
+
+  // Close agents menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        showAgentsMenu &&
+        agentsButtonRef.current &&
+        !agentsButtonRef.current.contains(e.target as Node)
+      ) {
+        setShowAgentsMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAgentsMenu]);
 
   const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
@@ -809,23 +828,22 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* Deep Strategy button - Admin only */}
-              {showDeepStrategy && (
-                <div className="flex items-center">
+              {/* Agents dropdown button */}
+              {onAgentSelect && (
+                <div className="relative flex items-center">
                   <button
-                    onClick={onDeepStrategyClick}
+                    ref={agentsButtonRef}
+                    onClick={() => setShowAgentsMenu(!showAgentsMenu)}
                     disabled={isStreaming || disabled}
                     className={`
                       disabled:opacity-50 flex items-center gap-1 transition-all text-xs px-2 py-1 rounded-lg
                       ${
-                        deepStrategyActive
+                        activeAgent
                           ? 'bg-purple-600/30 text-purple-300'
                           : 'hover:bg-purple-600/20 text-purple-400 hover:text-purple-300'
                       }
                     `}
-                    title={
-                      deepStrategyActive ? 'Strategy in progress...' : 'Launch Deep Strategy Agent'
-                    }
+                    title="Select an AI Agent"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -837,14 +855,112 @@ export function ChatComposer({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                       />
                     </svg>
-                    <span>{deepStrategyActive ? 'Strategy' : 'Strategy'}</span>
-                    {deepStrategyActive && (
+                    <span>Agents</span>
+                    {activeAgent && (
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
                     )}
+                    <svg
+                      className={`w-3 h-3 transition-transform ${showAgentsMenu ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
                   </button>
+
+                  {/* Dropdown menu */}
+                  {showAgentsMenu && (
+                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
+                      <div className="p-2 border-b border-gray-700">
+                        <p className="text-xs text-gray-400 font-medium">Select an Agent</p>
+                      </div>
+                      <div className="p-1">
+                        {/* Research Agent - Available to all */}
+                        <button
+                          onClick={() => {
+                            onAgentSelect('research');
+                            setShowAgentsMenu(false);
+                          }}
+                          className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                            activeAgent === 'research'
+                              ? 'bg-blue-600/20 text-blue-300'
+                              : 'hover:bg-gray-800 text-gray-300'
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            <svg
+                              className="w-4 h-4 text-blue-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-medium">Research Agent</p>
+                            <p className="text-xs text-gray-500">
+                              Deep web research with citations
+                            </p>
+                          </div>
+                        </button>
+
+                        {/* Deep Strategy Agent - Admin only */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => {
+                              onAgentSelect('strategy');
+                              setShowAgentsMenu(false);
+                            }}
+                            className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                              activeAgent === 'strategy'
+                                ? 'bg-purple-600/20 text-purple-300'
+                                : 'hover:bg-gray-800 text-gray-300'
+                            }`}
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-4 h-4 text-purple-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                                />
+                              </svg>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-medium">Deep Strategy Agent</p>
+                              <p className="text-xs text-gray-500">
+                                Multi-agent army for complex problems
+                              </p>
+                              <p className="text-xs text-purple-400 mt-0.5">
+                                Opus + Sonnet + Haiku
+                              </p>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
