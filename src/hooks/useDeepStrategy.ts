@@ -73,9 +73,12 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture current ref values to avoid the cleanup warning
+    const eventSource = eventSourceRef.current;
+    const abortController = abortControllerRef.current;
     return () => {
-      eventSourceRef.current?.close();
-      abortControllerRef.current?.abort();
+      eventSource?.close();
+      abortController?.abort();
     };
   }, []);
 
@@ -170,50 +173,6 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   );
 
   /**
-   * Send input during intake phase
-   */
-  const sendIntakeInput = useCallback(
-    async (input: string) => {
-      if (phase !== 'intake' || !sessionId) return;
-
-      setIsLoading(true);
-
-      // Add user message to history
-      setIntakeMessages((prev) => [...prev, { role: 'user', content: input }]);
-
-      try {
-        const response = await fetch('/api/strategy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'input', sessionId, input }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to process input');
-        }
-
-        const data = await response.json();
-
-        // Add assistant response
-        setIntakeMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
-
-        // Check if intake is complete
-        if (data.isComplete) {
-          // Automatically start execution
-          await executeStrategy();
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setPhase('error');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [phase, sessionId]
-  );
-
-  /**
    * Execute the strategy after intake
    */
   const executeStrategy = useCallback(async () => {
@@ -302,6 +261,50 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
       setIsLoading(false);
     }
   }, [sessionId]);
+
+  /**
+   * Send input during intake phase
+   */
+  const sendIntakeInput = useCallback(
+    async (input: string) => {
+      if (phase !== 'intake' || !sessionId) return;
+
+      setIsLoading(true);
+
+      // Add user message to history
+      setIntakeMessages((prev) => [...prev, { role: 'user', content: input }]);
+
+      try {
+        const response = await fetch('/api/strategy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'input', sessionId, input }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to process input');
+        }
+
+        const data = await response.json();
+
+        // Add assistant response
+        setIntakeMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+
+        // Check if intake is complete
+        if (data.isComplete) {
+          // Automatically start execution
+          await executeStrategy();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setPhase('error');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [phase, sessionId, executeStrategy]
+  );
 
   /**
    * Cancel the current strategy
