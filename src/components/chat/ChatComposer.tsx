@@ -58,6 +58,10 @@ interface ChatComposerProps {
   replyingTo?: Message | null; // Message being replied to
   onClearReply?: () => void; // Clear the reply
   initialText?: string; // Pre-fill the input with text (for quick prompts)
+  // Deep Strategy props (admin only)
+  showDeepStrategy?: boolean;
+  deepStrategyActive?: boolean;
+  onDeepStrategyClick?: () => void;
 }
 
 /**
@@ -131,6 +135,9 @@ export function ChatComposer({
   replyingTo,
   onClearReply,
   initialText,
+  showDeepStrategy,
+  deepStrategyActive,
+  onDeepStrategyClick,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -798,6 +805,45 @@ export function ChatComposer({
                     title="Click to deactivate Deep Research"
                   >
                     <span>Deep Research</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Deep Strategy button - Admin only */}
+              {showDeepStrategy && (
+                <div className="flex items-center">
+                  <button
+                    onClick={onDeepStrategyClick}
+                    disabled={isStreaming || disabled}
+                    className={`
+                      disabled:opacity-50 flex items-center gap-1 transition-all text-xs px-2 py-1 rounded-lg
+                      ${
+                        deepStrategyActive
+                          ? 'bg-purple-600/30 text-purple-300'
+                          : 'hover:bg-purple-600/20 text-purple-400 hover:text-purple-300'
+                      }
+                    `}
+                    title={
+                      deepStrategyActive ? 'Strategy in progress...' : 'Launch Deep Strategy Agent'
+                    }
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                    <span>{deepStrategyActive ? 'Strategy' : 'Strategy'}</span>
+                    {deepStrategyActive && (
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    )}
                   </button>
                 </div>
               )}
