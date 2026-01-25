@@ -1116,12 +1116,18 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       }
 
       // Get session ID from response header
+      // Note: The API returns an SSE stream, not JSON, so we can only use the header
       const sessionId = response.headers.get('X-Session-Id');
-      if (sessionId) {
-        setStrategySessionId(sessionId);
-        setIsStrategyMode(true);
-        setStrategyPhase('intake');
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server. Check API response headers.');
       }
+
+      setStrategySessionId(sessionId);
+      setIsStrategyMode(true);
+      setStrategyPhase('intake');
+
+      log.debug('Strategy mode activated', { sessionId });
     } catch (error) {
       log.error('Failed to start strategy:', error as Error);
       const errorMessage: Message = {
@@ -3034,13 +3040,11 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               initialText={quickPromptText}
               isAdmin={isAdmin}
               activeAgent={isStrategyMode ? 'strategy' : null}
-              onAgentSelect={(agent) => {
+              onAgentSelect={async (agent) => {
                 if (agent === 'strategy' && !isStrategyMode) {
-                  startDeepStrategy();
-                } else if (agent === 'research') {
-                  // Research agent handled by existing search mode
-                  // Could add dedicated research agent flow here
+                  await startDeepStrategy();
                 }
+                // Research agent handled by toolMode toggle in ChatComposer
               }}
             />
             {/* Voice Button - Hidden until feature is production-ready
