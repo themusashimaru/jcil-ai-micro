@@ -1,0 +1,470 @@
+/**
+ * MASTER ARCHITECT - Self-Designing Agent Creator
+ *
+ * Uses Opus 4.5 to design a perfect team of specialized agents
+ * based on the user's synthesized problem.
+ *
+ * This is where the magic happens - the AI designs AI agents in real-time.
+ */
+
+import Anthropic from '@anthropic-ai/sdk';
+import type {
+  SynthesizedProblem,
+  AgentBlueprint,
+  AgentHierarchy,
+  MasterArchitectState,
+  ProjectManagerState,
+  QualityControlState,
+  StrategyStreamCallback,
+  StrategyLimits,
+  ModelTier,
+  ResearchApproach,
+  OutputFormat,
+} from './types';
+import { CLAUDE_OPUS_45, MASTER_ARCHITECT_PROMPT, DEFAULT_LIMITS } from './constants';
+import { logger } from '@/lib/logger';
+
+const log = logger('MasterArchitect');
+
+// =============================================================================
+// ARCHITECT OUTPUT TYPES
+// =============================================================================
+
+interface ArchitectDesign {
+  projectManagers: ProjectManagerBlueprint[];
+  scouts: AgentBlueprint[];
+  estimatedTotalSearches: number;
+  estimatedCost: number;
+  rationale: string;
+}
+
+interface ProjectManagerBlueprint {
+  id: string;
+  name: string;
+  domain: string;
+  purpose: string;
+  focusAreas: string[];
+  expectedScouts: number;
+  priority: number;
+}
+
+// =============================================================================
+// MASTER ARCHITECT CLASS
+// =============================================================================
+
+export class MasterArchitect {
+  private client: Anthropic;
+  private onStream?: StrategyStreamCallback;
+  private model = CLAUDE_OPUS_45;
+  private limits: StrategyLimits;
+  private state: MasterArchitectState;
+
+  constructor(
+    client: Anthropic,
+    limits: StrategyLimits = DEFAULT_LIMITS,
+    onStream?: StrategyStreamCallback
+  ) {
+    this.client = client;
+    this.limits = limits;
+    this.onStream = onStream;
+    this.state = {
+      status: 'pending',
+      blueprintsCreated: 0,
+      lastAction: 'Initialized',
+    };
+  }
+
+  // ===========================================================================
+  // PUBLIC METHODS
+  // ===========================================================================
+
+  /**
+   * Design the agent army based on the synthesized problem
+   */
+  async designAgents(problem: SynthesizedProblem): Promise<AgentHierarchy> {
+    this.state.status = 'initializing';
+    this.state.lastAction = 'Analyzing problem';
+    this.emitEvent('architect_designing', 'Master Architect analyzing problem...');
+
+    try {
+      // Generate the agent design using Opus
+      const design = await this.generateDesign(problem);
+
+      this.state.lastAction = 'Creating blueprints';
+      this.emitEvent('architect_designing', `Creating ${design.scouts.length} agent blueprints...`);
+
+      // Validate and adjust design to fit within limits
+      const adjustedDesign = this.adjustDesignToLimits(design);
+
+      // Build the hierarchy
+      const hierarchy = this.buildHierarchy(adjustedDesign, problem);
+
+      this.state.status = 'complete';
+      this.state.blueprintsCreated = adjustedDesign.scouts.length;
+      this.state.lastAction = `Designed ${adjustedDesign.scouts.length} agents`;
+
+      log.info('Agent design complete', {
+        projectManagers: adjustedDesign.projectManagers.length,
+        scouts: adjustedDesign.scouts.length,
+        estimatedSearches: adjustedDesign.estimatedTotalSearches,
+        estimatedCost: adjustedDesign.estimatedCost,
+      });
+
+      return hierarchy;
+    } catch (error) {
+      this.state.status = 'failed';
+      this.state.lastAction = 'Design failed';
+      log.error('Failed to design agents', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current state
+   */
+  getState(): MasterArchitectState {
+    return { ...this.state };
+  }
+
+  // ===========================================================================
+  // PRIVATE METHODS
+  // ===========================================================================
+
+  /**
+   * Generate agent design using Opus 4.5
+   */
+  private async generateDesign(problem: SynthesizedProblem): Promise<ArchitectDesign> {
+    const prompt = MASTER_ARCHITECT_PROMPT.replace(
+      '{SYNTHESIZED_PROBLEM}',
+      JSON.stringify(problem, null, 2)
+    );
+
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 8192,
+      temperature: 0.7,
+      system: prompt,
+      messages: [
+        {
+          role: 'user',
+          content: `Design the agent team for this problem. Be specific and comprehensive. Output valid JSON.`,
+        },
+      ],
+    });
+
+    const textContent = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
+
+    // Extract JSON from response
+    const design = this.parseDesignResponse(textContent);
+
+    return design;
+  }
+
+  /**
+   * Parse the design response JSON
+   */
+  private parseDesignResponse(response: string): ArchitectDesign {
+    // Look for JSON block
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonText = jsonMatch ? jsonMatch[1] : response;
+
+    try {
+      const parsed = JSON.parse(jsonText);
+
+      // Validate and normalize
+      return {
+        projectManagers: this.normalizeProjectManagers(parsed.projectManagers || []),
+        scouts: this.normalizeScouts(parsed.scouts || []),
+        estimatedTotalSearches: Number(parsed.estimatedTotalSearches) || 100,
+        estimatedCost: Number(parsed.estimatedCost) || 5.0,
+        rationale: String(parsed.rationale || ''),
+      };
+    } catch (error) {
+      log.error('Failed to parse design JSON', { error, responsePreview: response.slice(0, 500) });
+
+      // Return a minimal fallback design
+      return this.createFallbackDesign();
+    }
+  }
+
+  /**
+   * Normalize project manager blueprints
+   */
+  private normalizeProjectManagers(raw: unknown[]): ProjectManagerBlueprint[] {
+    return raw.map((item, index) => {
+      const pm = item as Record<string, unknown>;
+      return {
+        id: String(pm.id || `pm_${index}`),
+        name: String(pm.name || `Project Manager ${index + 1}`),
+        domain: String(pm.domain || 'General'),
+        purpose: String(pm.purpose || ''),
+        focusAreas: Array.isArray(pm.focusAreas) ? pm.focusAreas.map(String) : [],
+        expectedScouts: Number(pm.expectedScouts) || 10,
+        priority: Number(pm.priority) || 5,
+      };
+    });
+  }
+
+  /**
+   * Normalize scout blueprints
+   */
+  private normalizeScouts(raw: unknown[]): AgentBlueprint[] {
+    return raw.map((item, index) => {
+      const scout = item as Record<string, unknown>;
+      return {
+        id: String(scout.id || `scout_${index}`),
+        name: String(scout.name || `Scout ${index + 1}`),
+        role: String(scout.role || 'Research specialist'),
+        expertise: Array.isArray(scout.expertise) ? scout.expertise.map(String) : [],
+        purpose: String(scout.purpose || ''),
+        keyQuestions: Array.isArray(scout.keyQuestions) ? scout.keyQuestions.map(String) : [],
+        researchApproach: this.normalizeResearchApproach(scout.researchApproach),
+        dataSources: Array.isArray(scout.dataSources) ? scout.dataSources.map(String) : [],
+        searchQueries: Array.isArray(scout.searchQueries) ? scout.searchQueries.map(String) : [],
+        deliverable: String(scout.deliverable || 'Research report'),
+        outputFormat: this.normalizeOutputFormat(scout.outputFormat),
+        modelTier: this.normalizeModelTier(scout.modelTier),
+        priority: Number(scout.priority) || 5,
+        estimatedSearches: Number(scout.estimatedSearches) || 3,
+        parentId: scout.parentId ? String(scout.parentId) : undefined,
+        depth: Number(scout.depth) || 1,
+        canSpawnChildren: Boolean(scout.canSpawnChildren),
+        maxChildren: Number(scout.maxChildren) || 3,
+      };
+    });
+  }
+
+  /**
+   * Normalize research approach
+   */
+  private normalizeResearchApproach(raw: unknown): ResearchApproach {
+    const value = String(raw).toLowerCase();
+    const valid: ResearchApproach[] = [
+      'broad_scan',
+      'deep_dive',
+      'comparative',
+      'risk_analysis',
+      'opportunity_scan',
+      'validation',
+      'synthesis',
+    ];
+    return valid.includes(value as ResearchApproach) ? (value as ResearchApproach) : 'deep_dive';
+  }
+
+  /**
+   * Normalize output format
+   */
+  private normalizeOutputFormat(raw: unknown): OutputFormat {
+    const value = String(raw).toLowerCase();
+    const valid: OutputFormat[] = [
+      'summary',
+      'bullet_points',
+      'comparison_matrix',
+      'swot_analysis',
+      'risk_assessment',
+      'recommendation',
+      'action_plan',
+      'data_table',
+    ];
+    return valid.includes(value as OutputFormat) ? (value as OutputFormat) : 'summary';
+  }
+
+  /**
+   * Normalize model tier
+   */
+  private normalizeModelTier(raw: unknown): ModelTier {
+    const value = String(raw).toLowerCase();
+    if (value === 'opus' || value === 'sonnet' || value === 'haiku') {
+      return value;
+    }
+    return 'haiku'; // Default scouts to Haiku for cost efficiency
+  }
+
+  /**
+   * Adjust design to fit within limits
+   */
+  private adjustDesignToLimits(design: ArchitectDesign): ArchitectDesign {
+    let scouts = [...design.scouts];
+    let totalSearches = design.estimatedTotalSearches;
+
+    // Cap scouts at max limit
+    if (scouts.length > this.limits.maxScouts) {
+      log.warn('Capping scouts', { original: scouts.length, max: this.limits.maxScouts });
+      // Keep highest priority scouts
+      scouts = scouts.sort((a, b) => b.priority - a.priority).slice(0, this.limits.maxScouts);
+      totalSearches = scouts.reduce((sum, s) => sum + s.estimatedSearches, 0);
+    }
+
+    // Cap total searches
+    if (totalSearches > this.limits.maxSearches) {
+      log.warn('Capping searches', { original: totalSearches, max: this.limits.maxSearches });
+      const ratio = this.limits.maxSearches / totalSearches;
+      scouts = scouts.map((s) => ({
+        ...s,
+        estimatedSearches: Math.max(1, Math.floor(s.estimatedSearches * ratio)),
+      }));
+      totalSearches = scouts.reduce((sum, s) => sum + s.estimatedSearches, 0);
+    }
+
+    // Recalculate estimated cost
+    const estimatedCost = this.estimateCost(
+      design.projectManagers.length,
+      scouts.length,
+      totalSearches
+    );
+
+    return {
+      ...design,
+      scouts,
+      estimatedTotalSearches: totalSearches,
+      estimatedCost,
+    };
+  }
+
+  /**
+   * Estimate cost based on design
+   */
+  private estimateCost(pmCount: number, scoutCount: number, searchCount: number): number {
+    // Opus (architect + final synthesis): ~$1.50
+    const opusCost = 1.5;
+
+    // Sonnet (PMs): ~$0.05 per PM
+    const sonnetCost = pmCount * 0.05;
+
+    // Haiku (scouts): ~$0.02 per scout
+    const haikuCost = scoutCount * 0.02;
+
+    // Brave searches: $0.005 per search
+    const searchCost = searchCount * 0.005;
+
+    return opusCost + sonnetCost + haikuCost + searchCost;
+  }
+
+  /**
+   * Create fallback design when parsing fails
+   */
+  private createFallbackDesign(): ArchitectDesign {
+    return {
+      projectManagers: [
+        {
+          id: 'pm_general',
+          name: 'General Research Director',
+          domain: 'General Research',
+          purpose: 'Coordinate general research',
+          focusAreas: ['Comprehensive analysis'],
+          expectedScouts: 10,
+          priority: 1,
+        },
+      ],
+      scouts: Array.from({ length: 10 }, (_, i) => ({
+        id: `scout_${i}`,
+        name: `Research Scout ${i + 1}`,
+        role: 'General researcher',
+        expertise: ['General research'],
+        purpose: 'Research the problem',
+        keyQuestions: ['What are the key factors?'],
+        researchApproach: 'deep_dive' as ResearchApproach,
+        dataSources: ['Web search'],
+        searchQueries: [`Research topic ${i + 1}`],
+        deliverable: 'Research findings',
+        outputFormat: 'summary' as OutputFormat,
+        modelTier: 'haiku' as ModelTier,
+        priority: 5,
+        estimatedSearches: 3,
+        parentId: 'pm_general',
+        depth: 1,
+        canSpawnChildren: false,
+        maxChildren: 0,
+      })),
+      estimatedTotalSearches: 30,
+      estimatedCost: 2.0,
+      rationale: 'Fallback design due to parsing error',
+    };
+  }
+
+  /**
+   * Build the full agent hierarchy
+   */
+  private buildHierarchy(design: ArchitectDesign, _problem: SynthesizedProblem): AgentHierarchy {
+    // Create project manager states
+    const projectManagers: ProjectManagerState[] = design.projectManagers.map((pm) => ({
+      id: pm.id,
+      name: pm.name,
+      domain: pm.domain,
+      status: 'pending',
+      assignedScouts: design.scouts.filter((s) => s.parentId === pm.id).map((s) => s.id),
+      completedScouts: 0,
+      findings: [],
+    }));
+
+    // Ensure all scouts have a parent
+    const scouts = design.scouts.map((scout) => {
+      if (!scout.parentId) {
+        // Assign to first PM if no parent specified
+        scout.parentId = projectManagers[0]?.id;
+      }
+      return scout;
+    });
+
+    // Update PM assigned scouts
+    for (const pm of projectManagers) {
+      pm.assignedScouts = scouts.filter((s) => s.parentId === pm.id).map((s) => s.id);
+    }
+
+    const qualityControl: QualityControlState = {
+      status: 'pending',
+      issuesFound: [],
+      killSwitchTriggered: false,
+      overallQualityScore: 1.0,
+      lastCheck: Date.now(),
+    };
+
+    return {
+      masterArchitect: this.state,
+      qualityControl,
+      projectManagers,
+      scouts: [], // Will be populated as scouts are spawned
+      totalAgents: scouts.length + projectManagers.length + 2, // +2 for architect and QC
+      activeAgents: 0,
+      completedAgents: 0,
+      failedAgents: 0,
+    };
+  }
+
+  /**
+   * Get the scout blueprints (for execution)
+   */
+  async getScoutBlueprints(problem: SynthesizedProblem): Promise<AgentBlueprint[]> {
+    const design = await this.generateDesign(problem);
+    const adjusted = this.adjustDesignToLimits(design);
+    return adjusted.scouts;
+  }
+
+  /**
+   * Emit a stream event
+   */
+  private emitEvent(type: 'architect_designing', message: string): void {
+    if (this.onStream) {
+      this.onStream({
+        type,
+        message,
+        timestamp: Date.now(),
+      });
+    }
+  }
+}
+
+// =============================================================================
+// FACTORY FUNCTION
+// =============================================================================
+
+export function createMasterArchitect(
+  client: Anthropic,
+  limits?: StrategyLimits,
+  onStream?: StrategyStreamCallback
+): MasterArchitect {
+  return new MasterArchitect(client, limits, onStream);
+}

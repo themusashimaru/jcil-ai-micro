@@ -53,6 +53,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
 import { RepoSelector } from '@/components/chat/RepoSelector';
+import { DeepStrategyModal, DeepStrategyProgress } from '@/components/chat/DeepStrategy';
+import { useDeepStrategy } from '@/hooks/useDeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Chat, Message, Attachment } from './types';
 
@@ -141,6 +143,10 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Deep Strategy Agent state
+  const [showDeepStrategyModal, setShowDeepStrategyModal] = useState(false);
+  const [showDeepStrategyProgress, setShowDeepStrategyProgress] = useState(false);
+  const deepStrategy = useDeepStrategy();
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -529,10 +535,10 @@ export function ChatClient() {
 
       // Always check for pending requests - the server will tell us if there's nothing to process
       // This catches both "waiting for reply" AND "incomplete streaming response" cases
-      const shouldCheckPending = lastMessage && (
-        lastMessage.role === 'user' || // Obvious case: waiting for reply
-        (lastMessage.role === 'assistant' && !isStreamingRef.current) // Could be incomplete
-      );
+      const shouldCheckPending =
+        lastMessage &&
+        (lastMessage.role === 'user' || // Obvious case: waiting for reply
+          (lastMessage.role === 'assistant' && !isStreamingRef.current)); // Could be incomplete
 
       if (shouldCheckPending) {
         log.debug('Checking for pending request...', { lastRole: lastMessage.role });
@@ -2391,7 +2397,9 @@ export function ChatClient() {
         // CRITICAL FIX: Save partial content before returning
         // This prevents data loss when user navigates away during streaming
         if (finalContent && finalContent.length > 0) {
-          log.debug('Saving partial content before abort cleanup', { contentLength: finalContent.length });
+          log.debug('Saving partial content before abort cleanup', {
+            contentLength: finalContent.length,
+          });
           try {
             await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
           } catch (saveErr) {
@@ -2438,7 +2446,8 @@ export function ChatClient() {
         log.debug('Context exhaustion detected, triggering automatic continuation');
         // Trigger automatic continuation
         handleChatContinuation().catch((e) => log.error('Auto-continuation failed:', e));
-        errorContent = 'This conversation has reached its context limit. Creating a new chat with your conversation summary...';
+        errorContent =
+          'This conversation has reached its context limit. Creating a new chat with your conversation summary...';
         // Early return - the continuation will handle the rest
         const contextErrorMessage: Message = {
           id: crypto.randomUUID(),
@@ -2663,6 +2672,15 @@ export function ChatClient() {
               replyingTo={replyingTo}
               onClearReply={() => setReplyingTo(null)}
               initialText={quickPromptText}
+              showDeepStrategy={isAdmin}
+              deepStrategyActive={deepStrategy.phase !== 'idle'}
+              onDeepStrategyClick={() => {
+                if (deepStrategy.phase === 'idle') {
+                  setShowDeepStrategyModal(true);
+                } else {
+                  setShowDeepStrategyProgress(true);
+                }
+              }}
             />
             {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
@@ -2692,6 +2710,134 @@ export function ChatClient() {
 
         {/* GitHub Repo Selector Modal - for code push to GitHub */}
         <RepoSelectorWrapper />
+
+        {/* Deep Strategy Modal - Admin Only */}
+        {isAdmin && (
+          <>
+            <DeepStrategyModal
+              isOpen={showDeepStrategyModal}
+              onClose={() => setShowDeepStrategyModal(false)}
+              onStart={async () => {
+                setShowDeepStrategyModal(false);
+                setShowDeepStrategyProgress(true);
+                await deepStrategy.startStrategy();
+              }}
+            />
+
+            {/* Deep Strategy Progress Panel */}
+            {showDeepStrategyProgress && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+                  <DeepStrategyProgress
+                    events={deepStrategy.events}
+                    isComplete={
+                      deepStrategy.phase === 'complete' ||
+                      deepStrategy.phase === 'error' ||
+                      deepStrategy.phase === 'cancelled'
+                    }
+                    onCancel={() => {
+                      deepStrategy.cancelStrategy();
+                      setShowDeepStrategyProgress(false);
+                      deepStrategy.reset();
+                    }}
+                  />
+                  {/* Intake conversation during intake phase */}
+                  {deepStrategy.phase === 'intake' && (
+                    <div className="mt-4 bg-gray-900 rounded-xl border border-gray-800 p-4">
+                      <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
+                        {deepStrategy.intakeMessages.map((msg, i) => (
+                          <div
+                            key={i}
+                            className={`p-3 rounded-lg ${
+                              msg.role === 'assistant'
+                                ? 'bg-purple-900/30 text-purple-100'
+                                : 'bg-gray-800 text-white ml-8'
+                            }`}
+                          >
+                            {msg.content}
+                          </div>
+                        ))}
+                      </div>
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const form = e.target as HTMLFormElement;
+                          const input = form.elements.namedItem('intake-input') as HTMLInputElement;
+                          if (input.value.trim()) {
+                            await deepStrategy.sendIntakeInput(input.value);
+                            input.value = '';
+                          }
+                        }}
+                        className="flex gap-2"
+                      >
+                        <input
+                          name="intake-input"
+                          type="text"
+                          placeholder="Share your situation..."
+                          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          disabled={deepStrategy.isLoading}
+                        />
+                        <button
+                          type="submit"
+                          disabled={deepStrategy.isLoading}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium disabled:opacity-50"
+                        >
+                          {deepStrategy.isLoading ? 'Thinking...' : 'Send'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                  {/* Result display when complete */}
+                  {deepStrategy.phase === 'complete' && deepStrategy.result && (
+                    <div className="mt-4 bg-gray-900 rounded-xl border border-gray-800 p-6">
+                      <h3 className="text-xl font-bold text-white mb-4">
+                        {deepStrategy.result.recommendation.title}
+                      </h3>
+                      <p className="text-gray-300 mb-4">
+                        {deepStrategy.result.recommendation.summary}
+                      </p>
+                      <div className="flex items-center gap-4 mb-4">
+                        <span className="text-sm text-gray-500">
+                          Confidence: {deepStrategy.result.recommendation.confidence}%
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          Cost: ${deepStrategy.result.metadata.totalCost.toFixed(2)}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          Agents: {deepStrategy.result.metadata.totalAgents}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowDeepStrategyProgress(false);
+                          deepStrategy.reset();
+                        }}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )}
+                  {/* Error display */}
+                  {deepStrategy.error && (
+                    <div className="mt-4 bg-red-900/30 border border-red-700 rounded-xl p-4">
+                      <p className="text-red-300">{deepStrategy.error}</p>
+                      <button
+                        onClick={() => {
+                          setShowDeepStrategyProgress(false);
+                          deepStrategy.reset();
+                        }}
+                        className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </CodeExecutionProvider>
   );

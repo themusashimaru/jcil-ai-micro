@@ -2,18 +2,18 @@
  * TYPING INDICATOR COMPONENT
  *
  * PURPOSE:
- * - Show INTELLIGENT loading messages while AI is processing
- * - Analyzes user input to show contextual status messages
- * - Cycles through relevant status updates
- * - Provides visual feedback during streaming
+ * - Show INTELLIGENT, CONTEXT-AWARE loading messages while AI is processing
+ * - Extracts the actual TOPIC from user's query and incorporates it
+ * - Like ChatGPT/Claude - shows what it's actually doing
+ * - Provides engaging visual feedback during streaming
  *
  * INTELLIGENT MESSAGE SELECTION:
- * - Website generation: Shows logo, layout, design progress
- * - Image generation: Shows artistic process
- * - Documents: Shows formatting/export progress
- * - Code: Shows syntax analysis
- * - Search: Shows research progress
- * - Default: Professional generic messages
+ * - Extracts key topics/subjects from user query
+ * - Search: "Searching for [topic]...", "Analyzing [topic]..."
+ * - Website: Shows industry-specific progress
+ * - Documents: Shows formatting progress
+ * - Research: Shows research phases with topics
+ * - Default: Uses extracted topic in generic messages
  */
 
 'use client';
@@ -56,23 +56,160 @@ const DOCUMENT_MESSAGES: Record<string, string[]> = {
   ],
 };
 
-// Generic fallback messages
-const GENERIC_MESSAGES = [
-  'Analyzing your request...',
-  'Processing information...',
-  'Synthesizing response...',
-  'Generating insights...',
-  'Crafting your answer...',
-  'Almost there...',
-];
+/**
+ * Extract the main topic/subject from a user query
+ * This is what makes the messages intelligent
+ */
+function extractTopic(message: string): string {
+  if (!message) return '';
+
+  // Remove common question starters and clean up
+  const cleaned = message
+    .replace(
+      /^(can you |please |i want to |i need to |help me |tell me |what is |what are |who is |who are |where is |where are |when is |when are |how to |how do |how does |how can |why is |why are |explain |describe |find |search |research |look up |give me |show me |get me )/i,
+      ''
+    )
+    .replace(/\?$/, '')
+    .trim();
+
+  // Extract the core subject (usually first 3-6 meaningful words)
+  const words = cleaned.split(/\s+/);
+
+  // Filter out filler words
+  const fillerWords = new Set([
+    'the',
+    'a',
+    'an',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'shall',
+    'can',
+    'need',
+    'dare',
+    'ought',
+    'used',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'about',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'under',
+    'again',
+    'further',
+    'then',
+    'once',
+    'here',
+    'there',
+    'when',
+    'where',
+    'why',
+    'how',
+    'all',
+    'each',
+    'few',
+    'more',
+    'most',
+    'other',
+    'some',
+    'such',
+    'no',
+    'nor',
+    'not',
+    'only',
+    'own',
+    'same',
+    'so',
+    'than',
+    'too',
+    'very',
+    'just',
+    'and',
+    'but',
+    'if',
+    'or',
+    'because',
+    'as',
+    'until',
+    'while',
+    'although',
+    'i',
+    'me',
+    'my',
+    'myself',
+    'we',
+    'our',
+    'ours',
+    'you',
+    'your',
+    'yours',
+    'it',
+    'its',
+    'itself',
+    'they',
+    'them',
+    'their',
+    'this',
+    'that',
+    'these',
+    'those',
+  ]);
+
+  // Get meaningful words (up to 5)
+  const meaningfulWords = words
+    .filter((w) => !fillerWords.has(w.toLowerCase()) && w.length > 2)
+    .slice(0, 5);
+
+  if (meaningfulWords.length === 0) {
+    // Fallback: just use first few words
+    return words.slice(0, 3).join(' ');
+  }
+
+  // Capitalize first letter of result
+  const topic = meaningfulWords.join(' ');
+  return topic.charAt(0).toUpperCase() + topic.slice(1).toLowerCase();
+}
 
 /**
  * Generate intelligent status messages based on user input
+ * NOW WITH DYNAMIC TOPIC EXTRACTION
  */
 function getIntelligentMessages(userMessage: string): string[] {
-  if (!userMessage) return GENERIC_MESSAGES;
+  if (!userMessage) return getGenericMessages('');
 
   const msg = userMessage.toLowerCase();
+  const topic = extractTopic(userMessage);
+  const shortTopic = topic.length > 30 ? topic.substring(0, 30) + '...' : topic;
 
   // Website generation
   if (msg.match(/website|landing\s*page|web\s*page|site\s+for|build.*site/i)) {
@@ -107,37 +244,119 @@ function getIntelligentMessages(userMessage: string): string[] {
   }
 
   // Image generation
-  if (msg.match(/generate.*image|create.*image|draw|design|logo|illustration|picture of/i)) {
+  if (msg.match(/generate.*image|create.*image|draw|design.*logo|illustration|picture of/i)) {
     return [
-      'Analyzing your vision...',
-      'Generating artistic concepts...',
-      'Applying creative direction...',
-      'Refining visual details...',
-      'Enhancing composition...',
-      'Finalizing your image...',
+      `Visualizing "${shortTopic}"...`,
+      `Generating artistic concepts...`,
+      `Applying creative direction...`,
+      `Refining visual details...`,
+      `Enhancing composition...`,
+      `Finalizing your image...`,
     ];
   }
 
   // Code generation
   if (msg.match(/code|function|component|implement|write.*script|debug|fix.*bug/i)) {
     return [
-      'Analyzing requirements...',
-      'Designing solution architecture...',
-      'Writing clean code...',
-      'Adding best practices...',
-      'Testing edge cases...',
-      'Optimizing performance...',
+      `Analyzing ${shortTopic} requirements...`,
+      `Designing solution architecture...`,
+      `Writing clean code...`,
+      `Adding best practices...`,
+      `Testing edge cases...`,
+      `Optimizing performance...`,
     ];
   }
 
-  // Research/search
-  if (msg.match(/search|find|research|look up|what is|who is|explain|tell me about/i)) {
+  // Research/deep research
+  if (msg.match(/research|investigate|deep dive|comprehensive|analyze|study/i)) {
     return [
-      'Searching knowledge base...',
-      'Gathering relevant sources...',
-      'Cross-referencing information...',
-      'Synthesizing findings...',
-      'Preparing comprehensive answer...',
+      `Researching "${shortTopic}"...`,
+      `Gathering multiple sources...`,
+      `Analyzing ${shortTopic} data...`,
+      `Cross-referencing findings...`,
+      `Evaluating source quality...`,
+      `Synthesizing insights on ${shortTopic}...`,
+      `Preparing comprehensive report...`,
+    ];
+  }
+
+  // Search/lookup - MAKE VERY SPECIFIC
+  if (msg.match(/search|find|look up|what is|who is|what are|who are|tell me about|explain/i)) {
+    return [
+      `Searching for "${shortTopic}"...`,
+      `Finding information on ${shortTopic}...`,
+      `Gathering relevant data...`,
+      `Analyzing ${shortTopic} details...`,
+      `Synthesizing response...`,
+    ];
+  }
+
+  // Questions about places
+  if (
+    msg.match(
+      /where|location|travel|visit|country|city|state|region|destination|trip|vacation|hotel/i
+    )
+  ) {
+    return [
+      `Searching for ${shortTopic}...`,
+      `Finding location information...`,
+      `Gathering travel details...`,
+      `Checking relevant facts...`,
+      `Preparing your answer...`,
+    ];
+  }
+
+  // Questions about people
+  if (msg.match(/who is|who was|person|ceo|founder|actor|singer|president|leader/i)) {
+    return [
+      `Looking up ${shortTopic}...`,
+      `Finding biographical info...`,
+      `Gathering relevant details...`,
+      `Verifying information...`,
+      `Preparing response...`,
+    ];
+  }
+
+  // Questions about products/services
+  if (msg.match(/price|cost|buy|purchase|product|service|best|top|recommend|review/i)) {
+    return [
+      `Searching for ${shortTopic}...`,
+      `Comparing options...`,
+      `Analyzing ${shortTopic} details...`,
+      `Evaluating recommendations...`,
+      `Preparing your answer...`,
+    ];
+  }
+
+  // Weather
+  if (msg.match(/weather|temperature|forecast|rain|snow|sunny|cloudy|storm/i)) {
+    return [
+      `Checking weather for ${shortTopic}...`,
+      `Fetching forecast data...`,
+      `Analyzing conditions...`,
+      `Preparing weather report...`,
+    ];
+  }
+
+  // Sports
+  if (msg.match(/score|game|match|nfl|nba|mlb|nhl|soccer|football|basketball|team|player/i)) {
+    return [
+      `Looking up ${shortTopic}...`,
+      `Fetching sports data...`,
+      `Checking latest scores...`,
+      `Gathering team info...`,
+      `Preparing your answer...`,
+    ];
+  }
+
+  // Stocks/finance
+  if (msg.match(/stock|share|market|invest|price|nasdaq|nyse|crypto|bitcoin|ethereum/i)) {
+    return [
+      `Fetching ${shortTopic} data...`,
+      `Analyzing market info...`,
+      `Checking latest prices...`,
+      `Gathering financial data...`,
+      `Preparing your answer...`,
     ];
   }
 
@@ -155,20 +374,20 @@ function getIntelligentMessages(userMessage: string): string[] {
   // Business/marketing
   if (msg.match(/business plan|marketing|strategy|pitch|proposal/i)) {
     return [
-      'Analyzing market dynamics...',
-      'Researching industry standards...',
-      'Developing strategic recommendations...',
+      `Analyzing ${shortTopic}...`,
+      'Researching market dynamics...',
+      'Developing recommendations...',
       'Crafting compelling narrative...',
       'Finalizing your plan...',
     ];
   }
 
   // Translation
-  if (msg.match(/translate|translation|spanish|french|chinese|japanese|german/i)) {
+  if (msg.match(/translate|translation|spanish|french|chinese|japanese|german|korean/i)) {
     return [
       'Analyzing source text...',
       'Understanding context...',
-      'Translating with nuance...',
+      `Translating "${shortTopic}"...`,
       'Preserving meaning...',
       'Finalizing translation...',
     ];
@@ -177,7 +396,7 @@ function getIntelligentMessages(userMessage: string): string[] {
   // Math/calculations
   if (msg.match(/calculate|math|equation|solve|formula/i)) {
     return [
-      'Parsing the problem...',
+      `Parsing ${shortTopic}...`,
       'Applying formulas...',
       'Computing results...',
       'Verifying calculations...',
@@ -185,7 +404,54 @@ function getIntelligentMessages(userMessage: string): string[] {
     ];
   }
 
-  return GENERIC_MESSAGES;
+  // How-to questions
+  if (msg.match(/how to|how do|how can|tutorial|guide|steps|instructions/i)) {
+    return [
+      `Researching "${shortTopic}"...`,
+      'Finding best practices...',
+      'Organizing steps...',
+      'Preparing instructions...',
+      'Finalizing guide...',
+    ];
+  }
+
+  // Comparison questions
+  if (msg.match(/compare|versus|vs|difference|better|which one|pros and cons/i)) {
+    return [
+      `Comparing ${shortTopic}...`,
+      'Analyzing differences...',
+      'Evaluating pros and cons...',
+      'Preparing comparison...',
+    ];
+  }
+
+  // Default: use the extracted topic in generic messages
+  return getGenericMessages(shortTopic);
+}
+
+/**
+ * Get generic messages, optionally with a topic
+ */
+function getGenericMessages(topic: string): string[] {
+  if (topic && topic.length > 3) {
+    return [
+      `Thinking about "${topic}"...`,
+      `Processing your request...`,
+      `Analyzing ${topic}...`,
+      `Gathering information...`,
+      `Synthesizing response...`,
+      `Almost there...`,
+    ];
+  }
+
+  return [
+    'Thinking...',
+    'Processing your request...',
+    'Analyzing information...',
+    'Generating response...',
+    'Crafting your answer...',
+    'Almost there...',
+  ];
 }
 
 interface TypingIndicatorProps {
