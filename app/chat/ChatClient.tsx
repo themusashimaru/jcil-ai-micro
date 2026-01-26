@@ -1071,8 +1071,13 @@ export function ChatClient() {
    * Start Deep Strategy mode - adds intro message to chat and begins intake
    */
   const startDeepStrategy = async () => {
-    if (isStrategyMode) return;
+    console.log('[startDeepStrategy] Called, isStrategyMode:', isStrategyMode);
+    if (isStrategyMode) {
+      console.log('[startDeepStrategy] Already in strategy mode, returning early');
+      return;
+    }
 
+    console.log('[startDeepStrategy] Setting isStreaming to true');
     setIsStreaming(true);
 
     // Add intro message to chat
@@ -1100,15 +1105,23 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       timestamp: new Date(),
     };
 
+    console.log('[startDeepStrategy] Adding intro message to chat');
     setMessages((prev) => [...prev, introMessage]);
 
     try {
       // Start strategy session via API
+      console.log('[startDeepStrategy] Calling /api/strategy with action: start');
       const response = await fetch('/api/strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start' }),
       });
+
+      console.log('[startDeepStrategy] Response status:', response.status, response.ok);
+      console.log(
+        '[startDeepStrategy] Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -1118,17 +1131,21 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       // Get session ID from response header
       // Note: The API returns an SSE stream, not JSON, so we can only use the header
       const sessionId = response.headers.get('X-Session-Id');
+      console.log('[startDeepStrategy] Session ID from header:', sessionId);
 
       if (!sessionId) {
         throw new Error('No session ID returned from server. Check API response headers.');
       }
 
+      console.log('[startDeepStrategy] Setting strategy states with sessionId:', sessionId);
       setStrategySessionId(sessionId);
       setIsStrategyMode(true);
       setStrategyPhase('intake');
 
       log.debug('Strategy mode activated', { sessionId });
+      console.log('[startDeepStrategy] Strategy mode activated successfully');
     } catch (error) {
+      console.error('[startDeepStrategy] Error:', error);
       log.error('Failed to start strategy:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -1140,6 +1157,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       setIsStrategyMode(false);
       setStrategyPhase('idle');
     } finally {
+      console.log('[startDeepStrategy] Setting isStreaming to false');
       setIsStreaming(false);
     }
   };
@@ -3041,8 +3059,16 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               isAdmin={isAdmin}
               activeAgent={isStrategyMode ? 'strategy' : null}
               onAgentSelect={async (agent) => {
+                console.log(
+                  '[ChatClient] onAgentSelect called with:',
+                  agent,
+                  'isStrategyMode:',
+                  isStrategyMode
+                );
                 if (agent === 'strategy' && !isStrategyMode) {
+                  console.log('[ChatClient] Starting Deep Strategy...');
                   await startDeepStrategy();
+                  console.log('[ChatClient] startDeepStrategy completed');
                 }
                 // Research agent handled by toolMode toggle in ChatComposer
               }}
