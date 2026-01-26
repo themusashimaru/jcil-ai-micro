@@ -1,8 +1,9 @@
 /**
  * SCOUT FRAMEWORK - Research Execution
  *
- * Scouts are the workers that execute research using Haiku 4.5 and Brave Search.
- * They are highly specialized and focused on specific tasks.
+ * Scouts are the workers that execute research using Haiku 4.5.
+ * They can use multiple tools: Brave Search, browser visits, code execution, screenshots.
+ * Tool use is powered by Claude's native tool calling capability.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -14,10 +15,12 @@ import type {
   SourceCitation,
   DataPoint,
   StrategyStreamCallback,
+  ScoutToolType,
 } from './types';
 import { CLAUDE_HAIKU_45, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
 import { braveWebSearch, type BraveSearchResponse, type BraveWebResult } from '@/lib/brave';
 import { logger } from '@/lib/logger';
+import { executeScoutTool, getClaudeToolDefinitions, parseClaudeToolCall } from './tools';
 
 const log = logger('Scout');
 
@@ -48,6 +51,7 @@ export class Scout {
   private onStream?: StrategyStreamCallback;
   private model: string;
   private costPerQuery = 0.005; // Brave Search cost
+  private maxToolIterations = 10; // Max tool call rounds per scout
 
   constructor(client: Anthropic, blueprint: AgentBlueprint, onStream?: StrategyStreamCallback) {
     this.client = client;
@@ -91,8 +95,13 @@ export class Scout {
       progress: 0,
     });
 
+    // Use tool-based execution if tools are specified
+    if (this.blueprint.tools && this.blueprint.tools.length > 0) {
+      return this.executeWithTools(startTime);
+    }
+
     try {
-      // Execute all search queries
+      // Legacy: Execute all search queries (for scouts without tools specified)
       const searchResults = await this.executeSearches();
 
       this.state.status = 'synthesizing';
@@ -166,6 +175,279 @@ export class Scout {
         executionTime: Date.now() - startTime,
       };
     }
+  }
+
+  /**
+   * Execute research using Claude's native tool calling
+   */
+  private async executeWithTools(startTime: number): Promise<ScoutResult> {
+    try {
+      // Get tool definitions for this scout's assigned tools
+      const allToolDefs = getClaudeToolDefinitions();
+      const toolDefs = allToolDefs.filter((t: { name: string }) =>
+        this.blueprint.tools?.includes(t.name as ScoutToolType)
+      );
+
+      log.info('Scout executing with tools', {
+        agentId: this.blueprint.id,
+        tools: this.blueprint.tools,
+      });
+
+      // Build the system prompt
+      const systemPrompt = this.buildToolSystemPrompt();
+
+      // Build the initial user message with context
+      const userMessage = this.buildToolUserMessage();
+
+      // Message history for the conversation
+      const messages: Anthropic.Messages.MessageParam[] = [{ role: 'user', content: userMessage }];
+
+      let iteration = 0;
+      let totalToolCost = 0;
+      const toolResults: Array<{ tool: string; result: unknown }> = [];
+
+      // Tool calling loop
+      while (iteration < this.maxToolIterations) {
+        iteration++;
+
+        this.state.progress = Math.round((iteration / this.maxToolIterations) * 60);
+        this.emitEvent(
+          'agent_progress',
+          `${this.blueprint.name} reasoning... (iteration ${iteration})`,
+          {
+            agentId: this.blueprint.id,
+            progress: this.state.progress,
+          }
+        );
+
+        const response = await this.client.messages.create({
+          model: this.model,
+          max_tokens: 4096,
+          temperature: 0.5,
+          system: systemPrompt,
+          tools: toolDefs as Anthropic.Messages.Tool[],
+          messages,
+        });
+
+        // Track token usage
+        this.state.tokensUsed +=
+          (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+
+        // Check if model wants to use tools
+        const toolUseBlocks = response.content.filter(
+          (block): block is Anthropic.Messages.ToolUseBlock => block.type === 'tool_use'
+        );
+
+        if (toolUseBlocks.length === 0) {
+          // No more tool calls - model is done, extract final response
+          const textContent = response.content
+            .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
+            .map((block) => block.text)
+            .join('\n');
+
+          // Parse and return findings
+          this.state.status = 'synthesizing';
+          this.state.progress = 80;
+
+          const analysisResult = this.parseAnalysisResponse(textContent);
+
+          this.state.status = 'complete';
+          this.state.progress = 100;
+          this.state.endTime = Date.now();
+          this.state.findings = analysisResult.findings;
+          this.state.costIncurred += totalToolCost;
+
+          const executionTime = Date.now() - startTime;
+
+          this.emitEvent(
+            'agent_complete',
+            `${this.blueprint.name} complete with ${analysisResult.findings.length} findings (${iteration} tool iterations)`,
+            {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+            }
+          );
+
+          log.info('Scout tool execution complete', {
+            agentId: this.blueprint.id,
+            findingsCount: analysisResult.findings.length,
+            toolIterations: iteration,
+            toolsUsed: toolResults.length,
+            executionTimeMs: executionTime,
+          });
+
+          return {
+            agentId: this.blueprint.id,
+            findings: analysisResult.findings,
+            summary: analysisResult.summary,
+            needsDeeper: analysisResult.needsDeeper,
+            childSuggestions: analysisResult.childSuggestions,
+            gaps: analysisResult.gaps,
+            searchesExecuted: this.state.searchesCompleted,
+            tokensUsed: this.state.tokensUsed,
+            executionTime,
+          };
+        }
+
+        // Execute tool calls
+        const toolResultContents: Anthropic.Messages.ToolResultBlockParam[] = [];
+
+        for (const toolUse of toolUseBlocks) {
+          this.emitEvent('search_executing', `Using ${toolUse.name}...`, {
+            agentId: this.blueprint.id,
+            searchQuery: JSON.stringify(toolUse.input).slice(0, 100),
+          });
+
+          const call = parseClaudeToolCall(toolUse.name, toolUse.input as Record<string, unknown>);
+
+          if (!call) {
+            toolResultContents.push({
+              type: 'tool_result',
+              tool_use_id: toolUse.id,
+              content: `Error: Unknown tool ${toolUse.name}`,
+              is_error: true,
+            });
+            continue;
+          }
+
+          // Execute the tool
+          const result = await executeScoutTool(call);
+          totalToolCost += result.costIncurred;
+
+          if (call.tool === 'brave_search') {
+            this.state.searchesCompleted++;
+          }
+
+          toolResults.push({ tool: toolUse.name, result: result.output });
+
+          this.emitEvent('search_complete', `${toolUse.name} complete`, {
+            agentId: this.blueprint.id,
+          });
+
+          // Format tool result for Claude
+          toolResultContents.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: JSON.stringify(result.output, null, 2).slice(0, 50000),
+            is_error: !result.success,
+          });
+        }
+
+        // Add assistant message and tool results to conversation
+        messages.push({ role: 'assistant', content: response.content });
+        messages.push({ role: 'user', content: toolResultContents });
+      }
+
+      // Max iterations reached - synthesize what we have
+      log.warn('Scout reached max tool iterations', {
+        agentId: this.blueprint.id,
+        iterations: this.maxToolIterations,
+      });
+
+      this.state.status = 'complete';
+      this.state.progress = 100;
+      this.state.endTime = Date.now();
+      this.state.costIncurred += totalToolCost;
+
+      return {
+        agentId: this.blueprint.id,
+        findings: [],
+        summary: 'Research reached maximum iterations',
+        needsDeeper: true,
+        childSuggestions: [],
+        gaps: ['Research incomplete - max iterations reached'],
+        searchesExecuted: this.state.searchesCompleted,
+        tokensUsed: this.state.tokensUsed,
+        executionTime: Date.now() - startTime,
+      };
+    } catch (error) {
+      this.state.status = 'failed';
+      this.state.endTime = Date.now();
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.state.errors.push(errMsg);
+
+      this.emitEvent('agent_failed', `${this.blueprint.name} failed: ${errMsg}`, {
+        agentId: this.blueprint.id,
+        error: errMsg,
+      });
+
+      log.error('Scout tool execution failed', { agentId: this.blueprint.id, error });
+
+      return {
+        agentId: this.blueprint.id,
+        findings: [],
+        summary: `Research failed: ${errMsg}`,
+        needsDeeper: false,
+        childSuggestions: [],
+        gaps: ['Research could not be completed'],
+        searchesExecuted: this.state.searchesCompleted,
+        tokensUsed: this.state.tokensUsed,
+        executionTime: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Build system prompt for tool-based execution
+   */
+  private buildToolSystemPrompt(): string {
+    return `You are ${this.blueprint.name}, a specialized research scout.
+
+ROLE: ${this.blueprint.role}
+EXPERTISE: ${this.blueprint.expertise.join(', ')}
+PURPOSE: ${this.blueprint.purpose}
+
+KEY QUESTIONS TO ANSWER:
+${this.blueprint.keyQuestions.map((q) => `• ${q}`).join('\n')}
+
+AVAILABLE TOOLS:
+${this.blueprint.tools?.map((t) => `• ${t}`).join('\n') || 'None'}
+
+INSTRUCTIONS:
+1. Use your tools to gather information relevant to your key questions
+2. Be strategic - don't waste tool calls on irrelevant searches
+3. When visiting URLs with browser_visit, extract specific data needed
+4. Use run_code for calculations or data processing when helpful
+5. Stop when you have enough information to answer your key questions
+
+When you have gathered sufficient information, provide your findings in this JSON format:
+\`\`\`json
+{
+  "findings": [
+    {
+      "type": "fact|insight|recommendation|warning|opportunity|comparison|data|gap",
+      "title": "Brief title",
+      "content": "Detailed content",
+      "confidence": "high|medium|low",
+      "relevanceScore": 0.0-1.0,
+      "sources": [{"title": "Source name", "url": "optional url"}]
+    }
+  ],
+  "summary": "Executive summary of findings",
+  "needsDeeper": false,
+  "gaps": ["Any information gaps identified"],
+  "childSuggestions": []
+}
+\`\`\``;
+  }
+
+  /**
+   * Build initial user message for tool-based execution
+   */
+  private buildToolUserMessage(): string {
+    let message = `Execute your research mission. Here's your context:\n\n`;
+
+    if (this.blueprint.searchQueries.length > 0) {
+      message += `SUGGESTED SEARCH QUERIES (use as starting points):\n${this.blueprint.searchQueries.map((q) => `• ${q}`).join('\n')}\n\n`;
+    }
+
+    if (this.blueprint.browserTargets && this.blueprint.browserTargets.length > 0) {
+      message += `SPECIFIC URLS TO VISIT:\n${this.blueprint.browserTargets.map((u) => `• ${u}`).join('\n')}\n\n`;
+    }
+
+    message += `Begin your research now. Use your tools to gather information, then provide your findings.`;
+
+    return message;
   }
 
   /**

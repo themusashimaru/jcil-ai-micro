@@ -173,8 +173,21 @@ AGENT HIERARCHY:
 
 2. SCOUTS (Haiku 4.5) - Up to 100 scouts doing research
    - Highly specialized for specific tasks
-   - Use Brave Search for real-time data
+   - Have access to powerful tools for research
    - Report findings to their PM
+
+SCOUT TOOLS:
+Each scout can be assigned these tools based on their research needs:
+- "brave_search" - Quick web search for facts and data (default for all scouts)
+- "browser_visit" - Visit actual websites to extract content from JavaScript-heavy pages (for real estate listings, job boards, dynamic content)
+- "run_code" - Execute Python/JavaScript for calculations, data processing, web scraping
+- "screenshot" - Capture webpage screenshots for visual analysis
+
+Assign tools strategically:
+- All scouts get brave_search by default
+- Add browser_visit for scouts researching listings, prices, or dynamic content
+- Add run_code for scouts doing financial calculations or data analysis
+- Add screenshot for scouts analyzing visual content
 
 DESIGN PRINCIPLES:
 1. SPECIFICITY - Each agent should have a narrow, specific focus
@@ -232,6 +245,8 @@ Return a JSON array of agent blueprints:
         "Jersey City PATH train commute times Manhattan",
         "Journal Square neighborhood safety walkability"
       ],
+      "tools": ["brave_search", "browser_visit"],
+      "browserTargets": ["https://www.zillow.com/journal-square-jersey-city-nj/rentals/"],
       "deliverable": "Housing options report with specific listings",
       "outputFormat": "data_table",
       "modelTier": "haiku",
@@ -253,7 +268,9 @@ IMPORTANT:
 - Be specific with search queries - they should return actionable results
 - Estimate searches accurately - this affects cost
 - Prioritize correctly - most important research first
-- Enable child spawning for scouts that might need to go deeper`;
+- Enable child spawning for scouts that might need to go deeper
+- Assign appropriate tools to each scout based on their research needs
+- Include browserTargets when you want a scout to visit specific URLs`;
 
 /**
  * Quality Control System Prompt
