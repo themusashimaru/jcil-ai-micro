@@ -115,6 +115,9 @@ export interface AgentBlueprint {
   depth: number; // How deep in the hierarchy
   canSpawnChildren: boolean; // Can this agent create sub-agents
   maxChildren: number; // Max sub-agents it can create
+  // Tool capabilities (NEW)
+  tools?: ScoutToolType[]; // Which tools this scout can use
+  browserTargets?: string[]; // Specific URLs to visit with browser
 }
 
 export type ResearchApproach =
@@ -125,6 +128,12 @@ export type ResearchApproach =
   | 'opportunity_scan' // Find opportunities
   | 'validation' // Verify information
   | 'synthesis'; // Combine findings
+
+export type ScoutToolType =
+  | 'brave_search' // Web search via Brave API
+  | 'browser_visit' // Visit URLs with E2B + Puppeteer
+  | 'run_code' // Execute Python/JS in E2B sandbox
+  | 'screenshot'; // Capture page screenshots
 
 export type OutputFormat =
   | 'summary' // Brief text summary

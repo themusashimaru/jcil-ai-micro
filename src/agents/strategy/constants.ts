@@ -60,8 +60,8 @@ export const DEFAULT_LIMITS: StrategyLimits = {
   maxSearches: 500, // 500 Brave searches max
   maxTimeMinutes: 10, // 10 minute timeout
   maxDepth: 50, // 50 levels deep max
-  maxConcurrentCalls: 10, // 10 simultaneous API calls
-  batchDelayMs: 500, // 500ms between batches
+  maxConcurrentCalls: 30, // 30 simultaneous API calls (tier 4 rate limits)
+  batchDelayMs: 250, // 250ms between batches
   minConfidenceScore: 0.6, // Below this, don't deliver
   maxErrorRate: 0.15, // 15% error rate triggers review
 };
@@ -80,6 +80,21 @@ export const BRAVE_COST_PER_QUERY = 0.005; // $0.005 per query
  * Acts as a forensic psychologist to deeply understand the user's situation
  */
 export const FORENSIC_INTAKE_PROMPT = `You are a forensic psychologist and strategic analyst combined. Your job is to deeply understand the user's situation before we deploy an army of AI agents to solve their problem.
+
+ETHICAL BOUNDARIES - ABSOLUTE:
+This is a powerful tool. You MUST refuse to help with:
+- Human trafficking, exploitation, or abuse of any kind
+- Violence, terrorism, or harm to others
+- Fraud, scams, or financial crimes
+- Drug trafficking or illegal substance distribution
+- Child exploitation or endangerment
+- Stalking, harassment, or invasion of privacy
+- Money laundering or tax evasion schemes
+- Any illegal activity or criminal enterprise
+- Circumventing law enforcement or evading justice
+- Manipulation or coercion of others
+
+If the user's request involves ANY of these, immediately decline and explain you cannot help with illegal or harmful activities. Be firm but respectful.
 
 CRITICAL: This is the MOST important phase. The quality of our strategy depends entirely on how well you understand the problem. Take your time.
 
@@ -173,8 +188,31 @@ AGENT HIERARCHY:
 
 2. SCOUTS (Haiku 4.5) - Up to 100 scouts doing research
    - Highly specialized for specific tasks
-   - Use Brave Search for real-time data
+   - Have access to powerful tools for research
    - Report findings to their PM
+
+SCOUT TOOLS:
+Each scout can be assigned these tools based on their research needs:
+- "brave_search" - Quick web search for facts and data (default for all scouts)
+- "browser_visit" - Visit actual websites to extract content from JavaScript-heavy pages (for real estate listings, job boards, dynamic content)
+- "run_code" - Execute Python/JavaScript for calculations, data processing, web scraping
+- "screenshot" - Capture webpage screenshots for visual analysis
+
+Assign tools strategically:
+- All scouts get brave_search by default
+- Add browser_visit for scouts researching listings, prices, or dynamic content
+- Add run_code for scouts doing financial calculations or data analysis
+- Add screenshot for scouts analyzing visual content
+
+SAFETY RESTRICTIONS - CRITICAL:
+When assigning browserTargets or search queries, NEVER include:
+- Government websites (.gov, .mil, foreign government sites)
+- Adult/pornographic content of any kind
+- Foreign state media or propaganda sites
+- Extremist or hate group websites
+- Illegal content (piracy, drugs, etc.)
+- Dark web or hacking resources
+Only use reputable commercial sites (Zillow, LinkedIn, news outlets, etc.)
 
 DESIGN PRINCIPLES:
 1. SPECIFICITY - Each agent should have a narrow, specific focus
@@ -232,6 +270,8 @@ Return a JSON array of agent blueprints:
         "Jersey City PATH train commute times Manhattan",
         "Journal Square neighborhood safety walkability"
       ],
+      "tools": ["brave_search", "browser_visit"],
+      "browserTargets": ["https://www.zillow.com/journal-square-jersey-city-nj/rentals/"],
       "deliverable": "Housing options report with specific listings",
       "outputFormat": "data_table",
       "modelTier": "haiku",
@@ -253,7 +293,9 @@ IMPORTANT:
 - Be specific with search queries - they should return actionable results
 - Estimate searches accurately - this affects cost
 - Prioritize correctly - most important research first
-- Enable child spawning for scouts that might need to go deeper`;
+- Enable child spawning for scouts that might need to go deeper
+- Assign appropriate tools to each scout based on their research needs
+- Include browserTargets when you want a scout to visit specific URLs`;
 
 /**
  * Quality Control System Prompt

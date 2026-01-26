@@ -20,6 +20,7 @@ import type {
   ModelTier,
   ResearchApproach,
   OutputFormat,
+  ScoutToolType,
 } from './types';
 import { CLAUDE_OPUS_45, MASTER_ARCHITECT_PROMPT, DEFAULT_LIMITS } from './constants';
 import { logger } from '@/lib/logger';
@@ -233,8 +234,30 @@ export class MasterArchitect {
         depth: Number(scout.depth) || 1,
         canSpawnChildren: Boolean(scout.canSpawnChildren),
         maxChildren: Number(scout.maxChildren) || 3,
+        // Tool capabilities
+        tools: this.normalizeTools(scout.tools),
+        browserTargets: Array.isArray(scout.browserTargets)
+          ? scout.browserTargets.map(String)
+          : undefined,
       };
     });
+  }
+
+  /**
+   * Normalize scout tools
+   */
+  private normalizeTools(raw: unknown): ScoutToolType[] | undefined {
+    if (!Array.isArray(raw) || raw.length === 0) {
+      // Default: all scouts get brave_search
+      return ['brave_search'];
+    }
+
+    const validTools: ScoutToolType[] = ['brave_search', 'browser_visit', 'run_code', 'screenshot'];
+    const tools = raw
+      .map((t) => String(t).toLowerCase())
+      .filter((t): t is ScoutToolType => validTools.includes(t as ScoutToolType));
+
+    return tools.length > 0 ? tools : ['brave_search'];
   }
 
   /**
@@ -413,6 +436,8 @@ export class MasterArchitect {
           depth: 1,
           canSpawnChildren: true,
           maxChildren: 2,
+          // Default tools - brave_search for all, browser_visit for deeper research
+          tools: ['brave_search', 'browser_visit'] as ScoutToolType[],
         });
         scoutIndex++;
       }

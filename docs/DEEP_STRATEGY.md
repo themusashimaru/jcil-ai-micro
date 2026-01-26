@@ -220,7 +220,8 @@ The strategy is delivered with:
 | **Max Searches**   | 500          | API rate limiting        |
 | **Max Time**       | 10 minutes   | Timeout protection       |
 | **Max Depth**      | 50 levels    | Infinite loop prevention |
-| **Max Concurrent** | 10 API calls | Rate limiting            |
+| **Max Concurrent** | 30 API calls | Parallel execution       |
+| **Batch Delay**    | 250ms        | Rate limit safety buffer |
 
 ### Quality Control
 

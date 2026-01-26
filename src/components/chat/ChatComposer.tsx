@@ -962,9 +962,6 @@ export function ChatComposer({
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              console.log(
-                                '[ChatComposer] Strategy Agent clicked, calling onAgentSelect'
-                              );
                               // Close menu first for immediate feedback
                               setShowAgentsMenu(false);
                               // Then await the async operation
