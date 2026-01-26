@@ -167,6 +167,7 @@ export function ChatComposer({
   // Agents dropdown state
   const [showAgentsMenu, setShowAgentsMenu] = useState(false);
   const agentsButtonRef = useRef<HTMLButtonElement>(null);
+  const agentsMenuRef = useRef<HTMLDivElement>(null);
   // Track last applied initialText to prevent re-applying on message changes
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
@@ -250,11 +251,12 @@ export function ChatComposer({
   // Close agents menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        showAgentsMenu &&
-        agentsButtonRef.current &&
-        !agentsButtonRef.current.contains(e.target as Node)
-      ) {
+      const target = e.target as Node;
+      // Check if click is inside the button OR inside the dropdown menu
+      const isInsideButton = agentsButtonRef.current?.contains(target);
+      const isInsideMenu = agentsMenuRef.current?.contains(target);
+
+      if (showAgentsMenu && !isInsideButton && !isInsideMenu) {
         setShowAgentsMenu(false);
       }
     };
@@ -863,7 +865,10 @@ export function ChatComposer({
 
                   {/* Dropdown menu */}
                   {showAgentsMenu && (
-                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
+                    <div
+                      ref={agentsMenuRef}
+                      className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50"
+                    >
                       <div className="p-2 border-b border-gray-700">
                         <p className="text-xs text-gray-400 font-medium">Select an Agent</p>
                         {/* Debug: */}
@@ -875,7 +880,8 @@ export function ChatComposer({
                       <div className="p-1">
                         {/* Research Agent - Available to all */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             console.log(
                               '[ChatComposer] Research Agent clicked, current toolMode:',
                               toolMode
@@ -922,7 +928,8 @@ export function ChatComposer({
                         {/* Deep Strategy Agent - Admin only */}
                         {isAdmin && (
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               console.log(
                                 '[ChatComposer] Strategy Agent clicked, calling onAgentSelect'
                               );
