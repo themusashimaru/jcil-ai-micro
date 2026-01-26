@@ -27,6 +27,9 @@ import type {
   UnifiedImageBlock,
   UnifiedToolUseBlock,
   UnifiedToolResultBlock,
+  UnifiedTool,
+  UnifiedToolCall,
+  UnifiedToolResult,
 } from './providers/types';
 import { logger } from '@/lib/logger';
 
@@ -273,7 +276,15 @@ export interface ChatRouteOptions {
   disableFallback?: boolean;
   /** Callback when provider switches */
   onProviderSwitch?: (from: ProviderId, to: ProviderId, reason: string) => void;
+  /** Tools available to the AI */
+  tools?: UnifiedTool[];
 }
+
+/**
+ * Tool executor function type
+ * Called when Claude wants to use a tool
+ */
+export type ToolExecutor = (toolCall: UnifiedToolCall) => Promise<UnifiedToolResult>;
 
 /**
  * Result of routing a chat request
@@ -369,6 +380,274 @@ export async function routeChat(
     model: finalResult.model,
     usedFallback: finalResult.usedFallback,
     fallbackReason: finalResult.fallbackReason,
+  };
+}
+
+// ============================================================================
+// CHAT WITH TOOLS (for Claude-driven tool use)
+// ============================================================================
+
+/**
+ * Result of routing a chat request with tools
+ */
+export interface ChatWithToolsResult extends ChatRouteResult {
+  /** Whether any tools were called */
+  usedTools: boolean;
+  /** Names of tools that were called */
+  toolsUsed: string[];
+}
+
+/**
+ * Route a chat request with tool support
+ * Handles the tool execution loop: Claude calls tool -> we execute -> send results -> Claude continues
+ *
+ * @param messages - CoreMessage array from the request
+ * @param options - Routing options (including tools)
+ * @param toolExecutor - Function to execute tool calls
+ * @returns ChatWithToolsResult with stream and metadata
+ */
+export async function routeChatWithTools(
+  messages: CoreMessage[],
+  options: ChatRouteOptions,
+  toolExecutor: ToolExecutor
+): Promise<ChatWithToolsResult> {
+  const {
+    providerId = DEFAULT_PRIMARY_PROVIDER,
+    fallbackProviderId = DEFAULT_FALLBACK_PROVIDER,
+    model,
+    systemPrompt,
+    maxTokens,
+    temperature,
+    disableFallback = false,
+    onProviderSwitch,
+    tools = [],
+  } = options;
+
+  if (tools.length === 0) {
+    // No tools, use regular routing
+    const result = await routeChat(messages, options);
+    return {
+      ...result,
+      usedTools: false,
+      toolsUsed: [],
+    };
+  }
+
+  log.debug('Routing chat with tools', {
+    primaryProvider: providerId,
+    messageCount: messages.length,
+    toolCount: tools.length,
+    toolNames: tools.map((t) => t.name),
+  });
+
+  const service = createProviderService(providerId, disableFallback ? null : fallbackProviderId);
+  const encoder = new TextEncoder();
+
+  // Track state across potential tool loops
+  const currentMessages = convertToUnifiedMessages(messages).filter((m) => m.role !== 'system');
+  const toolsUsed: string[] = [];
+  let usedTools = false;
+
+  // Build chat options
+  const chatOptions: ProviderChatOptions = {
+    providerId,
+    fallbackProviderId: disableFallback ? undefined : fallbackProviderId,
+    enableRetry: true,
+    enableFallback: ENABLE_FALLBACK && !disableFallback,
+    model,
+    maxTokens,
+    temperature,
+    systemPrompt,
+    tools,
+    onProviderSwitch,
+  };
+
+  const finalResult: ProviderChatResult = {
+    providerId,
+    model: model || 'unknown',
+    usedFallback: false,
+  };
+
+  // Create a stream that handles tool loops
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const MAX_TOOL_ITERATIONS = 5; // Prevent infinite loops
+      let iteration = 0;
+
+      try {
+        while (iteration < MAX_TOOL_ITERATIONS) {
+          iteration++;
+          log.debug('Tool loop iteration', { iteration, messageCount: currentMessages.length });
+
+          // Accumulate tool calls from this iteration
+          const pendingToolCalls: UnifiedToolCall[] = [];
+          let currentToolCall: Partial<UnifiedToolCall> | null = null;
+          let toolArgsBuffer = '';
+
+          // Stream from provider
+          const chunks = service.chat(currentMessages, chatOptions);
+
+          for await (const chunk of chunks) {
+            switch (chunk.type) {
+              case 'text':
+                // Stream text directly to client
+                if (chunk.text) {
+                  controller.enqueue(encoder.encode(chunk.text));
+                }
+                break;
+
+              case 'tool_call_start':
+                // Start accumulating a tool call
+                if (chunk.toolCall) {
+                  currentToolCall = {
+                    id: chunk.toolCall.id,
+                    name: chunk.toolCall.name,
+                    arguments: {},
+                  };
+                  toolArgsBuffer = '';
+                  log.debug('Tool call started', { name: chunk.toolCall.name, id: chunk.toolCall.id });
+                }
+                break;
+
+              case 'tool_call_delta':
+                // Accumulate tool arguments
+                if (chunk.toolCall?.arguments) {
+                  // Arguments come as partial JSON, accumulate as string
+                  const argChunk = typeof chunk.toolCall.arguments === 'string'
+                    ? chunk.toolCall.arguments
+                    : JSON.stringify(chunk.toolCall.arguments);
+                  toolArgsBuffer += argChunk;
+                }
+                break;
+
+              case 'tool_call_end':
+                // Tool call complete, parse and add to pending
+                if (currentToolCall && currentToolCall.id && currentToolCall.name) {
+                  try {
+                    // Parse accumulated arguments
+                    const args = toolArgsBuffer ? JSON.parse(toolArgsBuffer) : {};
+                    const completedCall: UnifiedToolCall = {
+                      id: currentToolCall.id,
+                      name: currentToolCall.name,
+                      arguments: args,
+                    };
+                    pendingToolCalls.push(completedCall);
+                    log.debug('Tool call completed', {
+                      name: completedCall.name,
+                      args: Object.keys(args),
+                    });
+                  } catch (parseErr) {
+                    log.error('Failed to parse tool arguments', {
+                      error: (parseErr as Error).message,
+                      buffer: toolArgsBuffer.substring(0, 100),
+                    });
+                  }
+                }
+                currentToolCall = null;
+                toolArgsBuffer = '';
+                break;
+
+              case 'message_end':
+                if (chunk.usage) {
+                  log.debug('Message usage', chunk.usage);
+                }
+                break;
+
+              case 'error':
+                if (chunk.error) {
+                  log.error('Stream error', chunk.error);
+                  controller.error(new Error(chunk.error.message));
+                  return;
+                }
+                break;
+            }
+          }
+
+          // If no tool calls, we're done
+          if (pendingToolCalls.length === 0) {
+            log.debug('No tool calls, completing stream', { iteration });
+            break;
+          }
+
+          // Execute tool calls and collect results
+          usedTools = true;
+          const toolResults: UnifiedToolResult[] = [];
+
+          for (const toolCall of pendingToolCalls) {
+            log.info('Executing tool', { name: toolCall.name, id: toolCall.id });
+            toolsUsed.push(toolCall.name);
+
+            try {
+              const result = await toolExecutor(toolCall);
+              toolResults.push(result);
+              log.debug('Tool execution complete', {
+                name: toolCall.name,
+                resultLength: result.content.length,
+                isError: result.isError,
+              });
+            } catch (execErr) {
+              log.error('Tool execution failed', {
+                name: toolCall.name,
+                error: (execErr as Error).message,
+              });
+              toolResults.push({
+                toolCallId: toolCall.id,
+                content: `Error executing tool: ${(execErr as Error).message}`,
+                isError: true,
+              });
+            }
+          }
+
+          // Add assistant message with tool calls to conversation
+          const assistantToolContent: UnifiedContentBlock[] = pendingToolCalls.map((tc) => ({
+            type: 'tool_use' as const,
+            id: tc.id,
+            name: tc.name,
+            arguments: tc.arguments,
+          }));
+          currentMessages.push({
+            role: 'assistant',
+            content: assistantToolContent,
+          });
+
+          // Add tool results to conversation
+          const toolResultContent: UnifiedContentBlock[] = toolResults.map((tr) => ({
+            type: 'tool_result' as const,
+            toolUseId: tr.toolCallId,
+            content: tr.content,
+            isError: tr.isError,
+          }));
+          currentMessages.push({
+            role: 'user', // Tool results go in user role for Anthropic
+            content: toolResultContent,
+          });
+
+          log.debug('Continuing with tool results', {
+            toolCount: toolResults.length,
+            newMessageCount: currentMessages.length,
+          });
+        }
+
+        if (iteration >= MAX_TOOL_ITERATIONS) {
+          log.warn('Max tool iterations reached', { iteration });
+        }
+
+        controller.close();
+      } catch (error) {
+        log.error('Error in tool loop', { error });
+        controller.error(error);
+      }
+    },
+  });
+
+  return {
+    stream,
+    providerId: finalResult.providerId,
+    model: finalResult.model,
+    usedFallback: finalResult.usedFallback,
+    fallbackReason: finalResult.fallbackReason,
+    usedTools,
+    toolsUsed: [...new Set(toolsUsed)], // Dedupe
   };
 }
 

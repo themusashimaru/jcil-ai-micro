@@ -17,10 +17,11 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { routeChat, completeChat, type ChatRouteOptions } from '@/lib/ai/chat-router';
+import { routeChat, routeChatWithTools, completeChat, type ChatRouteOptions, type ToolExecutor } from '@/lib/ai/chat-router';
 // detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
+import { webSearchTool, executeWebSearch, isWebSearchAvailable } from '@/lib/ai/tools';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -43,8 +44,10 @@ const log = logger('ChatAPI');
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
 const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
-// Research agent has stricter limits (expensive Brave Search API calls)
-const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '20', 10);
+// Web search rate limit - separate from chat to allow Claude search autonomy
+// Set high (500/hr) since Brave Pro plan allows 50 req/sec
+// Main constraint is Claude API costs, not Brave limits
+const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '500', 10);
 
 // Token limits
 const MAX_RESPONSE_TOKENS = 4096;
@@ -310,218 +313,6 @@ function getDocumentTypeName(type: string): string {
     pdf: 'PDF',
   };
   return names[type] || 'document';
-}
-
-/**
- * Detect if AI response indicates a knowledge cutoff limitation
- * These phrases trigger automatic web search to help the user
- */
-function detectKnowledgeCutoff(response: string): boolean {
-  const lowerResponse = response.toLowerCase();
-
-  const cutoffPhrases = [
-    // Classic knowledge cutoff phrases
-    'knowledge cutoff',
-    'knowledge cut-off',
-    'training cutoff',
-    'training cut-off',
-    'my training data',
-    'as of my last update',
-    'as of my knowledge cutoff',
-    'my information only goes up to',
-    // "access to real-time" variations
-    "i don't have access to real-time",
-    "don't have access to real-time",
-    "i can't access real-time",
-    "can't access real-time",
-    'cannot access real-time',
-    // "real-time access" variations (reversed word order - from user's conversation)
-    "i don't have real-time access",
-    "don't have real-time access",
-    'no real-time access',
-    'real-time access to',
-    // Current info variations
-    "i don't have access to current",
-    "don't have access to current",
-    "i can't access current",
-    "can't access current",
-    'cannot access current',
-    "don't have current information",
-    "i don't have current information",
-    // Browse/internet variations
-    "i don't have the ability to browse",
-    "don't have the ability to browse",
-    "i don't have the ability to perform live web searches",
-    'unable to browse the internet',
-    'unable to browse the web',
-    'cannot browse the internet',
-    'cannot browse the web',
-    'i cannot access the internet',
-    "i can't access the internet",
-    "don't have access to the internet",
-    "i'm not able to browse",
-    'i am not able to browse',
-    "i don't have internet access",
-    "don't have internet access",
-    'i cannot perform web searches',
-    "i can't perform web searches",
-    'unable to search the web',
-    'unable to search the internet',
-    // Live data variations
-    "i don't have live data",
-    "don't have live data",
-    "i don't have up-to-date information",
-    "don't have up-to-date information",
-    "my data doesn't include",
-    "i'm unable to provide real-time",
-    'i am unable to provide real-time',
-    // Offering to search (means they need to look it up)
-    'would you like me to search',
-    'want me to search',
-    'shall i search',
-    'i could search',
-    'like me to search',
-    'like me to look',
-    'want me to look',
-    // Schedule/availability specific (from user's conversation)
-    'schedule is not available',
-    "schedule isn't available",
-    'not yet available',
-    "hasn't been released",
-    'has not been released',
-    "won't be released until",
-    "won't be available until",
-    'typically releases in',
-    'usually releases in',
-    // Uncertainty about current events
-    'at this exact moment',
-    'i need to clarify',
-    'once i confirm',
-    'can you let me know if',
-    'let me know if they',
-    'i need to know',
-    // Sports/event specific hedging
-    'if they made the playoffs',
-    'if they made it',
-    'season is over',
-    'in the offseason',
-  ];
-
-  return cutoffPhrases.some((phrase) => lowerResponse.includes(phrase));
-}
-
-/**
- * Detect if the user's question likely needs current/real-time information
- * This helps pre-emptively check for knowledge cutoff scenarios
- */
-function mightNeedRealtimeInfo(query: string): boolean {
-  const lowerQuery = query.toLowerCase();
-
-  const realtimeIndicators = [
-    // Current events/news
-    'latest',
-    'recent',
-    'today',
-    'yesterday',
-    'this week',
-    'this month',
-    'current',
-    'now',
-    'breaking',
-    'news',
-    'update',
-    // Time-sensitive queries
-    '2024',
-    '2025',
-    '2026',
-    '2027',
-    'this year',
-    'last year',
-    // Price/stock queries
-    'price of',
-    'stock price',
-    'market',
-    'bitcoin',
-    'crypto',
-    'ethereum',
-    // Weather/live data
-    'weather',
-    'forecast',
-    'temperature',
-    // Sports teams and leagues
-    'patriots',
-    'cowboys',
-    'eagles',
-    'chiefs',
-    'bills',
-    '49ers',
-    'ravens',
-    'lakers',
-    'celtics',
-    'warriors',
-    'heat',
-    'bulls',
-    'knicks',
-    'yankees',
-    'dodgers',
-    'red sox',
-    'cubs',
-    'mets',
-    'nfl',
-    'nba',
-    'mlb',
-    'nhl',
-    'mls',
-    'ufc',
-    'wwe',
-    'super bowl',
-    'world series',
-    'nba finals',
-    'stanley cup',
-    // Sports/events queries
-    'score',
-    'game',
-    'match',
-    'winner',
-    'championship',
-    'playoff',
-    'playoffs',
-    'standings',
-    'roster',
-    'lineup',
-    'draft',
-    'trade',
-    'injury',
-    'injured',
-    'next game',
-    'next match',
-    'upcoming game',
-    'upcoming match',
-    // Schedules
-    'schedule',
-    'scheduled',
-    'when do they play',
-    'when does',
-    'when will',
-    'when is',
-    // Releases/launches
-    'release date',
-    'coming out',
-    'launches',
-    'announced',
-    // Live information
-    'hours',
-    'open',
-    'closed',
-    'available',
-    // Queries that imply needing current info
-    'right now',
-    'at the moment',
-    'these days',
-    'still',
-  ];
-
-  return realtimeIndicators.some((indicator) => lowerQuery.includes(indicator));
 }
 
 /**
@@ -2691,7 +2482,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 TODAY'S DATE: ${todayDate}
 
 CAPABILITIES:
-- Web search for current information
+- **WEB SEARCH TOOL**: You have access to a web_search tool. Use it when you need current information (news, prices, scores, recent events, company info, etc.). Do NOT say "I don't have access to real-time information" - instead, use the web_search tool to get current data. You decide when to search based on whether the question benefits from fresh information.
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
@@ -2751,8 +2542,9 @@ RESPONSE LENGTH:
 - Complex topics get thorough explanations
 
 UNCERTAINTY:
-- If unsure, say so honestly rather than guessing
-- Offer to research further when needed
+- If unsure about factual information, say so honestly rather than guessing
+- Do NOT say "I don't have access to real-time information" or "as of my knowledge cutoff" - use the web_search tool instead
+- For current events, news, prices, scores, etc., use the web_search tool to get accurate current data
 
 CODE:
 - Use proper code blocks with language syntax highlighting
@@ -2793,103 +2585,30 @@ SECURITY:
     const fullSystemPrompt = memoryContext ? `${systemPrompt}\n\n${memoryContext}` : systemPrompt;
 
     // ========================================
-    // AUTO-SEARCH TRIGGER: Check for knowledge cutoff
+    // NATIVE TOOL USE: Give Claude the web_search tool
     // ========================================
-    // If the query might need real-time info, do a quick check first
-    // If Claude indicates knowledge cutoff, automatically search the web
-    if (mightNeedRealtimeInfo(lastUserContent) && isBraveConfigured()) {
-      log.debug('Query might need real-time info, checking for knowledge cutoff');
+    // Claude decides when to search - no keyword detection needed
+    // This is the proper way to give Claude search autonomy
 
-      try {
-        // Quick check specifically asking if Claude can answer from training data
-        const quickCheckMessages: CoreMessage[] = [
-          {
-            role: 'user',
-            content: `Can you answer this question accurately from your training data, or would it require a web search for current/real-time information? Question: "${lastUserContent}"
+    // Build tools array (currently just web_search)
+    const tools = isWebSearchAvailable() ? [webSearchTool] : [];
 
-Reply with ONLY one of these:
-- "SEARCH_NEEDED" if this requires current/real-time data (sports scores, schedules, news, prices, weather, etc.)
-- "CAN_ANSWER" if you can answer accurately from your training data`,
-          },
-        ];
-        const quickCheck = await completeChat(quickCheckMessages, {
-          systemPrompt:
-            'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
-          maxTokens: 50,
-          temperature: 0,
-        });
-
-        const needsSearch = quickCheck.text.toUpperCase().includes('SEARCH_NEEDED');
-
-        // Check if Claude's response indicates knowledge cutoff
-        if (needsSearch || detectKnowledgeCutoff(quickCheck.text)) {
-          log.info('Knowledge cutoff detected, auto-triggering web search', {
-            queryPreview: lastUserContent.substring(0, 50),
-            needsSearch,
-          });
-
-          // Check research-specific rate limit
-          const researchRateCheck = checkResearchRateLimit(rateLimitIdentifier);
-          if (researchRateCheck.allowed) {
-            try {
-              // Trigger Brave web search with AI synthesis
-              const searchResult = await braveSearch({
-                query: lastUserContent,
-                mode: 'search',
-              });
-
-              // Post-process through AI for consistent voice (with xAI fallback)
-              const autoSynthesisMessages: CoreMessage[] = [
-                {
-                  role: 'user',
-                  content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}`,
-                },
-              ];
-              const synthesis = await completeChat(autoSynthesisMessages, {
-                model: 'claude-sonnet-4-5-20250929',
-                maxTokens: 2048,
-              });
-
-              // Release slot before returning
-              if (slotAcquired) {
-                await releaseSlot(requestId);
-                slotAcquired = false;
-              }
-
-              return new Response(
-                JSON.stringify({
-                  type: 'text',
-                  content: synthesis.text,
-                  model: synthesis.model,
-                  autoSearched: true,
-                }),
-                {
-                  status: 200,
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-Search-Mode': 'auto',
-                    'X-Auto-Searched': 'true',
-                  },
-                }
-              );
-            } catch (searchError) {
-              log.warn(
-                'Auto-search failed, falling back to original response',
-                searchError as Error
-              );
-              // Fall through to streaming - let Claude respond normally
-            }
-          } else {
-            log.debug('Research rate limit reached, skipping auto-search');
-          }
-        } else {
-          log.debug('No knowledge cutoff detected, proceeding with streaming response');
-        }
-      } catch (checkError) {
-        log.warn('Quick check failed, proceeding with streaming', checkError as Error);
-        // Continue to normal streaming response
+    // Tool executor with rate limiting
+    const toolExecutor: ToolExecutor = async (toolCall) => {
+      // Check rate limit before executing search
+      const rateCheck = checkResearchRateLimit(rateLimitIdentifier);
+      if (!rateCheck.allowed) {
+        log.warn('Search rate limit exceeded', { identifier: rateLimitIdentifier });
+        return {
+          toolCallId: toolCall.id,
+          content: 'Search rate limit exceeded. Please try again later.',
+          isError: true,
+        };
       }
-    }
+
+      // Execute the web search
+      return executeWebSearch(toolCall);
+    };
 
     // ========================================
     // PENDING REQUEST - Create before streaming starts
@@ -2915,27 +2634,32 @@ Reply with ONLY one of these:
     }
 
     // ========================================
-    // MULTI-PROVIDER CHAT ROUTING
+    // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
     // Primary: Claude Haiku 4.5 (fast, cost-effective)
     // Fallback: xAI Grok 4.1 (full capability parity)
+    // Claude can call web_search tool when it needs current information
     // ========================================
     const routeOptions: ChatRouteOptions = {
       model: 'claude-haiku-4-5-20251001', // Default to Haiku for cost-effective chat
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
+      tools, // Give Claude the web_search tool
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });
       },
     };
 
-    const routeResult = await routeChat(truncatedMessages, routeOptions);
+    // Use routeChatWithTools to handle Claude's tool calls
+    const routeResult = await routeChatWithTools(truncatedMessages, routeOptions, toolExecutor);
 
     log.debug('Chat routed', {
       provider: routeResult.providerId,
       model: routeResult.model,
       usedFallback: routeResult.usedFallback,
       fallbackReason: routeResult.fallbackReason,
+      usedTools: routeResult.usedTools,
+      toolsUsed: routeResult.toolsUsed,
     });
 
     // CRITICAL FIX: Track slot release with a promise-based cleanup
@@ -3005,6 +2729,8 @@ Reply with ONLY one of these:
         'X-Model-Used': routeResult.model,
         'X-Provider': routeResult.providerId,
         'X-Used-Fallback': routeResult.usedFallback ? 'true' : 'false',
+        'X-Used-Tools': routeResult.usedTools ? 'true' : 'false',
+        'X-Tools-Used': routeResult.toolsUsed.join(',') || 'none',
       },
     });
   } finally {
