@@ -520,25 +520,32 @@ export async function routeChatWithTools(
               case 'tool_call_end':
                 // Tool call complete, parse and add to pending
                 if (currentToolCall && currentToolCall.id && currentToolCall.name) {
+                  let args: Record<string, unknown> = {};
+                  let parseError = false;
+
                   try {
                     // Parse accumulated arguments
-                    const args = toolArgsBuffer ? JSON.parse(toolArgsBuffer) : {};
-                    const completedCall: UnifiedToolCall = {
-                      id: currentToolCall.id,
-                      name: currentToolCall.name,
-                      arguments: args,
-                    };
-                    pendingToolCalls.push(completedCall);
-                    log.debug('Tool call completed', {
-                      name: completedCall.name,
-                      args: Object.keys(args),
-                    });
+                    args = toolArgsBuffer ? JSON.parse(toolArgsBuffer) : {};
                   } catch (parseErr) {
-                    log.error('Failed to parse tool arguments', {
+                    log.error('Failed to parse tool arguments, using empty args', {
                       error: (parseErr as Error).message,
                       buffer: toolArgsBuffer.substring(0, 100),
                     });
+                    parseError = true;
+                    // Continue with empty args - let tool executor handle it
                   }
+
+                  const completedCall: UnifiedToolCall = {
+                    id: currentToolCall.id,
+                    name: currentToolCall.name,
+                    arguments: parseError ? { _parseError: true, _rawBuffer: toolArgsBuffer.substring(0, 500) } : args,
+                  };
+                  pendingToolCalls.push(completedCall);
+                  log.debug('Tool call completed', {
+                    name: completedCall.name,
+                    args: Object.keys(args),
+                    parseError,
+                  });
                 }
                 currentToolCall = null;
                 toolArgsBuffer = '';
@@ -569,30 +576,54 @@ export async function routeChatWithTools(
           // Execute tool calls and collect results
           usedTools = true;
           const toolResults: UnifiedToolResult[] = [];
+          const TOOL_TIMEOUT_MS = 15000; // 15 second timeout per tool
+          const KEEPALIVE_INTERVAL_MS = 10000; // Send keepalive every 10s to prevent Vercel timeout
 
-          for (const toolCall of pendingToolCalls) {
-            log.info('Executing tool', { name: toolCall.name, id: toolCall.id });
-            toolsUsed.push(toolCall.name);
-
+          // Start keepalive to prevent Vercel timeout during tool execution
+          const keepaliveInterval = setInterval(() => {
             try {
-              const result = await toolExecutor(toolCall);
-              toolResults.push(result);
-              log.debug('Tool execution complete', {
-                name: toolCall.name,
-                resultLength: result.content.length,
-                isError: result.isError,
-              });
-            } catch (execErr) {
-              log.error('Tool execution failed', {
-                name: toolCall.name,
-                error: (execErr as Error).message,
-              });
-              toolResults.push({
-                toolCallId: toolCall.id,
-                content: `Error executing tool: ${(execErr as Error).message}`,
-                isError: true,
-              });
+              // Send a space as keepalive - won't affect output but keeps connection alive
+              controller.enqueue(encoder.encode(' '));
+              log.debug('Keepalive sent during tool execution');
+            } catch {
+              // Stream may have been closed, ignore
             }
+          }, KEEPALIVE_INTERVAL_MS);
+
+          try {
+            for (const toolCall of pendingToolCalls) {
+              log.info('Executing tool', { name: toolCall.name, id: toolCall.id });
+              toolsUsed.push(toolCall.name);
+
+              try {
+                // Wrap tool execution with timeout to prevent infinite hangs
+                const result = await Promise.race([
+                  toolExecutor(toolCall),
+                  new Promise<UnifiedToolResult>((_, reject) =>
+                    setTimeout(() => reject(new Error('Tool execution timeout')), TOOL_TIMEOUT_MS)
+                  ),
+                ]);
+                toolResults.push(result);
+                log.debug('Tool execution complete', {
+                  name: toolCall.name,
+                  resultLength: result.content.length,
+                  isError: result.isError,
+                });
+              } catch (execErr) {
+                log.error('Tool execution failed', {
+                  name: toolCall.name,
+                  error: (execErr as Error).message,
+                });
+                toolResults.push({
+                  toolCallId: toolCall.id,
+                  content: `Error executing tool: ${(execErr as Error).message}`,
+                  isError: true,
+                });
+              }
+            }
+          } finally {
+            // Always clear keepalive interval
+            clearInterval(keepaliveInterval);
           }
 
           // Add assistant message with tool calls to conversation
