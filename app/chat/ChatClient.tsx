@@ -1169,7 +1169,11 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
    * Handle user input during strategy intake phase
    */
   const handleStrategyInput = async (input: string) => {
-    if (!strategySessionId) return;
+    console.log('[handleStrategyInput] Called with input length:', input.length);
+    if (!strategySessionId) {
+      console.log('[handleStrategyInput] No sessionId, returning early');
+      return;
+    }
 
     // Check for cancel command
     if (input.toLowerCase().trim() === 'cancel') {
@@ -1189,6 +1193,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
     setMessages((prev) => [...prev, userMessage]);
 
     try {
+      console.log('[handleStrategyInput] Calling /api/strategy with action: input');
       const response = await fetch('/api/strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1198,6 +1203,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
           input,
         }),
       });
+      console.log('[handleStrategyInput] Response status:', response.status, response.ok);
 
       if (!response.ok) {
         const data = await response.json();
@@ -1205,6 +1211,11 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       }
 
       const data = await response.json();
+      console.log('[handleStrategyInput] Response data:', {
+        hasResponse: !!data.response,
+        responseLength: data.response?.length,
+        isComplete: data.isComplete,
+      });
 
       // Add assistant response to chat
       const assistantMessage: Message = {
@@ -1214,12 +1225,15 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      console.log('[handleStrategyInput] Added assistant message to chat');
 
       // Check if intake is complete - start execution
       if (data.isComplete) {
+        console.log('[handleStrategyInput] Intake complete, starting execution');
         await executeStrategy();
       }
     } catch (error) {
+      console.error('[handleStrategyInput] Error:', error);
       log.error('Strategy input error:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -1504,7 +1518,14 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
     }
 
     // DEEP STRATEGY MODE: If we're in strategy intake, send to strategy API
+    console.log('[handleSendMessage] Strategy check:', {
+      isStrategyMode,
+      strategyPhase,
+      strategySessionId,
+      willRouteToStrategy: isStrategyMode && strategyPhase === 'intake' && strategySessionId,
+    });
     if (isStrategyMode && strategyPhase === 'intake' && strategySessionId) {
+      console.log('[handleSendMessage] Routing to handleStrategyInput');
       await handleStrategyInput(content);
       return;
     }
