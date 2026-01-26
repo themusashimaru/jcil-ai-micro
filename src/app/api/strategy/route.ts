@@ -722,6 +722,7 @@ async function handleStart(
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
       'X-Session-Id': sessionId,
+      'Access-Control-Expose-Headers': 'X-Session-Id',
     },
   });
 }
