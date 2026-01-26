@@ -444,7 +444,7 @@ export async function routeChatWithTools(
   const encoder = new TextEncoder();
 
   // Track state across potential tool loops
-  let currentMessages = convertToUnifiedMessages(messages).filter((m) => m.role !== 'system');
+  const currentMessages = convertToUnifiedMessages(messages).filter((m) => m.role !== 'system');
   const toolsUsed: string[] = [];
   let usedTools = false;
 
@@ -462,7 +462,7 @@ export async function routeChatWithTools(
     onProviderSwitch,
   };
 
-  let finalResult: ProviderChatResult = {
+  const finalResult: ProviderChatResult = {
     providerId,
     model: model || 'unknown',
     usedFallback: false,
@@ -483,7 +483,6 @@ export async function routeChatWithTools(
           const pendingToolCalls: UnifiedToolCall[] = [];
           let currentToolCall: Partial<UnifiedToolCall> | null = null;
           let toolArgsBuffer = '';
-          let hasMoreContent = false;
 
           // Stream from provider
           const chunks = service.chat(currentMessages, chatOptions);
@@ -495,7 +494,6 @@ export async function routeChatWithTools(
                 if (chunk.text) {
                   controller.enqueue(encoder.encode(chunk.text));
                 }
-                hasMoreContent = true;
                 break;
 
               case 'tool_call_start':
