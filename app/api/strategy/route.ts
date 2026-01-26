@@ -72,10 +72,14 @@ async function createSessionInDB(
   sessionId: string,
   attachments?: StrategyAttachment[]
 ): Promise<string> {
+  // Generate a UUID for the primary key as well
+  const id = randomUUID();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('strategy_sessions')
     .insert({
+      id, // Explicit UUID for primary key
       session_id: sessionId,
       user_id: userId,
       phase: 'intake',
@@ -91,8 +95,13 @@ async function createSessionInDB(
     .single();
 
   if (error) {
-    log.error('Failed to create session in database', error);
-    throw new Error('Failed to create session');
+    log.error('Failed to create session in database', {
+      error,
+      sessionId,
+      userId,
+      id,
+    });
+    throw new Error(`Failed to create session: ${error.message}`);
   }
 
   return data.id;
