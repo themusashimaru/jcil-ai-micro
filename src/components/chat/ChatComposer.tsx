@@ -60,7 +60,8 @@ interface ChatComposerProps {
   // Agent props
   isAdmin?: boolean;
   activeAgent?: 'research' | 'strategy' | null;
-  onAgentSelect?: (agent: 'research' | 'strategy') => void;
+  onAgentSelect?: (agent: 'research' | 'strategy') => Promise<void> | void;
+  strategyLoading?: boolean; // Show loading state while strategy starts
 }
 
 /**
@@ -136,6 +137,7 @@ export function ChatComposer({
   isAdmin,
   activeAgent,
   onAgentSelect,
+  strategyLoading,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -849,15 +851,21 @@ export function ChatComposer({
                       />
                     </svg>
                     <span>
-                      {toolMode === 'research'
-                        ? 'Research'
-                        : activeAgent === 'strategy'
-                          ? 'Strategy'
-                          : 'Agents'}
+                      {strategyLoading
+                        ? 'Starting...'
+                        : toolMode === 'research'
+                          ? 'Research'
+                          : activeAgent === 'strategy'
+                            ? 'Strategy'
+                            : 'Agents'}
                     </span>
-                    {(toolMode === 'research' || activeAgent === 'strategy') && (
-                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    {strategyLoading && (
+                      <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
                     )}
+                    {!strategyLoading &&
+                      (toolMode === 'research' || activeAgent === 'strategy') && (
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                      )}
                     <svg
                       className={`w-3 h-3 transition-transform ${showAgentsMenu ? 'rotate-180' : ''}`}
                       fill="none"
@@ -989,13 +997,15 @@ export function ChatComposer({
                         {/* Deep Strategy Agent - Admin only */}
                         {isAdmin && (
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
                               console.log(
                                 '[ChatComposer] Strategy Agent clicked, calling onAgentSelect'
                               );
-                              onAgentSelect('strategy');
+                              // Close menu first for immediate feedback
                               setShowAgentsMenu(false);
+                              // Then await the async operation
+                              await onAgentSelect?.('strategy');
                             }}
                             className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
                               activeAgent === 'strategy'

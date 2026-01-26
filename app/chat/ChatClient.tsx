@@ -149,6 +149,7 @@ export function ChatClient() {
   const [strategyPhase, setStrategyPhase] = useState<
     'idle' | 'intake' | 'executing' | 'complete' | 'error'
   >('idle');
+  const [strategyLoading, setStrategyLoading] = useState(false); // Loading state while starting
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1072,12 +1073,13 @@ export function ChatClient() {
    */
   const startDeepStrategy = async () => {
     console.log('[startDeepStrategy] Called, isStrategyMode:', isStrategyMode);
-    if (isStrategyMode) {
-      console.log('[startDeepStrategy] Already in strategy mode, returning early');
+    if (isStrategyMode || strategyLoading) {
+      console.log('[startDeepStrategy] Already in strategy mode or loading, returning early');
       return;
     }
 
-    console.log('[startDeepStrategy] Setting isStreaming to true');
+    console.log('[startDeepStrategy] Setting strategyLoading to true');
+    setStrategyLoading(true);
     setIsStreaming(true);
 
     // Add intro message to chat
@@ -1157,8 +1159,9 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       setIsStrategyMode(false);
       setStrategyPhase('idle');
     } finally {
-      console.log('[startDeepStrategy] Setting isStreaming to false');
+      console.log('[startDeepStrategy] Setting isStreaming and strategyLoading to false');
       setIsStreaming(false);
+      setStrategyLoading(false);
     }
   };
 
@@ -3058,6 +3061,7 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               initialText={quickPromptText}
               isAdmin={isAdmin}
               activeAgent={isStrategyMode ? 'strategy' : null}
+              strategyLoading={strategyLoading}
               onAgentSelect={async (agent) => {
                 console.log(
                   '[ChatClient] onAgentSelect called with:',
@@ -3066,10 +3070,25 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                   isStrategyMode
                 );
 
+                // Helper to cancel strategy session on server
+                const cancelStrategySession = async () => {
+                  if (strategySessionId) {
+                    try {
+                      console.log('[ChatClient] Cancelling strategy session:', strategySessionId);
+                      await fetch(`/api/strategy?sessionId=${strategySessionId}`, {
+                        method: 'DELETE',
+                      });
+                    } catch (err) {
+                      console.error('[ChatClient] Failed to cancel strategy session:', err);
+                    }
+                  }
+                };
+
                 if (agent === 'strategy') {
                   if (isStrategyMode) {
                     // Toggle off - cancel strategy mode
                     console.log('[ChatClient] Toggling off Strategy mode');
+                    await cancelStrategySession();
                     setIsStrategyMode(false);
                     setStrategyPhase('idle');
                     setStrategySessionId(null);
@@ -3083,6 +3102,7 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                   // If switching from strategy to research, exit strategy mode
                   if (isStrategyMode) {
                     console.log('[ChatClient] Switching from Strategy to Research');
+                    await cancelStrategySession();
                     setIsStrategyMode(false);
                     setStrategyPhase('idle');
                     setStrategySessionId(null);
