@@ -61,6 +61,11 @@ export function ChatThread({
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
+  // Debug: log when messages prop changes
+  useEffect(() => {
+    console.log('[ChatThread] messages prop updated, count:', messages.length);
+  }, [messages, messages.length]);
+
   // Load logo from database
   const [mainLogo, setMainLogo] = useState<string>('');
   const [lightModeLogo, setLightModeLogo] = useState<string>('');
