@@ -410,6 +410,13 @@ INSTRUCTIONS:
 4. Use run_code for calculations or data processing when helpful
 5. Stop when you have enough information to answer your key questions
 
+SAFETY - DO NOT visit or search for:
+- Government websites (.gov, .mil, foreign government sites)
+- Adult/pornographic content
+- Foreign state media or propaganda
+- Extremist or illegal content
+Only use reputable commercial sources (Zillow, LinkedIn, major news, etc.)
+
 When you have gathered sufficient information, provide your findings in this JSON format:
 \`\`\`json
 {

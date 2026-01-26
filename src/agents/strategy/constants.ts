@@ -189,6 +189,16 @@ Assign tools strategically:
 - Add run_code for scouts doing financial calculations or data analysis
 - Add screenshot for scouts analyzing visual content
 
+SAFETY RESTRICTIONS - CRITICAL:
+When assigning browserTargets or search queries, NEVER include:
+- Government websites (.gov, .mil, foreign government sites)
+- Adult/pornographic content of any kind
+- Foreign state media or propaganda sites
+- Extremist or hate group websites
+- Illegal content (piracy, drugs, etc.)
+- Dark web or hacking resources
+Only use reputable commercial sites (Zillow, LinkedIn, news outlets, etc.)
+
 DESIGN PRINCIPLES:
 1. SPECIFICITY - Each agent should have a narrow, specific focus
    - Bad: "Housing Agent"
