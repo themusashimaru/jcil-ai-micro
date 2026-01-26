@@ -45,8 +45,9 @@ const log = logger('ChatAPI');
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
 const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
 // Web search rate limit - separate from chat to allow Claude search autonomy
-// Increased to 60/hour to enable better UX while respecting Brave API limits
-const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '60', 10);
+// Set high (500/hr) since Brave Pro plan allows 50 req/sec
+// Main constraint is Claude API costs, not Brave limits
+const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '500', 10);
 
 // Token limits
 const MAX_RESPONSE_TOKENS = 4096;
