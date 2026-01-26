@@ -123,6 +123,19 @@ export async function browserVisit(input: BrowserVisitInput): Promise<BrowserVis
 }
 
 /**
+ * Escape string for safe JavaScript string literal insertion
+ */
+function escapeJsString(str: string): string {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t');
+}
+
+/**
  * Build the Puppeteer script for visiting a URL
  */
 function buildVisitScript(input: BrowserVisitInput): string {
@@ -134,6 +147,11 @@ function buildVisitScript(input: BrowserVisitInput): string {
     extractLinks = false,
     extractStructured = false,
   } = input;
+
+  // Escape all user-provided strings for safe JavaScript insertion
+  const safeUrl = escapeJsString(url);
+  const safeSelector = selector ? escapeJsString(selector) : '';
+  const safeWaitFor = waitFor ? escapeJsString(waitFor) : '';
 
   return `
 const puppeteer = require('puppeteer');
@@ -154,7 +172,7 @@ const puppeteer = require('puppeteer');
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
     // Navigate to URL
-    await page.goto('${url}', {
+    await page.goto('${safeUrl}', {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
@@ -163,7 +181,7 @@ const puppeteer = require('puppeteer');
       waitFor
         ? `
     // Wait for specific element
-    await page.waitForSelector('${waitFor}', { timeout: 10000 });
+    await page.waitForSelector('${safeWaitFor}', { timeout: 10000 });
     `
         : ''
     }
@@ -177,7 +195,7 @@ const puppeteer = require('puppeteer');
       selector
         ? `
     // Extract specific content by selector
-    result.textContent = await page.$eval('${selector}', el => el.textContent?.trim() || '');
+    result.textContent = await page.$eval('${safeSelector}', el => el.textContent?.trim() || '');
     `
         : extractText
           ? `
@@ -265,6 +283,9 @@ export async function browserScreenshot(input: ScreenshotInput): Promise<Screens
 
     const { url, fullPage = false, width = 1280, height = 800 } = input;
 
+    // Escape URL for safe JavaScript insertion
+    const safeUrl = escapeJsString(url);
+
     const script = `
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -280,7 +301,7 @@ const fs = require('fs');
     await page.setViewport({ width: ${width}, height: ${height} });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
 
-    await page.goto('${url}', {
+    await page.goto('${safeUrl}', {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });
