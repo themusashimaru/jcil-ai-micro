@@ -49,7 +49,7 @@ function getTimeGreeting(): string {
 export function ChatThread({
   messages,
   isStreaming,
-  currentChatId,
+  currentChatId: _currentChatId,
   isAdmin,
   documentType,
   onReply,
@@ -111,7 +111,8 @@ export function ChatThread({
   }, [messages, messages.length]);
 
   // Clean welcome screen - like Claude/ChatGPT/DeepSeek
-  if (!currentChatId || messages.length === 0) {
+  // Only show if no messages (strategy mode adds messages before chat is created)
+  if (messages.length === 0) {
     return (
       <div className="flex flex-1 min-h-0 items-center justify-center p-4">
         <div className="text-center">
