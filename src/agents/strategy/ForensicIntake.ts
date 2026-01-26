@@ -57,6 +57,26 @@ export class ForensicIntake {
   // ===========================================================================
 
   /**
+   * Get the current messages for persistence
+   */
+  getMessages(): Array<{ role: 'user' | 'assistant'; content: string }> {
+    return [...this.state.messages];
+  }
+
+  /**
+   * Restore messages from persistence (for serverless session restoration)
+   */
+  restoreMessages(messages: Array<{ role: 'user' | 'assistant'; content: string }>): void {
+    this.state.messages = [...messages];
+    // Count questions from restored messages
+    this.state.questionCount = messages.filter((m) => m.role === 'assistant').length;
+    log.info('Restored intake state', {
+      messageCount: messages.length,
+      questionCount: this.state.questionCount,
+    });
+  }
+
+  /**
    * Start the intake process
    * Returns the opening message to display to the user
    */

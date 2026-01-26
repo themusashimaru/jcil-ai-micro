@@ -157,6 +157,47 @@ async function storeProblemData(
 }
 
 /**
+ * Store intake messages for session restoration
+ * This allows us to restore the agent on a different serverless instance
+ */
+async function storeIntakeMessages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('strategy_sessions')
+    .update({ intake_messages: messages })
+    .eq('session_id', sessionId);
+
+  if (error) {
+    log.error('Failed to store intake messages', { sessionId, error });
+  }
+}
+
+/**
+ * Get intake messages from database
+ */
+async function getIntakeMessages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string
+): Promise<Array<{ role: 'user' | 'assistant'; content: string }> | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('strategy_sessions')
+    .select('intake_messages')
+    .eq('session_id', sessionId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.intake_messages || [];
+}
+
+/**
  * Store a finding in the database
  */
 async function storeFinding(
@@ -369,7 +410,7 @@ export async function POST(request: NextRequest) {
         return handleStart(supabase, user.id, isAdmin, attachments);
 
       case 'input':
-        return handleInput(supabase, sessionId, input);
+        return handleInput(supabase, sessionId, input, user.id, isAdmin);
 
       case 'execute':
         return handleExecute(supabase, user.id, sessionId);
@@ -691,6 +732,10 @@ async function handleStart(
     try {
       const intakeMessage = await agent.startIntake();
 
+      // Save initial message to DB for serverless session restoration
+      const messages = agent.getIntakeMessages();
+      await storeIntakeMessages(supabase, sessionId, messages);
+
       await writer.write(
         encoder.encode(
           `event: intake_start\ndata: ${JSON.stringify({
@@ -742,7 +787,9 @@ async function handleStart(
 async function handleInput(
   supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string | undefined,
-  input: string | undefined
+  input: string | undefined,
+  userId: string,
+  isAdmin: boolean
 ): Promise<Response> {
   if (!sessionId) {
     return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -759,7 +806,7 @@ async function handleInput(
   }
 
   // Check active session first
-  const session = activeSessions.get(sessionId);
+  let session = activeSessions.get(sessionId);
 
   // If not in memory, check database and try to restore
   if (!session) {
@@ -771,8 +818,15 @@ async function handleInput(
       });
     }
 
-    // Session exists in DB but not in memory - can't process intake
-    // (agent instance is lost)
+    // Verify user owns this session
+    if (dbSession.user_id !== userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Session exists in DB but not in memory - only intake phase can be restored
     if (dbSession.phase !== 'intake') {
       return new Response(
         JSON.stringify({ error: `Cannot process input during ${dbSession.phase} phase` }),
@@ -783,16 +837,39 @@ async function handleInput(
       );
     }
 
-    return new Response(
-      JSON.stringify({
-        error: 'Session expired',
-        message: 'The session has expired. Please start a new strategy.',
-      }),
-      {
-        status: 410,
+    // Try to restore the session
+    log.info('Restoring session from database', { sessionId });
+
+    // Get the API key
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'Anthropic API key not configured' }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
-      }
-    );
+      });
+    }
+
+    // Get intake messages from DB
+    const intakeMessages = await getIntakeMessages(supabase, sessionId);
+
+    // Create a new agent and restore its state
+    const agent = createStrategyAgent(apiKey, { userId, sessionId, isAdmin });
+
+    // Restore the intake messages if we have them
+    if (intakeMessages && intakeMessages.length > 0) {
+      agent.restoreIntakeMessages(intakeMessages);
+      log.info('Restored intake messages', { sessionId, messageCount: intakeMessages.length });
+    }
+
+    // Store the restored session back in memory
+    session = {
+      agent,
+      phase: 'intake',
+      dbId: dbSession.id,
+      started: new Date(dbSession.started_at).getTime(),
+    };
+    activeSessions.set(sessionId, session);
+    log.info('Session restored to memory', { sessionId });
   }
 
   if (session.phase !== 'intake') {
@@ -807,6 +884,10 @@ async function handleInput(
 
   try {
     const result = await session.agent.processIntakeInput(input);
+
+    // Save intake messages to DB for serverless session restoration
+    const messages = session.agent.getIntakeMessages();
+    await storeIntakeMessages(supabase, sessionId, messages);
 
     // If intake is complete, store the problem data
     if (result.isComplete) {

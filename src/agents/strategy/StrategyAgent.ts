@@ -126,6 +126,20 @@ export class StrategyAgent {
   }
 
   /**
+   * Get intake messages for persistence (serverless support)
+   */
+  getIntakeMessages(): Array<{ role: 'user' | 'assistant'; content: string }> {
+    return this.intake.getMessages();
+  }
+
+  /**
+   * Restore intake messages from persistence (serverless support)
+   */
+  restoreIntakeMessages(messages: Array<{ role: 'user' | 'assistant'; content: string }>): void {
+    this.intake.restoreMessages(messages);
+  }
+
+  /**
    * Add context during execution (like Claude Code's interrupt feature)
    * Allows user to provide additional information while strategy is running
    */
