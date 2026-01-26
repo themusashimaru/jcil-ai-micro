@@ -17,10 +17,11 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { routeChat, completeChat, type ChatRouteOptions } from '@/lib/ai/chat-router';
+import { routeChat, routeChatWithTools, completeChat, type ChatRouteOptions, type ToolExecutor } from '@/lib/ai/chat-router';
 // detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
+import { webSearchTool, executeWebSearch, isWebSearchAvailable } from '@/lib/ai/tools';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -311,370 +312,6 @@ function getDocumentTypeName(type: string): string {
     pdf: 'PDF',
   };
   return names[type] || 'document';
-}
-
-/**
- * Detect if AI response indicates a knowledge cutoff limitation
- * These phrases trigger automatic web search to help the user
- */
-function detectKnowledgeCutoff(response: string): boolean {
-  const lowerResponse = response.toLowerCase();
-
-  const cutoffPhrases = [
-    // Classic knowledge cutoff phrases
-    'knowledge cutoff',
-    'knowledge cut-off',
-    'training cutoff',
-    'training cut-off',
-    'my training data',
-    'as of my last update',
-    'as of my knowledge cutoff',
-    'my information only goes up to',
-    // "access to real-time" variations
-    "i don't have access to real-time",
-    "don't have access to real-time",
-    "i can't access real-time",
-    "can't access real-time",
-    'cannot access real-time',
-    // "real-time access" variations (reversed word order - from user's conversation)
-    "i don't have real-time access",
-    "don't have real-time access",
-    'no real-time access',
-    'real-time access to',
-    // Current info variations
-    "i don't have access to current",
-    "don't have access to current",
-    "i can't access current",
-    "can't access current",
-    'cannot access current',
-    "don't have current information",
-    "i don't have current information",
-    // Browse/internet variations
-    "i don't have the ability to browse",
-    "don't have the ability to browse",
-    "i don't have the ability to perform live web searches",
-    'unable to browse the internet',
-    'unable to browse the web',
-    'cannot browse the internet',
-    'cannot browse the web',
-    'i cannot access the internet',
-    "i can't access the internet",
-    "don't have access to the internet",
-    "i'm not able to browse",
-    'i am not able to browse',
-    "i don't have internet access",
-    "don't have internet access",
-    'i cannot perform web searches',
-    "i can't perform web searches",
-    'unable to search the web',
-    'unable to search the internet',
-    // Live data variations
-    "i don't have live data",
-    "don't have live data",
-    "i don't have up-to-date information",
-    "don't have up-to-date information",
-    "my data doesn't include",
-    "i'm unable to provide real-time",
-    'i am unable to provide real-time',
-    // Offering to search (means they need to look it up)
-    'would you like me to search',
-    'want me to search',
-    'shall i search',
-    'i could search',
-    'like me to search',
-    'like me to look',
-    'want me to look',
-    // Schedule/availability specific (from user's conversation)
-    'schedule is not available',
-    "schedule isn't available",
-    'not yet available',
-    "hasn't been released",
-    'has not been released',
-    "won't be released until",
-    "won't be available until",
-    'typically releases in',
-    'usually releases in',
-    // Uncertainty about current events
-    'at this exact moment',
-    'i need to clarify',
-    'once i confirm',
-    'can you let me know if',
-    'let me know if they',
-    'i need to know',
-    // Sports/event specific hedging
-    'if they made the playoffs',
-    'if they made it',
-    'season is over',
-    'in the offseason',
-  ];
-
-  return cutoffPhrases.some((phrase) => lowerResponse.includes(phrase));
-}
-
-/**
- * Detect if the user's question might benefit from current/real-time information
- * This is now MORE PERMISSIVE to let Claude decide via the quick check
- * Better to check and let Claude say "CAN_ANSWER" than miss a search opportunity
- */
-function mightNeedRealtimeInfo(query: string): boolean {
-  const lowerQuery = query.toLowerCase();
-
-  // EXPLICIT indicators - definitely needs search
-  const explicitIndicators = [
-    // Current events/news
-    'latest',
-    'recent',
-    'today',
-    'yesterday',
-    'this week',
-    'this month',
-    'current',
-    'now',
-    'breaking',
-    'news',
-    'update',
-    'updates',
-    // Time-sensitive queries
-    '2024',
-    '2025',
-    '2026',
-    '2027',
-    'this year',
-    'last year',
-    // Price/stock queries
-    'price of',
-    'price',
-    'stock',
-    'stocks',
-    'market',
-    'markets',
-    'bitcoin',
-    'crypto',
-    'cryptocurrency',
-    'ethereum',
-    'trading',
-    'invest',
-    // Weather/live data
-    'weather',
-    'forecast',
-    'temperature',
-    // Sports - teams, leagues, events
-    'patriots',
-    'cowboys',
-    'eagles',
-    'chiefs',
-    'bills',
-    '49ers',
-    'ravens',
-    'lakers',
-    'celtics',
-    'warriors',
-    'heat',
-    'bulls',
-    'knicks',
-    'yankees',
-    'dodgers',
-    'red sox',
-    'cubs',
-    'mets',
-    'nfl',
-    'nba',
-    'mlb',
-    'nhl',
-    'mls',
-    'ufc',
-    'wwe',
-    'super bowl',
-    'world series',
-    'nba finals',
-    'stanley cup',
-    'world cup',
-    'olympics',
-    'score',
-    'scores',
-    'game',
-    'games',
-    'match',
-    'winner',
-    'championship',
-    'playoff',
-    'playoffs',
-    'standings',
-    'roster',
-    'lineup',
-    'draft',
-    'trade',
-    'injury',
-    'injured',
-    'next game',
-    'next match',
-    'upcoming',
-    // Schedules
-    'schedule',
-    'scheduled',
-    'when do they play',
-    'when does',
-    'when will',
-    'when is',
-    // Releases/launches
-    'release date',
-    'coming out',
-    'launches',
-    'announced',
-    'announcement',
-    // Live information
-    'hours',
-    'open',
-    'closed',
-    'available',
-    'right now',
-    'at the moment',
-    'these days',
-    'still',
-  ];
-
-  // Check explicit indicators first
-  if (explicitIndicators.some((indicator) => lowerQuery.includes(indicator))) {
-    return true;
-  }
-
-  // IMPLICIT indicators - questions that MIGHT benefit from search
-  // Let Claude make the final call via quick check
-  const implicitIndicators = [
-    // Questions about entities that change over time
-    'who is',
-    'who are',
-    'who was',
-    "what's happening",
-    'what is happening',
-    'what happened',
-    'what has happened',
-    // Status/state questions
-    'how is',
-    'how are',
-    'how much',
-    'how many',
-    'status',
-    'state of',
-    // Company/organization questions
-    'ceo of',
-    'president of',
-    'founder of',
-    'owner of',
-    'company',
-    'corporation',
-    // Location/event questions
-    'where is',
-    'where are',
-    'event',
-    'events',
-    'conference',
-    'concert',
-    'show',
-    'shows',
-    // Product/service questions
-    'best',
-    'top',
-    'review',
-    'reviews',
-    'rating',
-    'ratings',
-    'compare',
-    'comparison',
-    'vs',
-    'versus',
-    // Fact-checking patterns
-    'is it true',
-    'true that',
-    'fact check',
-    'verify',
-    'debunk',
-    'real or',
-    'fake or',
-    // Research patterns
-    'tell me about',
-    'what do you know about',
-    'information on',
-    'info on',
-    'learn about',
-    'research',
-    // People questions (could have recent developments)
-    'elon musk',
-    'trump',
-    'biden',
-    'taylor swift',
-    'celebrity',
-    'politician',
-    'ceo',
-    'billionaire',
-    // Tech/business questions often need fresh data
-    'apple',
-    'google',
-    'microsoft',
-    'amazon',
-    'tesla',
-    'meta',
-    'facebook',
-    'twitter',
-    'openai',
-    'ai',
-    'artificial intelligence',
-    'chatgpt',
-    'startup',
-    'ipo',
-    'merger',
-    'acquisition',
-    // Policy/law questions
-    'law',
-    'legislation',
-    'policy',
-    'regulation',
-    'court',
-    'ruling',
-    'decision',
-    // Health/science
-    'covid',
-    'vaccine',
-    'treatment',
-    'cure',
-    'study',
-    'studies',
-    'research shows',
-    'scientists',
-    'discovery',
-    // General question patterns that often benefit from search
-    'how do i',
-    'how to',
-    'can you find',
-    'can you search',
-    'look up',
-    'search for',
-    'find out',
-  ];
-
-  // Check implicit indicators
-  if (implicitIndicators.some((indicator) => lowerQuery.includes(indicator))) {
-    return true;
-  }
-
-  // Pattern-based detection for questions
-  const questionPatterns = [
-    /^(what|who|where|when|why|how)\s+.{10,}/i, // Questions with substance
-    /\?$/, // Ends with question mark
-    /\b(latest|newest|recent|current)\b/i, // Recency words
-  ];
-
-  if (questionPatterns.some((pattern) => pattern.test(query))) {
-    return true;
-  }
-
-  // If query is short (under 50 chars), probably doesn't need search
-  // Long queries with questions are more likely to benefit
-  if (query.length > 100 && query.includes('?')) {
-    return true;
-  }
-
-  return false;
 }
 
 /**
@@ -2844,7 +2481,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 TODAY'S DATE: ${todayDate}
 
 CAPABILITIES:
-- **AUTOMATIC WEB SEARCH**: When you need current information (news, prices, scores, recent events, etc.), the system will automatically search the web for you. You do NOT need to say "I don't have access to real-time information" - just answer confidently. If the system detects your answer would benefit from fresh data, it will search automatically.
+- **WEB SEARCH TOOL**: You have access to a web_search tool. Use it when you need current information (news, prices, scores, recent events, company info, etc.). Do NOT say "I don't have access to real-time information" - instead, use the web_search tool to get current data. You decide when to search based on whether the question benefits from fresh information.
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
@@ -2905,8 +2542,8 @@ RESPONSE LENGTH:
 
 UNCERTAINTY:
 - If unsure about factual information, say so honestly rather than guessing
-- Do NOT say "I don't have access to real-time information" or "as of my knowledge cutoff" - the system will automatically search when needed
-- For current events, news, prices, scores, etc., answer confidently - auto-search handles freshness
+- Do NOT say "I don't have access to real-time information" or "as of my knowledge cutoff" - use the web_search tool instead
+- For current events, news, prices, scores, etc., use the web_search tool to get accurate current data
 
 CODE:
 - Use proper code blocks with language syntax highlighting
@@ -2947,137 +2584,30 @@ SECURITY:
     const fullSystemPrompt = memoryContext ? `${systemPrompt}\n\n${memoryContext}` : systemPrompt;
 
     // ========================================
-    // AUTO-SEARCH TRIGGER: Let Claude decide if search is needed
+    // NATIVE TOOL USE: Give Claude the web_search tool
     // ========================================
-    // Give Claude autonomy to decide if a web search would improve the response
-    // This is more intelligent than keyword matching alone
-    if (mightNeedRealtimeInfo(lastUserContent) && isBraveConfigured()) {
-      log.debug('Query might benefit from search, letting Claude decide');
+    // Claude decides when to search - no keyword detection needed
+    // This is the proper way to give Claude search autonomy
 
-      try {
-        // Smart check - let Claude evaluate if search would genuinely help
-        const quickCheckMessages: CoreMessage[] = [
-          {
-            role: 'user',
-            content: `Evaluate this user question and decide if a web search would provide a better answer:
+    // Build tools array (currently just web_search)
+    const tools = isWebSearchAvailable() ? [webSearchTool] : [];
 
-"${lastUserContent}"
-
-Consider:
-1. Does this ask about something that changes over time (news, prices, events, people's current status)?
-2. Is this about recent developments (past 6 months)?
-3. Would current/live data make the answer more accurate or useful?
-4. Is the user implicitly asking about current state even if not explicitly stated?
-5. Would I need to say "as of my knowledge cutoff" or "I don't have real-time access" without search?
-
-Reply with ONLY one word:
-- "SEARCH" if a web search would provide a noticeably better, more current, or more accurate answer
-- "ANSWER" if you can provide a complete, accurate answer from training data alone`,
-          },
-        ];
-        const quickCheck = await completeChat(quickCheckMessages, {
-          systemPrompt: `You are a search decision classifier. Your job is to determine if a web search would genuinely improve the answer quality.
-
-SEARCH is needed when:
-- Current events, news, or recent developments (anything in 2024-2026)
-- Sports scores, schedules, standings, player status, trades
-- Stock prices, crypto prices, market data
-- Weather or forecasts
-- Company news, product launches, leadership changes
-- Political developments, elections, policy changes
-- Celebrity/public figure current activities
-- Anything where "as of my last update" would be necessary
-- Questions about "latest", "current", "now", "today"
-- Product comparisons or "best" questions (reviews change)
-- Fact-checking claims about recent events
-
-ANSWER from training is fine when:
-- Historical facts, science, math, definitions
-- How-to guides for stable technologies
-- General knowledge that doesn't change
-- Creative writing, coding help, analysis
-- Philosophical or conceptual questions
-- Bible/scripture questions
-
-When in doubt, lean toward SEARCH - it's better to provide current info than stale data.`,
-          maxTokens: 20,
-          temperature: 0,
-          model: 'claude-haiku-4-5-20251001', // Use Haiku for fast classification
-        });
-
-        // Check if Claude decided search would help
-        const responseUpper = quickCheck.text.toUpperCase().trim();
-        const needsSearch = responseUpper === 'SEARCH' || responseUpper.startsWith('SEARCH');
-
-        // Check if Claude's response indicates knowledge cutoff (backup check)
-        if (needsSearch || detectKnowledgeCutoff(quickCheck.text)) {
-          log.info('Claude decided search would improve answer, auto-triggering web search', {
-            queryPreview: lastUserContent.substring(0, 50),
-            claudeDecision: quickCheck.text.trim(),
-          });
-
-          // Check research-specific rate limit
-          const researchRateCheck = checkResearchRateLimit(rateLimitIdentifier);
-          if (researchRateCheck.allowed) {
-            try {
-              // Trigger Brave web search with AI synthesis
-              const searchResult = await braveSearch({
-                query: lastUserContent,
-                mode: 'search',
-              });
-
-              // Post-process through AI for consistent voice (with xAI fallback)
-              const autoSynthesisMessages: CoreMessage[] = [
-                {
-                  role: 'user',
-                  content: `Based on this web search result, provide a helpful answer to the user's question "${lastUserContent}":\n\n${searchResult.answer}`,
-                },
-              ];
-              const synthesis = await completeChat(autoSynthesisMessages, {
-                model: 'claude-sonnet-4-5-20250929',
-                maxTokens: 2048,
-              });
-
-              // Release slot before returning
-              if (slotAcquired) {
-                await releaseSlot(requestId);
-                slotAcquired = false;
-              }
-
-              return new Response(
-                JSON.stringify({
-                  type: 'text',
-                  content: synthesis.text,
-                  model: synthesis.model,
-                  autoSearched: true,
-                }),
-                {
-                  status: 200,
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-Search-Mode': 'auto',
-                    'X-Auto-Searched': 'true',
-                  },
-                }
-              );
-            } catch (searchError) {
-              log.warn(
-                'Auto-search failed, falling back to original response',
-                searchError as Error
-              );
-              // Fall through to streaming - let Claude respond normally
-            }
-          } else {
-            log.debug('Research rate limit reached, skipping auto-search');
-          }
-        } else {
-          log.debug('No knowledge cutoff detected, proceeding with streaming response');
-        }
-      } catch (checkError) {
-        log.warn('Quick check failed, proceeding with streaming', checkError as Error);
-        // Continue to normal streaming response
+    // Tool executor with rate limiting
+    const toolExecutor: ToolExecutor = async (toolCall) => {
+      // Check rate limit before executing search
+      const rateCheck = checkResearchRateLimit(rateLimitIdentifier);
+      if (!rateCheck.allowed) {
+        log.warn('Search rate limit exceeded', { identifier: rateLimitIdentifier });
+        return {
+          toolCallId: toolCall.id,
+          content: 'Search rate limit exceeded. Please try again later.',
+          isError: true,
+        };
       }
-    }
+
+      // Execute the web search
+      return executeWebSearch(toolCall);
+    };
 
     // ========================================
     // PENDING REQUEST - Create before streaming starts
@@ -3103,27 +2633,32 @@ When in doubt, lean toward SEARCH - it's better to provide current info than sta
     }
 
     // ========================================
-    // MULTI-PROVIDER CHAT ROUTING
+    // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
     // Primary: Claude Haiku 4.5 (fast, cost-effective)
     // Fallback: xAI Grok 4.1 (full capability parity)
+    // Claude can call web_search tool when it needs current information
     // ========================================
     const routeOptions: ChatRouteOptions = {
       model: 'claude-haiku-4-5-20251001', // Default to Haiku for cost-effective chat
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
+      tools, // Give Claude the web_search tool
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });
       },
     };
 
-    const routeResult = await routeChat(truncatedMessages, routeOptions);
+    // Use routeChatWithTools to handle Claude's tool calls
+    const routeResult = await routeChatWithTools(truncatedMessages, routeOptions, toolExecutor);
 
     log.debug('Chat routed', {
       provider: routeResult.providerId,
       model: routeResult.model,
       usedFallback: routeResult.usedFallback,
       fallbackReason: routeResult.fallbackReason,
+      usedTools: routeResult.usedTools,
+      toolsUsed: routeResult.toolsUsed,
     });
 
     // CRITICAL FIX: Track slot release with a promise-based cleanup
@@ -3193,6 +2728,8 @@ When in doubt, lean toward SEARCH - it's better to provide current info than sta
         'X-Model-Used': routeResult.model,
         'X-Provider': routeResult.providerId,
         'X-Used-Fallback': routeResult.usedFallback ? 'true' : 'false',
+        'X-Used-Tools': routeResult.usedTools ? 'true' : 'false',
+        'X-Tools-Used': routeResult.toolsUsed.join(',') || 'none',
       },
     });
   } finally {
