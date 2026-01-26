@@ -284,14 +284,13 @@ export function ChatComposer({
   };
 
   const handleSend = () => {
-    console.log(
-      '[ChatComposer] handleSend called, message:',
-      message.trim().substring(0, 50),
-      'toolMode:',
-      toolMode
-    );
-    if ((!message.trim() && attachments.length === 0) || isStreaming) {
-      console.log('[ChatComposer] handleSend blocked - empty or streaming');
+    // Block sending if: empty, streaming, disabled, or strategy is loading
+    if (
+      (!message.trim() && attachments.length === 0) ||
+      isStreaming ||
+      disabled ||
+      strategyLoading
+    ) {
       return;
     }
 
@@ -305,7 +304,6 @@ export function ChatComposer({
         }
       : null;
 
-    console.log('[ChatComposer] Calling onSendMessage with toolMode:', toolMode);
     onSendMessage(message.trim(), attachments, toolMode, repoInfo);
     setMessage('');
     setAttachments([]);
@@ -819,17 +817,7 @@ export function ChatComposer({
                 <div className="relative flex items-center">
                   <button
                     ref={agentsButtonRef}
-                    onClick={() => {
-                      console.log(
-                        '[ChatComposer] Agents button clicked, showAgentsMenu:',
-                        showAgentsMenu,
-                        'isStreaming:',
-                        isStreaming,
-                        'disabled:',
-                        disabled
-                      );
-                      setShowAgentsMenu(!showAgentsMenu);
-                    }}
+                    onClick={() => setShowAgentsMenu(!showAgentsMenu)}
                     disabled={isStreaming || disabled}
                     className={`
                       disabled:opacity-50 flex items-center gap-1 transition-all text-xs
@@ -889,11 +877,6 @@ export function ChatComposer({
                     >
                       <div className="p-2 border-b border-gray-700">
                         <p className="text-xs text-gray-400 font-medium">Select an Agent</p>
-                        {/* Debug: */}
-                        <p className="text-xs text-gray-600">
-                          isAdmin: {isAdmin ? 'true' : 'false'}, toolMode: {toolMode}, activeAgent:{' '}
-                          {activeAgent || 'none'}
-                        </p>
                       </div>
                       <div className="p-1">
                         {/* Regular Chat - Exit agent mode */}
@@ -901,9 +884,6 @@ export function ChatComposer({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log(
-                                '[ChatComposer] Regular Chat clicked, exiting agent mode'
-                              );
                               // Exit strategy mode if active
                               if (activeAgent === 'strategy') {
                                 onAgentSelect?.('strategy'); // Toggle off
@@ -940,29 +920,12 @@ export function ChatComposer({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log(
-                              '[ChatComposer] Research Agent clicked, current toolMode:',
-                              toolMode,
-                              'activeAgent:',
-                              activeAgent
-                            );
-
                             // If Strategy is active, notify parent to exit it first
                             if (activeAgent === 'strategy') {
-                              console.log(
-                                '[ChatComposer] Exiting strategy mode to switch to research'
-                              );
                               onAgentSelect?.('research');
                             }
-
                             // Toggle research mode internally
-                            if (toolMode === 'research') {
-                              setToolMode('none');
-                              console.log('[ChatComposer] Setting toolMode to none');
-                            } else {
-                              setToolMode('research');
-                              console.log('[ChatComposer] Setting toolMode to research');
-                            }
+                            setToolMode(toolMode === 'research' ? 'none' : 'research');
                             setShowAgentsMenu(false);
                           }}
                           className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
