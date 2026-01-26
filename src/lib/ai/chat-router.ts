@@ -505,7 +505,10 @@ export async function routeChatWithTools(
                     arguments: {},
                   };
                   toolArgsBuffer = '';
-                  log.debug('Tool call started', { name: chunk.toolCall.name, id: chunk.toolCall.id });
+                  log.debug('Tool call started', {
+                    name: chunk.toolCall.name,
+                    id: chunk.toolCall.id,
+                  });
                 }
                 break;
 
@@ -538,7 +541,9 @@ export async function routeChatWithTools(
                   const completedCall: UnifiedToolCall = {
                     id: currentToolCall.id,
                     name: currentToolCall.name,
-                    arguments: parseError ? { _parseError: true, _rawBuffer: toolArgsBuffer.substring(0, 500) } : args,
+                    arguments: parseError
+                      ? { _parseError: true, _rawBuffer: toolArgsBuffer.substring(0, 500) }
+                      : args,
                   };
                   pendingToolCalls.push(completedCall);
                   log.debug('Tool call completed', {
@@ -577,14 +582,29 @@ export async function routeChatWithTools(
           usedTools = true;
           const toolResults: UnifiedToolResult[] = [];
           const TOOL_TIMEOUT_MS = 15000; // 15 second timeout per tool
-          const KEEPALIVE_INTERVAL_MS = 10000; // Send keepalive every 10s to prevent Vercel timeout
+          const KEEPALIVE_INTERVAL_MS = 8000; // Send keepalive every 8s to prevent Vercel timeout
 
-          // Start keepalive to prevent Vercel timeout during tool execution
+          // Send initial status message - visible feedback for user + keeps connection alive
+          const toolName = pendingToolCalls[0]?.name || 'tool';
+          const statusPrefix =
+            toolName === 'web_search' ? '\n\n*Searching the web...*' : `\n\n*Using ${toolName}...*`;
+          try {
+            controller.enqueue(encoder.encode(statusPrefix));
+            log.debug('Sent tool status message', { toolName });
+          } catch {
+            // Stream closed, ignore
+          }
+
+          // Start keepalive with status updates to prevent Vercel timeout during tool execution
+          let keepaliveCount = 0;
           const keepaliveInterval = setInterval(() => {
             try {
-              // Send a space as keepalive - won't affect output but keeps connection alive
-              controller.enqueue(encoder.encode(' '));
-              log.debug('Keepalive sent during tool execution');
+              keepaliveCount++;
+              const elapsedSec = keepaliveCount * 8;
+              // Send visible status update so Vercel sees actual data, not just whitespace
+              const statusUpdate = ` (${elapsedSec}s)`;
+              controller.enqueue(encoder.encode(statusUpdate));
+              log.debug('Keepalive status sent during tool execution', { elapsed: elapsedSec });
             } catch {
               // Stream may have been closed, ignore
             }
@@ -624,14 +644,25 @@ export async function routeChatWithTools(
           } finally {
             // Always clear keepalive interval
             clearInterval(keepaliveInterval);
+            // Send completion status and newline before Claude's synthesis
+            try {
+              controller.enqueue(encoder.encode('\n\n'));
+              log.debug('Tool execution phase complete, continuing to synthesis');
+            } catch {
+              // Stream closed, ignore
+            }
           }
 
           // Add assistant message with tool calls to conversation
+          // Note: arguments are already parsed to Record at tool_call_end, so cast is safe
           const assistantToolContent: UnifiedContentBlock[] = pendingToolCalls.map((tc) => ({
             type: 'tool_use' as const,
             id: tc.id,
             name: tc.name,
-            arguments: tc.arguments,
+            arguments: (typeof tc.arguments === 'string' ? {} : tc.arguments) as Record<
+              string,
+              unknown
+            >,
           }));
           currentMessages.push({
             role: 'assistant',

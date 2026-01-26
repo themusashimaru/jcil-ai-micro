@@ -547,18 +547,6 @@ export class AnthropicAdapter extends BaseAIAdapter {
 
   // ============================================================================
   // UTILITIES
-  // ============================================================================
-
-  /**
-   * Safely parse JSON, returning empty object on failure
-   */
-  private safeParseJSON(json: string): Record<string, unknown> {
-    try {
-      return JSON.parse(json);
-    } catch {
-      return {};
-    }
-  }
 }
 
 // ============================================================================

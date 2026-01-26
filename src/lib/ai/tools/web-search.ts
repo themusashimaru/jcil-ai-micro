@@ -56,7 +56,7 @@ Always use this tool rather than saying "I don't have access to real-time inform
  * Called when Claude uses the web_search tool
  */
 export async function executeWebSearch(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
-  const { id, name, arguments: args } = toolCall;
+  const { id, name, arguments: rawArgs } = toolCall;
 
   if (name !== 'web_search') {
     return {
@@ -66,6 +66,8 @@ export async function executeWebSearch(toolCall: UnifiedToolCall): Promise<Unifi
     };
   }
 
+  // Handle case where arguments might still be a string (should be parsed by now, but defensive)
+  const args = typeof rawArgs === 'string' ? {} : rawArgs;
   const query = args.query as string;
   const searchType = (args.search_type as string) || 'general';
 
@@ -90,7 +92,8 @@ export async function executeWebSearch(toolCall: UnifiedToolCall): Promise<Unifi
 
   try {
     // Map search type to Brave mode
-    const mode = searchType === 'factcheck' ? 'factcheck' : searchType === 'news' ? 'news' : 'search';
+    const mode =
+      searchType === 'factcheck' ? 'factcheck' : searchType === 'news' ? 'news' : 'search';
 
     const result = await braveSearch({
       query,
