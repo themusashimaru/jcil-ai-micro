@@ -134,11 +134,15 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+          if (value) {
+            buffer += decoder.decode(value, { stream: !done });
+          }
+
+          // Process all complete lines
           const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          // Keep incomplete line in buffer only if stream is not done
+          buffer = done ? '' : lines.pop() || '';
 
           for (const line of lines) {
             if (line.startsWith('event:')) {
@@ -161,6 +165,8 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
               }
             }
           }
+
+          if (done) break;
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -203,11 +209,15 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        if (value) {
+          buffer += decoder.decode(value, { stream: !done });
+        }
+
+        // Process all complete lines
         const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        // Keep incomplete line in buffer only if stream is not done
+        buffer = done ? '' : lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data:')) {
@@ -253,6 +263,8 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
             }
           }
         }
+
+        if (done) break;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
