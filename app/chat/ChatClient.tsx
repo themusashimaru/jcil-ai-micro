@@ -1072,10 +1072,18 @@ export function ChatClient() {
    * Start Deep Strategy mode - adds intro message to chat and begins intake
    */
   const startDeepStrategy = async () => {
+    console.log(
+      '[startDeepStrategy] called, isStrategyMode:',
+      isStrategyMode,
+      'strategyLoading:',
+      strategyLoading
+    );
     if (isStrategyMode || strategyLoading) {
+      console.log('[startDeepStrategy] returning early');
       return;
     }
 
+    console.log('[startDeepStrategy] setting loading states');
     setStrategyLoading(true);
     setIsStreaming(true);
 
@@ -1104,10 +1112,15 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, introMessage]);
+    console.log('[startDeepStrategy] adding intro message');
+    setMessages((prev) => {
+      console.log('[startDeepStrategy] setMessages callback, prev length:', prev.length);
+      return [...prev, introMessage];
+    });
 
     try {
       // Start strategy session via API
+      console.log('[startDeepStrategy] calling API');
       const response = await fetch('/api/strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
