@@ -1215,17 +1215,31 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
         hasResponse: !!data.response,
         responseLength: data.response?.length,
         isComplete: data.isComplete,
+        responsePreview: data.response?.substring(0, 100),
       });
+
+      if (!data.response) {
+        console.error('[handleStrategyInput] WARNING: response is empty/null!');
+      }
 
       // Add assistant response to chat
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: data.response,
+        content: data.response || 'No response received',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
-      console.log('[handleStrategyInput] Added assistant message to chat');
+
+      console.log('[handleStrategyInput] Creating message:', assistantMessage.id);
+
+      setMessages((prev) => {
+        console.log('[handleStrategyInput] setMessages callback - prev count:', prev.length);
+        const updated = [...prev, assistantMessage];
+        console.log('[handleStrategyInput] setMessages callback - new count:', updated.length);
+        return updated;
+      });
+
+      console.log('[handleStrategyInput] setMessages called successfully');
 
       // Check if intake is complete - start execution
       if (data.isComplete) {
