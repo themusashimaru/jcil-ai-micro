@@ -878,14 +878,65 @@ export function ChatComposer({
                         </p>
                       </div>
                       <div className="p-1">
+                        {/* Regular Chat - Exit agent mode */}
+                        {(toolMode === 'research' || activeAgent === 'strategy') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log(
+                                '[ChatComposer] Regular Chat clicked, exiting agent mode'
+                              );
+                              // Exit strategy mode if active
+                              if (activeAgent === 'strategy') {
+                                onAgentSelect?.('strategy'); // Toggle off
+                              }
+                              // Exit research mode if active
+                              setToolMode('none');
+                              setShowAgentsMenu(false);
+                            }}
+                            className="w-full flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300 mb-1"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-gray-500/20 flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-4 h-4 text-gray-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-medium">Exit Agent Mode</p>
+                              <p className="text-xs text-gray-500">Return to regular chat</p>
+                            </div>
+                          </button>
+                        )}
+
                         {/* Research Agent - Available to all */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log(
                               '[ChatComposer] Research Agent clicked, current toolMode:',
-                              toolMode
+                              toolMode,
+                              'activeAgent:',
+                              activeAgent
                             );
+
+                            // If Strategy is active, notify parent to exit it first
+                            if (activeAgent === 'strategy') {
+                              console.log(
+                                '[ChatComposer] Exiting strategy mode to switch to research'
+                              );
+                              onAgentSelect?.('research');
+                            }
+
                             // Toggle research mode internally
                             if (toolMode === 'research') {
                               setToolMode('none');

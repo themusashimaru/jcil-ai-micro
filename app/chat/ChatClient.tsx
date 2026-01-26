@@ -3065,12 +3065,30 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                   'isStrategyMode:',
                   isStrategyMode
                 );
-                if (agent === 'strategy' && !isStrategyMode) {
-                  console.log('[ChatClient] Starting Deep Strategy...');
-                  await startDeepStrategy();
-                  console.log('[ChatClient] startDeepStrategy completed');
+
+                if (agent === 'strategy') {
+                  if (isStrategyMode) {
+                    // Toggle off - cancel strategy mode
+                    console.log('[ChatClient] Toggling off Strategy mode');
+                    setIsStrategyMode(false);
+                    setStrategyPhase('idle');
+                    setStrategySessionId(null);
+                  } else {
+                    // Start strategy
+                    console.log('[ChatClient] Starting Deep Strategy...');
+                    await startDeepStrategy();
+                    console.log('[ChatClient] startDeepStrategy completed');
+                  }
+                } else if (agent === 'research') {
+                  // If switching from strategy to research, exit strategy mode
+                  if (isStrategyMode) {
+                    console.log('[ChatClient] Switching from Strategy to Research');
+                    setIsStrategyMode(false);
+                    setStrategyPhase('idle');
+                    setStrategySessionId(null);
+                  }
+                  // Research mode is handled internally by ChatComposer's toolMode
                 }
-                // Research agent handled by toolMode toggle in ChatComposer
               }}
             />
             {/* Voice Button - Hidden until feature is production-ready
