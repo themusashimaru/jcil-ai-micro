@@ -326,8 +326,13 @@ export function ChatComposer({
     setToolMode('none');
   };
 
-  // Get placeholder text based on tool mode
+  // Get placeholder text based on tool mode or active agent
   const getPlaceholderForMode = (): string => {
+    // Check active agent first (Strategy mode from parent)
+    if (activeAgent === 'strategy') {
+      return 'Describe your complex problem or decision...';
+    }
+
     switch (toolMode) {
       case 'search':
         return 'Search the web...';
@@ -687,17 +692,22 @@ export function ChatComposer({
           onDrop={handleDrop}
         >
           <div className="relative">
-            {/* Typewriter placeholder overlay - shows tool mode placeholder when active */}
+            {/* Typewriter placeholder overlay - shows tool mode or agent placeholder when active */}
             {!isFocused && !message && !isDragging && (
               <div
                 className="absolute inset-0 flex items-center pointer-events-none px-4 py-3"
                 style={{ fontSize: '16px' }}
               >
-                {toolMode !== 'none' ? (
-                  // Tool mode placeholder (static, no animation)
+                {toolMode !== 'none' || activeAgent === 'strategy' ? (
+                  // Tool mode or agent placeholder (static, no animation)
                   <span
                     className="font-medium"
-                    style={{ color: getToolModeInfo()?.color || 'var(--primary)' }}
+                    style={{
+                      color:
+                        activeAgent === 'strategy'
+                          ? '#a855f7' // Purple for Strategy
+                          : getToolModeInfo()?.color || 'var(--primary)',
+                    }}
                   >
                     {getPlaceholderForMode()}
                   </span>

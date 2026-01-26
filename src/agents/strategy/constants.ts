@@ -13,8 +13,8 @@ import type { ModelConfig, StrategyLimits } from './types';
 /**
  * Claude Model IDs - Current 4.5 generation
  */
-export const CLAUDE_OPUS_45 = 'claude-opus-4-5-20250929';
-export const CLAUDE_SONNET_45 = 'claude-sonnet-4-5-20250929';
+export const CLAUDE_OPUS_45 = 'claude-opus-4-5-20251101';
+export const CLAUDE_SONNET_45 = 'claude-sonnet-4-5-20250514';
 export const CLAUDE_HAIKU_45 = 'claude-haiku-4-5-20251001';
 
 /**
