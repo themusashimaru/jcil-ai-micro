@@ -3051,13 +3051,6 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               activeAgent={isStrategyMode ? 'strategy' : null}
               strategyLoading={strategyLoading}
               onAgentSelect={async (agent) => {
-                console.log(
-                  '[ChatClient] onAgentSelect called with:',
-                  agent,
-                  'isStrategyMode:',
-                  isStrategyMode
-                );
-
                 // Helper to cancel strategy session on server
                 const cancelStrategySession = async () => {
                   if (strategySessionId) {
