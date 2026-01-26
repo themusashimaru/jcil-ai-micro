@@ -450,10 +450,12 @@ export class AnthropicAdapter extends BaseAIAdapter {
           return { type: 'text', text: event.delta.text };
         }
         if (event.delta.type === 'input_json_delta') {
+          // Pass the raw partial_json string for accumulation
+          // It will be parsed once complete in the chat router
           return {
             type: 'tool_call_delta',
             toolCall: {
-              arguments: this.safeParseJSON(event.delta.partial_json),
+              arguments: event.delta.partial_json, // Raw string, not parsed
             },
           };
         }
@@ -545,18 +547,6 @@ export class AnthropicAdapter extends BaseAIAdapter {
 
   // ============================================================================
   // UTILITIES
-  // ============================================================================
-
-  /**
-   * Safely parse JSON, returning empty object on failure
-   */
-  private safeParseJSON(json: string): Record<string, unknown> {
-    try {
-      return JSON.parse(json);
-    } catch {
-      return {};
-    }
-  }
 }
 
 // ============================================================================

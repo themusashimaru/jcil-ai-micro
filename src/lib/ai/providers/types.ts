@@ -239,8 +239,8 @@ export interface UnifiedToolCall {
   id: string;
   /** Tool name to execute */
   name: string;
-  /** Arguments for the tool */
-  arguments: Record<string, unknown>;
+  /** Arguments for the tool (string during streaming accumulation, object when complete) */
+  arguments: Record<string, unknown> | string;
 }
 
 /**
