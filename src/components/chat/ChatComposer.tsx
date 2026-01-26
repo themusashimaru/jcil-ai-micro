@@ -167,6 +167,7 @@ export function ChatComposer({
   // Agents dropdown state
   const [showAgentsMenu, setShowAgentsMenu] = useState(false);
   const agentsButtonRef = useRef<HTMLButtonElement>(null);
+  const agentsMenuRef = useRef<HTMLDivElement>(null);
   // Track last applied initialText to prevent re-applying on message changes
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
@@ -250,11 +251,12 @@ export function ChatComposer({
   // Close agents menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        showAgentsMenu &&
-        agentsButtonRef.current &&
-        !agentsButtonRef.current.contains(e.target as Node)
-      ) {
+      const target = e.target as Node;
+      // Check if click is inside the button OR inside the dropdown menu
+      const isInsideButton = agentsButtonRef.current?.contains(target);
+      const isInsideMenu = agentsMenuRef.current?.contains(target);
+
+      if (showAgentsMenu && !isInsideButton && !isInsideMenu) {
         setShowAgentsMenu(false);
       }
     };
@@ -280,7 +282,14 @@ export function ChatComposer({
   };
 
   const handleSend = () => {
+    console.log(
+      '[ChatComposer] handleSend called, message:',
+      message.trim().substring(0, 50),
+      'toolMode:',
+      toolMode
+    );
     if ((!message.trim() && attachments.length === 0) || isStreaming) {
+      console.log('[ChatComposer] handleSend blocked - empty or streaming');
       return;
     }
 
@@ -294,6 +303,7 @@ export function ChatComposer({
         }
       : null;
 
+    console.log('[ChatComposer] Calling onSendMessage with toolMode:', toolMode);
     onSendMessage(message.trim(), attachments, toolMode, repoInfo);
     setMessage('');
     setAttachments([]);
@@ -797,7 +807,17 @@ export function ChatComposer({
                 <div className="relative flex items-center">
                   <button
                     ref={agentsButtonRef}
-                    onClick={() => setShowAgentsMenu(!showAgentsMenu)}
+                    onClick={() => {
+                      console.log(
+                        '[ChatComposer] Agents button clicked, showAgentsMenu:',
+                        showAgentsMenu,
+                        'isStreaming:',
+                        isStreaming,
+                        'disabled:',
+                        disabled
+                      );
+                      setShowAgentsMenu(!showAgentsMenu);
+                    }}
                     disabled={isStreaming || disabled}
                     className={`
                       disabled:opacity-50 flex items-center gap-1 transition-all text-xs
@@ -845,19 +865,34 @@ export function ChatComposer({
 
                   {/* Dropdown menu */}
                   {showAgentsMenu && (
-                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
+                    <div
+                      ref={agentsMenuRef}
+                      className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50"
+                    >
                       <div className="p-2 border-b border-gray-700">
                         <p className="text-xs text-gray-400 font-medium">Select an Agent</p>
+                        {/* Debug: */}
+                        <p className="text-xs text-gray-600">
+                          isAdmin: {isAdmin ? 'true' : 'false'}, toolMode: {toolMode}, activeAgent:{' '}
+                          {activeAgent || 'none'}
+                        </p>
                       </div>
                       <div className="p-1">
                         {/* Research Agent - Available to all */}
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log(
+                              '[ChatComposer] Research Agent clicked, current toolMode:',
+                              toolMode
+                            );
                             // Toggle research mode internally
                             if (toolMode === 'research') {
                               setToolMode('none');
+                              console.log('[ChatComposer] Setting toolMode to none');
                             } else {
                               setToolMode('research');
+                              console.log('[ChatComposer] Setting toolMode to research');
                             }
                             setShowAgentsMenu(false);
                           }}
@@ -893,7 +928,11 @@ export function ChatComposer({
                         {/* Deep Strategy Agent - Admin only */}
                         {isAdmin && (
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log(
+                                '[ChatComposer] Strategy Agent clicked, calling onAgentSelect'
+                              );
                               onAgentSelect('strategy');
                               setShowAgentsMenu(false);
                             }}
