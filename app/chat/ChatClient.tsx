@@ -1072,13 +1072,10 @@ export function ChatClient() {
    * Start Deep Strategy mode - adds intro message to chat and begins intake
    */
   const startDeepStrategy = async () => {
-    console.log('[startDeepStrategy] Called, isStrategyMode:', isStrategyMode);
     if (isStrategyMode || strategyLoading) {
-      console.log('[startDeepStrategy] Already in strategy mode or loading, returning early');
       return;
     }
 
-    console.log('[startDeepStrategy] Setting strategyLoading to true');
     setStrategyLoading(true);
     setIsStreaming(true);
 
@@ -1107,23 +1104,15 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       timestamp: new Date(),
     };
 
-    console.log('[startDeepStrategy] Adding intro message to chat');
     setMessages((prev) => [...prev, introMessage]);
 
     try {
       // Start strategy session via API
-      console.log('[startDeepStrategy] Calling /api/strategy with action: start');
       const response = await fetch('/api/strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start' }),
       });
-
-      console.log('[startDeepStrategy] Response status:', response.status, response.ok);
-      console.log(
-        '[startDeepStrategy] Response headers:',
-        Object.fromEntries(response.headers.entries())
-      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -1133,19 +1122,16 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       // Get session ID from response header
       // Note: The API returns an SSE stream, not JSON, so we can only use the header
       const sessionId = response.headers.get('X-Session-Id');
-      console.log('[startDeepStrategy] Session ID from header:', sessionId);
 
       if (!sessionId) {
         throw new Error('No session ID returned from server. Check API response headers.');
       }
 
-      console.log('[startDeepStrategy] Setting strategy states with sessionId:', sessionId);
       setStrategySessionId(sessionId);
       setIsStrategyMode(true);
       setStrategyPhase('intake');
 
       log.debug('Strategy mode activated', { sessionId });
-      console.log('[startDeepStrategy] Strategy mode activated successfully');
     } catch (error) {
       console.error('[startDeepStrategy] Error:', error);
       log.error('Failed to start strategy:', error as Error);
@@ -1159,7 +1145,6 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       setIsStrategyMode(false);
       setStrategyPhase('idle');
     } finally {
-      console.log('[startDeepStrategy] Setting isStreaming and strategyLoading to false');
       setIsStreaming(false);
       setStrategyLoading(false);
     }
@@ -1169,9 +1154,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
    * Handle user input during strategy intake phase
    */
   const handleStrategyInput = async (input: string) => {
-    console.log('[handleStrategyInput] Called with input length:', input.length);
     if (!strategySessionId) {
-      console.log('[handleStrategyInput] No sessionId, returning early');
       return;
     }
 
@@ -1193,7 +1176,6 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      console.log('[handleStrategyInput] Calling /api/strategy with action: input');
       const response = await fetch('/api/strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1203,7 +1185,6 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
           input,
         }),
       });
-      console.log('[handleStrategyInput] Response status:', response.status, response.ok);
 
       if (!response.ok) {
         const data = await response.json();
@@ -1211,29 +1192,22 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
       }
 
       const data = await response.json();
-      console.log('[handleStrategyInput] Response data:', {
-        hasResponse: !!data.response,
-        responseLength: data.response?.length,
-        isComplete: data.isComplete,
-      });
 
       // Add assistant response to chat
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: data.response,
+        content: data.response || 'No response received',
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, assistantMessage]);
-      console.log('[handleStrategyInput] Added assistant message to chat');
 
       // Check if intake is complete - start execution
       if (data.isComplete) {
-        console.log('[handleStrategyInput] Intake complete, starting execution');
         await executeStrategy();
       }
     } catch (error) {
-      console.error('[handleStrategyInput] Error:', error);
       log.error('Strategy input error:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -1518,14 +1492,7 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
     }
 
     // DEEP STRATEGY MODE: If we're in strategy intake, send to strategy API
-    console.log('[handleSendMessage] Strategy check:', {
-      isStrategyMode,
-      strategyPhase,
-      strategySessionId,
-      willRouteToStrategy: isStrategyMode && strategyPhase === 'intake' && strategySessionId,
-    });
     if (isStrategyMode && strategyPhase === 'intake' && strategySessionId) {
-      console.log('[handleSendMessage] Routing to handleStrategyInput');
       await handleStrategyInput(content);
       return;
     }
@@ -3095,12 +3062,11 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                 const cancelStrategySession = async () => {
                   if (strategySessionId) {
                     try {
-                      console.log('[ChatClient] Cancelling strategy session:', strategySessionId);
                       await fetch(`/api/strategy?sessionId=${strategySessionId}`, {
                         method: 'DELETE',
                       });
-                    } catch (err) {
-                      console.error('[ChatClient] Failed to cancel strategy session:', err);
+                    } catch {
+                      // Silently fail - session may already be cleaned up
                     }
                   }
                 };
@@ -3108,21 +3074,17 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                 if (agent === 'strategy') {
                   if (isStrategyMode) {
                     // Toggle off - cancel strategy mode
-                    console.log('[ChatClient] Toggling off Strategy mode');
                     await cancelStrategySession();
                     setIsStrategyMode(false);
                     setStrategyPhase('idle');
                     setStrategySessionId(null);
                   } else {
                     // Start strategy
-                    console.log('[ChatClient] Starting Deep Strategy...');
                     await startDeepStrategy();
-                    console.log('[ChatClient] startDeepStrategy completed');
                   }
                 } else if (agent === 'research') {
                   // If switching from strategy to research, exit strategy mode
                   if (isStrategyMode) {
-                    console.log('[ChatClient] Switching from Strategy to Research');
                     await cancelStrategySession();
                     setIsStrategyMode(false);
                     setStrategyPhase('idle');

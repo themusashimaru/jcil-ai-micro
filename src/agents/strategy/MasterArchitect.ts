@@ -157,8 +157,8 @@ export class MasterArchitect {
       .map((block) => block.text)
       .join('\n');
 
-    // Extract JSON from response
-    const design = this.parseDesignResponse(textContent);
+    // Extract JSON from response - pass problem for context-aware fallback
+    const design = this.parseDesignResponse(textContent, problem);
 
     return design;
   }
@@ -166,7 +166,7 @@ export class MasterArchitect {
   /**
    * Parse the design response JSON
    */
-  private parseDesignResponse(response: string): ArchitectDesign {
+  private parseDesignResponse(response: string, problem: SynthesizedProblem): ArchitectDesign {
     // Look for JSON block
     const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
     const jsonText = jsonMatch ? jsonMatch[1] : response;
@@ -185,8 +185,8 @@ export class MasterArchitect {
     } catch (error) {
       log.error('Failed to parse design JSON', { error, responsePreview: response.slice(0, 500) });
 
-      // Return a minimal fallback design
-      return this.createFallbackDesign();
+      // Return a context-aware fallback design based on the problem
+      return this.createFallbackDesign(problem);
     }
   }
 
@@ -344,44 +344,134 @@ export class MasterArchitect {
   }
 
   /**
-   * Create fallback design when parsing fails
+   * Create fallback design when parsing fails - now context-aware
    */
-  private createFallbackDesign(): ArchitectDesign {
+  private createFallbackDesign(problem: SynthesizedProblem): ArchitectDesign {
+    // Extract key info from the problem to generate relevant scouts
+    const domains = problem.domains || ['General'];
+    const coreQuestion = problem.coreQuestion || problem.summary || 'the problem';
+    const constraints = problem.constraints || [];
+    const priorities = problem.priorities || [];
+
+    // Create project managers based on domains (up to 5)
+    const projectManagers: ProjectManagerBlueprint[] = domains.slice(0, 5).map((domain, i) => ({
+      id: `pm_${domain.toLowerCase().replace(/\s+/g, '_')}`,
+      name: `${domain} Research Director`,
+      domain: domain,
+      purpose: `Coordinate research on ${domain} aspects of ${coreQuestion}`,
+      focusAreas: [domain, ...constraints.slice(0, 2)],
+      expectedScouts: Math.ceil(20 / domains.length),
+      priority: i + 1,
+    }));
+
+    // If no domains, create a general PM
+    if (projectManagers.length === 0) {
+      projectManagers.push({
+        id: 'pm_general',
+        name: 'General Research Director',
+        domain: 'General Research',
+        purpose: `Coordinate research on ${coreQuestion}`,
+        focusAreas: ['Comprehensive analysis'],
+        expectedScouts: 20,
+        priority: 1,
+      });
+    }
+
+    // Create scouts for each domain with relevant search queries
+    const scouts: AgentBlueprint[] = [];
+    let scoutIndex = 0;
+
+    for (const pm of projectManagers) {
+      // Generate 3-5 scouts per domain
+      const scoutsPerDomain = Math.ceil(20 / projectManagers.length);
+
+      for (let i = 0; i < scoutsPerDomain && scouts.length < 50; i++) {
+        const scoutFocus = this.generateScoutFocus(
+          pm.domain,
+          coreQuestion,
+          constraints,
+          priorities,
+          i
+        );
+
+        scouts.push({
+          id: `scout_${scoutIndex}`,
+          name: `${pm.domain} Scout ${i + 1}`,
+          role: `${pm.domain} research specialist`,
+          expertise: [pm.domain],
+          purpose: scoutFocus.purpose,
+          keyQuestions: scoutFocus.questions,
+          researchApproach: 'deep_dive' as ResearchApproach,
+          dataSources: ['Web search', 'News', 'Forums'],
+          searchQueries: scoutFocus.searchQueries,
+          deliverable: `${pm.domain} research findings`,
+          outputFormat: 'summary' as OutputFormat,
+          modelTier: 'haiku' as ModelTier,
+          priority: 5,
+          estimatedSearches: scoutFocus.searchQueries.length,
+          parentId: pm.id,
+          depth: 1,
+          canSpawnChildren: true,
+          maxChildren: 2,
+        });
+        scoutIndex++;
+      }
+    }
+
+    log.warn('Using fallback design based on problem context', {
+      domains: domains.length,
+      scouts: scouts.length,
+      coreQuestion: coreQuestion.slice(0, 100),
+    });
+
     return {
-      projectManagers: [
-        {
-          id: 'pm_general',
-          name: 'General Research Director',
-          domain: 'General Research',
-          purpose: 'Coordinate general research',
-          focusAreas: ['Comprehensive analysis'],
-          expectedScouts: 10,
-          priority: 1,
-        },
+      projectManagers,
+      scouts,
+      estimatedTotalSearches: scouts.reduce((sum, s) => sum + s.estimatedSearches, 0),
+      estimatedCost: 3.0,
+      rationale: 'Fallback design generated from problem context (Opus JSON parsing failed)',
+    };
+  }
+
+  /**
+   * Generate scout focus and search queries from problem context
+   */
+  private generateScoutFocus(
+    domain: string,
+    coreQuestion: string,
+    constraints: string[],
+    priorities: Array<{ factor: string; importance: number }>,
+    index: number
+  ): {
+    purpose: string;
+    questions: string[];
+    searchQueries: string[];
+  } {
+    // Extract key terms from constraints and priorities
+    const keyTerms = [
+      ...constraints.slice(0, 3),
+      ...priorities.slice(0, 3).map((p) => p.factor),
+    ].filter(Boolean);
+
+    const year = new Date().getFullYear();
+
+    // Generate specific search queries based on domain and context
+    const searchAngles = [
+      `${domain} ${coreQuestion.split(' ').slice(0, 5).join(' ')} ${year}`,
+      `best ${domain.toLowerCase()} options ${keyTerms[0] || ''} ${year}`,
+      `${domain.toLowerCase()} comparison reviews ${year}`,
+      `${domain.toLowerCase()} cost analysis ${keyTerms[index % keyTerms.length] || ''}`,
+      `${domain.toLowerCase()} pros cons ${coreQuestion.split(' ').slice(0, 3).join(' ')}`,
+    ];
+
+    return {
+      purpose: `Research ${domain} aspects: ${coreQuestion}`,
+      questions: [
+        `What are the best ${domain.toLowerCase()} options?`,
+        `What are the costs and tradeoffs for ${domain.toLowerCase()}?`,
+        `What factors should be considered for ${domain.toLowerCase()}?`,
       ],
-      scouts: Array.from({ length: 10 }, (_, i) => ({
-        id: `scout_${i}`,
-        name: `Research Scout ${i + 1}`,
-        role: 'General researcher',
-        expertise: ['General research'],
-        purpose: 'Research the problem',
-        keyQuestions: ['What are the key factors?'],
-        researchApproach: 'deep_dive' as ResearchApproach,
-        dataSources: ['Web search'],
-        searchQueries: [`Research topic ${i + 1}`],
-        deliverable: 'Research findings',
-        outputFormat: 'summary' as OutputFormat,
-        modelTier: 'haiku' as ModelTier,
-        priority: 5,
-        estimatedSearches: 3,
-        parentId: 'pm_general',
-        depth: 1,
-        canSpawnChildren: false,
-        maxChildren: 0,
-      })),
-      estimatedTotalSearches: 30,
-      estimatedCost: 2.0,
-      rationale: 'Fallback design due to parsing error',
+      searchQueries: searchAngles.slice(0, 3 + (index % 2)), // 3-4 queries per scout
     };
   }
 
