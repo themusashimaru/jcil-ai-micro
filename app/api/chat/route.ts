@@ -43,8 +43,9 @@ const log = logger('ChatAPI');
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
 const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
-// Research agent has stricter limits (expensive Brave Search API calls)
-const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '20', 10);
+// Web search rate limit - separate from chat to allow Claude search autonomy
+// Increased to 60/hour to enable better UX while respecting Brave API limits
+const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '60', 10);
 
 // Token limits
 const MAX_RESPONSE_TOKENS = 4096;
@@ -411,13 +412,15 @@ function detectKnowledgeCutoff(response: string): boolean {
 }
 
 /**
- * Detect if the user's question likely needs current/real-time information
- * This helps pre-emptively check for knowledge cutoff scenarios
+ * Detect if the user's question might benefit from current/real-time information
+ * This is now MORE PERMISSIVE to let Claude decide via the quick check
+ * Better to check and let Claude say "CAN_ANSWER" than miss a search opportunity
  */
 function mightNeedRealtimeInfo(query: string): boolean {
   const lowerQuery = query.toLowerCase();
 
-  const realtimeIndicators = [
+  // EXPLICIT indicators - definitely needs search
+  const explicitIndicators = [
     // Current events/news
     'latest',
     'recent',
@@ -430,6 +433,7 @@ function mightNeedRealtimeInfo(query: string): boolean {
     'breaking',
     'news',
     'update',
+    'updates',
     // Time-sensitive queries
     '2024',
     '2025',
@@ -439,16 +443,22 @@ function mightNeedRealtimeInfo(query: string): boolean {
     'last year',
     // Price/stock queries
     'price of',
-    'stock price',
+    'price',
+    'stock',
+    'stocks',
     'market',
+    'markets',
     'bitcoin',
     'crypto',
+    'cryptocurrency',
     'ethereum',
+    'trading',
+    'invest',
     // Weather/live data
     'weather',
     'forecast',
     'temperature',
-    // Sports teams and leagues
+    // Sports - teams, leagues, events
     'patriots',
     'cowboys',
     'eagles',
@@ -478,9 +488,12 @@ function mightNeedRealtimeInfo(query: string): boolean {
     'world series',
     'nba finals',
     'stanley cup',
-    // Sports/events queries
+    'world cup',
+    'olympics',
     'score',
+    'scores',
     'game',
+    'games',
     'match',
     'winner',
     'championship',
@@ -495,8 +508,7 @@ function mightNeedRealtimeInfo(query: string): boolean {
     'injured',
     'next game',
     'next match',
-    'upcoming game',
-    'upcoming match',
+    'upcoming',
     // Schedules
     'schedule',
     'scheduled',
@@ -509,19 +521,160 @@ function mightNeedRealtimeInfo(query: string): boolean {
     'coming out',
     'launches',
     'announced',
+    'announcement',
     // Live information
     'hours',
     'open',
     'closed',
     'available',
-    // Queries that imply needing current info
     'right now',
     'at the moment',
     'these days',
     'still',
   ];
 
-  return realtimeIndicators.some((indicator) => lowerQuery.includes(indicator));
+  // Check explicit indicators first
+  if (explicitIndicators.some((indicator) => lowerQuery.includes(indicator))) {
+    return true;
+  }
+
+  // IMPLICIT indicators - questions that MIGHT benefit from search
+  // Let Claude make the final call via quick check
+  const implicitIndicators = [
+    // Questions about entities that change over time
+    'who is',
+    'who are',
+    'who was',
+    "what's happening",
+    'what is happening',
+    'what happened',
+    'what has happened',
+    // Status/state questions
+    'how is',
+    'how are',
+    'how much',
+    'how many',
+    'status',
+    'state of',
+    // Company/organization questions
+    'ceo of',
+    'president of',
+    'founder of',
+    'owner of',
+    'company',
+    'corporation',
+    // Location/event questions
+    'where is',
+    'where are',
+    'event',
+    'events',
+    'conference',
+    'concert',
+    'show',
+    'shows',
+    // Product/service questions
+    'best',
+    'top',
+    'review',
+    'reviews',
+    'rating',
+    'ratings',
+    'compare',
+    'comparison',
+    'vs',
+    'versus',
+    // Fact-checking patterns
+    'is it true',
+    'true that',
+    'fact check',
+    'verify',
+    'debunk',
+    'real or',
+    'fake or',
+    // Research patterns
+    'tell me about',
+    'what do you know about',
+    'information on',
+    'info on',
+    'learn about',
+    'research',
+    // People questions (could have recent developments)
+    'elon musk',
+    'trump',
+    'biden',
+    'taylor swift',
+    'celebrity',
+    'politician',
+    'ceo',
+    'billionaire',
+    // Tech/business questions often need fresh data
+    'apple',
+    'google',
+    'microsoft',
+    'amazon',
+    'tesla',
+    'meta',
+    'facebook',
+    'twitter',
+    'openai',
+    'ai',
+    'artificial intelligence',
+    'chatgpt',
+    'startup',
+    'ipo',
+    'merger',
+    'acquisition',
+    // Policy/law questions
+    'law',
+    'legislation',
+    'policy',
+    'regulation',
+    'court',
+    'ruling',
+    'decision',
+    // Health/science
+    'covid',
+    'vaccine',
+    'treatment',
+    'cure',
+    'study',
+    'studies',
+    'research shows',
+    'scientists',
+    'discovery',
+    // General question patterns that often benefit from search
+    'how do i',
+    'how to',
+    'can you find',
+    'can you search',
+    'look up',
+    'search for',
+    'find out',
+  ];
+
+  // Check implicit indicators
+  if (implicitIndicators.some((indicator) => lowerQuery.includes(indicator))) {
+    return true;
+  }
+
+  // Pattern-based detection for questions
+  const questionPatterns = [
+    /^(what|who|where|when|why|how)\s+.{10,}/i, // Questions with substance
+    /\?$/, // Ends with question mark
+    /\b(latest|newest|recent|current)\b/i, // Recency words
+  ];
+
+  if (questionPatterns.some((pattern) => pattern.test(query))) {
+    return true;
+  }
+
+  // If query is short (under 50 chars), probably doesn't need search
+  // Long queries with questions are more likely to benefit
+  if (query.length > 100 && query.includes('?')) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -2691,7 +2844,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 TODAY'S DATE: ${todayDate}
 
 CAPABILITIES:
-- Web search for current information
+- **AUTOMATIC WEB SEARCH**: When you need current information (news, prices, scores, recent events, etc.), the system will automatically search the web for you. You do NOT need to say "I don't have access to real-time information" - just answer confidently. If the system detects your answer would benefit from fresh data, it will search automatically.
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
@@ -2751,8 +2904,9 @@ RESPONSE LENGTH:
 - Complex topics get thorough explanations
 
 UNCERTAINTY:
-- If unsure, say so honestly rather than guessing
-- Offer to research further when needed
+- If unsure about factual information, say so honestly rather than guessing
+- Do NOT say "I don't have access to real-time information" or "as of my knowledge cutoff" - the system will automatically search when needed
+- For current events, news, prices, scores, etc., answer confidently - auto-search handles freshness
 
 CODE:
 - Use proper code blocks with language syntax highlighting
@@ -2793,39 +2947,73 @@ SECURITY:
     const fullSystemPrompt = memoryContext ? `${systemPrompt}\n\n${memoryContext}` : systemPrompt;
 
     // ========================================
-    // AUTO-SEARCH TRIGGER: Check for knowledge cutoff
+    // AUTO-SEARCH TRIGGER: Let Claude decide if search is needed
     // ========================================
-    // If the query might need real-time info, do a quick check first
-    // If Claude indicates knowledge cutoff, automatically search the web
+    // Give Claude autonomy to decide if a web search would improve the response
+    // This is more intelligent than keyword matching alone
     if (mightNeedRealtimeInfo(lastUserContent) && isBraveConfigured()) {
-      log.debug('Query might need real-time info, checking for knowledge cutoff');
+      log.debug('Query might benefit from search, letting Claude decide');
 
       try {
-        // Quick check specifically asking if Claude can answer from training data
+        // Smart check - let Claude evaluate if search would genuinely help
         const quickCheckMessages: CoreMessage[] = [
           {
             role: 'user',
-            content: `Can you answer this question accurately from your training data, or would it require a web search for current/real-time information? Question: "${lastUserContent}"
+            content: `Evaluate this user question and decide if a web search would provide a better answer:
 
-Reply with ONLY one of these:
-- "SEARCH_NEEDED" if this requires current/real-time data (sports scores, schedules, news, prices, weather, etc.)
-- "CAN_ANSWER" if you can answer accurately from your training data`,
+"${lastUserContent}"
+
+Consider:
+1. Does this ask about something that changes over time (news, prices, events, people's current status)?
+2. Is this about recent developments (past 6 months)?
+3. Would current/live data make the answer more accurate or useful?
+4. Is the user implicitly asking about current state even if not explicitly stated?
+5. Would I need to say "as of my knowledge cutoff" or "I don't have real-time access" without search?
+
+Reply with ONLY one word:
+- "SEARCH" if a web search would provide a noticeably better, more current, or more accurate answer
+- "ANSWER" if you can provide a complete, accurate answer from training data alone`,
           },
         ];
         const quickCheck = await completeChat(quickCheckMessages, {
-          systemPrompt:
-            'You are a classifier. Determine if a question needs real-time web data or can be answered from training data. Sports schedules, game results, current news, stock prices, and weather ALWAYS need search.',
-          maxTokens: 50,
+          systemPrompt: `You are a search decision classifier. Your job is to determine if a web search would genuinely improve the answer quality.
+
+SEARCH is needed when:
+- Current events, news, or recent developments (anything in 2024-2026)
+- Sports scores, schedules, standings, player status, trades
+- Stock prices, crypto prices, market data
+- Weather or forecasts
+- Company news, product launches, leadership changes
+- Political developments, elections, policy changes
+- Celebrity/public figure current activities
+- Anything where "as of my last update" would be necessary
+- Questions about "latest", "current", "now", "today"
+- Product comparisons or "best" questions (reviews change)
+- Fact-checking claims about recent events
+
+ANSWER from training is fine when:
+- Historical facts, science, math, definitions
+- How-to guides for stable technologies
+- General knowledge that doesn't change
+- Creative writing, coding help, analysis
+- Philosophical or conceptual questions
+- Bible/scripture questions
+
+When in doubt, lean toward SEARCH - it's better to provide current info than stale data.`,
+          maxTokens: 20,
           temperature: 0,
+          model: 'claude-haiku-4-5-20251001', // Use Haiku for fast classification
         });
 
-        const needsSearch = quickCheck.text.toUpperCase().includes('SEARCH_NEEDED');
+        // Check if Claude decided search would help
+        const responseUpper = quickCheck.text.toUpperCase().trim();
+        const needsSearch = responseUpper === 'SEARCH' || responseUpper.startsWith('SEARCH');
 
-        // Check if Claude's response indicates knowledge cutoff
+        // Check if Claude's response indicates knowledge cutoff (backup check)
         if (needsSearch || detectKnowledgeCutoff(quickCheck.text)) {
-          log.info('Knowledge cutoff detected, auto-triggering web search', {
+          log.info('Claude decided search would improve answer, auto-triggering web search', {
             queryPreview: lastUserContent.substring(0, 50),
-            needsSearch,
+            claudeDecision: quickCheck.text.trim(),
           });
 
           // Check research-specific rate limit
