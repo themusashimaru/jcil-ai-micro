@@ -60,8 +60,8 @@ export const DEFAULT_LIMITS: StrategyLimits = {
   maxSearches: 500, // 500 Brave searches max
   maxTimeMinutes: 10, // 10 minute timeout
   maxDepth: 50, // 50 levels deep max
-  maxConcurrentCalls: 10, // 10 simultaneous API calls
-  batchDelayMs: 500, // 500ms between batches
+  maxConcurrentCalls: 30, // 30 simultaneous API calls (tier 4 rate limits)
+  batchDelayMs: 250, // 250ms between batches
   minConfidenceScore: 0.6, // Below this, don't deliver
   maxErrorRate: 0.15, // 15% error rate triggers review
 };
