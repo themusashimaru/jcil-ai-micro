@@ -510,13 +510,10 @@ export async function routeChatWithTools(
                 break;
 
               case 'tool_call_delta':
-                // Accumulate tool arguments
-                if (chunk.toolCall?.arguments) {
-                  // Arguments come as partial JSON, accumulate as string
-                  const argChunk = typeof chunk.toolCall.arguments === 'string'
-                    ? chunk.toolCall.arguments
-                    : JSON.stringify(chunk.toolCall.arguments);
-                  toolArgsBuffer += argChunk;
+                // Accumulate tool arguments (raw partial JSON string from Anthropic)
+                if (chunk.toolCall?.arguments !== undefined) {
+                  // Arguments come as raw partial JSON string, just concatenate
+                  toolArgsBuffer += String(chunk.toolCall.arguments);
                 }
                 break;
 
