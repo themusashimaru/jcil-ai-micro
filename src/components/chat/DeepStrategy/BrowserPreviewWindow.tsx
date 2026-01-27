@@ -369,75 +369,151 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
           />
         </div>
 
-        {/* Current activity display - big and prominent */}
+        {/* Current activity display - favicon + domain prominent */}
         {currentActivity && (
           <div
-            className={`absolute inset-4 flex flex-col justify-center items-center transition-all duration-300 ${
-              flashEffect ? 'scale-105' : 'scale-100'
+            className={`absolute inset-0 flex transition-all duration-300 ${
+              flashEffect ? 'scale-[1.02]' : 'scale-100'
             }`}
           >
-            {/* Type indicator with glow */}
-            <div
-              className={`
-              p-3 rounded-xl mb-3 transition-all duration-300
-              ${getTypeColor(currentActivity.type).bg}/20
-              ${flashEffect ? `shadow-lg ${getTypeColor(currentActivity.type).glow}` : ''}
-            `}
-            >
-              {(() => {
-                const Icon = getTypeIcon(currentActivity.type);
-                return <Icon className={`w-8 h-8 ${getTypeColor(currentActivity.type).text}`} />;
-              })()}
+            {/* Main preview area - left side */}
+            <div className="flex-1 flex flex-col justify-center items-center px-4">
+              {/* Favicon or icon - big and glowing */}
+              <div
+                className={`
+                  relative mb-3 transition-all duration-300
+                  ${flashEffect ? 'scale-110' : 'scale-100'}
+                `}
+              >
+                {/* Glow ring behind favicon */}
+                <div
+                  className={`
+                    absolute -inset-2 rounded-2xl blur-md transition-opacity duration-500
+                    ${getTypeColor(currentActivity.type).bg}/30
+                    ${flashEffect ? 'opacity-80' : 'opacity-30'}
+                  `}
+                />
+
+                {currentActivity.url ? (
+                  /* Real favicon from Google */
+                  <div
+                    className={`
+                    relative w-14 h-14 rounded-xl flex items-center justify-center
+                    bg-gray-800/80 border border-gray-600/50
+                    ${flashEffect ? `shadow-lg ${getTypeColor(currentActivity.type).glow}` : ''}
+                  `}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://www.google.com/s2/favicons?domain=${extractDomain(currentActivity.url)}&sz=64`}
+                      alt={extractDomain(currentActivity.url)}
+                      className="w-8 h-8 rounded"
+                      onError={(e) => {
+                        // Fallback to type icon on error
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove(
+                          'hidden'
+                        );
+                      }}
+                    />
+                    {/* Fallback icon (hidden by default) */}
+                    {(() => {
+                      const Icon = getTypeIcon(currentActivity.type);
+                      return (
+                        <Icon
+                          className={`w-8 h-8 ${getTypeColor(currentActivity.type).text} hidden`}
+                        />
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  /* No URL - show type icon */
+                  <div
+                    className={`
+                    relative w-14 h-14 rounded-xl flex items-center justify-center
+                    ${getTypeColor(currentActivity.type).bg}/20
+                    ${flashEffect ? `shadow-lg ${getTypeColor(currentActivity.type).glow}` : ''}
+                  `}
+                  >
+                    {(() => {
+                      const Icon = getTypeIcon(currentActivity.type);
+                      return (
+                        <Icon className={`w-8 h-8 ${getTypeColor(currentActivity.type).text}`} />
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              {/* Domain name - large */}
+              <p
+                className={`text-center text-sm font-semibold max-w-full px-2 truncate transition-colors duration-200 ${
+                  flashEffect ? 'text-white' : 'text-gray-200'
+                }`}
+              >
+                {currentActivity.url
+                  ? extractDomain(currentActivity.url)
+                  : currentActivity.type === 'search'
+                    ? `"${currentActivity.content}"`
+                    : currentActivity.content}
+              </p>
+
+              {/* Action label */}
+              <p className={`text-xs mt-1 font-medium ${getTypeColor(currentActivity.type).text}`}>
+                {currentActivity.type === 'search' && 'Searching'}
+                {currentActivity.type === 'visit' && 'Visiting'}
+                {currentActivity.type === 'screenshot' && 'Capturing'}
+                {currentActivity.type === 'code' && 'Executing'}
+                {currentActivity.type === 'vision' && 'Analyzing'}
+                {currentActivity.type === 'table' && 'Extracting Table'}
+                {currentActivity.type === 'form' && 'Filling Form'}
+                {currentActivity.type === 'paginate' && 'Paginating'}
+                {currentActivity.type === 'scroll' && 'Scrolling'}
+                {currentActivity.type === 'pdf' && 'Extracting PDF'}
+                {currentActivity.type === 'compare' && 'Comparing'}
+              </p>
+
+              {/* Agent name */}
+              {currentActivity.agentName && (
+                <p className="text-[10px] text-gray-500 mt-1">{currentActivity.agentName}</p>
+              )}
             </div>
 
-            {/* Content */}
-            <p
-              className={`text-center text-sm font-medium max-w-full px-4 truncate transition-colors ${
-                flashEffect ? 'text-white' : 'text-gray-300'
-              }`}
-            >
-              {currentActivity.type === 'search' && `"${currentActivity.content}"`}
-              {currentActivity.type === 'visit' && currentActivity.content}
-              {currentActivity.type === 'screenshot' && `Capturing: ${currentActivity.content}`}
-              {currentActivity.type === 'code' && `Running ${currentActivity.content}`}
-              {currentActivity.type === 'vision' && `Analyzing: ${currentActivity.content}`}
-              {currentActivity.type === 'table' && `Extracting table: ${currentActivity.content}`}
-              {currentActivity.type === 'form' && `Filling form: ${currentActivity.content}`}
-              {currentActivity.type === 'paginate' && `Paginating: ${currentActivity.content}`}
-              {currentActivity.type === 'scroll' && `Scrolling: ${currentActivity.content}`}
-              {currentActivity.type === 'pdf' && `Extracting PDF: ${currentActivity.content}`}
-              {currentActivity.type === 'compare' && currentActivity.content}
-            </p>
-
-            {/* Agent name */}
-            {currentActivity.agentName && (
-              <p className="text-xs text-gray-500 mt-1">{currentActivity.agentName}</p>
-            )}
+            {/* Recent sites sidebar - favicon strip */}
+            <div className="w-28 border-l border-gray-800/50 py-2 px-2 overflow-hidden flex flex-col gap-1.5">
+              {recentActivities.slice(1, 6).map((activity, index) => {
+                const Icon = getTypeIcon(activity.type);
+                const domain = activity.url ? extractDomain(activity.url) : null;
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-center gap-2 px-1.5 py-1 rounded-md bg-gray-800/40 border border-gray-700/30 transition-opacity duration-300"
+                    style={{ opacity: 1 - index * 0.15 }}
+                  >
+                    {domain ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
+                        alt={domain}
+                        className="w-4 h-4 rounded-sm flex-shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Icon
+                        className={`w-3.5 h-3.5 ${getTypeColor(activity.type).text} flex-shrink-0`}
+                      />
+                    )}
+                    <span className="text-[10px] text-gray-400 truncate">
+                      {domain || activity.content.slice(0, 12)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
-
-        {/* Activity stream on the side */}
-        <div className="absolute right-2 top-2 bottom-2 w-32 overflow-hidden">
-          <div className="space-y-1">
-            {recentActivities.slice(1, 5).map((activity, index) => {
-              const Icon = getTypeIcon(activity.type);
-              return (
-                <div
-                  key={activity.id}
-                  className={`
-                    flex items-center gap-1.5 px-2 py-1 rounded text-xs
-                    bg-gray-800/50 border border-gray-700/50
-                    transition-opacity duration-300
-                  `}
-                  style={{ opacity: 1 - index * 0.2 }}
-                >
-                  <Icon className={`w-3 h-3 ${getTypeColor(activity.type).text} flex-shrink-0`} />
-                  <span className="text-gray-400 truncate">{activity.content.slice(0, 15)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Stats bar - futuristic dashboard */}
