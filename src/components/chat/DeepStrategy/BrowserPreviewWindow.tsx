@@ -13,7 +13,24 @@
  */
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Globe, Camera, Shield, Zap, Terminal, Eye, RefreshCw, Lock } from 'lucide-react';
+import {
+  Search,
+  Globe,
+  Camera,
+  Shield,
+  Zap,
+  Terminal,
+  Eye,
+  RefreshCw,
+  Lock,
+  Sparkles,
+  Table2,
+  FormInput,
+  Layers,
+  ScrollText,
+  FileText,
+  GitCompare,
+} from 'lucide-react';
 import type { StrategyStreamEvent } from '@/agents/strategy';
 
 interface BrowserPreviewWindowProps {
@@ -23,7 +40,18 @@ interface BrowserPreviewWindowProps {
 
 interface ActivityItem {
   id: string;
-  type: 'search' | 'visit' | 'screenshot' | 'code';
+  type:
+    | 'search'
+    | 'visit'
+    | 'screenshot'
+    | 'code'
+    | 'vision'
+    | 'table'
+    | 'form'
+    | 'paginate'
+    | 'scroll'
+    | 'pdf'
+    | 'compare';
   content: string;
   timestamp: number;
   url?: string;
@@ -84,6 +112,89 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
           agentName: event.data?.agentName as string | undefined,
         });
       }
+
+      // New tool events
+      if (event.type === 'vision_analyzing' && event.data?.url) {
+        const url = String(event.data.url);
+        activities.push({
+          id: `vision_${event.timestamp}_${Math.random()}`,
+          type: 'vision',
+          content: extractDomain(url),
+          timestamp: event.timestamp,
+          url,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
+
+      if (event.type === 'table_extracting' && event.data?.url) {
+        const url = String(event.data.url);
+        activities.push({
+          id: `table_${event.timestamp}_${Math.random()}`,
+          type: 'table',
+          content: extractDomain(url),
+          timestamp: event.timestamp,
+          url,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
+
+      if (event.type === 'form_filling' && event.data?.url) {
+        const url = String(event.data.url);
+        activities.push({
+          id: `form_${event.timestamp}_${Math.random()}`,
+          type: 'form',
+          content: extractDomain(url),
+          timestamp: event.timestamp,
+          url,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
+
+      if (event.type === 'paginating' && event.data?.url) {
+        const url = String(event.data.url);
+        activities.push({
+          id: `paginate_${event.timestamp}_${Math.random()}`,
+          type: 'paginate',
+          content: extractDomain(url),
+          timestamp: event.timestamp,
+          url,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
+
+      if (event.type === 'scrolling' && event.data?.url) {
+        const url = String(event.data.url);
+        activities.push({
+          id: `scroll_${event.timestamp}_${Math.random()}`,
+          type: 'scroll',
+          content: extractDomain(url),
+          timestamp: event.timestamp,
+          url,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
+
+      if (event.type === 'pdf_extracting' && event.data?.url) {
+        const url = String(event.data.url);
+        activities.push({
+          id: `pdf_${event.timestamp}_${Math.random()}`,
+          type: 'pdf',
+          content: extractDomain(url),
+          timestamp: event.timestamp,
+          url,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
+
+      if (event.type === 'comparing') {
+        activities.push({
+          id: `compare_${event.timestamp}_${Math.random()}`,
+          type: 'compare',
+          content: `Comparing ${event.data?.urlCount || 2} pages`,
+          timestamp: event.timestamp,
+          agentName: event.data?.agentName as string | undefined,
+        });
+      }
     }
 
     return activities.sort((a, b) => b.timestamp - a.timestamp);
@@ -96,6 +207,14 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
       visit: allActivities.filter((a) => a.type === 'visit').length,
       screenshot: allActivities.filter((a) => a.type === 'screenshot').length,
       code: allActivities.filter((a) => a.type === 'code').length,
+      // New tools - grouped for display
+      vision: allActivities.filter(
+        (a) => a.type === 'vision' || a.type === 'table' || a.type === 'compare'
+      ).length,
+      interactive: allActivities.filter(
+        (a) => a.type === 'form' || a.type === 'paginate' || a.type === 'scroll'
+      ).length,
+      pdf: allActivities.filter((a) => a.type === 'pdf').length,
     }),
     [allActivities]
   );
@@ -117,7 +236,7 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
     return null;
   }
 
-  const getTypeColor = (type: ActivityItem['type']) => {
+  const getTypeColor = (type: ActivityItem['type']): { bg: string; text: string; glow: string } => {
     switch (type) {
       case 'search':
         return { bg: 'bg-yellow-500', text: 'text-yellow-400', glow: 'shadow-yellow-500/50' };
@@ -127,6 +246,23 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
         return { bg: 'bg-pink-500', text: 'text-pink-400', glow: 'shadow-pink-500/50' };
       case 'code':
         return { bg: 'bg-emerald-500', text: 'text-emerald-400', glow: 'shadow-emerald-500/50' };
+      // New tool colors
+      case 'vision':
+        return { bg: 'bg-purple-500', text: 'text-purple-400', glow: 'shadow-purple-500/50' };
+      case 'table':
+        return { bg: 'bg-indigo-500', text: 'text-indigo-400', glow: 'shadow-indigo-500/50' };
+      case 'form':
+        return { bg: 'bg-orange-500', text: 'text-orange-400', glow: 'shadow-orange-500/50' };
+      case 'paginate':
+        return { bg: 'bg-blue-500', text: 'text-blue-400', glow: 'shadow-blue-500/50' };
+      case 'scroll':
+        return { bg: 'bg-teal-500', text: 'text-teal-400', glow: 'shadow-teal-500/50' };
+      case 'pdf':
+        return { bg: 'bg-red-500', text: 'text-red-400', glow: 'shadow-red-500/50' };
+      case 'compare':
+        return { bg: 'bg-violet-500', text: 'text-violet-400', glow: 'shadow-violet-500/50' };
+      default:
+        return { bg: 'bg-gray-500', text: 'text-gray-400', glow: 'shadow-gray-500/50' };
     }
   };
 
@@ -140,10 +276,34 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
         return Camera;
       case 'code':
         return Terminal;
+      // New tool icons
+      case 'vision':
+        return Sparkles;
+      case 'table':
+        return Table2;
+      case 'form':
+        return FormInput;
+      case 'paginate':
+        return Layers;
+      case 'scroll':
+        return ScrollText;
+      case 'pdf':
+        return FileText;
+      case 'compare':
+        return GitCompare;
+      default:
+        return Globe;
     }
   };
 
-  const total = counts.search + counts.visit + counts.screenshot + counts.code;
+  const total =
+    counts.search +
+    counts.visit +
+    counts.screenshot +
+    counts.code +
+    counts.vision +
+    counts.interactive +
+    counts.pdf;
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-700 bg-gray-950 shadow-2xl">
@@ -240,6 +400,13 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
               {currentActivity.type === 'visit' && currentActivity.content}
               {currentActivity.type === 'screenshot' && `Capturing: ${currentActivity.content}`}
               {currentActivity.type === 'code' && `Running ${currentActivity.content}`}
+              {currentActivity.type === 'vision' && `Analyzing: ${currentActivity.content}`}
+              {currentActivity.type === 'table' && `Extracting table: ${currentActivity.content}`}
+              {currentActivity.type === 'form' && `Filling form: ${currentActivity.content}`}
+              {currentActivity.type === 'paginate' && `Paginating: ${currentActivity.content}`}
+              {currentActivity.type === 'scroll' && `Scrolling: ${currentActivity.content}`}
+              {currentActivity.type === 'pdf' && `Extracting PDF: ${currentActivity.content}`}
+              {currentActivity.type === 'compare' && currentActivity.content}
             </p>
 
             {/* Agent name */}
@@ -294,6 +461,24 @@ export function BrowserPreviewWindow({ events, isComplete }: BrowserPreviewWindo
               <div className="flex items-center gap-1.5">
                 <Terminal className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-emerald-400 font-mono font-bold">{counts.code}</span>
+              </div>
+            )}
+            {counts.vision > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-purple-400 font-mono font-bold">{counts.vision}</span>
+              </div>
+            )}
+            {counts.interactive > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-blue-400 font-mono font-bold">{counts.interactive}</span>
+              </div>
+            )}
+            {counts.pdf > 0 && (
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-red-400" />
+                <span className="text-red-400 font-mono font-bold">{counts.pdf}</span>
               </div>
             )}
           </div>

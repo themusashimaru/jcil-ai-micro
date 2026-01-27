@@ -12,7 +12,21 @@
 // TOOL DEFINITIONS
 // =============================================================================
 
-export type ScoutToolName = 'brave_search' | 'browser_visit' | 'run_code' | 'screenshot';
+export type ScoutToolName =
+  | 'brave_search'
+  | 'browser_visit'
+  | 'run_code'
+  | 'screenshot'
+  // New enhanced tools
+  | 'vision_analyze'
+  | 'extract_table'
+  | 'safe_form_fill'
+  | 'paginate'
+  | 'infinite_scroll'
+  | 'click_navigate'
+  | 'extract_pdf'
+  | 'compare_screenshots'
+  | 'generate_comparison';
 
 export interface ScoutToolDefinition {
   name: ScoutToolName;
@@ -51,6 +65,70 @@ export const SCOUT_TOOLS: Record<ScoutToolName, ScoutToolDefinition> = {
     timeEstimate: 5000,
     requiresE2B: true,
   },
+  // New enhanced tools
+  vision_analyze: {
+    name: 'vision_analyze',
+    description: 'Analyze a webpage screenshot with Claude Vision AI',
+    costEstimate: 0.05,
+    timeEstimate: 10000,
+    requiresE2B: true,
+  },
+  extract_table: {
+    name: 'extract_table',
+    description: 'Extract tables from screenshots using Claude Vision',
+    costEstimate: 0.05,
+    timeEstimate: 10000,
+    requiresE2B: true,
+  },
+  safe_form_fill: {
+    name: 'safe_form_fill',
+    description: 'Safely fill search/filter forms (no login, signup, or payment)',
+    costEstimate: 0.03,
+    timeEstimate: 8000,
+    requiresE2B: true,
+  },
+  paginate: {
+    name: 'paginate',
+    description: 'Navigate through paginated results',
+    costEstimate: 0.04,
+    timeEstimate: 15000,
+    requiresE2B: true,
+  },
+  infinite_scroll: {
+    name: 'infinite_scroll',
+    description: 'Load content from infinite scroll pages',
+    costEstimate: 0.04,
+    timeEstimate: 20000,
+    requiresE2B: true,
+  },
+  click_navigate: {
+    name: 'click_navigate',
+    description: 'Click an element and extract the resulting page',
+    costEstimate: 0.02,
+    timeEstimate: 6000,
+    requiresE2B: true,
+  },
+  extract_pdf: {
+    name: 'extract_pdf',
+    description: 'Download and extract text from PDF documents',
+    costEstimate: 0.02,
+    timeEstimate: 8000,
+    requiresE2B: true,
+  },
+  compare_screenshots: {
+    name: 'compare_screenshots',
+    description: 'Compare multiple webpage screenshots with Claude Vision',
+    costEstimate: 0.1,
+    timeEstimate: 20000,
+    requiresE2B: true,
+  },
+  generate_comparison: {
+    name: 'generate_comparison',
+    description: 'Generate a formatted comparison table from collected data',
+    costEstimate: 0.001,
+    timeEstimate: 100,
+    requiresE2B: false,
+  },
 };
 
 // =============================================================================
@@ -84,7 +162,94 @@ export interface ScreenshotInput {
   height?: number;
 }
 
-export type ScoutToolInput = BraveSearchInput | BrowserVisitInput | RunCodeInput | ScreenshotInput;
+// New enhanced tool inputs
+export interface VisionAnalyzeInput {
+  url: string;
+  prompt: string;
+  fullPage?: boolean;
+  width?: number;
+  height?: number;
+}
+
+export interface ExtractTableInput {
+  url: string;
+  tableDescription: string;
+}
+
+export interface SafeFormFillInput {
+  url: string;
+  sessionId: string;
+  formSelector?: string;
+  fields: Array<{
+    selector: string;
+    value: string;
+    type?: 'text' | 'select' | 'checkbox' | 'radio';
+  }>;
+  submitSelector?: string;
+  waitForSelector?: string;
+}
+
+export interface PaginateInput {
+  url: string;
+  sessionId: string;
+  nextButtonSelector: string;
+  contentSelector: string;
+  maxPages?: number;
+}
+
+export interface InfiniteScrollInput {
+  url: string;
+  sessionId: string;
+  contentSelector: string;
+  maxScrolls?: number;
+  scrollDelay?: number;
+}
+
+export interface ClickNavigateInput {
+  url: string;
+  sessionId: string;
+  clickSelector: string;
+  waitForSelector?: string;
+  extractContent?: boolean;
+}
+
+export interface ExtractPdfInput {
+  url: string;
+  sessionId: string;
+}
+
+export interface CompareScreenshotsInput {
+  urls: string[];
+  comparisonPrompt: string;
+}
+
+export interface GenerateComparisonInput {
+  title: string;
+  items: Array<{
+    name: string;
+    source?: string;
+    sourceUrl?: string;
+    attributes: Record<string, string | number | boolean | null>;
+  }>;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  highlightBest?: string[];
+}
+
+export type ScoutToolInput =
+  | BraveSearchInput
+  | BrowserVisitInput
+  | RunCodeInput
+  | ScreenshotInput
+  | VisionAnalyzeInput
+  | ExtractTableInput
+  | SafeFormFillInput
+  | PaginateInput
+  | InfiniteScrollInput
+  | ClickNavigateInput
+  | ExtractPdfInput
+  | CompareScreenshotsInput
+  | GenerateComparisonInput;
 
 // =============================================================================
 // TOOL OUTPUTS
@@ -125,11 +290,101 @@ export interface ScreenshotOutput {
   error?: string;
 }
 
+// New enhanced tool outputs
+export interface VisionAnalyzeOutput {
+  success: boolean;
+  analysis?: string;
+  extractedData?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface ExtractTableOutput {
+  success: boolean;
+  headers?: string[];
+  rows?: string[][];
+  rawText?: string;
+  error?: string;
+}
+
+export interface SafeFormFillOutput {
+  success: boolean;
+  resultUrl?: string;
+  resultContent?: string;
+  error?: string;
+}
+
+export interface PaginateOutput {
+  success: boolean;
+  pages: Array<{
+    pageNumber: number;
+    url: string;
+    content: string;
+  }>;
+  totalPages: number;
+  error?: string;
+}
+
+export interface InfiniteScrollOutput {
+  success: boolean;
+  content: string;
+  itemCount?: number;
+  error?: string;
+}
+
+export interface ClickNavigateOutput {
+  success: boolean;
+  resultUrl?: string;
+  content?: string;
+  error?: string;
+}
+
+export interface ExtractPdfOutput {
+  success: boolean;
+  text?: string;
+  pageCount?: number;
+  error?: string;
+}
+
+export interface CompareScreenshotsOutput {
+  success: boolean;
+  analysis?: string;
+  error?: string;
+}
+
+export interface GenerateComparisonOutput {
+  success: boolean;
+  table?: {
+    title: string;
+    headers: string[];
+    rows: Array<{
+      name: string;
+      values: string[];
+      highlights: boolean[];
+      sourceUrl?: string;
+    }>;
+    summary: {
+      bestOverall?: string;
+      bestByAttribute: Record<string, string>;
+    };
+  };
+  markdown?: string;
+  error?: string;
+}
+
 export type ScoutToolOutput =
   | BraveSearchOutput
   | BrowserVisitOutput
   | RunCodeOutput
-  | ScreenshotOutput;
+  | ScreenshotOutput
+  | VisionAnalyzeOutput
+  | ExtractTableOutput
+  | SafeFormFillOutput
+  | PaginateOutput
+  | InfiniteScrollOutput
+  | ClickNavigateOutput
+  | ExtractPdfOutput
+  | CompareScreenshotsOutput
+  | GenerateComparisonOutput;
 
 // =============================================================================
 // TOOL CALL

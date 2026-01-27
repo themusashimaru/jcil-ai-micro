@@ -83,13 +83,49 @@ export class ForensicIntake {
   async startIntake(): Promise<string> {
     this.emitEvent('intake_start', 'Starting forensic intake process');
 
-    const openingMessage = `Before I deploy the most powerful AI strategy system ever built, I need to understand your situation deeply.
+    const openingMessage = `## Deep Strategy Mode Activated
 
-**Don't summarize. Don't filter. Don't worry about being organized.**
+**You've activated the most powerful AI strategy system ever built.**
 
-Just... tell me everything. Vent if you need to. Rant if you need to. The more context I have, the better strategy I can build for you.
+This isn't ChatGPT. This is an autonomous research army. I'm about to deploy:
 
-What's going on? What are you trying to figure out?`;
+**THE BRAIN HIERARCHY**
+• **Claude Opus 4.5** — Master Architect (designs your strategy, maximum intelligence)
+• **Claude Sonnet 4.5** — Project Managers (coordinate research teams)
+• **Up to 100 Claude Haiku 4.5 Scouts** (parallel research army)
+
+**EACH SCOUT HAS ACCESS TO:**
+• **E2B Cloud Sandbox** — Secure isolated execution environment
+• **Headless Chromium + Puppeteer** — Full browser automation
+• **Claude Vision AI** — Screenshot analysis, chart extraction, visual intelligence
+• **Python/JavaScript Execution** — Data processing, calculations, scraping
+• **14 Specialized Research Tools:**
+  - Brave Search (real-time web search)
+  - Browser Visit (JavaScript-rendered pages)
+  - Vision Analyze (AI screenshot analysis)
+  - Extract Tables (pricing tables, comparison charts)
+  - Safe Form Fill (search filters, not logins)
+  - Pagination Handler (multi-page results)
+  - Infinite Scroll (social feeds, listings)
+  - Click Navigate (expand details, tabs)
+  - PDF Extraction (documents, reports)
+  - Screenshot Capture (visual documentation)
+  - Code Execution (data analysis)
+  - Compare Screenshots (side-by-side analysis)
+  - Comparison Table Generator (organize findings)
+
+**SAFETY FRAMEWORK:**
+• Domain blocking (no .gov, banking, adult content)
+• Form whitelist (only search/filter forms)
+• Input validation (no passwords, payment info)
+• Rate limiting (prevents abuse)
+• Output sanitization (redacts sensitive data)
+
+**This will take 2-5 minutes once I understand your problem.**
+
+Don't summarize. Don't filter. Don't worry about being organized. Just... tell me everything. Vent if you need to. The more context I have, the better strategy I can build.
+
+**What's going on? What are you trying to figure out?**`;
 
     this.state.messages.push({
       role: 'assistant',

@@ -320,6 +320,62 @@ export class Scout {
               agentName: this.blueprint.name,
               language: String(toolInput.language || 'python'),
             });
+          } else if (toolUse.name === 'vision_analyze') {
+            this.emitEvent('vision_analyzing', `Analyzing: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+              prompt: String(toolInput.prompt || '').slice(0, 50),
+            });
+          } else if (toolUse.name === 'extract_table') {
+            this.emitEvent('table_extracting', `Extracting table: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'safe_form_fill') {
+            this.emitEvent('form_filling', `Filling form: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'paginate') {
+            this.emitEvent('paginating', `Paginating: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+              maxPages: Number(toolInput.maxPages || 5),
+            });
+          } else if (toolUse.name === 'infinite_scroll') {
+            this.emitEvent('scrolling', `Scrolling: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'click_navigate') {
+            this.emitEvent('browser_visiting', `Clicking: ${toolInput.clickSelector}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'extract_pdf') {
+            this.emitEvent('pdf_extracting', `Extracting PDF: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'compare_screenshots') {
+            const urls = (toolInput.urls as string[]) || [];
+            this.emitEvent('comparing', `Comparing ${urls.length} pages`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              urlCount: urls.length,
+            });
+          } else if (toolUse.name === 'generate_comparison') {
+            this.emitEvent('agent_progress', `Generating comparison table`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+            });
           }
 
           const call = parseClaudeToolCall(toolUse.name, toolInput);
@@ -770,7 +826,15 @@ When you have gathered sufficient information, provide your findings in this JSO
       | 'search_complete'
       | 'browser_visiting'
       | 'screenshot_captured'
-      | 'code_executing',
+      | 'code_executing'
+      // New tool events
+      | 'vision_analyzing'
+      | 'table_extracting'
+      | 'form_filling'
+      | 'paginating'
+      | 'scrolling'
+      | 'pdf_extracting'
+      | 'comparing',
     message: string,
     data: Record<string, unknown>
   ): void {

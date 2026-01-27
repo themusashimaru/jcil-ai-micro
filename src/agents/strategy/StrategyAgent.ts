@@ -96,6 +96,16 @@ export class StrategyAgent {
   // ===========================================================================
 
   /**
+   * Update the stream callback (needed when switching from intake to execute stream)
+   */
+  setStreamCallback(callback: StrategyStreamCallback | undefined): void {
+    this.onStream = callback;
+    // Note: Components created in constructor keep their original callbacks,
+    // but scouts are created fresh during execution and will use the new callback.
+    // This is mainly needed to update the agent's direct emitEvent calls.
+  }
+
+  /**
    * Start the intake process
    */
   async startIntake(): Promise<string> {

@@ -24,12 +24,35 @@ The Deep Strategy Agent is JCIL.AI's most powerful feature—a self-designing, m
 
 ### Research Capabilities
 
-Deep Strategy agents have access to powerful research tools:
+Deep Strategy agents have access to **14 powerful research tools** in secure E2B cloud sandboxes:
+
+**Core Research Tools:**
 
 - **Brave Search API** — Hundreds of real-time web searches
 - **Puppeteer Browser** — Visits actual websites, extracts rendered content from JavaScript-heavy pages
 - **Screenshots** — Captures visual snapshots of web pages for analysis
 - **Code Execution** — Python/JS sandbox (E2B) for data processing and analysis
+
+**Vision & AI Analysis Tools:**
+
+- **Vision Analyze** — Claude Vision AI analyzes screenshots, extracts data from charts and complex layouts
+- **Extract Tables** — AI-powered extraction of pricing tables, comparison charts
+- **Compare Screenshots** — Side-by-side comparison of multiple URLs (price comparisons, etc.)
+
+**Safe Interactive Browser Tools:**
+
+- **Safe Form Fill** — Fills ONLY search/filter forms (BLOCKED: login, signup, payment)
+- **Pagination Handler** — Navigates through multi-page search results automatically
+- **Infinite Scroll** — Handles infinite scroll pages (social feeds, product listings)
+- **Click Navigate** — Clicks elements and extracts resulting content
+
+**Document Tools:**
+
+- **PDF Extraction** — Downloads and extracts text from PDF documents
+
+**Data Organization:**
+
+- **Comparison Table Generator** — Creates formatted comparison tables from research data
 
 ### Responsible Use
 
@@ -312,6 +335,36 @@ Strategy sessions persist across browser sessions:
 
 ## Safety & Limits
 
+### Browser Safety Framework
+
+**Domain Restrictions:**
+
+- **BLOCKED:** Government sites (.gov, .mil), banking login pages, adult content, state media/propaganda
+- **TRUSTED:** Real estate (Zillow, Redfin), job sites (LinkedIn, Indeed), e-commerce (Amazon, eBay), travel (Kayak, Expedia), business info (Yelp, Crunchbase)
+
+**Form Safety (Whitelist Approach):**
+
+- **ALLOWED:** Search forms, filter forms, price calculators, location selectors
+- **BLOCKED:** Login, signup, registration, checkout, payment, delete actions
+- **INPUT BLOCKED:** Password fields, credit card numbers, SSN, bank accounts, API keys
+
+**Rate Limits per Session:**
+| Limit | Value | Purpose |
+| ---------------------- | ----- | -------------------------- |
+| Max pages per domain | 20 | Prevent abuse |
+| Max form submissions | 5 | Limit interactions |
+| Max clicks per page | 10 | Prevent excessive clicking |
+| Action delay | 500ms | Rate limit protection |
+| Max total pages | 100 | Resource management |
+| Max screenshots | 50 | Storage limits |
+
+**Output Sanitization:**
+
+- Automatic redaction of credit card numbers
+- Automatic redaction of SSN patterns
+- Automatic redaction of phone numbers
+- All sensitive data patterns removed before returning to user
+
 ### Hard Limits (Kill Switch)
 
 | Limit              | Value        | Reason                   |
@@ -436,6 +489,13 @@ GET /api/strategy?sessionId=strategy_user123_1706198400000
 | `search_complete`     | Search results received                 |
 | `browser_visiting`    | Puppeteer visiting a URL                |
 | `screenshot_captured` | Screenshot taken of a web page          |
+| `vision_analyzing`    | Claude Vision analyzing screenshot      |
+| `table_extracted`     | Table extracted from screenshot         |
+| `form_filling`        | Safe form being filled                  |
+| `paginating`          | Navigating through paginated results    |
+| `scrolling`           | Handling infinite scroll page           |
+| `pdf_extracting`      | Extracting text from PDF                |
+| `comparing`           | Comparing multiple screenshots          |
 | `code_executing`      | Python/JS code running in E2B sandbox   |
 | `finding_discovered`  | New insight found                       |
 | `quality_check`       | QC validating findings                  |
@@ -529,12 +589,16 @@ src/agents/strategy/
 ├── QualityControl.ts     # Finding validation
 ├── Scout.ts              # Haiku 4.5 scouts with tool calling
 ├── ExecutionQueue.ts     # Rate-limited queue
-└── tools/                # Research tool implementations
+└── tools/                # Research tool implementations (14 tools)
     ├── index.ts          # Tool exports
-    ├── types.ts          # Tool type definitions
+    ├── types.ts          # Tool type definitions (all 14 tool types)
     ├── braveSearch.ts    # Brave Search API integration
-    ├── e2bBrowser.ts     # Puppeteer in E2B sandbox
+    ├── e2bBrowser.ts     # Core Puppeteer browser operations
+    ├── e2bBrowserEnhanced.ts  # Safe form fill, pagination, infinite scroll
     ├── e2bCode.ts        # Python/JS code execution
+    ├── visionAnalysis.ts # Claude Vision screenshot analysis
+    ├── comparisonTable.ts # Comparison table generator
+    ├── safety.ts         # Browser safety framework (domain blocking, etc.)
     └── executor.ts       # Tool execution & cost tracking
 
 src/components/chat/DeepStrategy/

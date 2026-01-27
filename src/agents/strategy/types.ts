@@ -474,6 +474,14 @@ export type StrategyStreamEventType =
   | 'browser_visiting'
   | 'screenshot_captured'
   | 'code_executing'
+  // New tool events
+  | 'vision_analyzing'
+  | 'table_extracting'
+  | 'form_filling'
+  | 'paginating'
+  | 'scrolling'
+  | 'pdf_extracting'
+  | 'comparing'
   | 'finding_discovered'
   | 'quality_check'
   | 'quality_issue'
@@ -502,6 +510,10 @@ export interface StrategyStreamEvent {
     url?: string;
     language?: string;
     error?: string;
+    // New tool event data
+    prompt?: string;
+    maxPages?: number;
+    urlCount?: number;
     killReason?: KillReason;
   };
 }
