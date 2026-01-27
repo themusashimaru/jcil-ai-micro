@@ -55,6 +55,7 @@ import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutio
 import { RepoSelector } from '@/components/chat/RepoSelector';
 // Deep Strategy - now handled in chat, not modals
 import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
+import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Chat, Message, Attachment } from './types';
 
@@ -150,6 +151,7 @@ export function ChatClient() {
     'idle' | 'intake' | 'executing' | 'complete' | 'error'
   >('idle');
   const [strategyLoading, setStrategyLoading] = useState(false); // Loading state while starting
+  const [strategyEvents, setStrategyEvents] = useState<StrategyStreamEvent[]>([]); // Events for visual preview
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1317,6 +1319,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
 
     setStrategyPhase('executing');
     setIsStreaming(true);
+    setStrategyEvents([]); // Clear events for fresh start
 
     // Add execution message
     const execMessage: Message = {
@@ -1372,6 +1375,9 @@ I'll update you as scouts report back with findings.`,
                 const event = JSON.parse(data) as StrategyStreamEvent & {
                   data?: { result?: StrategyOutput };
                 };
+
+                // Collect events for BrowserPreviewWindow
+                setStrategyEvents((prev) => [...prev, event]);
 
                 // Show periodic progress updates (every 5 seconds)
                 if (
@@ -3119,6 +3125,16 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
             />
             {/* Live To-Do List - extracted from AI responses */}
             <LiveTodoList messages={messages} conversationId={currentChatId} />
+            {/* Deep Strategy Progress - shows live research activity */}
+            {strategyPhase === 'executing' && strategyEvents.length > 0 && (
+              <div className="px-4 pb-4">
+                <DeepStrategyProgress
+                  events={strategyEvents}
+                  isComplete={false}
+                  onCancel={cancelStrategy}
+                />
+              </div>
+            )}
             {/* Chat continuation banner - shown when conversation is getting long */}
             {!continuationDismissed && messages.length >= CHAT_LENGTH_WARNING && (
               <ChatContinuationBanner
