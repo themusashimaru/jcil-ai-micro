@@ -26,9 +26,14 @@ export { QualityControl, createQualityControl } from './QualityControl';
 export { Scout, createScout, executeScoutBatch } from './Scout';
 export { ExecutionQueue, createExecutionQueue } from './ExecutionQueue';
 
+// Prompt system
+export { getPrompts, getAvailableModes } from './prompts';
+export type { PromptSet } from './prompts';
+
 // Types
 export type {
   // Context & Config
+  AgentMode,
   StrategyContext,
   StrategyLimits,
   ModelTier,

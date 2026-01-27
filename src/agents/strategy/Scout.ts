@@ -52,11 +52,18 @@ export class Scout {
   private model: string;
   private costPerQuery = 0.005; // Brave Search cost
   private maxToolIterations = 10; // Max tool call rounds per scout
+  private scoutPrompt: string;
 
-  constructor(client: Anthropic, blueprint: AgentBlueprint, onStream?: StrategyStreamCallback) {
+  constructor(
+    client: Anthropic,
+    blueprint: AgentBlueprint,
+    onStream?: StrategyStreamCallback,
+    scoutPrompt?: string
+  ) {
     this.client = client;
     this.blueprint = blueprint;
     this.onStream = onStream;
+    this.scoutPrompt = scoutPrompt || SCOUT_PROMPT;
 
     // Select model based on tier
     this.model = MODEL_CONFIGS[blueprint.modelTier]?.id || CLAUDE_HAIKU_45;
@@ -635,7 +642,8 @@ When you have gathered sufficient information, provide your findings in this JSO
       .map(([query, results]) => `QUERY: ${query}\n\nRESULTS:\n${results}`)
       .join('\n\n---\n\n');
 
-    const prompt = SCOUT_PROMPT.replace('{AGENT_NAME}', this.blueprint.name)
+    const prompt = this.scoutPrompt
+      .replace('{AGENT_NAME}', this.blueprint.name)
       .replace('{AGENT_ROLE}', this.blueprint.role)
       .replace('{EXPERTISE}', this.blueprint.expertise.join(', '))
       .replace('{PURPOSE}', this.blueprint.purpose)
@@ -863,9 +871,10 @@ When you have gathered sufficient information, provide your findings in this JSO
 export function createScout(
   client: Anthropic,
   blueprint: AgentBlueprint,
-  onStream?: StrategyStreamCallback
+  onStream?: StrategyStreamCallback,
+  scoutPrompt?: string
 ): Scout {
-  return new Scout(client, blueprint, onStream);
+  return new Scout(client, blueprint, onStream, scoutPrompt);
 }
 
 // =============================================================================
@@ -880,13 +889,14 @@ export async function* executeScoutBatch(
   blueprints: AgentBlueprint[],
   batchSize: number = 5,
   delayMs: number = 500,
-  onStream?: StrategyStreamCallback
+  onStream?: StrategyStreamCallback,
+  scoutPrompt?: string
 ): AsyncGenerator<ScoutResult> {
   for (let i = 0; i < blueprints.length; i += batchSize) {
     const batch = blueprints.slice(i, i + batchSize);
 
     // Execute batch concurrently
-    const scouts = batch.map((bp) => createScout(client, bp, onStream));
+    const scouts = batch.map((bp) => createScout(client, bp, onStream, scoutPrompt));
     const results = await Promise.allSettled(scouts.map((s) => s.execute()));
 
     // Yield results

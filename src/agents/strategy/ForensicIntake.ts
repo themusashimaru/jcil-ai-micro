@@ -40,10 +40,19 @@ export class ForensicIntake {
   private state: IntakeState;
   private onStream?: StrategyStreamCallback;
   private model = CLAUDE_OPUS_45;
+  private systemPrompt: string;
+  private openingMessage: string;
 
-  constructor(client: Anthropic, onStream?: StrategyStreamCallback) {
+  constructor(
+    client: Anthropic,
+    onStream?: StrategyStreamCallback,
+    systemPrompt?: string,
+    openingMessage?: string
+  ) {
     this.client = client;
     this.onStream = onStream;
+    this.systemPrompt = systemPrompt || FORENSIC_INTAKE_PROMPT;
+    this.openingMessage = openingMessage || '';
     this.state = {
       messages: [],
       isComplete: false,
@@ -83,7 +92,10 @@ export class ForensicIntake {
   async startIntake(): Promise<string> {
     this.emitEvent('intake_start', 'Starting forensic intake process');
 
-    const openingMessage = `## Deep Strategy Mode Activated
+    // Use injected opening message if provided, otherwise use default
+    const openingMessage =
+      this.openingMessage ||
+      `## Deep Strategy Mode Activated
 
 **You've activated the most powerful AI strategy system ever built.**
 
@@ -227,7 +239,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
         model: this.model,
         max_tokens: 4096,
         temperature: 0.7,
-        system: FORENSIC_INTAKE_PROMPT,
+        system: this.systemPrompt,
         messages: this.state.messages.map((m) => ({
           role: m.role,
           content: m.content,
@@ -469,7 +481,9 @@ I'm now deploying the strategy team. This will take 2-5 minutes.`;
 
 export function createForensicIntake(
   client: Anthropic,
-  onStream?: StrategyStreamCallback
+  onStream?: StrategyStreamCallback,
+  systemPrompt?: string,
+  openingMessage?: string
 ): ForensicIntake {
-  return new ForensicIntake(client, onStream);
+  return new ForensicIntake(client, onStream, systemPrompt, openingMessage);
 }

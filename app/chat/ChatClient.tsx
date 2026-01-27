@@ -152,6 +152,14 @@ export function ChatClient() {
   >('idle');
   const [strategyLoading, setStrategyLoading] = useState(false); // Loading state while starting
   const [strategyEvents, setStrategyEvents] = useState<StrategyStreamEvent[]>([]); // Events for visual preview
+  // Deep Research Agent state - shares engine with Strategy, different prompts
+  const [isDeepResearchMode, setIsDeepResearchMode] = useState(false);
+  const [deepResearchSessionId, setDeepResearchSessionId] = useState<string | null>(null);
+  const [deepResearchPhase, setDeepResearchPhase] = useState<
+    'idle' | 'intake' | 'executing' | 'complete' | 'error'
+  >('idle');
+  const [deepResearchLoading, setDeepResearchLoading] = useState(false);
+  const [deepResearchEvents, setDeepResearchEvents] = useState<StrategyStreamEvent[]>([]);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1525,6 +1533,362 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
     setIsStreaming(false);
   };
 
+  // ===========================================================================
+  // DEEP RESEARCH - Same engine as Strategy, research-focused prompts
+  // ===========================================================================
+
+  /**
+   * Start Deep Research mode - adds intro message to chat and begins intake
+   */
+  const startDeepResearch = async () => {
+    if (isDeepResearchMode || deepResearchLoading) {
+      return;
+    }
+
+    setDeepResearchLoading(true);
+    setIsStreaming(true);
+
+    // Add intro message to chat
+    const introMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 📚 Deep Research Mode Activated
+
+**You've activated the most powerful AI research system ever built.**
+
+This isn't a simple search. I'm about to deploy an autonomous research army:
+- **Opus 4.5** as the Research Director (designs your investigation)
+- **Sonnet 4.5** Domain Leads (coordinate research teams)
+- **Up to 100 Haiku 4.5 Investigators** (parallel research army)
+- **14 specialized tools** including browser automation, vision AI, PDF extraction
+
+**But first, I need to understand what you want to research.**
+
+Tell me the topic, your questions, and what you'll use this research for. The more context you give me, the deeper I can go.
+
+**What topic do you want me to research?**
+
+---
+*Estimated: 2-5 min | $8-15 | Stop anytime by typing "cancel"*`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, introMessage]);
+
+    try {
+      // Start research session via strategy API with mode: 'research'
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', mode: 'research' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start research');
+      }
+
+      const sessionId = response.headers.get('X-Session-Id');
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server.');
+      }
+
+      setDeepResearchSessionId(sessionId);
+      setIsDeepResearchMode(true);
+      setDeepResearchPhase('intake');
+
+      log.debug('Deep Research mode activated', { sessionId });
+    } catch (error) {
+      console.error('[startDeepResearch] Error:', error);
+      log.error('Failed to start deep research:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Research Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsDeepResearchMode(false);
+      setDeepResearchPhase('idle');
+    } finally {
+      setIsStreaming(false);
+      setDeepResearchLoading(false);
+    }
+  };
+
+  /**
+   * Handle user input during deep research intake phase
+   */
+  const handleDeepResearchInput = async (input: string) => {
+    if (!deepResearchSessionId) {
+      return;
+    }
+
+    // Check for cancel command
+    if (input.toLowerCase().trim() === 'cancel') {
+      await cancelDeepResearch();
+      return;
+    }
+
+    setIsStreaming(true);
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'input',
+          sessionId: deepResearchSessionId,
+          input,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to process input');
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.response || 'No response received',
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (data.isComplete) {
+        await executeDeepResearch();
+      }
+    } catch (error) {
+      log.error('Deep research input error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Execute the deep research after intake is complete
+   */
+  const executeDeepResearch = async () => {
+    if (!deepResearchSessionId) return;
+
+    setDeepResearchPhase('executing');
+    setIsStreaming(true);
+    setDeepResearchEvents([]);
+
+    const execMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 🔬 Deploying Research Army...
+
+Research is now underway. This will take 2-5 minutes.
+
+I'll update you as investigators report back with findings.`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, execMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          sessionId: deepResearchSessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to execute research');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('No response body');
+
+      let buffer = '';
+      let lastProgressUpdate = Date.now();
+      let progressMessageId: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim();
+            if (data) {
+              try {
+                const event = JSON.parse(data) as StrategyStreamEvent & {
+                  data?: { result?: StrategyOutput };
+                };
+
+                setDeepResearchEvents((prev) => [...prev, event]);
+
+                if (
+                  Date.now() - lastProgressUpdate > 5000 &&
+                  event.data?.completedAgents !== undefined
+                ) {
+                  lastProgressUpdate = Date.now();
+                  const progressContent = `📊 **Progress:** ${event.data.completedAgents}/${event.data.totalAgents || '?'} investigators complete | $${(event.data.cost || 0).toFixed(2)}`;
+
+                  if (progressMessageId) {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === progressMessageId ? { ...m, content: progressContent } : m
+                      )
+                    );
+                  } else {
+                    progressMessageId = crypto.randomUUID();
+                    const progressMessage: Message = {
+                      id: progressMessageId,
+                      role: 'assistant',
+                      content: progressContent,
+                      timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, progressMessage]);
+                  }
+                }
+
+                if (event.type === 'strategy_complete' && event.data?.result) {
+                  displayResearchResult(event.data.result);
+                  setDeepResearchPhase('complete');
+                  setIsDeepResearchMode(false);
+                }
+
+                if (event.type === 'error') {
+                  throw new Error(event.message);
+                }
+
+                if (event.type === 'kill_switch') {
+                  throw new Error(`Research stopped: ${event.message}`);
+                }
+              } catch (e) {
+                if (e instanceof Error && e.message.includes('Research stopped')) {
+                  throw e;
+                }
+                log.warn('Failed to parse event:', { error: e });
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.error('Deep research execution error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Research Failed**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setDeepResearchPhase('error');
+      setIsDeepResearchMode(false);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Display the final research result as a rich chat message
+   */
+  const displayResearchResult = (result: StrategyOutput) => {
+    const content = `## 📚 Research Report Complete
+
+### Executive Summary
+**${result.recommendation.title}**
+
+${result.recommendation.summary}
+
+**Confidence:** ${result.recommendation.confidence}%
+
+### Key Findings
+${result.recommendation.reasoning.map((item, i) => `${i + 1}. ${item}`).join('\n')}
+
+### Limitations & Caveats
+${result.recommendation.tradeoffs.map((item) => `- ${item}`).join('\n')}
+
+${result.alternatives.length > 0 ? `### Alternative Perspectives\n${result.alternatives.map((alt) => `- **${alt.title}** (${alt.confidence}% confidence)\n  ${alt.summary}`).join('\n\n')}` : ''}
+
+### Recommended Next Steps
+${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority: ${item.priority} | Timeframe: ${item.timeframe}${item.details ? `\n   ${item.details}` : ''}`).join('\n\n')}
+
+### Further Research
+${result.nextSteps.map((step) => `- ${step}`).join('\n')}
+
+${result.gaps.length > 0 ? `### Knowledge Gaps\n${result.gaps.map((gap) => `- ${gap}`).join('\n')}` : ''}
+
+### Research Metadata
+- **Investigators Deployed:** ${result.metadata.totalAgents}
+- **Searches Conducted:** ${result.metadata.totalSearches}
+- **Total Cost:** $${result.metadata.totalCost.toFixed(2)}
+- **Duration:** ${Math.round(result.metadata.executionTime / 1000)}s
+
+---
+*Research complete. Ask follow-up questions or start a new research session.*`;
+
+    const resultMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, resultMessage]);
+  };
+
+  /**
+   * Cancel the current deep research
+   */
+  const cancelDeepResearch = async () => {
+    if (!deepResearchSessionId) return;
+
+    try {
+      await fetch(`/api/strategy?sessionId=${deepResearchSessionId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      log.warn('Cancel request failed:', { error: e });
+    }
+
+    const cancelMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '✋ **Research cancelled.** You can start a new research session anytime.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+
+    setIsDeepResearchMode(false);
+    setDeepResearchPhase('idle');
+    setDeepResearchSessionId(null);
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -1588,6 +1952,12 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
     // DEEP STRATEGY MODE: If we're in strategy intake, send to strategy API
     if (isStrategyMode && strategyPhase === 'intake' && strategySessionId) {
       await handleStrategyInput(content);
+      return;
+    }
+
+    // DEEP RESEARCH MODE: If we're in deep research intake, send to strategy API
+    if (isDeepResearchMode && deepResearchPhase === 'intake' && deepResearchSessionId) {
+      await handleDeepResearchInput(content);
       return;
     }
 
@@ -3135,6 +3505,16 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                 />
               </div>
             )}
+            {/* Deep Research Progress - same visual preview for research mode */}
+            {deepResearchPhase === 'executing' && deepResearchEvents.length > 0 && (
+              <div className="px-4 pb-4">
+                <DeepStrategyProgress
+                  events={deepResearchEvents}
+                  isComplete={false}
+                  onCancel={cancelDeepResearch}
+                />
+              </div>
+            )}
             {/* Chat continuation banner - shown when conversation is getting long */}
             {!continuationDismissed && messages.length >= CHAT_LENGTH_WARNING && (
               <ChatContinuationBanner
@@ -3153,8 +3533,11 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
               onClearReply={() => setReplyingTo(null)}
               initialText={quickPromptText}
               isAdmin={isAdmin}
-              activeAgent={isStrategyMode ? 'strategy' : null}
+              activeAgent={
+                isStrategyMode ? 'strategy' : isDeepResearchMode ? 'deep-research' : null
+              }
               strategyLoading={strategyLoading}
+              deepResearchLoading={deepResearchLoading}
               onAgentSelect={async (agent) => {
                 // Helper to cancel strategy session on server
                 const cancelStrategySession = async () => {
@@ -3169,6 +3552,19 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                   }
                 };
 
+                // Helper to cancel deep research session on server
+                const cancelResearchSession = async () => {
+                  if (deepResearchSessionId) {
+                    try {
+                      await fetch(`/api/strategy?sessionId=${deepResearchSessionId}`, {
+                        method: 'DELETE',
+                      });
+                    } catch {
+                      // Silently fail
+                    }
+                  }
+                };
+
                 if (agent === 'strategy') {
                   if (isStrategyMode) {
                     // Toggle off - cancel strategy mode
@@ -3177,8 +3573,33 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                     setStrategyPhase('idle');
                     setStrategySessionId(null);
                   } else {
+                    // Exit deep research if active
+                    if (isDeepResearchMode) {
+                      await cancelResearchSession();
+                      setIsDeepResearchMode(false);
+                      setDeepResearchPhase('idle');
+                      setDeepResearchSessionId(null);
+                    }
                     // Start strategy
                     await startDeepStrategy();
+                  }
+                } else if (agent === 'deep-research') {
+                  if (isDeepResearchMode) {
+                    // Toggle off - cancel deep research mode
+                    await cancelResearchSession();
+                    setIsDeepResearchMode(false);
+                    setDeepResearchPhase('idle');
+                    setDeepResearchSessionId(null);
+                  } else {
+                    // Exit strategy if active
+                    if (isStrategyMode) {
+                      await cancelStrategySession();
+                      setIsStrategyMode(false);
+                      setStrategyPhase('idle');
+                      setStrategySessionId(null);
+                    }
+                    // Start deep research
+                    await startDeepResearch();
                   }
                 } else if (agent === 'research') {
                   // If switching from strategy to research, exit strategy mode
@@ -3187,6 +3608,13 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
                     setIsStrategyMode(false);
                     setStrategyPhase('idle');
                     setStrategySessionId(null);
+                  }
+                  // If switching from deep research to research, exit deep research
+                  if (isDeepResearchMode) {
+                    await cancelResearchSession();
+                    setIsDeepResearchMode(false);
+                    setDeepResearchPhase('idle');
+                    setDeepResearchSessionId(null);
                   }
                   // Research mode is handled internally by ChatComposer's toolMode
                 }

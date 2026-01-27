@@ -22,6 +22,7 @@ import {
   type StrategyStreamEvent,
   type StrategyOutput,
   type Finding,
+  type AgentMode,
 } from '@/agents/strategy';
 
 const log = logger('StrategyAPI');
@@ -469,6 +470,7 @@ export async function POST(request: NextRequest) {
       input?: string;
       message?: string;
       attachments?: StrategyAttachment[];
+      mode?: AgentMode;
     }>(request);
 
     if (!jsonResult.success) {
@@ -478,12 +480,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { action, sessionId, input, message, attachments } = jsonResult.data;
+    const { action, sessionId, input, message, attachments, mode } = jsonResult.data;
 
     // Handle different actions
     switch (action) {
       case 'start':
-        return handleStart(supabase, user.id, isAdmin, attachments);
+        return handleStart(supabase, user.id, isAdmin, attachments, mode);
 
       case 'input':
         return handleInput(supabase, sessionId, input, user.id, isAdmin);
@@ -731,7 +733,8 @@ async function handleStart(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   isAdmin: boolean,
-  attachments?: StrategyAttachment[]
+  attachments?: StrategyAttachment[],
+  mode?: AgentMode
 ): Promise<Response> {
   // Use UUID for session ID to match database constraints
   const sessionId = randomUUID();
@@ -793,13 +796,14 @@ async function handleStart(
     });
   }
 
-  // Create strategy agent
+  // Create strategy agent with mode-specific prompts
   const agent = createStrategyAgent(
     apiKey,
     {
       userId,
       sessionId,
       isAdmin,
+      mode: mode || 'strategy',
       attachments: attachments?.map((a) => ({
         name: a.name,
         type: a.type,
@@ -943,6 +947,7 @@ async function handleInput(
     const intakeMessages = await getIntakeMessages(supabase, sessionId);
 
     // Create a new agent and restore its state
+    // Note: mode defaults to 'strategy' for restored sessions
     const agent = createStrategyAgent(apiKey, { userId, sessionId, isAdmin });
 
     // Restore the intake messages if we have them
