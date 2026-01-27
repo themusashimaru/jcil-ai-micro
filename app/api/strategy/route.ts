@@ -1038,6 +1038,24 @@ async function handleExecute(
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
+  // CRITICAL: Update the agent's stream callback to write to the NEW stream
+  // The original callback from handleStart pointed to a now-closed stream
+  const onExecuteStream = (event: StrategyStreamEvent) => {
+    const data = JSON.stringify(event);
+    writer.write(encoder.encode(`data: ${data}\n\n`)).catch(() => {
+      // Writer closed, ignore
+    });
+
+    // Store findings in database as they're discovered
+    if (event.type === 'finding_discovered' && event.data?.finding) {
+      storeFinding(supabase, session.dbId, event.data.finding as Finding).catch((err) => {
+        log.error('Failed to store finding', err);
+      });
+    }
+  };
+
+  session.agent.setStreamCallback(onExecuteStream);
+
   // Update session phase
   session.phase = 'executing';
   await updateSessionPhase(supabase, sessionId, 'executing');
