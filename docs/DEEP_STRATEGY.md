@@ -209,9 +209,40 @@ Once intake is complete, the agent army deploys:
 └─────────────────────────────────────────────┘
 ```
 
-### Phase 4: Live Research Activity Feed
+### Phase 4: Browser Preview Window
 
-Watch the AI at work with a real-time activity feed showing:
+Watch the AI at work in a futuristic mini-browser interface that shows research in real-time:
+
+```
+┌─────────────────────────────────────────────┐
+│ 🔴 🟡 🟢  │ 🔒 zillow.com/jersey-city  🔄  │ ● LIVE │
+├─────────────────────────────────────────────┤
+│                                             │
+│           🌐                                │
+│       zillow.com                            │
+│     "Market Research Scout"                 │
+│                                             │
+│  ┌─────────────────────────────────┐        │
+│  │ 🔍 "PATH train schedule"        │ 80%    │
+│  │ 🌐 redfin.com                   │ 60%    │
+│  │ 📸 streeteasy.com               │ 40%    │
+│  └─────────────────────────────────┘        │
+├─────────────────────────────────────────────┤
+│ 🔍 47  🌐 12  📸 5  💻 2    ⚡ 66 actions    │
+└─────────────────────────────────────────────┘
+```
+
+Features:
+
+- **macOS-style browser chrome** with traffic lights and address bar
+- **Live URL display** shows what's being visited in real-time
+- **Flash effects** when new activities occur
+- **Activity counts** by type (searches, visits, screenshots, code)
+- **Ambient glow** and scanline effects for futuristic feel
+
+### Phase 5: Activity Log
+
+Expandable detailed log of all research activities:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -511,7 +542,8 @@ src/components/chat/DeepStrategy/
 ├── DeepStrategyButton.tsx    # Launch button
 ├── DeepStrategyModal.tsx     # Upload, tech overview & confirm modal
 ├── DeepStrategyProgress.tsx  # Real-time progress UI
-└── ResearchActivityFeed.tsx  # Live activity feed (searches, visits)
+├── BrowserPreviewWindow.tsx  # Futuristic mini-browser with live activity
+└── ResearchActivityFeed.tsx  # Activity log (searches, visits, screenshots)
 
 src/hooks/
 └── useDeepStrategy.ts    # React hook for state management

@@ -352,94 +352,160 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
           {/* Step 2: Technical overview and confirm launch */}
           {step === 2 && (
             <>
-              {/* Premium Feature Badge */}
-              <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 rounded-lg p-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-purple-400" />
+              {/* Premium Feature Badge - Animated */}
+              <div className="relative overflow-hidden bg-gradient-to-r from-purple-500/20 via-indigo-500/20 to-purple-500/20 border border-purple-500/30 rounded-xl p-4 mb-4">
+                {/* Animated shimmer */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                  style={{
+                    animation: 'shimmer 3s ease-in-out infinite',
+                  }}
+                />
+                <div className="relative flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">Premium Member Feature</p>
+                    <p className="text-base font-bold text-white flex items-center gap-2">
+                      Premium Member Exclusive
+                      <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded font-medium">
+                        ADVANCED
+                      </span>
+                    </p>
                     <p className="text-xs text-gray-400">
-                      This is an extremely powerful tool. Please use responsibly.
+                      The most powerful AI research system ever built for consumers
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Technical Architecture */}
-              <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
-                <h3 className="text-xs font-semibold uppercase text-gray-400 mb-3 flex items-center gap-2">
-                  <Network className="w-3.5 h-3.5" />
-                  Self-Replicating Agent Architecture
+              {/* Technical Architecture - More impressive */}
+              <div className="bg-gradient-to-b from-gray-800/80 to-gray-900/80 rounded-xl p-4 mb-4 border border-gray-700/50">
+                <h3 className="text-xs font-bold uppercase text-purple-400 mb-4 flex items-center gap-2 tracking-wider">
+                  <Network className="w-4 h-4" />
+                  Self-Replicating Agent Hierarchy
                 </h3>
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-4 h-4 text-purple-400" />
+
+                {/* Tier 1 - Opus */}
+                <div className="relative pl-6 pb-4 border-l-2 border-purple-500/50">
+                  <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-white">1</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                      <Brain className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <span className="text-white font-medium">Opus 4.5 Master Architect</span>
-                      <p className="text-xs text-gray-500">
-                        Designs and spawns specialized agent army
+                      <p className="text-sm font-bold text-white">Claude Opus 4.5</p>
+                      <p className="text-xs text-purple-300">
+                        Master Architect — designs your agent army
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-4 h-4 text-blue-400" />
+                </div>
+
+                {/* Tier 2 - Sonnet */}
+                <div className="relative pl-6 pb-4 border-l-2 border-blue-500/50">
+                  <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-white">2</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                      <Bot className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <span className="text-white font-medium">Sonnet 4.5 Project Managers</span>
-                      <p className="text-xs text-gray-500">Coordinate domain research teams</p>
+                      <p className="text-sm font-bold text-white">Claude Sonnet 4.5</p>
+                      <p className="text-xs text-blue-300">
+                        Project Managers — coordinate research teams
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-green-400" />
+                </div>
+
+                {/* Tier 3 - Haiku Army */}
+                <div className="relative pl-6">
+                  <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-white">3</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center border-2 border-gray-800 shadow-lg"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      ))}
+                      <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center border-2 border-gray-800">
+                        <span className="text-[10px] font-bold text-gray-400">+96</span>
+                      </div>
                     </div>
                     <div>
-                      <span className="text-white font-medium">Up to 100 Haiku 4.5 Scouts</span>
-                      <p className="text-xs text-gray-500">
-                        Parallel research army, self-replicating as needed
+                      <p className="text-sm font-bold text-white">Up to 100 Haiku 4.5 Scouts</p>
+                      <p className="text-xs text-green-300">
+                        Self-replicating research army with tools
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Research Capabilities */}
+              {/* E2B Sandbox - NEW SECTION */}
+              <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-xl p-4 mb-4 border border-cyan-500/20">
+                <h3 className="text-xs font-bold uppercase text-cyan-400 mb-3 flex items-center gap-2 tracking-wider">
+                  <Code className="w-4 h-4" />
+                  Secure Cloud Sandbox (E2B)
+                </h3>
+                <p className="text-xs text-gray-400 mb-3">
+                  Each scout operates in an isolated E2B sandbox with:
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-gray-300">Headless Chromium browser</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-gray-300">Puppeteer automation</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-gray-300">Python 3.11 runtime</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-gray-300">Node.js 20 runtime</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Research Capabilities - More visual */}
               <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
-                <h3 className="text-xs font-semibold uppercase text-gray-400 mb-3 flex items-center gap-2">
-                  <Zap className="w-3.5 h-3.5" />
-                  Research Capabilities
+                <h3 className="text-xs font-bold uppercase text-gray-400 mb-3 flex items-center gap-2 tracking-wider">
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                  Live Research Capabilities
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-gray-900/50 rounded-lg p-2.5">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Search className="w-3.5 h-3.5 text-yellow-400" />
-                      <span className="text-xs font-medium text-white">Brave Search</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Hundreds of real-time web searches</p>
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 group hover:bg-yellow-500/20 transition-colors">
+                    <Search className="w-5 h-5 text-yellow-400 mb-2" />
+                    <p className="text-xs font-bold text-white">Brave Search API</p>
+                    <p className="text-[10px] text-yellow-300/70">100s of real-time web queries</p>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-2.5">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                      <span className="text-xs font-medium text-white">Puppeteer Browser</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Visits actual websites, extracts data</p>
+                  <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 group hover:bg-cyan-500/20 transition-colors">
+                    <Globe className="w-5 h-5 text-cyan-400 mb-2" />
+                    <p className="text-xs font-bold text-white">Puppeteer Browser</p>
+                    <p className="text-[10px] text-cyan-300/70">Visits & extracts live websites</p>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-2.5">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Camera className="w-3.5 h-3.5 text-pink-400" />
-                      <span className="text-xs font-medium text-white">Screenshots</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Visual analysis of web pages</p>
+                  <div className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-3 group hover:bg-pink-500/20 transition-colors">
+                    <Camera className="w-5 h-5 text-pink-400 mb-2" />
+                    <p className="text-xs font-bold text-white">Visual Screenshots</p>
+                    <p className="text-[10px] text-pink-300/70">Captures & analyzes pages</p>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-2.5">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Code className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-xs font-medium text-white">Code Execution</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Python/JS data analysis in sandbox</p>
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 group hover:bg-emerald-500/20 transition-colors">
+                    <Code className="w-5 h-5 text-emerald-400 mb-2" />
+                    <p className="text-xs font-bold text-white">Code Sandbox</p>
+                    <p className="text-[10px] text-emerald-300/70">Python/JS data analysis</p>
                   </div>
                 </div>
               </div>
@@ -505,6 +571,21 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
             </>
           )}
         </div>
+
+        {/* Animation styles */}
+        <style jsx>{`
+          @keyframes shimmer {
+            0% {
+              transform: translateX(-100%);
+            }
+            50% {
+              transform: translateX(100%);
+            }
+            100% {
+              transform: translateX(-100%);
+            }
+          }
+        `}</style>
       </div>
     </div>
   );
