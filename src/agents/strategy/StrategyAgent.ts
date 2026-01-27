@@ -19,7 +19,9 @@ import type {
   StrategyStreamEvent,
   CostTracker,
 } from './types';
-import { DEFAULT_LIMITS, CLAUDE_OPUS_45, FINAL_SYNTHESIS_PROMPT } from './constants';
+import { DEFAULT_LIMITS, CLAUDE_OPUS_45 } from './constants';
+import { getPrompts } from './prompts';
+import type { PromptSet } from './prompts';
 import { ForensicIntake, createForensicIntake } from './ForensicIntake';
 import { MasterArchitect, createMasterArchitect } from './MasterArchitect';
 import { QualityControl, createQualityControl } from './QualityControl';
@@ -41,6 +43,7 @@ export class StrategyAgent {
   private qc: QualityControl;
   private queue: ExecutionQueue;
   private onStream?: StrategyStreamCallback;
+  private prompts: PromptSet;
 
   // State
   private allFindings: Finding[] = [];
@@ -57,6 +60,9 @@ export class StrategyAgent {
     this.client = new Anthropic({ apiKey });
     this.onStream = onStream;
 
+    // Select prompt set based on mode
+    this.prompts = getPrompts(context.mode || 'strategy');
+
     // Initialize context with defaults
     this.context = {
       userId: context.userId || 'unknown',
@@ -65,15 +71,31 @@ export class StrategyAgent {
       startTime: Date.now(),
       limits: context.limits || DEFAULT_LIMITS,
       costTracker: this.initCostTracker(),
+      mode: context.mode || 'strategy',
       attachments: context.attachments,
       userContext: [],
     };
 
-    // Initialize components
+    // Initialize components with mode-specific prompts
     this.queue = createExecutionQueue(this.context.limits, onStream);
-    this.intake = createForensicIntake(this.client, onStream);
-    this.architect = createMasterArchitect(this.client, this.context.limits, onStream);
-    this.qc = createQualityControl(this.client, this.context.limits, onStream);
+    this.intake = createForensicIntake(
+      this.client,
+      onStream,
+      this.prompts.intake,
+      this.prompts.intakeOpening
+    );
+    this.architect = createMasterArchitect(
+      this.client,
+      this.context.limits,
+      onStream,
+      this.prompts.architect
+    );
+    this.qc = createQualityControl(
+      this.client,
+      this.context.limits,
+      onStream,
+      this.prompts.qualityControl
+    );
   }
 
   private initCostTracker(): CostTracker {
@@ -434,6 +456,13 @@ export class StrategyAgent {
     return this.context.problem;
   }
 
+  /**
+   * Get the agent mode name (e.g., 'Deep Strategy', 'Deep Research')
+   */
+  getModeName(): string {
+    return this.prompts.name;
+  }
+
   // ===========================================================================
   // PRIVATE METHODS - EXECUTION
   // ===========================================================================
@@ -453,7 +482,8 @@ export class StrategyAgent {
       this.blueprints,
       batchSize,
       delayMs,
-      this.onStream
+      this.onStream,
+      this.prompts.scout
     )) {
       // Check for cancellation
       if (this.isCancelled || this.qc.isKilled()) {
@@ -551,7 +581,7 @@ export class StrategyAgent {
     this.blueprints.push(...childBlueprints);
 
     for (const blueprint of childBlueprints) {
-      const scout = createScout(this.client, blueprint, this.onStream);
+      const scout = createScout(this.client, blueprint, this.onStream, this.prompts.scout);
       const result = await scout.execute();
       this.allFindings.push(...result.findings);
 
@@ -581,10 +611,8 @@ export class StrategyAgent {
     const findingsByType = this.groupFindingsByType();
 
     // Build the prompt - add partial synthesis note if needed
-    let prompt = FINAL_SYNTHESIS_PROMPT.replace(
-      '{SYNTHESIZED_PROBLEM}',
-      JSON.stringify(problem, null, 2)
-    )
+    let prompt = this.prompts.synthesis
+      .replace('{SYNTHESIZED_PROBLEM}', JSON.stringify(problem, null, 2))
       .replace('{ALL_FINDINGS}', JSON.stringify(findingsByType, null, 2))
       .replace('{DOMAIN_REPORTS}', this.buildDomainReports());
 

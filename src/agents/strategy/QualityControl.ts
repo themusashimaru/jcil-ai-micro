@@ -53,15 +53,18 @@ export class QualityControl {
   private onStream?: StrategyStreamCallback;
   private startTime: number;
   private model = CLAUDE_OPUS_45;
+  private systemPrompt: string;
 
   constructor(
     client: Anthropic,
     limits: StrategyLimits = DEFAULT_LIMITS,
-    onStream?: StrategyStreamCallback
+    onStream?: StrategyStreamCallback,
+    systemPrompt?: string
   ) {
     this.client = client;
     this.limits = limits;
     this.onStream = onStream;
+    this.systemPrompt = systemPrompt || QUALITY_CONTROL_PROMPT;
     this.startTime = Date.now();
     this.state = {
       status: 'pending',
@@ -254,7 +257,7 @@ export class QualityControl {
   async runDeepAnalysis(currentState: string, findings: Finding[]): Promise<QCCheckResult> {
     const stateWithFindings = `${currentState}\n\nFINDINGS:\n${JSON.stringify(findings.slice(0, 50), null, 2)}`;
 
-    const prompt = QUALITY_CONTROL_PROMPT.replace('{CURRENT_STATE}', stateWithFindings);
+    const prompt = this.systemPrompt.replace('{CURRENT_STATE}', stateWithFindings);
 
     const response = await this.client.messages.create({
       model: this.model,
@@ -505,7 +508,8 @@ export class QualityControl {
 export function createQualityControl(
   client: Anthropic,
   limits?: StrategyLimits,
-  onStream?: StrategyStreamCallback
+  onStream?: StrategyStreamCallback,
+  systemPrompt?: string
 ): QualityControl {
-  return new QualityControl(client, limits, onStream);
+  return new QualityControl(client, limits, onStream, systemPrompt);
 }

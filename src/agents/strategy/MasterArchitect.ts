@@ -59,15 +59,18 @@ export class MasterArchitect {
   private model = CLAUDE_OPUS_45;
   private limits: StrategyLimits;
   private state: MasterArchitectState;
+  private systemPrompt: string;
 
   constructor(
     client: Anthropic,
     limits: StrategyLimits = DEFAULT_LIMITS,
-    onStream?: StrategyStreamCallback
+    onStream?: StrategyStreamCallback,
+    systemPrompt?: string
   ) {
     this.client = client;
     this.limits = limits;
     this.onStream = onStream;
+    this.systemPrompt = systemPrompt || MASTER_ARCHITECT_PROMPT;
     this.state = {
       status: 'pending',
       blueprintsCreated: 0,
@@ -135,7 +138,7 @@ export class MasterArchitect {
    * Generate agent design using Opus 4.5
    */
   private async generateDesign(problem: SynthesizedProblem): Promise<ArchitectDesign> {
-    const prompt = MASTER_ARCHITECT_PROMPT.replace(
+    const prompt = this.systemPrompt.replace(
       '{SYNTHESIZED_PROBLEM}',
       JSON.stringify(problem, null, 2)
     );
@@ -579,7 +582,8 @@ export class MasterArchitect {
 export function createMasterArchitect(
   client: Anthropic,
   limits?: StrategyLimits,
-  onStream?: StrategyStreamCallback
+  onStream?: StrategyStreamCallback,
+  systemPrompt?: string
 ): MasterArchitect {
-  return new MasterArchitect(client, limits, onStream);
+  return new MasterArchitect(client, limits, onStream, systemPrompt);
 }

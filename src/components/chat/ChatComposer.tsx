@@ -59,9 +59,10 @@ interface ChatComposerProps {
   initialText?: string; // Pre-fill the input with text (for quick prompts)
   // Agent props
   isAdmin?: boolean;
-  activeAgent?: 'research' | 'strategy' | null;
-  onAgentSelect?: (agent: 'research' | 'strategy') => Promise<void> | void;
+  activeAgent?: 'research' | 'strategy' | 'deep-research' | null;
+  onAgentSelect?: (agent: 'research' | 'strategy' | 'deep-research') => Promise<void> | void;
   strategyLoading?: boolean; // Show loading state while strategy starts
+  deepResearchLoading?: boolean; // Show loading state while deep research starts
 }
 
 /**
@@ -138,6 +139,7 @@ export function ChatComposer({
   activeAgent,
   onAgentSelect,
   strategyLoading,
+  deepResearchLoading,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -328,9 +330,12 @@ export function ChatComposer({
 
   // Get placeholder text based on tool mode or active agent
   const getPlaceholderForMode = (): string => {
-    // Check active agent first (Strategy mode from parent)
+    // Check active agent first (Strategy/Deep Research mode from parent)
     if (activeAgent === 'strategy') {
       return 'Describe your complex problem or decision...';
+    }
+    if (activeAgent === 'deep-research') {
+      return 'What topic do you want to research in depth?';
     }
 
     switch (toolMode) {
@@ -698,7 +703,9 @@ export function ChatComposer({
                 className="absolute inset-0 flex items-center pointer-events-none px-4 py-3"
                 style={{ fontSize: '16px' }}
               >
-                {toolMode !== 'none' || activeAgent === 'strategy' ? (
+                {toolMode !== 'none' ||
+                activeAgent === 'strategy' ||
+                activeAgent === 'deep-research' ? (
                   // Tool mode or agent placeholder (static, no animation)
                   <span
                     className="font-medium"
@@ -706,7 +713,9 @@ export function ChatComposer({
                       color:
                         activeAgent === 'strategy'
                           ? '#a855f7' // Purple for Strategy
-                          : getToolModeInfo()?.color || 'var(--primary)',
+                          : activeAgent === 'deep-research'
+                            ? '#10b981' // Emerald for Deep Research
+                            : getToolModeInfo()?.color || 'var(--primary)',
                     }}
                   >
                     {getPlaceholderForMode()}
@@ -821,7 +830,7 @@ export function ChatComposer({
                     disabled={isStreaming || disabled}
                     className={`
                       disabled:opacity-50 flex items-center gap-1 transition-all text-xs
-                      ${toolMode === 'research' || activeAgent === 'strategy' ? 'text-purple-300' : 'text-white hover:text-purple-300'}
+                      ${toolMode === 'research' || activeAgent === 'strategy' || activeAgent === 'deep-research' ? 'text-purple-300' : 'text-white hover:text-purple-300'}
                     `}
                     title="Select an AI Agent"
                   >
@@ -839,19 +848,24 @@ export function ChatComposer({
                       />
                     </svg>
                     <span>
-                      {strategyLoading
+                      {strategyLoading || deepResearchLoading
                         ? 'Starting...'
                         : toolMode === 'research'
                           ? 'Research'
                           : activeAgent === 'strategy'
                             ? 'Strategy'
-                            : 'Agents'}
+                            : activeAgent === 'deep-research'
+                              ? 'Deep Research'
+                              : 'Agents'}
                     </span>
-                    {strategyLoading && (
+                    {(strategyLoading || deepResearchLoading) && (
                       <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
                     )}
                     {!strategyLoading &&
-                      (toolMode === 'research' || activeAgent === 'strategy') && (
+                      !deepResearchLoading &&
+                      (toolMode === 'research' ||
+                        activeAgent === 'strategy' ||
+                        activeAgent === 'deep-research') && (
                         <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
                       )}
                     <svg
@@ -880,13 +894,19 @@ export function ChatComposer({
                       </div>
                       <div className="p-1">
                         {/* Regular Chat - Exit agent mode */}
-                        {(toolMode === 'research' || activeAgent === 'strategy') && (
+                        {(toolMode === 'research' ||
+                          activeAgent === 'strategy' ||
+                          activeAgent === 'deep-research') && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               // Exit strategy mode if active
                               if (activeAgent === 'strategy') {
                                 onAgentSelect?.('strategy'); // Toggle off
+                              }
+                              // Exit deep research mode if active
+                              if (activeAgent === 'deep-research') {
+                                onAgentSelect?.('deep-research'); // Toggle off
                               }
                               // Exit research mode if active
                               setToolMode('none');
@@ -920,9 +940,12 @@ export function ChatComposer({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // If Strategy is active, notify parent to exit it first
+                            // If Strategy or Deep Research is active, notify parent to exit first
                             if (activeAgent === 'strategy') {
                               onAgentSelect?.('research');
+                            }
+                            if (activeAgent === 'deep-research') {
+                              onAgentSelect?.('deep-research');
                             }
                             // Toggle research mode internally
                             setToolMode(toolMode === 'research' ? 'none' : 'research');
@@ -994,6 +1017,47 @@ export function ChatComposer({
                                 Multi-agent army for complex problems
                               </p>
                               <p className="text-xs text-purple-400 mt-0.5">
+                                Opus + Sonnet + Haiku
+                              </p>
+                            </div>
+                          </button>
+                        )}
+
+                        {/* Deep Research Agent - Admin only */}
+                        {isAdmin && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              setShowAgentsMenu(false);
+                              await onAgentSelect?.('deep-research');
+                            }}
+                            className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                              activeAgent === 'deep-research'
+                                ? 'bg-emerald-600/20 text-emerald-300'
+                                : 'hover:bg-gray-800 text-gray-300'
+                            }`}
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-4 h-4 text-emerald-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                />
+                              </svg>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-medium">Deep Research Agent</p>
+                              <p className="text-xs text-gray-500">
+                                Autonomous research army for any topic
+                              </p>
+                              <p className="text-xs text-emerald-400 mt-0.5">
                                 Opus + Sonnet + Haiku
                               </p>
                             </div>

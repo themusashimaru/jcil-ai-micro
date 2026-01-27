@@ -11,6 +11,12 @@
 // MODEL CONFIGURATION
 // =============================================================================
 
+/**
+ * Agent mode - determines which prompt set the engine uses.
+ * The engine is mode-agnostic; only the prompts change.
+ */
+export type AgentMode = 'strategy' | 'research';
+
 export type ModelTier = 'opus' | 'sonnet' | 'haiku';
 
 export interface ModelConfig {
@@ -538,6 +544,7 @@ export interface StrategyContext {
   startTime: number;
   limits: StrategyLimits;
   costTracker: CostTracker;
+  mode?: AgentMode; // Which prompt set to use (default: 'strategy')
   problem?: UserProblem;
   hierarchy?: AgentHierarchy;
   queue?: QueueProgress;
