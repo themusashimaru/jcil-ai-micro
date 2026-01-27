@@ -8,6 +8,7 @@
  * - Document attachments before strategy execution
  * - Mid-execution context messaging (like Claude Code)
  * - Real-time streaming progress updates
+ * - Session persistence and automatic reconnection
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -15,6 +16,9 @@ import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import type { StrategyAttachment } from '@/components/chat/DeepStrategy';
 
 export type StrategyPhase = 'idle' | 'intake' | 'executing' | 'complete' | 'error' | 'cancelled';
+
+// Session persistence key
+const SESSION_STORAGE_KEY = 'deep-strategy-session';
 
 interface UseDeepStrategyReturn {
   // State
@@ -26,6 +30,7 @@ interface UseDeepStrategyReturn {
   error: string | null;
   isLoading: boolean;
   isAddingContext: boolean;
+  isReconnecting: boolean;
 
   // Actions
   startStrategy: (attachments?: StrategyAttachment[]) => Promise<void>;
@@ -33,6 +38,7 @@ interface UseDeepStrategyReturn {
   executeStrategy: () => Promise<void>;
   cancelStrategy: () => Promise<void>;
   addContext: (message: string) => Promise<void>;
+  reconnect: () => Promise<void>;
   reset: () => void;
 
   // Progress
@@ -44,6 +50,14 @@ interface UseDeepStrategyReturn {
     cost: number;
     elapsed: number;
   };
+}
+
+interface PersistedSession {
+  sessionId: string;
+  phase: StrategyPhase;
+  events: StrategyStreamEvent[];
+  intakeMessages: Array<{ role: 'assistant' | 'user'; content: string }>;
+  lastUpdated: number;
 }
 
 export function useDeepStrategy(): UseDeepStrategyReturn {
@@ -58,6 +72,7 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingContext, setIsAddingContext] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [progress, setProgress] = useState({
     phase: 'idle',
     percent: 0,
@@ -70,6 +85,144 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   // Refs
   const eventSourceRef = useRef<EventSource | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasRestoredRef = useRef(false);
+
+  // ==========================================================================
+  // SESSION PERSISTENCE
+  // ==========================================================================
+
+  /**
+   * Save session state to localStorage
+   */
+  const saveSession = useCallback(
+    (overridePhase?: StrategyPhase) => {
+      if (!sessionId) return;
+
+      const session: PersistedSession = {
+        sessionId,
+        phase: overridePhase || phase,
+        events,
+        intakeMessages,
+        lastUpdated: Date.now(),
+      };
+
+      try {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      } catch (e) {
+        console.error('Failed to save session:', e);
+      }
+    },
+    [sessionId, phase, events, intakeMessages]
+  );
+
+  /**
+   * Load session from localStorage
+   */
+  const loadSession = useCallback((): PersistedSession | null => {
+    try {
+      const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!stored) return null;
+
+      const session = JSON.parse(stored) as PersistedSession;
+
+      // Expire sessions older than 30 minutes
+      if (Date.now() - session.lastUpdated > 30 * 60 * 1000) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return null;
+      }
+
+      return session;
+    } catch (e) {
+      console.error('Failed to load session:', e);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Clear persisted session
+   */
+  const clearSession = useCallback(() => {
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch (e) {
+      console.error('Failed to clear session:', e);
+    }
+  }, []);
+
+  // Save session when important state changes
+  useEffect(() => {
+    if (sessionId && (phase === 'intake' || phase === 'executing')) {
+      saveSession();
+    }
+  }, [sessionId, phase, events, intakeMessages, saveSession]);
+
+  // ==========================================================================
+  // RESTORE SESSION ON MOUNT
+  // ==========================================================================
+
+  useEffect(() => {
+    // Only restore once
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    const storedSession = loadSession();
+    if (!storedSession) return;
+
+    // If there was an executing session, try to reconnect
+    if (storedSession.phase === 'executing') {
+      console.log('Found executing session, attempting to reconnect...', storedSession.sessionId);
+
+      // Restore state from storage first
+      setSessionId(storedSession.sessionId);
+      setEvents(storedSession.events);
+      setIntakeMessages(storedSession.intakeMessages);
+      setPhase('executing');
+
+      // Check session status on server and get stored events
+      fetch(`/api/strategy?sessionId=${storedSession.sessionId}&includeEvents=true`)
+        .then((res) => res.json())
+        .then((data) => {
+          // Restore events from server if available
+          if (data.events && Array.isArray(data.events) && data.events.length > 0) {
+            setEvents(data.events);
+          }
+
+          if (data.phase === 'complete' && data.result) {
+            // Session completed while we were away
+            setResult(data.result);
+            setPhase('complete');
+            clearSession();
+          } else if (data.phase === 'error' || data.phase === 'cancelled') {
+            // Session failed or was cancelled
+            setPhase(data.phase);
+            setError(data.phase === 'error' ? 'Session failed' : 'Session was cancelled');
+            clearSession();
+          } else if (data.isActive) {
+            // Session is still running - show current progress
+            setProgress((prev) => ({
+              ...prev,
+              agentsComplete: data.completedAgents || prev.agentsComplete,
+              agentsTotal: data.totalAgents || prev.agentsTotal,
+              cost: data.totalCost || prev.cost,
+            }));
+            setPhase('executing');
+            // Clear the error since we successfully reconnected
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to check session status:', err);
+          setError('Could not reconnect to session');
+          setPhase('error');
+        });
+    } else if (storedSession.phase === 'intake') {
+      // Restore intake session
+      setSessionId(storedSession.sessionId);
+      setEvents(storedSession.events);
+      setIntakeMessages(storedSession.intakeMessages);
+      setPhase('intake');
+    }
+  }, [loadSession, clearSession]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -244,18 +397,21 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
                 if (event.type === 'strategy_complete' && event.data?.result) {
                   setResult(event.data.result);
                   setPhase('complete');
+                  clearSession();
                 }
 
                 // Check for error
                 if (event.type === 'error') {
                   setError(event.message);
                   setPhase('error');
+                  clearSession();
                 }
 
                 // Check for kill
                 if (event.type === 'kill_switch') {
                   setError(`Strategy stopped: ${event.message}`);
                   setPhase('cancelled');
+                  clearSession();
                 }
               } catch (e) {
                 console.error('Failed to parse event:', e);
@@ -269,10 +425,11 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setPhase('error');
+      clearSession();
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, clearSession]);
 
   /**
    * Send input during intake phase
@@ -332,11 +489,12 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
       if (response.ok) {
         setPhase('cancelled');
         setError('Strategy cancelled by user');
+        clearSession();
       }
     } catch (err) {
       console.error('Failed to cancel strategy:', err);
     }
-  }, [sessionId]);
+  }, [sessionId, clearSession]);
 
   /**
    * Add context during execution (like Claude Code's interrupt feature)
@@ -378,6 +536,65 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
   );
 
   /**
+   * Reconnect to an executing session by polling for updates
+   * This is used when the user returns to a page with an in-progress session
+   */
+  const reconnect = useCallback(async () => {
+    if (!sessionId) return;
+
+    setIsReconnecting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/strategy?sessionId=${sessionId}&includeEvents=true`);
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Restore events from server if available
+      if (data.events && Array.isArray(data.events) && data.events.length > 0) {
+        setEvents(data.events);
+      }
+
+      if (data.phase === 'complete' && data.result) {
+        setResult(data.result);
+        setPhase('complete');
+        clearSession();
+      } else if (data.phase === 'error' || data.phase === 'cancelled') {
+        setPhase(data.phase);
+        setError(data.phase === 'error' ? 'Session failed on server' : 'Session was cancelled');
+        clearSession();
+      } else if (data.isActive) {
+        // Session still running - update progress
+        setProgress((prev) => ({
+          ...prev,
+          agentsComplete: data.completedAgents || prev.agentsComplete,
+          agentsTotal: data.totalAgents || prev.agentsTotal,
+          cost: data.totalCost || prev.cost,
+        }));
+        setPhase('executing');
+      } else {
+        // Session exists but isn't active - likely completed or timed out
+        if (data.result) {
+          setResult(data.result);
+          setPhase('complete');
+        } else {
+          setPhase('error');
+          setError('Session ended unexpectedly');
+        }
+        clearSession();
+      }
+    } catch (err) {
+      console.error('Failed to reconnect:', err);
+      setError(err instanceof Error ? err.message : 'Failed to reconnect');
+    } finally {
+      setIsReconnecting(false);
+    }
+  }, [sessionId, clearSession]);
+
+  /**
    * Reset all state
    */
   const reset = useCallback(() => {
@@ -392,6 +609,7 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
     setError(null);
     setIsLoading(false);
     setIsAddingContext(false);
+    setIsReconnecting(false);
     setProgress({
       phase: 'idle',
       percent: 0,
@@ -400,7 +618,8 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
       cost: 0,
       elapsed: 0,
     });
-  }, []);
+    clearSession();
+  }, [clearSession]);
 
   return {
     phase,
@@ -411,11 +630,13 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
     error,
     isLoading,
     isAddingContext,
+    isReconnecting,
     startStrategy,
     sendIntakeInput,
     executeStrategy,
     cancelStrategy,
     addContext,
+    reconnect,
     reset,
     progress,
   };
