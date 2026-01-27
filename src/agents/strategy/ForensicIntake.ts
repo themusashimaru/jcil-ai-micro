@@ -83,13 +83,28 @@ export class ForensicIntake {
   async startIntake(): Promise<string> {
     this.emitEvent('intake_start', 'Starting forensic intake process');
 
-    const openingMessage = `Before I deploy the most powerful AI strategy system ever built, I need to understand your situation deeply.
+    const openingMessage = `## 🧠 Deep Strategy Mode Activated
 
-**Don't summarize. Don't filter. Don't worry about being organized.**
+**You've activated the most powerful AI strategy system ever built.**
 
-Just... tell me everything. Vent if you need to. Rant if you need to. The more context I have, the better strategy I can build for you.
+This isn't just ChatGPT with a fancy prompt. I'm about to deploy:
 
-What's going on? What are you trying to figure out?`;
+• **Opus 4.5** as the Master Architect (designs your strategy)
+• **Sonnet 4.5** Project Managers (coordinate research teams)
+• **Up to 100 Haiku 4.5 Scouts** (parallel research army)
+• **Hundreds of web searches** for real-time data
+
+**Each scout operates in a secure E2B cloud sandbox with:**
+• Headless Chromium browser + Puppeteer automation
+• Real website visits & data extraction
+• Visual screenshots for analysis
+• Python/JavaScript code execution
+
+**But first, I need to understand your situation deeply.**
+
+Don't summarize. Don't filter. Don't worry about being organized. Just... tell me everything. Vent if you need to. The more context I have, the better strategy I can build.
+
+**What's going on? What are you trying to figure out?**`;
 
     this.state.messages.push({
       role: 'assistant',
