@@ -26,8 +26,11 @@ import {
   Lightbulb,
   Send,
   MessageSquarePlus,
+  Monitor,
 } from 'lucide-react';
 import type { StrategyStreamEvent, Finding } from '@/agents/strategy';
+import { BrowserPreviewWindow } from './BrowserPreviewWindow';
+import { ResearchActivityFeed } from './ResearchActivityFeed';
 
 interface DeepStrategyProgressProps {
   events: StrategyStreamEvent[];
@@ -290,6 +293,11 @@ export function DeepStrategyProgress({
         </div>
       )}
 
+      {/* Browser Preview Window - The star of the show */}
+      <div className="p-4 border-b border-gray-800">
+        <BrowserPreviewWindow events={events} isComplete={isComplete} />
+      </div>
+
       {/* Task List - Claude Code style checkboxes */}
       <div className="p-4 space-y-2">
         {tasks.map((task) => (
@@ -364,6 +372,20 @@ export function DeepStrategyProgress({
           )}
         </div>
       )}
+
+      {/* Expandable Activity Log */}
+      <div className="border-t border-gray-800">
+        <details className="group">
+          <summary className="flex items-center gap-2 px-4 py-2 text-xs text-gray-400 hover:bg-gray-800/50 transition-colors cursor-pointer list-none">
+            <ChevronRight className="w-3.5 h-3.5 transition-transform group-open:rotate-90" />
+            <Monitor className="w-3.5 h-3.5" />
+            <span>Activity Log</span>
+          </summary>
+          <div className="p-4 pt-0">
+            <ResearchActivityFeed events={events} isComplete={isComplete} maxVisible={12} />
+          </div>
+        </details>
+      </div>
     </div>
   );
 }
