@@ -293,12 +293,36 @@ export class Scout {
         const toolResultContents: Anthropic.Messages.ToolResultBlockParam[] = [];
 
         for (const toolUse of toolUseBlocks) {
-          this.emitEvent('search_executing', `Using ${toolUse.name}...`, {
-            agentId: this.blueprint.id,
-            searchQuery: JSON.stringify(toolUse.input).slice(0, 100),
-          });
+          const toolInput = toolUse.input as Record<string, unknown>;
 
-          const call = parseClaudeToolCall(toolUse.name, toolUse.input as Record<string, unknown>);
+          // Emit specific event based on tool type for activity feed
+          if (toolUse.name === 'brave_search') {
+            this.emitEvent('search_executing', `Searching: ${toolInput.query}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              searchQuery: String(toolInput.query || ''),
+            });
+          } else if (toolUse.name === 'browser_visit') {
+            this.emitEvent('browser_visiting', `Visiting: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'screenshot') {
+            this.emitEvent('screenshot_captured', `Screenshot: ${toolInput.url}`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              url: String(toolInput.url || ''),
+            });
+          } else if (toolUse.name === 'run_code') {
+            this.emitEvent('code_executing', `Running ${toolInput.language} code`, {
+              agentId: this.blueprint.id,
+              agentName: this.blueprint.name,
+              language: String(toolInput.language || 'python'),
+            });
+          }
+
+          const call = parseClaudeToolCall(toolUse.name, toolInput);
 
           if (!call) {
             toolResultContents.push({
@@ -743,7 +767,10 @@ When you have gathered sufficient information, provide your findings in this JSO
       | 'agent_complete'
       | 'agent_failed'
       | 'search_executing'
-      | 'search_complete',
+      | 'search_complete'
+      | 'browser_visiting'
+      | 'screenshot_captured'
+      | 'code_executing',
     message: string,
     data: Record<string, unknown>
   ): void {

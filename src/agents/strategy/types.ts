@@ -471,6 +471,9 @@ export type StrategyStreamEventType =
   | 'agent_failed'
   | 'search_executing'
   | 'search_complete'
+  | 'browser_visiting'
+  | 'screenshot_captured'
+  | 'code_executing'
   | 'finding_discovered'
   | 'quality_check'
   | 'quality_issue'
@@ -496,6 +499,8 @@ export interface StrategyStreamEvent {
     issue?: QualityIssue;
     phase?: string;
     searchQuery?: string;
+    url?: string;
+    language?: string;
     error?: string;
     killReason?: KillReason;
   };
