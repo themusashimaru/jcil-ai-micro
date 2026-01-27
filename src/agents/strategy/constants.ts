@@ -191,18 +191,43 @@ AGENT HIERARCHY:
    - Have access to powerful tools for research
    - Report findings to their PM
 
-SCOUT TOOLS:
-Each scout can be assigned these tools based on their research needs:
-- "brave_search" - Quick web search for facts and data (default for all scouts)
-- "browser_visit" - Visit actual websites to extract content from JavaScript-heavy pages (for real estate listings, job boards, dynamic content)
-- "run_code" - Execute Python/JavaScript for calculations, data processing, web scraping
-- "screenshot" - Capture webpage screenshots for visual analysis
+SCOUT TOOLS - 14 POWERFUL RESEARCH CAPABILITIES:
+Each scout operates in a secure E2B cloud sandbox. Assign tools strategically:
 
-Assign tools strategically:
-- All scouts get brave_search by default
-- Add browser_visit for scouts researching listings, prices, or dynamic content
-- Add run_code for scouts doing financial calculations or data analysis
-- Add screenshot for scouts analyzing visual content
+CORE TOOLS:
+- "brave_search" - Quick web search (DEFAULT for all scouts)
+- "browser_visit" - Full Puppeteer browser for JavaScript-heavy pages
+- "run_code" - Python/JavaScript execution for calculations & data processing
+- "screenshot" - Capture webpage screenshots
+
+VISION & AI ANALYSIS TOOLS:
+- "vision_analyze" - Claude Vision screenshot analysis (extract data from charts, complex layouts)
+- "extract_table" - Extract pricing tables, comparison charts via Vision AI
+- "compare_screenshots" - Side-by-side comparison of multiple URLs (price comparison, etc.)
+
+SAFE INTERACTIVE TOOLS:
+- "safe_form_fill" - Fill ONLY search/filter forms (BLOCKED: login, signup, payment)
+- "paginate" - Navigate through multi-page results (search results, listings)
+- "infinite_scroll" - Handle infinite scroll pages (social feeds, product listings)
+- "click_navigate" - Click elements and extract resulting content
+
+DOCUMENT TOOLS:
+- "extract_pdf" - Download and extract text from PDF documents
+
+DATA ORGANIZATION:
+- "generate_comparison" - Create formatted comparison tables from collected data
+
+TOOL ASSIGNMENT STRATEGY:
+- ALL scouts get brave_search by default
+- Add browser_visit for listings, prices, dynamic content
+- Add vision_analyze for charts, complex layouts, visual data
+- Add extract_table for pricing pages, comparison sites
+- Add safe_form_fill for real estate filters, job search forms, flight search
+- Add paginate for search results with multiple pages
+- Add infinite_scroll for feeds, product catalogs
+- Add extract_pdf for reports, documents, whitepapers
+- Add run_code for financial calculations, data analysis
+- Add compare_screenshots for competitor price comparisons
 
 SAFETY RESTRICTIONS - CRITICAL:
 When assigning browserTargets or search queries, NEVER include:
@@ -270,8 +295,14 @@ Return a JSON array of agent blueprints:
         "Jersey City PATH train commute times Manhattan",
         "Journal Square neighborhood safety walkability"
       ],
-      "tools": ["brave_search", "browser_visit"],
+      "tools": ["brave_search", "browser_visit", "safe_form_fill", "paginate", "extract_table"],
       "browserTargets": ["https://www.zillow.com/journal-square-jersey-city-nj/rentals/"],
+      "formInteractions": [
+        {
+          "url": "https://www.zillow.com/homes/for_rent/",
+          "action": "Set location filter to Journal Square, price max $3000, 1BR"
+        }
+      ],
       "deliverable": "Housing options report with specific listings",
       "outputFormat": "data_table",
       "modelTier": "haiku",
@@ -281,6 +312,36 @@ Return a JSON array of agent blueprints:
       "depth": 1,
       "canSpawnChildren": true,
       "maxChildren": 3
+    },
+    {
+      "id": "scout_price_compare",
+      "name": "Price Comparison Scout",
+      "role": "Multi-site price analyst",
+      "expertise": ["Price tracking", "Deal finding", "Market comparison"],
+      "purpose": "Compare prices across multiple listing sites",
+      "keyQuestions": [
+        "Which site has the best prices?",
+        "Are there any hidden fees?",
+        "What's the price trend?"
+      ],
+      "researchApproach": "comparative",
+      "dataSources": ["Zillow", "Apartments.com", "Trulia"],
+      "searchQueries": ["Journal Square apartments price comparison"],
+      "tools": ["brave_search", "browser_visit", "compare_screenshots", "vision_analyze", "generate_comparison"],
+      "browserTargets": [
+        "https://www.zillow.com/journal-square-jersey-city-nj/rentals/",
+        "https://www.apartments.com/jersey-city-nj/",
+        "https://www.trulia.com/NJ/Jersey_City/"
+      ],
+      "deliverable": "Price comparison table across all major listing sites",
+      "outputFormat": "comparison_table",
+      "modelTier": "haiku",
+      "priority": 7,
+      "estimatedSearches": 3,
+      "parentId": "pm_housing",
+      "depth": 1,
+      "canSpawnChildren": false,
+      "maxChildren": 0
     }
   ],
   "estimatedTotalSearches": 150,
@@ -478,13 +539,40 @@ KEY QUESTIONS TO ANSWER:
 SEARCH QUERIES TO EXECUTE:
 {SEARCH_QUERIES}
 
+YOUR AVAILABLE TOOLS:
+{AVAILABLE_TOOLS}
+
+TOOL USAGE GUIDE:
+- brave_search: Use for quick fact-finding and initial research
+- browser_visit: Use for JavaScript-heavy pages (listings, dynamic content)
+- screenshot: Capture visual evidence of findings
+- vision_analyze: Use Claude Vision to analyze complex layouts, charts, images
+- extract_table: Extract pricing tables, comparison charts from screenshots
+- safe_form_fill: Fill ONLY search/filter forms (never login/signup/payment)
+- paginate: Navigate through multi-page search results
+- infinite_scroll: Load content from infinite scroll pages
+- click_navigate: Click buttons/links to expand details
+- extract_pdf: Download and extract text from PDF documents
+- compare_screenshots: Compare multiple pages side-by-side
+- generate_comparison: Create formatted comparison tables from your findings
+- run_code: Execute Python/JavaScript for calculations
+
+SAFETY RULES:
+- NEVER fill login, signup, or payment forms
+- NEVER enter passwords, credit cards, or personal info
+- ONLY use safe_form_fill for search filters, price ranges, location selectors
+- If a form looks unsafe, use browser_visit to just view the page instead
+
 INSTRUCTIONS:
-1. Execute your assigned searches
+1. Execute your assigned searches and tool calls
 2. Extract relevant information from results
-3. Note specific data points (prices, dates, names)
-4. Assess confidence in your findings
-5. Flag anything surprising or concerning
-6. Identify if you need to go deeper (spawn children)
+3. Use vision tools when data is in images/charts/complex layouts
+4. Use safe_form_fill to refine search results on listing sites
+5. Use paginate to get more results from multi-page lists
+6. Note specific data points (prices, dates, names)
+7. Assess confidence in your findings
+8. Flag anything surprising or concerning
+9. Identify if you need to go deeper (spawn children)
 
 OUTPUT FORMAT:
 \`\`\`json
@@ -502,6 +590,10 @@ OUTPUT FORMAT:
     }
   ],
   "summary": "Brief summary of what you found",
+  "toolsUsed": ["brave_search", "browser_visit"],
+  "screenshotsCaptures": 0,
+  "pagesVisited": ["url1", "url2"],
+  "formsInteracted": [],
   "needsDeeper": false,
   "childSuggestions": [],
   "gaps": ["What you couldn't find"]
@@ -512,7 +604,8 @@ IMPORTANT:
 - Be SPECIFIC. Numbers, names, dates, prices.
 - Cite your sources.
 - Don't make things up - if you can't find it, say so.
-- If you find something concerning, FLAG IT.`;
+- If you find something concerning, FLAG IT.
+- Use the right tool for the job - don't just rely on search.`;
 
 /**
  * Final Synthesis System Prompt

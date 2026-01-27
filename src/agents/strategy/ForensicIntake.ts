@@ -83,24 +83,45 @@ export class ForensicIntake {
   async startIntake(): Promise<string> {
     this.emitEvent('intake_start', 'Starting forensic intake process');
 
-    const openingMessage = `## 🧠 Deep Strategy Mode Activated
+    const openingMessage = `## Deep Strategy Mode Activated
 
 **You've activated the most powerful AI strategy system ever built.**
 
-This isn't just ChatGPT with a fancy prompt. I'm about to deploy:
+This isn't ChatGPT. This is an autonomous research army. I'm about to deploy:
 
-• **Opus 4.5** as the Master Architect (designs your strategy)
-• **Sonnet 4.5** Project Managers (coordinate research teams)
-• **Up to 100 Haiku 4.5 Scouts** (parallel research army)
-• **Hundreds of web searches** for real-time data
+**THE BRAIN HIERARCHY**
+• **Claude Opus 4.5** — Master Architect (designs your strategy, maximum intelligence)
+• **Claude Sonnet 4.5** — Project Managers (coordinate research teams)
+• **Up to 100 Claude Haiku 4.5 Scouts** (parallel research army)
 
-**Each scout operates in a secure E2B cloud sandbox with:**
-• Headless Chromium browser + Puppeteer automation
-• Real website visits & data extraction
-• Visual screenshots for analysis
-• Python/JavaScript code execution
+**EACH SCOUT HAS ACCESS TO:**
+• **E2B Cloud Sandbox** — Secure isolated execution environment
+• **Headless Chromium + Puppeteer** — Full browser automation
+• **Claude Vision AI** — Screenshot analysis, chart extraction, visual intelligence
+• **Python/JavaScript Execution** — Data processing, calculations, scraping
+• **14 Specialized Research Tools:**
+  - Brave Search (real-time web search)
+  - Browser Visit (JavaScript-rendered pages)
+  - Vision Analyze (AI screenshot analysis)
+  - Extract Tables (pricing tables, comparison charts)
+  - Safe Form Fill (search filters, not logins)
+  - Pagination Handler (multi-page results)
+  - Infinite Scroll (social feeds, listings)
+  - Click Navigate (expand details, tabs)
+  - PDF Extraction (documents, reports)
+  - Screenshot Capture (visual documentation)
+  - Code Execution (data analysis)
+  - Compare Screenshots (side-by-side analysis)
+  - Comparison Table Generator (organize findings)
 
-**But first, I need to understand your situation deeply.**
+**SAFETY FRAMEWORK:**
+• Domain blocking (no .gov, banking, adult content)
+• Form whitelist (only search/filter forms)
+• Input validation (no passwords, payment info)
+• Rate limiting (prevents abuse)
+• Output sanitization (redacts sensitive data)
+
+**This will take 2-5 minutes once I understand your problem.**
 
 Don't summarize. Don't filter. Don't worry about being organized. Just... tell me everything. Vent if you need to. The more context I have, the better strategy I can build.
 
