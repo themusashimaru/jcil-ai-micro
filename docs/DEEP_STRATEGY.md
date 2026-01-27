@@ -10,13 +10,35 @@ The Deep Strategy Agent is JCIL.AI's most powerful feature—a self-designing, m
 
 ### Key Differentiators
 
-| Feature           | Traditional AI            | Deep Strategy Agent                           |
-| ----------------- | ------------------------- | --------------------------------------------- |
-| **Processing**    | Single model, single pass | Multi-tier hierarchy with specialized agents  |
-| **Research**      | Static knowledge cutoff   | Real-time web research (hundreds of searches) |
-| **Depth**         | Surface-level responses   | Forensic-level deep analysis                  |
-| **Customization** | Generic responses         | Self-designs specialized agents per problem   |
-| **Cost**          | ~$0.05/request            | ~$8-15/strategy (premium feature)             |
+| Feature            | Traditional AI            | Deep Strategy Agent                           |
+| ------------------ | ------------------------- | --------------------------------------------- |
+| **Processing**     | Single model, single pass | Multi-tier hierarchy with specialized agents  |
+| **Research**       | Static knowledge cutoff   | Real-time web research (hundreds of searches) |
+| **Browser**        | None                      | Puppeteer automation visits actual websites   |
+| **Screenshots**    | None                      | Visual analysis of web pages                  |
+| **Code Execution** | None                      | Python/JS sandbox for data analysis           |
+| **Depth**          | Surface-level responses   | Forensic-level deep analysis                  |
+| **Customization**  | Generic responses         | Self-designs specialized agents per problem   |
+| **Continuity**     | Lost on page leave        | Sessions persist, return to results anytime   |
+| **Cost**           | ~$0.05/request            | ~$5-20/strategy (premium feature)             |
+
+### Research Capabilities
+
+Deep Strategy agents have access to powerful research tools:
+
+- **Brave Search API** — Hundreds of real-time web searches
+- **Puppeteer Browser** — Visits actual websites, extracts rendered content from JavaScript-heavy pages
+- **Screenshots** — Captures visual snapshots of web pages for analysis
+- **Code Execution** — Python/JS sandbox (E2B) for data processing and analysis
+
+### Responsible Use
+
+This is an extremely powerful tool. Users must agree to use it responsibly:
+
+- For legitimate research and decision-making only
+- Not for illegal activities, harassment, fraud, or harmful purposes
+- Not for accessing government, adult, or restricted content
+- Respect rate limits and cost controls
 
 ---
 
@@ -62,8 +84,14 @@ The Deep Strategy Agent is JCIL.AI's most powerful feature—a self-designing, m
 │  │    │       │       │       │       │       │       │                │ │
 │  │    ▼       ▼       ▼       ▼       ▼       ▼       ▼                │ │
 │  │  ┌───────────────────────────────────────────────────────────────┐  │ │
-│  │  │              BRAVE SEARCH API (Real-Time Web Research)         │  │ │
-│  │  │                    Hundreds of parallel searches               │  │ │
+│  │  │                    RESEARCH TOOLS LAYER                        │  │ │
+│  │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐          │  │ │
+│  │  │  │  Brave  │  │Puppeteer│  │ Screen- │  │  Code   │          │  │ │
+│  │  │  │ Search  │  │ Browser │  │  shot   │  │ Sandbox │          │  │ │
+│  │  │  │   API   │  │  (E2B)  │  │         │  │  (E2B)  │          │  │ │
+│  │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘          │  │ │
+│  │  │   Hundreds     Visits      Visual        Python/JS           │  │ │
+│  │  │   of queries   real URLs   analysis      analysis            │  │ │
 │  │  └───────────────────────────────────────────────────────────────┘  │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
@@ -106,12 +134,14 @@ Project Managers coordinate groups of Scout agents:
 
 #### Tier 3: Haiku 4.5 (Scout Army)
 
-Scouts are the execution layer:
+Scouts are the execution layer with powerful research tools:
 
-- Execute specific, targeted research queries
-- Conduct Brave Search web research
-- Extract and summarize findings
-- Report discoveries with confidence scores
+- **Brave Search** — Execute targeted web search queries
+- **Puppeteer Browser** — Visit actual websites, extract rendered content from JavaScript-heavy pages
+- **Screenshots** — Capture visual snapshots of web pages for analysis
+- **Code Execution** — Run Python/JS in E2B sandbox for data processing
+
+Each scout can use tools like Claude native tool calling, selecting the best tool for each research task.
 
 ---
 
@@ -179,7 +209,28 @@ Once intake is complete, the agent army deploys:
 └─────────────────────────────────────────────┘
 ```
 
-### Phase 4: Mid-Execution Messaging
+### Phase 4: Live Research Activity Feed
+
+Watch the AI at work with a real-time activity feed showing:
+
+```
+┌─────────────────────────────────────────────┐
+│  ⚡ Live Research Activity           ●       │
+├─────────────────────────────────────────────┤
+│  🔍 47  🌐 12  📸 5                          │
+├─────────────────────────────────────────────┤
+│  🔍 "jersey city apartment prices 2024"     │
+│  🌐 zillow.com                              │
+│  📸 Screenshot: streeteasy.com              │
+│  🔍 "PATH train schedule journal square"    │
+│  🌐 redfin.com/NJ/Jersey-City               │
+│  💻 Running Python analysis...              │
+└─────────────────────────────────────────────┘
+```
+
+This gives users visibility into exactly what the AI agents are researching.
+
+### Phase 5: Mid-Execution Messaging
 
 Users can add context while the strategy is running (like Claude Code's interrupt):
 
@@ -197,7 +248,7 @@ Users can add context while the strategy is running (like Claude Code's interrup
 └─────────────────────────────────────────────┘
 ```
 
-### Phase 5: Final Output
+### Phase 6: Final Output
 
 The strategy is delivered with:
 
@@ -206,6 +257,25 @@ The strategy is delivered with:
 - **Action Items** — Prioritized steps with timeframes
 - **Risk Assessment** — Potential challenges and mitigations
 - **Sources** — All web research cited with links
+
+### Session Continuity
+
+Strategy sessions persist across browser sessions:
+
+- **Sidebar Integration** — Completed sessions appear in the chat sidebar
+- **Return Anytime** — Click a session to reload its results
+- **Session Status** — See which sessions are complete, running, or errored
+- **Full Persistence** — All findings, results, and metadata saved to database
+
+```
+┌─────────────────────────────────────────────┐
+│  💡 Strategy Sessions (3)            ▾      │
+├─────────────────────────────────────────────┤
+│  ✓ Housing decision analysis      $12.47   │
+│  ✓ Career pivot strategy           $8.93   │
+│  ● Investment research (running)            │
+└─────────────────────────────────────────────┘
+```
 
 ---
 
@@ -333,6 +403,9 @@ GET /api/strategy?sessionId=strategy_user123_1706198400000
 | `agent_failed`        | Agent encountered error                 |
 | `search_executing`    | Brave Search query running              |
 | `search_complete`     | Search results received                 |
+| `browser_visiting`    | Puppeteer visiting a URL                |
+| `screenshot_captured` | Screenshot taken of a web page          |
+| `code_executing`      | Python/JS code running in E2B sandbox   |
 | `finding_discovered`  | New insight found                       |
 | `quality_check`       | QC validating findings                  |
 | `quality_issue`       | QC found a problem                      |
@@ -418,25 +491,33 @@ The Deep Strategy Agent is currently in admin-only testing mode. Users without a
 src/agents/strategy/
 ├── index.ts              # Public exports
 ├── types.ts              # Type definitions
-├── constants.ts          # Configuration constants
+├── constants.ts          # Configuration & prompts (inc. safety rules)
 ├── StrategyAgent.ts      # Main orchestrator
 ├── ForensicIntake.ts     # Intake interview system
 ├── MasterArchitect.ts    # Opus 4.5 architect
 ├── QualityControl.ts     # Finding validation
-├── Scout.ts              # Haiku 4.5 scouts
-└── ExecutionQueue.ts     # Rate-limited queue
+├── Scout.ts              # Haiku 4.5 scouts with tool calling
+├── ExecutionQueue.ts     # Rate-limited queue
+└── tools/                # Research tool implementations
+    ├── index.ts          # Tool exports
+    ├── types.ts          # Tool type definitions
+    ├── braveSearch.ts    # Brave Search API integration
+    ├── e2bBrowser.ts     # Puppeteer in E2B sandbox
+    ├── e2bCode.ts        # Python/JS code execution
+    └── executor.ts       # Tool execution & cost tracking
 
 src/components/chat/DeepStrategy/
-├── index.ts              # Component exports
+├── index.ts                  # Component exports
 ├── DeepStrategyButton.tsx    # Launch button
-├── DeepStrategyModal.tsx     # Upload & confirm modal
-└── DeepStrategyProgress.tsx  # Real-time progress UI
+├── DeepStrategyModal.tsx     # Upload, tech overview & confirm modal
+├── DeepStrategyProgress.tsx  # Real-time progress UI
+└── ResearchActivityFeed.tsx  # Live activity feed (searches, visits)
 
 src/hooks/
 └── useDeepStrategy.ts    # React hook for state management
 
 src/app/api/strategy/
-└── route.ts              # API endpoints (SSE streaming)
+└── route.ts              # API endpoints (SSE streaming, persistence)
 ```
 
 ---
