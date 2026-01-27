@@ -7,3 +7,4 @@
 export { DeepStrategyButton } from './DeepStrategyButton';
 export { DeepStrategyModal, type StrategyAttachment } from './DeepStrategyModal';
 export { DeepStrategyProgress } from './DeepStrategyProgress';
+export { ResearchActivityFeed } from './ResearchActivityFeed';

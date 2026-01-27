@@ -5,7 +5,7 @@
  *
  * Two-step modal for launching the Deep Strategy Agent.
  * Step 1: Upload documents (resume, contracts, photos, etc.)
- * Step 2: Confirm you're ready to begin
+ * Step 2: Technical overview and confirmation
  */
 
 import { useState, useEffect, useRef, ChangeEvent, DragEvent } from 'react';
@@ -23,6 +23,12 @@ import {
   ChevronRight,
   ChevronLeft,
   Paperclip,
+  Globe,
+  Code,
+  Camera,
+  AlertTriangle,
+  Bot,
+  Network,
 } from 'lucide-react';
 
 export interface StrategyAttachment {
@@ -343,45 +349,97 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
             </>
           )}
 
-          {/* Step 2: Confirm launch */}
+          {/* Step 2: Technical overview and confirm launch */}
           {step === 2 && (
             <>
-              {/* Features */}
-              <div className="bg-gray-800/50 rounded-xl p-4 mb-6 space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                  </div>
+              {/* Premium Feature Badge */}
+              <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-purple-400" />
                   <div>
-                    <span className="text-white font-medium">Opus 4.5 Master Architect</span>
-                    <span className="text-gray-400"> — designs your strategy</span>
+                    <p className="text-sm font-semibold text-white">Premium Member Feature</p>
+                    <p className="text-xs text-gray-400">
+                      This is an extremely powerful tool. Please use responsibly.
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <Brain className="w-4 h-4 text-blue-400" />
+              </div>
+
+              {/* Technical Architecture */}
+              <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
+                <h3 className="text-xs font-semibold uppercase text-gray-400 mb-3 flex items-center gap-2">
+                  <Network className="w-3.5 h-3.5" />
+                  Self-Replicating Agent Architecture
+                </h3>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <Brain className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div>
+                      <span className="text-white font-medium">Opus 4.5 Master Architect</span>
+                      <p className="text-xs text-gray-500">
+                        Designs and spawns specialized agent army
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-white font-medium">Sonnet 4.5 Project Managers</span>
-                    <span className="text-gray-400"> — coordinate research</span>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <span className="text-white font-medium">Sonnet 4.5 Project Managers</span>
+                      <p className="text-xs text-gray-500">Coordinate domain research teams</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-4 h-4 text-green-400" />
+                    </div>
+                    <div>
+                      <span className="text-white font-medium">Up to 100 Haiku 4.5 Scouts</span>
+                      <p className="text-xs text-gray-500">
+                        Parallel research army, self-replicating as needed
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <Search className="w-4 h-4 text-green-400" />
+              </div>
+
+              {/* Research Capabilities */}
+              <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
+                <h3 className="text-xs font-semibold uppercase text-gray-400 mb-3 flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5" />
+                  Research Capabilities
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-900/50 rounded-lg p-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Search className="w-3.5 h-3.5 text-yellow-400" />
+                      <span className="text-xs font-medium text-white">Brave Search</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Hundreds of real-time web searches</p>
                   </div>
-                  <div>
-                    <span className="text-white font-medium">Up to 100 Haiku 4.5 Scouts</span>
-                    <span className="text-gray-400"> — parallel research army</span>
+                  <div className="bg-gray-900/50 rounded-lg p-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="text-xs font-medium text-white">Puppeteer Browser</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Visits actual websites, extracts data</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-yellow-400" />
+                  <div className="bg-gray-900/50 rounded-lg p-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Camera className="w-3.5 h-3.5 text-pink-400" />
+                      <span className="text-xs font-medium text-white">Screenshots</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Visual analysis of web pages</p>
                   </div>
-                  <div>
-                    <span className="text-white font-medium">Hundreds of web searches</span>
-                    <span className="text-gray-400"> — real-time data</span>
+                  <div className="bg-gray-900/50 rounded-lg p-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Code className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs font-medium text-white">Code Execution</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Python/JS data analysis in sandbox</p>
                   </div>
                 </div>
               </div>
@@ -402,20 +460,28 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
                 </div>
               )}
 
-              {/* Description */}
-              <p className="text-sm text-gray-400 text-center mb-4">
-                The AI will ask you clarifying questions first —{' '}
-                <span className="text-white">tell it everything.</span>
-              </p>
+              {/* Responsible Use Warning */}
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-200/80">
+                    <p className="font-medium text-amber-300 mb-1">Responsible Use Only</p>
+                    <p>
+                      This tool is for legitimate research and decision-making. Do not use for
+                      illegal activities, harassment, fraud, or any harmful purposes.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {/* Important notes */}
-              <div className="bg-gray-800/30 rounded-lg p-3 mb-6 text-xs text-gray-400 space-y-1">
-                <p>• Runs in background if you leave</p>
+              <div className="bg-gray-800/30 rounded-lg p-3 mb-4 text-xs text-gray-400 space-y-1">
+                <p>• The AI will ask clarifying questions first — tell it everything</p>
+                <p>• Runs in background if you leave — results will be waiting</p>
                 <p>• You can add context anytime during execution</p>
-                <p>• Stop button available if needed</p>
                 <p>
-                  • Estimated: <span className="text-white">2-5 min</span> |{' '}
-                  <span className="text-white">$8-15</span>
+                  • Estimated: <span className="text-white">2-10 min</span> |{' '}
+                  <span className="text-white">$5-20</span> depending on complexity
                 </p>
               </div>
 
@@ -430,10 +496,10 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
                 </button>
                 <button
                   onClick={() => onStart(attachments)}
-                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25"
                 >
                   <Zap className="w-5 h-5" />
-                  I&apos;m Ready — Launch
+                  Launch Strategy Agent
                 </button>
               </div>
             </>

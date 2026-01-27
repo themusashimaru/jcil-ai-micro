@@ -839,6 +839,94 @@ export function ChatClient() {
     }
   };
 
+  /**
+   * Handle selecting a strategy session from the sidebar
+   * Loads the session results and displays them in chat
+   */
+  const handleSelectStrategySession = async (sessionId: string) => {
+    try {
+      log.debug('Loading strategy session', { sessionId });
+
+      // Fetch the session data
+      const response = await fetch(`/api/strategy?sessionId=${sessionId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load strategy session');
+      }
+
+      const data = await response.json();
+
+      // If session has a result, display it
+      if (data.result) {
+        // Create a new chat for this strategy session
+        handleNewChat();
+
+        // Add a summary message explaining this is a restored session
+        const summaryMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `## 🧠 Strategy Session Restored
+
+**This is a completed Deep Strategy session from ${new Date(data.started).toLocaleString()}**
+
+**Cost:** $${data.totalCost?.toFixed(2) || '0.00'}
+**Agents:** ${data.totalAgents || 0}
+**Searches:** ${data.totalSearches || 0}
+
+---`,
+          timestamp: new Date(),
+        };
+
+        // Display the full result
+        displayStrategyResult(data.result);
+        setMessages((prev) => [summaryMessage, ...prev]);
+
+        log.info('Strategy session loaded', { sessionId });
+      } else if (data.phase === 'executing' || data.isActive) {
+        // Session is still running - show a message
+        const runningMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `## 🧠 Strategy Session In Progress
+
+This strategy session is still running. Please wait for it to complete.
+
+**Progress:** ${data.completedAgents || 0}/${data.totalAgents || '?'} agents
+**Searches:** ${data.totalSearches || 0}`,
+          timestamp: new Date(),
+        };
+
+        handleNewChat();
+        setMessages([runningMessage]);
+      } else {
+        // Session exists but no result (might be intake phase or error)
+        const statusMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `## 🧠 Strategy Session
+
+**Status:** ${data.phase}
+**Started:** ${new Date(data.started).toLocaleString()}
+
+This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 'cancelled' ? 'was cancelled' : 'is in ' + data.phase + ' phase'}.`,
+          timestamp: new Date(),
+        };
+
+        handleNewChat();
+        setMessages([statusMessage]);
+      }
+    } catch (error) {
+      log.error('Error loading strategy session:', error as Error);
+      // Show error message
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Failed to load strategy session. Please try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
   /* REMOVED: handleImageGenerated, Code and Data handlers - all handled naturally in chat
   const handleCodeGenerated = (response: string, request: string) => {
     const userMessage: Message = {
@@ -3013,6 +3101,7 @@ ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- 
             onDeleteChat={handleDeleteChat}
             onPinChat={handlePinChat}
             onMoveToFolder={handleMoveToFolder}
+            onSelectStrategySession={handleSelectStrategySession}
           />
 
           {/* Chat thread area */}
