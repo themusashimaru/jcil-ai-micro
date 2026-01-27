@@ -298,6 +298,82 @@ async function addUserContext(
 }
 
 /**
+ * Store a stream event in the database for replay on reconnect
+ * Only stores tool execution events that drive the UI
+ */
+async function storeEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  event: StrategyStreamEvent
+): Promise<void> {
+  // Only store events that are useful for UI replay
+  const replayableTypes = [
+    'search_executing',
+    'search_complete',
+    'browser_visiting',
+    'screenshot_captured',
+    'code_executing',
+    'vision_analyzing',
+    'table_extracting',
+    'form_filling',
+    'paginating',
+    'scrolling',
+    'pdf_extracting',
+    'comparing',
+    'agent_spawned',
+    'agent_complete',
+    'agent_failed',
+    'finding_discovered',
+  ];
+
+  if (!replayableTypes.includes(event.type)) {
+    return;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('strategy_events').insert({
+    session_id: sessionId,
+    event_type: event.type,
+    message: event.message,
+    event_data: event.data || {},
+    created_at: new Date(event.timestamp).toISOString(),
+  });
+
+  if (error) {
+    // Don't log errors for every event - just silently fail
+    // This table might not exist yet
+  }
+}
+
+/**
+ * Get stored events for a session (for replay on reconnect)
+ */
+async function getStoredEvents(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string
+): Promise<StrategyStreamEvent[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('strategy_events')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map(
+    (row: { event_type: string; message: string; event_data: unknown; created_at: string }) => ({
+      type: row.event_type,
+      message: row.message,
+      timestamp: new Date(row.created_at).getTime(),
+      data: row.event_data,
+    })
+  );
+}
+
+/**
  * Get session from database
  */
 async function getSessionFromDB(
@@ -584,9 +660,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Check if client wants events for replay
+    const includeEvents = request.nextUrl.searchParams.get('includeEvents') === 'true';
+
     // Check if session is active in memory
     const activeSession = activeSessions.get(sessionId);
     if (activeSession) {
+      // Get stored events for replay if requested
+      const storedEvents = includeEvents ? await getStoredEvents(supabase, sessionId) : [];
+
       return new Response(
         JSON.stringify({
           sessionId,
@@ -595,6 +677,10 @@ export async function GET(request: NextRequest) {
           progress: activeSession.agent.getProgress(),
           findings: activeSession.agent.getFindings().length,
           isActive: true,
+          totalAgents: activeSession.agent.getProgress().agentsTotal,
+          completedAgents: activeSession.agent.getProgress().agentsComplete,
+          totalCost: activeSession.agent.getProgress().cost,
+          events: storedEvents,
         }),
         {
           status: 200,
@@ -602,6 +688,9 @@ export async function GET(request: NextRequest) {
         }
       );
     }
+
+    // Get stored events for replay if requested
+    const storedEvents = includeEvents ? await getStoredEvents(supabase, sessionId) : [];
 
     // Return from database
     return new Response(
@@ -615,6 +704,7 @@ export async function GET(request: NextRequest) {
         totalCost: dbSession.total_cost,
         result: dbSession.result,
         isActive: false,
+        events: storedEvents,
       }),
       {
         status: 200,
@@ -1044,6 +1134,11 @@ async function handleExecute(
     const data = JSON.stringify(event);
     writer.write(encoder.encode(`data: ${data}\n\n`)).catch(() => {
       // Writer closed, ignore
+    });
+
+    // Store event in database for reconnect replay
+    storeEvent(supabase, sessionId!, event).catch(() => {
+      // Silent fail - table might not exist
     });
 
     // Store findings in database as they're discovered
