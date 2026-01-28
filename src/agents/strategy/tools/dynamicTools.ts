@@ -564,7 +564,91 @@ Generate a safe, sandboxed implementation. Remember:
 // DYNAMIC TOOL EXECUTOR
 // =============================================================================
 
-let dynamicSandbox: Sandbox | null = null;
+/**
+ * Per-session sandbox tracking with TTL
+ * This ensures each session has an isolated sandbox that won't be corrupted
+ * by other sessions' dynamic tool executions.
+ */
+interface SessionSandbox {
+  sandbox: Sandbox;
+  createdAt: number;
+  lastUsedAt: number;
+}
+
+const sessionSandboxes = new Map<string, SessionSandbox>();
+const SANDBOX_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const SANDBOX_CLEANUP_INTERVAL_MS = 2 * 60 * 1000; // Check every 2 minutes
+let sandboxCleanupIntervalId: NodeJS.Timeout | null = null;
+
+/**
+ * Start the sandbox cleanup interval
+ */
+function startSandboxCleanupInterval(): void {
+  if (sandboxCleanupIntervalId) return;
+
+  sandboxCleanupIntervalId = setInterval(async () => {
+    const now = Date.now();
+    const expiredSessions: string[] = [];
+
+    for (const [sessionId, entry] of sessionSandboxes) {
+      if (now - entry.lastUsedAt > SANDBOX_TTL_MS) {
+        expiredSessions.push(sessionId);
+      }
+    }
+
+    for (const sessionId of expiredSessions) {
+      const entry = sessionSandboxes.get(sessionId);
+      if (entry) {
+        try {
+          await entry.sandbox.kill();
+          log.info('Dynamic sandbox expired and cleaned up', { sessionId });
+        } catch (error) {
+          log.warn('Failed to kill expired sandbox', { sessionId, error });
+        }
+        sessionSandboxes.delete(sessionId);
+      }
+    }
+
+    if (expiredSessions.length > 0) {
+      log.info('Dynamic sandbox cleanup complete', {
+        cleaned: expiredSessions.length,
+        remaining: sessionSandboxes.size,
+      });
+    }
+  }, SANDBOX_CLEANUP_INTERVAL_MS);
+
+  // Don't prevent the process from exiting
+  sandboxCleanupIntervalId.unref();
+}
+
+/**
+ * Get or create a sandbox for a session
+ * Each session gets its own isolated sandbox to prevent cross-contamination
+ */
+async function getSessionSandbox(sessionId: string): Promise<Sandbox> {
+  // Start cleanup interval on first use
+  startSandboxCleanupInterval();
+
+  const now = Date.now();
+  const existing = sessionSandboxes.get(sessionId);
+
+  if (existing) {
+    existing.lastUsedAt = now;
+    return existing.sandbox;
+  }
+
+  // Create new sandbox for this session
+  log.info('Creating new dynamic sandbox for session', { sessionId });
+  const sandbox = await Sandbox.create({ timeoutMs: 30000 });
+
+  sessionSandboxes.set(sessionId, {
+    sandbox,
+    createdAt: now,
+    lastUsedAt: now,
+  });
+
+  return sandbox;
+}
 
 /**
  * Execute a dynamic tool in an isolated sandbox
@@ -608,10 +692,8 @@ export async function executeDynamicTool(
   }
 
   try {
-    // Create or reuse sandbox
-    if (!dynamicSandbox) {
-      dynamicSandbox = await Sandbox.create({ timeoutMs: 30000 });
-    }
+    // Get session-isolated sandbox
+    const sandbox = await getSessionSandbox(sessionId);
 
     // Prepare the execution code
     let execCode: string;
@@ -648,11 +730,11 @@ try {
 `;
     }
 
-    // Execute in sandbox
+    // Execute in session-isolated sandbox
     const execution =
       tool.language === 'python'
-        ? await dynamicSandbox.runCode(execCode)
-        : await dynamicSandbox.runCode(execCode, { language: 'javascript' as const });
+        ? await sandbox.runCode(execCode)
+        : await sandbox.runCode(execCode, { language: 'javascript' as const });
 
     const executionTimeMs = Date.now() - startTime;
 
@@ -713,12 +795,38 @@ try {
 }
 
 /**
- * Cleanup dynamic tool sandbox
+ * Cleanup dynamic tool sandbox for a specific session
  */
-export async function cleanupDynamicSandbox(): Promise<void> {
-  if (dynamicSandbox) {
-    await dynamicSandbox.kill();
-    dynamicSandbox = null;
+export async function cleanupDynamicSandbox(sessionId?: string): Promise<void> {
+  if (sessionId) {
+    // Cleanup specific session
+    const entry = sessionSandboxes.get(sessionId);
+    if (entry) {
+      try {
+        await entry.sandbox.kill();
+        log.info('Dynamic sandbox cleaned up', { sessionId });
+      } catch (error) {
+        log.warn('Failed to kill sandbox', { sessionId, error });
+      }
+      sessionSandboxes.delete(sessionId);
+    }
+  } else {
+    // Cleanup all sandboxes
+    for (const [sid, entry] of sessionSandboxes) {
+      try {
+        await entry.sandbox.kill();
+        log.info('Dynamic sandbox cleaned up', { sessionId: sid });
+      } catch (error) {
+        log.warn('Failed to kill sandbox', { sessionId: sid, error });
+      }
+    }
+    sessionSandboxes.clear();
+  }
+
+  // Stop cleanup interval if no sandboxes remain
+  if (sessionSandboxes.size === 0 && sandboxCleanupIntervalId) {
+    clearInterval(sandboxCleanupIntervalId);
+    sandboxCleanupIntervalId = null;
   }
 }
 

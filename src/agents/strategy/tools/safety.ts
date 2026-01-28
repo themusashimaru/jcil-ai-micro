@@ -1006,14 +1006,72 @@ interface SessionTracker {
     reason: string;
     timestamp: number;
   }>;
+  // TTL tracking
+  createdAt: number;
+  lastAccessedAt: number;
 }
 
 const sessionTrackers = new Map<string, SessionTracker>();
 
+// TTL configuration
+const SESSION_TRACKER_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const SESSION_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Run cleanup every 5 minutes
+let cleanupIntervalId: NodeJS.Timeout | null = null;
+
+/**
+ * Start the session tracker cleanup interval
+ * Called automatically on first tracker creation
+ */
+function startSessionCleanupInterval(): void {
+  if (cleanupIntervalId) return;
+
+  cleanupIntervalId = setInterval(() => {
+    const now = Date.now();
+    const expiredSessions: string[] = [];
+
+    for (const [sessionId, tracker] of sessionTrackers) {
+      if (now - tracker.lastAccessedAt > SESSION_TRACKER_TTL_MS) {
+        expiredSessions.push(sessionId);
+      }
+    }
+
+    for (const sessionId of expiredSessions) {
+      sessionTrackers.delete(sessionId);
+      log.info('Session tracker expired and cleaned up', { sessionId });
+    }
+
+    if (expiredSessions.length > 0) {
+      log.info('Session tracker cleanup complete', {
+        cleaned: expiredSessions.length,
+        remaining: sessionTrackers.size,
+      });
+    }
+  }, SESSION_CLEANUP_INTERVAL_MS);
+
+  // Don't prevent the process from exiting
+  cleanupIntervalId.unref();
+}
+
+/**
+ * Stop the session tracker cleanup interval (for testing)
+ */
+export function stopSessionCleanupInterval(): void {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
 /**
  * Get or create session tracker
+ * Automatically starts the cleanup interval on first call
  */
 export function getSessionTracker(sessionId: string): SessionTracker {
+  // Start cleanup interval on first use
+  startSessionCleanupInterval();
+
+  const now = Date.now();
+
   if (!sessionTrackers.has(sessionId)) {
     sessionTrackers.set(sessionId, {
       pagesPerDomain: new Map(),
@@ -1023,9 +1081,16 @@ export function getSessionTracker(sessionId: string): SessionTracker {
       downloads: 0,
       codeExecutions: 0,
       blockedAttempts: [],
+      createdAt: now,
+      lastAccessedAt: now,
     });
   }
-  return sessionTrackers.get(sessionId)!;
+
+  // Update last accessed time
+  const tracker = sessionTrackers.get(sessionId)!;
+  tracker.lastAccessedAt = now;
+
+  return tracker;
 }
 
 /**

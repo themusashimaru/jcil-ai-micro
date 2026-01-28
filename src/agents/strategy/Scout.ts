@@ -18,6 +18,7 @@ import type {
   ScoutToolType,
 } from './types';
 import { CLAUDE_HAIKU_45, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
+import { extractJSON } from './utils';
 import { braveWebSearch, type BraveSearchResponse, type BraveWebResult } from '@/lib/brave';
 import { logger } from '@/lib/logger';
 import {
@@ -43,6 +44,9 @@ interface ScoutResult {
   gaps: string[];
   searchesExecuted: number;
   tokensUsed: number;
+  // Separate token tracking for accurate cost calculation
+  inputTokens: number;
+  outputTokens: number;
   executionTime: number;
 }
 
@@ -59,6 +63,9 @@ export class Scout {
   private costPerQuery = 0.005; // Brave Search cost
   private maxToolIterations = 10; // Max tool call rounds per scout
   private scoutPrompt: string;
+  // Separate token tracking for accurate cost calculation
+  private inputTokens = 0;
+  private outputTokens = 0;
 
   constructor(
     client: Anthropic,
@@ -88,6 +95,10 @@ export class Scout {
       tokensUsed: 0,
       costIncurred: 0,
     };
+
+    // Separate token tracking for accurate cost calculation
+    this.inputTokens = 0;
+    this.outputTokens = 0;
   }
 
   // ===========================================================================
@@ -161,6 +172,8 @@ export class Scout {
         gaps: analysisResult.gaps,
         searchesExecuted: this.state.searchesCompleted,
         tokensUsed: this.state.tokensUsed,
+        inputTokens: this.inputTokens,
+        outputTokens: this.outputTokens,
         executionTime,
       };
     } catch (error) {
@@ -185,6 +198,8 @@ export class Scout {
         gaps: ['Research could not be completed'],
         searchesExecuted: this.state.searchesCompleted,
         tokensUsed: this.state.tokensUsed,
+        inputTokens: this.inputTokens,
+        outputTokens: this.outputTokens,
         executionTime: Date.now() - startTime,
       };
     }
@@ -245,9 +260,12 @@ export class Scout {
           messages,
         });
 
-        // Track token usage
-        this.state.tokensUsed +=
-          (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+        // Track token usage (separate for accurate cost calculation)
+        const inputToks = response.usage?.input_tokens || 0;
+        const outputToks = response.usage?.output_tokens || 0;
+        this.inputTokens += inputToks;
+        this.outputTokens += outputToks;
+        this.state.tokensUsed += inputToks + outputToks;
 
         // Check if model wants to use tools
         const toolUseBlocks = response.content.filter(
@@ -301,6 +319,8 @@ export class Scout {
             gaps: analysisResult.gaps,
             searchesExecuted: this.state.searchesCompleted,
             tokensUsed: this.state.tokensUsed,
+            inputTokens: this.inputTokens,
+            outputTokens: this.outputTokens,
             executionTime,
           };
         }
@@ -454,6 +474,8 @@ export class Scout {
         gaps: ['Research incomplete - max iterations reached'],
         searchesExecuted: this.state.searchesCompleted,
         tokensUsed: this.state.tokensUsed,
+        inputTokens: this.inputTokens,
+        outputTokens: this.outputTokens,
         executionTime: Date.now() - startTime,
       };
     } catch (error) {
@@ -478,6 +500,8 @@ export class Scout {
         gaps: ['Research could not be completed'],
         searchesExecuted: this.state.searchesCompleted,
         tokensUsed: this.state.tokensUsed,
+        inputTokens: this.inputTokens,
+        outputTokens: this.outputTokens,
         executionTime: Date.now() - startTime,
       };
     }
@@ -667,9 +691,12 @@ When you have gathered sufficient information, provide your findings in this JSO
       ],
     });
 
-    // Track token usage
-    this.state.tokensUsed +=
-      (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+    // Track token usage (separate for accurate cost calculation)
+    const inputToks = response.usage?.input_tokens || 0;
+    const outputToks = response.usage?.output_tokens || 0;
+    this.inputTokens += inputToks;
+    this.outputTokens += outputToks;
+    this.state.tokensUsed += inputToks + outputToks;
 
     const textContent = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
@@ -682,6 +709,7 @@ When you have gathered sufficient information, provide your findings in this JSO
 
   /**
    * Parse analysis response
+   * Uses robust JSON extraction with repair for malformed LLM outputs
    */
   private parseAnalysisResponse(response: string): {
     findings: Finding[];
@@ -690,10 +718,18 @@ When you have gathered sufficient information, provide your findings in this JSO
     childSuggestions: Partial<AgentBlueprint>[];
     gaps: string[];
   } {
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+    // Use robust JSON extraction with repair capabilities
+    const parsed = extractJSON<{
+      findings?: Array<Record<string, unknown>>;
+      summary?: string;
+      needsDeeper?: boolean;
+      childSuggestions?: Partial<AgentBlueprint>[];
+      gaps?: string[];
+    }>(response);
 
-    if (!jsonMatch) {
-      // Create a basic finding from the text
+    if (!parsed) {
+      // Create a basic finding from the text (no JSON found or repair failed)
+      log.info('No JSON found in scout response, extracting summary from text');
       return {
         findings: [
           {
@@ -716,42 +752,29 @@ When you have gathered sufficient information, provide your findings in this JSO
       };
     }
 
-    try {
-      const parsed = JSON.parse(jsonMatch[1]);
+    const findings: Finding[] = (parsed.findings || []).map(
+      (f: Record<string, unknown>, i: number) => ({
+        id: `finding_${this.blueprint.id}_${i}`,
+        agentId: this.blueprint.id,
+        agentName: this.blueprint.name,
+        type: this.normalizeType(f.type),
+        title: String(f.title || 'Finding'),
+        content: String(f.content || ''),
+        confidence: this.normalizeConfidence(f.confidence),
+        sources: this.normalizeSources(f.sources),
+        dataPoints: this.normalizeDataPoints(f.dataPoints),
+        timestamp: Date.now(),
+        relevanceScore: Number(f.relevanceScore) || 0.7,
+      })
+    );
 
-      const findings: Finding[] = (parsed.findings || []).map(
-        (f: Record<string, unknown>, i: number) => ({
-          id: `finding_${this.blueprint.id}_${i}`,
-          agentId: this.blueprint.id,
-          agentName: this.blueprint.name,
-          type: this.normalizeType(f.type),
-          title: String(f.title || 'Finding'),
-          content: String(f.content || ''),
-          confidence: this.normalizeConfidence(f.confidence),
-          sources: this.normalizeSources(f.sources),
-          dataPoints: this.normalizeDataPoints(f.dataPoints),
-          timestamp: Date.now(),
-          relevanceScore: Number(f.relevanceScore) || 0.7,
-        })
-      );
-
-      return {
-        findings,
-        summary: String(parsed.summary || ''),
-        needsDeeper: Boolean(parsed.needsDeeper),
-        childSuggestions: Array.isArray(parsed.childSuggestions) ? parsed.childSuggestions : [],
-        gaps: Array.isArray(parsed.gaps) ? parsed.gaps.map(String) : [],
-      };
-    } catch (error) {
-      log.warn('Failed to parse analysis response', { error });
-      return {
-        findings: [],
-        summary: 'Failed to parse research results',
-        needsDeeper: false,
-        childSuggestions: [],
-        gaps: ['Analysis parsing failed'],
-      };
-    }
+    return {
+      findings,
+      summary: String(parsed.summary || ''),
+      needsDeeper: Boolean(parsed.needsDeeper),
+      childSuggestions: Array.isArray(parsed.childSuggestions) ? parsed.childSuggestions : [],
+      gaps: Array.isArray(parsed.gaps) ? parsed.gaps.map(String) : [],
+    };
   }
 
   /**
@@ -887,6 +910,11 @@ export function createScout(
 
 /**
  * Execute multiple scouts in batches
+ *
+ * IMPORTANT: This function snapshots the blueprints array at the start to prevent
+ * race conditions if new blueprints are added mid-iteration (e.g., via steering).
+ * Any scouts added after iteration starts will NOT be executed by this generator -
+ * they should be handled separately by the calling code.
  */
 export async function* executeScoutBatch(
   client: Anthropic,
@@ -896,8 +924,16 @@ export async function* executeScoutBatch(
   onStream?: StrategyStreamCallback,
   scoutPrompt?: string
 ): AsyncGenerator<ScoutResult> {
-  for (let i = 0; i < blueprints.length; i += batchSize) {
-    const batch = blueprints.slice(i, i + batchSize);
+  // CRITICAL: Snapshot the blueprints array to prevent race conditions
+  // If steering adds new scouts mid-execution, they won't be picked up here
+  // (the caller handles them separately in the "unexecuted steering scouts" loop)
+  const blueprintSnapshot = [...blueprints];
+  const initialCount = blueprintSnapshot.length;
+
+  log.info('Starting scout batch execution', { totalScouts: initialCount, batchSize });
+
+  for (let i = 0; i < initialCount; i += batchSize) {
+    const batch = blueprintSnapshot.slice(i, i + batchSize);
 
     // Execute batch concurrently
     const scouts = batch.map((bp) => createScout(client, bp, onStream, scoutPrompt));
@@ -913,7 +949,7 @@ export async function* executeScoutBatch(
     }
 
     // Delay between batches
-    if (i + batchSize < blueprints.length) {
+    if (i + batchSize < initialCount) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }

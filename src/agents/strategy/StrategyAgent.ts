@@ -323,9 +323,8 @@ export class StrategyAgent {
       }
 
       this.hierarchy = await this.architect.designAgents(this.context.problem.synthesizedProblem);
-      this.blueprints = await this.architect.getScoutBlueprints(
-        this.context.problem.synthesizedProblem
-      );
+      // getScoutBlueprints reuses cached design from designAgents() - no extra API call
+      this.blueprints = this.architect.getScoutBlueprints(this.context.problem.synthesizedProblem);
 
       // Register active domains with the steering engine
       const domains = this.context.problem.synthesizedProblem.domains;
@@ -664,8 +663,8 @@ export class StrategyAgent {
       // Collect findings
       this.allFindings.push(...result.findings);
 
-      // Update cost tracker
-      this.queue.updateCost('haiku', result.tokensUsed * 0.5, result.tokensUsed * 0.5);
+      // Update cost tracker with accurate input/output token counts
+      this.queue.updateCost('haiku', result.inputTokens, result.outputTokens);
       this.queue.updateCost('brave', undefined, undefined, result.searchesExecuted);
 
       // Update hierarchy
@@ -758,7 +757,8 @@ export class StrategyAgent {
       )) {
         if (this.isCancelled || this.qc.isKilled()) break;
         this.allFindings.push(...result.findings);
-        this.queue.updateCost('haiku', result.tokensUsed * 0.5, result.tokensUsed * 0.5);
+        // Update cost tracker with accurate input/output token counts
+        this.queue.updateCost('haiku', result.inputTokens, result.outputTokens);
         this.queue.updateCost('brave', undefined, undefined, result.searchesExecuted);
         if (this.hierarchy) {
           this.hierarchy.completedAgents++;

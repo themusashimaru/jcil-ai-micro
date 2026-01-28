@@ -149,6 +149,25 @@ function escapeJsString(str: string): string {
 
 /**
  * Safely fill and submit a form (search, filter, quote forms only)
+ *
+ * LIMITATIONS:
+ * - Does NOT extract or submit CSRF tokens automatically
+ * - May fail on sites that require CSRF protection for form submissions
+ * - Best used with simple search/filter forms that don't require authentication
+ * - For sites with CSRF protection, consider using browser_visit to view results
+ *   or the click_navigate tool to interact with pre-rendered forms
+ *
+ * SUPPORTED FORMS:
+ * - Search forms (search boxes, filters)
+ * - Quote/estimate forms
+ * - Location/date selectors
+ * - Price range filters
+ *
+ * NOT SUPPORTED:
+ * - Login/signup forms (blocked by safety)
+ * - Payment/checkout forms (blocked by safety)
+ * - Forms requiring CSRF tokens (will fail silently or return errors)
+ * - Forms requiring cookies from authenticated sessions
  */
 export async function safeFormFill(input: SafeFormInput): Promise<SafeFormOutput> {
   const { url, sessionId, formSelector, fields, submitSelector, waitForSelector } = input;
