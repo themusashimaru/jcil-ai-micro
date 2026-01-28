@@ -344,6 +344,14 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
     const errMsg = error instanceof Error ? error.message : String(error);
     log.error('Tool execution failed', { tool, error: errMsg });
 
+    // Schedule sandbox cleanup on error to prevent resource leaks
+    // Using setImmediate to avoid blocking the error response
+    setImmediate(() => {
+      cleanupAllSandboxes().catch((cleanupErr) => {
+        log.warn('Failed to cleanup sandboxes after tool error', { cleanupErr });
+      });
+    });
+
     return {
       tool,
       success: false,
@@ -588,7 +596,7 @@ export function getClaudeToolDefinitions(): Array<{
     {
       name: 'safe_form_fill',
       description:
-        'Safely fill and submit search/filter forms. ONLY works with search, filter, quote, and estimate forms. BLOCKED: login, signup, payment, checkout forms. Use for things like real estate filters, flight search, job filters.',
+        'Safely fill and submit search/filter forms. ONLY works with search, filter, quote, and estimate forms. BLOCKED: login, signup, payment, checkout forms. Use for things like real estate filters, flight search, job filters. NOTE: Does NOT handle CSRF tokens - may fail on sites requiring CSRF protection. For those sites, use browser_visit to view or click_navigate to interact with pre-rendered forms.',
       input_schema: {
         type: 'object',
         properties: {

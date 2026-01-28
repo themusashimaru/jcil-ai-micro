@@ -23,6 +23,7 @@ import type {
   ScoutToolType,
 } from './types';
 import { CLAUDE_OPUS_45, MASTER_ARCHITECT_PROMPT, DEFAULT_LIMITS } from './constants';
+import { extractJSON } from './utils';
 import { logger } from '@/lib/logger';
 
 const log = logger('MasterArchitect');
@@ -60,6 +61,9 @@ export class MasterArchitect {
   private limits: StrategyLimits;
   private state: MasterArchitectState;
   private systemPrompt: string;
+  // Cache the last design to avoid duplicate API calls
+  private lastDesign: ArchitectDesign | null = null;
+  private lastDesignProblemHash: string | null = null;
 
   constructor(
     client: Anthropic,
@@ -104,6 +108,10 @@ export class MasterArchitect {
       // Generate the agent design using Opus
       const design = await this.generateDesign(problem);
 
+      // Cache the design for getScoutBlueprints() to reuse
+      this.lastDesign = design;
+      this.lastDesignProblemHash = this.hashProblem(problem);
+
       this.state.lastAction = 'Creating blueprints';
       this.emitEvent('architect_designing', `Creating ${design.scouts.length} agent blueprints...`);
 
@@ -131,6 +139,17 @@ export class MasterArchitect {
       log.error('Failed to design agents', error as Error);
       throw error;
     }
+  }
+
+  /**
+   * Hash a problem for cache comparison
+   */
+  private hashProblem(problem: SynthesizedProblem): string {
+    return JSON.stringify({
+      summary: problem.summary,
+      coreQuestion: problem.coreQuestion,
+      domains: problem.domains,
+    });
   }
 
   /**
@@ -179,14 +198,23 @@ export class MasterArchitect {
 
   /**
    * Parse the design response JSON
+   * Uses robust JSON extraction with repair for malformed LLM outputs
    */
   private parseDesignResponse(response: string, problem: SynthesizedProblem): ArchitectDesign {
-    // Look for JSON block
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
-    const jsonText = jsonMatch ? jsonMatch[1] : response;
+    // Use robust JSON extraction with repair capabilities
+    const parsed = extractJSON<{
+      projectManagers?: unknown[];
+      scouts?: unknown[];
+      estimatedTotalSearches?: number;
+      estimatedCost?: number;
+      rationale?: string;
+    }>(response);
 
-    try {
-      const parsed = JSON.parse(jsonText);
+    if (parsed) {
+      log.info('Successfully parsed architect design', {
+        projectManagers: (parsed.projectManagers || []).length,
+        scouts: (parsed.scouts || []).length,
+      });
 
       // Validate and normalize
       return {
@@ -196,12 +224,14 @@ export class MasterArchitect {
         estimatedCost: Number(parsed.estimatedCost) || 5.0,
         rationale: String(parsed.rationale || ''),
       };
-    } catch (error) {
-      log.error('Failed to parse design JSON', { error, responsePreview: response.slice(0, 500) });
-
-      // Return a context-aware fallback design based on the problem
-      return this.createFallbackDesign(problem);
     }
+
+    log.error('Failed to parse design JSON even with repair', {
+      responsePreview: response.slice(0, 500),
+    });
+
+    // Return a context-aware fallback design based on the problem
+    return this.createFallbackDesign(problem);
   }
 
   /**
@@ -579,11 +609,21 @@ export class MasterArchitect {
 
   /**
    * Get the scout blueprints (for execution)
+   * Uses cached design if available to avoid duplicate API calls
    */
-  async getScoutBlueprints(problem: SynthesizedProblem): Promise<AgentBlueprint[]> {
-    const design = await this.generateDesign(problem);
-    const adjusted = this.adjustDesignToLimits(design);
-    return adjusted.scouts;
+  getScoutBlueprints(problem: SynthesizedProblem): AgentBlueprint[] {
+    // Check if we have a cached design for this problem
+    const problemHash = this.hashProblem(problem);
+
+    if (this.lastDesign && this.lastDesignProblemHash === problemHash) {
+      log.info('Using cached design for scout blueprints (saved ~$1.50 Opus call)');
+      const adjusted = this.adjustDesignToLimits(this.lastDesign);
+      return adjusted.scouts;
+    }
+
+    // This should not happen if designAgents() was called first
+    log.warn('No cached design found - this indicates a call order issue');
+    throw new Error('Must call designAgents() before getScoutBlueprints()');
   }
 
   /**
