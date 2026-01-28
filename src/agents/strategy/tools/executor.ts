@@ -42,6 +42,22 @@ import {
 } from './e2bBrowserEnhanced';
 import { generateComparisonTable } from './comparisonTable';
 import { logger } from '@/lib/logger';
+import {
+  isUrlSafe,
+  canVisitPage,
+  recordPageVisit,
+  sanitizeOutput,
+  logBlockedAction,
+  SafetyCheckResult,
+} from './safety';
+import {
+  getDynamicToolById,
+  executeDynamicTool,
+  generateDynamicTool,
+  registerDynamicTool,
+  getDynamicToolCreationDefinition,
+  DynamicToolRequest,
+} from './dynamicTools';
 
 // Lazy-initialized Anthropic client for vision tools
 let anthropicClient: Anthropic | null = null;
@@ -54,14 +70,87 @@ function getAnthropicClient(): Anthropic {
 
 const log = logger('ToolExecutor');
 
+// Session ID for safety tracking (set per execution batch)
+let currentSessionId = 'default';
+
 /**
- * Execute a single scout tool
+ * Set the current session ID for safety tracking
+ */
+export function setSessionId(sessionId: string): void {
+  currentSessionId = sessionId;
+}
+
+/**
+ * Pre-execution safety check for URL-based tools
+ */
+function checkUrlSafety(url: string): SafetyCheckResult {
+  // First check basic URL safety
+  const urlCheck = isUrlSafe(url);
+  if (!urlCheck.safe) {
+    logBlockedAction(currentSessionId, 'url_access', urlCheck, { url });
+    return urlCheck;
+  }
+
+  // Then check session limits
+  const pageCheck = canVisitPage(currentSessionId, url);
+  if (!pageCheck.safe) {
+    logBlockedAction(currentSessionId, 'rate_limit', pageCheck, { url });
+    return pageCheck;
+  }
+
+  return { safe: true };
+}
+
+/**
+ * Execute a single scout tool with safety checks
  */
 export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolResult> {
   const startTime = Date.now();
   const { tool, input } = call;
 
   log.info('Executing tool', { tool, inputKeys: Object.keys(input) });
+
+  // === SAFETY: Pre-execution URL check for browser tools ===
+  const urlBasedTools = [
+    'browser_visit',
+    'screenshot',
+    'vision_analyze',
+    'extract_table',
+    'safe_form_fill',
+    'paginate',
+    'infinite_scroll',
+    'click_navigate',
+    'extract_pdf',
+  ];
+
+  if (urlBasedTools.includes(tool)) {
+    const urlInput = input as { url?: string; urls?: string[] };
+    const urls = urlInput.urls || (urlInput.url ? [urlInput.url] : []);
+
+    for (const url of urls) {
+      const safetyCheck = checkUrlSafety(url);
+      if (!safetyCheck.safe) {
+        log.warn('Tool execution blocked by safety check', {
+          tool,
+          url,
+          reason: safetyCheck.reason,
+        });
+
+        return {
+          tool,
+          success: false,
+          output: {
+            success: false,
+            error: `BLOCKED: ${safetyCheck.reason}`,
+            category: safetyCheck.category,
+            severity: safetyCheck.severity,
+          } as ScoutToolOutput,
+          costIncurred: 0,
+          timeElapsed: Date.now() - startTime,
+        };
+      }
+    }
+  }
 
   try {
     let output;
@@ -77,7 +166,13 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
 
       case 'browser_visit': {
         const visitInput = input as BrowserVisitInput;
+        // Record the visit for rate limiting
+        recordPageVisit(currentSessionId, visitInput.url);
         output = await browserVisit(visitInput);
+        // Sanitize output
+        if (output.content) {
+          output.content = sanitizeOutput(output.content);
+        }
         costIncurred = 0.02; // E2B + Puppeteer estimate
         break;
       }
@@ -162,6 +257,59 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
         const comparisonInput = input as GenerateComparisonInput;
         output = generateComparisonTable(comparisonInput);
         costIncurred = 0.001; // Local computation only
+        break;
+      }
+
+      // === DYNAMIC TOOL CREATION ===
+      case 'create_custom_tool': {
+        const createInput = input as DynamicToolRequest & { sessionId?: string };
+        const sessionId = createInput.sessionId || currentSessionId;
+
+        const dynamicTool = await generateDynamicTool({
+          ...createInput,
+          sessionId,
+        });
+
+        if (dynamicTool) {
+          registerDynamicTool(sessionId, dynamicTool);
+          output = {
+            success: true,
+            toolId: dynamicTool.id,
+            toolName: dynamicTool.name,
+            description: dynamicTool.description,
+            message: 'Custom tool created successfully. Use execute_custom_tool to run it.',
+          };
+        } else {
+          output = {
+            success: false,
+            error: 'Tool creation failed - blocked by safety checks or invalid request',
+          };
+        }
+        costIncurred = 0.01; // Claude API call for generation
+        break;
+      }
+
+      // === DYNAMIC TOOL EXECUTION ===
+      case 'execute_custom_tool': {
+        const execInput = input as { toolId: string; inputs: Record<string, unknown> };
+        const sessionId = currentSessionId;
+
+        const dynamicTool = getDynamicToolById(sessionId, execInput.toolId);
+        if (!dynamicTool) {
+          output = {
+            success: false,
+            error: `Custom tool not found: ${execInput.toolId}`,
+          };
+        } else {
+          const result = await executeDynamicTool(dynamicTool, execInput.inputs, sessionId);
+          output = {
+            success: result.success,
+            result: result.output,
+            error: result.error,
+            executionTimeMs: result.executionTimeMs,
+          };
+          costIncurred = 0.01; // E2B sandbox execution
+        }
         break;
       }
 
@@ -655,6 +803,30 @@ export function getClaudeToolDefinitions(): Array<{
         required: ['title', 'items'],
       },
     },
+
+    // === DYNAMIC TOOL CREATION (14th tool - the extension mechanism) ===
+    getDynamicToolCreationDefinition(),
+
+    // === DYNAMIC TOOL EXECUTION ===
+    {
+      name: 'execute_custom_tool',
+      description:
+        'Execute a previously created custom tool. Use this after create_custom_tool has returned a toolId.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          toolId: {
+            type: 'string',
+            description: 'The ID of the custom tool (returned by create_custom_tool)',
+          },
+          inputs: {
+            type: 'object',
+            description: 'Input parameters for the custom tool',
+          },
+        },
+        required: ['toolId', 'inputs'],
+      },
+    },
   ];
 }
 
@@ -666,7 +838,7 @@ export function parseClaudeToolCall(
   input: Record<string, unknown>
 ): ScoutToolCall | null {
   const validTools: ScoutToolName[] = [
-    // Core tools
+    // Core tools (13 hardcoded)
     'brave_search',
     'browser_visit',
     'run_code',
@@ -684,6 +856,9 @@ export function parseClaudeToolCall(
     'extract_pdf',
     // Data organization tools
     'generate_comparison',
+    // Dynamic tool creation/execution (extension mechanism)
+    'create_custom_tool' as ScoutToolName,
+    'execute_custom_tool' as ScoutToolName,
   ];
 
   if (!validTools.includes(name as ScoutToolName)) {

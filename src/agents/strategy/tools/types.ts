@@ -13,20 +13,27 @@
 // =============================================================================
 
 export type ScoutToolName =
+  // Core tools (4)
   | 'brave_search'
   | 'browser_visit'
   | 'run_code'
   | 'screenshot'
-  // New enhanced tools
+  // Vision & AI tools (3)
   | 'vision_analyze'
   | 'extract_table'
+  | 'compare_screenshots'
+  // Safe interactive tools (4)
   | 'safe_form_fill'
   | 'paginate'
   | 'infinite_scroll'
   | 'click_navigate'
+  // Document tools (1)
   | 'extract_pdf'
-  | 'compare_screenshots'
-  | 'generate_comparison';
+  // Data organization tools (1)
+  | 'generate_comparison'
+  // Dynamic tool creation/execution (extension mechanism)
+  | 'create_custom_tool'
+  | 'execute_custom_tool';
 
 export interface ScoutToolDefinition {
   name: ScoutToolName;
