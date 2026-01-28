@@ -231,13 +231,24 @@ TOOL ASSIGNMENT STRATEGY:
 
 SAFETY RESTRICTIONS - CRITICAL:
 When assigning browserTargets or search queries, NEVER include:
-- Government websites (.gov, .mil, foreign government sites)
-- Adult/pornographic content of any kind
-- Foreign state media or propaganda sites
-- Extremist or hate group websites
-- Illegal content (piracy, drugs, etc.)
-- Dark web or hacking resources
-Only use reputable commercial sites (Zillow, LinkedIn, news outlets, etc.)
+- Government websites (.gov, .mil, any foreign government domains)
+- SANCTIONED NATIONS: North Korea (.kp), Iran (.ir), Cuba (.cu), Syria (.sy), Russia (.ru)
+- Foreign state media: RT, Sputnik, Xinhua, CGTN, PressTV, KCNA
+- Adult/pornographic content of ANY kind
+- Extremist or hate group websites (4chan, 8kun, etc.)
+- Dark web (.onion), hacking forums, or illegal services
+- Financial logins (banks, crypto exchanges, payment processors)
+- Personal accounts (social media, email)
+
+ONLY use reputable commercial sources:
+- Real estate: Zillow, Redfin, Apartments.com, StreetEasy
+- Jobs: LinkedIn, Indeed, Glassdoor
+- E-commerce: Amazon, eBay, Walmart, Best Buy
+- Travel: Kayak, Expedia, Google Flights
+- News: NYTimes, WSJ, BBC, Reuters, AP
+- Research: Wikipedia, GitHub, StackOverflow
+
+This is a US-based system. Respect OFAC sanctions and US law.
 
 DESIGN PRINCIPLES:
 1. SPECIFICITY - Each agent should have a narrow, specific focus
@@ -557,11 +568,29 @@ TOOL USAGE GUIDE:
 - generate_comparison: Create formatted comparison tables from your findings
 - run_code: Execute Python/JavaScript for calculations
 
-SAFETY RULES:
-- NEVER fill login, signup, or payment forms
-- NEVER enter passwords, credit cards, or personal info
-- ONLY use safe_form_fill for search filters, price ranges, location selectors
-- If a form looks unsafe, use browser_visit to just view the page instead
+SAFETY RULES - ABSOLUTE:
+1. NEVER ACCESS:
+   - Government sites (.gov, .mil, foreign government)
+   - Sanctioned nations (North Korea .kp, Iran .ir, Cuba .cu, Syria .sy)
+   - Russian sites (.ru), Chinese state sites, foreign state media
+   - Adult/pornographic content
+   - Extremist/hate content
+   - Dark web (.onion), hacking forums
+   - Financial logins (banks, crypto, payments)
+
+2. NEVER DO:
+   - Fill login, signup, or payment forms
+   - Enter passwords, credit cards, SSN, or personal info
+   - Create accounts or send messages
+   - Download executable files
+   - Bypass security measures
+
+3. ONLY USE:
+   - Reputable commercial sites (Zillow, LinkedIn, major news, etc.)
+   - safe_form_fill ONLY for search filters, price ranges, location selectors
+   - If a form looks unsafe, use browser_visit to just view instead
+
+If you encounter blocked content, report it and move on.
 
 INSTRUCTIONS:
 1. Execute your assigned searches and tool calls

@@ -18,6 +18,8 @@ import type {
   StrategyStreamCallback,
   StrategyStreamEvent,
   CostTracker,
+  Artifact,
+  SteeringCommand,
 } from './types';
 import { DEFAULT_LIMITS, CLAUDE_OPUS_45 } from './constants';
 import { getPrompts } from './prompts';
@@ -27,6 +29,14 @@ import { MasterArchitect, createMasterArchitect } from './MasterArchitect';
 import { QualityControl, createQualityControl } from './QualityControl';
 import { createScout, executeScoutBatch } from './Scout';
 import { ExecutionQueue, createExecutionQueue } from './ExecutionQueue';
+import { SteeringEngine, createSteeringEngine } from './SteeringEngine';
+import { getKnowledgeSummary, storeFindings, buildKnowledgePromptContext } from './KnowledgeBase';
+import {
+  recordScoutPerformance,
+  getPerformanceInsights,
+  buildPerformancePromptContext,
+} from './PerformanceTracker';
+import { generateArtifacts } from './ArtifactGenerator';
 import { logger } from '@/lib/logger';
 
 const log = logger('StrategyAgent');
@@ -42,6 +52,7 @@ export class StrategyAgent {
   private architect: MasterArchitect;
   private qc: QualityControl;
   private queue: ExecutionQueue;
+  private steeringEngine: SteeringEngine;
   private onStream?: StrategyStreamCallback;
   private prompts: PromptSet;
 
@@ -49,6 +60,7 @@ export class StrategyAgent {
   private allFindings: Finding[] = [];
   private blueprints: AgentBlueprint[] = [];
   private hierarchy?: AgentHierarchy;
+  private artifacts: Artifact[] = [];
   private isRunning = false;
   private isCancelled = false;
 
@@ -78,6 +90,7 @@ export class StrategyAgent {
 
     // Initialize components with mode-specific prompts
     this.queue = createExecutionQueue(this.context.limits, onStream);
+    this.steeringEngine = createSteeringEngine(onStream);
     this.intake = createForensicIntake(
       this.client,
       onStream,
@@ -173,9 +186,17 @@ export class StrategyAgent {
 
   /**
    * Add context during execution (like Claude Code's interrupt feature)
-   * Allows user to provide additional information while strategy is running
+   * Allows user to provide additional information or steering commands
+   * while strategy is running.
+   *
+   * Steering commands (e.g., "stop researching X", "focus on Y") are
+   * parsed by the SteeringEngine and applied in real-time.
    */
-  async addContext(message: string): Promise<void> {
+  async addContext(message: string): Promise<{
+    steeringApplied: boolean;
+    steeringResponse?: string;
+    command?: SteeringCommand;
+  }> {
     if (!this.isRunning) {
       throw new Error('Cannot add context when strategy is not running');
     }
@@ -186,7 +207,47 @@ export class StrategyAgent {
     }
     this.context.userContext.push(message);
 
-    // Stream the event
+    // Try to parse as a steering command
+    const command = this.steeringEngine.parseCommand(message);
+
+    if (command) {
+      // Apply the steering command
+      const response = this.steeringEngine.applyCommand(command);
+
+      // If redirect or spawn, generate new blueprints and queue them
+      if (
+        command.action === 'redirect' ||
+        command.action === 'spawn_scouts' ||
+        command.action === 'focus_domain'
+      ) {
+        const newBlueprints = this.steeringEngine.generateRedirectBlueprints(
+          command,
+          this.blueprints
+        );
+        if (newBlueprints.length > 0) {
+          this.blueprints.push(...newBlueprints);
+          if (this.hierarchy) {
+            this.hierarchy.totalAgents += newBlueprints.length;
+          }
+          this.emit(
+            'agent_spawned',
+            `Steering: Spawning ${newBlueprints.length} new scouts for "${command.target}"`,
+            { totalAgents: this.blueprints.length }
+          );
+        }
+      }
+
+      log.info('Steering command applied', {
+        sessionId: this.context.sessionId,
+        action: command.action,
+        target: command.target,
+        response,
+      });
+
+      return { steeringApplied: true, steeringResponse: response, command };
+    }
+
+    // Not a steering command — just context
     this.onStream?.({
       type: 'user_context_added',
       message,
@@ -198,6 +259,8 @@ export class StrategyAgent {
       messageLength: message.length,
       totalContextMessages: this.context.userContext.length,
     });
+
+    return { steeringApplied: false };
   }
 
   /**
@@ -218,12 +281,55 @@ export class StrategyAgent {
     let killReason = '';
 
     try {
-      // Phase 1: Design agents
+      // Phase 0: Load prior knowledge and performance data
+      let knowledgeContext = '';
+      let performanceContext = '';
+
+      try {
+        const [knowledgeSummary, performanceInsights] = await Promise.all([
+          getKnowledgeSummary(
+            this.context.userId,
+            this.context.problem.synthesizedProblem.coreQuestion
+          ),
+          getPerformanceInsights(this.context.userId, this.context.mode || 'strategy'),
+        ]);
+
+        knowledgeContext = buildKnowledgePromptContext(knowledgeSummary);
+        performanceContext = buildPerformancePromptContext(performanceInsights);
+
+        if (knowledgeSummary.totalFindings > 0) {
+          this.emit(
+            'synthesis_progress',
+            `Loaded ${knowledgeSummary.totalFindings} prior findings from ${knowledgeSummary.domains.length} domains`
+          );
+        }
+        if (performanceInsights.length > 0) {
+          this.emit(
+            'synthesis_progress',
+            `Loaded ${performanceInsights.length} performance insights for smarter agent design`
+          );
+        }
+      } catch (error) {
+        log.warn('Failed to load prior knowledge/performance', { error });
+        // Non-fatal — continue without prior context
+      }
+
+      // Phase 1: Design agents (enriched with prior knowledge + performance)
       this.emit('architect_designing', 'Master Architect designing agent army...');
+
+      // Inject prior knowledge and performance data into architect's context
+      if (knowledgeContext || performanceContext) {
+        this.architect.injectAdditionalContext(knowledgeContext + performanceContext);
+      }
+
       this.hierarchy = await this.architect.designAgents(this.context.problem.synthesizedProblem);
       this.blueprints = await this.architect.getScoutBlueprints(
         this.context.problem.synthesizedProblem
       );
+
+      // Register active domains with the steering engine
+      const domains = this.context.problem.synthesizedProblem.domains;
+      this.steeringEngine.setActiveDomains(domains);
 
       log.info('Agent design complete', {
         totalBlueprints: this.blueprints.length,
@@ -282,6 +388,40 @@ export class StrategyAgent {
             : 'Synthesizing final strategy recommendation...'
         );
         const strategy = await this.synthesizeFinalStrategy(wasKilled, killReason);
+
+        // Phase 5: Post-synthesis — store knowledge + generate artifacts
+        try {
+          this.emit('synthesis_progress', 'Storing findings in knowledge base...');
+          const storageDomains = this.context.problem?.synthesizedProblem.domains || [];
+          await storeFindings(
+            this.context.userId,
+            this.context.sessionId,
+            this.context.mode || 'strategy',
+            this.allFindings,
+            storageDomains
+          );
+        } catch (error) {
+          log.warn('Failed to store findings in knowledge base', { error });
+        }
+
+        try {
+          this.emit('synthesis_progress', 'Generating deliverables...');
+          this.artifacts = await generateArtifacts(
+            this.context.userId,
+            this.context.sessionId,
+            strategy,
+            this.allFindings,
+            this.onStream
+          );
+          if (this.artifacts.length > 0) {
+            this.emit(
+              'synthesis_progress',
+              `Generated ${this.artifacts.length} deliverable${this.artifacts.length > 1 ? 's' : ''}: ${this.artifacts.map((a) => a.title).join(', ')}`
+            );
+          }
+        } catch (error) {
+          log.warn('Failed to generate artifacts', { error });
+        }
 
         this.emit(
           'strategy_complete',
@@ -450,6 +590,13 @@ export class StrategyAgent {
   }
 
   /**
+   * Get generated artifacts (available after synthesis completes)
+   */
+  getArtifacts(): Artifact[] {
+    return [...this.artifacts];
+  }
+
+  /**
    * Get the synthesized problem from intake
    */
   getProblem(): UserProblem | undefined {
@@ -468,7 +615,7 @@ export class StrategyAgent {
   // ===========================================================================
 
   /**
-   * Execute all scouts with rate limiting
+   * Execute all scouts with rate limiting, steering, and performance tracking
    */
   private async executeScouts(): Promise<void> {
     const batchSize = this.context.limits.maxConcurrentCalls;
@@ -476,6 +623,11 @@ export class StrategyAgent {
 
     let completed = 0;
     const total = this.blueprints.length;
+
+    // Track which blueprint IDs have been executed so steering scouts
+    // added mid-execution don't get run twice (the async generator reads
+    // blueprints.length dynamically and would pick them up).
+    const executedIds = new Set<string>();
 
     for await (const result of executeScoutBatch(
       this.client,
@@ -488,6 +640,25 @@ export class StrategyAgent {
       // Check for cancellation
       if (this.isCancelled || this.qc.isKilled()) {
         break;
+      }
+
+      // Check if execution is paused (steering)
+      while (this.steeringEngine.isExecutionPaused() && !this.isCancelled) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      // Mark this scout as executed
+      executedIds.add(result.agentId);
+
+      // Check if this scout's domain was killed via steering
+      const blueprint = this.blueprints.find((b) => b.id === result.agentId);
+      if (blueprint && this.steeringEngine.shouldKillScout(blueprint)) {
+        log.info('Scout skipped by steering engine', { agentId: result.agentId });
+        if (this.hierarchy) {
+          this.hierarchy.completedAgents++;
+        }
+        completed++;
+        continue;
       }
 
       // Collect findings
@@ -503,6 +674,35 @@ export class StrategyAgent {
       }
 
       completed++;
+
+      // Record scout performance (non-blocking)
+      if (blueprint) {
+        recordScoutPerformance(
+          this.context.userId,
+          this.context.sessionId,
+          this.context.mode || 'strategy',
+          blueprint,
+          result.findings,
+          {
+            executionTimeMs: result.executionTime || 0,
+            tokensUsed: result.tokensUsed,
+            costIncurred: 0, // Calculated by queue
+            searchesExecuted: result.searchesExecuted,
+            pagesVisited: 0,
+            screenshotsTaken: 0,
+            toolCallsTotal: result.searchesExecuted,
+            toolCallsSucceeded: result.searchesExecuted,
+            toolCallsFailed: 0,
+          },
+          result.findings.length > 0 ? 'complete' : 'failed',
+          undefined,
+          result.childSuggestions?.length || 0,
+          result.gaps,
+          this.context.problem?.synthesizedProblem.complexity
+        ).catch((err) => {
+          log.warn('Failed to record scout performance', { error: err });
+        });
+      }
 
       // Emit progress
       this.emit('agent_complete', `Scout ${completed}/${total} complete`, {
@@ -530,6 +730,39 @@ export class StrategyAgent {
       // Handle child spawning (recursive agents)
       if (result.needsDeeper && result.childSuggestions.length > 0) {
         await this.handleChildSpawning(result);
+      }
+    }
+
+    // Execute any steering scouts that weren't picked up by the main batch.
+    // The generator reads blueprints.length dynamically, so most steering
+    // scouts get executed in the main loop. This catches any stragglers
+    // added after the loop exited (e.g., during QC checks).
+    const unexecutedSteering = this.blueprints.filter(
+      (b) => b.id.startsWith('scout_steer_') && !executedIds.has(b.id)
+    );
+
+    if (unexecutedSteering.length > 0) {
+      this.emit(
+        'agent_spawned',
+        `Executing ${unexecutedSteering.length} user-requested scouts...`,
+        { totalAgents: unexecutedSteering.length }
+      );
+
+      for await (const result of executeScoutBatch(
+        this.client,
+        unexecutedSteering,
+        batchSize,
+        delayMs,
+        this.onStream,
+        this.prompts.scout
+      )) {
+        if (this.isCancelled || this.qc.isKilled()) break;
+        this.allFindings.push(...result.findings);
+        this.queue.updateCost('haiku', result.tokensUsed * 0.5, result.tokensUsed * 0.5);
+        this.queue.updateCost('brave', undefined, undefined, result.searchesExecuted);
+        if (this.hierarchy) {
+          this.hierarchy.completedAgents++;
+        }
       }
     }
   }

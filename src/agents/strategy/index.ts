@@ -16,6 +16,10 @@
  * - Rate-limited execution queue
  * - Real-time streaming progress
  * - Comprehensive strategy synthesis
+ * - Persistent Knowledge Base (cross-session learning)
+ * - Scout Performance Tracking (architect optimization)
+ * - Real-time Steering Engine (mid-execution control)
+ * - Auto-generated Artifacts (CSVs, reports, charts)
  */
 
 // Main exports
@@ -25,6 +29,21 @@ export { MasterArchitect, createMasterArchitect } from './MasterArchitect';
 export { QualityControl, createQualityControl } from './QualityControl';
 export { Scout, createScout, executeScoutBatch } from './Scout';
 export { ExecutionQueue, createExecutionQueue } from './ExecutionQueue';
+
+// Enhancement modules
+export { SteeringEngine, createSteeringEngine } from './SteeringEngine';
+export {
+  storeFindings,
+  queryKnowledge,
+  getKnowledgeSummary,
+  buildKnowledgePromptContext,
+} from './KnowledgeBase';
+export {
+  recordScoutPerformance,
+  getPerformanceInsights,
+  buildPerformancePromptContext,
+} from './PerformanceTracker';
+export { generateArtifacts, getSessionArtifacts } from './ArtifactGenerator';
 
 // Prompt system
 export { getPrompts, getAvailableModes } from './prompts';
@@ -94,6 +113,23 @@ export type {
   StrategyStreamEventType,
   StrategyStreamEvent,
   StrategyStreamCallback,
+
+  // Knowledge Base
+  KnowledgeEntry,
+  KnowledgeQuery,
+  KnowledgeContext,
+
+  // Performance Tracking
+  ScoutPerformanceRecord,
+  PerformanceInsight,
+
+  // Steering
+  SteeringAction,
+  SteeringCommand,
+
+  // Artifacts
+  ArtifactType,
+  Artifact,
 } from './types';
 
 // Constants

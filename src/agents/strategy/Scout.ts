@@ -20,7 +20,13 @@ import type {
 import { CLAUDE_HAIKU_45, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
 import { braveWebSearch, type BraveSearchResponse, type BraveWebResult } from '@/lib/brave';
 import { logger } from '@/lib/logger';
-import { executeScoutTool, getClaudeToolDefinitions, parseClaudeToolCall } from './tools';
+import {
+  executeScoutTool,
+  getClaudeToolDefinitions,
+  parseClaudeToolCall,
+  setSessionId,
+  AI_SAFETY_PROMPT,
+} from './tools';
 
 const log = logger('Scout');
 
@@ -189,6 +195,9 @@ export class Scout {
    */
   private async executeWithTools(startTime: number): Promise<ScoutResult> {
     try {
+      // Set session ID for safety tracking
+      setSessionId(this.blueprint.id);
+
       // Get tool definitions for this scout's assigned tools
       const allToolDefs = getClaudeToolDefinitions();
       const toolDefs = allToolDefs.filter((t: { name: string }) =>
@@ -497,12 +506,7 @@ INSTRUCTIONS:
 4. Use run_code for calculations or data processing when helpful
 5. Stop when you have enough information to answer your key questions
 
-SAFETY - DO NOT visit or search for:
-- Government websites (.gov, .mil, foreign government sites)
-- Adult/pornographic content
-- Foreign state media or propaganda
-- Extremist or illegal content
-Only use reputable commercial sources (Zillow, LinkedIn, major news, etc.)
+${AI_SAFETY_PROMPT}
 
 When you have gathered sufficient information, provide your findings in this JSON format:
 \`\`\`json

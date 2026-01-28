@@ -21,6 +21,7 @@ import {
   rateLimits,
 } from '@/lib/api/utils';
 import { createMessageSchema } from '@/lib/validation/schemas';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('MessagesAPI');
 
@@ -120,6 +121,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
  * - FormData: text, role, files[], attachments_json
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
     const { id: conversationId } = await params;
@@ -363,6 +368,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
  * and marks the message as edited with a timestamp.
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
     const { id: conversationId } = await params;
@@ -480,6 +489,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
     const { id: conversationId } = await params;

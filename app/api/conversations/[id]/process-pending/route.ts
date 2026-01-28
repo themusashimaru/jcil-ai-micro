@@ -13,6 +13,8 @@ import { completeChat } from '@/lib/ai/chat-router';
 import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('ProcessPendingAPI');
 
@@ -26,6 +28,10 @@ function getSupabaseAdmin() {
 }
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(_request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const { id: conversationId } = await params;
 
   // Get authenticated user
@@ -48,6 +54,13 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Rate limiting - strict since this triggers AI completion
+  const rateLimitResult = await checkRequestRateLimit(
+    `process-pending:${user.id}`,
+    rateLimits.strict
+  );
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {

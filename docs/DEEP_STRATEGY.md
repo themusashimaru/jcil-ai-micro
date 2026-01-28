@@ -284,25 +284,52 @@ Expandable detailed log of all research activities:
 
 This gives users visibility into exactly what the AI agents are researching.
 
-### Phase 5: Mid-Execution Messaging
+### Phase 5: Mid-Execution Steering & Context
 
-Users can add context while the strategy is running (like Claude Code's interrupt):
+Users can send messages while the strategy is running. Messages are parsed by the **Steering Engine** to detect commands, or stored as additional context.
+
+**Context Messages** — Additional information the user remembered:
 
 ```
-┌─────────────────────────────────────────────┐
-│  💬 Add more context while running:          │
-│  ┌─────────────────────────────────────────┐ │
-│  │ I forgot to mention we have a partner   │ │
-│  │ in Japan who might help...        [Send]│ │
-│  └─────────────────────────────────────────┘ │
-│                                             │
-│  Added context:                             │
-│  • "Budget actually flexible up to $50k"    │
-│  • "Timeline extended to 6 months"          │
-└─────────────────────────────────────────────┘
+User: "I forgot to mention we have a partner in Japan"
+→ Context stored and available to synthesis
 ```
 
-### Phase 6: Final Output
+**Steering Commands** — Real-time control over the agent army:
+
+```
+User: "Stop researching housing, focus on career"
+→ Steering: Killed domain "housing", focused all resources on "career"
+
+User: "Also look into remote work trends"
+→ Steering: Spawning 3 new scouts for "remote work trends"
+
+User: "Pause"
+→ Execution paused. Send "resume" to restart.
+```
+
+**Supported Steering Commands:**
+
+| Command Pattern                   | Action         | Effect                                        |
+| --------------------------------- | -------------- | --------------------------------------------- |
+| "stop researching X" / "kill X"   | `kill_domain`  | Skips all scouts related to domain X          |
+| "focus on X" / "double down on X" | `focus_domain` | Kills all domains except X, spawns new scouts |
+| "redirect to X" / "pivot to X"    | `redirect`     | Spawns 3 new scouts for target X              |
+| "also research X" / "add X"       | `spawn_scouts` | Spawns 3 additional scouts for X              |
+| "pause" / "hold" / "wait"         | `pause`        | Pauses scout execution loop                   |
+| "resume" / "continue" / "go"      | `resume`       | Resumes paused execution                      |
+
+The steering engine uses natural language regex parsing — no special syntax needed.
+
+### Phase 6: Post-Synthesis
+
+After synthesis completes, the system automatically:
+
+1. **Stores findings** in the Knowledge Base for future sessions
+2. **Generates artifacts** — comparison CSVs, findings tables, executive report, confidence chart
+3. **Records scout performance** — tool combos and effectiveness metrics are stored for architect learning
+
+### Phase 7: Final Output
 
 The strategy is delivered with:
 
@@ -311,6 +338,7 @@ The strategy is delivered with:
 - **Action Items** — Prioritized steps with timeframes
 - **Risk Assessment** — Potential challenges and mitigations
 - **Sources** — All web research cited with links
+- **Generated Deliverables** — CSVs, charts, and reports (listed with file names and sizes)
 
 ### Session Continuity
 
@@ -330,6 +358,127 @@ Strategy sessions persist across browser sessions:
 │  ● Investment research (running)            │
 └─────────────────────────────────────────────┘
 ```
+
+---
+
+## Multi-Mode Agent System
+
+The Deep Agent engine supports multiple modes that share the same execution core but use different prompt sets. The engine is mode-agnostic — only the prompts change.
+
+### Available Modes
+
+| Mode              | `AgentMode` | Button Color | Prompt Focus                              |
+| ----------------- | ----------- | ------------ | ----------------------------------------- |
+| **Deep Strategy** | `strategy`  | Purple       | Decision-making, action plans, trade-offs |
+| **Deep Research** | `research`  | Emerald      | Evidence-based findings, academic rigor   |
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────┐
+│              SHARED AGENT ENGINE              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐     │
+│  │ Intake   │ │ Architect│ │ QC + Syn │     │
+│  │ (Opus)   │ │ (Opus)   │ │ (Opus)   │     │
+│  └──────────┘ └──────────┘ └──────────┘     │
+│  ┌──────────────────────────────────────┐    │
+│  │        Scout Army (Haiku)            │    │
+│  └──────────────────────────────────────┘    │
+│                     ↑                        │
+│            PromptSet injection               │
+│     ┌───────────┐    ┌───────────┐           │
+│     │ Strategy  │    │ Research  │           │
+│     │  Prompts  │    │  Prompts  │           │
+│     └───────────┘    └───────────┘           │
+└──────────────────────────────────────────────┘
+```
+
+### Adding New Modes
+
+1. Create a new file in `src/agents/strategy/prompts/` (e.g., `audit.ts`)
+2. Export a `PromptSet` with all 7 prompt fields
+3. Register it in `prompts/index.ts` under a new key
+4. Add the UI button in `ChatComposer.tsx`
+5. Add the lifecycle functions in `ChatClient.tsx`
+
+---
+
+## Enhancement Features
+
+### 1. Persistent Knowledge Base
+
+Every finding from every session is stored in Supabase with full-text search. Future sessions build on past research.
+
+**How it works:**
+
+- After synthesis, all findings are stored in the `knowledge_base` table
+- Before the Master Architect designs agents, prior findings are queried
+- Relevant prior research is injected into the architect's system prompt
+- Uses PostgreSQL `tsvector` for full-text search (no external API needed)
+
+**Database table:** `knowledge_base`
+
+- Per-user isolation via RLS
+- Full-text search index on title + content + domain + tags
+- Optional trigram index for fuzzy matching (pg_trgm)
+
+**Key functions:**
+
+- `storeFindings()` — Batch inserts findings after synthesis
+- `queryKnowledge()` — Full-text search with domain/tag/mode filters
+- `getKnowledgeSummary()` — Retrieves summary for architect injection
+- `buildKnowledgePromptContext()` — Formats prior findings for prompt
+
+### 2. Scout Performance Tracking
+
+Records how well each scout configuration performed. The Master Architect uses this data to design increasingly effective agent armies over time.
+
+**Metrics tracked per scout:**
+
+- Tool combination used (brave_search + browser_visit + etc.)
+- Findings count, confidence breakdown (high/medium/low)
+- Average relevance score
+- Execution time, token usage, cost
+- Success/failure status
+- Child agents spawned
+
+**Key functions:**
+
+- `recordScoutPerformance()` — Records after each scout completes (non-blocking)
+- `getPerformanceInsights()` — Aggregates by tool combination, sorts by effectiveness
+- `buildPerformancePromptContext()` — Injects top combos into architect prompt
+
+**Database table:** `scout_performance`
+
+- Indexed by user, mode, tools, domain, status
+
+### 3. Real-time Steering Engine
+
+Parses natural language steering commands from users during execution and translates them into concrete actions.
+
+**Integration points:**
+
+- `addContext()` in StrategyAgent — parses every user message for commands
+- `executeScouts()` — checks `shouldKillScout()` before each scout
+- `isExecutionPaused()` — pauses the execution loop
+- `generateRedirectBlueprints()` — creates new scouts for redirect/spawn commands
+
+**Deduplication safety:** Steering scouts use `scout_steer_` ID prefix. An `executedIds` set prevents double-execution when the async generator picks up dynamically-added blueprints.
+
+### 4. Auto-generated Artifacts
+
+After synthesis completes, the system generates downloadable deliverables:
+
+| Artifact Type    | Format    | Content                                     |
+| ---------------- | --------- | ------------------------------------------- |
+| Comparison CSV   | text/csv  | Domain comparison tables from analysis      |
+| Findings CSV     | text/csv  | All findings with type, confidence, sources |
+| Executive Report | text/md   | Full formatted report with all sections     |
+| Confidence Chart | image/png | Matplotlib bar chart via E2B Python sandbox |
+
+**Storage:** Artifacts are stored in the `strategy_artifacts` Supabase table (inline content — base64 for images, text for CSV/markdown).
+
+**Retrieval:** `GET /api/strategy?sessionId=X&includeArtifacts=true` returns artifacts with full content.
 
 ---
 
@@ -446,7 +595,7 @@ Content-Type: application/json
 
 **Response**: Server-Sent Events stream with progress updates
 
-### Add Mid-Execution Context
+### Add Mid-Execution Context / Steering Command
 
 ```http
 POST /api/strategy
@@ -455,7 +604,30 @@ Content-Type: application/json
 {
   "action": "context",
   "sessionId": "strategy_user123_1706198400000",
-  "message": "I forgot to mention we have connections in the industry"
+  "message": "Stop researching housing, focus on career options"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Redirecting all resources to \"career options\". Other domains will be deprioritized.",
+  "sessionId": "strategy_user123_1706198400000",
+  "steeringApplied": true,
+  "steeringAction": "focus_domain"
+}
+```
+
+If the message is not a recognized steering command, it's stored as additional context:
+
+```json
+{
+  "success": true,
+  "message": "Context added successfully",
+  "sessionId": "strategy_user123_1706198400000",
+  "steeringApplied": false
 }
 ```
 
@@ -469,6 +641,42 @@ DELETE /api/strategy?sessionId=strategy_user123_1706198400000
 
 ```http
 GET /api/strategy?sessionId=strategy_user123_1706198400000
+```
+
+### Get Session with Artifacts
+
+```http
+GET /api/strategy?sessionId=strategy_user123_1706198400000&includeArtifacts=true
+```
+
+**Response includes:**
+
+```json
+{
+  "sessionId": "...",
+  "phase": "complete",
+  "result": { "..." },
+  "artifacts": [
+    {
+      "id": "uuid",
+      "type": "csv",
+      "title": "Comparison Table",
+      "fileName": "comparison_abc12345.csv",
+      "mimeType": "text/csv",
+      "sizeBytes": 2048,
+      "contentText": "Header1,Header2\nVal1,Val2\n..."
+    },
+    {
+      "id": "uuid",
+      "type": "chart",
+      "title": "Options Comparison Chart",
+      "fileName": "chart_abc12345.png",
+      "mimeType": "image/png",
+      "sizeBytes": 45000,
+      "contentBase64": "iVBORw0KGgo..."
+    }
+  ]
+}
 ```
 
 ---
@@ -580,25 +788,39 @@ The Deep Strategy Agent is currently in admin-only testing mode. Users without a
 
 ```
 src/agents/strategy/
-├── index.ts              # Public exports
-├── types.ts              # Type definitions
-├── constants.ts          # Configuration & prompts (inc. safety rules)
-├── StrategyAgent.ts      # Main orchestrator
-├── ForensicIntake.ts     # Intake interview system
-├── MasterArchitect.ts    # Opus 4.5 architect
-├── QualityControl.ts     # Finding validation
-├── Scout.ts              # Haiku 4.5 scouts with tool calling
-├── ExecutionQueue.ts     # Rate-limited queue
+├── index.ts              # Public exports (all modules + types)
+├── types.ts              # Type definitions (agent, knowledge, steering, artifacts)
+├── constants.ts          # Configuration & safety rules
+├── StrategyAgent.ts      # Main orchestrator (wires all features)
+├── ForensicIntake.ts     # Intake interview system (Opus 4.5)
+├── MasterArchitect.ts    # Agent army designer (Opus 4.5)
+├── QualityControl.ts     # Finding validation (Opus 4.5)
+├── Scout.ts              # Research scouts (Haiku 4.5) with tool calling
+├── ExecutionQueue.ts     # Rate-limited batch execution queue
+│
+│   Enhancement Modules (cross-session learning + real-time control)
+├── KnowledgeBase.ts      # Persistent memory — store/query findings via tsvector
+├── PerformanceTracker.ts # Scout learning — track metrics, feed to architect
+├── SteeringEngine.ts     # Real-time control — parse commands, kill/spawn scouts
+├── ArtifactGenerator.ts  # Auto-deliverables — CSV, reports, charts via E2B
+│
+│   Prompt System (multi-mode architecture)
+├── prompts/
+│   ├── types.ts          # PromptSet interface (7 prompt fields)
+│   ├── strategy.ts       # Deep Strategy prompts
+│   ├── research.ts       # Deep Research prompts
+│   └── index.ts          # Mode selector (getPrompts, getAvailableModes)
+│
 └── tools/                # Research tool implementations (14 tools)
     ├── index.ts          # Tool exports
-    ├── types.ts          # Tool type definitions (all 14 tool types)
+    ├── types.ts          # Tool type definitions
     ├── braveSearch.ts    # Brave Search API integration
     ├── e2bBrowser.ts     # Core Puppeteer browser operations
     ├── e2bBrowserEnhanced.ts  # Safe form fill, pagination, infinite scroll
-    ├── e2bCode.ts        # Python/JS code execution
+    ├── e2bCode.ts        # Python/JS code execution (used by ArtifactGenerator)
     ├── visionAnalysis.ts # Claude Vision screenshot analysis
     ├── comparisonTable.ts # Comparison table generator
-    ├── safety.ts         # Browser safety framework (domain blocking, etc.)
+    ├── safety.ts         # Browser safety framework
     └── executor.ts       # Tool execution & cost tracking
 
 src/components/chat/DeepStrategy/
@@ -612,8 +834,12 @@ src/components/chat/DeepStrategy/
 src/hooks/
 └── useDeepStrategy.ts    # React hook for state management
 
-src/app/api/strategy/
-└── route.ts              # API endpoints (SSE streaming, persistence)
+app/api/strategy/
+└── route.ts              # API endpoints (SSE streaming, steering, artifacts)
+
+supabase/migrations/
+└── 20260128_add_knowledge_base_and_performance.sql
+                          # Tables: knowledge_base, scout_performance, strategy_artifacts
 ```
 
 ---
@@ -641,3 +867,66 @@ src/app/api/strategy/
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture overview
 - [API.md](./API.md) — Full API reference
 - [SECURITY.md](./SECURITY.md) — Security implementation details
+
+---
+
+## Development Notes & Changelog
+
+### 2026-01-28: Audit Fixes & Tool Type Expansion
+
+**Issue:** `ScoutToolType` in `types.ts` only included 4 tools (`brave_search`, `browser_visit`, `run_code`, `screenshot`), but 13 tools were actually implemented. The `MasterArchitect.normalizeTools()` method was silently stripping all enhanced tools from scout blueprints.
+
+**Fix Applied:**
+
+- Expanded `ScoutToolType` to include all 13 tools:
+  - Core: `brave_search`, `browser_visit`, `run_code`, `screenshot`
+  - Vision: `vision_analyze`, `extract_table`, `compare_screenshots`
+  - Interactive: `safe_form_fill`, `paginate`, `infinite_scroll`, `click_navigate`
+  - Document: `extract_pdf`
+  - Data: `generate_comparison`
+- Updated `MasterArchitect.normalizeTools()` to accept all 13 tools
+- Added `comparison_table` to `OutputFormat` type (used in prompts but was missing from type)
+- Updated `MasterArchitect.normalizeOutputFormat()` to accept `comparison_table`
+
+**Files Modified:**
+
+- `src/agents/strategy/types.ts:138-152` — Added 9 new tool types + `comparison_table` output format
+- `src/agents/strategy/MasterArchitect.ts:268-277` — Updated `validTools` array
+- `src/agents/strategy/MasterArchitect.ts:303-313` — Updated `valid` output formats
+
+**CSRF & Rate Limiting Fixes:**
+
+Added CSRF protection and rate limiting to conversation endpoints that were missing them:
+
+- `app/api/conversations/[id]/messages/route.ts` — POST, PATCH, DELETE now have CSRF
+- `app/api/conversations/[id]/messages/regenerate/route.ts` — POST now has CSRF
+- `app/api/conversations/[id]/folder/route.ts` — PATCH now has CSRF + rate limiting
+- `app/api/conversations/[id]/process-pending/route.ts` — POST now has CSRF + rate limiting
+
+**Test Status:** All 1877 tests passing across 60 test files.
+
+### Testing Routes
+
+To verify the strategy tools are working:
+
+```bash
+# Test all E2B tools
+curl http://localhost:3000/api/strategy/test-tools
+
+# Test SSE events (returns mock stream)
+curl http://localhost:3000/api/strategy/test-events
+
+# Test full strategy flow
+curl http://localhost:3000/api/strategy/test
+```
+
+### Key Integration Points
+
+When resuming development:
+
+1. **Strategy Agent Entry Point:** `app/api/strategy/route.ts`
+2. **Agent Orchestration:** `src/agents/strategy/StrategyAgent.ts`
+3. **Scout Execution:** `src/agents/strategy/Scout.ts`
+4. **Tool Definitions:** `src/agents/strategy/tools/executor.ts:getClaudeToolDefinitions()`
+5. **UI Components:** `src/components/chat/DeepStrategy/`
+6. **React Hook:** `src/hooks/useDeepStrategy.ts`

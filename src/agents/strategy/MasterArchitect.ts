@@ -83,6 +83,16 @@ export class MasterArchitect {
   // ===========================================================================
 
   /**
+   * Inject additional context (prior knowledge, performance data) into the
+   * architect's system prompt before designing agents.
+   */
+  injectAdditionalContext(context: string): void {
+    if (context) {
+      this.systemPrompt += context;
+    }
+  }
+
+  /**
    * Design the agent army based on the synthesized problem
    */
   async designAgents(problem: SynthesizedProblem): Promise<AgentHierarchy> {
@@ -255,7 +265,21 @@ export class MasterArchitect {
       return ['brave_search'];
     }
 
-    const validTools: ScoutToolType[] = ['brave_search', 'browser_visit', 'run_code', 'screenshot'];
+    const validTools: ScoutToolType[] = [
+      'brave_search',
+      'browser_visit',
+      'run_code',
+      'screenshot',
+      'vision_analyze',
+      'extract_table',
+      'compare_screenshots',
+      'safe_form_fill',
+      'paginate',
+      'infinite_scroll',
+      'click_navigate',
+      'extract_pdf',
+      'generate_comparison',
+    ];
     const tools = raw
       .map((t) => String(t).toLowerCase())
       .filter((t): t is ScoutToolType => validTools.includes(t as ScoutToolType));
@@ -289,6 +313,7 @@ export class MasterArchitect {
       'summary',
       'bullet_points',
       'comparison_matrix',
+      'comparison_table',
       'swot_analysis',
       'risk_assessment',
       'recommendation',
