@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('RegenerateAPI');
 
@@ -58,6 +59,10 @@ function errorResponse(status: number, code: string, message: string) {
  * returning the context needed to generate a fresh response.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
     const { id: conversationId } = await params;

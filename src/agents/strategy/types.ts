@@ -139,12 +139,22 @@ export type ScoutToolType =
   | 'brave_search' // Web search via Brave API
   | 'browser_visit' // Visit URLs with E2B + Puppeteer
   | 'run_code' // Execute Python/JS in E2B sandbox
-  | 'screenshot'; // Capture page screenshots
+  | 'screenshot' // Capture page screenshots
+  | 'vision_analyze' // Claude Vision screenshot analysis
+  | 'extract_table' // Extract pricing tables via Vision AI
+  | 'compare_screenshots' // Side-by-side comparison of multiple URLs
+  | 'safe_form_fill' // Fill search/filter forms (blocked: login, signup, payment)
+  | 'paginate' // Navigate through multi-page results
+  | 'infinite_scroll' // Handle infinite scroll pages
+  | 'click_navigate' // Click elements and extract resulting content
+  | 'extract_pdf' // Download and extract text from PDFs
+  | 'generate_comparison'; // Create formatted comparison tables
 
 export type OutputFormat =
   | 'summary' // Brief text summary
   | 'bullet_points' // Key points
   | 'comparison_matrix' // Table comparing options
+  | 'comparison_table' // Alias for comparison_matrix (used in prompts)
   | 'swot_analysis' // Strengths/Weaknesses/Opportunities/Threats
   | 'risk_assessment' // Risk matrix
   | 'recommendation' // Specific recommendation with reasoning

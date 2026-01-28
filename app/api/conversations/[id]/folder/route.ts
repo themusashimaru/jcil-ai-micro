@@ -7,6 +7,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('ConversationFolderAPI');
 
@@ -46,14 +48,25 @@ interface RouteParams {
  * Body: { folder_id: string | null }
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id } = await params;
     const supabase = await getSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting
+    const rateLimitResult = await checkRequestRateLimit(`folder:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const body = await request.json();
     const { folder_id } = body;

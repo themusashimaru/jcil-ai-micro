@@ -867,3 +867,66 @@ supabase/migrations/
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture overview
 - [API.md](./API.md) — Full API reference
 - [SECURITY.md](./SECURITY.md) — Security implementation details
+
+---
+
+## Development Notes & Changelog
+
+### 2026-01-28: Audit Fixes & Tool Type Expansion
+
+**Issue:** `ScoutToolType` in `types.ts` only included 4 tools (`brave_search`, `browser_visit`, `run_code`, `screenshot`), but 13 tools were actually implemented. The `MasterArchitect.normalizeTools()` method was silently stripping all enhanced tools from scout blueprints.
+
+**Fix Applied:**
+
+- Expanded `ScoutToolType` to include all 13 tools:
+  - Core: `brave_search`, `browser_visit`, `run_code`, `screenshot`
+  - Vision: `vision_analyze`, `extract_table`, `compare_screenshots`
+  - Interactive: `safe_form_fill`, `paginate`, `infinite_scroll`, `click_navigate`
+  - Document: `extract_pdf`
+  - Data: `generate_comparison`
+- Updated `MasterArchitect.normalizeTools()` to accept all 13 tools
+- Added `comparison_table` to `OutputFormat` type (used in prompts but was missing from type)
+- Updated `MasterArchitect.normalizeOutputFormat()` to accept `comparison_table`
+
+**Files Modified:**
+
+- `src/agents/strategy/types.ts:138-152` — Added 9 new tool types + `comparison_table` output format
+- `src/agents/strategy/MasterArchitect.ts:268-277` — Updated `validTools` array
+- `src/agents/strategy/MasterArchitect.ts:303-313` — Updated `valid` output formats
+
+**CSRF & Rate Limiting Fixes:**
+
+Added CSRF protection and rate limiting to conversation endpoints that were missing them:
+
+- `app/api/conversations/[id]/messages/route.ts` — POST, PATCH, DELETE now have CSRF
+- `app/api/conversations/[id]/messages/regenerate/route.ts` — POST now has CSRF
+- `app/api/conversations/[id]/folder/route.ts` — PATCH now has CSRF + rate limiting
+- `app/api/conversations/[id]/process-pending/route.ts` — POST now has CSRF + rate limiting
+
+**Test Status:** All 1877 tests passing across 60 test files.
+
+### Testing Routes
+
+To verify the strategy tools are working:
+
+```bash
+# Test all E2B tools
+curl http://localhost:3000/api/strategy/test-tools
+
+# Test SSE events (returns mock stream)
+curl http://localhost:3000/api/strategy/test-events
+
+# Test full strategy flow
+curl http://localhost:3000/api/strategy/test
+```
+
+### Key Integration Points
+
+When resuming development:
+
+1. **Strategy Agent Entry Point:** `app/api/strategy/route.ts`
+2. **Agent Orchestration:** `src/agents/strategy/StrategyAgent.ts`
+3. **Scout Execution:** `src/agents/strategy/Scout.ts`
+4. **Tool Definitions:** `src/agents/strategy/tools/executor.ts:getClaudeToolDefinitions()`
+5. **UI Components:** `src/components/chat/DeepStrategy/`
+6. **React Hook:** `src/hooks/useDeepStrategy.ts`
