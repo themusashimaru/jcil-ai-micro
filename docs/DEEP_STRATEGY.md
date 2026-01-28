@@ -469,6 +469,731 @@ Parses natural language steering commands from users during execution and transl
 
 After synthesis completes, the system generates downloadable deliverables:
 
+---
+
+## Advanced AI Capabilities
+
+The Deep Strategy Agent includes cutting-edge AI features that push the boundaries of what's possible with autonomous agents. These advanced capabilities are implemented in the `src/agents/strategy/advanced/` module.
+
+### 1. Meta-Cognitive Reflection Engine
+
+**File:** `src/agents/strategy/ReflectionEngine.ts`
+
+The Reflection Engine enables the AI to analyze its own reasoning process—a form of "thinking about thinking" that improves decision quality.
+
+**Capabilities:**
+
+- **Assumption Identification** — Detects implicit assumptions in analysis
+- **Bias Detection** — Identifies cognitive biases (confirmation, anchoring, availability, overconfidence)
+- **Logic Gap Analysis** — Finds missing reasoning steps or logical leaps
+- **Meta-Observations** — Higher-level patterns in the reasoning process
+
+**Key Types:**
+
+```typescript
+interface ReflectionResult {
+  assumptions: Assumption[]; // Implicit assumptions found
+  biases: BiasDetection[]; // Detected cognitive biases
+  logicGaps: LogicGap[]; // Missing reasoning steps
+  metaObservations: MetaObservation[]; // Higher-level patterns
+  overallQuality: number; // 0-1 reasoning quality score
+  recommendations: string[]; // Suggestions for improvement
+}
+
+type BiasType =
+  | 'confirmation' // Seeking confirming evidence
+  | 'anchoring' // Over-relying on first information
+  | 'availability' // Overweighting easily recalled info
+  | 'overconfidence' // Excessive certainty
+  | 'sunk_cost' // Continuing due to past investment
+  | 'framing' // Influenced by how info is presented
+  | 'groupthink' // Conforming to perceived consensus
+  | 'recency' // Overweighting recent events
+  | 'other';
+```
+
+**Usage:**
+
+```typescript
+import { createReflectionEngine } from '@/agents/strategy/advanced';
+
+const reflection = createReflectionEngine(anthropicClient, onStream);
+const result = await reflection.reflect({
+  findings: strategyFindings,
+  reasoning: synthesisReasoning,
+  context: problemContext,
+});
+
+// Result includes identified assumptions, biases, and improvement suggestions
+```
+
+### 2. Adversarial Verification Layer
+
+**File:** `src/agents/strategy/AdversarialVerifier.ts`
+
+The Adversarial Verifier acts as a "devil's advocate" that challenges the AI's own conclusions, identifying weaknesses before they reach the user.
+
+**Capabilities:**
+
+- **Counter-Argument Generation** — Creates strongest opposing arguments
+- **Contradiction Detection** — Finds internal inconsistencies
+- **Stress Testing** — Tests conclusions under extreme scenarios
+- **Multi-Perspective Analysis** — Views from skeptic, optimist, expert, layperson
+
+**Key Types:**
+
+```typescript
+interface AdversarialResult {
+  counterArguments: CounterArgument[];
+  contradictions: Contradiction[];
+  stressTestResults: StressTestResult[];
+  perspectives: Perspective[];
+  devilsAdvocate: DevilsAdvocateAssessment;
+  verdict: VerificationVerdict;
+}
+
+interface VerificationVerdict {
+  robust: boolean; // Did it survive adversarial testing?
+  confidenceAdjustment: number; // How much to adjust confidence (-0.5 to +0.5)
+  criticalFlaws: string[]; // Fundamental issues found
+  suggestedRevisions: string[]; // Recommended changes
+}
+```
+
+**Usage:**
+
+```typescript
+import { createAdversarialVerifier } from '@/agents/strategy/advanced';
+
+const verifier = createAdversarialVerifier(anthropicClient, onStream);
+const result = await verifier.verify({
+  conclusion: strategyRecommendation,
+  evidence: supportingFindings,
+  context: problemStatement,
+});
+
+// If !result.verdict.robust, revise the conclusion
+```
+
+### 3. Knowledge Graph System
+
+**File:** `src/agents/strategy/KnowledgeGraph.ts`
+
+The Knowledge Graph creates structured representations of entities and relationships, enabling sophisticated reasoning that goes beyond text similarity.
+
+**Capabilities:**
+
+- **Entity Extraction** — Identifies people, organizations, concepts, events
+- **Relationship Mapping** — Discovers connections between entities
+- **Cluster Analysis** — Groups related entities for insight
+- **Graph Queries** — Path finding, subgraph extraction, pattern matching
+- **Persistence** — Stores graphs in Supabase for cross-session learning
+
+**Key Types:**
+
+```typescript
+interface Entity {
+  id: string;
+  name: string;
+  type: EntityType; // person | organization | concept | event | location | product | technology
+  properties: Record<string, unknown>;
+  confidence: number;
+  sources: string[];
+}
+
+interface Relationship {
+  id: string;
+  source: string; // Entity ID
+  target: string; // Entity ID
+  type: RelationshipType; // causes | enables | competes_with | part_of | influences | etc.
+  strength: number; // 0-1
+  properties: Record<string, unknown>;
+}
+
+interface GraphQuery {
+  type: 'path' | 'neighbors' | 'subgraph' | 'pattern';
+  startEntity?: string;
+  endEntity?: string;
+  maxDepth?: number;
+  relationshipTypes?: RelationshipType[];
+  entityTypes?: EntityType[];
+}
+```
+
+**Usage:**
+
+```typescript
+import { createKnowledgeGraph } from '@/agents/strategy/advanced';
+
+const graph = createKnowledgeGraph(anthropicClient, userId, sessionId, onStream);
+
+// Extract entities and relationships from findings
+const extraction = await graph.extractFromFindings(strategyFindings);
+
+// Query the graph
+const paths = await graph.query({
+  type: 'path',
+  startEntity: 'company_a',
+  endEntity: 'market_trend_1',
+  maxDepth: 4,
+});
+
+// Get graph statistics
+const stats = graph.getStatistics();
+// { entityCount, relationshipCount, clusterCount, density, avgDegree }
+```
+
+### 4. Causal Reasoning Engine
+
+**File:** `src/agents/strategy/CausalReasoningEngine.ts`
+
+The Causal Reasoning Engine implements Pearl's causal inference framework to distinguish correlation from causation and identify intervention points.
+
+**Capabilities:**
+
+- **Causal Graph Construction** — Builds cause-effect networks
+- **Root Cause Analysis** — Traces effects back to underlying causes
+- **Counterfactual Analysis** — "What if X hadn't happened?"
+- **Intervention Planning** — Identifies best points to intervene
+- **Confounder Detection** — Finds hidden variables affecting relationships
+
+**Key Types:**
+
+```typescript
+interface CausalGraph {
+  nodes: CausalNode[];
+  edges: CausalEdge[];
+  confounders: Confounder[];
+  interventionPoints: InterventionPoint[];
+}
+
+interface CausalEdge {
+  source: string;
+  target: string;
+  mechanism: string; // How cause produces effect
+  strength: number; // 0-1 causal strength
+  confidence: number; // 0-1 confidence in causal relationship
+  timelag?: string; // e.g., "2 weeks", "immediate"
+  necessary: boolean; // Is this cause necessary for effect?
+  sufficient: boolean; // Is this cause sufficient for effect?
+}
+
+interface CounterfactualAnalysis {
+  scenario: string; // "What if X hadn't happened?"
+  predictedOutcome: string;
+  confidence: number;
+  assumptions: string[];
+  caveats: string[];
+}
+```
+
+**Usage:**
+
+```typescript
+import { createCausalReasoningEngine } from '@/agents/strategy/advanced';
+
+const causal = createCausalReasoningEngine(anthropicClient, onStream);
+
+// Build causal graph from findings
+const graph = await causal.buildCausalGraph({
+  findings: strategyFindings,
+  domain: 'market_analysis',
+});
+
+// Analyze root causes
+const rootCauses = await causal.analyzeRootCauses({
+  effect: 'declining_sales',
+  graph: graph,
+  maxDepth: 5,
+});
+
+// Run counterfactual analysis
+const counterfactual = await causal.runCounterfactual({
+  graph: graph,
+  intervention: 'remove_competitor_entry',
+  targetOutcome: 'market_share',
+});
+```
+
+### 5. Predictive Simulation Engine
+
+**File:** `src/agents/strategy/PredictiveSimulator.ts`
+
+The Predictive Simulator enables scenario modeling, Monte Carlo simulation, and what-if analysis for strategic planning.
+
+**Capabilities:**
+
+- **Scenario Generation** — Creates multiple future scenarios
+- **What-If Analysis** — Explores hypothetical changes
+- **Sensitivity Analysis** — Identifies which variables matter most
+- **Decision Trees** — Models decision paths with probabilities
+- **Monte Carlo Simulation** — Runs thousands of iterations
+
+**Key Types:**
+
+```typescript
+interface Scenario {
+  id: string;
+  name: string;
+  description: string;
+  probability: number;
+  variables: ScenarioVariable[];
+  timeline: TimelineEvent[];
+  outcomes: Outcome[];
+  risks: ScenarioRisk[];
+}
+
+interface WhatIfQuery {
+  hypothesis: string; // "What if we enter the Asian market?"
+  variables: { name: string; value: unknown }[];
+  timeHorizon: string; // "6 months", "2 years"
+  metrics: string[]; // What to measure
+}
+
+interface SensitivityAnalysis {
+  variable: string;
+  baseValue: unknown;
+  range: { min: unknown; max: unknown };
+  impactOnOutcome: number; // -1 to +1
+  criticalThreshold?: unknown;
+}
+
+interface DecisionTree {
+  root: DecisionNode;
+  expectedValue: number;
+  bestPath: string[]; // Node IDs for optimal decisions
+  worstPath: string[];
+}
+```
+
+**Usage:**
+
+```typescript
+import { createPredictiveSimulator } from '@/agents/strategy/advanced';
+
+const simulator = createPredictiveSimulator(anthropicClient, onStream);
+
+// Generate scenarios
+const scenarios = await simulator.generateScenarios({
+  context: problemContext,
+  variables: marketVariables,
+  count: 5,
+  timeHorizon: '1 year',
+});
+
+// Run what-if analysis
+const whatIf = await simulator.whatIf({
+  hypothesis: 'What if we doubled our marketing budget?',
+  variables: [{ name: 'marketing_spend', value: 2000000 }],
+  timeHorizon: '6 months',
+  metrics: ['revenue', 'market_share', 'brand_awareness'],
+});
+
+// Build decision tree
+const tree = await simulator.buildDecisionTree({
+  decisions: strategicOptions,
+  outcomes: possibleOutcomes,
+  probabilities: estimatedProbabilities,
+});
+```
+
+### 6. Multi-Modal Document Analyzer
+
+**File:** `src/agents/strategy/DocumentAnalyzer.ts`
+
+The Document Analyzer provides sophisticated understanding of images, PDFs, and tables using Claude's vision capabilities.
+
+**Capabilities:**
+
+- **Document Type Detection** — Identifies financial reports, contracts, charts, etc.
+- **Table Extraction** — Parses tables from images and PDFs
+- **Chart Data Extraction** — Extracts underlying data from visualizations
+- **Entity Extraction** — Identifies people, organizations, dates, amounts
+- **Cross-Document Comparison** — Compares multiple documents
+
+**Key Types:**
+
+```typescript
+interface DocumentAnalysis {
+  id: string;
+  documentType: DocumentType; // financial_report | contract | chart | table | presentation | etc.
+  metadata: DocumentMetadata;
+  structuredData: StructuredData;
+  tables: ExtractedTable[];
+  images: ExtractedImage[];
+  entities: DocumentEntity[];
+  summary: string;
+  confidence: number;
+}
+
+interface ExtractedTable {
+  id: string;
+  title: string;
+  headers: string[];
+  rows: (string | number)[][];
+  pageNumber?: number;
+  confidence: number;
+}
+
+interface ChartDataExtraction {
+  chartType: 'bar' | 'line' | 'pie' | 'scatter' | 'area' | 'other';
+  title: string;
+  xAxis: { label: string; values: (string | number)[] };
+  yAxis: { label: string; values: number[] };
+  series: { name: string; data: number[] }[];
+  dataPoints: { x: string | number; y: number; series?: string }[];
+}
+```
+
+**Usage:**
+
+```typescript
+import { createDocumentAnalyzer } from '@/agents/strategy/advanced';
+
+const analyzer = createDocumentAnalyzer(anthropicClient, onStream);
+
+// Analyze a document
+const analysis = await analyzer.analyze({
+  content: base64ImageOrPdf,
+  mimeType: 'application/pdf',
+  extractTables: true,
+  extractCharts: true,
+});
+
+// Extract chart data from an image
+const chartData = await analyzer.extractChartData({
+  content: base64ChartImage,
+  chartType: 'bar',
+});
+
+// Compare multiple documents
+const comparison = await analyzer.compareDocuments([doc1, doc2, doc3]);
+```
+
+### 7. Adaptive Model Router
+
+**File:** `src/agents/strategy/AdaptiveModelRouter.ts`
+
+The Adaptive Model Router intelligently selects the optimal Claude model for each task based on complexity, cost, and performance requirements.
+
+**Capabilities:**
+
+- **Task Profiling** — Analyzes task complexity and requirements
+- **Model Scoring** — Scores models based on task fit
+- **Performance Learning** — Improves routing based on outcomes
+- **Cost Optimization** — Balances quality with API costs
+- **Batch Routing** — Routes multiple tasks optimally
+
+**Key Types:**
+
+```typescript
+interface TaskProfile {
+  taskId: string;
+  taskType: TaskType; // analysis | extraction | summarization | classification | etc.
+  complexity: ComplexityLevel; // trivial | simple | moderate | complex | extreme
+  requiredCapabilities: Capability[]; // reasoning | creativity | precision | speed | vision | code | etc.
+  inputSize: 'small' | 'medium' | 'large' | 'very_large';
+  urgency: 'critical' | 'high' | 'normal' | 'low';
+  costSensitivity: 'high' | 'medium' | 'low';
+  qualityRequirement: 'best' | 'good' | 'acceptable';
+}
+
+interface RoutingDecision {
+  taskId: string;
+  selectedModel: ModelTier; // opus | sonnet | haiku
+  modelId: string;
+  confidence: number;
+  reasoning: string[];
+  estimatedCost: number;
+  estimatedLatency: 'fast' | 'medium' | 'slow';
+  alternatives: { model: ModelTier; score: number; tradeoff: string }[];
+}
+```
+
+**Model Capabilities:**
+
+| Model      | Best For                         | Speed | Quality | Cost Efficiency |
+| ---------- | -------------------------------- | ----- | ------- | --------------- |
+| Opus 4.5   | Complex reasoning, extreme tasks | ★★☆☆  | ★★★★★   | ★★☆☆☆           |
+| Sonnet 4.5 | Balanced tasks, most use cases   | ★★★★☆ | ★★★★☆   | ★★★★☆           |
+| Haiku 4.5  | Fast extraction, simple tasks    | ★★★★★ | ★★★☆☆   | ★★★★★           |
+
+**Usage:**
+
+```typescript
+import { createAdaptiveModelRouter } from '@/agents/strategy/advanced';
+
+const router = createAdaptiveModelRouter({
+  defaultModel: 'sonnet',
+  costBudget: 5.0,
+  preferQuality: true,
+  learningEnabled: true,
+});
+
+// Route a single task
+const decision = router.route({
+  taskId: 'analysis_1',
+  taskType: 'analysis',
+  complexity: 'complex',
+  requiredCapabilities: ['reasoning', 'synthesis'],
+  inputSize: 'large',
+  urgency: 'normal',
+  costSensitivity: 'medium',
+  qualityRequirement: 'best',
+});
+
+// Record performance for learning
+router.recordPerformance({
+  taskId: 'analysis_1',
+  taskType: 'analysis',
+  modelUsed: 'opus',
+  inputTokens: 5000,
+  outputTokens: 2000,
+  latencyMs: 8500,
+  success: true,
+  qualityScore: 0.95,
+  cost: 0.12,
+  timestamp: Date.now(),
+});
+```
+
+### 8. Full Audit Trail & Explainability
+
+**File:** `src/agents/strategy/AuditTrail.ts`
+
+The Audit Trail provides comprehensive logging and explainability for all AI decisions, enabling transparency and debugging.
+
+**Capabilities:**
+
+- **Decision Logging** — Records every significant AI decision
+- **Reasoning Chains** — Captures step-by-step reasoning
+- **Data Flow Tracking** — Shows how data moves through the system
+- **Explainability Reports** — Human-readable decision explanations
+- **Audit Queries** — Search and filter audit events
+
+**Key Types:**
+
+```typescript
+interface AuditEvent {
+  id: string;
+  sessionId: string;
+  userId: string;
+  eventType: AuditEventType; // decision | tool_use | model_call | error | finding | etc.
+  timestamp: number;
+  component: string; // Which module generated this
+  action: string;
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown>;
+  reasoning?: string;
+  modelUsed?: ModelTier;
+  tokenUsage?: { input: number; output: number };
+  cost?: number;
+  duration?: number;
+  parentEventId?: string; // For nested events
+}
+
+interface DecisionExplanation {
+  decision: string;
+  reasoning: ReasoningChain;
+  alternatives: { option: string; whyNotChosen: string }[];
+  confidence: number;
+  keyFactors: string[];
+  assumptions: string[];
+  limitations: string[];
+}
+
+interface ExplainabilityReport {
+  sessionId: string;
+  executiveSummary: string;
+  keyDecisions: DecisionExplanation[];
+  dataFlow: DataFlowNode[];
+  modelUsage: { model: ModelTier; calls: number; tokens: number; cost: number }[];
+  timeline: { timestamp: number; event: string }[];
+  recommendations: string[];
+}
+```
+
+**Usage:**
+
+```typescript
+import { createAuditTrail } from '@/agents/strategy/advanced';
+
+const audit = createAuditTrail(sessionId, userId, { persistToDb: true });
+
+// Log events throughout execution
+audit.logEvent({
+  eventType: 'decision',
+  component: 'MasterArchitect',
+  action: 'designed_agent_army',
+  inputs: { problemSynthesis },
+  outputs: { agentBlueprints },
+  reasoning: 'Selected specialized agents based on problem domains',
+});
+
+// Generate explainability report
+const report = await audit.generateReport();
+
+// Query audit events
+const decisions = await audit.query({
+  eventTypes: ['decision'],
+  component: 'QualityControl',
+  startTime: sessionStartTime,
+});
+```
+
+### 9. Advanced Puppeteer with Anti-Detection
+
+**File:** `src/agents/strategy/tools/AdvancedPuppeteer.ts`
+
+The Advanced Puppeteer provides enhanced browser automation with proxy support, fingerprint masking, and anti-detection capabilities for reliable web scraping.
+
+**Capabilities:**
+
+- **Proxy Rotation** — Cycles through proxy servers to avoid blocks
+- **User Agent Rotation** — Randomizes browser fingerprints
+- **Anti-Detection Scripts** — Evades bot detection systems
+- **Rate Limiting** — Respects website limits with random delays
+- **Session Management** — Maintains browser state across requests
+- **Safety Checks** — Blocks sensitive form fields and dangerous actions
+
+**Key Types:**
+
+```typescript
+interface BrowserConfig {
+  proxyEnabled: boolean;
+  proxies: ProxyConfig[];
+  userAgentRotation: boolean;
+  antiDetectionLevel: 'none' | 'basic' | 'standard' | 'advanced';
+  requestDelay: { min: number; max: number }; // Random delay between requests
+  timeout: number;
+}
+
+interface ProxyServer {
+  host: string;
+  port: number;
+  protocol: 'http' | 'https' | 'socks5';
+  username?: string;
+  password?: string;
+  country?: string;
+}
+
+interface FingerprintProfile {
+  userAgent: string;
+  viewport: { width: number; height: number };
+  timezone: string;
+  locale: string;
+  platform: string;
+}
+
+interface PageResult {
+  url: string;
+  title: string;
+  content: string;
+  screenshot?: string; // Base64
+  cookies: BrowserCookie[];
+  timing: { dns: number; connect: number; ttfb: number; load: number };
+}
+```
+
+**Anti-Detection Levels:**
+
+| Level    | Features                                 | Use Case               |
+| -------- | ---------------------------------------- | ---------------------- |
+| none     | No anti-detection                        | Trusted/internal sites |
+| basic    | Hide webdriver property                  | Simple bot detection   |
+| standard | + Mock plugins, languages, permissions   | Medium security sites  |
+| advanced | + Full fingerprint masking, canvas noise | High security sites    |
+
+**Safety Features:**
+
+- **Blocked Form Fields:** password, credit card, CVV, SSN, bank account, API keys
+- **Domain Restrictions:** .gov, .mil, banking login pages, adult content
+- **Rate Limits:** Per-domain page limits, action delays
+
+**Usage:**
+
+```typescript
+import { createAdvancedPuppeteer } from '@/agents/strategy/advanced';
+
+const browser = createAdvancedPuppeteer({
+  proxyEnabled: true,
+  proxies: [
+    { host: 'proxy1.example.com', port: 8080, protocol: 'http' },
+    { host: 'proxy2.example.com', port: 8080, protocol: 'http' },
+  ],
+  antiDetectionLevel: 'standard',
+  requestDelay: { min: 1000, max: 3000 },
+  timeout: 30000,
+});
+
+// Navigate with anti-detection
+const result = await browser.navigate('https://example.com', {
+  waitFor: 'networkidle2',
+  screenshot: true,
+});
+
+// Take screenshot
+const screenshot = await browser.screenshot('https://example.com/pricing');
+
+// Fill safe form (search/filter only - login/payment blocked)
+const formResult = await browser.fillForm(
+  'https://example.com/search',
+  { query: 'market research', category: 'reports' },
+  'button[type="submit"]'
+);
+```
+
+---
+
+### Advanced Features Integration
+
+All advanced features are exported from a central module for easy integration:
+
+```typescript
+// Import all advanced features
+import {
+  // Meta-cognitive Reflection
+  createReflectionEngine,
+  type ReflectionResult,
+
+  // Adversarial Verification
+  createAdversarialVerifier,
+  type AdversarialResult,
+
+  // Knowledge Graph
+  createKnowledgeGraph,
+  type Entity,
+  type Relationship,
+
+  // Causal Reasoning
+  createCausalReasoningEngine,
+  type CausalGraph,
+
+  // Predictive Simulation
+  createPredictiveSimulator,
+  type Scenario,
+  type WhatIfResult,
+
+  // Document Analysis
+  createDocumentAnalyzer,
+  type DocumentAnalysis,
+
+  // Adaptive Model Routing
+  createAdaptiveModelRouter,
+  type RoutingDecision,
+
+  // Audit Trail
+  createAuditTrail,
+  type AuditEvent,
+
+  // Advanced Puppeteer
+  createAdvancedPuppeteer,
+  type BrowserConfig,
+} from '@/agents/strategy/advanced';
+```
+
+---
+
 | Artifact Type    | Format    | Content                                     |
 | ---------------- | --------- | ------------------------------------------- |
 | Comparison CSV   | text/csv  | Domain comparison tables from analysis      |
@@ -804,6 +1529,20 @@ src/agents/strategy/
 ├── SteeringEngine.ts     # Real-time control — parse commands, kill/spawn scouts
 ├── ArtifactGenerator.ts  # Auto-deliverables — CSV, reports, charts via E2B
 │
+│   Advanced AI Capabilities (cutting-edge features)
+├── ReflectionEngine.ts   # Meta-cognitive reflection (AI thinking about thinking)
+├── AdversarialVerifier.ts # Devil's advocate verification layer
+├── KnowledgeGraph.ts     # Structured entity-relationship knowledge
+├── CausalReasoningEngine.ts # Pearl's causal inference (cause-effect analysis)
+├── PredictiveSimulator.ts # Scenario modeling, Monte Carlo, what-if analysis
+├── DocumentAnalyzer.ts   # Multi-modal document understanding (vision AI)
+├── AdaptiveModelRouter.ts # Smart model selection (opus/sonnet/haiku)
+├── AuditTrail.ts         # Full decision logging and explainability
+│
+│   Advanced Module Exports
+├── advanced/
+│   └── index.ts          # Central export for all advanced features
+│
 │   Prompt System (multi-mode architecture)
 ├── prompts/
 │   ├── types.ts          # PromptSet interface (7 prompt fields)
@@ -811,7 +1550,11 @@ src/agents/strategy/
 │   ├── research.ts       # Deep Research prompts
 │   └── index.ts          # Mode selector (getPrompts, getAvailableModes)
 │
-└── tools/                # Research tool implementations (14 tools)
+│   Tests
+├── __tests__/
+│   └── advanced-features.test.ts  # Comprehensive tests for all 9 advanced features
+│
+└── tools/                # Research tool implementations (14+ tools)
     ├── index.ts          # Tool exports
     ├── types.ts          # Tool type definitions
     ├── braveSearch.ts    # Brave Search API integration
@@ -821,7 +1564,8 @@ src/agents/strategy/
     ├── visionAnalysis.ts # Claude Vision screenshot analysis
     ├── comparisonTable.ts # Comparison table generator
     ├── safety.ts         # Browser safety framework
-    └── executor.ts       # Tool execution & cost tracking
+    ├── executor.ts       # Tool execution & cost tracking
+    └── AdvancedPuppeteer.ts # Enhanced browser with proxies & anti-detection
 
 src/components/chat/DeepStrategy/
 ├── index.ts                  # Component exports
@@ -871,6 +1615,88 @@ supabase/migrations/
 ---
 
 ## Development Notes & Changelog
+
+### 2026-01-28: Advanced AI Capabilities (Major Feature Release)
+
+**New Modules:** Added 9 cutting-edge AI capabilities to the Deep Strategy Agent:
+
+1. **ReflectionEngine** (`ReflectionEngine.ts`)
+   - Meta-cognitive reflection — AI analyzes its own reasoning
+   - Identifies assumptions, cognitive biases, logic gaps
+   - Provides reasoning quality scores and improvement suggestions
+
+2. **AdversarialVerifier** (`AdversarialVerifier.ts`)
+   - Devil's advocate verification layer
+   - Generates counter-arguments, detects contradictions
+   - Stress tests conclusions under extreme scenarios
+   - Multi-perspective analysis (skeptic, optimist, expert, layperson)
+
+3. **KnowledgeGraph** (`KnowledgeGraph.ts`)
+   - Structured entity-relationship knowledge representation
+   - Entity extraction from findings (person, org, concept, event, etc.)
+   - Relationship mapping (causes, enables, competes_with, etc.)
+   - Graph queries: path finding, subgraph extraction, pattern matching
+   - Supabase persistence for cross-session learning
+
+4. **CausalReasoningEngine** (`CausalReasoningEngine.ts`)
+   - Pearl's causal inference framework
+   - Builds causal graphs with cause-effect relationships
+   - Root cause analysis — traces effects to underlying causes
+   - Counterfactual analysis — "What if X hadn't happened?"
+   - Intervention point identification
+
+5. **PredictiveSimulator** (`PredictiveSimulator.ts`)
+   - Scenario modeling with Monte Carlo simulation
+   - What-if analysis for strategic planning
+   - Sensitivity analysis — identifies which variables matter most
+   - Decision tree construction with probability weighting
+
+6. **DocumentAnalyzer** (`DocumentAnalyzer.ts`)
+   - Multi-modal document understanding using Claude Vision
+   - Document type detection (financial report, contract, chart, etc.)
+   - Table extraction from images and PDFs
+   - Chart data extraction — recovers underlying data from visualizations
+   - Cross-document comparison
+
+7. **AdaptiveModelRouter** (`AdaptiveModelRouter.ts`)
+   - Smart model selection based on task complexity
+   - Task profiling (type, complexity, urgency, cost sensitivity)
+   - Model scoring and capability matching
+   - Performance learning — improves routing based on outcomes
+   - Cost optimization with quality balancing
+
+8. **AuditTrail** (`AuditTrail.ts`)
+   - Full decision logging and explainability
+   - Reasoning chain recording with step-by-step transparency
+   - Data flow tracking through the system
+   - Explainability report generation
+   - Audit queries and filtering
+
+9. **AdvancedPuppeteer** (`tools/AdvancedPuppeteer.ts`)
+   - Enhanced browser automation for reliable web scraping
+   - Proxy rotation with multiple server support
+   - User agent and fingerprint rotation
+   - Anti-detection scripts (basic/standard/advanced levels)
+   - Rate limiting with configurable delays
+   - Safety checks blocking sensitive form fields
+
+**New Files Created:**
+
+- `src/agents/strategy/ReflectionEngine.ts`
+- `src/agents/strategy/AdversarialVerifier.ts`
+- `src/agents/strategy/KnowledgeGraph.ts`
+- `src/agents/strategy/CausalReasoningEngine.ts`
+- `src/agents/strategy/PredictiveSimulator.ts`
+- `src/agents/strategy/DocumentAnalyzer.ts`
+- `src/agents/strategy/AdaptiveModelRouter.ts`
+- `src/agents/strategy/AuditTrail.ts`
+- `src/agents/strategy/tools/AdvancedPuppeteer.ts`
+- `src/agents/strategy/advanced/index.ts` (central export)
+- `src/agents/strategy/__tests__/advanced-features.test.ts` (comprehensive tests)
+
+**Test Status:** All tests passing. TypeScript and ESLint clean.
+
+---
 
 ### 2026-01-28: Audit Fixes & Tool Type Expansion
 
