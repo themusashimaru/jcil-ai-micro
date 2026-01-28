@@ -83,6 +83,16 @@ export class MasterArchitect {
   // ===========================================================================
 
   /**
+   * Inject additional context (prior knowledge, performance data) into the
+   * architect's system prompt before designing agents.
+   */
+  injectAdditionalContext(context: string): void {
+    if (context) {
+      this.systemPrompt += context;
+    }
+  }
+
+  /**
    * Design the agent army based on the synthesized problem
    */
   async designAgents(problem: SynthesizedProblem): Promise<AgentHierarchy> {

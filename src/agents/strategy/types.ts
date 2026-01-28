@@ -551,3 +551,138 @@ export interface StrategyContext {
   attachments?: StrategyAttachment[];
   userContext?: string[]; // Mid-execution context messages from user
 }
+
+// =============================================================================
+// KNOWLEDGE BASE - Persistent Memory
+// =============================================================================
+
+export interface KnowledgeEntry {
+  id: string;
+  userId: string;
+  sessionId: string;
+  agentMode: AgentMode;
+  findingType: string;
+  title: string;
+  content: string;
+  confidence: 'high' | 'medium' | 'low';
+  relevanceScore: number;
+  sources: SourceCitation[];
+  dataPoints: DataPoint[];
+  domain?: string;
+  topicTags: string[];
+  searchQueries: string[];
+  scoutName?: string;
+  scoutToolsUsed: string[];
+  createdAt: number;
+}
+
+export interface KnowledgeQuery {
+  userId: string;
+  searchText?: string;
+  domain?: string;
+  tags?: string[];
+  agentMode?: AgentMode;
+  limit?: number;
+  minRelevance?: number;
+}
+
+export interface KnowledgeContext {
+  entries: KnowledgeEntry[];
+  summary: string;
+  domains: string[];
+  totalFindings: number;
+}
+
+// =============================================================================
+// SCOUT PERFORMANCE - Learning System
+// =============================================================================
+
+export interface ScoutPerformanceRecord {
+  scoutId: string;
+  scoutName: string;
+  scoutRole?: string;
+  expertise: string[];
+  modelTier: ModelTier;
+  toolsAssigned: string[];
+  researchApproach?: string;
+  searchQueries: string[];
+  browserTargets: string[];
+  findingsCount: number;
+  highConfidenceCount: number;
+  mediumConfidenceCount: number;
+  lowConfidenceCount: number;
+  avgRelevanceScore: number;
+  executionTimeMs: number;
+  tokensUsed: number;
+  costIncurred: number;
+  searchesExecuted: number;
+  pagesVisited: number;
+  screenshotsTaken: number;
+  toolCallsTotal: number;
+  toolCallsSucceeded: number;
+  toolCallsFailed: number;
+  status: 'pending' | 'complete' | 'failed' | 'killed';
+  errorMessage?: string;
+  spawnedChildren: number;
+  gapsIdentified: string[];
+  domain?: string;
+  problemComplexity?: string;
+}
+
+export interface PerformanceInsight {
+  toolCombo: string[];
+  avgFindingsCount: number;
+  avgConfidenceScore: number;
+  avgRelevanceScore: number;
+  successRate: number;
+  avgExecutionTimeMs: number;
+  sampleSize: number;
+}
+
+// =============================================================================
+// STEERING - Real-time Execution Control
+// =============================================================================
+
+export type SteeringAction =
+  | 'kill_domain' // Kill all scouts in a domain
+  | 'kill_scout' // Kill a specific scout
+  | 'focus_domain' // Reallocate budget to a domain
+  | 'spawn_scouts' // Spawn additional scouts
+  | 'pause' // Pause execution
+  | 'resume' // Resume execution
+  | 'adjust_budget' // Change budget allocation
+  | 'redirect'; // General redirect instruction
+
+export interface SteeringCommand {
+  action: SteeringAction;
+  target?: string; // Domain name, scout ID, etc.
+  message: string; // Original user message
+  parameters?: {
+    domain?: string;
+    scoutCount?: number;
+    budgetPercent?: number;
+    queries?: string[];
+    focus?: string;
+  };
+  timestamp: number;
+}
+
+// =============================================================================
+// ARTIFACTS - Generated Deliverables
+// =============================================================================
+
+export type ArtifactType = 'chart' | 'table' | 'csv' | 'report';
+
+export interface Artifact {
+  id: string;
+  sessionId: string;
+  type: ArtifactType;
+  title: string;
+  description?: string;
+  mimeType: string;
+  fileName: string;
+  contentBase64?: string; // For binary content (images, PDFs)
+  contentText?: string; // For text content (CSV, markdown)
+  sizeBytes: number;
+  createdAt: number;
+}

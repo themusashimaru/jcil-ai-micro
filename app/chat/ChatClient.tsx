@@ -1381,7 +1381,17 @@ I'll update you as scouts report back with findings.`,
             if (data) {
               try {
                 const event = JSON.parse(data) as StrategyStreamEvent & {
-                  data?: { result?: StrategyOutput };
+                  data?: {
+                    result?: StrategyOutput;
+                    artifacts?: Array<{
+                      id: string;
+                      type: string;
+                      title: string;
+                      fileName: string;
+                      mimeType: string;
+                      sizeBytes: number;
+                    }>;
+                  };
                 };
 
                 // Collect events for BrowserPreviewWindow
@@ -1417,7 +1427,7 @@ I'll update you as scouts report back with findings.`,
 
                 // Check for completion
                 if (event.type === 'strategy_complete' && event.data?.result) {
-                  displayStrategyResult(event.data.result);
+                  displayStrategyResult(event.data.result, event.data.artifacts);
                   setStrategyPhase('complete');
                   setIsStrategyMode(false);
                 }
@@ -1460,7 +1470,24 @@ I'll update you as scouts report back with findings.`,
   /**
    * Display the final strategy result as a rich chat message
    */
-  const displayStrategyResult = (result: StrategyOutput) => {
+  const displayStrategyResult = (
+    result: StrategyOutput,
+    artifacts?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+    }>
+  ) => {
+    const artifactSection =
+      artifacts && artifacts.length > 0
+        ? `\n### Generated Deliverables\n${artifacts
+            .map((a) => `- **${a.title}** (${a.fileName}) — ${(a.sizeBytes / 1024).toFixed(1)} KB`)
+            .join('\n')}\n\n*Deliverables are stored and can be retrieved from your session.*`
+        : '';
+
     const content = `## 🎯 Strategy Complete
 
 ### Recommendation
@@ -1486,6 +1513,7 @@ ${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority:
 ${result.nextSteps.map((step) => `- ${step}`).join('\n')}
 
 ${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- ${gap}`).join('\n')}` : ''}
+${artifactSection}
 
 ### Research Metadata
 - **Agents Deployed:** ${result.metadata.totalAgents}
@@ -1745,7 +1773,17 @@ I'll update you as investigators report back with findings.`,
             if (data) {
               try {
                 const event = JSON.parse(data) as StrategyStreamEvent & {
-                  data?: { result?: StrategyOutput };
+                  data?: {
+                    result?: StrategyOutput;
+                    artifacts?: Array<{
+                      id: string;
+                      type: string;
+                      title: string;
+                      fileName: string;
+                      mimeType: string;
+                      sizeBytes: number;
+                    }>;
+                  };
                 };
 
                 setDeepResearchEvents((prev) => [...prev, event]);
@@ -1776,7 +1814,7 @@ I'll update you as investigators report back with findings.`,
                 }
 
                 if (event.type === 'strategy_complete' && event.data?.result) {
-                  displayResearchResult(event.data.result);
+                  displayResearchResult(event.data.result, event.data.artifacts);
                   setDeepResearchPhase('complete');
                   setIsDeepResearchMode(false);
                 }
@@ -1817,7 +1855,24 @@ I'll update you as investigators report back with findings.`,
   /**
    * Display the final research result as a rich chat message
    */
-  const displayResearchResult = (result: StrategyOutput) => {
+  const displayResearchResult = (
+    result: StrategyOutput,
+    artifacts?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+    }>
+  ) => {
+    const artifactSection =
+      artifacts && artifacts.length > 0
+        ? `\n### Generated Deliverables\n${artifacts
+            .map((a) => `- **${a.title}** (${a.fileName}) — ${(a.sizeBytes / 1024).toFixed(1)} KB`)
+            .join('\n')}\n\n*Deliverables are stored and can be retrieved from your session.*`
+        : '';
+
     const content = `## 📚 Research Report Complete
 
 ### Executive Summary
@@ -1842,6 +1897,7 @@ ${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority:
 ${result.nextSteps.map((step) => `- ${step}`).join('\n')}
 
 ${result.gaps.length > 0 ? `### Knowledge Gaps\n${result.gaps.map((gap) => `- ${gap}`).join('\n')}` : ''}
+${artifactSection}
 
 ### Research Metadata
 - **Investigators Deployed:** ${result.metadata.totalAgents}
@@ -1959,6 +2015,54 @@ ${result.gaps.length > 0 ? `### Knowledge Gaps\n${result.gaps.map((gap) => `- ${
     if (isDeepResearchMode && deepResearchPhase === 'intake' && deepResearchSessionId) {
       await handleDeepResearchInput(content);
       return;
+    }
+
+    // STEERING: If we're in execution phase, send as context/steering command
+    if (
+      (isStrategyMode && strategyPhase === 'executing' && strategySessionId) ||
+      (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId)
+    ) {
+      const sessionId = strategySessionId || deepResearchSessionId;
+      if (sessionId) {
+        // Show user message in chat
+        const userMsg: Message = {
+          id: crypto.randomUUID(),
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, userMsg]);
+
+        try {
+          const res = await fetch('/api/strategy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'context',
+              sessionId,
+              message: content,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const responseContent = data.steeringApplied
+              ? `**Steering Applied** (${data.steeringAction})\n\n${data.message}`
+              : `Context received: "${content.slice(0, 100)}${content.length > 100 ? '...' : ''}"`;
+
+            const assistantMsg: Message = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: responseContent,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
+          }
+        } catch (err) {
+          log.warn('Failed to send steering command', { error: err });
+        }
+        return;
+      }
     }
 
     // SMART TOOL SUGGESTIONS: Check if this is a response to a pending tool suggestion

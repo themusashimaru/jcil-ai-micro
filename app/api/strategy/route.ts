@@ -19,10 +19,12 @@ import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 import {
   createStrategyAgent,
+  getSessionArtifacts,
   type StrategyStreamEvent,
   type StrategyOutput,
   type Finding,
   type AgentMode,
+  type Artifact,
 } from '@/agents/strategy';
 
 const log = logger('StrategyAPI');
@@ -662,8 +664,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Check if client wants events for replay
+    // Check if client wants events for replay or artifacts
     const includeEvents = request.nextUrl.searchParams.get('includeEvents') === 'true';
+    const includeArtifacts = request.nextUrl.searchParams.get('includeArtifacts') === 'true';
 
     // Check if session is active in memory
     const activeSession = activeSessions.get(sessionId);
@@ -694,6 +697,16 @@ export async function GET(request: NextRequest) {
     // Get stored events for replay if requested
     const storedEvents = includeEvents ? await getStoredEvents(supabase, sessionId) : [];
 
+    // Get artifacts if requested
+    let artifacts: Artifact[] = [];
+    if (includeArtifacts) {
+      try {
+        artifacts = await getSessionArtifacts(sessionId);
+      } catch (err) {
+        log.warn('Failed to load artifacts', { sessionId, error: err });
+      }
+    }
+
     // Return from database
     return new Response(
       JSON.stringify({
@@ -707,6 +720,19 @@ export async function GET(request: NextRequest) {
         result: dbSession.result,
         isActive: false,
         events: storedEvents,
+        artifacts: includeArtifacts
+          ? artifacts.map((a) => ({
+              id: a.id,
+              type: a.type,
+              title: a.title,
+              description: a.description,
+              fileName: a.fileName,
+              mimeType: a.mimeType,
+              sizeBytes: a.sizeBytes,
+              contentText: a.contentText,
+              contentBase64: a.contentBase64,
+            }))
+          : undefined,
       }),
       {
         status: 200,
@@ -1064,19 +1090,25 @@ async function handleContext(
   }
 
   try {
-    // Add context to the running strategy
-    await session.agent.addContext(message);
+    // Add context to the running strategy (may trigger steering)
+    const result = await session.agent.addContext(message);
 
     // Store in database
     await addUserContext(supabase, sessionId, message);
 
-    log.info('Context added to strategy', { sessionId, messageLength: message.length });
+    log.info('Context added to strategy', {
+      sessionId,
+      messageLength: message.length,
+      steeringApplied: result.steeringApplied,
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Context added successfully',
+        message: result.steeringApplied ? result.steeringResponse : 'Context added successfully',
         sessionId,
+        steeringApplied: result.steeringApplied,
+        steeringAction: result.command?.action,
       }),
       {
         status: 200,
@@ -1180,6 +1212,9 @@ async function handleExecute(
       // Store result and usage in database
       await storeResultAndUsage(supabase, sessionId, session.dbId, userId, result);
 
+      // Collect artifacts generated during synthesis
+      const artifacts = session.agent.getArtifacts();
+
       // Send final result
       await writer.write(
         encoder.encode(
@@ -1192,6 +1227,14 @@ async function handleExecute(
               cost: result.metadata.totalCost,
               agents: result.metadata.totalAgents,
               searches: result.metadata.totalSearches,
+              artifacts: artifacts.map((a: Artifact) => ({
+                id: a.id,
+                type: a.type,
+                title: a.title,
+                fileName: a.fileName,
+                mimeType: a.mimeType,
+                sizeBytes: a.sizeBytes,
+              })),
             },
           })}\n\n`
         )
