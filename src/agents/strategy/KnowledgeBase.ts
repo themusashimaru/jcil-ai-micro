@@ -6,7 +6,7 @@
  * instead of starting from scratch.
  *
  * Uses PostgreSQL tsvector for full-text search (no external embedding API needed).
- * pgvector column exists for future semantic search upgrade.
+ * pgvector can be added later for semantic search if the Supabase plan supports it.
  */
 
 import { createClient as createServiceClient } from '@supabase/supabase-js';

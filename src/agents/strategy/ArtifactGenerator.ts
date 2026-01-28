@@ -113,7 +113,10 @@ export async function generateArtifacts(
 // COMPARISON CSV
 // =============================================================================
 
-function generateComparisonCSV(sessionId: string, output: StrategyOutput): Artifact | null {
+async function generateComparisonCSV(
+  sessionId: string,
+  output: StrategyOutput
+): Promise<Artifact | null> {
   // Find comparison tables in domain analyses
   const tables = output.analysis.byDomain
     .filter((d) => d.comparisonTable)

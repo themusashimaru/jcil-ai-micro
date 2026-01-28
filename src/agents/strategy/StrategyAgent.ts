@@ -392,13 +392,13 @@ export class StrategyAgent {
         // Phase 5: Post-synthesis — store knowledge + generate artifacts
         try {
           this.emit('synthesis_progress', 'Storing findings in knowledge base...');
-          const domains = this.context.problem?.synthesizedProblem.domains || [];
+          const storageDomains = this.context.problem?.synthesizedProblem.domains || [];
           await storeFindings(
             this.context.userId,
             this.context.sessionId,
             this.context.mode || 'strategy',
             this.allFindings,
-            domains
+            storageDomains
           );
         } catch (error) {
           log.warn('Failed to store findings in knowledge base', { error });
@@ -624,6 +624,11 @@ export class StrategyAgent {
     let completed = 0;
     const total = this.blueprints.length;
 
+    // Track which blueprint IDs have been executed so steering scouts
+    // added mid-execution don't get run twice (the async generator reads
+    // blueprints.length dynamically and would pick them up).
+    const executedIds = new Set<string>();
+
     for await (const result of executeScoutBatch(
       this.client,
       this.blueprints,
@@ -641,6 +646,9 @@ export class StrategyAgent {
       while (this.steeringEngine.isExecutionPaused() && !this.isCancelled) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
+
+      // Mark this scout as executed
+      executedIds.add(result.agentId);
 
       // Check if this scout's domain was killed via steering
       const blueprint = this.blueprints.find((b) => b.id === result.agentId);
@@ -725,18 +733,24 @@ export class StrategyAgent {
       }
     }
 
-    // Execute any dynamically-spawned steering scouts that were added during execution
-    const steeringBlueprints = this.blueprints.filter((b) => b.id.startsWith('scout_steer_'));
-    if (steeringBlueprints.length > 0) {
+    // Execute any steering scouts that weren't picked up by the main batch.
+    // The generator reads blueprints.length dynamically, so most steering
+    // scouts get executed in the main loop. This catches any stragglers
+    // added after the loop exited (e.g., during QC checks).
+    const unexecutedSteering = this.blueprints.filter(
+      (b) => b.id.startsWith('scout_steer_') && !executedIds.has(b.id)
+    );
+
+    if (unexecutedSteering.length > 0) {
       this.emit(
         'agent_spawned',
-        `Executing ${steeringBlueprints.length} user-requested scouts...`,
-        { totalAgents: steeringBlueprints.length }
+        `Executing ${unexecutedSteering.length} user-requested scouts...`,
+        { totalAgents: unexecutedSteering.length }
       );
 
       for await (const result of executeScoutBatch(
         this.client,
-        steeringBlueprints,
+        unexecutedSteering,
         batchSize,
         delayMs,
         this.onStream,
