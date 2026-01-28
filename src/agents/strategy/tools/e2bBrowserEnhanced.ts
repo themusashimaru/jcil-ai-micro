@@ -160,12 +160,12 @@ export async function safeFormFill(input: SafeFormInput): Promise<SafeFormOutput
   }
 
   const pageCheck = canVisitPage(sessionId, url);
-  if (!pageCheck.allowed) {
+  if (!pageCheck.safe) {
     return { success: false, error: pageCheck.reason };
   }
 
   const formCheck = canSubmitForm(sessionId);
-  if (!formCheck.allowed) {
+  if (!formCheck.safe) {
     return { success: false, error: formCheck.reason };
   }
 
@@ -506,7 +506,7 @@ export async function clickAndNavigate(input: ClickNavigateInput): Promise<Click
   }
 
   const pageCheck = canVisitPage(sessionId, url);
-  if (!pageCheck.allowed) {
+  if (!pageCheck.safe) {
     return { success: false, error: pageCheck.reason };
   }
 

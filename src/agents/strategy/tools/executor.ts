@@ -24,6 +24,10 @@ import type {
   ExtractPdfInput,
   CompareScreenshotsInput,
   GenerateComparisonInput,
+  CreateCustomToolInput,
+  ExecuteCustomToolInput,
+  CreateCustomToolOutput,
+  ExecuteCustomToolOutput,
 } from './types';
 import { searchBrave } from './braveSearch';
 import { browserVisit, browserScreenshot, cleanupBrowserSandbox } from './e2bBrowser';
@@ -56,7 +60,6 @@ import {
   generateDynamicTool,
   registerDynamicTool,
   getDynamicToolCreationDefinition,
-  DynamicToolRequest,
 } from './dynamicTools';
 
 // Lazy-initialized Anthropic client for vision tools
@@ -170,8 +173,8 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
         recordPageVisit(currentSessionId, visitInput.url);
         output = await browserVisit(visitInput);
         // Sanitize output
-        if (output.content) {
-          output.content = sanitizeOutput(output.content);
+        if (output.textContent) {
+          output.textContent = sanitizeOutput(output.textContent);
         }
         costIncurred = 0.02; // E2B + Puppeteer estimate
         break;
@@ -262,11 +265,15 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
 
       // === DYNAMIC TOOL CREATION ===
       case 'create_custom_tool': {
-        const createInput = input as DynamicToolRequest & { sessionId?: string };
+        const createInput = input as CreateCustomToolInput;
         const sessionId = createInput.sessionId || currentSessionId;
 
         const dynamicTool = await generateDynamicTool({
-          ...createInput,
+          purpose: createInput.purpose,
+          justification: createInput.justification,
+          inputs: createInput.inputs,
+          outputType: createInput.outputType,
+          approach: createInput.approach,
           sessionId,
         });
 
@@ -278,12 +285,12 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
             toolName: dynamicTool.name,
             description: dynamicTool.description,
             message: 'Custom tool created successfully. Use execute_custom_tool to run it.',
-          };
+          } as CreateCustomToolOutput;
         } else {
           output = {
             success: false,
             error: 'Tool creation failed - blocked by safety checks or invalid request',
-          };
+          } as CreateCustomToolOutput;
         }
         costIncurred = 0.01; // Claude API call for generation
         break;
@@ -291,7 +298,7 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
 
       // === DYNAMIC TOOL EXECUTION ===
       case 'execute_custom_tool': {
-        const execInput = input as { toolId: string; inputs: Record<string, unknown> };
+        const execInput = input as ExecuteCustomToolInput;
         const sessionId = currentSessionId;
 
         const dynamicTool = getDynamicToolById(sessionId, execInput.toolId);
@@ -299,7 +306,7 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
           output = {
             success: false,
             error: `Custom tool not found: ${execInput.toolId}`,
-          };
+          } as ExecuteCustomToolOutput;
         } else {
           const result = await executeDynamicTool(dynamicTool, execInput.inputs, sessionId);
           output = {
@@ -307,7 +314,7 @@ export async function executeScoutTool(call: ScoutToolCall): Promise<ScoutToolRe
             result: result.output,
             error: result.error,
             executionTimeMs: result.executionTimeMs,
-          };
+          } as ExecuteCustomToolOutput;
           costIncurred = 0.01; // E2B sandbox execution
         }
         break;

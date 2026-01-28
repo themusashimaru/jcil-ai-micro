@@ -136,6 +136,21 @@ export const SCOUT_TOOLS: Record<ScoutToolName, ScoutToolDefinition> = {
     timeEstimate: 100,
     requiresE2B: false,
   },
+  // Dynamic tool creation/execution
+  create_custom_tool: {
+    name: 'create_custom_tool',
+    description: 'Create a custom tool when existing tools are insufficient',
+    costEstimate: 0.01,
+    timeEstimate: 5000,
+    requiresE2B: false,
+  },
+  execute_custom_tool: {
+    name: 'execute_custom_tool',
+    description: 'Execute a previously created custom tool',
+    costEstimate: 0.01,
+    timeEstimate: 10000,
+    requiresE2B: true,
+  },
 };
 
 // =============================================================================
@@ -243,6 +258,26 @@ export interface GenerateComparisonInput {
   highlightBest?: string[];
 }
 
+// Dynamic tool inputs
+export interface CreateCustomToolInput {
+  purpose: string;
+  justification: string;
+  inputs: Array<{
+    name: string;
+    type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+    description: string;
+    required?: boolean;
+  }>;
+  outputType: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'mixed';
+  approach?: string;
+  sessionId?: string;
+}
+
+export interface ExecuteCustomToolInput {
+  toolId: string;
+  inputs: Record<string, unknown>;
+}
+
 export type ScoutToolInput =
   | BraveSearchInput
   | BrowserVisitInput
@@ -256,7 +291,9 @@ export type ScoutToolInput =
   | ClickNavigateInput
   | ExtractPdfInput
   | CompareScreenshotsInput
-  | GenerateComparisonInput;
+  | GenerateComparisonInput
+  | CreateCustomToolInput
+  | ExecuteCustomToolInput;
 
 // =============================================================================
 // TOOL OUTPUTS
@@ -378,6 +415,23 @@ export interface GenerateComparisonOutput {
   error?: string;
 }
 
+// Dynamic tool outputs
+export interface CreateCustomToolOutput {
+  success: boolean;
+  toolId?: string;
+  toolName?: string;
+  description?: string;
+  message?: string;
+  error?: string;
+}
+
+export interface ExecuteCustomToolOutput {
+  success: boolean;
+  result?: unknown;
+  error?: string;
+  executionTimeMs?: number;
+}
+
 export type ScoutToolOutput =
   | BraveSearchOutput
   | BrowserVisitOutput
@@ -391,7 +445,9 @@ export type ScoutToolOutput =
   | ClickNavigateOutput
   | ExtractPdfOutput
   | CompareScreenshotsOutput
-  | GenerateComparisonOutput;
+  | GenerateComparisonOutput
+  | CreateCustomToolOutput
+  | ExecuteCustomToolOutput;
 
 // =============================================================================
 // TOOL CALL
