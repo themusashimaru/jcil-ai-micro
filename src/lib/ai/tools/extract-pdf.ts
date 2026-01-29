@@ -27,7 +27,8 @@ const MAX_PDF_SIZE_BYTES = 50 * 1024 * 1024; // 50MB max
 const MAX_OUTPUT_LENGTH = 100000; // 100KB max text output
 
 // Lazy load pdf-parse
-let pdfParse: typeof import('pdf-parse') | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdfParse: ((buffer: Buffer, options?: object) => Promise<{ text: string; numpages: number; info: object }>) | null = null;
 
 // ============================================================================
 // TOOL DEFINITION
@@ -69,7 +70,10 @@ async function initPdfParse(): Promise<boolean> {
   }
 
   try {
-    pdfParse = (await import('pdf-parse')).default;
+    // pdf-parse v2+ exports a named 'pdf' function, not default
+    const pdfModule = await import('pdf-parse');
+    // Handle both ESM (named export) and CJS (default export) patterns
+    pdfParse = pdfModule.pdf || pdfModule.default || pdfModule;
     log.info('pdf-parse loaded');
     return true;
   } catch (error) {
