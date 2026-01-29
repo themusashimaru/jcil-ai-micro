@@ -21,7 +21,37 @@ import { routeChat, routeChatWithTools, completeChat, type ChatRouteOptions, typ
 // detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
-import { webSearchTool, executeWebSearch, isWebSearchAvailable } from '@/lib/ai/tools';
+import {
+  // All chat tools
+  webSearchTool,
+  executeWebSearch,
+  isWebSearchAvailable,
+  fetchUrlTool,
+  executeFetchUrl,
+  isFetchUrlAvailable,
+  runCodeTool,
+  executeRunCode,
+  isRunCodeAvailable,
+  visionAnalyzeTool,
+  executeVisionAnalyze,
+  isVisionAnalyzeAvailable,
+  browserVisitTool,
+  executeBrowserVisitTool,
+  isBrowserVisitAvailable,
+  extractPdfTool,
+  executeExtractPdf,
+  isExtractPdfAvailable,
+  extractTableTool,
+  executeExtractTable,
+  isExtractTableAvailable,
+  miniAgentTool,
+  executeMiniAgent,
+  isMiniAgentAvailable,
+  // Safety & cost control
+  canExecuteTool,
+  recordToolCost,
+  type UnifiedToolResult,
+} from '@/lib/ai/tools';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -2482,7 +2512,31 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 TODAY'S DATE: ${todayDate}
 
 CAPABILITIES:
-- **WEB SEARCH TOOL**: You have access to a web_search tool. Use it when you need current information (news, prices, scores, recent events, company info, etc.). Do NOT say "I don't have access to real-time information" - instead, use the web_search tool to get current data. You decide when to search based on whether the question benefits from fresh information.
+
+**SEARCH & WEB**:
+- **web_search**: Search the web for current information (news, prices, scores, events). Use this instead of saying "I don't have access to real-time information."
+- **fetch_url**: Fetch and extract content from any URL. Use when user shares a link or asks about a webpage.
+- **browser_visit**: Full browser with JavaScript rendering. Use for dynamic sites that require JavaScript to load content, or when fetch_url returns incomplete results.
+
+**CODE EXECUTION**:
+- **run_code**: Execute Python or JavaScript code in a secure sandbox. Use for calculations, data analysis, testing code, generating visualizations, or any task that benefits from running actual code.
+
+**DOCUMENT & IMAGE ANALYSIS**:
+- **analyze_image**: Analyze images in the conversation. Use for understanding charts, screenshots, documents, or any visual content the user shares.
+- **extract_pdf_url**: Extract text from PDF documents at a URL. Use when user shares a PDF link and wants to discuss its contents.
+- **extract_table**: Extract tables from images or screenshots. Use for getting structured data from table images.
+
+**ADVANCED RESEARCH**:
+- **parallel_research**: Launch multiple research agents (5-10 max) to investigate complex questions from different angles. Use for multi-faceted topics that benefit from parallel exploration. Returns a synthesized answer.
+
+**IMPORTANT TOOL USAGE RULES**:
+- Always use tools rather than saying you can't do something
+- For current information: web_search or fetch_url
+- For code tasks: run_code (actually execute the code!)
+- For images/visuals: analyze_image or extract_table
+- For complex multi-part questions: parallel_research
+- Trust tool results and incorporate them into your response
+
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
@@ -2590,24 +2644,109 @@ SECURITY:
     // Claude decides when to search - no keyword detection needed
     // This is the proper way to give Claude search autonomy
 
-    // Build tools array (currently just web_search)
-    const tools = isWebSearchAvailable() ? [webSearchTool] : [];
+    // Build tools array with all available tools
+    const tools: typeof webSearchTool[] = [];
 
-    // Tool executor with rate limiting
-    const toolExecutor: ToolExecutor = async (toolCall) => {
-      // Check rate limit before executing search
-      const rateCheck = checkResearchRateLimit(rateLimitIdentifier);
-      if (!rateCheck.allowed) {
-        log.warn('Search rate limit exceeded', { identifier: rateLimitIdentifier });
+    // Add tools based on availability
+    if (isWebSearchAvailable()) tools.push(webSearchTool);
+    if (isFetchUrlAvailable()) tools.push(fetchUrlTool);
+    if (await isRunCodeAvailable()) tools.push(runCodeTool);
+    if (await isVisionAnalyzeAvailable()) tools.push(visionAnalyzeTool);
+    if (await isBrowserVisitAvailable()) tools.push(browserVisitTool);
+    if (await isExtractPdfAvailable()) tools.push(extractPdfTool);
+    if (await isExtractTableAvailable()) tools.push(extractTableTool);
+    if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
+
+    log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map(t => t.name) });
+
+    // Session ID for cost tracking
+    const sessionId = conversationId || `chat_${rateLimitIdentifier}_${Date.now()}`;
+
+    // Tool executor with rate limiting and cost control
+    const toolExecutor: ToolExecutor = async (toolCall): Promise<UnifiedToolResult> => {
+      const toolName = toolCall.name;
+
+      // Estimate cost per tool
+      const toolCosts: Record<string, number> = {
+        web_search: 0.001,
+        fetch_url: 0.0005,
+        run_code: 0.01,
+        analyze_image: 0.02,
+        browser_visit: 0.03,
+        extract_pdf_url: 0.005,
+        extract_table: 0.03,
+        parallel_research: 0.10, // Higher because it runs multiple agents
+      };
+      const estimatedCost = toolCosts[toolName] || 0.01;
+
+      // Check cost limits
+      const costCheck = canExecuteTool(sessionId, toolName, estimatedCost);
+      if (!costCheck.allowed) {
+        log.warn('Tool cost limit exceeded', { tool: toolName, reason: costCheck.reason });
         return {
           toolCallId: toolCall.id,
-          content: 'Search rate limit exceeded. Please try again later.',
+          content: `Cannot execute ${toolName}: ${costCheck.reason}`,
           isError: true,
         };
       }
 
-      // Execute the web search
-      return executeWebSearch(toolCall);
+      // Check research rate limit for search tools
+      if (['web_search', 'browser_visit', 'fetch_url'].includes(toolName)) {
+        const rateCheck = checkResearchRateLimit(rateLimitIdentifier);
+        if (!rateCheck.allowed) {
+          log.warn('Search rate limit exceeded', { identifier: rateLimitIdentifier, tool: toolName });
+          return {
+            toolCallId: toolCall.id,
+            content: 'Search rate limit exceeded. Please try again later.',
+            isError: true,
+          };
+        }
+      }
+
+      log.info('Executing chat tool', { tool: toolName, sessionId });
+
+      // Execute the appropriate tool
+      let result: UnifiedToolResult;
+      switch (toolName) {
+        case 'web_search':
+          result = await executeWebSearch(toolCall);
+          break;
+        case 'fetch_url':
+          result = await executeFetchUrl(toolCall);
+          break;
+        case 'run_code':
+          result = await executeRunCode(toolCall);
+          break;
+        case 'analyze_image':
+          result = await executeVisionAnalyze(toolCall);
+          break;
+        case 'browser_visit':
+          result = await executeBrowserVisitTool(toolCall);
+          break;
+        case 'extract_pdf_url':
+          result = await executeExtractPdf(toolCall);
+          break;
+        case 'extract_table':
+          result = await executeExtractTable(toolCall);
+          break;
+        case 'parallel_research':
+          result = await executeMiniAgent(toolCall);
+          break;
+        default:
+          result = {
+            toolCallId: toolCall.id,
+            content: `Unknown tool: ${toolName}`,
+            isError: true,
+          };
+      }
+
+      // Record cost if successful
+      if (!result.isError) {
+        recordToolCost(sessionId, toolName, estimatedCost);
+        log.debug('Tool executed successfully', { tool: toolName, cost: estimatedCost });
+      }
+
+      return result;
     };
 
     // ========================================
