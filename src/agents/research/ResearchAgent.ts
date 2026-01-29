@@ -29,19 +29,28 @@ import { intentAnalyzer } from './brain/IntentAnalyzer';
 import { strategyGenerator } from './brain/StrategyGenerator';
 import { resultEvaluator } from './brain/ResultEvaluator';
 import { synthesizer } from './brain/Synthesizer';
+import { qualityControl, type QCReport } from './brain/QualityControl';
 import { braveExecutor } from './executors/BraveExecutor';
 import { perplexityExecutor } from './executors/PerplexityExecutor';
+import { browserExecutor } from './executors/BrowserExecutor';
+import { visionExecutor, type VisionInput } from './executors/VisionExecutor';
+import { codeExecutor, type CodeInput } from './executors/CodeExecutor';
+import { documentExecutor } from './executors/DocumentExecutor';
 
 export interface ResearchInput {
   query: string;
   depth?: 'quick' | 'standard' | 'deep';
+  userId?: string; // For document search
+  enableQC?: boolean; // Enable quality control verification
+  images?: VisionInput[]; // Images to analyze
+  codeSnippets?: CodeInput[]; // Code to execute
 }
 
 export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   name = 'ResearchAgent';
   description =
-    'Comprehensive multi-source research with Brave Search, up to 20 parallel queries, and intelligent synthesis';
-  version = '2.0.0';
+    'Comprehensive multi-source research with Brave Search, Browser (Puppeteer), Vision (Claude), Code (E2B), and Document search';
+  version = '3.0.0';
 
   // Time budget: Leave 30s for synthesis, so search phase max = 60s (increased for more queries)
   private readonly MAX_SEARCH_TIME_MS = 60000;
@@ -56,6 +65,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   private allEvaluations: EvaluatedResults[] = [];
   private executedQueries: Set<string> = new Set();
   private heartbeatInterval: NodeJS.Timeout | null = null;
+  private qcReport: QCReport | null = null;
 
   /**
    * Start heartbeat to prevent Vercel timeout
@@ -325,6 +335,108 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
       }
 
       // ========================================
+      // PHASE 3.5: Extended Capabilities
+      // ========================================
+
+      // Check if any queries need browser execution (JS-heavy sites)
+      const browserQueries = pendingQueries.filter((q) => browserExecutor.shouldUseBrowser(q));
+      if (browserQueries.length > 0 && (await browserExecutor.isAvailable())) {
+        this.emit(onStream, 'searching', `Executing ${browserQueries.length} browser visits...`, {
+          phase: 'Browser Execution',
+          progress: 70,
+        });
+
+        const browserResults = await browserExecutor.executeMany(browserQueries);
+        this.allResults.push(...browserResults);
+      }
+
+      // Process any images provided
+      if (input.images && input.images.length > 0 && (await visionExecutor.isAvailable())) {
+        this.emit(onStream, 'searching', `Analyzing ${input.images.length} images...`, {
+          phase: 'Vision Analysis',
+          progress: 72,
+        });
+
+        const visionResults = await visionExecutor.executeMany(input.images);
+        this.allResults.push(...visionResults);
+      }
+
+      // Execute any code snippets provided
+      if (
+        input.codeSnippets &&
+        input.codeSnippets.length > 0 &&
+        (await codeExecutor.isAvailable())
+      ) {
+        this.emit(
+          onStream,
+          'searching',
+          `Executing ${input.codeSnippets.length} code snippets...`,
+          {
+            phase: 'Code Execution',
+            progress: 74,
+          }
+        );
+
+        const codeResults = await codeExecutor.executeMany(input.codeSnippets);
+        this.allResults.push(...codeResults);
+      }
+
+      // Search user documents if userId provided
+      if (input.userId && (await documentExecutor.isAvailable(input.userId))) {
+        this.emit(onStream, 'searching', 'Searching your uploaded documents...', {
+          phase: 'Document Search',
+          progress: 76,
+        });
+
+        // Search documents with the refined query
+        const docResult = await documentExecutor.execute({
+          query: {
+            id: `doc_search_${Date.now()}`,
+            query: intent.refinedQuery,
+            purpose: 'Find relevant user documents',
+            expectedInfo: intent.expectedOutputs,
+            source: 'brave',
+            priority: 8,
+          },
+          userId: input.userId,
+          matchCount: 10,
+        });
+
+        if (docResult.relevanceScore && docResult.relevanceScore > 0.1) {
+          this.allResults.push(docResult);
+        }
+      }
+
+      // ========================================
+      // PHASE 3.6: Question Refinement (QC)
+      // ========================================
+      if (input.enableQC !== false) {
+        this.emit(onStream, 'evaluating', 'Refining question for better results...', {
+          phase: 'Quality Control',
+          progress: 78,
+        });
+
+        const refinement = await qualityControl.refineQuestion(input.query, context.userId);
+
+        // If the refined question is significantly different, log it
+        if (refinement.refinedQuestion !== refinement.originalQuestion) {
+          this.emit(
+            onStream,
+            'thinking',
+            `Question refined: "${refinement.refinedQuestion.substring(0, 80)}..."`,
+            {
+              phase: 'Quality Control',
+              progress: 79,
+              details: {
+                clarifyingQuestions: refinement.clarifyingQuestions,
+                missingContext: refinement.missingContext,
+              },
+            }
+          );
+        }
+      }
+
+      // ========================================
       // PHASE 4: Synthesize Results
       // ========================================
       this.emit(onStream, 'synthesizing', 'Creating comprehensive research report...', {
@@ -345,6 +457,55 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
       // Stop heartbeat
       this.stopHeartbeat();
 
+      // ========================================
+      // PHASE 5: Quality Control Review (Optional)
+      // ========================================
+      if (input.enableQC !== false && output.keyFindings.length > 0) {
+        this.emit(onStream, 'evaluating', 'Running quality control verification...', {
+          phase: 'Quality Control',
+          progress: 95,
+        });
+
+        try {
+          this.qcReport = await qualityControl.review(intent, this.allResults, output);
+
+          // Add QC insights to output
+          if (this.qcReport.criticalIssues.length > 0) {
+            output.gaps = [...output.gaps, ...this.qcReport.criticalIssues];
+          }
+
+          if (this.qcReport.suggestions.length > 0) {
+            output.suggestions = [...output.suggestions, ...this.qcReport.suggestions];
+          }
+
+          // Adjust confidence based on QC
+          output.metadata.confidenceScore = Math.min(
+            output.metadata.confidenceScore,
+            this.qcReport.overallConfidence
+          );
+
+          this.emit(
+            onStream,
+            'evaluating',
+            `QC Complete: ${(this.qcReport.overallConfidence * 100).toFixed(0)}% confidence`,
+            {
+              phase: 'Quality Control',
+              progress: 98,
+              details: {
+                completeness: this.qcReport.completenessScore,
+                criticalIssues: this.qcReport.criticalIssues.length,
+                verifiedClaims: this.qcReport.verifiedClaims.filter(
+                  (c) => c.verificationStatus === 'verified'
+                ).length,
+              },
+            }
+          );
+        } catch (qcError) {
+          // QC failure is non-fatal
+          console.warn('[ResearchAgent] QC review failed:', qcError);
+        }
+      }
+
       this.emit(onStream, 'complete', 'Research complete!', {
         phase: 'Complete',
         progress: 100,
@@ -352,6 +513,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
           findings: output.keyFindings.length,
           sources: output.sources.length,
           confidence: output.metadata.confidenceScore,
+          qcCompleted: !!this.qcReport,
         },
       });
 
@@ -574,6 +736,48 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
    */
   formatOutput(output: ResearchOutput): string {
     return synthesizer.formatAsMarkdown(output);
+  }
+
+  /**
+   * Get the QC report from the last execution
+   */
+  getQCReport(): QCReport | null {
+    return this.qcReport;
+  }
+
+  /**
+   * Check which extended capabilities are available
+   */
+  async getAvailableCapabilities(): Promise<{
+    search: { brave: boolean; perplexity: boolean };
+    extended: { browser: boolean; vision: boolean; code: boolean; documents: boolean };
+  }> {
+    const [browserAvailable, visionAvailable, codeAvailable] = await Promise.all([
+      browserExecutor.isAvailable(),
+      visionExecutor.isAvailable(),
+      codeExecutor.isAvailable(),
+    ]);
+
+    return {
+      search: {
+        brave: braveExecutor.isAvailable(),
+        perplexity: perplexityExecutor.isAvailable(),
+      },
+      extended: {
+        browser: browserAvailable,
+        vision: visionAvailable,
+        code: codeAvailable,
+        documents: true, // Always available, just needs userId
+      },
+    };
+  }
+
+  /**
+   * Cleanup resources (call on shutdown)
+   */
+  async cleanup(): Promise<void> {
+    this.stopHeartbeat();
+    await codeExecutor.cleanup();
   }
 }
 
