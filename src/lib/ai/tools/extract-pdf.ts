@@ -70,9 +70,10 @@ async function initPdfParse(): Promise<boolean> {
   }
 
   try {
-    // pdf-parse v2+ exports a named 'pdf' function, not default
-    const pdfModule = await import('pdf-parse');
-    // Handle both ESM (named export) and CJS (default export) patterns
+    // pdf-parse v2+ has varying export patterns - cast to any for runtime detection
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfModule: any = await import('pdf-parse');
+    // Handle ESM named, default, or direct function export
     pdfParse = pdfModule.pdf || pdfModule.default || pdfModule;
     log.info('pdf-parse loaded');
     return true;
