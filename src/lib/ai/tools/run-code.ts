@@ -259,13 +259,13 @@ async function executeCode(
       const result = await sandbox.runCode(code);
 
       const stdout = result.logs.stdout.join('\n');
-      const stderr = result.logs.stderr.join('\n');
+      const stderrOutput = result.logs.stderr.join('\n');
 
       if (result.error) {
         log.warn('Python execution error', { error: result.error.value });
         return {
           success: false,
-          output: stdout,
+          output: stdout || stderrOutput,
           error: `${result.error.name}: ${result.error.value}`,
         };
       }

@@ -83,8 +83,8 @@ async function initAnthropic(): Promise<boolean> {
       return false;
     }
 
-    const module = await import('@anthropic-ai/sdk');
-    AnthropicClient = module.default;
+    const anthropicModule = await import('@anthropic-ai/sdk');
+    AnthropicClient = anthropicModule.default;
     return true;
   } catch (error) {
     log.error('Failed to init Anthropic', { error: (error as Error).message });

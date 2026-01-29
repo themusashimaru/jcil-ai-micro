@@ -90,8 +90,8 @@ async function initAnthropic(): Promise<boolean> {
     if (!process.env.ANTHROPIC_API_KEY) {
       return false;
     }
-    const module = await import('@anthropic-ai/sdk');
-    AnthropicClient = module.default;
+    const anthropicModule = await import('@anthropic-ai/sdk');
+    AnthropicClient = anthropicModule.default;
     return true;
   } catch {
     return false;

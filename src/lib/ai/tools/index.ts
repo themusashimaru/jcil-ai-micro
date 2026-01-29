@@ -257,11 +257,10 @@ export async function getChatToolDefinitions(): Promise<UnifiedTool[]> {
 
 /**
  * Legacy export for backward compatibility
+ * Note: This is async now - callers should use getAvailableChatTools() instead
  */
-export function getAvailableTools(): UnifiedTool[] {
-  // Synchronous version - only returns web_search
-  // Use getAvailableChatTools() for full async version
-  const { webSearchTool, isWebSearchAvailable } = require('./web-search');
+export async function getAvailableTools(): Promise<UnifiedTool[]> {
+  const { webSearchTool, isWebSearchAvailable } = await import('./web-search');
   return isWebSearchAvailable() ? [webSearchTool] : [];
 }
 

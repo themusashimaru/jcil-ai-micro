@@ -16,7 +16,7 @@ const log = logger('QualityControl');
 // ============================================================================
 
 const QC_COST = 0.005; // $0.005 per QC check (Haiku is cheap)
-const QC_TIMEOUT_MS = 15000; // 15 seconds max
+// Timeout configured inline in fetch calls
 
 // When to trigger QC (only for high-value ops)
 const QC_TRIGGERS = [
@@ -41,8 +41,8 @@ async function initAnthropic(): Promise<boolean> {
     if (!process.env.ANTHROPIC_API_KEY) {
       return false;
     }
-    const module = await import('@anthropic-ai/sdk');
-    AnthropicClient = module.default;
+    const anthropicModule = await import('@anthropic-ai/sdk');
+    AnthropicClient = anthropicModule.default;
     return true;
   } catch {
     return false;
