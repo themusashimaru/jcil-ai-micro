@@ -115,6 +115,46 @@ export interface ClonedSite {
 }
 
 /**
+ * DATA ANALYTICS SYSTEM
+ * Interactive charts and data insights rendered in chat
+ */
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  [key: string]: string | number; // For multi-series data
+}
+
+export interface ChartConfig {
+  type: 'bar' | 'line' | 'pie' | 'area' | 'scatter';
+  title: string;
+  data: ChartDataPoint[];
+  xKey: string;
+  yKeys: string[];
+  colors?: string[];
+}
+
+export interface DataInsight {
+  type: 'stat' | 'trend' | 'outlier' | 'correlation';
+  title: string;
+  value: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface AnalyticsResult {
+  id: string;
+  filename: string;
+  summary: string;
+  insights: DataInsight[];
+  charts: ChartConfig[];
+  rawDataPreview?: string[][]; // First few rows for context
+  totalRows: number;
+  totalColumns: number;
+  columnNames: string[];
+  suggestedQueries?: string[]; // Natural language follow-up suggestions
+}
+
+/**
  * Generated image from creative tools (FLUX.2)
  * Stored with full metadata for chat context and iteration
  */
@@ -152,6 +192,7 @@ export interface Message {
   multiPageWebsite?: MultiPageWebsite; // For multi-page website generation
   clonedSite?: ClonedSite; // For cloned/recreated websites
   generatedImage?: GeneratedImage; // For AI-generated/edited images from creative tools
+  analytics?: AnalyticsResult; // For data analytics with charts and insights
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;
@@ -170,6 +211,7 @@ export interface Attachment {
   size: number;
   url?: string;
   thumbnail?: string;
+  rawData?: string; // Raw file data (base64) for analytics processing
 }
 
 export interface ShopProduct {

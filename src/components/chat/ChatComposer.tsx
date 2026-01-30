@@ -85,21 +85,35 @@ interface ChatComposerProps {
 
 /**
  * Read file content and parse if needed
- * - CSV/TXT: Read as text directly
- * - XLSX/PDF: Send to server for parsing to extract readable text
+ * - CSV: Read as text directly (also suitable for analytics)
+ * - XLSX: Keep base64 for analytics, also parse for AI context
+ * - TXT: Read as text directly
+ * - PDF: Parse to extract readable text
  */
-async function readFileContent(file: File): Promise<string> {
-  // For text files, read directly
-  if (file.type === 'text/plain' || file.type === 'text/csv') {
-    return new Promise((resolve, reject) => {
+async function readFileContent(file: File): Promise<{ content: string; rawData?: string }> {
+  // For CSV files, read as text - this IS the data we need for analytics
+  if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+    const textContent = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });
+    return { content: textContent, rawData: textContent };
   }
 
-  // For Excel and PDF, read as base64 then parse server-side
+  // For plain text files, read directly
+  if (file.type === 'text/plain') {
+    const textContent = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+    return { content: textContent };
+  }
+
+  // For Excel and PDF, read as base64
   const base64Content = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
@@ -107,7 +121,14 @@ async function readFileContent(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 
-  // Send to parsing API
+  // For Excel files, keep raw data for analytics
+  const isExcel =
+    file.type === 'application/vnd.ms-excel' ||
+    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    file.name.endsWith('.xlsx') ||
+    file.name.endsWith('.xls');
+
+  // Send to parsing API to get readable text for AI context
   try {
     const response = await fetch('/api/files/parse', {
       method: 'POST',
@@ -124,11 +145,16 @@ async function readFileContent(file: File): Promise<string> {
     }
 
     const result = await response.json();
-    return result.parsedText || base64Content;
+    return {
+      content: result.parsedText || base64Content,
+      rawData: isExcel ? base64Content : undefined, // Keep raw data for Excel analytics
+    };
   } catch (error) {
     console.error('[ChatComposer] File parsing failed, using raw content:', error);
-    // Fall back to base64 if parsing fails
-    return base64Content;
+    return {
+      content: base64Content,
+      rawData: isExcel ? base64Content : undefined,
+    };
   }
 }
 
@@ -522,13 +548,14 @@ export function ChatComposer({
       } else {
         // Non-image files: Read content for data analysis
         try {
-          const fileContent = await readFileContent(file);
+          const { content, rawData } = await readFileContent(file);
           const attachment: Attachment = {
             id: `${Date.now()}-${file.name}`,
             name: file.name,
             type: file.type,
             size: file.size,
-            url: fileContent, // Store file content for API
+            url: content, // Parsed content for AI context
+            rawData: rawData, // Raw data for analytics (CSV/Excel)
           };
           newAttachments.push(attachment);
         } catch (error) {

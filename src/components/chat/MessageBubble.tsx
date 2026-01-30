@@ -24,6 +24,11 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 // Lazy load MultiPagePreview for better performance
 const MultiPagePreview = lazy(() => import('./MultiPagePreview'));
 
+// Lazy load AnalyticsBlock for data visualization (avoids loading Recharts on every page)
+const AnalyticsBlock = lazy(() =>
+  import('@/components/analytics/AnalyticsBlock').then((mod) => ({ default: mod.AnalyticsBlock }))
+);
+
 /**
  * Code Preview Block Component
  * Displays generated code with preview and copy functionality
@@ -688,6 +693,20 @@ export function MessageBubble({
               </span>
             </div>
           </div>
+        )}
+
+        {/* Data Analytics with Charts */}
+        {message.analytics && (
+          <Suspense
+            fallback={
+              <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse">
+                <div className="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+                <div className="h-32 bg-white/10 rounded w-full"></div>
+              </div>
+            }
+          >
+            <AnalyticsBlock analytics={message.analytics} />
+          </Suspense>
         )}
 
         {/* Code Preview (Landing Pages, Websites) */}
