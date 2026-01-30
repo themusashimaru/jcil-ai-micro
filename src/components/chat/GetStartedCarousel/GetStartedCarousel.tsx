@@ -164,10 +164,10 @@ export function GetStartedCarousel({
           </button>
         )}
 
-        {/* Scrollable container - centered content */}
+        {/* Scrollable container - start from left, scroll horizontally */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-1 justify-center"
+          className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-1 px-1"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {visibleCards.map((card) => (
