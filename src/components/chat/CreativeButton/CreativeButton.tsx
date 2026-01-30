@@ -74,10 +74,10 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
         ref={buttonRef}
         onClick={() => setShowMenu(!showMenu)}
         disabled={disabled}
-        className={`
-          disabled:opacity-50 flex items-center gap-1 transition-all text-xs
-          ${activeMode ? 'text-gray-200' : 'text-white hover:text-gray-300'}
-        `}
+        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
+        style={{
+          color: activeMode ? 'var(--primary)' : 'var(--text-primary)',
+        }}
         title="Creative tools"
       >
         <Sparkles className="w-3.5 h-3.5" />
