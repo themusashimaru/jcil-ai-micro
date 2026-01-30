@@ -25,6 +25,7 @@ import {
   downloadAndStore,
   validateDimensions,
   enhanceImagePrompt,
+  verifyGenerationResult,
   ASPECT_RATIOS,
   type FluxModel,
   type AspectRatio,
@@ -260,6 +261,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify the generated image matches user intent (vision check)
+    // This is non-blocking - we still return the result even if verification fails
+    let verification: { matches: boolean; feedback: string } | null = null;
+    try {
+      // Fetch the image from BFL URL (still valid) for verification
+      const imageResponse = await fetch(result.imageUrl);
+      if (imageResponse.ok) {
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+        verification = await verifyGenerationResult(prompt.trim(), imageBase64);
+        log.debug('Generation verified', {
+          generationId,
+          matches: verification.matches,
+          feedback: verification.feedback.substring(0, 100),
+        });
+      }
+    } catch (verifyError) {
+      // Verification is optional - don't fail the request
+      log.warn('Generation verification skipped', { error: verifyError });
+    }
+
     // Update generation record with success
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (serviceClient as any)
@@ -271,6 +293,7 @@ export async function POST(request: NextRequest) {
           seed: result.seed,
           enhancedPrompt: result.enhancedPrompt,
           originalUrl: result.imageUrl,
+          verification: verification || undefined,
         },
         cost_credits: result.cost,
         completed_at: new Date().toISOString(),
@@ -281,6 +304,7 @@ export async function POST(request: NextRequest) {
       generationId,
       storedUrl,
       cost: result.cost,
+      verified: verification?.matches,
     });
 
     return NextResponse.json({
@@ -293,6 +317,7 @@ export async function POST(request: NextRequest) {
       dimensions: { width, height },
       seed: result.seed,
       cost: result.cost,
+      verification: verification || undefined,
     });
   } catch (error) {
     log.error('Image API error', error as Error);

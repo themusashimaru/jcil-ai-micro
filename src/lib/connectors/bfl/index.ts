@@ -58,5 +58,11 @@ export {
   listUserGenerations,
 } from './storage';
 
-// Prompt enhancement
-export { enhanceImagePrompt, enhanceSlidePrompt } from './promptEnhancer';
+// Prompt enhancement (with vision support)
+export {
+  enhanceImagePrompt,
+  enhanceSlidePrompt,
+  analyzeImage,
+  enhanceEditPromptWithVision,
+  verifyGenerationResult,
+} from './promptEnhancer';

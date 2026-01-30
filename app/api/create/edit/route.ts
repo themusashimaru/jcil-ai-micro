@@ -25,7 +25,7 @@ import {
   downloadAndStore,
   validateDimensions,
   extractBase64,
-  enhanceImagePrompt,
+  enhanceEditPromptWithVision,
   FLUX_MODELS,
   type FluxModel,
   BFLError,
@@ -168,20 +168,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Strength must be between 0 and 1' }, { status: 400 });
     }
 
-    // Auto-enhance the prompt for better results
+    // Vision-aware prompt enhancement
+    // Claude analyzes the source image to write a smarter edit prompt
     let enhancedPrompt: string;
     try {
-      enhancedPrompt = await enhanceImagePrompt(prompt.trim(), {
-        type: 'edit',
-        hasReferenceImages: true,
-      });
-      log.debug('Edit prompt enhanced', {
+      // Use the first image for vision analysis (primary reference)
+      enhancedPrompt = await enhanceEditPromptWithVision(prompt.trim(), processedImages[0]);
+      log.debug('Vision-aware edit prompt created', {
         original: prompt.trim().substring(0, 50),
         enhanced: enhancedPrompt.substring(0, 50),
       });
     } catch (enhanceError) {
       // If enhancement fails, use original prompt
-      log.warn('Prompt enhancement failed, using original', { error: enhanceError });
+      log.warn('Vision enhancement failed, using original', { error: enhanceError });
       enhancedPrompt = prompt.trim();
     }
 
