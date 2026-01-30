@@ -43,7 +43,7 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
       onClick={onClick}
       disabled={card.comingSoon}
       className={`
-        flex-shrink-0 w-[100px] p-2 rounded-lg border transition-all text-left carousel-card
+        flex-shrink-0 w-[120px] p-2 rounded-lg border transition-all text-left carousel-card
         ${card.comingSoon ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
       `}
       style={{
@@ -63,7 +63,7 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
           <IconComponent className="w-3 h-3" style={{ color: 'var(--carousel-icon-color)' }} />
         </div>
         <h4
-          className="text-[10px] font-medium leading-tight truncate"
+          className="text-[10px] font-medium leading-tight whitespace-nowrap"
           style={{ color: 'var(--carousel-text)' }}
         >
           {card.title}
