@@ -82,6 +82,7 @@ import {
   isBFLConfigured,
   detectImageRequest,
   detectEditWithAttachment,
+  detectConversationalEdit,
   generateImage,
   editImage,
   downloadAndStore,
@@ -400,6 +401,69 @@ function getImageAttachments(messages: CoreMessage[]): string[] {
   }
 
   return images;
+}
+
+/**
+ * Find the most recent generated image URL in conversation history
+ * Looks for image URLs in assistant messages (from previous generations)
+ */
+function findPreviousGeneratedImage(messages: CoreMessage[]): string | null {
+  // Search backwards through messages to find the most recent generated image
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+
+    // Only look at assistant messages
+    if (message.role !== 'assistant') continue;
+
+    const content = message.content;
+
+    // Handle string content - look for image URLs
+    if (typeof content === 'string') {
+      // Look for Supabase storage URLs (our generated images)
+      const supabaseUrlMatch = content.match(
+        /https:\/\/[^\/]+\.supabase\.co\/storage\/v1\/object\/public\/generations\/[^\s"')]+/
+      );
+      if (supabaseUrlMatch) {
+        return supabaseUrlMatch[0];
+      }
+
+      // Look for any image URL pattern
+      const imageUrlMatch = content.match(
+        /https?:\/\/[^\s"')]+\.(?:png|jpg|jpeg|webp|gif)(?:\?[^\s"')]*)?/i
+      );
+      if (imageUrlMatch) {
+        return imageUrlMatch[0];
+      }
+    }
+
+    // Handle array content (structured messages)
+    if (Array.isArray(content)) {
+      for (const part of content) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyPart = part as any;
+
+        // Check for image parts
+        if (anyPart.type === 'image' && anyPart.image) {
+          // If it's a URL, return it
+          if (anyPart.image.startsWith('http')) {
+            return anyPart.image;
+          }
+        }
+
+        // Check for text parts containing image URLs
+        if (anyPart.type === 'text' && anyPart.text) {
+          const supabaseUrlMatch = anyPart.text.match(
+            /https:\/\/[^\/]+\.supabase\.co\/storage\/v1\/object\/public\/generations\/[^\s"')]+/
+          );
+          if (supabaseUrlMatch) {
+            return supabaseUrlMatch[0];
+          }
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 function getDocumentTypeName(type: string): string {
@@ -2199,6 +2263,151 @@ export async function POST(request: NextRequest) {
         } catch (editDetectionError) {
           log.debug('Image edit detection failed', { error: editDetectionError });
         }
+      }
+    }
+
+    // ========================================
+    // ROUTE 0.6: CONVERSATIONAL IMAGE EDITING (no attachment)
+    // ========================================
+    // Detect if user wants to edit a previously generated image in the conversation
+    // e.g., "replace the typewriter with a football", "make it brighter", "add sunglasses"
+    if (effectiveToolMode === 'none' && isBFLConfigured() && isAuthenticated) {
+      try {
+        const conversationalEditDetection = detectConversationalEdit(lastUserContent);
+
+        if (
+          conversationalEditDetection?.isImageRequest &&
+          conversationalEditDetection.requestType === 'edit'
+        ) {
+          // Find the most recent generated image URL in conversation history
+          const previousImageUrl = findPreviousGeneratedImage(messages as CoreMessage[]);
+
+          if (previousImageUrl) {
+            log.info('Conversational edit request detected', {
+              confidence: conversationalEditDetection.confidence,
+              prompt: conversationalEditDetection.extractedPrompt?.substring(0, 50),
+              previousImage: previousImageUrl.substring(0, 50),
+            });
+
+            // Release slot for the image edit process
+            if (slotAcquired) {
+              await releaseSlot(requestId);
+              slotAcquired = false;
+            }
+
+            try {
+              const editPrompt = conversationalEditDetection.extractedPrompt || lastUserContent;
+
+              // Fetch the previous image and convert to base64
+              const imageResponse = await fetch(previousImageUrl);
+              if (!imageResponse.ok) {
+                throw new Error(`Failed to fetch previous image: ${imageResponse.status}`);
+              }
+              const imageBuffer = await imageResponse.arrayBuffer();
+              const base64Image = `data:image/png;base64,${Buffer.from(imageBuffer).toString('base64')}`;
+
+              // Enhance the edit prompt with vision analysis
+              let enhancedPrompt: string;
+              try {
+                enhancedPrompt = await enhanceEditPromptWithVision(editPrompt, base64Image);
+              } catch {
+                enhancedPrompt = editPrompt;
+              }
+
+              // Create generation record
+              const { randomUUID } = await import('crypto');
+              const generationId = randomUUID();
+              const serviceClient = createServiceRoleClient();
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (serviceClient as any).from('generations').insert({
+                id: generationId,
+                user_id: rateLimitIdentifier,
+                conversation_id: conversationId || null,
+                type: 'edit',
+                model: 'flux-2-pro',
+                provider: 'bfl',
+                prompt: enhancedPrompt,
+                input_data: {
+                  originalPrompt: editPrompt,
+                  detectedFromChat: true,
+                  conversationalEdit: true,
+                  sourceImageUrl: previousImageUrl,
+                },
+                dimensions: { width: 1024, height: 1024 },
+                status: 'processing',
+              });
+
+              // Edit the image
+              const result = await editImage(enhancedPrompt, [base64Image], {
+                model: 'flux-2-pro',
+              });
+
+              // Store the edited image
+              const storedUrl = await downloadAndStore(
+                result.imageUrl,
+                rateLimitIdentifier,
+                generationId,
+                'png'
+              );
+
+              // Update generation record
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (serviceClient as any)
+                .from('generations')
+                .update({
+                  status: 'completed',
+                  result_url: storedUrl,
+                  result_data: {
+                    seed: result.seed,
+                    enhancedPrompt: enhancedPrompt,
+                  },
+                  cost_credits: result.cost,
+                  completed_at: new Date().toISOString(),
+                })
+                .eq('id', generationId);
+
+              log.info('Conversational image edit complete', { generationId, storedUrl });
+
+              // Return as JSON response with edited image data
+              return new Response(
+                JSON.stringify({
+                  type: 'image_generation',
+                  content: `I've edited the image: "${editPrompt}"`,
+                  generatedImage: {
+                    id: generationId,
+                    type: 'edit',
+                    imageUrl: storedUrl,
+                    prompt: editPrompt,
+                    enhancedPrompt: enhancedPrompt,
+                    dimensions: { width: 1024, height: 1024 },
+                    model: 'flux-2-pro',
+                    seed: result.seed,
+                  },
+                  model: 'flux-2-pro',
+                  provider: 'bfl',
+                }),
+                {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' },
+                }
+              );
+            } catch (editError) {
+              const errorMessage =
+                editError instanceof Error ? editError.message : 'Image editing failed';
+              const errorCode = editError instanceof BFLError ? editError.code : 'EDIT_ERROR';
+
+              log.error('Conversational image editing failed', {
+                error: errorMessage,
+                code: errorCode,
+              });
+
+              // Fall through to regular chat if edit fails
+            }
+          }
+        }
+      } catch (conversationalEditError) {
+        log.debug('Conversational edit detection failed', { error: conversationalEditError });
       }
     }
 

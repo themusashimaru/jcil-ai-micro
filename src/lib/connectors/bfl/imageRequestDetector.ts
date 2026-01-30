@@ -144,6 +144,40 @@ const EDIT_PATTERNS = [
 ];
 
 // =============================================================================
+// CONVERSATIONAL EDIT PATTERNS - Edit requests referencing previous image
+// =============================================================================
+// These patterns detect when user wants to edit a previously generated image
+// without attaching it (they're referring to it in conversation context)
+const CONVERSATIONAL_EDIT_PATTERNS = [
+  // Replace/change patterns: "replace the X with Y", "change the X to Y"
+  /^(?:please\s+)?(?:can you\s+)?(?:replace|swap|change|switch)\s+(?:the\s+)?.{2,30}\s+(?:with|to|for|into)\s+/i,
+
+  // "Now" patterns: "now make it...", "now add...", "now change..."
+  /^(?:now\s+)?(?:can you\s+)?(?:make|turn|change|add|remove|replace)\s+(?:it|the\s+\w+)\s+/i,
+
+  // "Can you" edit patterns: "can you make the dog bigger", "can you add a hat"
+  /^(?:can you|could you|would you)\s+(?:make|add|remove|change|replace|turn|put|give)/i,
+
+  // "Make it" patterns: "make it blue", "make the background darker"
+  /^(?:make|turn)\s+(?:it|the\s+\w+)\s+(?:a\s+bit\s+)?(?:more\s+)?\w+/i,
+
+  // "Add/remove to it" patterns: "add a mustache", "remove the hat", "put sunglasses on it"
+  /^(?:add|remove|delete|put|give|place)\s+(?:a\s+|an\s+|some\s+|the\s+)?\w+/i,
+
+  // "Change the" patterns: "change the color", "change the background to blue"
+  /^(?:change|modify|adjust|alter)\s+(?:the\s+)?\w+/i,
+
+  // Follow-up edit indicators: "actually", "instead", "but make it"
+  /^(?:actually|instead|but)\s+(?:make|change|replace|can you)/i,
+
+  // "The X should be" patterns: "the dog should be bigger", "the background should be blue"
+  /^the\s+\w+\s+(?:should|could|needs to)\s+(?:be|have|look)/i,
+
+  // Short commands that imply editing previous: "bigger", "smaller", "brighter", "add X"
+  /^(?:make\s+)?(?:it\s+)?(?:bigger|smaller|larger|brighter|darker|more\s+\w+|less\s+\w+)$/i,
+];
+
+// =============================================================================
 // NEGATIVE PATTERNS - These override detection (NOT image generation requests)
 // =============================================================================
 const NEGATIVE_PATTERNS = [
@@ -526,4 +560,83 @@ export function detectEditWithAttachment(
   }
 
   return null;
+}
+
+/**
+ * Detect if a message is a conversational edit request
+ * This detects when user wants to edit a previously generated image
+ * that's already in the conversation (not attached)
+ *
+ * Examples:
+ * - "replace the typewriter with a football"
+ * - "can you make the dog bigger"
+ * - "now add sunglasses"
+ * - "change the background to blue"
+ *
+ * @param message - The user's chat message
+ * @returns Detection result if this looks like a conversational edit
+ */
+export function detectConversationalEdit(message: string): ImageRequestDetection | null {
+  const trimmed = message.trim();
+
+  // Skip if message is too short
+  if (trimmed.length < 5) {
+    return null;
+  }
+
+  // Skip if this looks like a new creation request
+  for (const pattern of STRONG_CREATE_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return null; // This is a creation request, not edit
+    }
+  }
+
+  // Check conversational edit patterns
+  for (const pattern of CONVERSATIONAL_EDIT_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return {
+        isImageRequest: true,
+        confidence: 'medium',
+        extractedPrompt: extractConversationalEditPrompt(trimmed),
+        requestType: 'edit',
+        aspectRatioHint: null,
+      };
+    }
+  }
+
+  // Also check regular edit patterns - they might apply conversationally
+  for (const pattern of EDIT_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return {
+        isImageRequest: true,
+        confidence: 'medium',
+        extractedPrompt: extractConversationalEditPrompt(trimmed),
+        requestType: 'edit',
+        aspectRatioHint: null,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract edit instruction from conversational message
+ */
+function extractConversationalEditPrompt(message: string): string {
+  let prompt = message.trim();
+
+  // Remove conversational prefixes
+  const prefixes = [
+    /^(?:please\s+)?(?:can you|could you|would you)\s+/i,
+    /^(?:now\s+)/i,
+    /^(?:actually|instead)\s+/i,
+    /^(?:but\s+)/i,
+  ];
+
+  for (const prefix of prefixes) {
+    prompt = prompt.replace(prefix, '');
+  }
+
+  return prompt.trim();
 }
