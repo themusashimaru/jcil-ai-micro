@@ -23,6 +23,7 @@ import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { MessageErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useTheme } from '@/contexts/ThemeContext';
+import { GetStartedCarousel } from './GetStartedCarousel';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -34,6 +35,7 @@ interface ChatThreadProps {
   enableCodeActions?: boolean;
   lastUserMessage?: string;
   onQuickPrompt?: (prompt: string) => void;
+  onCarouselSelect?: (cardId: string) => void;
 }
 
 /**
@@ -55,6 +57,7 @@ export function ChatThread({
   onReply,
   enableCodeActions,
   lastUserMessage,
+  onCarouselSelect,
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -153,9 +156,16 @@ export function ChatThread({
           </div>
 
           {/* Simple time-based greeting */}
-          <p className="text-lg md:text-xl" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-lg md:text-xl mb-8" style={{ color: 'var(--text-secondary)' }}>
             How can we help you {getTimeGreeting()}?
           </p>
+
+          {/* Get Started Carousel */}
+          {onCarouselSelect && (
+            <div className="w-full max-w-2xl">
+              <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
+            </div>
+          )}
         </div>
       </div>
     );

@@ -178,6 +178,9 @@ export function ChatClient() {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   // Quick prompt text from welcome screen
   const [quickPromptText, setQuickPromptText] = useState<string>('');
+  // Carousel-triggered modal state (for creative buttons from welcome carousel)
+  const [openCreateImage, setOpenCreateImage] = useState(false);
+  const [openEditImage, setOpenEditImage] = useState(false);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
   // Pending tool suggestion from AI response analysis (for auto web search/fact check)
@@ -719,6 +722,40 @@ export function ChatClient() {
     // Auto-close sidebar on mobile after creating new chat
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
+    }
+  };
+
+  // Handle carousel card selection
+  const handleCarouselSelect = async (cardId: string) => {
+    switch (cardId) {
+      case 'create-image':
+        setOpenCreateImage(true);
+        break;
+      case 'edit-image':
+        setOpenEditImage(true);
+        break;
+      case 'create-slides':
+        // Coming soon - no action
+        break;
+      case 'research':
+        // Use the agent selector callback - this will be handled by ChatComposer
+        // For now, just set a quick prompt to guide the user
+        setQuickPromptText('');
+        break;
+      case 'deep-research':
+        // Start deep research mode
+        if (isAdmin) {
+          await startDeepResearch();
+        }
+        break;
+      case 'deep-strategy':
+        // Start strategy mode
+        if (isAdmin) {
+          await startDeepStrategy();
+        }
+        break;
+      default:
+        log.warn('Unknown carousel card selected', { cardId });
     }
   };
 
@@ -3596,6 +3633,7 @@ ${artifactSection}
               enableCodeActions
               lastUserMessage={messages.filter((m) => m.role === 'user').pop()?.content || ''}
               onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
+              onCarouselSelect={handleCarouselSelect}
             />
             {/* Live To-Do List - extracted from AI responses */}
             <LiveTodoList messages={messages} conversationId={currentChatId} />
@@ -3723,6 +3761,10 @@ ${artifactSection}
                   // Research mode is handled internally by ChatComposer's toolMode
                 }
               }}
+              openCreateImage={openCreateImage}
+              openEditImage={openEditImage}
+              onCloseCreateImage={() => setOpenCreateImage(false)}
+              onCloseEditImage={() => setOpenEditImage(false)}
             />
             {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton

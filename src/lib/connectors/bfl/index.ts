@@ -57,3 +57,6 @@ export {
   generationExists,
   listUserGenerations,
 } from './storage';
+
+// Prompt enhancement
+export { enhanceImagePrompt, enhanceSlidePrompt } from './promptEnhancer';

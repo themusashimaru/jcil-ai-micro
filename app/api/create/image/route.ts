@@ -24,6 +24,7 @@ import {
   generateImage,
   downloadAndStore,
   validateDimensions,
+  enhanceImagePrompt,
   ASPECT_RATIOS,
   type FluxModel,
   type AspectRatio,
@@ -132,6 +133,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: dimValidation.error }, { status: 400 });
     }
 
+    // Auto-enhance the prompt for better results
+    let enhancedPrompt: string;
+    try {
+      enhancedPrompt = await enhanceImagePrompt(prompt.trim(), {
+        type: 'create',
+        aspectRatio,
+      });
+      log.debug('Prompt enhanced', {
+        original: prompt.trim().substring(0, 50),
+        enhanced: enhancedPrompt.substring(0, 50),
+      });
+    } catch (enhanceError) {
+      // If enhancement fails, use original prompt
+      log.warn('Prompt enhancement failed, using original', { error: enhanceError });
+      enhancedPrompt = prompt.trim();
+    }
+
     // Create generation record in database
     // Note: Using 'as any' because generations table was added after type generation
     // Run `npx supabase gen types` to regenerate types if needed
@@ -146,10 +164,11 @@ export async function POST(request: NextRequest) {
       type: 'image',
       model,
       provider: 'bfl',
-      prompt: prompt.trim(),
+      prompt: enhancedPrompt,
       input_data: {
         aspectRatio,
         promptUpsampling,
+        originalPrompt: prompt.trim(),
       },
       dimensions: { width, height },
       status: 'processing',
@@ -171,7 +190,7 @@ export async function POST(request: NextRequest) {
     // Generate image (this handles polling internally)
     let result;
     try {
-      result = await generateImage(prompt.trim(), {
+      result = await generateImage(enhancedPrompt, {
         model,
         width,
         height,
@@ -270,7 +289,7 @@ export async function POST(request: NextRequest) {
       imageUrl: storedUrl,
       model,
       prompt: prompt.trim(),
-      enhancedPrompt: result.enhancedPrompt,
+      enhancedPrompt: enhancedPrompt,
       dimensions: { width, height },
       seed: result.seed,
       cost: result.cost,

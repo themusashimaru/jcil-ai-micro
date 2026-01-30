@@ -69,6 +69,11 @@ interface ChatComposerProps {
   onAgentSelect?: (agent: 'research' | 'strategy' | 'deep-research') => Promise<void> | void;
   strategyLoading?: boolean; // Show loading state while strategy starts
   deepResearchLoading?: boolean; // Show loading state while deep research starts
+  // External modal control (for carousel integration)
+  openCreateImage?: boolean;
+  openEditImage?: boolean;
+  onCloseCreateImage?: () => void;
+  onCloseEditImage?: () => void;
 }
 
 /**
@@ -146,6 +151,10 @@ export function ChatComposer({
   onAgentSelect,
   strategyLoading,
   deepResearchLoading,
+  openCreateImage,
+  openEditImage,
+  onCloseCreateImage,
+  onCloseEditImage,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -182,6 +191,20 @@ export function ChatComposer({
   const [creativeMode, setCreativeMode] = useState<CreativeMode | null>(null);
   const [showCreateImageModal, setShowCreateImageModal] = useState(false);
   const [showEditImageModal, setShowEditImageModal] = useState(false);
+
+  // External modal control - sync with external state
+  useEffect(() => {
+    if (openCreateImage) {
+      setShowCreateImageModal(true);
+    }
+  }, [openCreateImage]);
+
+  useEffect(() => {
+    if (openEditImage) {
+      setShowEditImageModal(true);
+    }
+  }, [openEditImage]);
+
   // Track last applied initialText to prevent re-applying on message changes
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
@@ -1238,6 +1261,7 @@ export function ChatComposer({
         onClose={() => {
           setShowCreateImageModal(false);
           setCreativeMode(null);
+          onCloseCreateImage?.();
         }}
       />
       <EditImageModal
@@ -1245,6 +1269,7 @@ export function ChatComposer({
         onClose={() => {
           setShowEditImageModal(false);
           setCreativeMode(null);
+          onCloseEditImage?.();
         }}
       />
     </div>
