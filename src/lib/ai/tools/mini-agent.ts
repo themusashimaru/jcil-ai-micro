@@ -27,7 +27,7 @@ const MIN_AGENTS = 2; // At least 2 for parallel benefit
 const MAX_COST_PER_RUN = 2.0; // $2.00 hard cap
 const COST_PER_AGENT = 0.05; // ~$0.05 per agent (Haiku + search)
 const AGENT_TIMEOUT_MS = 30000; // 30 seconds per agent
-const TOOL_COST = 0.10; // Base cost for orchestration
+const TOOL_COST = 0.1; // Base cost for orchestration
 
 // Anthropic lazy load
 let AnthropicClient: typeof import('@anthropic-ai/sdk').default | null = null;
@@ -59,8 +59,7 @@ Cost: ~$0.50-2.00 per use depending on complexity.`,
       aspects: {
         type: 'array',
         items: { type: 'string' },
-        description:
-          'Specific aspects to research (optional - will auto-generate if not provided)',
+        description: 'Specific aspects to research (optional - will auto-generate if not provided)',
       },
       num_agents: {
         type: 'number',
@@ -370,8 +369,8 @@ export async function executeMiniAgent(toolCall: UnifiedToolCall): Promise<Unifi
     numAgents = Math.max(MIN_AGENTS, numAgents);
   }
 
-  // Cost check
-  const sessionId = `chat_${Date.now()}`;
+  // Cost check (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
   const costCheck = canExecuteTool(sessionId, 'parallel_research', estimatedCost);
   if (!costCheck.allowed) {
     return {

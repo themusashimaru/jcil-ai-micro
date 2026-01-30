@@ -24,6 +24,9 @@ import {
   ResearchOutput,
   GeneratedQuery,
 } from '../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('ResearchAgent');
 
 import { intentAnalyzer } from './brain/IntentAnalyzer';
 import { strategyGenerator } from './brain/StrategyGenerator';
@@ -199,7 +202,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
         // Add results with limit to prevent memory exhaustion
         for (const result of results) {
           if (this.allResults.length >= this.MAX_RESULTS) {
-            console.warn('[ResearchAgent] Max results limit reached, skipping remaining');
+            log.warn('Max results limit reached, skipping remaining');
             break;
           }
           this.allResults.push(result);
@@ -502,7 +505,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
           );
         } catch (qcError) {
           // QC failure is non-fatal
-          console.warn('[ResearchAgent] QC review failed:', qcError);
+          log.warn('QC review failed', { error: (qcError as Error).message });
         }
       }
 

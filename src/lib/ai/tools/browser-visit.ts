@@ -127,7 +127,9 @@ async function initE2B(): Promise<boolean> {
 /**
  * Get or create browser sandbox with Puppeteer installed
  */
-async function getBrowserSandbox(): Promise<InstanceType<typeof import('@e2b/code-interpreter').Sandbox>> {
+async function getBrowserSandbox(): Promise<
+  InstanceType<typeof import('@e2b/code-interpreter').Sandbox>
+> {
   if (!Sandbox) {
     throw new Error('E2B not initialized');
   }
@@ -367,7 +369,9 @@ async function executeBrowserVisit(
 // TOOL EXECUTOR
 // ============================================================================
 
-export async function executeBrowserVisitTool(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeBrowserVisitTool(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, name, arguments: rawArgs } = toolCall;
 
   if (name !== 'browser_visit') {
@@ -418,8 +422,8 @@ export async function executeBrowserVisitTool(toolCall: UnifiedToolCall): Promis
     };
   }
 
-  // Session-based visit check
-  const sessionId = `chat_${Date.now()}`;
+  // Session-based visit check (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
   const visitCheck = canVisitPage(sessionId, url);
   if (!visitCheck.safe) {
     return {

@@ -3,14 +3,21 @@
  *
  * Simulates strategy events to test the UI activity feed.
  * Returns SSE stream with fake events.
+ *
+ * PROTECTED: Requires admin authentication
  */
 
 import { NextRequest } from 'next/server';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function GET(_req: NextRequest) {
+  // Require admin auth
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

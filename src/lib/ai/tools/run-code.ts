@@ -309,7 +309,8 @@ async function executeCode(
       return {
         success: result.exitCode === 0,
         output: output.slice(0, MAX_OUTPUT_LENGTH) || '(No output)',
-        error: result.exitCode !== 0 ? `Exit code: ${result.exitCode}\n${result.stderr}` : undefined,
+        error:
+          result.exitCode !== 0 ? `Exit code: ${result.exitCode}\n${result.stderr}` : undefined,
       };
     }
   } catch (error) {
@@ -343,8 +344,7 @@ export async function executeRunCode(toolCall: UnifiedToolCall): Promise<Unified
   if (!available) {
     return {
       toolCallId: id,
-      content:
-        'Code execution is not currently available. E2B sandbox service is not configured.',
+      content: 'Code execution is not currently available. E2B sandbox service is not configured.',
       isError: true,
     };
   }
@@ -380,8 +380,8 @@ export async function executeRunCode(toolCall: UnifiedToolCall): Promise<Unified
     };
   }
 
-  // Check cost limits (use conversation ID or generate one)
-  const sessionId = `chat_${Date.now()}`;
+  // Check cost limits (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
   const costCheck = canExecuteTool(sessionId, 'run_code', TOOL_COST);
   if (!costCheck.allowed) {
     return {

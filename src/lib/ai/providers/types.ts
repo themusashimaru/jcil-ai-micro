@@ -241,6 +241,8 @@ export interface UnifiedToolCall {
   name: string;
   /** Arguments for the tool (string during streaming accumulation, object when complete) */
   arguments: Record<string, unknown> | string;
+  /** Optional session ID for cost tracking (passed from chat route) */
+  sessionId?: string;
 }
 
 /**
