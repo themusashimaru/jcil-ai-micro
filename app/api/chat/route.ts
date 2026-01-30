@@ -59,6 +59,10 @@ import {
   miniAgentTool,
   executeMiniAgent,
   isMiniAgentAvailable,
+  // Dynamic tool creation
+  dynamicToolTool,
+  executeDynamicTool,
+  isDynamicToolAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3421,6 +3425,7 @@ SECURITY:
     if (await isExtractPdfAvailable()) tools.push(extractPdfTool);
     if (await isExtractTableAvailable()) tools.push(extractTableTool);
     if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
+    if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3441,6 +3446,7 @@ SECURITY:
         extract_pdf_url: 0.005,
         extract_table: 0.03,
         parallel_research: 0.1, // Higher because it runs multiple agents
+        create_and_run_tool: 0.15, // Dynamic tool creation (cost-limited)
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3502,6 +3508,9 @@ SECURITY:
           break;
         case 'parallel_research':
           result = await executeMiniAgent(toolCallWithSession);
+          break;
+        case 'create_and_run_tool':
+          result = await executeDynamicTool(toolCallWithSession);
           break;
         default:
           result = {

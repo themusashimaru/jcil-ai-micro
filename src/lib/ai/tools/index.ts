@@ -13,6 +13,10 @@
  * - extract_pdf_url: Extract text from PDF URLs
  * - extract_table: Vision-based table extraction
  * - parallel_research: Mini-agent orchestrator (5-10 agents max)
+ * - create_and_run_tool: Dynamic tool creation (cost-limited)
+ *
+ * Workflow utilities:
+ * - Workflow tasks: Claude Code style todo lists with borders
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -69,6 +73,42 @@ export {
 
 // Mini-Agent Orchestrator
 export { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } from './mini-agent';
+
+// Dynamic Tool Creation
+export {
+  dynamicToolTool,
+  executeDynamicTool,
+  isDynamicToolAvailable,
+  getDynamicToolSessionInfo,
+  DYNAMIC_TOOL_LIMITS,
+} from './dynamic-tool';
+
+// Workflow Tasks (Claude Code style todo lists)
+export {
+  // Types
+  type TaskStatus,
+  type WorkflowTask,
+  type Workflow,
+  // Workflow management
+  createWorkflow,
+  getWorkflow,
+  updateTaskStatus,
+  startNextTask,
+  completeCurrentTask,
+  deleteWorkflow,
+  clearAllWorkflows,
+  // Formatting (Claude Code style with borders)
+  formatWorkflow,
+  formatTaskList,
+  formatTaskUpdate,
+  formatWorkflowProgress,
+  formatProgressLine,
+  formatStatusUpdate,
+  // Streaming helpers
+  createWorkflowChunk,
+  containsWorkflowChunk,
+  extractWorkflowFromChunk,
+} from './workflow-tasks';
 
 // Quality Control
 export {
@@ -165,6 +205,9 @@ async function initializeTools() {
     './extract-table'
   );
   const { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } = await import('./mini-agent');
+  const { dynamicToolTool, executeDynamicTool, isDynamicToolAvailable } = await import(
+    './dynamic-tool'
+  );
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -194,7 +237,12 @@ async function initializeTools() {
       executor: executeExtractTable,
       checkAvailability: isExtractTableAvailable,
     },
-    { tool: miniAgentTool, executor: executeMiniAgent, checkAvailability: isMiniAgentAvailable }
+    { tool: miniAgentTool, executor: executeMiniAgent, checkAvailability: isMiniAgentAvailable },
+    {
+      tool: dynamicToolTool,
+      executor: executeDynamicTool,
+      checkAvailability: isDynamicToolAvailable,
+    }
   );
 
   toolsInitialized = true;

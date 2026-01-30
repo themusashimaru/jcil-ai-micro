@@ -28,10 +28,12 @@ The JCIL AI chat system is a multi-provider, tool-enabled conversational AI plat
 │              CHAT ROUTER (routeChatWithTools)                   │
 │  ├─ Tools: [web_search, fetch_url, run_code, vision,            │
 │  │          browser_visit, extract_pdf, extract_table,          │
-│  │          parallel_research (mini-agent)]                     │
+│  │          parallel_research, create_and_run_tool]             │
+│  ├─ Dynamic tool creation (cost-limited)                        │
 │  ├─ Streaming with tool loop                                    │
 │  ├─ Status messages during tool execution (8s interval)         │
-│  └─ 15s timeout per tool execution                              │
+│  ├─ 15s timeout per tool execution                              │
+│  └─ Workflow task tracking (Claude Code style)                  │
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -104,7 +106,51 @@ Native Claude tool for web search:
 4. Format results with sources
 5. Return to Claude for synthesis
 
-### 4. Provider System (`/src/lib/ai/providers/`)
+### 4. Dynamic Tool Creation (`/src/lib/ai/tools/dynamic-tool.ts`)
+
+Allows Sonnet to create custom tools on-the-fly when existing tools aren't sufficient:
+
+```typescript
+{
+  name: 'create_and_run_tool',
+  description: 'Create and execute a custom tool',
+  parameters: {
+    purpose: string,    // What the tool should accomplish
+    code: string,       // Python code with main() function
+    inputs: object      // Input values for the code
+  }
+}
+```
+
+**Cost Controls:**
+- Max $0.15 per dynamic tool execution
+- Max 3 dynamic tools per session
+- 30 second timeout per execution
+- Code validation (blocks dangerous patterns)
+- Runs in isolated E2B sandbox
+
+### 5. Workflow Tasks (`/src/lib/ai/tools/workflow-tasks.ts`)
+
+Claude Code style todo lists for multi-step workflows:
+
+```
+┌─────────────────────────────────────────┐
+│            Task Progress                │
+├─────────────────────────────────────────┤
+│ [x] Research competitor pricing         │
+│ [>] Analyzing market data... analyzing  │
+│ [ ] Create pricing model                │
+│ [ ] Generate recommendations            │
+└─────────────────────────────────────────┘
+```
+
+**Status Symbols:**
+- `[ ]` - Pending
+- `[>]` - In-progress (with intelligent status like "analyzing", "searching")
+- `[x]` - Completed
+- `[-]` - Skipped
+
+### 6. Provider System (`/src/lib/ai/providers/`)
 
 **Adapters:**
 
