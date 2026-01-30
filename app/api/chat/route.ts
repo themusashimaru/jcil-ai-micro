@@ -2977,32 +2977,54 @@ export async function POST(request: NextRequest) {
               // Step 2: Have Claude analyze and create slide prompts
               controller.enqueue(encoder.encode('*Designing slide layouts and content...*\n'));
 
-              const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides generated as images.
+              const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides.
 
-Analyze their request and create detailed image generation prompts for each slide. Output ONLY valid JSON.
+CRITICAL: AI image generators CANNOT render text reliably. Text in generated images comes out garbled and unreadable.
+
+Your task: Create visual slide BACKGROUNDS and GRAPHICS only. The actual text will be overlaid separately.
+
+Analyze their request and create:
+1. Image prompts for VISUAL-ONLY slide backgrounds (NO TEXT in the image)
+2. The actual text content that should appear on each slide
+
 ${researchContext}
 
-Rules:
-1. Each slide should be a visually appealing, professional presentation slide
-2. Include clear text/titles that should appear ON the slide image
-3. Describe the visual style, colors, layout, and any graphics
-4. Keep text minimal - slides should be visual, not text-heavy
-5. Use 16:9 landscape aspect ratio design
-6. IMPORTANT: If user specifies a number of slides, create EXACTLY that many (max ${MAX_SLIDES_PER_REQUEST})
-7. If user doesn't specify, create 3-5 appropriate slides for the topic
-8. Structure slides logically: title slide, content slides, conclusion/summary
-9. Use accurate, factual information based on research context if provided
+Rules for IMAGE PROMPTS:
+1. DO NOT include any text, words, letters, or numbers in the image prompt
+2. Focus on: backgrounds, gradients, icons, graphics, illustrations, patterns, imagery
+3. Describe visual elements that support the slide's topic
+4. Use 16:9 landscape aspect ratio
+5. Professional, clean presentation aesthetic
+6. Each slide should have a distinct but cohesive visual theme
+
+Rules for CONTENT:
+1. Title: Short, clear slide title (will be rendered as actual text)
+2. Bullets: 2-4 key points per slide (will be rendered as actual text)
+3. Use accurate, factual information based on research context if provided
+4. Structure slides logically: title slide, content slides, conclusion
 
 Output format (JSON array):
 [
   {
     "slideNumber": 1,
-    "title": "Slide title text to appear on the slide",
-    "prompt": "Detailed image generation prompt describing the visual slide design, colors, layout, graphics, and any text that should appear"
+    "title": "The actual title text for this slide",
+    "bullets": ["Key point 1", "Key point 2", "Key point 3"],
+    "prompt": "Visual-only image prompt - NO TEXT. Describe background, colors, graphics, icons, imagery only."
   }
 ]
 
-Example prompt style: "Professional presentation slide with dark blue gradient background. Large white title text 'German Shepherd Nutrition' centered at top. Below, three circular icons showing: protein (meat icon), vitamins (pill icon), minerals (bone icon). Clean corporate design, modern sans-serif font, subtle dog paw watermark in corner."`;
+Example:
+{
+  "slideNumber": 1,
+  "title": "German Shepherd Nutrition",
+  "bullets": ["High protein requirements (22-26%)", "Joint support supplements recommended", "Avoid common allergens like wheat"],
+  "prompt": "Professional presentation slide background with dark blue gradient. Centered illustration of a healthy German Shepherd dog in profile view. Subtle paw print pattern in corners. Clean corporate design with soft lighting. Abstract geometric shapes. NO TEXT."
+}
+
+IMPORTANT:
+- Create ${MAX_SLIDES_PER_REQUEST} slides max
+- If user doesn't specify count, create 4-6 slides
+- NEVER include text/words/letters in the "prompt" field`;
 
               const slideMessages: CoreMessage[] = [{ role: 'user', content: lastUserContent }];
 
@@ -3024,6 +3046,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
               let slidePrompts = JSON.parse(jsonText) as Array<{
                 slideNumber: number;
                 title: string;
+                bullets?: string[];
                 prompt: string;
               }>;
 
@@ -3046,6 +3069,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
               const generatedSlides: Array<{
                 slideNumber: number;
                 title: string;
+                bullets?: string[];
                 imageUrl: string;
                 generationId: string;
                 originalPrompt?: string;
@@ -3151,6 +3175,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                   generatedSlides.push({
                     slideNumber: slide.slideNumber,
                     title: slide.title,
+                    bullets: slide.bullets,
                     imageUrl: result.imageUrl,
                     generationId: result.generationId,
                     originalPrompt: slide.prompt,
@@ -3215,13 +3240,15 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                   )
                 );
 
-                // Stream each slide with its image reference
+                // Stream each slide with its image reference AND text content
                 for (const s of finalSlides) {
-                  controller.enqueue(
-                    encoder.encode(
-                      `**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]\n\n`
-                    )
-                  );
+                  let slideOutput = `**Slide ${s.slideNumber}: ${s.title}**\n`;
+                  // Add bullet points as actual readable text
+                  if (s.bullets && s.bullets.length > 0) {
+                    slideOutput += s.bullets.map((b) => `• ${b}`).join('\n') + '\n';
+                  }
+                  slideOutput += `[ref:${s.imageUrl}]\n\n`;
+                  controller.enqueue(encoder.encode(slideOutput));
                 }
 
                 // Send JSON metadata at end for frontend parsing
@@ -3233,6 +3260,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                       slides: finalSlides.map((s) => ({
                         slideNumber: s.slideNumber,
                         title: s.title,
+                        bullets: s.bullets || [],
                         imageUrl: s.imageUrl,
                         generationId: s.generationId,
                       })),
@@ -3585,19 +3613,29 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
             // Design slides
             controller.enqueue(encoder.encode('*Designing slide layouts and content...*\n'));
 
-            const slidePromptSystemMessage = `You are a presentation designer. Create visual presentation slides as images.
+            const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides.
+
+CRITICAL: AI image generators CANNOT render text reliably. Text in generated images comes out garbled.
+
+Your task: Create visual slide BACKGROUNDS and GRAPHICS only. The actual text will be overlaid separately.
 ${researchContext}
 
-Rules:
-1. Professional, visually appealing slides with clear titles
-2. Minimal text - slides should be visual
-3. 16:9 landscape format
+Rules for IMAGE PROMPTS:
+1. DO NOT include any text, words, letters, or numbers in the image prompt
+2. Focus on: backgrounds, gradients, icons, graphics, illustrations, patterns, imagery
+3. Describe visual elements that support the slide's topic
+4. Use 16:9 landscape aspect ratio
+5. Professional, clean presentation aesthetic
+
+Rules for CONTENT:
+1. Title: Short, clear slide title
+2. Bullets: 2-4 key points per slide
+3. Structure: title slide → content → conclusion
 4. If user specifies slide count, create EXACTLY that many (max ${MAX_SLIDES})
-5. Default to 3-5 slides if not specified
-6. Structure: title slide → content → conclusion
+5. Default to 4-6 slides if not specified
 
 Output ONLY JSON array:
-[{"slideNumber": 1, "title": "Slide title", "prompt": "Image generation prompt describing slide visuals, colors, layout, text"}]`;
+[{"slideNumber": 1, "title": "Title text", "bullets": ["Point 1", "Point 2"], "prompt": "Visual-only prompt - NO TEXT"}]`;
 
             const slidePromptResult = await completeChat(
               [{ role: 'user', content: lastUserContent }],
@@ -3619,6 +3657,7 @@ Output ONLY JSON array:
             let slidePrompts = JSON.parse(jsonText) as Array<{
               slideNumber: number;
               title: string;
+              bullets?: string[];
               prompt: string;
             }>;
 
@@ -3636,6 +3675,7 @@ Output ONLY JSON array:
             const generatedSlides: Array<{
               slideNumber: number;
               title: string;
+              bullets?: string[];
               imageUrl: string;
               generationId: string;
               originalPrompt?: string;
@@ -3734,6 +3774,7 @@ Output ONLY JSON array:
                 generatedSlides.push({
                   slideNumber: slide.slideNumber,
                   title: slide.title,
+                  bullets: slide.bullets,
                   imageUrl: result.imageUrl,
                   generationId: result.generationId,
                   originalPrompt: slide.prompt,
@@ -3794,10 +3835,15 @@ Output ONLY JSON array:
                 )
               );
 
+              // Stream each slide with its image reference AND text content
               for (const s of finalSlides) {
-                controller.enqueue(
-                  encoder.encode(`**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]\n\n`)
-                );
+                let slideOutput = `**Slide ${s.slideNumber}: ${s.title}**\n`;
+                // Add bullet points as actual readable text
+                if (s.bullets && s.bullets.length > 0) {
+                  slideOutput += s.bullets.map((b) => `• ${b}`).join('\n') + '\n';
+                }
+                slideOutput += `[ref:${s.imageUrl}]\n\n`;
+                controller.enqueue(encoder.encode(slideOutput));
               }
 
               controller.enqueue(
@@ -3808,6 +3854,7 @@ Output ONLY JSON array:
                     slides: finalSlides.map((s) => ({
                       slideNumber: s.slideNumber,
                       title: s.title,
+                      bullets: s.bullets || [],
                       imageUrl: s.imageUrl,
                       generationId: s.generationId,
                     })),
