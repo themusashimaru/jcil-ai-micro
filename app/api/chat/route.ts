@@ -851,7 +851,7 @@ async function performSlideQCWithAutoFix(
 
   // QC and fix loop
   for (let iteration = 0; iteration <= SLIDE_QC_MAX_RETRIES; iteration++) {
-    onProgress(iteration === 0 ? '*Performing quality check...*\n' : '*Re-checking quality...*\n');
+    onProgress(iteration === 0 ? '[ ] Running quality check\n' : '[ ] Re-checking quality\n');
 
     // Run QC
     const qcResult = await performSlideQualityCheck(
@@ -868,7 +868,7 @@ async function performSlideQCWithAutoFix(
 
     // Check if all passed
     if (qcResult.passed) {
-      onProgress(`✓ Quality check passed (${qcResult.overallScore}/10)\n`);
+      onProgress(`[✓] Quality check passed (${qcResult.overallScore}/10)\n`);
       break;
     }
 
@@ -879,15 +879,13 @@ async function performSlideQCWithAutoFix(
 
     if (failedSlides.length === 0) {
       // All failed slides have exceeded retry limit
-      onProgress(
-        `⚠ Quality check: ${qcResult.overallScore}/10 - Some slides could not be improved further\n`
-      );
+      onProgress(`[~] Quality check (${qcResult.overallScore}/10) - max retries reached\n`);
       break;
     }
 
     // Report what we're fixing
     onProgress(
-      `⚠ Quality check: ${qcResult.overallScore}/10 - Fixing ${failedSlides.length} slide(s)...\n`
+      `[~] Quality check (${qcResult.overallScore}/10) - fixing ${failedSlides.length} slide(s)\n`
     );
 
     // Regenerate each failed slide
@@ -900,9 +898,7 @@ async function performSlideQCWithAutoFix(
       const originalSlide = currentSlides[slideIndex];
       retryAttempts[failedAssessment.slideNumber]++;
 
-      onProgress(
-        `  → Regenerating slide ${failedAssessment.slideNumber}: ${originalSlide.title}...\n`
-      );
+      onProgress(`    [ ] Regenerating slide ${failedAssessment.slideNumber}\n`);
 
       // Generate improved prompt
       const improvedPrompt = generateImprovedSlidePrompt(
@@ -928,9 +924,9 @@ async function performSlideQCWithAutoFix(
           originalPrompt: improvedPrompt,
         };
         totalRegeneratedCount++;
-        onProgress(`  ✓ Slide ${failedAssessment.slideNumber} regenerated\n`);
+        onProgress(`    [✓] Slide ${failedAssessment.slideNumber} regenerated\n`);
       } else {
-        onProgress(`  ⚠ Slide ${failedAssessment.slideNumber} regeneration failed\n`);
+        onProgress(`    [x] Slide ${failedAssessment.slideNumber} failed\n`);
       }
     }
   }
@@ -2944,7 +2940,7 @@ export async function POST(request: NextRequest) {
                   )
                 );
               }
-              controller.enqueue(encoder.encode('*Creating your presentation slides...*\n\n'));
+              controller.enqueue(encoder.encode('Creating presentation slides...\n\n'));
 
               // Step 1: Research phase - gather information if topic needs it
               const needsResearch =
@@ -2953,7 +2949,7 @@ export async function POST(request: NextRequest) {
 
               let researchContext = '';
               if (needsResearch && isBraveConfigured()) {
-                controller.enqueue(encoder.encode('*Researching topic for accurate content...*\n'));
+                controller.enqueue(encoder.encode('[ ] Researching topic\n'));
 
                 try {
                   // Extract topic for research
@@ -2965,7 +2961,7 @@ export async function POST(request: NextRequest) {
                   const searchResult = await braveSearch({ query: topic, mode: 'search' });
                   if (searchResult.answer) {
                     researchContext = `\n\nResearch context for accurate content:\n${searchResult.answer.substring(0, 2000)}`;
-                    controller.enqueue(encoder.encode('*Research complete.*\n\n'));
+                    controller.enqueue(encoder.encode('[✓] Research complete\n'));
                   }
                 } catch (researchError) {
                   log.warn('Slide research failed, continuing without', {
@@ -2975,7 +2971,7 @@ export async function POST(request: NextRequest) {
               }
 
               // Step 2: Have Claude analyze and create slide prompts
-              controller.enqueue(encoder.encode('*Designing slide layouts and content...*\n'));
+              controller.enqueue(encoder.encode('[ ] Designing slide layouts\n'));
 
               const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides.
 
@@ -3060,7 +3056,9 @@ IMPORTANT:
               });
 
               controller.enqueue(
-                encoder.encode(`*Generating ${slidePrompts.length} slides via FLUX...*\n\n`)
+                encoder.encode(
+                  `[✓] Designing slide layouts\n\nGenerating ${slidePrompts.length} slides:\n`
+                )
               );
 
               // Step 3: Generate images for each slide via BFL with streaming progress
@@ -3159,9 +3157,7 @@ IMPORTANT:
               // Step 3: Generate initial slides
               for (const slide of slidePrompts) {
                 controller.enqueue(
-                  encoder.encode(
-                    `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
-                  )
+                  encoder.encode(`[ ] Slide ${slide.slideNumber}: ${slide.title}\n`)
                 );
 
                 const result = await generateSingleSlide(
@@ -3180,14 +3176,16 @@ IMPORTANT:
                     generationId: result.generationId,
                     originalPrompt: slide.prompt,
                   });
-                  controller.enqueue(encoder.encode(`✓ Slide ${slide.slideNumber} complete\n`));
+                  controller.enqueue(
+                    encoder.encode(`[✓] Slide ${slide.slideNumber}: ${slide.title}\n`)
+                  );
                   log.info('Slide generated (natural language streaming)', {
                     slideNumber: slide.slideNumber,
                     generationId: result.generationId,
                   });
                 } else {
                   controller.enqueue(
-                    encoder.encode(`⚠ Slide ${slide.slideNumber} failed, continuing...\n`)
+                    encoder.encode(`[x] Slide ${slide.slideNumber}: ${slide.title} (failed)\n`)
                   );
                 }
               }
@@ -3226,14 +3224,14 @@ IMPORTANT:
 
                 if (regeneratedCount > 0) {
                   controller.enqueue(
-                    encoder.encode(`\n✓ ${regeneratedCount} slide(s) were automatically improved\n`)
+                    encoder.encode(`[✓] ${regeneratedCount} slide(s) automatically improved\n`)
                   );
                 }
               }
 
               // Step 4: Stream final result
               if (finalSlides.length > 0) {
-                controller.enqueue(encoder.encode('\n---\n\n'));
+                controller.enqueue(encoder.encode('\n'));
                 controller.enqueue(
                   encoder.encode(
                     `**Your ${finalSlides.length} presentation slide${finalSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
@@ -3585,7 +3583,7 @@ IMPORTANT:
                 )
               );
             }
-            controller.enqueue(encoder.encode('*Creating your presentation slides...*\n\n'));
+            controller.enqueue(encoder.encode('Creating presentation slides...\n\n'));
 
             // Research phase if needed
             const needsResearch =
@@ -3594,7 +3592,7 @@ IMPORTANT:
 
             let researchContext = '';
             if (needsResearch && isBraveConfigured()) {
-              controller.enqueue(encoder.encode('*Researching topic for accurate content...*\n'));
+              controller.enqueue(encoder.encode('[ ] Researching topic\n'));
               try {
                 const topicMatch = lastUserContent.match(
                   /\b(?:about|regarding|on|for)\s+(.+?)(?:\.|$|\s+(?:slide|presentation|powerpoint))/i
@@ -3603,7 +3601,7 @@ IMPORTANT:
                 const searchResult = await braveSearch({ query: topic, mode: 'search' });
                 if (searchResult.answer) {
                   researchContext = `\n\nResearch context:\n${searchResult.answer.substring(0, 2000)}`;
-                  controller.enqueue(encoder.encode('*Research complete.*\n\n'));
+                  controller.enqueue(encoder.encode('[✓] Research complete\n'));
                 }
               } catch {
                 // Continue without research
@@ -3611,7 +3609,7 @@ IMPORTANT:
             }
 
             // Design slides
-            controller.enqueue(encoder.encode('*Designing slide layouts and content...*\n'));
+            controller.enqueue(encoder.encode('[ ] Designing slide layouts\n'));
 
             const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides.
 
@@ -3666,7 +3664,9 @@ Output ONLY JSON array:
             }
 
             controller.enqueue(
-              encoder.encode(`*Generating ${slidePrompts.length} slides via FLUX...*\n\n`)
+              encoder.encode(
+                `[✓] Designing slide layouts\n\nGenerating ${slidePrompts.length} slides:\n`
+              )
             );
 
             // Generate slides
@@ -3758,9 +3758,7 @@ Output ONLY JSON array:
             // Generate initial slides
             for (const slide of slidePrompts) {
               controller.enqueue(
-                encoder.encode(
-                  `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
-                )
+                encoder.encode(`[ ] Slide ${slide.slideNumber}: ${slide.title}\n`)
               );
 
               const result = await generateSingleSlide(
@@ -3779,10 +3777,12 @@ Output ONLY JSON array:
                   generationId: result.generationId,
                   originalPrompt: slide.prompt,
                 });
-                controller.enqueue(encoder.encode(`✓ Slide ${slide.slideNumber} complete\n`));
+                controller.enqueue(
+                  encoder.encode(`[✓] Slide ${slide.slideNumber}: ${slide.title}\n`)
+                );
               } else {
                 controller.enqueue(
-                  encoder.encode(`⚠ Slide ${slide.slideNumber} failed, continuing...\n`)
+                  encoder.encode(`[x] Slide ${slide.slideNumber}: ${slide.title} (failed)\n`)
                 );
               }
             }
@@ -3821,14 +3821,14 @@ Output ONLY JSON array:
 
               if (regeneratedCount > 0) {
                 controller.enqueue(
-                  encoder.encode(`\n✓ ${regeneratedCount} slide(s) were automatically improved\n`)
+                  encoder.encode(`[✓] ${regeneratedCount} slide(s) automatically improved\n`)
                 );
               }
             }
 
             // Final output
             if (finalSlides.length > 0) {
-              controller.enqueue(encoder.encode('\n---\n\n'));
+              controller.enqueue(encoder.encode('\n'));
               controller.enqueue(
                 encoder.encode(
                   `**Your ${finalSlides.length} presentation slide${finalSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
