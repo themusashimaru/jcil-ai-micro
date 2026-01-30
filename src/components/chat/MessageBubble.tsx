@@ -285,6 +285,8 @@ interface MessageBubbleProps {
   onReply?: (message: Message) => void;
   /** Enable code execution actions (Test/Push buttons) on code blocks */
   enableCodeActions?: boolean;
+  /** Callback to regenerate a generated image with adjusted prompt */
+  onRegenerateImage?: (generationId: string, originalPrompt: string, feedback: string) => void;
 }
 
 export function MessageBubble({
@@ -293,6 +295,7 @@ export function MessageBubble({
   isAdmin,
   onReply,
   enableCodeActions,
+  onRegenerateImage,
 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
@@ -570,8 +573,8 @@ export function MessageBubble({
           </div>
         )}
 
-        {/* Generated Image */}
-        {message.imageUrl && (
+        {/* Generated Image (legacy) */}
+        {message.imageUrl && !message.generatedImage && (
           <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-sm relative group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -600,6 +603,96 @@ export function MessageBubble({
                 />
               </svg>
             </a>
+          </div>
+        )}
+
+        {/* Generated Image from Creative Tools (with metadata) */}
+        {message.generatedImage && (
+          <div className="mb-2 overflow-hidden rounded-xl border border-white/10 max-w-md relative group">
+            {/* Image with gradient overlay for metadata */}
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={message.generatedImage.imageUrl}
+                alt={message.generatedImage.prompt}
+                className="w-full h-auto"
+              />
+              {/* Overlay with metadata on hover */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                <p className="text-xs text-white/90 line-clamp-2">
+                  {message.generatedImage.prompt}
+                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-white/60">
+                    {message.generatedImage.dimensions.width} x{' '}
+                    {message.generatedImage.dimensions.height}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {message.generatedImage.verification && (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          message.generatedImage.verification.matches
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}
+                      >
+                        {message.generatedImage.verification.matches ? 'Verified' : 'Review'}
+                      </span>
+                    )}
+                    {/* Regenerate button when verification fails */}
+                    {message.generatedImage.verification &&
+                      !message.generatedImage.verification.matches &&
+                      onRegenerateImage && (
+                        <button
+                          onClick={() =>
+                            onRegenerateImage(
+                              message.generatedImage!.id,
+                              message.generatedImage!.prompt,
+                              message.generatedImage!.verification!.feedback
+                            )
+                          }
+                          className="text-xs px-2 py-0.5 rounded-full bg-blue-500/80 text-white hover:bg-blue-500 transition-colors"
+                        >
+                          Regenerate
+                        </button>
+                      )}
+                  </div>
+                </div>
+              </div>
+              {/* Download button - always visible on mobile */}
+              <a
+                href={message.generatedImage.imageUrl}
+                download={`${message.generatedImage.type}-${message.generatedImage.id}.png`}
+                className="absolute top-2 right-2 rounded-full bg-black/70 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-black/90"
+                title="Download image"
+              >
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+              </a>
+            </div>
+            {/* Type badge */}
+            <div className="absolute top-2 left-2">
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  message.generatedImage.type === 'edit'
+                    ? 'bg-violet-500/80 text-white'
+                    : 'bg-pink-500/80 text-white'
+                }`}
+              >
+                {message.generatedImage.type === 'edit' ? 'Edited' : 'Created'}
+              </span>
+            </div>
           </div>
         )}
 
@@ -1184,7 +1277,10 @@ export function MessageBubble({
                   const { icon, label } = getFileInfo(file.mime_type, file.filename);
 
                   return (
-                    <div key={file.download_url || `${file.filename}-${index}`} className="flex flex-col gap-1">
+                    <div
+                      key={file.download_url || `${file.filename}-${index}`}
+                      className="flex flex-col gap-1"
+                    >
                       {/* Download to Device Button */}
                       <button
                         className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full text-left"

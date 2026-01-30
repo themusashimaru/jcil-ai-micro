@@ -114,6 +114,25 @@ export interface ClonedSite {
   generatedCode: string;
 }
 
+/**
+ * Generated image from creative tools (FLUX.2)
+ * Stored with full metadata for chat context and iteration
+ */
+export interface GeneratedImage {
+  id: string; // Generation ID from database
+  type: 'create' | 'edit';
+  imageUrl: string; // Permanent Supabase Storage URL
+  prompt: string; // Original user prompt
+  enhancedPrompt?: string; // AI-enhanced prompt used
+  dimensions: { width: number; height: number };
+  model: string;
+  seed?: number;
+  verification?: {
+    matches: boolean;
+    feedback: string;
+  };
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -132,6 +151,7 @@ export interface Message {
   codePreview?: CodePreview; // For live code previews (landing pages, websites)
   multiPageWebsite?: MultiPageWebsite; // For multi-page website generation
   clonedSite?: ClonedSite; // For cloned/recreated websites
+  generatedImage?: GeneratedImage; // For AI-generated/edited images from creative tools
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;

@@ -78,6 +78,17 @@ import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/li
 // Intent detection removed - research agent is now button-only
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
+import {
+  isBFLConfigured,
+  detectImageRequest,
+  generateImage,
+  downloadAndStore,
+  enhanceImagePrompt,
+  verifyGenerationResult,
+  ASPECT_RATIOS,
+  BFLError,
+} from '@/lib/connectors/bfl';
+import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const log = logger('ChatAPI');
 
@@ -1837,6 +1848,175 @@ export async function POST(request: NextRequest) {
       doc_pptx: 'pptx',
     };
     const explicitDocType = docModeToType[effectiveToolMode] || null;
+
+    // ========================================
+    // ROUTE 0: NATURAL LANGUAGE IMAGE GENERATION
+    // ========================================
+    // Detect if user is requesting image generation in natural language
+    // e.g., "generate an image of a sunset", "create a picture of a cat"
+    if (effectiveToolMode === 'none' && isBFLConfigured() && isAuthenticated) {
+      try {
+        const imageDetection = await detectImageRequest(lastUserContent, {
+          useClaude: false, // Use fast pattern matching only
+          minConfidence: 'high', // Only high confidence detections
+        });
+
+        if (imageDetection?.isImageRequest && imageDetection.requestType === 'create') {
+          log.info('Image generation request detected in natural language', {
+            confidence: imageDetection.confidence,
+            prompt: imageDetection.extractedPrompt?.substring(0, 50),
+          });
+
+          // Release slot for the image generation process
+          if (slotAcquired) {
+            await releaseSlot(requestId);
+            slotAcquired = false;
+          }
+
+          // Generate the image
+          try {
+            const prompt = imageDetection.extractedPrompt || lastUserContent;
+
+            // Determine dimensions from aspect ratio hint
+            let width = 1024;
+            let height = 1024;
+            if (imageDetection.aspectRatioHint === 'landscape') {
+              width = ASPECT_RATIOS['16:9'].width;
+              height = ASPECT_RATIOS['16:9'].height;
+            } else if (imageDetection.aspectRatioHint === 'portrait') {
+              width = ASPECT_RATIOS['9:16'].width;
+              height = ASPECT_RATIOS['9:16'].height;
+            } else if (imageDetection.aspectRatioHint === 'wide') {
+              // Use 16:9 for wide/cinematic requests
+              width = ASPECT_RATIOS['16:9'].width;
+              height = ASPECT_RATIOS['16:9'].height;
+            }
+
+            // Enhance the prompt
+            const enhancedPrompt = await enhanceImagePrompt(prompt, {
+              type: 'create',
+              aspectRatio:
+                imageDetection.aspectRatioHint === 'square'
+                  ? '1:1'
+                  : imageDetection.aspectRatioHint === 'portrait'
+                    ? '9:16'
+                    : '16:9',
+            });
+
+            // Create generation record
+            const { randomUUID } = await import('crypto');
+            const generationId = randomUUID();
+            const serviceClient = createServiceRoleClient();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (serviceClient as any).from('generations').insert({
+              id: generationId,
+              user_id: rateLimitIdentifier,
+              conversation_id: conversationId || null,
+              type: 'image',
+              model: 'flux-2-pro',
+              provider: 'bfl',
+              prompt: enhancedPrompt,
+              input_data: {
+                originalPrompt: prompt,
+                detectedFromChat: true,
+              },
+              dimensions: { width, height },
+              status: 'processing',
+            });
+
+            // Generate the image
+            const result = await generateImage(enhancedPrompt, {
+              model: 'flux-2-pro',
+              width,
+              height,
+              promptUpsampling: true,
+            });
+
+            // Store the image
+            const storedUrl = await downloadAndStore(
+              result.imageUrl,
+              rateLimitIdentifier,
+              generationId,
+              'png'
+            );
+
+            // Verify the result
+            let verification: { matches: boolean; feedback: string } | null = null;
+            try {
+              const imageResponse = await fetch(result.imageUrl);
+              if (imageResponse.ok) {
+                const imageBuffer = await imageResponse.arrayBuffer();
+                const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+                verification = await verifyGenerationResult(prompt, imageBase64);
+              }
+            } catch {
+              // Verification is optional
+            }
+
+            // Update generation record
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (serviceClient as any)
+              .from('generations')
+              .update({
+                status: 'completed',
+                result_url: storedUrl,
+                result_data: {
+                  seed: result.seed,
+                  enhancedPrompt: result.enhancedPrompt,
+                  verification: verification || undefined,
+                },
+                cost_credits: result.cost,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', generationId);
+
+            // Return as JSON response with image data
+            return new Response(
+              JSON.stringify({
+                type: 'image_generation',
+                content:
+                  verification?.matches === false
+                    ? `I've generated this image based on your request. ${verification.feedback}`
+                    : `I've created this image for you based on: "${prompt}"`,
+                generatedImage: {
+                  id: generationId,
+                  type: 'create',
+                  imageUrl: storedUrl,
+                  prompt: prompt,
+                  enhancedPrompt: enhancedPrompt,
+                  dimensions: { width, height },
+                  model: 'flux-2-pro',
+                  seed: result.seed,
+                  verification: verification || undefined,
+                },
+                model: 'flux-2-pro',
+                provider: 'bfl',
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          } catch (imgError) {
+            const errorMessage =
+              imgError instanceof Error ? imgError.message : 'Image generation failed';
+            const errorCode = imgError instanceof BFLError ? imgError.code : 'GENERATION_ERROR';
+
+            log.error('Natural language image generation failed', {
+              error: errorMessage,
+              code: errorCode,
+            });
+
+            // Fall through to regular chat if image generation fails
+            // User will get a normal response instead of an error
+          }
+        }
+      } catch (detectionError) {
+        // If detection fails, continue with normal chat
+        log.debug('Image request detection failed', { error: detectionError });
+      }
+    }
 
     // ========================================
     // ROUTE 1: RESEARCH AGENT (Button-only - user must click Research)

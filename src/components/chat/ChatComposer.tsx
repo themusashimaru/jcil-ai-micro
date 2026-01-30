@@ -20,7 +20,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { Attachment, Message } from '@/app/chat/types';
+import type { Attachment, Message, GeneratedImage } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 // ConnectorsButton and RepoDropdown removed from main chat
 // These developer tools are now in Code Lab only
@@ -28,6 +28,13 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 // import { RepoDropdown } from './RepoDropdown';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  CreativeButton,
+  CreateImageModal,
+  EditImageModal,
+  GenerationGallery,
+  type CreativeMode,
+} from './CreativeButton';
 
 // Tool mode types - search and research tools only
 // Document generation is now integrated into regular chat for all users
@@ -63,6 +70,15 @@ interface ChatComposerProps {
   onAgentSelect?: (agent: 'research' | 'strategy' | 'deep-research') => Promise<void> | void;
   strategyLoading?: boolean; // Show loading state while strategy starts
   deepResearchLoading?: boolean; // Show loading state while deep research starts
+  // External modal control (for carousel integration)
+  openCreateImage?: boolean;
+  openEditImage?: boolean;
+  onCloseCreateImage?: () => void;
+  onCloseEditImage?: () => void;
+  // Current conversation ID (for linking generated images)
+  conversationId?: string;
+  // Callback when image is generated (to add to conversation)
+  onImageGenerated?: (image: GeneratedImage) => void;
 }
 
 /**
@@ -140,6 +156,12 @@ export function ChatComposer({
   onAgentSelect,
   strategyLoading,
   deepResearchLoading,
+  openCreateImage,
+  openEditImage,
+  onCloseCreateImage,
+  onCloseEditImage,
+  conversationId,
+  onImageGenerated,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -172,6 +194,25 @@ export function ChatComposer({
   const [showAgentsMenu, setShowAgentsMenu] = useState(false);
   const agentsButtonRef = useRef<HTMLButtonElement>(null);
   const agentsMenuRef = useRef<HTMLDivElement>(null);
+  // Creative mode state
+  const [creativeMode, setCreativeMode] = useState<CreativeMode | null>(null);
+  const [showCreateImageModal, setShowCreateImageModal] = useState(false);
+  const [showEditImageModal, setShowEditImageModal] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+
+  // External modal control - sync with external state
+  useEffect(() => {
+    if (openCreateImage) {
+      setShowCreateImageModal(true);
+    }
+  }, [openCreateImage]);
+
+  useEffect(() => {
+    if (openEditImage) {
+      setShowEditImageModal(true);
+    }
+  }, [openEditImage]);
+
   // Track last applied initialText to prevent re-applying on message changes
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
@@ -1068,6 +1109,26 @@ export function ChatComposer({
                   )}
                 </div>
               )}
+
+              {/* Creative button - Image generation, editing, slides */}
+              <CreativeButton
+                disabled={isStreaming || disabled}
+                activeMode={creativeMode}
+                onSelect={(mode) => {
+                  if (mode === 'view-gallery') {
+                    // Gallery doesn't set creative mode, just opens modal
+                    setShowGalleryModal(true);
+                  } else {
+                    setCreativeMode(mode);
+                    if (mode === 'create-image') {
+                      setShowCreateImageModal(true);
+                    } else if (mode === 'edit-image') {
+                      setShowEditImageModal(true);
+                    }
+                    // slides - coming soon
+                  }
+                }}
+              />
             </div>
 
             {/* Right side - send button */}
@@ -1206,6 +1267,39 @@ export function ChatComposer({
           </>,
           document.body
         )}
+
+      {/* Creative Modals */}
+      <CreateImageModal
+        isOpen={showCreateImageModal}
+        onClose={() => {
+          setShowCreateImageModal(false);
+          setCreativeMode(null);
+          onCloseCreateImage?.();
+        }}
+        conversationId={conversationId}
+        onImageGenerated={onImageGenerated}
+      />
+      <EditImageModal
+        isOpen={showEditImageModal}
+        onClose={() => {
+          setShowEditImageModal(false);
+          setCreativeMode(null);
+          onCloseEditImage?.();
+        }}
+        conversationId={conversationId}
+        onImageGenerated={onImageGenerated}
+      />
+      <GenerationGallery
+        isOpen={showGalleryModal}
+        onClose={() => setShowGalleryModal(false)}
+        onReusePrompt={(prompt) => {
+          setMessage(prompt);
+          setShowGalleryModal(false);
+          // Optionally open create modal with the prompt
+          setCreativeMode('create-image');
+          setShowCreateImageModal(true);
+        }}
+      />
     </div>
   );
 }

@@ -57,7 +57,7 @@ import { RepoSelector } from '@/components/chat/RepoSelector';
 import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
-import type { Chat, Message, Attachment } from './types';
+import type { Chat, Message, Attachment, GeneratedImage } from './types';
 
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';
@@ -178,6 +178,9 @@ export function ChatClient() {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   // Quick prompt text from welcome screen
   const [quickPromptText, setQuickPromptText] = useState<string>('');
+  // Carousel-triggered modal state (for creative buttons from welcome carousel)
+  const [openCreateImage, setOpenCreateImage] = useState(false);
+  const [openEditImage, setOpenEditImage] = useState(false);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
   // Pending tool suggestion from AI response analysis (for auto web search/fact check)
@@ -719,6 +722,134 @@ export function ChatClient() {
     // Auto-close sidebar on mobile after creating new chat
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
+    }
+  };
+
+  // Handle carousel card selection
+  const handleCarouselSelect = async (cardId: string) => {
+    switch (cardId) {
+      case 'create-image':
+        setOpenCreateImage(true);
+        break;
+      case 'edit-image':
+        setOpenEditImage(true);
+        break;
+      case 'create-slides':
+        // Coming soon - no action
+        break;
+      case 'research':
+        // Use the agent selector callback - this will be handled by ChatComposer
+        // For now, just set a quick prompt to guide the user
+        setQuickPromptText('');
+        break;
+      case 'deep-research':
+        // Start deep research mode
+        if (isAdmin) {
+          await startDeepResearch();
+        }
+        break;
+      case 'deep-strategy':
+        // Start strategy mode
+        if (isAdmin) {
+          await startDeepStrategy();
+        }
+        break;
+      default:
+        log.warn('Unknown carousel card selected', { cardId });
+    }
+  };
+
+  // Handle image generated from creative tools - add to conversation
+  const handleImageGenerated = (image: GeneratedImage) => {
+    const messageId = `gen-${image.id}`;
+    const typeLabel = image.type === 'edit' ? 'edited' : 'generated';
+    const content = image.verification?.feedback
+      ? `I've ${typeLabel} this image for you. ${image.verification.feedback}`
+      : `I've ${typeLabel} this image based on your request: "${image.prompt}"`;
+
+    const newMessage: Message = {
+      id: messageId,
+      role: 'assistant',
+      content,
+      generatedImage: image,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+
+    log.info('Generated image added to conversation', {
+      generationId: image.id,
+      type: image.type,
+      verified: image.verification?.matches,
+    });
+  };
+
+  // Handle image regeneration request (when verification fails)
+  const handleRegenerateImage = async (
+    generationId: string,
+    originalPrompt: string,
+    feedback: string
+  ) => {
+    log.info('Regenerating image', { generationId, feedback });
+
+    // Create an improved prompt based on feedback
+    const improvedPrompt = `${originalPrompt}. Important: ${feedback}`;
+
+    // Add a user message explaining the regeneration
+    const userMessageId = `regen-user-${Date.now()}`;
+    const userMessage: Message = {
+      id: userMessageId,
+      role: 'user',
+      content: `Please regenerate this image. The previous result: ${feedback}`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Trigger a new generation with the improved prompt
+    try {
+      const response = await fetch('/api/create/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: improvedPrompt,
+          conversationId: currentChatId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Add the regenerated image to conversation
+        handleImageGenerated({
+          id: data.id,
+          type: 'create',
+          imageUrl: data.imageUrl,
+          prompt: originalPrompt,
+          enhancedPrompt: data.enhancedPrompt,
+          dimensions: data.dimensions,
+          model: data.model || 'flux-2-pro',
+          seed: data.seed,
+          verification: data.verification,
+        });
+      } else {
+        // Add error message
+        const errorMessage: Message = {
+          id: `regen-error-${Date.now()}`,
+          role: 'assistant',
+          content: `I couldn't regenerate the image: ${data.message || data.error || 'Unknown error'}`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      log.error('Regeneration failed', { error });
+      const errorMessage: Message = {
+        id: `regen-error-${Date.now()}`,
+        role: 'assistant',
+        content: 'I encountered an error while trying to regenerate the image. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     }
   };
 
@@ -2489,6 +2620,35 @@ ${artifactSection}
             'image',
             data.url
           );
+        } else if (data.type === 'image_generation' && data.generatedImage) {
+          // Natural language image generation response (FLUX.2)
+          isImageResponse = true;
+          log.debug('Received natural language image generation response:', {
+            id: data.generatedImage.id,
+            prompt: data.generatedImage.prompt,
+            model: data.generatedImage.model,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || `I've created this image for you.`,
+            generatedImage: data.generatedImage as GeneratedImage,
+            model: data.generatedImage.model || modelUsed,
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save to database with image URL
+          await saveMessageToDatabase(
+            newChatId,
+            'assistant',
+            assistantMessage.content,
+            'image',
+            data.generatedImage.imageUrl
+          );
         } else if (data.type === 'code_preview' && data.codePreview) {
           // Website/landing page code generation response
           log.debug('Received code preview response:', {
@@ -3596,6 +3756,8 @@ ${artifactSection}
               enableCodeActions
               lastUserMessage={messages.filter((m) => m.role === 'user').pop()?.content || ''}
               onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
+              onCarouselSelect={handleCarouselSelect}
+              onRegenerateImage={handleRegenerateImage}
             />
             {/* Live To-Do List - extracted from AI responses */}
             <LiveTodoList messages={messages} conversationId={currentChatId} />
@@ -3723,6 +3885,12 @@ ${artifactSection}
                   // Research mode is handled internally by ChatComposer's toolMode
                 }
               }}
+              openCreateImage={openCreateImage}
+              openEditImage={openEditImage}
+              onCloseCreateImage={() => setOpenCreateImage(false)}
+              onCloseEditImage={() => setOpenEditImage(false)}
+              conversationId={currentChatId || undefined}
+              onImageGenerated={handleImageGenerated}
             />
             {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
