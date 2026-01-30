@@ -124,7 +124,9 @@ export function updateTaskStatus(
   if (error) task.error = error;
 
   // Update workflow status
-  const allCompleted = workflow.tasks.every((t) => t.status === 'completed' || t.status === 'skipped');
+  const allCompleted = workflow.tasks.every(
+    (t) => t.status === 'completed' || t.status === 'skipped'
+  );
   const anyInProgress = workflow.tasks.some((t) => t.status === 'in_progress');
   const anyFailed = workflow.tasks.some((t) => t.error);
 
@@ -142,7 +144,9 @@ export function updateTaskStatus(
 /**
  * Start the next pending task
  */
-export function startNextTask(workflowId: string): { workflow: Workflow; task: WorkflowTask } | undefined {
+export function startNextTask(
+  workflowId: string
+): { workflow: Workflow; task: WorkflowTask } | undefined {
   const workflow = activeWorkflows.get(workflowId);
   if (!workflow) return undefined;
 
@@ -343,7 +347,10 @@ export function formatTaskList(workflow: Workflow): string {
 /**
  * Format a single task update for streaming
  */
-export function formatTaskUpdate(task: WorkflowTask, action: 'starting' | 'completed' | 'skipped'): string {
+export function formatTaskUpdate(
+  task: WorkflowTask,
+  action: 'starting' | 'completed' | 'skipped'
+): string {
   switch (action) {
     case 'starting':
       return `\n> Starting: ${task.content}\n`;
@@ -368,7 +375,7 @@ export function formatWorkflowProgress(workflow: Workflow): string {
   if (current) {
     output += `\n\nCurrently: ${getInProgressText(current)}`;
   } else if (workflow.status === 'completed') {
-    output += `\n\nCompleted all ${total} tasks.`;
+    output += `\n\nCompleted ${completed}/${total} tasks.`;
   }
 
   return output;

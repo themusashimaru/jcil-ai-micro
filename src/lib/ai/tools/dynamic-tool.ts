@@ -29,7 +29,7 @@ const log = logger('DynamicTool');
 
 export const DYNAMIC_TOOL_LIMITS = {
   // Max cost per dynamic tool execution (generous for real work)
-  maxCostPerExecution: 0.50,
+  maxCostPerExecution: 0.5,
 
   // Max dynamic tools per session (allow complex workflows)
   maxDynamicToolsPerSession: 10,
@@ -128,7 +128,10 @@ const DANGEROUS_PATTERNS = [
 function validateCode(code: string): { valid: boolean; reason?: string } {
   // Check length
   if (code.length > DYNAMIC_TOOL_LIMITS.maxCodeLength) {
-    return { valid: false, reason: `Code too long (max ${DYNAMIC_TOOL_LIMITS.maxCodeLength} chars)` };
+    return {
+      valid: false,
+      reason: `Code too long (max ${DYNAMIC_TOOL_LIMITS.maxCodeLength} chars)`,
+    };
   }
 
   // Check for dangerous patterns
@@ -165,12 +168,13 @@ You have up to ${DYNAMIC_TOOL_LIMITS.maxDynamicToolsPerSession} tool creations p
       },
       code: {
         type: 'string',
-        description: 'Python code to execute. Must define a main() function that returns the result.',
+        description:
+          'Python code to execute. Must define a main() function that returns the result.',
       },
       inputs: {
         type: 'object',
-        description: 'Input values to pass to the code (available as `inputs` dict)',
-        additionalProperties: true,
+        description:
+          'Input values to pass to the code (available as `inputs` dict). Pass any JSON object.',
       },
     },
     required: ['purpose', 'code'],
@@ -192,11 +196,13 @@ export async function executeDynamicTool(
   try {
     // Parse arguments
     const args =
-      typeof toolCall.arguments === 'string'
-        ? JSON.parse(toolCall.arguments)
-        : toolCall.arguments;
+      typeof toolCall.arguments === 'string' ? JSON.parse(toolCall.arguments) : toolCall.arguments;
 
-    const { purpose, code, inputs = {} } = args as {
+    const {
+      purpose,
+      code,
+      inputs = {},
+    } = args as {
       purpose: string;
       code: string;
       inputs?: Record<string, unknown>;
@@ -214,7 +220,10 @@ export async function executeDynamicTool(
 
     // Check overall session cost
     const chatSession = getChatSessionCosts(sessionId);
-    if (chatSession.totalCost + DYNAMIC_TOOL_LIMITS.maxCostPerExecution > CHAT_COST_LIMITS.maxCostPerSession) {
+    if (
+      chatSession.totalCost + DYNAMIC_TOOL_LIMITS.maxCostPerExecution >
+      CHAT_COST_LIMITS.maxCostPerSession
+    ) {
       return {
         toolCallId: toolCall.id,
         content: 'Session cost limit would be exceeded. Cannot create dynamic tool.',
