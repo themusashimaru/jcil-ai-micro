@@ -155,7 +155,7 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   </div>
                 </button>
 
-                {/* Create Slides - Coming Soon */}
+                {/* Create Slides */}
                 <button
                   onClick={() => handleSelect('create-slides')}
                   className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
@@ -170,7 +170,6 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   <div className="text-left">
                     <p className="text-sm font-medium">Create Slides</p>
                     <p className="text-xs text-gray-500">Generate presentations with AI visuals</p>
-                    <p className="text-xs text-blue-400 mt-0.5">Coming Soon</p>
                   </div>
                 </button>
 
