@@ -2674,6 +2674,200 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
+    // ROUTE 2.5: VISUAL SLIDE GENERATION (BFL/FLUX)
+    // ========================================
+    // When user selects slides/presentation AND BFL is configured,
+    // generate actual visual slides as images via FLUX instead of PowerPoint
+    if (explicitDocType === 'pptx' && isBFLConfigured() && isAuthenticated) {
+      log.info('Visual slide generation requested via BFL', {
+        userRequest: lastUserContent.substring(0, 100),
+      });
+
+      // Release slot for the slide generation process
+      if (slotAcquired) {
+        await releaseSlot(requestId);
+        slotAcquired = false;
+      }
+
+      try {
+        // Step 1: Have Claude analyze the request and generate slide prompts
+        const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides generated as images.
+
+Analyze their request and create detailed image generation prompts for each slide. Output ONLY valid JSON.
+
+Rules:
+1. Each slide should be a visually appealing, professional presentation slide
+2. Include clear text/titles that should appear ON the slide image
+3. Describe the visual style, colors, layout, and any graphics
+4. Keep text minimal - slides should be visual, not text-heavy
+5. Use 16:9 landscape aspect ratio design
+
+Output format (JSON array):
+[
+  {
+    "slideNumber": 1,
+    "title": "Slide title text to appear on the slide",
+    "prompt": "Detailed image generation prompt describing the visual slide design, colors, layout, graphics, and any text that should appear"
+  }
+]
+
+Example prompt style: "Professional presentation slide with dark blue gradient background. Large white title text 'German Shepherd Nutrition' centered at top. Below, three circular icons showing: protein (meat icon), vitamins (pill icon), minerals (bone icon). Clean corporate design, modern sans-serif font, subtle dog paw watermark in corner."`;
+
+        const slideMessages: CoreMessage[] = [{ role: 'user', content: lastUserContent }];
+
+        const slidePromptResult = await completeChat(slideMessages, {
+          systemPrompt: slidePromptSystemMessage,
+          model: 'claude-sonnet-4-5-20250929',
+          maxTokens: 2048,
+          temperature: 0.7,
+        });
+
+        // Parse the slide prompts
+        let jsonText = slidePromptResult.text.trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+
+        const slidePrompts = JSON.parse(jsonText) as Array<{
+          slideNumber: number;
+          title: string;
+          prompt: string;
+        }>;
+
+        log.info('Generated slide prompts', { slideCount: slidePrompts.length });
+
+        // Step 2: Generate images for each slide via BFL
+        const { randomUUID } = await import('crypto');
+        const serviceClient = createServiceRoleClient();
+        const generatedSlides: Array<{
+          slideNumber: number;
+          title: string;
+          imageUrl: string;
+          generationId: string;
+        }> = [];
+
+        // Use 16:9 landscape for slides
+        const slideWidth = ASPECT_RATIOS['16:9'].width;
+        const slideHeight = ASPECT_RATIOS['16:9'].height;
+
+        for (const slide of slidePrompts) {
+          try {
+            const generationId = randomUUID();
+
+            // Enhance the prompt for better slide visuals
+            const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
+              type: 'create',
+              aspectRatio: '16:9',
+            });
+
+            // Create generation record
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (serviceClient as any).from('generations').insert({
+              id: generationId,
+              user_id: rateLimitIdentifier,
+              conversation_id: conversationId || null,
+              type: 'slide',
+              model: 'flux-2-pro',
+              provider: 'bfl',
+              prompt: enhancedPrompt,
+              input_data: {
+                originalPrompt: slide.prompt,
+                slideNumber: slide.slideNumber,
+                slideTitle: slide.title,
+              },
+              dimensions: { width: slideWidth, height: slideHeight },
+              status: 'processing',
+            });
+
+            // Generate the slide image
+            const result = await generateImage(enhancedPrompt, {
+              model: 'flux-2-pro',
+              width: slideWidth,
+              height: slideHeight,
+              promptUpsampling: true,
+            });
+
+            // Store the image
+            const storedUrl = await downloadAndStore(
+              result.imageUrl,
+              rateLimitIdentifier,
+              generationId,
+              'png'
+            );
+
+            // Update generation record
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (serviceClient as any)
+              .from('generations')
+              .update({
+                status: 'completed',
+                result_url: storedUrl,
+                result_data: {
+                  seed: result.seed,
+                  enhancedPrompt: result.enhancedPrompt,
+                },
+                cost_credits: result.cost,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', generationId);
+
+            generatedSlides.push({
+              slideNumber: slide.slideNumber,
+              title: slide.title,
+              imageUrl: storedUrl,
+              generationId,
+            });
+
+            log.info('Slide generated', { slideNumber: slide.slideNumber, generationId });
+          } catch (slideError) {
+            log.error('Failed to generate slide', {
+              slideNumber: slide.slideNumber,
+              error: (slideError as Error).message,
+            });
+            // Continue with other slides even if one fails
+          }
+        }
+
+        if (generatedSlides.length === 0) {
+          throw new Error('Failed to generate any slides');
+        }
+
+        // Step 3: Return the generated slides
+        const slideListText = generatedSlides
+          .map((s) => `**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]`)
+          .join('\n\n');
+
+        return new Response(
+          JSON.stringify({
+            type: 'slide_generation',
+            content: `I've created ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's' : ''} for you:\n\n${slideListText}`,
+            generatedSlides: generatedSlides.map((s) => ({
+              slideNumber: s.slideNumber,
+              title: s.title,
+              imageUrl: s.imageUrl,
+              generationId: s.generationId,
+              dimensions: { width: slideWidth, height: slideHeight },
+              model: 'flux-2-pro',
+            })),
+            model: 'flux-2-pro',
+            provider: 'bfl',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (slideError) {
+        log.error('Visual slide generation failed', {
+          error: (slideError as Error).message,
+        });
+        // Fall through to regular document generation as fallback
+      }
+    }
+
+    // ========================================
     // ROUTE 3: DOCUMENT GENERATION (Button-only - user must select from Tools menu)
     // ========================================
     // Only generate documents when explicitly requested via Tools menu
