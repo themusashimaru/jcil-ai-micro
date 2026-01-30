@@ -188,7 +188,7 @@ export function ChatClient() {
   const [openEditImage, setOpenEditImage] = useState(false);
   // Inline creative mode (replaces modals for in-chat experience)
   const [inlineCreativeMode, setInlineCreativeMode] = useState<
-    'create-image' | 'edit-image' | 'create-slide' | null
+    'create-image' | 'edit-image' | 'create-slides' | null
   >(null);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
@@ -747,7 +747,7 @@ export function ChatClient() {
         break;
       case 'create-slides':
         // Use inline slide creator
-        setInlineCreativeMode('create-slide');
+        setInlineCreativeMode('create-slides');
         break;
       case 'research':
         // Use the agent selector callback - this will be handled by ChatComposer
@@ -3818,7 +3818,7 @@ ${artifactSection}
                 conversationId={currentChatId || undefined}
               />
             )}
-            {inlineCreativeMode === 'create-slide' && (
+            {inlineCreativeMode === 'create-slides' && (
               <InlineSlideCreate
                 onClose={() => setInlineCreativeMode(null)}
                 onSlideGenerated={handleImageGenerated}
@@ -3925,6 +3925,18 @@ ${artifactSection}
               openEditImage={openEditImage}
               onCloseCreateImage={() => setOpenCreateImage(false)}
               onCloseEditImage={() => setOpenEditImage(false)}
+              onCreativeMode={(mode) => {
+                if (mode === 'view-gallery') {
+                  // Gallery still uses modal for now
+                  // TODO: Convert gallery to inline if needed
+                } else if (mode === 'create-image') {
+                  setInlineCreativeMode('create-image');
+                } else if (mode === 'edit-image') {
+                  setInlineCreativeMode('edit-image');
+                } else if (mode === 'create-slides') {
+                  setInlineCreativeMode('create-slides');
+                }
+              }}
               conversationId={currentChatId || undefined}
               onImageGenerated={handleImageGenerated}
             />
