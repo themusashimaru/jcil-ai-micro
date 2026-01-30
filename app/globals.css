@@ -30,6 +30,16 @@
   --chat-ai-bubble-bg: transparent;
   --chat-ai-bubble-text: #ffffff;
   --chat-ai-bubble-border: #38bdf8;
+
+  /* Carousel - dark charcoal in dark mode */
+  --carousel-card-bg: #1a1a1a;
+  --carousel-card-disabled-bg: rgba(26, 26, 26, 0.5);
+  --carousel-card-border: rgba(255, 255, 255, 0.1);
+  --carousel-card-hover-border: rgba(255, 255, 255, 0.2);
+  --carousel-icon-bg: rgba(255, 255, 255, 0.1);
+  --carousel-icon-color: #9ca3af;
+  --carousel-text: #ffffff;
+  --carousel-text-muted: #6b7280;
 }
 
 /* Light theme (admin only) */
@@ -63,6 +73,16 @@
   --chat-ai-bubble-border: rgba(255, 255, 255, 0.5);
   --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
   --chat-user-bubble-shadow: 0 8px 32px rgba(30, 58, 95, 0.15);
+
+  /* Carousel - navy blue in light mode (matches send button) */
+  --carousel-card-bg: #1e3a5f;
+  --carousel-card-disabled-bg: rgba(30, 58, 95, 0.5);
+  --carousel-card-border: rgba(30, 58, 95, 0.3);
+  --carousel-card-hover-border: rgba(30, 58, 95, 0.5);
+  --carousel-icon-bg: rgba(255, 255, 255, 0.15);
+  --carousel-icon-color: #ffffff;
+  --carousel-text: #ffffff;
+  --carousel-text-muted: rgba(255, 255, 255, 0.7);
 }
 
 /* Ocean theme - Ultra deep navy blue glassmorphism (admin only) */
@@ -1246,6 +1266,12 @@
         0 0 20px var(--primary),
         0 0 30px var(--primary-glow);
     }
+  }
+
+  /* Carousel card hover effects */
+  .carousel-card:not(:disabled):hover {
+    border-color: var(--carousel-card-hover-border) !important;
+    filter: brightness(1.1);
   }
 
   /* Living glow aura for input box */
