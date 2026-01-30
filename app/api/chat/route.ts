@@ -81,9 +81,12 @@ import { searchUserDocuments } from '@/lib/documents/userSearch';
 import {
   isBFLConfigured,
   detectImageRequest,
+  detectEditWithAttachment,
   generateImage,
+  editImage,
   downloadAndStore,
   enhanceImagePrompt,
+  enhanceEditPromptWithVision,
   verifyGenerationResult,
   ASPECT_RATIOS,
   BFLError,
@@ -354,6 +357,49 @@ function getLastUserContent(messages: CoreMessage[]): string {
       .join(' ');
   }
   return '';
+}
+
+/**
+ * Extract image attachments from the last user message
+ * Returns base64 encoded images ready for FLUX edit API
+ */
+function getImageAttachments(messages: CoreMessage[]): string[] {
+  const lastUserMessage = messages[messages.length - 1];
+  const images: string[] = [];
+
+  if (Array.isArray(lastUserMessage?.content)) {
+    for (const part of lastUserMessage.content) {
+      // Use type assertion to handle both Vercel AI SDK and OpenAI formats
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyPart = part as any;
+
+      // Handle Vercel AI SDK image format: { type: 'image', image: base64String }
+      if (anyPart.type === 'image' && anyPart.image) {
+        images.push(anyPart.image);
+      }
+      // Handle file type which might contain images
+      else if (anyPart.type === 'file' && anyPart.data) {
+        // Check if it's an image file by mimeType
+        if (anyPart.mimeType?.startsWith('image/')) {
+          images.push(anyPart.data);
+        }
+      }
+      // Handle OpenAI format: { type: 'image_url', image_url: { url: 'data:...' } }
+      else if (anyPart.type === 'image_url' && anyPart.image_url?.url) {
+        const url = anyPart.image_url.url;
+        // Extract base64 from data URL if needed
+        if (url.startsWith('data:image')) {
+          const base64 = url.split(',')[1];
+          if (base64) images.push(base64);
+        } else {
+          // It's a regular URL - we'd need to fetch it
+          images.push(url);
+        }
+      }
+    }
+  }
+
+  return images;
 }
 
 function getDocumentTypeName(type: string): string {
@@ -2015,6 +2061,144 @@ export async function POST(request: NextRequest) {
       } catch (detectionError) {
         // If detection fails, continue with normal chat
         log.debug('Image request detection failed', { error: detectionError });
+      }
+    }
+
+    // ========================================
+    // ROUTE 0.5: NATURAL LANGUAGE IMAGE EDITING (with attachment)
+    // ========================================
+    // Detect if user attached an image and wants to edit it
+    // e.g., [image attached] + "make this brighter", "remove the background"
+    if (effectiveToolMode === 'none' && isBFLConfigured() && isAuthenticated) {
+      const imageAttachments = getImageAttachments(messages as CoreMessage[]);
+
+      if (imageAttachments.length > 0) {
+        try {
+          const editDetection = detectEditWithAttachment(lastUserContent, true);
+
+          if (editDetection?.isImageRequest && editDetection.requestType === 'edit') {
+            log.info('Image edit request detected with attachment', {
+              confidence: editDetection.confidence,
+              prompt: editDetection.extractedPrompt?.substring(0, 50),
+              imageCount: imageAttachments.length,
+            });
+
+            // Release slot for the image edit process
+            if (slotAcquired) {
+              await releaseSlot(requestId);
+              slotAcquired = false;
+            }
+
+            try {
+              const editPrompt = editDetection.extractedPrompt || lastUserContent;
+
+              // Enhance the edit prompt with vision analysis
+              let enhancedPrompt: string;
+              try {
+                enhancedPrompt = await enhanceEditPromptWithVision(editPrompt, imageAttachments[0]);
+              } catch {
+                // Fall back to using the original prompt
+                enhancedPrompt = editPrompt;
+              }
+
+              // Create generation record
+              const { randomUUID } = await import('crypto');
+              const generationId = randomUUID();
+              const serviceClient = createServiceRoleClient();
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (serviceClient as any).from('generations').insert({
+                id: generationId,
+                user_id: rateLimitIdentifier,
+                conversation_id: conversationId || null,
+                type: 'edit',
+                model: 'flux-2-pro',
+                provider: 'bfl',
+                prompt: enhancedPrompt,
+                input_data: {
+                  originalPrompt: editPrompt,
+                  detectedFromChat: true,
+                  hasAttachment: true,
+                },
+                dimensions: { width: 1024, height: 1024 },
+                status: 'processing',
+              });
+
+              // Prepare image for FLUX edit API (needs data URL format)
+              const imageBase64 = imageAttachments[0].startsWith('data:')
+                ? imageAttachments[0]
+                : `data:image/png;base64,${imageAttachments[0]}`;
+
+              // Edit the image
+              const result = await editImage(enhancedPrompt, [imageBase64], {
+                model: 'flux-2-pro',
+              });
+
+              // Store the edited image
+              const storedUrl = await downloadAndStore(
+                result.imageUrl,
+                rateLimitIdentifier,
+                generationId,
+                'png'
+              );
+
+              // Update generation record
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (serviceClient as any)
+                .from('generations')
+                .update({
+                  status: 'completed',
+                  result_url: storedUrl,
+                  result_data: {
+                    seed: result.seed,
+                    enhancedPrompt: enhancedPrompt,
+                  },
+                  cost_credits: result.cost,
+                  completed_at: new Date().toISOString(),
+                })
+                .eq('id', generationId);
+
+              log.info('Image edit complete', { generationId, storedUrl });
+
+              // Return as JSON response with edited image data
+              return new Response(
+                JSON.stringify({
+                  type: 'image_generation',
+                  content: `I've edited your image based on: "${editPrompt}"`,
+                  generatedImage: {
+                    id: generationId,
+                    type: 'edit',
+                    imageUrl: storedUrl,
+                    prompt: editPrompt,
+                    enhancedPrompt: enhancedPrompt,
+                    dimensions: { width: 1024, height: 1024 },
+                    model: 'flux-2-pro',
+                    seed: result.seed,
+                  },
+                  model: 'flux-2-pro',
+                  provider: 'bfl',
+                }),
+                {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' },
+                }
+              );
+            } catch (editError) {
+              const errorMessage =
+                editError instanceof Error ? editError.message : 'Image editing failed';
+              const errorCode = editError instanceof BFLError ? editError.code : 'EDIT_ERROR';
+
+              log.error('Natural language image editing failed', {
+                error: errorMessage,
+                code: errorCode,
+              });
+
+              // Fall through to regular chat if edit fails
+            }
+          }
+        } catch (editDetectionError) {
+          log.debug('Image edit detection failed', { error: editDetectionError });
+        }
       }
     }
 
