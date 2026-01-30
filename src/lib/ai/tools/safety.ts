@@ -57,31 +57,36 @@ export {
 // ============================================================================
 
 /**
- * Cost limits for chat-level tools (more conservative than strategy agent)
- * Main chat shouldn't burn through money - keep it economical
+ * Cost limits for chat-level tools
+ * Generous limits for real work - usage tracked for billing
+ * Vercel timeout is the main constraint (300s max)
  */
 export const CHAT_COST_LIMITS = {
   // Max cost per tool execution (in dollars)
-  maxCostPerExecution: 0.10,
+  maxCostPerExecution: 0.50,
 
   // Max total cost per chat session (in dollars)
-  maxCostPerSession: 1.00,
+  maxCostPerSession: 5.00,
+
+  // HARD SAFETY CAP - Protects user from runaway costs
+  // Even if something goes wrong, never exceed this
+  absoluteMaxCostPerSession: 20.00,
 
   // Max code executions per chat session
-  maxCodeExecutions: 10,
+  maxCodeExecutions: 25,
 
   // Max browser visits per chat session
-  maxBrowserVisits: 5,
+  maxBrowserVisits: 15,
 
   // Max vision analysis per chat session
-  maxVisionAnalysis: 5,
+  maxVisionAnalysis: 15,
 
   // Max PDF extractions per chat session
-  maxPdfExtractions: 3,
+  maxPdfExtractions: 10,
 
   // Mini-agent limits
   maxMiniAgents: 10, // Never more than 10 parallel agents
-  maxMiniAgentCost: 2.00, // $2 max for mini-agent runs
+  maxMiniAgentCost: 3.00, // $3 max for mini-agent runs
 };
 
 // ============================================================================
@@ -143,12 +148,25 @@ export function canExecuteTool(
 ): { allowed: boolean; reason?: string } {
   const session = getChatSessionCosts(sessionId);
 
-  // Check total cost
-  if (session.totalCost + estimatedCost > CHAT_COST_LIMITS.maxCostPerSession) {
+  // HARD SAFETY CAP - Absolute maximum, protects user from runaway costs
+  if (session.totalCost >= CHAT_COST_LIMITS.absoluteMaxCostPerSession) {
     return {
       allowed: false,
-      reason: `Session cost limit reached ($${CHAT_COST_LIMITS.maxCostPerSession.toFixed(2)} max)`,
+      reason: `Safety limit reached ($${CHAT_COST_LIMITS.absoluteMaxCostPerSession.toFixed(2)} max). Please start a new session.`,
     };
+  }
+
+  // Check total cost against soft limit
+  if (session.totalCost + estimatedCost > CHAT_COST_LIMITS.maxCostPerSession) {
+    // Allow if under hard cap (just warn)
+    if (session.totalCost + estimatedCost <= CHAT_COST_LIMITS.absoluteMaxCostPerSession) {
+      // Allow but close to limit - could add warning here
+    } else {
+      return {
+        allowed: false,
+        reason: `Session cost limit reached ($${CHAT_COST_LIMITS.maxCostPerSession.toFixed(2)} soft limit)`,
+      };
+    }
   }
 
   // Check per-execution cost

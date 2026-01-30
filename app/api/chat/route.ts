@@ -3436,17 +3436,17 @@ SECURITY:
     const toolExecutor: ToolExecutor = async (toolCall): Promise<UnifiedToolResult> => {
       const toolName = toolCall.name;
 
-      // Estimate cost per tool
+      // Estimate cost per tool (tracked for usage-based billing)
       const toolCosts: Record<string, number> = {
         web_search: 0.001,
         fetch_url: 0.0005,
-        run_code: 0.01,
+        run_code: 0.02,
         analyze_image: 0.02,
-        browser_visit: 0.03,
+        browser_visit: 0.05,
         extract_pdf_url: 0.005,
         extract_table: 0.03,
-        parallel_research: 0.1, // Higher because it runs multiple agents
-        create_and_run_tool: 0.15, // Dynamic tool creation (cost-limited)
+        parallel_research: 0.15, // Multiple Haiku agents
+        create_and_run_tool: 0.25, // E2B sandbox + execution
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 

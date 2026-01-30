@@ -28,20 +28,20 @@ const log = logger('DynamicTool');
 // ============================================================================
 
 export const DYNAMIC_TOOL_LIMITS = {
-  // Max cost per dynamic tool execution
-  maxCostPerExecution: 0.15,
+  // Max cost per dynamic tool execution (generous for real work)
+  maxCostPerExecution: 0.50,
 
-  // Max dynamic tools per session
-  maxDynamicToolsPerSession: 3,
+  // Max dynamic tools per session (allow complex workflows)
+  maxDynamicToolsPerSession: 10,
 
-  // Execution timeout (ms)
-  executionTimeoutMs: 30000,
+  // Execution timeout (ms) - 45s is safe for Vercel, leaves buffer
+  executionTimeoutMs: 45000,
 
-  // Max code length
-  maxCodeLength: 5000,
+  // Max code length (allow more complex tools)
+  maxCodeLength: 10000,
 
-  // Max output length
-  maxOutputLength: 10000,
+  // Max output length (allow larger results)
+  maxOutputLength: 50000,
 };
 
 // ============================================================================
@@ -147,14 +147,15 @@ function validateCode(code: string): { valid: boolean; reason?: string } {
 
 export const dynamicToolTool: UnifiedTool = {
   name: 'create_and_run_tool',
-  description: `Create and execute a custom tool when existing tools aren't sufficient.
+  description: `Create and execute a custom Python tool when existing tools aren't sufficient.
 Use this for:
-- Custom calculations or data transformations
-- Specialized data processing
-- One-off automation tasks
+- Custom calculations, data transformations, or analysis
+- Specialized data processing and formatting
+- Multi-step automation tasks
+- Complex computations that need code
 
-The code runs in a secure Python sandbox with common libraries available.
-Cost: ~$0.10-0.15 per execution. Limited to ${DYNAMIC_TOOL_LIMITS.maxDynamicToolsPerSession} per session.`,
+The code runs in a secure Python sandbox with numpy, pandas, and common libraries.
+You have up to ${DYNAMIC_TOOL_LIMITS.maxDynamicToolsPerSession} tool creations per session and 45 seconds per execution.`,
   parameters: {
     type: 'object' as const,
     properties: {
