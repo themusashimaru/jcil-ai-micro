@@ -76,13 +76,13 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
         disabled={disabled}
         className={`
           disabled:opacity-50 flex items-center gap-1 transition-all text-xs
-          ${activeMode ? 'text-pink-300' : 'text-white hover:text-pink-300'}
+          ${activeMode ? 'text-gray-200' : 'text-white hover:text-gray-300'}
         `}
         title="Creative tools"
       >
         <Sparkles className="w-3.5 h-3.5" />
         <span>{getModeLabel()}</span>
-        {activeMode && <span className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-pulse" />}
+        {activeMode && <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" />}
         <svg
           className={`w-3 h-3 transition-transform ${showMenu ? 'rotate-180' : ''}`}
           fill="none"
@@ -124,12 +124,12 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   onClick={() => handleSelect('create-image')}
                   className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
                     activeMode === 'create-image'
-                      ? 'bg-pink-600/20 text-pink-300'
+                      ? 'bg-gray-700/50 text-white'
                       : 'hover:bg-gray-800 text-gray-300'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center flex-shrink-0">
-                    <ImagePlus className="w-4 h-4 text-pink-400" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
+                    <ImagePlus className="w-4 h-4 text-gray-300" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium">Create Image</p>
@@ -142,12 +142,12 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   onClick={() => handleSelect('edit-image')}
                   className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
                     activeMode === 'edit-image'
-                      ? 'bg-violet-600/20 text-violet-300'
+                      ? 'bg-gray-700/50 text-white'
                       : 'hover:bg-gray-800 text-gray-300'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-                    <Wand2 className="w-4 h-4 text-violet-400" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
+                    <Wand2 className="w-4 h-4 text-gray-300" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium">Edit Image</p>
@@ -160,12 +160,12 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   onClick={() => handleSelect('create-slides')}
                   className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
                     activeMode === 'create-slides'
-                      ? 'bg-blue-600/20 text-blue-300'
+                      ? 'bg-gray-700/50 text-white'
                       : 'hover:bg-gray-800 text-gray-300'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Presentation className="w-4 h-4 text-blue-400" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
+                    <Presentation className="w-4 h-4 text-gray-300" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium">Create Slides</p>
@@ -181,8 +181,8 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   onClick={() => handleSelect('view-gallery')}
                   className="w-full flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                    <Images className="w-4 h-4 text-emerald-400" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
+                    <Images className="w-4 h-4 text-gray-300" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium">My Creations</p>
