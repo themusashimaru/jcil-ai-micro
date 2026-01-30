@@ -252,11 +252,15 @@ export async function executeDynamicTool(
       });
 
       // Wrap user code with inputs injection and main() call
+      // Use base64 encoding for inputs to prevent injection attacks
+      const inputsBase64 = Buffer.from(JSON.stringify(inputs)).toString('base64');
       const wrappedCode = `
 import json
+import base64
 
-# User inputs
-inputs = json.loads('''${JSON.stringify(inputs)}''')
+# User inputs (base64 encoded for safety)
+_inputs_b64 = "${inputsBase64}"
+inputs = json.loads(base64.b64decode(_inputs_b64).decode('utf-8'))
 
 # User code
 ${code}

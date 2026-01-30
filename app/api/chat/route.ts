@@ -3583,9 +3583,9 @@ SECURITY:
 
     // ========================================
     // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
-    // Primary: Claude Haiku 4.5 (fast, cost-effective)
+    // Primary: Claude Sonnet 4.5 (intelligent orchestration, tool use)
     // Fallback: xAI Grok 4.1 (full capability parity)
-    // Claude can call web_search tool when it needs current information
+    // Claude can call tools autonomously when needed
     // ========================================
     const routeOptions: ChatRouteOptions = {
       model: 'claude-sonnet-4-5-20250929', // Upgraded to Sonnet 4.5 for intelligent orchestration (tools, parallel agents, workflows)
