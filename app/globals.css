@@ -37,9 +37,9 @@
   --carousel-card-border: rgba(255, 255, 255, 0.1);
   --carousel-card-hover-border: rgba(255, 255, 255, 0.2);
   --carousel-icon-bg: rgba(255, 255, 255, 0.1);
-  --carousel-icon-color: #9ca3af;
+  --carousel-icon-color: #d1d5db;
   --carousel-text: #ffffff;
-  --carousel-text-muted: #6b7280;
+  --carousel-text-muted: #d1d5db; /* Brighter gray-300 for readability */
 }
 
 /* Light theme (admin only) */
