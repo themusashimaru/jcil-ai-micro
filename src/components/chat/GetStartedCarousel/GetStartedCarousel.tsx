@@ -52,7 +52,6 @@ const ALL_CARDS: CarouselCardData[] = [
     iconBg: 'bg-blue-500/20',
     iconColor: 'text-blue-400',
     icon: 'presentation',
-    comingSoon: true,
     adminOnly: false,
   },
   {
@@ -138,36 +137,36 @@ export function GetStartedCarousel({
   if (isDismissed) return null;
 
   return (
-    <div className="w-full mb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className="text-sm font-medium text-gray-400">Get started</h3>
+    <div className="w-full max-w-xl mx-auto">
+      {/* Header - smaller and subtle */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h3 className="text-xs font-medium text-gray-500">Quick actions</h3>
         <button
           onClick={handleDismiss}
-          className="p-1 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-colors"
+          className="p-0.5 rounded text-gray-600 hover:text-gray-400 hover:bg-gray-800/50 transition-colors"
           aria-label="Dismiss"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3 h-3" />
         </button>
       </div>
 
-      {/* Carousel Container */}
+      {/* Carousel Container - centered with flex wrap for small screens */}
       <div className="relative group">
         {/* Left scroll button */}
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/90 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 -translate-x-1/2"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-800/90 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 -translate-x-1/2"
             aria-label="Scroll left"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3 h-3" />
           </button>
         )}
 
-        {/* Scrollable container */}
+        {/* Scrollable container - centered content */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+          className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-1 justify-center"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {visibleCards.map((card) => (
@@ -179,16 +178,12 @@ export function GetStartedCarousel({
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800/90 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 translate-x-1/2"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-800/90 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 translate-x-1/2"
             aria-label="Scroll right"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3 h-3" />
           </button>
         )}
-
-        {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-gray-950 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-gray-950 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     </div>
   );

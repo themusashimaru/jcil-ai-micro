@@ -115,22 +115,26 @@ export function ChatThread({
     };
   }, [messages, messages.length]);
 
-  // Clean welcome screen - like Claude/ChatGPT/DeepSeek
+  // Clean welcome screen - positioned to put carousel just above input
   // Only show if no messages (strategy mode adds messages before chat is created)
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 min-h-0 items-center justify-center p-4">
-        <div className="text-center">
+      <div className="flex flex-col flex-1 min-h-0 p-4">
+        {/* Spacer to push content down */}
+        <div className="flex-1" />
+
+        {/* Logo and greeting - centered */}
+        <div className="text-center mb-6">
           {/* Logo */}
-          <div className="mb-6">
+          <div className="mb-4">
             {isLogoLoading ? (
-              <div className="h-24 md:h-32 w-auto mx-auto" />
+              <div className="h-16 md:h-20 w-auto mx-auto" />
             ) : theme === 'light' ? (
               lightModeLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={lightModeLogo} alt="JCIL.ai" className="h-24 md:h-32 w-auto mx-auto" />
+                <img src={lightModeLogo} alt="JCIL.ai" className="h-16 md:h-20 w-auto mx-auto" />
               ) : (
-                <h1 className="text-5xl md:text-6xl font-normal">
+                <h1 className="text-4xl md:text-5xl font-normal">
                   <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
                   <span style={{ color: 'var(--primary)' }}>ai</span>
                 </h1>
@@ -143,14 +147,14 @@ export function ChatThread({
                   loop
                   muted
                   playsInline
-                  className="h-24 md:h-32 w-auto mx-auto"
+                  className="h-16 md:h-20 w-auto mx-auto"
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={mainLogo} alt="JCIL.ai" className="h-24 md:h-32 w-auto mx-auto" />
+                <img src={mainLogo} alt="JCIL.ai" className="h-16 md:h-20 w-auto mx-auto" />
               )
             ) : (
-              <h1 className="text-5xl md:text-6xl font-normal">
+              <h1 className="text-4xl md:text-5xl font-normal">
                 <span className="text-white">jcil.</span>
                 <span style={{ color: 'var(--primary)' }}>ai</span>
               </h1>
@@ -158,17 +162,17 @@ export function ChatThread({
           </div>
 
           {/* Simple time-based greeting */}
-          <p className="text-lg md:text-xl mb-8" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-base md:text-lg" style={{ color: 'var(--text-secondary)' }}>
             How can we help you {getTimeGreeting()}?
           </p>
-
-          {/* Get Started Carousel */}
-          {onCarouselSelect && (
-            <div className="w-full max-w-2xl">
-              <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
-            </div>
-          )}
         </div>
+
+        {/* Get Started Carousel - just above input area */}
+        {onCarouselSelect && (
+          <div className="w-full px-2 mb-2">
+            <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
+          </div>
+        )}
       </div>
     );
   }

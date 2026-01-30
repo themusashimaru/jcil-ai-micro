@@ -75,6 +75,8 @@ interface ChatComposerProps {
   openEditImage?: boolean;
   onCloseCreateImage?: () => void;
   onCloseEditImage?: () => void;
+  // Inline creative mode callback (replaces modals)
+  onCreativeMode?: (mode: 'create-image' | 'edit-image' | 'create-slides' | 'view-gallery') => void;
   // Current conversation ID (for linking generated images)
   conversationId?: string;
   // Callback when image is generated (to add to conversation)
@@ -160,6 +162,7 @@ export function ChatComposer({
   openEditImage,
   onCloseCreateImage,
   onCloseEditImage,
+  onCreativeMode,
   conversationId,
   onImageGenerated,
 }: ChatComposerProps) {
@@ -1115,8 +1118,13 @@ export function ChatComposer({
                 disabled={isStreaming || disabled}
                 activeMode={creativeMode}
                 onSelect={(mode) => {
+                  // Use inline mode callback if provided (preferred)
+                  if (onCreativeMode) {
+                    onCreativeMode(mode);
+                    return;
+                  }
+                  // Fallback to modals for backward compatibility
                   if (mode === 'view-gallery') {
-                    // Gallery doesn't set creative mode, just opens modal
                     setShowGalleryModal(true);
                   } else {
                     setCreativeMode(mode);
@@ -1125,7 +1133,6 @@ export function ChatComposer({
                     } else if (mode === 'edit-image') {
                       setShowEditImageModal(true);
                     }
-                    // slides - coming soon
                   }
                 }}
               />

@@ -57,6 +57,11 @@ import { RepoSelector } from '@/components/chat/RepoSelector';
 import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
+import {
+  InlineImageCreate,
+  InlineImageEdit,
+  InlineSlideCreate,
+} from '@/components/chat/InlineCreative';
 import type { Chat, Message, Attachment, GeneratedImage } from './types';
 
 // Re-export types for convenience
@@ -181,6 +186,10 @@ export function ChatClient() {
   // Carousel-triggered modal state (for creative buttons from welcome carousel)
   const [openCreateImage, setOpenCreateImage] = useState(false);
   const [openEditImage, setOpenEditImage] = useState(false);
+  // Inline creative mode (replaces modals for in-chat experience)
+  const [inlineCreativeMode, setInlineCreativeMode] = useState<
+    'create-image' | 'edit-image' | 'create-slides' | null
+  >(null);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
   // Pending tool suggestion from AI response analysis (for auto web search/fact check)
@@ -725,17 +734,20 @@ export function ChatClient() {
     }
   };
 
-  // Handle carousel card selection
+  // Handle carousel card selection - uses inline components instead of modals
   const handleCarouselSelect = async (cardId: string) => {
     switch (cardId) {
       case 'create-image':
-        setOpenCreateImage(true);
+        // Use inline component instead of modal
+        setInlineCreativeMode('create-image');
         break;
       case 'edit-image':
-        setOpenEditImage(true);
+        // Use inline component instead of modal
+        setInlineCreativeMode('edit-image');
         break;
       case 'create-slides':
-        // Coming soon - no action
+        // Use inline slide creator
+        setInlineCreativeMode('create-slides');
         break;
       case 'research':
         // Use the agent selector callback - this will be handled by ChatComposer
@@ -3790,6 +3802,30 @@ ${artifactSection}
                 isGenerating={isGeneratingSummary}
               />
             )}
+
+            {/* Inline Creative Components - appears above the composer */}
+            {inlineCreativeMode === 'create-image' && (
+              <InlineImageCreate
+                onClose={() => setInlineCreativeMode(null)}
+                onImageGenerated={handleImageGenerated}
+                conversationId={currentChatId || undefined}
+              />
+            )}
+            {inlineCreativeMode === 'edit-image' && (
+              <InlineImageEdit
+                onClose={() => setInlineCreativeMode(null)}
+                onImageGenerated={handleImageGenerated}
+                conversationId={currentChatId || undefined}
+              />
+            )}
+            {inlineCreativeMode === 'create-slides' && (
+              <InlineSlideCreate
+                onClose={() => setInlineCreativeMode(null)}
+                onSlideGenerated={handleImageGenerated}
+                conversationId={currentChatId || undefined}
+              />
+            )}
+
             <ChatComposer
               onSendMessage={handleSendMessage}
               onStop={handleStop}
@@ -3889,6 +3925,18 @@ ${artifactSection}
               openEditImage={openEditImage}
               onCloseCreateImage={() => setOpenCreateImage(false)}
               onCloseEditImage={() => setOpenEditImage(false)}
+              onCreativeMode={(mode) => {
+                if (mode === 'view-gallery') {
+                  // Gallery still uses modal for now
+                  // TODO: Convert gallery to inline if needed
+                } else if (mode === 'create-image') {
+                  setInlineCreativeMode('create-image');
+                } else if (mode === 'edit-image') {
+                  setInlineCreativeMode('edit-image');
+                } else if (mode === 'create-slides') {
+                  setInlineCreativeMode('create-slides');
+                }
+              }}
               conversationId={currentChatId || undefined}
               onImageGenerated={handleImageGenerated}
             />
