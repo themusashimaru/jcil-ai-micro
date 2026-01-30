@@ -72,6 +72,7 @@ export {
   detectImageRequest,
   quickDetectImageRequest,
   detectEditWithAttachment,
+  detectConversationalEdit,
   type ImageRequestDetection,
   type DetectionOptions,
 } from './imageRequestDetector';
