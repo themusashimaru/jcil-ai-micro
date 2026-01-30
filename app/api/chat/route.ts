@@ -57,6 +57,9 @@ import {
   canExecuteTool,
   recordToolCost,
   type UnifiedToolResult,
+  // Quality control
+  shouldRunQC,
+  verifyOutput,
 } from '@/lib/ai/tools';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
@@ -2754,32 +2757,35 @@ SECURITY:
 
       log.info('Executing chat tool', { tool: toolName, sessionId });
 
+      // Inject session ID into tool call for cost tracking
+      const toolCallWithSession = { ...toolCall, sessionId };
+
       // Execute the appropriate tool
       let result: UnifiedToolResult;
       switch (toolName) {
         case 'web_search':
-          result = await executeWebSearch(toolCall);
+          result = await executeWebSearch(toolCallWithSession);
           break;
         case 'fetch_url':
-          result = await executeFetchUrl(toolCall);
+          result = await executeFetchUrl(toolCallWithSession);
           break;
         case 'run_code':
-          result = await executeRunCode(toolCall);
+          result = await executeRunCode(toolCallWithSession);
           break;
         case 'analyze_image':
-          result = await executeVisionAnalyze(toolCall);
+          result = await executeVisionAnalyze(toolCallWithSession);
           break;
         case 'browser_visit':
-          result = await executeBrowserVisitTool(toolCall);
+          result = await executeBrowserVisitTool(toolCallWithSession);
           break;
         case 'extract_pdf_url':
-          result = await executeExtractPdf(toolCall);
+          result = await executeExtractPdf(toolCallWithSession);
           break;
         case 'extract_table':
-          result = await executeExtractTable(toolCall);
+          result = await executeExtractTable(toolCallWithSession);
           break;
         case 'parallel_research':
-          result = await executeMiniAgent(toolCall);
+          result = await executeMiniAgent(toolCallWithSession);
           break;
         default:
           result = {
@@ -2793,6 +2799,35 @@ SECURITY:
       if (!result.isError) {
         recordToolCost(sessionId, toolName, estimatedCost);
         log.debug('Tool executed successfully', { tool: toolName, cost: estimatedCost });
+
+        // Quality control check for high-value operations
+        if (shouldRunQC(toolName)) {
+          try {
+            const inputStr =
+              typeof toolCall.arguments === 'string'
+                ? toolCall.arguments
+                : JSON.stringify(toolCall.arguments);
+            const qcResult = await verifyOutput(toolName, inputStr, result.content);
+
+            if (!qcResult.passed) {
+              log.warn('QC check failed', {
+                tool: toolName,
+                issues: qcResult.issues,
+                confidence: qcResult.confidence,
+              });
+              // Append QC warning to output (don't fail the result)
+              result.content += `\n\n⚠️ Quality check: ${qcResult.issues.join(', ')}`;
+            } else {
+              log.debug('QC check passed', {
+                tool: toolName,
+                confidence: qcResult.confidence,
+              });
+            }
+          } catch (qcError) {
+            log.warn('QC check error', { error: (qcError as Error).message });
+            // Don't fail the tool result if QC itself fails
+          }
+        }
       }
 
       return result;

@@ -13,6 +13,9 @@ import { codeAgent, CodeAgentInput } from './CodeAgent';
 import { codeIntentAnalyzer, ClarificationResult } from './brain/IntentAnalyzer';
 import { sandboxExecutor } from './executors/SandboxExecutor';
 import { githubExecutor } from './executors/GitHubExecutor';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeAgentIntegration');
 import { AgentContext, AgentStreamEvent, CodeAgentOutput, GeneratedFile } from '../core/types';
 
 // ============================================================================
@@ -33,7 +36,7 @@ export function isCodeReviewRequest(message: string): boolean {
     /\bcan you\b.*\b(review|check|look)/i,
   ];
 
-  return reviewPatterns.some(p => p.test(message));
+  return reviewPatterns.some((p) => p.test(message));
 }
 
 /**
@@ -48,7 +51,9 @@ export function shouldUseCodeAgent(request: string): boolean {
   }
 
   return codeIntentAnalyzer.constructor.prototype.constructor.isCodeRequest
-    ? (codeIntentAnalyzer.constructor as typeof import('./brain/IntentAnalyzer').CodeIntentAnalyzer).isCodeRequest(request)
+    ? (
+        codeIntentAnalyzer.constructor as typeof import('./brain/IntentAnalyzer').CodeIntentAnalyzer
+      ).isCodeRequest(request)
     : isCodeRequest(request);
 }
 
@@ -69,19 +74,37 @@ function isCodeRequest(message: string): boolean {
     /\b(start|init|initialize)\b.*\b(new|a)\b.*\b(project|app|repo)/i,
   ];
 
-  if (codePatterns.some(p => p.test(message))) {
+  if (codePatterns.some((p) => p.test(message))) {
     return true;
   }
 
   // Keyword density check for generation
   const codeKeywords = [
-    'code', 'build', 'create', 'app', 'api', 'function', 'class',
-    'typescript', 'javascript', 'python', 'react', 'node', 'express',
-    'npm', 'package', 'deploy', 'database', 'endpoint',
-    'project', 'scaffold', 'generate', 'implement'
+    'code',
+    'build',
+    'create',
+    'app',
+    'api',
+    'function',
+    'class',
+    'typescript',
+    'javascript',
+    'python',
+    'react',
+    'node',
+    'express',
+    'npm',
+    'package',
+    'deploy',
+    'database',
+    'endpoint',
+    'project',
+    'scaffold',
+    'generate',
+    'implement',
   ];
 
-  const matchCount = codeKeywords.filter(k => lower.includes(k)).length;
+  const matchCount = codeKeywords.filter((k) => lower.includes(k)).length;
   return matchCount >= 2;
 }
 
@@ -152,7 +175,7 @@ function shouldSkipClarification(request: string): boolean {
     /\b(use\s+)?default(s)?\b/i,
     /\byour?\s*(choice|pick|decision)\b/i,
   ];
-  return skipPatterns.some(p => p.test(request));
+  return skipPatterns.some((p) => p.test(request));
 }
 
 /**
@@ -186,7 +209,7 @@ function formatClarificationResponse(result: ClarificationResult, request: strin
       if (q.options && q.options.length > 0) {
         md += `| Options |\n`;
         md += `|---------|\n`;
-        q.options.forEach(opt => {
+        q.options.forEach((opt) => {
           md += `| \`${opt}\` |\n`;
         });
         md += `\n`;
@@ -197,7 +220,7 @@ function formatClarificationResponse(result: ClarificationResult, request: strin
   // Assumptions section
   if (result.assumptions.length > 0) {
     md += `## If you want me to proceed anyway, I'll assume:\n\n`;
-    result.assumptions.forEach(assumption => {
+    result.assumptions.forEach((assumption) => {
       md += `- ${assumption}\n`;
     });
     md += `\n`;
@@ -206,7 +229,7 @@ function formatClarificationResponse(result: ClarificationResult, request: strin
   // Potential issues
   if (result.potentialIssues.length > 0) {
     md += `## Heads up (potential issues):\n\n`;
-    result.potentialIssues.forEach(issue => {
+    result.potentialIssues.forEach((issue) => {
       md += `- ⚠️ ${issue}\n`;
     });
     md += `\n`;
@@ -215,7 +238,7 @@ function formatClarificationResponse(result: ClarificationResult, request: strin
   // Suggestions
   if (result.suggestions.length > 0) {
     md += `## My suggestions:\n\n`;
-    result.suggestions.forEach(suggestion => {
+    result.suggestions.forEach((suggestion) => {
       md += `- 💡 ${suggestion}\n`;
     });
     md += `\n`;
@@ -249,7 +272,7 @@ export async function executeCodeAgent(
     githubToken?: string;
     oidcToken?: string;
     selectedRepo?: { owner: string; repo: string; fullName: string };
-    skipClarification?: boolean;  // Allow bypassing clarification
+    skipClarification?: boolean; // Allow bypassing clarification
   } = {}
 ): Promise<ReadableStream<Uint8Array>> {
   const encoder = new TextEncoder();
@@ -311,16 +334,12 @@ export async function executeCodeAgent(
         controller.enqueue(encoder.encode(formatHeader(request)));
 
         // Execute with streaming progress
-        const result = await codeAgent.execute(
-          input,
-          context,
-          (event: AgentStreamEvent) => {
-            const progressLine = formatProgressEvent(event);
-            if (progressLine) {
-              controller.enqueue(encoder.encode(progressLine));
-            }
+        const result = await codeAgent.execute(input, context, (event: AgentStreamEvent) => {
+          const progressLine = formatProgressEvent(event);
+          if (progressLine) {
+            controller.enqueue(encoder.encode(progressLine));
           }
-        );
+        });
 
         if (result.success && result.data) {
           // Stream the final report
@@ -334,7 +353,7 @@ export async function executeCodeAgent(
         controller.close();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('[CodeAgent Integration] Error:', errorMessage);
+        log.error('Code agent execution error', { error: errorMessage });
         controller.enqueue(encoder.encode(formatError(errorMessage)));
         controller.close();
       }
@@ -479,7 +498,7 @@ function formatCodeOutput(output: CodeAgentOutput): string {
 
   // Group files by directory
   const directories = new Map<string, string[]>();
-  output.files.forEach(file => {
+  output.files.forEach((file) => {
     const parts = file.path.split('/');
     if (parts.length > 1) {
       const dir = parts.slice(0, -1).join('/');
@@ -518,7 +537,7 @@ function formatCodeOutput(output: CodeAgentOutput): string {
 
   // Generated files (collapsible)
   md += `## Source Code\n\n`;
-  output.files.forEach(file => {
+  output.files.forEach((file) => {
     md += `<details>\n`;
     md += `<summary><code>${file.path}</code> <small>(${file.linesOfCode} lines)</small></summary>\n\n`;
     md += `\`\`\`${file.language}\n`;
@@ -532,7 +551,7 @@ function formatCodeOutput(output: CodeAgentOutput): string {
   if (!output.buildResult.success && output.buildResult.errors.length > 0) {
     md += `## Build Issues\n\n`;
     md += `\`\`\`\n`;
-    output.buildResult.errors.slice(0, 5).forEach(error => {
+    output.buildResult.errors.slice(0, 5).forEach((error) => {
       md += `[${error.type.toUpperCase()}] ${error.file}${error.line ? `:${error.line}` : ''}\n`;
       md += `  └─ ${error.message}\n`;
     });

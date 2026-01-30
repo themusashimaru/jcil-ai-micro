@@ -255,8 +255,8 @@ export async function executeExtractTable(toolCall: UnifiedToolCall): Promise<Un
     return { toolCallId: id, content: 'No image URL provided.', isError: true };
   }
 
-  // Cost check
-  const sessionId = `chat_${Date.now()}`;
+  // Cost check (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
   const costCheck = canExecuteTool(sessionId, 'extract_table', TOOL_COST);
   if (!costCheck.allowed) {
     return { toolCallId: id, content: `Cannot extract: ${costCheck.reason}`, isError: true };
@@ -265,7 +265,11 @@ export async function executeExtractTable(toolCall: UnifiedToolCall): Promise<Un
   // Fetch image
   const fetchResult = await fetchImage(imageUrl);
   if (!fetchResult.success) {
-    return { toolCallId: id, content: `Failed to fetch image: ${fetchResult.error}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Failed to fetch image: ${fetchResult.error}`,
+      isError: true,
+    };
   }
 
   // Extract

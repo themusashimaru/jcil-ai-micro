@@ -8,8 +8,12 @@
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
 import { logger } from '@/lib/logger';
+import { canExecuteTool, recordToolCost } from './safety';
 
 const log = logger('WebSearchTool');
+
+// Cost per search (Brave API cost)
+const TOOL_COST = 0.001;
 
 // ============================================================================
 // TOOL DEFINITION
@@ -88,7 +92,19 @@ export async function executeWebSearch(toolCall: UnifiedToolCall): Promise<Unifi
     };
   }
 
-  log.info('Executing web search', { query, searchType });
+  // Cost check (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
+  const costCheck = canExecuteTool(sessionId, 'web_search', TOOL_COST);
+  if (!costCheck.allowed) {
+    log.warn('Web search cost limit exceeded', { sessionId, reason: costCheck.reason });
+    return {
+      toolCallId: id,
+      content: `Cannot search: ${costCheck.reason}`,
+      isError: true,
+    };
+  }
+
+  log.info('Executing web search', { query, searchType, sessionId });
 
   try {
     // Map search type to Brave mode
@@ -116,6 +132,9 @@ export async function executeWebSearch(toolCall: UnifiedToolCall): Promise<Unifi
       resultLength: content.length,
       sourceCount: result.sources?.length || 0,
     });
+
+    // Record successful search cost
+    recordToolCost(sessionId, 'web_search', TOOL_COST);
 
     return {
       toolCallId: id,

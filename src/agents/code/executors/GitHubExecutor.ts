@@ -15,11 +15,10 @@ import {
   listUserRepos,
 } from '../../../lib/connectors/github';
 import type { GitHubRepo } from '../../../lib/connectors/types';
-import {
-  GeneratedFile,
-  ProjectPlan,
-  AgentStreamCallback,
-} from '../../core/types';
+import { GeneratedFile, ProjectPlan, AgentStreamCallback } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('GitHubExecutor');
 
 export interface GitHubPushResult {
   success: boolean;
@@ -37,21 +36,21 @@ export class GitHubExecutor {
    */
   async initialize(token: string): Promise<boolean> {
     if (!token) {
-      console.warn('[GitHubExecutor] No token provided');
+      log.warn('No token provided');
       return false;
     }
 
     // Validate the token
     const isValid = await validateGitHubToken(token);
     if (!isValid) {
-      console.warn('[GitHubExecutor] Invalid token');
+      log.warn('Invalid token');
       return false;
     }
 
     // Get user info
     const status = await getGitHubConnectionStatus(token);
     if (status.status !== 'connected' || !status.metadata?.username) {
-      console.warn('[GitHubExecutor] Failed to get user info');
+      log.warn('Failed to get user info');
       return false;
     }
 
@@ -121,7 +120,7 @@ export class GitHubExecutor {
         if (!targetRepo) {
           // Repo might already exist, try to use it
           const repos = await listUserRepos(this.token);
-          targetRepo = repos.find(r => r.name === repoName) || null;
+          targetRepo = repos.find((r) => r.name === repoName) || null;
 
           if (!targetRepo) {
             return {
@@ -133,7 +132,7 @@ export class GitHubExecutor {
       } else {
         // Use existing repo
         const repos = await listUserRepos(this.token);
-        targetRepo = repos.find(r => r.name === repoName) || null;
+        targetRepo = repos.find((r) => r.name === repoName) || null;
 
         if (!targetRepo) {
           return {
@@ -144,7 +143,7 @@ export class GitHubExecutor {
       }
 
       // Convert files to GitHub format
-      const githubFiles = files.map(f => ({
+      const githubFiles = files.map((f) => ({
         path: f.path,
         content: f.content,
       }));
@@ -170,9 +169,8 @@ export class GitHubExecutor {
         repoUrl: `https://github.com/${this.username}/${repoName}`,
         commitSha: pushResult.commitSha,
       };
-
     } catch (error) {
-      console.error('[GitHubExecutor] Push failed:', error);
+      log.error('Push failed', { error: (error as Error).message });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Push failed',
@@ -188,7 +186,7 @@ export class GitHubExecutor {
 
     try {
       const repos = await listUserRepos(this.token);
-      return !repos.some(r => r.name.toLowerCase() === name.toLowerCase());
+      return !repos.some((r) => r.name.toLowerCase() === name.toLowerCase());
     } catch {
       return true; // Assume available if we can't check
     }

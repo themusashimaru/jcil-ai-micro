@@ -20,6 +20,9 @@ import {
   CodeIntent,
   AgentStreamCallback,
 } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('SandboxExecutor');
 
 export class SandboxExecutor {
   private config: SandboxConfig | null = null;
@@ -29,7 +32,7 @@ export class SandboxExecutor {
    */
   initialize(oidcToken?: string): boolean {
     if (!isSandboxConfigured(oidcToken)) {
-      console.warn('[SandboxExecutor] Sandbox not configured');
+      log.warn('Sandbox not configured');
       return false;
     }
     this.config = getSandboxConfig(oidcToken);
@@ -57,12 +60,14 @@ export class SandboxExecutor {
         success: false,
         phase: 'install',
         outputs: [],
-        errors: [{
-          file: 'system',
-          message: 'Sandbox not configured - cannot test code',
-          type: 'build',
-          severity: 'error',
-        }],
+        errors: [
+          {
+            file: 'system',
+            message: 'Sandbox not configured - cannot test code',
+            type: 'build',
+            severity: 'error',
+          },
+        ],
         executionTime: 0,
       };
     }
@@ -70,7 +75,7 @@ export class SandboxExecutor {
     const startTime = Date.now();
 
     // Convert generated files to sandbox format
-    const sandboxFiles = files.map(f => ({
+    const sandboxFiles = files.map((f) => ({
       path: f.path,
       content: f.content,
     }));
@@ -105,7 +110,7 @@ export class SandboxExecutor {
       return {
         success: result.success,
         phase,
-        outputs: result.outputs.map(o => ({
+        outputs: result.outputs.map((o) => ({
           command: o.command,
           stdout: o.stdout,
           stderr: o.stderr,
@@ -115,17 +120,19 @@ export class SandboxExecutor {
         executionTime: result.executionTime,
       };
     } catch (error) {
-      console.error('[SandboxExecutor] Execution failed:', error);
+      log.error('Execution failed', { error: (error as Error).message });
       return {
         success: false,
         phase: 'install',
         outputs: [],
-        errors: [{
-          file: 'system',
-          message: error instanceof Error ? error.message : 'Sandbox execution failed',
-          type: 'runtime',
-          severity: 'error',
-        }],
+        errors: [
+          {
+            file: 'system',
+            message: error instanceof Error ? error.message : 'Sandbox execution failed',
+            type: 'runtime',
+            severity: 'error',
+          },
+        ],
         executionTime: Date.now() - startTime,
       };
     }
@@ -134,21 +141,20 @@ export class SandboxExecutor {
   /**
    * Quick syntax check without full build
    */
-  async syntaxCheck(
-    files: GeneratedFile[],
-    intent: CodeIntent
-  ): Promise<SandboxTestResult> {
+  async syntaxCheck(files: GeneratedFile[], intent: CodeIntent): Promise<SandboxTestResult> {
     if (!this.config) {
       return {
         success: false,
         phase: 'build',
         outputs: [],
-        errors: [{ file: 'system', message: 'Sandbox not configured', type: 'build', severity: 'error' }],
+        errors: [
+          { file: 'system', message: 'Sandbox not configured', type: 'build', severity: 'error' },
+        ],
         executionTime: 0,
       };
     }
 
-    const sandboxFiles = files.map(f => ({ path: f.path, content: f.content }));
+    const sandboxFiles = files.map((f) => ({ path: f.path, content: f.content }));
     const isTypescript = intent.technologies.primary.toLowerCase().includes('typescript');
     const isPython = intent.technologies.runtime === 'python';
 
@@ -159,10 +165,7 @@ export class SandboxExecutor {
       runtime = 'python3.13';
       commands = ['python -m py_compile src/*.py || python -m py_compile *.py'];
     } else if (isTypescript) {
-      commands = [
-        'npm install --ignore-scripts',
-        'npx tsc --noEmit',
-      ];
+      commands = ['npm install --ignore-scripts', 'npx tsc --noEmit'];
     } else {
       commands = [
         'npm install --ignore-scripts',
@@ -182,7 +185,7 @@ export class SandboxExecutor {
       return {
         success: result.success,
         phase: 'build',
-        outputs: result.outputs.map(o => ({
+        outputs: result.outputs.map((o) => ({
           command: o.command,
           stdout: o.stdout,
           stderr: o.stderr,
@@ -208,9 +211,7 @@ export class SandboxExecutor {
   private buildCommands(plan: ProjectPlan, intent: CodeIntent): string[] {
     // If plan has explicit build steps, use them
     if (plan.buildSteps.length > 0) {
-      return plan.buildSteps
-        .sort((a, b) => a.order - b.order)
-        .map(step => step.command);
+      return plan.buildSteps.sort((a, b) => a.order - b.order).map((step) => step.command);
     }
 
     // Otherwise, create default commands
@@ -225,10 +226,14 @@ export class SandboxExecutor {
       ];
     }
 
-    const installCmd = pm === 'yarn' ? 'yarn' :
-                       pm === 'pnpm' ? 'pnpm install' :
-                       pm === 'bun' ? 'bun install' :
-                       'npm install';
+    const installCmd =
+      pm === 'yarn'
+        ? 'yarn'
+        : pm === 'pnpm'
+          ? 'pnpm install'
+          : pm === 'bun'
+            ? 'bun install'
+            : 'npm install';
 
     const commands = [installCmd];
 
@@ -245,7 +250,9 @@ export class SandboxExecutor {
   /**
    * Determine which phase failed
    */
-  private determinePhase(outputs: Array<{ command: string; success: boolean }>): SandboxTestResult['phase'] {
+  private determinePhase(
+    outputs: Array<{ command: string; success: boolean }>
+  ): SandboxTestResult['phase'] {
     for (const output of outputs) {
       if (!output.success) {
         if (output.command.includes('install')) return 'install';
@@ -260,7 +267,9 @@ export class SandboxExecutor {
   /**
    * Extract error information from sandbox result
    */
-  private extractErrors(result: { outputs: Array<{ command: string; stderr: string; stdout: string }> }): SandboxTestResult['errors'] {
+  private extractErrors(result: {
+    outputs: Array<{ command: string; stderr: string; stdout: string }>;
+  }): SandboxTestResult['errors'] {
     const errors: SandboxTestResult['errors'] = [];
 
     for (const output of result.outputs) {

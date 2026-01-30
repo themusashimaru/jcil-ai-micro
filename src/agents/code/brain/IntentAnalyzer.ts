@@ -21,6 +21,9 @@
 
 import { agentChat, ProviderId } from '@/lib/ai/providers';
 import { CodeIntent, ProjectType, TechnologyStack, AgentContext } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeIntentAnalyzer');
 
 /**
  * Result of clarification check
@@ -147,7 +150,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
         suggestions: (parsed.suggestions || []).map(String),
       };
     } catch (error) {
-      console.error('[CodeIntentAnalyzer] Error checking clarification:', error);
+      log.error('Error checking clarification', { error: (error as Error).message });
       return this.createDefaultClarificationResult();
     }
   }
@@ -268,7 +271,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
       return intent;
     } catch (error) {
-      console.error('[CodeIntentAnalyzer] Error analyzing intent:', error);
+      log.error('Error analyzing intent', { error: (error as Error).message });
       return this.createFallbackIntent(request);
     }
   }

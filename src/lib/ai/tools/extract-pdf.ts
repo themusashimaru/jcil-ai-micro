@@ -28,7 +28,12 @@ const MAX_OUTPUT_LENGTH = 100000; // 100KB max text output
 
 // Lazy load pdf-parse
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let pdfParse: ((buffer: Buffer, options?: object) => Promise<{ text: string; numpages: number; info: object }>) | null = null;
+let pdfParse:
+  | ((
+      buffer: Buffer,
+      options?: object
+    ) => Promise<{ text: string; numpages: number; info: object }>)
+  | null = null;
 
 // ============================================================================
 // TOOL DEFINITION
@@ -87,7 +92,9 @@ async function initPdfParse(): Promise<boolean> {
 // PDF FETCHING AND EXTRACTION
 // ============================================================================
 
-async function fetchPdf(url: string): Promise<{ success: boolean; buffer?: Buffer; error?: string }> {
+async function fetchPdf(
+  url: string
+): Promise<{ success: boolean; buffer?: Buffer; error?: string }> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), PDF_TIMEOUT_MS);
@@ -223,8 +230,8 @@ export async function executeExtractPdf(toolCall: UnifiedToolCall): Promise<Unif
     };
   }
 
-  // Cost check
-  const sessionId = `chat_${Date.now()}`;
+  // Cost check (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
   const costCheck = canExecuteTool(sessionId, 'extract_pdf', TOOL_COST);
   if (!costCheck.allowed) {
     return {

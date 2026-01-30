@@ -6,18 +6,25 @@
  * - E2B Browser Visit
  * - E2B Screenshot
  * - E2B Code Execution
+ *
+ * PROTECTED: Requires admin authentication
  */
 
 import { NextResponse } from 'next/server';
 import { executeScoutTool, getClaudeToolDefinitions } from '@/agents/strategy/tools';
 import type { ScoutToolCall } from '@/agents/strategy/tools/types';
 import { logger } from '@/lib/logger';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 const log = logger('StrategyToolsTest');
 
 export const maxDuration = 120; // 2 minutes for E2B operations
 
 export async function GET() {
+  // Require admin auth
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     tests: {},

@@ -140,7 +140,10 @@ async function fetchImageAsBase64(
     const buffer = await response.arrayBuffer();
 
     if (buffer.byteLength > MAX_IMAGE_SIZE_BYTES) {
-      return { success: false, error: `Image too large (${(buffer.byteLength / 1024 / 1024).toFixed(1)}MB > 20MB)` };
+      return {
+        success: false,
+        error: `Image too large (${(buffer.byteLength / 1024 / 1024).toFixed(1)}MB > 20MB)`,
+      };
     }
 
     const base64 = Buffer.from(buffer).toString('base64');
@@ -293,8 +296,8 @@ export async function executeVisionAnalyze(toolCall: UnifiedToolCall): Promise<U
   const analysisType = (args.analysis_type as string) || 'general';
   const question = args.question as string;
 
-  // Check cost limits
-  const sessionId = `chat_${Date.now()}`;
+  // Check cost limits (use passed session ID or generate fallback)
+  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
   const costCheck = canExecuteTool(sessionId, 'analyze_image', TOOL_COST);
   if (!costCheck.allowed) {
     return {
