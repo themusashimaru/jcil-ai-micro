@@ -872,10 +872,15 @@ export function ChatComposer({
                     ref={agentsButtonRef}
                     onClick={() => setShowAgentsMenu(!showAgentsMenu)}
                     disabled={isStreaming || disabled}
-                    className={`
-                      disabled:opacity-50 flex items-center gap-1 transition-all text-xs
-                      ${toolMode === 'research' || activeAgent === 'strategy' || activeAgent === 'deep-research' ? 'text-purple-300' : 'text-white hover:text-purple-300'}
-                    `}
+                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
+                    style={{
+                      color:
+                        toolMode === 'research' ||
+                        activeAgent === 'strategy' ||
+                        activeAgent === 'deep-research'
+                          ? '#c4b5fd'
+                          : 'var(--text-primary)',
+                    }}
                     title="Select an AI Agent"
                   >
                     <svg
