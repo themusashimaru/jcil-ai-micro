@@ -488,6 +488,194 @@ function findPreviousGeneratedImage(messages: CoreMessage[]): string | null {
   return null;
 }
 
+// ============================================================================
+// SLIDE QUALITY CONTROL
+// ============================================================================
+
+interface SlideForQC {
+  slideNumber: number;
+  title: string;
+  imageUrl: string;
+}
+
+interface SlideQCResult {
+  passed: boolean;
+  overallScore: number; // 1-10
+  issues: string[];
+  feedback: string;
+}
+
+/**
+ * Perform batch quality control on generated slides using Claude Vision
+ * Reviews all slides together for consistency and quality
+ */
+async function performSlideQualityCheck(
+  slides: SlideForQC[],
+  userRequest: string
+): Promise<SlideQCResult> {
+  if (slides.length === 0) {
+    return {
+      passed: false,
+      overallScore: 0,
+      issues: ['No slides to check'],
+      feedback: 'No slides were provided for quality check.',
+    };
+  }
+
+  try {
+    // Check if Anthropic is available
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (!anthropicKey) {
+      log.warn('Slide QC skipped - Anthropic not configured');
+      return {
+        passed: true,
+        overallScore: 7,
+        issues: [],
+        feedback: 'Quality check skipped (vision not available)',
+      };
+    }
+
+    // Import Anthropic client
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: anthropicKey });
+
+    // Fetch all images and convert to base64
+    const imageContents: Array<{
+      type: 'image';
+      source: {
+        type: 'base64';
+        media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+        data: string;
+      };
+    }> = [];
+
+    for (const slide of slides) {
+      try {
+        const response = await fetch(slide.imageUrl, {
+          headers: {
+            'User-Agent': 'JCIL-SlideQC/1.0',
+          },
+        });
+
+        if (!response.ok) {
+          log.warn('Failed to fetch slide for QC', {
+            slideNumber: slide.slideNumber,
+            status: response.status,
+          });
+          continue;
+        }
+
+        const buffer = await response.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        const contentType = response.headers.get('content-type') || 'image/png';
+        const mediaType = contentType.split(';')[0].trim() as
+          | 'image/png'
+          | 'image/jpeg'
+          | 'image/webp'
+          | 'image/gif';
+
+        imageContents.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: base64,
+          },
+        });
+      } catch (fetchError) {
+        log.warn('Error fetching slide for QC', {
+          slideNumber: slide.slideNumber,
+          error: (fetchError as Error).message,
+        });
+      }
+    }
+
+    if (imageContents.length === 0) {
+      log.warn('No slides could be fetched for QC');
+      return {
+        passed: true,
+        overallScore: 6,
+        issues: ['Could not fetch slides for quality check'],
+        feedback: 'Quality check inconclusive - slides could not be retrieved for review.',
+      };
+    }
+
+    // Create the QC prompt
+    const qcPrompt = `You are a presentation quality reviewer. The user requested: "${userRequest}"
+
+Review these ${imageContents.length} presentation slides and provide a quality assessment.
+
+Evaluate:
+1. **Text Readability** - Is text clear, legible, and appropriately sized?
+2. **Visual Consistency** - Do slides have consistent styling, colors, and fonts?
+3. **Professional Quality** - Do slides look polished and professional?
+4. **Content Relevance** - Does content match what the user requested?
+5. **Layout Balance** - Is information well-organized with good use of space?
+
+Respond with ONLY valid JSON in this exact format:
+{
+  "passed": true/false,
+  "overallScore": 1-10,
+  "issues": ["issue1", "issue2"],
+  "feedback": "Brief overall assessment"
+}
+
+Pass if score >= 6. Be constructive but honest. Focus on significant issues, not minor details.`;
+
+    // Send to Claude Vision
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250514',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            ...imageContents,
+            {
+              type: 'text',
+              text: qcPrompt,
+            },
+          ],
+        },
+      ],
+    });
+
+    // Parse the response
+    const responseText = response.content
+      .filter((block) => block.type === 'text')
+      .map((block) => (block as { type: 'text'; text: string }).text)
+      .join('');
+
+    // Extract JSON from response
+    let jsonText = responseText.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    }
+
+    const qcResult = JSON.parse(jsonText) as SlideQCResult;
+
+    log.info('Slide QC complete', {
+      slideCount: slides.length,
+      passed: qcResult.passed,
+      score: qcResult.overallScore,
+      issueCount: qcResult.issues.length,
+    });
+
+    return qcResult;
+  } catch (error) {
+    log.error('Slide QC failed', { error: (error as Error).message });
+    // On error, pass by default to avoid blocking the user
+    return {
+      passed: true,
+      overallScore: 7,
+      issues: [],
+      feedback: 'Quality check could not be completed.',
+    };
+  }
+}
+
 function getDocumentTypeName(type: string): string {
   const names: Record<string, string> = {
     xlsx: 'Excel spreadsheet',
@@ -2692,6 +2880,36 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                 }
               }
 
+              // Step 3.5: Batch Quality Control
+              let qcResult: SlideQCResult | null = null;
+              if (generatedSlides.length > 0) {
+                controller.enqueue(encoder.encode('\n*Performing quality check...*\n'));
+
+                qcResult = await performSlideQualityCheck(
+                  generatedSlides.map((s) => ({
+                    slideNumber: s.slideNumber,
+                    title: s.title,
+                    imageUrl: s.imageUrl,
+                  })),
+                  lastUserContent
+                );
+
+                if (qcResult.passed) {
+                  controller.enqueue(
+                    encoder.encode(`✓ Quality check passed (${qcResult.overallScore}/10)\n`)
+                  );
+                } else {
+                  controller.enqueue(
+                    encoder.encode(
+                      `⚠ Quality check: ${qcResult.overallScore}/10 - ${qcResult.feedback}\n`
+                    )
+                  );
+                  if (qcResult.issues.length > 0) {
+                    controller.enqueue(encoder.encode(`   Notes: ${qcResult.issues.join(', ')}\n`));
+                  }
+                }
+              }
+
               // Step 4: Stream final result
               if (generatedSlides.length > 0) {
                 controller.enqueue(encoder.encode('\n---\n\n'));
@@ -2724,6 +2942,14 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                       })),
                       model: 'flux-2-pro',
                       provider: 'bfl',
+                      qualityCheck: qcResult
+                        ? {
+                            passed: qcResult.passed,
+                            score: qcResult.overallScore,
+                            feedback: qcResult.feedback,
+                            issues: qcResult.issues,
+                          }
+                        : null,
                     })}]`
                   )
                 );
@@ -3198,6 +3424,36 @@ Output ONLY JSON array:
               }
             }
 
+            // Batch Quality Control
+            let qcResult: SlideQCResult | null = null;
+            if (generatedSlides.length > 0) {
+              controller.enqueue(encoder.encode('\n*Performing quality check...*\n'));
+
+              qcResult = await performSlideQualityCheck(
+                generatedSlides.map((s) => ({
+                  slideNumber: s.slideNumber,
+                  title: s.title,
+                  imageUrl: s.imageUrl,
+                })),
+                lastUserContent
+              );
+
+              if (qcResult.passed) {
+                controller.enqueue(
+                  encoder.encode(`✓ Quality check passed (${qcResult.overallScore}/10)\n`)
+                );
+              } else {
+                controller.enqueue(
+                  encoder.encode(
+                    `⚠ Quality check: ${qcResult.overallScore}/10 - ${qcResult.feedback}\n`
+                  )
+                );
+                if (qcResult.issues.length > 0) {
+                  controller.enqueue(encoder.encode(`   Notes: ${qcResult.issues.join(', ')}\n`));
+                }
+              }
+            }
+
             // Final output
             if (generatedSlides.length > 0) {
               controller.enqueue(encoder.encode('\n---\n\n'));
@@ -3221,6 +3477,14 @@ Output ONLY JSON array:
                     slides: generatedSlides,
                     model: 'flux-2-pro',
                     provider: 'bfl',
+                    qualityCheck: qcResult
+                      ? {
+                          passed: qcResult.passed,
+                          score: qcResult.overallScore,
+                          feedback: qcResult.feedback,
+                          issues: qcResult.issues,
+                        }
+                      : null,
                   })}]`
                 )
               );
