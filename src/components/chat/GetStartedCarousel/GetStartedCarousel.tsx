@@ -139,15 +139,15 @@ export function GetStartedCarousel({
 
   return (
     <div className="w-full max-w-xl mx-auto">
-      {/* Header - smaller and subtle */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <h3 className="text-xs font-medium text-gray-500">Quick actions</h3>
+      {/* Header - minimal */}
+      <div className="flex items-center justify-between mb-1.5 px-1">
+        <h3 className="text-[10px] font-medium text-gray-600">Quick actions</h3>
         <button
           onClick={handleDismiss}
           className="p-0.5 rounded text-gray-600 hover:text-gray-400 hover:bg-gray-800/50 transition-colors"
           aria-label="Dismiss"
         >
-          <X className="w-3 h-3" />
+          <X className="w-2.5 h-2.5" />
         </button>
       </div>
 

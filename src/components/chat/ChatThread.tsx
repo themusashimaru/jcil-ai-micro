@@ -120,13 +120,13 @@ export function ChatThread({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col flex-1 min-h-0 p-4">
-        {/* Spacer to push content down */}
-        <div className="flex-1" />
+        {/* Spacer to push content down - takes 60% of space */}
+        <div className="flex-[0.6]" />
 
-        {/* Logo and greeting - centered */}
-        <div className="text-center mb-6">
-          {/* Logo */}
-          <div className="mb-4">
+        {/* Logo and greeting - centered with more breathing room */}
+        <div className="text-center mb-8">
+          {/* Logo - with more bottom margin */}
+          <div className="mb-6">
             {isLogoLoading ? (
               <div className="h-16 md:h-20 w-auto mx-auto" />
             ) : theme === 'light' ? (
@@ -167,9 +167,9 @@ export function ChatThread({
           </p>
         </div>
 
-        {/* Get Started Carousel - just above input area */}
+        {/* Get Started Carousel - compact, just above input area */}
         {onCarouselSelect && (
-          <div className="w-full px-2 mb-2">
+          <div className="w-full px-2 mb-4 mt-2">
             <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
           </div>
         )}

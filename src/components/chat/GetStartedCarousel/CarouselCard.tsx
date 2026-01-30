@@ -43,34 +43,36 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
       onClick={onClick}
       disabled={card.comingSoon}
       className={`
-        flex-shrink-0 w-[140px] p-3 rounded-xl border transition-all text-left
+        flex-shrink-0 w-[100px] p-2 rounded-lg border transition-all text-left
         ${
           card.comingSoon
             ? 'bg-gray-900/50 border-gray-800 cursor-not-allowed opacity-60'
-            : 'bg-gray-900 border-gray-800 hover:border-gray-600 hover:bg-gray-800/80 cursor-pointer hover:scale-[1.02]'
+            : 'bg-gray-900 border-gray-700/50 hover:border-gray-600 hover:bg-gray-800/80 cursor-pointer'
         }
       `}
     >
-      {/* Icon */}
-      <div className={`w-8 h-8 rounded-lg ${card.iconBg} flex items-center justify-center mb-2`}>
-        <IconComponent className={`w-4 h-4 ${card.iconColor}`} />
-      </div>
-
-      {/* Title */}
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <h4 className="text-xs font-medium text-white">{card.title}</h4>
+      {/* Icon + Title row - compact horizontal layout */}
+      <div className="flex items-center gap-1.5 mb-1">
+        <div
+          className={`w-5 h-5 rounded-md ${card.iconBg} flex items-center justify-center flex-shrink-0`}
+        >
+          <IconComponent className={`w-3 h-3 ${card.iconColor}`} />
+        </div>
+        <h4 className="text-[10px] font-medium text-white leading-tight truncate">{card.title}</h4>
         {card.comingSoon && (
-          <span className="text-[8px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium">
+          <span className="text-[6px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium flex-shrink-0">
             Soon
           </span>
         )}
       </div>
 
-      {/* Description - shorter on small cards */}
-      <p className="text-[10px] text-gray-500 leading-tight line-clamp-2">{card.description}</p>
+      {/* Description - single line */}
+      <p className="text-[8px] text-gray-500 leading-tight line-clamp-1">{card.description}</p>
 
       {/* Badge for admin features */}
-      {card.badge && <p className="text-[8px] text-purple-400 mt-1.5 font-medium">{card.badge}</p>}
+      {card.badge && (
+        <p className="text-[6px] text-gray-400 mt-0.5 font-medium truncate">{card.badge}</p>
+      )}
     </button>
   );
 }
