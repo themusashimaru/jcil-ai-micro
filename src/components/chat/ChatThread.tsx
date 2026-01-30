@@ -119,14 +119,11 @@ export function ChatThread({
   // Only show if no messages (strategy mode adds messages before chat is created)
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col flex-1 min-h-0 p-4">
-        {/* Spacer to push content down - takes 60% of space */}
-        <div className="flex-[0.6]" />
-
-        {/* Logo and greeting - centered with more breathing room */}
-        <div className="text-center mb-8">
-          {/* Logo - with more bottom margin */}
-          <div className="mb-6">
+      <div className="flex flex-col flex-1 min-h-0 p-4 justify-end pb-2">
+        {/* Logo and greeting - centered */}
+        <div className="text-center mb-4">
+          {/* Logo */}
+          <div className="mb-3">
             {isLogoLoading ? (
               <div className="h-16 md:h-20 w-auto mx-auto" />
             ) : theme === 'light' ? (
@@ -167,9 +164,9 @@ export function ChatThread({
           </p>
         </div>
 
-        {/* Get Started Carousel - compact, just above input area */}
+        {/* Get Started Carousel - right above input */}
         {onCarouselSelect && (
-          <div className="w-full px-2 mb-4 mt-2">
+          <div className="w-full px-1">
             <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
           </div>
         )}
