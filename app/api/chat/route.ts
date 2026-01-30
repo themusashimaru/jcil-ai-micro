@@ -489,13 +489,26 @@ function findPreviousGeneratedImage(messages: CoreMessage[]): string | null {
 }
 
 // ============================================================================
-// SLIDE QUALITY CONTROL
+// SLIDE QUALITY CONTROL WITH INTELLIGENT AUTO-FIX
 // ============================================================================
+
+const SLIDE_QC_MAX_RETRIES = 2; // Max retry attempts per failed slide
+const SLIDE_QC_PASS_THRESHOLD = 6; // Score >= 6 passes
 
 interface SlideForQC {
   slideNumber: number;
   title: string;
   imageUrl: string;
+  originalPrompt?: string; // Keep original prompt for regeneration
+}
+
+interface PerSlideAssessment {
+  slideNumber: number;
+  passed: boolean;
+  score: number; // 1-10
+  issues: string[];
+  improvementInstructions: string; // Specific instructions to fix this slide
+  styleNotes: string; // Notes about visual style for consistency
 }
 
 interface SlideQCResult {
@@ -503,150 +516,227 @@ interface SlideQCResult {
   overallScore: number; // 1-10
   issues: string[];
   feedback: string;
+  perSlideAssessment: PerSlideAssessment[];
+  styleProfile: {
+    // Extracted style info from passing slides for consistency
+    colorScheme: string;
+    fontStyle: string;
+    layoutPattern: string;
+    overallAesthetic: string;
+  };
 }
 
 /**
- * Perform batch quality control on generated slides using Claude Vision
- * Reviews all slides together for consistency and quality
+ * Fetch slide images and convert to base64 for vision analysis
  */
-async function performSlideQualityCheck(
-  slides: SlideForQC[],
-  userRequest: string
-): Promise<SlideQCResult> {
-  if (slides.length === 0) {
-    return {
-      passed: false,
-      overallScore: 0,
-      issues: ['No slides to check'],
-      feedback: 'No slides were provided for quality check.',
-    };
-  }
-
-  try {
-    // Check if Anthropic is available
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    if (!anthropicKey) {
-      log.warn('Slide QC skipped - Anthropic not configured');
-      return {
-        passed: true,
-        overallScore: 7,
-        issues: [],
-        feedback: 'Quality check skipped (vision not available)',
-      };
-    }
-
-    // Import Anthropic client
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic({ apiKey: anthropicKey });
-
-    // Fetch all images and convert to base64
-    const imageContents: Array<{
+async function fetchSlidesAsBase64(slides: SlideForQC[]): Promise<
+  Array<{
+    slideNumber: number;
+    content: {
       type: 'image';
       source: {
         type: 'base64';
         media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
         data: string;
       };
-    }> = [];
+    };
+  }>
+> {
+  const results: Array<{
+    slideNumber: number;
+    content: {
+      type: 'image';
+      source: {
+        type: 'base64';
+        media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+        data: string;
+      };
+    };
+  }> = [];
 
-    for (const slide of slides) {
-      try {
-        const response = await fetch(slide.imageUrl, {
-          headers: {
-            'User-Agent': 'JCIL-SlideQC/1.0',
-          },
+  for (const slide of slides) {
+    try {
+      const response = await fetch(slide.imageUrl, {
+        headers: { 'User-Agent': 'JCIL-SlideQC/1.0' },
+      });
+
+      if (!response.ok) {
+        log.warn('Failed to fetch slide for QC', {
+          slideNumber: slide.slideNumber,
+          status: response.status,
         });
+        continue;
+      }
 
-        if (!response.ok) {
-          log.warn('Failed to fetch slide for QC', {
-            slideNumber: slide.slideNumber,
-            status: response.status,
-          });
-          continue;
-        }
+      const buffer = await response.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
+      const contentType = response.headers.get('content-type') || 'image/png';
+      const mediaType = contentType.split(';')[0].trim() as
+        | 'image/png'
+        | 'image/jpeg'
+        | 'image/webp'
+        | 'image/gif';
 
-        const buffer = await response.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
-        const contentType = response.headers.get('content-type') || 'image/png';
-        const mediaType = contentType.split(';')[0].trim() as
-          | 'image/png'
-          | 'image/jpeg'
-          | 'image/webp'
-          | 'image/gif';
-
-        imageContents.push({
+      results.push({
+        slideNumber: slide.slideNumber,
+        content: {
           type: 'image',
           source: {
             type: 'base64',
             media_type: mediaType,
             data: base64,
           },
-        });
-      } catch (fetchError) {
-        log.warn('Error fetching slide for QC', {
-          slideNumber: slide.slideNumber,
-          error: (fetchError as Error).message,
-        });
-      }
+        },
+      });
+    } catch (fetchError) {
+      log.warn('Error fetching slide for QC', {
+        slideNumber: slide.slideNumber,
+        error: (fetchError as Error).message,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Perform batch quality control on generated slides using Claude Vision
+ * Returns detailed per-slide assessment with improvement instructions
+ */
+async function performSlideQualityCheck(
+  slides: SlideForQC[],
+  userRequest: string
+): Promise<SlideQCResult> {
+  const defaultPassResult: SlideQCResult = {
+    passed: true,
+    overallScore: 7,
+    issues: [],
+    feedback: 'Quality check skipped',
+    perSlideAssessment: slides.map((s) => ({
+      slideNumber: s.slideNumber,
+      passed: true,
+      score: 7,
+      issues: [],
+      improvementInstructions: '',
+      styleNotes: '',
+    })),
+    styleProfile: {
+      colorScheme: 'professional',
+      fontStyle: 'clean sans-serif',
+      layoutPattern: 'centered with balanced spacing',
+      overallAesthetic: 'modern corporate',
+    },
+  };
+
+  if (slides.length === 0) {
+    return {
+      ...defaultPassResult,
+      passed: false,
+      overallScore: 0,
+      feedback: 'No slides to check',
+    };
+  }
+
+  try {
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (!anthropicKey) {
+      log.warn('Slide QC skipped - Anthropic not configured');
+      return defaultPassResult;
     }
 
-    if (imageContents.length === 0) {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: anthropicKey });
+
+    // Fetch all images
+    const imageData = await fetchSlidesAsBase64(slides);
+
+    if (imageData.length === 0) {
       log.warn('No slides could be fetched for QC');
       return {
-        passed: true,
+        ...defaultPassResult,
         overallScore: 6,
-        issues: ['Could not fetch slides for quality check'],
-        feedback: 'Quality check inconclusive - slides could not be retrieved for review.',
+        feedback: 'Quality check inconclusive - slides could not be retrieved.',
       };
     }
 
-    // Create the QC prompt
-    const qcPrompt = `You are a presentation quality reviewer. The user requested: "${userRequest}"
+    // Build content array with slide numbers labeled
+    const contentArray: Array<
+      | {
+          type: 'image';
+          source: {
+            type: 'base64';
+            media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+            data: string;
+          };
+        }
+      | { type: 'text'; text: string }
+    > = [];
 
-Review these ${imageContents.length} presentation slides and provide a quality assessment.
+    for (const img of imageData) {
+      contentArray.push({ type: 'text', text: `[SLIDE ${img.slideNumber}]` });
+      contentArray.push(img.content);
+    }
 
-Evaluate:
-1. **Text Readability** - Is text clear, legible, and appropriately sized?
-2. **Visual Consistency** - Do slides have consistent styling, colors, and fonts?
-3. **Professional Quality** - Do slides look polished and professional?
-4. **Content Relevance** - Does content match what the user requested?
-5. **Layout Balance** - Is information well-organized with good use of space?
+    // Comprehensive QC prompt with per-slide assessment
+    const qcPrompt = `You are an expert presentation quality reviewer. The user requested: "${userRequest}"
 
-Respond with ONLY valid JSON in this exact format:
+Review these ${imageData.length} presentation slides and provide a DETAILED quality assessment.
+
+For EACH slide, evaluate:
+1. **Text Readability** - Is text clear, legible, appropriately sized? Any text rendering issues?
+2. **Visual Quality** - Is the image sharp, professional, free of artifacts?
+3. **Content Accuracy** - Does it match the slide's intended topic?
+4. **Layout Balance** - Is information well-organized with good use of space?
+5. **Professional Polish** - Does it look like a real presentation slide?
+
+Also analyze the OVERALL presentation for:
+- **Visual Consistency** - Do all slides share a cohesive style?
+- **Color Harmony** - Are colors consistent across slides?
+- **Design Coherence** - Does it feel like one unified presentation?
+
+Respond with ONLY valid JSON in this EXACT format:
 {
   "passed": true/false,
   "overallScore": 1-10,
-  "issues": ["issue1", "issue2"],
-  "feedback": "Brief overall assessment"
+  "issues": ["overall issue 1", "overall issue 2"],
+  "feedback": "Brief overall assessment",
+  "perSlideAssessment": [
+    {
+      "slideNumber": 1,
+      "passed": true/false,
+      "score": 1-10,
+      "issues": ["specific issue for this slide"],
+      "improvementInstructions": "DETAILED instructions on exactly how to fix this slide. Be specific about colors, text size, layout changes, content adjustments needed. This will be used to regenerate the slide.",
+      "styleNotes": "Description of this slide's visual style (colors, fonts, layout)"
+    }
+  ],
+  "styleProfile": {
+    "colorScheme": "describe the color palette used (e.g., 'dark blue with white text and orange accents')",
+    "fontStyle": "describe the typography (e.g., 'bold sans-serif headers, light body text')",
+    "layoutPattern": "describe the layout approach (e.g., 'centered titles, left-aligned content')",
+    "overallAesthetic": "describe the overall design style (e.g., 'modern minimalist corporate')"
+  }
 }
 
-Pass if score >= 6. Be constructive but honest. Focus on significant issues, not minor details.`;
+IMPORTANT:
+- A slide passes if score >= ${SLIDE_QC_PASS_THRESHOLD}
+- Overall passes only if ALL slides pass
+- For failing slides, improvementInstructions MUST be detailed enough to regenerate a better version
+- styleProfile should capture the look of PASSING slides so regenerated slides can match`;
 
-    // Send to Claude Vision
+    contentArray.push({ type: 'text', text: qcPrompt });
+
     const response = await client.messages.create({
       model: 'claude-sonnet-4-5-20250514',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            ...imageContents,
-            {
-              type: 'text',
-              text: qcPrompt,
-            },
-          ],
-        },
-      ],
+      max_tokens: 4096, // More tokens for detailed per-slide feedback
+      messages: [{ role: 'user', content: contentArray }],
     });
 
-    // Parse the response
     const responseText = response.content
       .filter((block) => block.type === 'text')
       .map((block) => (block as { type: 'text'; text: string }).text)
       .join('');
 
-    // Extract JSON from response
     let jsonText = responseText.trim();
     if (jsonText.startsWith('```json')) {
       jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
@@ -656,24 +746,200 @@ Pass if score >= 6. Be constructive but honest. Focus on significant issues, not
 
     const qcResult = JSON.parse(jsonText) as SlideQCResult;
 
+    // Ensure perSlideAssessment exists and has correct structure
+    if (!qcResult.perSlideAssessment) {
+      qcResult.perSlideAssessment = slides.map((s) => ({
+        slideNumber: s.slideNumber,
+        passed: qcResult.passed,
+        score: qcResult.overallScore,
+        issues: [],
+        improvementInstructions: '',
+        styleNotes: '',
+      }));
+    }
+
+    // Ensure styleProfile exists
+    if (!qcResult.styleProfile) {
+      qcResult.styleProfile = {
+        colorScheme: 'professional',
+        fontStyle: 'clean sans-serif',
+        layoutPattern: 'centered with balanced spacing',
+        overallAesthetic: 'modern corporate',
+      };
+    }
+
     log.info('Slide QC complete', {
       slideCount: slides.length,
       passed: qcResult.passed,
       score: qcResult.overallScore,
-      issueCount: qcResult.issues.length,
+      failedSlides: qcResult.perSlideAssessment.filter((s) => !s.passed).length,
     });
 
     return qcResult;
   } catch (error) {
     log.error('Slide QC failed', { error: (error as Error).message });
-    // On error, pass by default to avoid blocking the user
-    return {
-      passed: true,
-      overallScore: 7,
-      issues: [],
-      feedback: 'Quality check could not be completed.',
-    };
+    return defaultPassResult;
   }
+}
+
+/**
+ * Generate an improved prompt for a failed slide based on QC feedback
+ * Maintains style consistency with passing slides
+ */
+function generateImprovedSlidePrompt(
+  originalPrompt: string,
+  slideTitle: string,
+  assessment: PerSlideAssessment,
+  styleProfile: SlideQCResult['styleProfile']
+): string {
+  return `Create a professional presentation slide with the following requirements:
+
+TITLE: "${slideTitle}"
+
+ORIGINAL INTENT: ${originalPrompt}
+
+REQUIRED FIXES (from quality review):
+${assessment.improvementInstructions}
+
+ISSUES TO AVOID:
+${assessment.issues.map((i) => `- ${i}`).join('\n')}
+
+STYLE REQUIREMENTS (must match other slides in the presentation):
+- Color Scheme: ${styleProfile.colorScheme}
+- Typography: ${styleProfile.fontStyle}
+- Layout: ${styleProfile.layoutPattern}
+- Overall Look: ${styleProfile.overallAesthetic}
+
+CRITICAL: This slide must visually match the other slides in the presentation. Maintain the exact same color palette, font styles, and design aesthetic. The slide should look like it belongs in the same deck.
+
+Format: 16:9 landscape presentation slide, professional quality, clean and readable text.`;
+}
+
+/**
+ * Orchestrates the complete slide QC and auto-fix process
+ * Returns final slides array with any regenerated slides swapped in
+ */
+async function performSlideQCWithAutoFix(
+  generatedSlides: Array<{
+    slideNumber: number;
+    title: string;
+    imageUrl: string;
+    generationId: string;
+    originalPrompt?: string;
+  }>,
+  userRequest: string,
+  regenerateSlide: (
+    slideNumber: number,
+    improvedPrompt: string,
+    title: string
+  ) => Promise<{ imageUrl: string; generationId: string } | null>,
+  onProgress: (message: string) => void
+): Promise<{
+  finalSlides: typeof generatedSlides;
+  qcResult: SlideQCResult;
+  regeneratedCount: number;
+}> {
+  const currentSlides = [...generatedSlides];
+  let lastQCResult: SlideQCResult | null = null;
+  let totalRegeneratedCount = 0;
+
+  // Track retry attempts per slide
+  const retryAttempts: Record<number, number> = {};
+  for (const slide of currentSlides) {
+    retryAttempts[slide.slideNumber] = 0;
+  }
+
+  // QC and fix loop
+  for (let iteration = 0; iteration <= SLIDE_QC_MAX_RETRIES; iteration++) {
+    onProgress(iteration === 0 ? '*Performing quality check...*\n' : '*Re-checking quality...*\n');
+
+    // Run QC
+    const qcResult = await performSlideQualityCheck(
+      currentSlides.map((s) => ({
+        slideNumber: s.slideNumber,
+        title: s.title,
+        imageUrl: s.imageUrl,
+        originalPrompt: s.originalPrompt,
+      })),
+      userRequest
+    );
+
+    lastQCResult = qcResult;
+
+    // Check if all passed
+    if (qcResult.passed) {
+      onProgress(`✓ Quality check passed (${qcResult.overallScore}/10)\n`);
+      break;
+    }
+
+    // Find slides that need fixing (and haven't exceeded retry limit)
+    const failedSlides = qcResult.perSlideAssessment.filter(
+      (s) => !s.passed && retryAttempts[s.slideNumber] < SLIDE_QC_MAX_RETRIES
+    );
+
+    if (failedSlides.length === 0) {
+      // All failed slides have exceeded retry limit
+      onProgress(
+        `⚠ Quality check: ${qcResult.overallScore}/10 - Some slides could not be improved further\n`
+      );
+      break;
+    }
+
+    // Report what we're fixing
+    onProgress(
+      `⚠ Quality check: ${qcResult.overallScore}/10 - Fixing ${failedSlides.length} slide(s)...\n`
+    );
+
+    // Regenerate each failed slide
+    for (const failedAssessment of failedSlides) {
+      const slideIndex = currentSlides.findIndex(
+        (s) => s.slideNumber === failedAssessment.slideNumber
+      );
+      if (slideIndex === -1) continue;
+
+      const originalSlide = currentSlides[slideIndex];
+      retryAttempts[failedAssessment.slideNumber]++;
+
+      onProgress(
+        `  → Regenerating slide ${failedAssessment.slideNumber}: ${originalSlide.title}...\n`
+      );
+
+      // Generate improved prompt
+      const improvedPrompt = generateImprovedSlidePrompt(
+        originalSlide.originalPrompt || `Presentation slide about: ${originalSlide.title}`,
+        originalSlide.title,
+        failedAssessment,
+        qcResult.styleProfile
+      );
+
+      // Regenerate the slide
+      const newSlide = await regenerateSlide(
+        failedAssessment.slideNumber,
+        improvedPrompt,
+        originalSlide.title
+      );
+
+      if (newSlide) {
+        // Replace the slide in our array
+        currentSlides[slideIndex] = {
+          ...originalSlide,
+          imageUrl: newSlide.imageUrl,
+          generationId: newSlide.generationId,
+          originalPrompt: improvedPrompt,
+        };
+        totalRegeneratedCount++;
+        onProgress(`  ✓ Slide ${failedAssessment.slideNumber} regenerated\n`);
+      } else {
+        onProgress(`  ⚠ Slide ${failedAssessment.slideNumber} regeneration failed\n`);
+      }
+    }
+  }
+
+  return {
+    finalSlides: currentSlides,
+    qcResult: lastQCResult!,
+    regeneratedCount: totalRegeneratedCount,
+  };
 }
 
 function getDocumentTypeName(type: string): string {
@@ -2782,22 +3048,22 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                 title: string;
                 imageUrl: string;
                 generationId: string;
+                originalPrompt?: string;
               }> = [];
 
               const slideWidth = ASPECT_RATIOS['16:9'].width;
               const slideHeight = ASPECT_RATIOS['16:9'].height;
 
-              for (const slide of slidePrompts) {
+              // Helper function to generate a single slide (used for initial gen and regeneration)
+              const generateSingleSlide = async (
+                slideNum: number,
+                prompt: string,
+                title: string,
+                isRegeneration = false
+              ): Promise<{ imageUrl: string; generationId: string } | null> => {
                 try {
-                  // Stream progress for each slide
-                  controller.enqueue(
-                    encoder.encode(
-                      `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
-                    )
-                  );
-
-                  const generationId = randomUUID();
-                  const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
+                  const genId = randomUUID();
+                  const enhancedPrompt = await enhanceImagePrompt(prompt, {
                     type: 'create',
                     aspectRatio: '16:9',
                   });
@@ -2805,7 +3071,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                   // Create generation record
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   await (serviceClient as any).from('generations').insert({
-                    id: generationId,
+                    id: genId,
                     user_id: rateLimitIdentifier,
                     conversation_id: conversationId || null,
                     type: 'slide',
@@ -2813,10 +3079,11 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                     provider: 'bfl',
                     prompt: enhancedPrompt,
                     input_data: {
-                      originalPrompt: slide.prompt,
-                      slideNumber: slide.slideNumber,
-                      slideTitle: slide.title,
+                      originalPrompt: prompt,
+                      slideNumber: slideNum,
+                      slideTitle: title,
                       detectedFromChat: true,
+                      isRegeneration,
                     },
                     dimensions: { width: slideWidth, height: slideHeight },
                     status: 'processing',
@@ -2834,7 +3101,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                   const storedUrl = await downloadAndStore(
                     result.imageUrl,
                     rateLimitIdentifier,
-                    generationId,
+                    genId,
                     'png'
                   );
 
@@ -2852,75 +3119,104 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                       cost_credits: result.cost,
                       completed_at: new Date().toISOString(),
                     })
-                    .eq('id', generationId);
+                    .eq('id', genId);
 
+                  return { imageUrl: storedUrl, generationId: genId };
+                } catch (error) {
+                  log.error('Failed to generate slide', {
+                    slideNumber: slideNum,
+                    isRegeneration,
+                    error: (error as Error).message,
+                  });
+                  return null;
+                }
+              };
+
+              // Step 3: Generate initial slides
+              for (const slide of slidePrompts) {
+                controller.enqueue(
+                  encoder.encode(
+                    `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
+                  )
+                );
+
+                const result = await generateSingleSlide(
+                  slide.slideNumber,
+                  slide.prompt,
+                  slide.title,
+                  false
+                );
+
+                if (result) {
                   generatedSlides.push({
                     slideNumber: slide.slideNumber,
                     title: slide.title,
-                    imageUrl: storedUrl,
-                    generationId,
+                    imageUrl: result.imageUrl,
+                    generationId: result.generationId,
+                    originalPrompt: slide.prompt,
                   });
-
-                  // Stream success for this slide
                   controller.enqueue(encoder.encode(`✓ Slide ${slide.slideNumber} complete\n`));
-
                   log.info('Slide generated (natural language streaming)', {
                     slideNumber: slide.slideNumber,
-                    generationId,
+                    generationId: result.generationId,
                   });
-                } catch (slideError) {
-                  log.error('Failed to generate slide', {
-                    slideNumber: slide.slideNumber,
-                    error: (slideError as Error).message,
-                  });
+                } else {
                   controller.enqueue(
                     encoder.encode(`⚠ Slide ${slide.slideNumber} failed, continuing...\n`)
                   );
-                  // Continue with other slides even if one fails
                 }
               }
 
-              // Step 3.5: Batch Quality Control
+              // Step 3.5: Quality Control with Automatic Fix
+              let finalSlides = generatedSlides;
               let qcResult: SlideQCResult | null = null;
-              if (generatedSlides.length > 0) {
-                controller.enqueue(encoder.encode('\n*Performing quality check...*\n'));
+              let regeneratedCount = 0;
 
-                qcResult = await performSlideQualityCheck(
-                  generatedSlides.map((s) => ({
-                    slideNumber: s.slideNumber,
-                    title: s.title,
-                    imageUrl: s.imageUrl,
-                  })),
-                  lastUserContent
+              if (generatedSlides.length > 0) {
+                // Regeneration callback for the QC system
+                const regenerateSlide = async (
+                  slideNumber: number,
+                  improvedPrompt: string,
+                  title: string
+                ): Promise<{ imageUrl: string; generationId: string } | null> => {
+                  return generateSingleSlide(slideNumber, improvedPrompt, title, true);
+                };
+
+                // Progress callback to stream updates
+                const onProgress = (message: string) => {
+                  controller.enqueue(encoder.encode(message));
+                };
+
+                // Run QC with auto-fix
+                const qcFixResult = await performSlideQCWithAutoFix(
+                  generatedSlides,
+                  lastUserContent,
+                  regenerateSlide,
+                  onProgress
                 );
 
-                if (qcResult.passed) {
+                finalSlides = qcFixResult.finalSlides;
+                qcResult = qcFixResult.qcResult;
+                regeneratedCount = qcFixResult.regeneratedCount;
+
+                if (regeneratedCount > 0) {
                   controller.enqueue(
-                    encoder.encode(`✓ Quality check passed (${qcResult.overallScore}/10)\n`)
+                    encoder.encode(`\n✓ ${regeneratedCount} slide(s) were automatically improved\n`)
                   );
-                } else {
-                  controller.enqueue(
-                    encoder.encode(
-                      `⚠ Quality check: ${qcResult.overallScore}/10 - ${qcResult.feedback}\n`
-                    )
-                  );
-                  if (qcResult.issues.length > 0) {
-                    controller.enqueue(encoder.encode(`   Notes: ${qcResult.issues.join(', ')}\n`));
-                  }
                 }
               }
 
               // Step 4: Stream final result
-              if (generatedSlides.length > 0) {
+              if (finalSlides.length > 0) {
                 controller.enqueue(encoder.encode('\n---\n\n'));
                 controller.enqueue(
                   encoder.encode(
-                    `**Your ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
+                    `**Your ${finalSlides.length} presentation slide${finalSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
                   )
                 );
 
                 // Stream each slide with its image reference
-                for (const s of generatedSlides) {
+                for (const s of finalSlides) {
                   controller.enqueue(
                     encoder.encode(
                       `**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]\n\n`
@@ -2933,8 +3229,8 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                   encoder.encode(
                     `\n[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
                       type: 'slide_generation',
-                      slideCount: generatedSlides.length,
-                      slides: generatedSlides.map((s) => ({
+                      slideCount: finalSlides.length,
+                      slides: finalSlides.map((s) => ({
                         slideNumber: s.slideNumber,
                         title: s.title,
                         imageUrl: s.imageUrl,
@@ -2948,6 +3244,7 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
                             score: qcResult.overallScore,
                             feedback: qcResult.feedback,
                             issues: qcResult.issues,
+                            regeneratedSlides: regeneratedCount,
                           }
                         : null,
                     })}]`
@@ -3341,28 +3638,29 @@ Output ONLY JSON array:
               title: string;
               imageUrl: string;
               generationId: string;
+              originalPrompt?: string;
             }> = [];
 
             const slideWidth = ASPECT_RATIOS['16:9'].width;
             const slideHeight = ASPECT_RATIOS['16:9'].height;
 
-            for (const slide of slidePrompts) {
+            // Helper function to generate a single slide (used for initial gen and regeneration)
+            const generateSingleSlide = async (
+              slideNum: number,
+              prompt: string,
+              title: string,
+              isRegeneration = false
+            ): Promise<{ imageUrl: string; generationId: string } | null> => {
               try {
-                controller.enqueue(
-                  encoder.encode(
-                    `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
-                  )
-                );
-
-                const generationId = randomUUID();
-                const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
+                const genId = randomUUID();
+                const enhancedPrompt = await enhanceImagePrompt(prompt, {
                   type: 'create',
                   aspectRatio: '16:9',
                 });
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await (serviceClient as any).from('generations').insert({
-                  id: generationId,
+                  id: genId,
                   user_id: rateLimitIdentifier,
                   conversation_id: conversationId || null,
                   type: 'slide',
@@ -3370,10 +3668,11 @@ Output ONLY JSON array:
                   provider: 'bfl',
                   prompt: enhancedPrompt,
                   input_data: {
-                    originalPrompt: slide.prompt,
-                    slideNumber: slide.slideNumber,
-                    slideTitle: slide.title,
+                    originalPrompt: prompt,
+                    slideNumber: slideNum,
+                    slideTitle: title,
                     fromButton: true,
+                    isRegeneration,
                   },
                   dimensions: { width: slideWidth, height: slideHeight },
                   status: 'processing',
@@ -3389,7 +3688,7 @@ Output ONLY JSON array:
                 const storedUrl = await downloadAndStore(
                   result.imageUrl,
                   rateLimitIdentifier,
-                  generationId,
+                  genId,
                   'png'
                 );
 
@@ -3403,67 +3702,99 @@ Output ONLY JSON array:
                     cost_credits: result.cost,
                     completed_at: new Date().toISOString(),
                   })
-                  .eq('id', generationId);
+                  .eq('id', genId);
 
+                return { imageUrl: storedUrl, generationId: genId };
+              } catch (error) {
+                log.error('Failed to generate slide', {
+                  slideNumber: slideNum,
+                  isRegeneration,
+                  error: (error as Error).message,
+                });
+                return null;
+              }
+            };
+
+            // Generate initial slides
+            for (const slide of slidePrompts) {
+              controller.enqueue(
+                encoder.encode(
+                  `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
+                )
+              );
+
+              const result = await generateSingleSlide(
+                slide.slideNumber,
+                slide.prompt,
+                slide.title,
+                false
+              );
+
+              if (result) {
                 generatedSlides.push({
                   slideNumber: slide.slideNumber,
                   title: slide.title,
-                  imageUrl: storedUrl,
-                  generationId,
+                  imageUrl: result.imageUrl,
+                  generationId: result.generationId,
+                  originalPrompt: slide.prompt,
                 });
-
                 controller.enqueue(encoder.encode(`✓ Slide ${slide.slideNumber} complete\n`));
-              } catch (slideError) {
-                log.error('Failed to generate slide', {
-                  slideNumber: slide.slideNumber,
-                  error: (slideError as Error).message,
-                });
+              } else {
                 controller.enqueue(
                   encoder.encode(`⚠ Slide ${slide.slideNumber} failed, continuing...\n`)
                 );
               }
             }
 
-            // Batch Quality Control
+            // Quality Control with Automatic Fix
+            let finalSlides = generatedSlides;
             let qcResult: SlideQCResult | null = null;
-            if (generatedSlides.length > 0) {
-              controller.enqueue(encoder.encode('\n*Performing quality check...*\n'));
+            let regeneratedCount = 0;
 
-              qcResult = await performSlideQualityCheck(
-                generatedSlides.map((s) => ({
-                  slideNumber: s.slideNumber,
-                  title: s.title,
-                  imageUrl: s.imageUrl,
-                })),
-                lastUserContent
+            if (generatedSlides.length > 0) {
+              // Regeneration callback for the QC system
+              const regenerateSlide = async (
+                slideNumber: number,
+                improvedPrompt: string,
+                title: string
+              ): Promise<{ imageUrl: string; generationId: string } | null> => {
+                return generateSingleSlide(slideNumber, improvedPrompt, title, true);
+              };
+
+              // Progress callback to stream updates
+              const onProgress = (message: string) => {
+                controller.enqueue(encoder.encode(message));
+              };
+
+              // Run QC with auto-fix
+              const qcFixResult = await performSlideQCWithAutoFix(
+                generatedSlides,
+                lastUserContent,
+                regenerateSlide,
+                onProgress
               );
 
-              if (qcResult.passed) {
+              finalSlides = qcFixResult.finalSlides;
+              qcResult = qcFixResult.qcResult;
+              regeneratedCount = qcFixResult.regeneratedCount;
+
+              if (regeneratedCount > 0) {
                 controller.enqueue(
-                  encoder.encode(`✓ Quality check passed (${qcResult.overallScore}/10)\n`)
+                  encoder.encode(`\n✓ ${regeneratedCount} slide(s) were automatically improved\n`)
                 );
-              } else {
-                controller.enqueue(
-                  encoder.encode(
-                    `⚠ Quality check: ${qcResult.overallScore}/10 - ${qcResult.feedback}\n`
-                  )
-                );
-                if (qcResult.issues.length > 0) {
-                  controller.enqueue(encoder.encode(`   Notes: ${qcResult.issues.join(', ')}\n`));
-                }
               }
             }
 
             // Final output
-            if (generatedSlides.length > 0) {
+            if (finalSlides.length > 0) {
               controller.enqueue(encoder.encode('\n---\n\n'));
               controller.enqueue(
                 encoder.encode(
-                  `**Your ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
+                  `**Your ${finalSlides.length} presentation slide${finalSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
                 )
               );
 
-              for (const s of generatedSlides) {
+              for (const s of finalSlides) {
                 controller.enqueue(
                   encoder.encode(`**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]\n\n`)
                 );
@@ -3473,8 +3804,13 @@ Output ONLY JSON array:
                 encoder.encode(
                   `\n[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
                     type: 'slide_generation',
-                    slideCount: generatedSlides.length,
-                    slides: generatedSlides,
+                    slideCount: finalSlides.length,
+                    slides: finalSlides.map((s) => ({
+                      slideNumber: s.slideNumber,
+                      title: s.title,
+                      imageUrl: s.imageUrl,
+                      generationId: s.generationId,
+                    })),
                     model: 'flux-2-pro',
                     provider: 'bfl',
                     qualityCheck: qcResult
@@ -3483,6 +3819,7 @@ Output ONLY JSON array:
                           score: qcResult.overallScore,
                           feedback: qcResult.feedback,
                           issues: qcResult.issues,
+                          regeneratedSlides: regeneratedCount,
                         }
                       : null,
                   })}]`
