@@ -2438,22 +2438,31 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 0.65: NATURAL LANGUAGE PRESENTATION/SLIDES DETECTION
+    // ROUTE 0.65: NATURAL LANGUAGE SLIDE/POWERPOINT DETECTION
     // ========================================
-    // Detect if user is requesting slides/presentation in natural language
+    // Detect if user is requesting slides/PowerPoint in natural language
     // Route to BFL for high-quality visual slide generation
+    // NOTE: Be specific - "presentation" alone could mean PDF report
+    // Only trigger on: slides, slide deck, PowerPoint, pptx
     if (effectiveToolMode === 'none' && isBFLConfigured() && isAuthenticated) {
-      const presentationPatterns = [
-        /\b(create|make|generate|build|give me|i need|can you (create|make)|help me (create|make))\b.{0,30}\b(presentation|powerpoint|pptx|slides?|slide deck|pitch deck)\b/i,
-        /\b(presentation|powerpoint|slides?|slide deck)\b.{0,20}\b(for|about|on|regarding)\b/i,
-        /\b(\d+)\s*(slides?|page presentation)\b/i,
-        /\bpresentation\s+(slides?|deck)\b/i,
+      // Max 10 slides per request
+      const MAX_SLIDES_PER_REQUEST = 10;
+
+      // Specific patterns for SLIDES (not generic "presentation" which could be PDF)
+      const slidePatterns = [
+        // Explicit slide requests
+        /\b(create|make|generate|build|give me|i need|can you (create|make)|help me (create|make))\b.{0,30}\b(powerpoint|pptx|slides?|slide deck|pitch deck)\b/i,
+        /\b(powerpoint|pptx|slides?|slide deck|pitch deck)\b.{0,20}\b(for|about|on|regarding)\b/i,
+        /\b(\d+)\s*slides?\b/i, // "3 slides", "5 slides"
+        /\bslide\s*(deck|presentation)\b/i, // "slide deck", "slide presentation"
+        /\bpowerpoint\s*(presentation)?\b/i, // "powerpoint", "powerpoint presentation"
+        // NOT just "presentation" alone - that could be a PDF report
       ];
 
-      const isPresentationRequest = presentationPatterns.some((p) => p.test(lastUserContent));
+      const isSlideRequest = slidePatterns.some((p) => p.test(lastUserContent));
 
-      if (isPresentationRequest) {
-        log.info('Natural language presentation request detected', {
+      if (isSlideRequest) {
+        log.info('Natural language slide request detected', {
           userRequest: lastUserContent.substring(0, 100),
         });
 
@@ -2463,11 +2472,61 @@ export async function POST(request: NextRequest) {
           slotAcquired = false;
         }
 
-        try {
-          // Step 1: Have Claude analyze the request and generate slide prompts
-          const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides generated as images.
+        // Extract requested slide count from user message
+        const slideCountMatch = lastUserContent.match(/\b(\d+)\s*slides?\b/i);
+        const requestedCount = slideCountMatch ? parseInt(slideCountMatch[1], 10) : null;
+        const willTruncate = requestedCount && requestedCount > MAX_SLIDES_PER_REQUEST;
+
+        // Create streaming response for slide generation
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              // Step 0: Initial message with truncation notice if needed
+              if (willTruncate) {
+                controller.enqueue(
+                  encoder.encode(
+                    `You requested ${requestedCount} slides. I'll create the maximum of ${MAX_SLIDES_PER_REQUEST} high-quality slides for you.\n\n`
+                  )
+                );
+              }
+              controller.enqueue(encoder.encode('*Creating your presentation slides...*\n\n'));
+
+              // Step 1: Research phase - gather information if topic needs it
+              const needsResearch =
+                /\b(about|regarding|on|for)\s+\w+/i.test(lastUserContent) &&
+                !lastUserContent.toLowerCase().includes('template');
+
+              let researchContext = '';
+              if (needsResearch && isBraveConfigured()) {
+                controller.enqueue(encoder.encode('*Researching topic for accurate content...*\n'));
+
+                try {
+                  // Extract topic for research
+                  const topicMatch = lastUserContent.match(
+                    /\b(?:about|regarding|on|for)\s+(.+?)(?:\.|$|\s+(?:slide|presentation|powerpoint))/i
+                  );
+                  const topic = topicMatch ? topicMatch[1].trim() : lastUserContent;
+
+                  const searchResult = await braveSearch({ query: topic, mode: 'search' });
+                  if (searchResult.answer) {
+                    researchContext = `\n\nResearch context for accurate content:\n${searchResult.answer.substring(0, 2000)}`;
+                    controller.enqueue(encoder.encode('*Research complete.*\n\n'));
+                  }
+                } catch (researchError) {
+                  log.warn('Slide research failed, continuing without', {
+                    error: (researchError as Error).message,
+                  });
+                }
+              }
+
+              // Step 2: Have Claude analyze and create slide prompts
+              controller.enqueue(encoder.encode('*Designing slide layouts and content...*\n'));
+
+              const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides generated as images.
 
 Analyze their request and create detailed image generation prompts for each slide. Output ONLY valid JSON.
+${researchContext}
 
 Rules:
 1. Each slide should be a visually appealing, professional presentation slide
@@ -2475,7 +2534,10 @@ Rules:
 3. Describe the visual style, colors, layout, and any graphics
 4. Keep text minimal - slides should be visual, not text-heavy
 5. Use 16:9 landscape aspect ratio design
-6. If user doesn't specify number of slides, create 3-5 appropriate slides
+6. IMPORTANT: If user specifies a number of slides, create EXACTLY that many (max ${MAX_SLIDES_PER_REQUEST})
+7. If user doesn't specify, create 3-5 appropriate slides for the topic
+8. Structure slides logically: title slide, content slides, conclusion/summary
+9. Use accurate, factual information based on research context if provided
 
 Output format (JSON array):
 [
@@ -2488,163 +2550,214 @@ Output format (JSON array):
 
 Example prompt style: "Professional presentation slide with dark blue gradient background. Large white title text 'German Shepherd Nutrition' centered at top. Below, three circular icons showing: protein (meat icon), vitamins (pill icon), minerals (bone icon). Clean corporate design, modern sans-serif font, subtle dog paw watermark in corner."`;
 
-          const slideMessages: CoreMessage[] = [{ role: 'user', content: lastUserContent }];
+              const slideMessages: CoreMessage[] = [{ role: 'user', content: lastUserContent }];
 
-          const slidePromptResult = await completeChat(slideMessages, {
-            systemPrompt: slidePromptSystemMessage,
-            model: 'claude-sonnet-4-5-20250929',
-            maxTokens: 2048,
-            temperature: 0.7,
-          });
-
-          // Parse the slide prompts
-          let jsonText = slidePromptResult.text.trim();
-          if (jsonText.startsWith('```json')) {
-            jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-          } else if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
-          }
-
-          const slidePrompts = JSON.parse(jsonText) as Array<{
-            slideNumber: number;
-            title: string;
-            prompt: string;
-          }>;
-
-          log.info('Generated slide prompts (natural language)', {
-            slideCount: slidePrompts.length,
-          });
-
-          // Step 2: Generate images for each slide via BFL
-          const { randomUUID } = await import('crypto');
-          const serviceClient = createServiceRoleClient();
-          const generatedSlides: Array<{
-            slideNumber: number;
-            title: string;
-            imageUrl: string;
-            generationId: string;
-          }> = [];
-
-          // Use 16:9 landscape for slides
-          const slideWidth = ASPECT_RATIOS['16:9'].width;
-          const slideHeight = ASPECT_RATIOS['16:9'].height;
-
-          for (const slide of slidePrompts) {
-            try {
-              const generationId = randomUUID();
-
-              // Enhance the prompt for better slide visuals
-              const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
-                type: 'create',
-                aspectRatio: '16:9',
+              const slidePromptResult = await completeChat(slideMessages, {
+                systemPrompt: slidePromptSystemMessage,
+                model: 'claude-sonnet-4-5-20250929',
+                maxTokens: 4096,
+                temperature: 0.7,
               });
 
-              // Create generation record
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              await (serviceClient as any).from('generations').insert({
-                id: generationId,
-                user_id: rateLimitIdentifier,
-                conversation_id: conversationId || null,
-                type: 'slide',
-                model: 'flux-2-pro',
-                provider: 'bfl',
-                prompt: enhancedPrompt,
-                input_data: {
-                  originalPrompt: slide.prompt,
-                  slideNumber: slide.slideNumber,
-                  slideTitle: slide.title,
-                  detectedFromChat: true,
-                },
-                dimensions: { width: slideWidth, height: slideHeight },
-                status: 'processing',
+              // Parse the slide prompts
+              let jsonText = slidePromptResult.text.trim();
+              if (jsonText.startsWith('```json')) {
+                jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+              } else if (jsonText.startsWith('```')) {
+                jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+              }
+
+              let slidePrompts = JSON.parse(jsonText) as Array<{
+                slideNumber: number;
+                title: string;
+                prompt: string;
+              }>;
+
+              // Enforce max slides limit
+              if (slidePrompts.length > MAX_SLIDES_PER_REQUEST) {
+                slidePrompts = slidePrompts.slice(0, MAX_SLIDES_PER_REQUEST);
+              }
+
+              log.info('Generated slide prompts (natural language)', {
+                slideCount: slidePrompts.length,
               });
 
-              // Generate the slide image
-              const result = await generateImage(enhancedPrompt, {
-                model: 'flux-2-pro',
-                width: slideWidth,
-                height: slideHeight,
-                promptUpsampling: true,
-              });
-
-              // Store the image
-              const storedUrl = await downloadAndStore(
-                result.imageUrl,
-                rateLimitIdentifier,
-                generationId,
-                'png'
+              controller.enqueue(
+                encoder.encode(`*Generating ${slidePrompts.length} slides via FLUX...*\n\n`)
               );
 
-              // Update generation record
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              await (serviceClient as any)
-                .from('generations')
-                .update({
-                  status: 'completed',
-                  result_url: storedUrl,
-                  result_data: {
-                    seed: result.seed,
-                    enhancedPrompt: result.enhancedPrompt,
-                  },
-                  cost_credits: result.cost,
-                  completed_at: new Date().toISOString(),
-                })
-                .eq('id', generationId);
+              // Step 3: Generate images for each slide via BFL with streaming progress
+              const { randomUUID } = await import('crypto');
+              const serviceClient = createServiceRoleClient();
+              const generatedSlides: Array<{
+                slideNumber: number;
+                title: string;
+                imageUrl: string;
+                generationId: string;
+              }> = [];
 
-              generatedSlides.push({
-                slideNumber: slide.slideNumber,
-                title: slide.title,
-                imageUrl: storedUrl,
-                generationId,
-              });
+              const slideWidth = ASPECT_RATIOS['16:9'].width;
+              const slideHeight = ASPECT_RATIOS['16:9'].height;
 
-              log.info('Slide generated (natural language)', {
-                slideNumber: slide.slideNumber,
-                generationId,
-              });
-            } catch (slideError) {
-              log.error('Failed to generate slide', {
-                slideNumber: slide.slideNumber,
-                error: (slideError as Error).message,
-              });
-              // Continue with other slides even if one fails
-            }
-          }
+              for (const slide of slidePrompts) {
+                try {
+                  // Stream progress for each slide
+                  controller.enqueue(
+                    encoder.encode(
+                      `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
+                    )
+                  );
 
-          if (generatedSlides.length > 0) {
-            // Return the generated slides
-            const slideListText = generatedSlides
-              .map((s) => `**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]`)
-              .join('\n\n');
+                  const generationId = randomUUID();
+                  const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
+                    type: 'create',
+                    aspectRatio: '16:9',
+                  });
 
-            return new Response(
-              JSON.stringify({
-                type: 'slide_generation',
-                content: `I've created ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's' : ''} for you:\n\n${slideListText}`,
-                generatedSlides: generatedSlides.map((s) => ({
-                  slideNumber: s.slideNumber,
-                  title: s.title,
-                  imageUrl: s.imageUrl,
-                  generationId: s.generationId,
-                  dimensions: { width: slideWidth, height: slideHeight },
-                  model: 'flux-2-pro',
-                })),
-                model: 'flux-2-pro',
-                provider: 'bfl',
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
+                  // Create generation record
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  await (serviceClient as any).from('generations').insert({
+                    id: generationId,
+                    user_id: rateLimitIdentifier,
+                    conversation_id: conversationId || null,
+                    type: 'slide',
+                    model: 'flux-2-pro',
+                    provider: 'bfl',
+                    prompt: enhancedPrompt,
+                    input_data: {
+                      originalPrompt: slide.prompt,
+                      slideNumber: slide.slideNumber,
+                      slideTitle: slide.title,
+                      detectedFromChat: true,
+                    },
+                    dimensions: { width: slideWidth, height: slideHeight },
+                    status: 'processing',
+                  });
+
+                  // Generate the slide image
+                  const result = await generateImage(enhancedPrompt, {
+                    model: 'flux-2-pro',
+                    width: slideWidth,
+                    height: slideHeight,
+                    promptUpsampling: true,
+                  });
+
+                  // Store the image
+                  const storedUrl = await downloadAndStore(
+                    result.imageUrl,
+                    rateLimitIdentifier,
+                    generationId,
+                    'png'
+                  );
+
+                  // Update generation record
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  await (serviceClient as any)
+                    .from('generations')
+                    .update({
+                      status: 'completed',
+                      result_url: storedUrl,
+                      result_data: {
+                        seed: result.seed,
+                        enhancedPrompt: result.enhancedPrompt,
+                      },
+                      cost_credits: result.cost,
+                      completed_at: new Date().toISOString(),
+                    })
+                    .eq('id', generationId);
+
+                  generatedSlides.push({
+                    slideNumber: slide.slideNumber,
+                    title: slide.title,
+                    imageUrl: storedUrl,
+                    generationId,
+                  });
+
+                  // Stream success for this slide
+                  controller.enqueue(encoder.encode(`✓ Slide ${slide.slideNumber} complete\n`));
+
+                  log.info('Slide generated (natural language streaming)', {
+                    slideNumber: slide.slideNumber,
+                    generationId,
+                  });
+                } catch (slideError) {
+                  log.error('Failed to generate slide', {
+                    slideNumber: slide.slideNumber,
+                    error: (slideError as Error).message,
+                  });
+                  controller.enqueue(
+                    encoder.encode(`⚠ Slide ${slide.slideNumber} failed, continuing...\n`)
+                  );
+                  // Continue with other slides even if one fails
+                }
               }
-            );
-          }
-          // If no slides generated, fall through to regular chat
-        } catch (slideError) {
-          log.error('Natural language slide generation failed', {
-            error: (slideError as Error).message,
-          });
-          // Fall through to regular chat
-        }
+
+              // Step 4: Stream final result
+              if (generatedSlides.length > 0) {
+                controller.enqueue(encoder.encode('\n---\n\n'));
+                controller.enqueue(
+                  encoder.encode(
+                    `**Your ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
+                  )
+                );
+
+                // Stream each slide with its image reference
+                for (const s of generatedSlides) {
+                  controller.enqueue(
+                    encoder.encode(
+                      `**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]\n\n`
+                    )
+                  );
+                }
+
+                // Send JSON metadata at end for frontend parsing
+                controller.enqueue(
+                  encoder.encode(
+                    `\n[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
+                      type: 'slide_generation',
+                      slideCount: generatedSlides.length,
+                      slides: generatedSlides.map((s) => ({
+                        slideNumber: s.slideNumber,
+                        title: s.title,
+                        imageUrl: s.imageUrl,
+                        generationId: s.generationId,
+                      })),
+                      model: 'flux-2-pro',
+                      provider: 'bfl',
+                    })}]`
+                  )
+                );
+              } else {
+                controller.enqueue(
+                  encoder.encode(
+                    '\nI was unable to generate the slides. Please try again with a different request.'
+                  )
+                );
+              }
+
+              controller.close();
+            } catch (streamError) {
+              log.error('Slide generation stream error', {
+                error: (streamError as Error).message,
+              });
+              try {
+                controller.enqueue(
+                  encoder.encode(`\n\nError generating slides: ${(streamError as Error).message}`)
+                );
+                controller.close();
+              } catch {
+                // Stream already closed
+              }
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Slide-Generation': 'streaming',
+          },
+        });
       }
     }
 
@@ -2885,12 +2998,15 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
     }
 
     // ========================================
-    // ROUTE 2.5: VISUAL SLIDE GENERATION (BFL/FLUX)
+    // ROUTE 2.5: VISUAL SLIDE GENERATION (BFL/FLUX) - Button Click
     // ========================================
-    // When user selects slides/presentation AND BFL is configured,
+    // When user selects slides/presentation button AND BFL is configured,
     // generate actual visual slides as images via FLUX instead of PowerPoint
+    // Same streaming approach as Route 0.65 for consistency
     if (explicitDocType === 'pptx' && isBFLConfigured() && isAuthenticated) {
-      log.info('Visual slide generation requested via BFL', {
+      const MAX_SLIDES = 10;
+
+      log.info('Visual slide generation requested via BFL (button)', {
         userRequest: lastUserContent.substring(0, 100),
       });
 
@@ -2900,182 +3016,239 @@ Example prompt style: "Professional presentation slide with dark blue gradient b
         slotAcquired = false;
       }
 
-      try {
-        // Step 1: Have Claude analyze the request and generate slide prompts
-        const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides generated as images.
+      // Extract requested slide count
+      const slideCountMatch = lastUserContent.match(/\b(\d+)\s*slides?\b/i);
+      const requestedCount = slideCountMatch ? parseInt(slideCountMatch[1], 10) : null;
+      const willTruncate = requestedCount && requestedCount > MAX_SLIDES;
 
-Analyze their request and create detailed image generation prompts for each slide. Output ONLY valid JSON.
+      // Create streaming response
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Initial message
+            if (willTruncate) {
+              controller.enqueue(
+                encoder.encode(
+                  `You requested ${requestedCount} slides. I'll create the maximum of ${MAX_SLIDES} high-quality slides for you.\n\n`
+                )
+              );
+            }
+            controller.enqueue(encoder.encode('*Creating your presentation slides...*\n\n'));
+
+            // Research phase if needed
+            const needsResearch =
+              /\b(about|regarding|on|for)\s+\w+/i.test(lastUserContent) &&
+              !lastUserContent.toLowerCase().includes('template');
+
+            let researchContext = '';
+            if (needsResearch && isBraveConfigured()) {
+              controller.enqueue(encoder.encode('*Researching topic for accurate content...*\n'));
+              try {
+                const topicMatch = lastUserContent.match(
+                  /\b(?:about|regarding|on|for)\s+(.+?)(?:\.|$|\s+(?:slide|presentation|powerpoint))/i
+                );
+                const topic = topicMatch ? topicMatch[1].trim() : lastUserContent;
+                const searchResult = await braveSearch({ query: topic, mode: 'search' });
+                if (searchResult.answer) {
+                  researchContext = `\n\nResearch context:\n${searchResult.answer.substring(0, 2000)}`;
+                  controller.enqueue(encoder.encode('*Research complete.*\n\n'));
+                }
+              } catch {
+                // Continue without research
+              }
+            }
+
+            // Design slides
+            controller.enqueue(encoder.encode('*Designing slide layouts and content...*\n'));
+
+            const slidePromptSystemMessage = `You are a presentation designer. Create visual presentation slides as images.
+${researchContext}
 
 Rules:
-1. Each slide should be a visually appealing, professional presentation slide
-2. Include clear text/titles that should appear ON the slide image
-3. Describe the visual style, colors, layout, and any graphics
-4. Keep text minimal - slides should be visual, not text-heavy
-5. Use 16:9 landscape aspect ratio design
+1. Professional, visually appealing slides with clear titles
+2. Minimal text - slides should be visual
+3. 16:9 landscape format
+4. If user specifies slide count, create EXACTLY that many (max ${MAX_SLIDES})
+5. Default to 3-5 slides if not specified
+6. Structure: title slide → content → conclusion
 
-Output format (JSON array):
-[
-  {
-    "slideNumber": 1,
-    "title": "Slide title text to appear on the slide",
-    "prompt": "Detailed image generation prompt describing the visual slide design, colors, layout, graphics, and any text that should appear"
-  }
-]
+Output ONLY JSON array:
+[{"slideNumber": 1, "title": "Slide title", "prompt": "Image generation prompt describing slide visuals, colors, layout, text"}]`;
 
-Example prompt style: "Professional presentation slide with dark blue gradient background. Large white title text 'German Shepherd Nutrition' centered at top. Below, three circular icons showing: protein (meat icon), vitamins (pill icon), minerals (bone icon). Clean corporate design, modern sans-serif font, subtle dog paw watermark in corner."`;
-
-        const slideMessages: CoreMessage[] = [{ role: 'user', content: lastUserContent }];
-
-        const slidePromptResult = await completeChat(slideMessages, {
-          systemPrompt: slidePromptSystemMessage,
-          model: 'claude-sonnet-4-5-20250929',
-          maxTokens: 2048,
-          temperature: 0.7,
-        });
-
-        // Parse the slide prompts
-        let jsonText = slidePromptResult.text.trim();
-        if (jsonText.startsWith('```json')) {
-          jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-        } else if (jsonText.startsWith('```')) {
-          jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
-        }
-
-        const slidePrompts = JSON.parse(jsonText) as Array<{
-          slideNumber: number;
-          title: string;
-          prompt: string;
-        }>;
-
-        log.info('Generated slide prompts', { slideCount: slidePrompts.length });
-
-        // Step 2: Generate images for each slide via BFL
-        const { randomUUID } = await import('crypto');
-        const serviceClient = createServiceRoleClient();
-        const generatedSlides: Array<{
-          slideNumber: number;
-          title: string;
-          imageUrl: string;
-          generationId: string;
-        }> = [];
-
-        // Use 16:9 landscape for slides
-        const slideWidth = ASPECT_RATIOS['16:9'].width;
-        const slideHeight = ASPECT_RATIOS['16:9'].height;
-
-        for (const slide of slidePrompts) {
-          try {
-            const generationId = randomUUID();
-
-            // Enhance the prompt for better slide visuals
-            const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
-              type: 'create',
-              aspectRatio: '16:9',
-            });
-
-            // Create generation record
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (serviceClient as any).from('generations').insert({
-              id: generationId,
-              user_id: rateLimitIdentifier,
-              conversation_id: conversationId || null,
-              type: 'slide',
-              model: 'flux-2-pro',
-              provider: 'bfl',
-              prompt: enhancedPrompt,
-              input_data: {
-                originalPrompt: slide.prompt,
-                slideNumber: slide.slideNumber,
-                slideTitle: slide.title,
-              },
-              dimensions: { width: slideWidth, height: slideHeight },
-              status: 'processing',
-            });
-
-            // Generate the slide image
-            const result = await generateImage(enhancedPrompt, {
-              model: 'flux-2-pro',
-              width: slideWidth,
-              height: slideHeight,
-              promptUpsampling: true,
-            });
-
-            // Store the image
-            const storedUrl = await downloadAndStore(
-              result.imageUrl,
-              rateLimitIdentifier,
-              generationId,
-              'png'
+            const slidePromptResult = await completeChat(
+              [{ role: 'user', content: lastUserContent }],
+              {
+                systemPrompt: slidePromptSystemMessage,
+                model: 'claude-sonnet-4-5-20250929',
+                maxTokens: 4096,
+                temperature: 0.7,
+              }
             );
 
-            // Update generation record
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (serviceClient as any)
-              .from('generations')
-              .update({
-                status: 'completed',
-                result_url: storedUrl,
-                result_data: {
-                  seed: result.seed,
-                  enhancedPrompt: result.enhancedPrompt,
-                },
-                cost_credits: result.cost,
-                completed_at: new Date().toISOString(),
-              })
-              .eq('id', generationId);
+            let jsonText = slidePromptResult.text.trim();
+            if (jsonText.startsWith('```json')) {
+              jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+            } else if (jsonText.startsWith('```')) {
+              jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+            }
 
-            generatedSlides.push({
-              slideNumber: slide.slideNumber,
-              title: slide.title,
-              imageUrl: storedUrl,
-              generationId,
+            let slidePrompts = JSON.parse(jsonText) as Array<{
+              slideNumber: number;
+              title: string;
+              prompt: string;
+            }>;
+
+            if (slidePrompts.length > MAX_SLIDES) {
+              slidePrompts = slidePrompts.slice(0, MAX_SLIDES);
+            }
+
+            controller.enqueue(
+              encoder.encode(`*Generating ${slidePrompts.length} slides via FLUX...*\n\n`)
+            );
+
+            // Generate slides
+            const { randomUUID } = await import('crypto');
+            const serviceClient = createServiceRoleClient();
+            const generatedSlides: Array<{
+              slideNumber: number;
+              title: string;
+              imageUrl: string;
+              generationId: string;
+            }> = [];
+
+            const slideWidth = ASPECT_RATIOS['16:9'].width;
+            const slideHeight = ASPECT_RATIOS['16:9'].height;
+
+            for (const slide of slidePrompts) {
+              try {
+                controller.enqueue(
+                  encoder.encode(
+                    `*Generating slide ${slide.slideNumber}/${slidePrompts.length}: ${slide.title}...*\n`
+                  )
+                );
+
+                const generationId = randomUUID();
+                const enhancedPrompt = await enhanceImagePrompt(slide.prompt, {
+                  type: 'create',
+                  aspectRatio: '16:9',
+                });
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                await (serviceClient as any).from('generations').insert({
+                  id: generationId,
+                  user_id: rateLimitIdentifier,
+                  conversation_id: conversationId || null,
+                  type: 'slide',
+                  model: 'flux-2-pro',
+                  provider: 'bfl',
+                  prompt: enhancedPrompt,
+                  input_data: {
+                    originalPrompt: slide.prompt,
+                    slideNumber: slide.slideNumber,
+                    slideTitle: slide.title,
+                    fromButton: true,
+                  },
+                  dimensions: { width: slideWidth, height: slideHeight },
+                  status: 'processing',
+                });
+
+                const result = await generateImage(enhancedPrompt, {
+                  model: 'flux-2-pro',
+                  width: slideWidth,
+                  height: slideHeight,
+                  promptUpsampling: true,
+                });
+
+                const storedUrl = await downloadAndStore(
+                  result.imageUrl,
+                  rateLimitIdentifier,
+                  generationId,
+                  'png'
+                );
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                await (serviceClient as any)
+                  .from('generations')
+                  .update({
+                    status: 'completed',
+                    result_url: storedUrl,
+                    result_data: { seed: result.seed, enhancedPrompt: result.enhancedPrompt },
+                    cost_credits: result.cost,
+                    completed_at: new Date().toISOString(),
+                  })
+                  .eq('id', generationId);
+
+                generatedSlides.push({
+                  slideNumber: slide.slideNumber,
+                  title: slide.title,
+                  imageUrl: storedUrl,
+                  generationId,
+                });
+
+                controller.enqueue(encoder.encode(`✓ Slide ${slide.slideNumber} complete\n`));
+              } catch (slideError) {
+                log.error('Failed to generate slide', {
+                  slideNumber: slide.slideNumber,
+                  error: (slideError as Error).message,
+                });
+                controller.enqueue(
+                  encoder.encode(`⚠ Slide ${slide.slideNumber} failed, continuing...\n`)
+                );
+              }
+            }
+
+            // Final output
+            if (generatedSlides.length > 0) {
+              controller.enqueue(encoder.encode('\n---\n\n'));
+              controller.enqueue(
+                encoder.encode(
+                  `**Your ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
+                )
+              );
+
+              for (const s of generatedSlides) {
+                controller.enqueue(
+                  encoder.encode(`**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]\n\n`)
+                );
+              }
+
+              controller.enqueue(
+                encoder.encode(
+                  `\n[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
+                    type: 'slide_generation',
+                    slideCount: generatedSlides.length,
+                    slides: generatedSlides,
+                    model: 'flux-2-pro',
+                    provider: 'bfl',
+                  })}]`
+                )
+              );
+            } else {
+              controller.enqueue(encoder.encode('\nFailed to generate slides. Please try again.'));
+            }
+
+            controller.close();
+          } catch (streamError) {
+            log.error('Slide generation stream error (button)', {
+              error: (streamError as Error).message,
             });
-
-            log.info('Slide generated', { slideNumber: slide.slideNumber, generationId });
-          } catch (slideError) {
-            log.error('Failed to generate slide', {
-              slideNumber: slide.slideNumber,
-              error: (slideError as Error).message,
-            });
-            // Continue with other slides even if one fails
+            try {
+              controller.enqueue(encoder.encode(`\n\nError: ${(streamError as Error).message}`));
+              controller.close();
+            } catch {
+              // Stream closed
+            }
           }
-        }
+        },
+      });
 
-        if (generatedSlides.length === 0) {
-          throw new Error('Failed to generate any slides');
-        }
-
-        // Step 3: Return the generated slides
-        const slideListText = generatedSlides
-          .map((s) => `**Slide ${s.slideNumber}: ${s.title}**\n[ref:${s.imageUrl}]`)
-          .join('\n\n');
-
-        return new Response(
-          JSON.stringify({
-            type: 'slide_generation',
-            content: `I've created ${generatedSlides.length} presentation slide${generatedSlides.length > 1 ? 's' : ''} for you:\n\n${slideListText}`,
-            generatedSlides: generatedSlides.map((s) => ({
-              slideNumber: s.slideNumber,
-              title: s.title,
-              imageUrl: s.imageUrl,
-              generationId: s.generationId,
-              dimensions: { width: slideWidth, height: slideHeight },
-              model: 'flux-2-pro',
-            })),
-            model: 'flux-2-pro',
-            provider: 'bfl',
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      } catch (slideError) {
-        log.error('Visual slide generation failed', {
-          error: (slideError as Error).message,
-        });
-        // Fall through to regular document generation as fallback
-      }
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Slide-Generation': 'streaming',
+        },
+      });
     }
 
     // ========================================
