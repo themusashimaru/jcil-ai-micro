@@ -2428,6 +2428,127 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
+    // ROUTE 0.7: DATA ANALYTICS (automatic for data file uploads)
+    // ========================================
+    // Detect when user uploads CSV/Excel and wants analysis
+    // Data files are embedded in message content with format: [Spreadsheet: filename.xlsx]\n\nCONTENT
+    try {
+      const messageText = lastUserContent;
+
+      // Check for embedded spreadsheet/file content pattern
+      // Format: [Spreadsheet: filename.xlsx]\n\nDATA or [File: filename.csv - ...]
+      const spreadsheetMatch = messageText.match(
+        /\[(Spreadsheet|File):\s*([^\]\n]+\.(csv|xlsx?|xls))(?:\s*-[^\]]+)?\]/i
+      );
+
+      if (spreadsheetMatch) {
+        const fileName = spreadsheetMatch[2].trim();
+        const isCSV = fileName.toLowerCase().endsWith('.csv');
+
+        // Extract content after the file header
+        const fileHeaderIndex = messageText.indexOf(spreadsheetMatch[0]);
+        const contentStart = messageText.indexOf('\n\n', fileHeaderIndex);
+
+        if (contentStart !== -1) {
+          // Get content between file header and next delimiter (---) or end
+          let fileContent = messageText.substring(contentStart + 2);
+          const delimiterIndex = fileContent.indexOf('\n\n---\n\n');
+          if (delimiterIndex !== -1) {
+            fileContent = fileContent.substring(0, delimiterIndex);
+          }
+
+          // Check if user message (after the file) indicates they want analysis
+          const userQuery =
+            delimiterIndex !== -1
+              ? messageText.substring(messageText.indexOf('\n\n---\n\n') + 7)
+              : '';
+          const wantsAnalysis =
+            !userQuery.trim() || // No additional text = assume they want analysis
+            /\b(analyze|analysis|chart|graph|visualize|show|insights?|stats?|statistics?|summarize|breakdown|trends?|patterns?|data)\b/i.test(
+              userQuery
+            );
+
+          // Only proceed if content looks like actual data (has rows/columns)
+          const hasDataStructure =
+            fileContent.includes('\t') || fileContent.includes(',') || fileContent.includes('|');
+
+          if (wantsAnalysis && hasDataStructure && fileContent.length > 50) {
+            log.info('Data analytics detected from embedded content', {
+              fileName,
+              isCSV,
+              contentLength: fileContent.length,
+            });
+
+            try {
+              // Call analytics API with the extracted content
+              const analyticsResponse = await fetch(
+                new URL('/api/analytics', request.url).toString(),
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    fileName: fileName,
+                    fileType: isCSV ? 'text/csv' : 'text/tab-separated-values',
+                    content: fileContent,
+                  }),
+                }
+              );
+
+              if (analyticsResponse.ok) {
+                const { analytics } = await analyticsResponse.json();
+
+                if (analytics) {
+                  // Release slot before returning
+                  if (slotAcquired) {
+                    await releaseSlot(requestId);
+                    slotAcquired = false;
+                  }
+
+                  // Format insights as text for the response
+                  let responseText = `## Data Analysis: ${fileName}\n\n`;
+                  responseText += analytics.summary + '\n\n';
+
+                  if (analytics.insights && analytics.insights.length > 0) {
+                    responseText += '### Key Insights\n';
+                    for (const insight of analytics.insights) {
+                      responseText += `- **${insight.title}**: ${insight.value}\n`;
+                    }
+                    responseText += '\n';
+                  }
+
+                  if (analytics.suggestedQueries && analytics.suggestedQueries.length > 0) {
+                    responseText += '*Ask me to:* ' + analytics.suggestedQueries.join(' | ');
+                  }
+
+                  return new Response(
+                    JSON.stringify({
+                      type: 'analytics',
+                      content: responseText,
+                      analytics: analytics,
+                      model: 'analytics-engine',
+                      provider: 'internal',
+                    }),
+                    {
+                      status: 200,
+                      headers: { 'Content-Type': 'application/json' },
+                    }
+                  );
+                }
+              }
+            } catch (analyticsError) {
+              log.warn('Analytics processing failed, falling through to regular chat', {
+                error: analyticsError,
+              });
+              // Fall through to regular chat
+            }
+          }
+        }
+      }
+    } catch (analyticsDetectionError) {
+      log.debug('Analytics detection failed', { error: analyticsDetectionError });
+    }
+
+    // ========================================
     // ROUTE 1: RESEARCH AGENT (Button-only - user must click Research)
     // ========================================
     if (effectiveToolMode === 'research' && isResearchAgentEnabled()) {

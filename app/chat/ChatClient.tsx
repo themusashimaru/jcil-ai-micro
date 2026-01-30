@@ -2813,6 +2813,28 @@ ${artifactSection}
           };
 
           pollVideoStatus();
+        } else if (data.type === 'analytics' && data.analytics) {
+          // Data analytics response with charts and insights
+          log.debug('Received data analytics response:', {
+            filename: data.analytics.filename,
+            totalRows: data.analytics.totalRows,
+            chartsCount: data.analytics.charts?.length || 0,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || 'Here is your data analysis:',
+            model: data.model || modelUsed,
+            analytics: data.analytics,
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save the analytics message to database
+          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else {
           // Regular text response
           finalContent = data.content || '';
