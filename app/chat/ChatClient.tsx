@@ -3765,6 +3765,7 @@ ${artifactSection}
               openEditImage={openEditImage}
               onCloseCreateImage={() => setOpenCreateImage(false)}
               onCloseEditImage={() => setOpenEditImage(false)}
+              conversationId={currentChatId || undefined}
             />
             {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton

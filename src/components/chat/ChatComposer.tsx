@@ -74,6 +74,8 @@ interface ChatComposerProps {
   openEditImage?: boolean;
   onCloseCreateImage?: () => void;
   onCloseEditImage?: () => void;
+  // Current conversation ID (for linking generated images)
+  conversationId?: string;
 }
 
 /**
@@ -155,6 +157,7 @@ export function ChatComposer({
   openEditImage,
   onCloseCreateImage,
   onCloseEditImage,
+  conversationId,
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -1263,6 +1266,7 @@ export function ChatComposer({
           setCreativeMode(null);
           onCloseCreateImage?.();
         }}
+        conversationId={conversationId}
       />
       <EditImageModal
         isOpen={showEditImageModal}
@@ -1271,6 +1275,7 @@ export function ChatComposer({
           setCreativeMode(null);
           onCloseEditImage?.();
         }}
+        conversationId={conversationId}
       />
     </div>
   );
