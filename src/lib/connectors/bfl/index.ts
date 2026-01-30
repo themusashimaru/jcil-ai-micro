@@ -66,3 +66,11 @@ export {
   enhanceEditPromptWithVision,
   verifyGenerationResult,
 } from './promptEnhancer';
+
+// Image request detection (natural language)
+export {
+  detectImageRequest,
+  quickDetectImageRequest,
+  type ImageRequestDetection,
+  type DetectionOptions,
+} from './imageRequestDetector';

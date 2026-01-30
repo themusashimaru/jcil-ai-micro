@@ -13,11 +13,13 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { X, Download, Loader2, Wand2, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import type { GeneratedImage } from '@/app/chat/types';
 
 interface EditImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   conversationId?: string;
+  onImageGenerated?: (image: GeneratedImage) => void;
 }
 
 interface EditResult {
@@ -36,7 +38,12 @@ interface UploadedImage {
 
 const MAX_IMAGES = 8;
 
-export function EditImageModal({ isOpen, onClose, conversationId }: EditImageModalProps) {
+export function EditImageModal({
+  isOpen,
+  onClose,
+  conversationId,
+  onImageGenerated,
+}: EditImageModalProps) {
   const [prompt, setPrompt] = useState('');
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -124,12 +131,24 @@ export function EditImageModal({ isOpen, onClose, conversationId }: EditImageMod
         dimensions: data.dimensions,
         cost: data.cost,
       });
+
+      // Notify parent to add image to conversation
+      onImageGenerated?.({
+        id: data.id,
+        type: 'edit',
+        imageUrl: data.imageUrl,
+        prompt: data.prompt,
+        enhancedPrompt: data.enhancedPrompt,
+        dimensions: data.dimensions,
+        model: data.model || 'flux-2-pro',
+        seed: data.seed,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsProcessing(false);
     }
-  }, [prompt, images, conversationId]);
+  }, [prompt, images, conversationId, onImageGenerated]);
 
   const handleDownload = useCallback(async () => {
     if (!result?.imageUrl) return;

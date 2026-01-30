@@ -13,9 +13,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ImagePlus, Wand2, Presentation, Sparkles } from 'lucide-react';
+import { ImagePlus, Wand2, Presentation, Sparkles, Images } from 'lucide-react';
 
-export type CreativeMode = 'create-image' | 'edit-image' | 'create-slides';
+export type CreativeMode = 'create-image' | 'edit-image' | 'create-slides' | 'view-gallery';
 
 interface CreativeButtonProps {
   onSelect: (mode: CreativeMode) => void;
@@ -171,6 +171,23 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                     <p className="text-sm font-medium">Create Slides</p>
                     <p className="text-xs text-gray-500">Generate presentations with AI visuals</p>
                     <p className="text-xs text-blue-400 mt-0.5">Coming Soon</p>
+                  </div>
+                </button>
+
+                {/* Divider */}
+                <div className="my-1 border-t border-gray-700" />
+
+                {/* View Gallery */}
+                <button
+                  onClick={() => handleSelect('view-gallery')}
+                  className="w-full flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <Images className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">My Creations</p>
+                    <p className="text-xs text-gray-500">View your past image generations</p>
                   </div>
                 </button>
               </div>

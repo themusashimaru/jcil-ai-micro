@@ -14,11 +14,13 @@
 import { useState, useCallback } from 'react';
 import { X, Download, Copy, Check, Loader2, ImagePlus, AlertCircle } from 'lucide-react';
 import type { AspectRatio } from '@/lib/connectors/bfl';
+import type { GeneratedImage } from '@/app/chat/types';
 
 interface CreateImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   conversationId?: string;
+  onImageGenerated?: (image: GeneratedImage) => void;
 }
 
 interface GenerationResult {
@@ -38,7 +40,12 @@ const ASPECT_RATIO_OPTIONS: { value: AspectRatio; label: string; icon: string }[
   { value: '3:4', label: 'Portrait', icon: '▮' },
 ];
 
-export function CreateImageModal({ isOpen, onClose, conversationId }: CreateImageModalProps) {
+export function CreateImageModal({
+  isOpen,
+  onClose,
+  conversationId,
+  onImageGenerated,
+}: CreateImageModalProps) {
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -72,20 +79,34 @@ export function CreateImageModal({ isOpen, onClose, conversationId }: CreateImag
         throw new Error(data.message || data.error || 'Failed to generate image');
       }
 
-      setResult({
+      const generatedResult = {
         id: data.id,
         imageUrl: data.imageUrl,
         prompt: data.prompt,
         enhancedPrompt: data.enhancedPrompt,
         dimensions: data.dimensions,
         cost: data.cost,
+      };
+      setResult(generatedResult);
+
+      // Notify parent to add image to conversation
+      onImageGenerated?.({
+        id: data.id,
+        type: 'create',
+        imageUrl: data.imageUrl,
+        prompt: data.prompt,
+        enhancedPrompt: data.enhancedPrompt,
+        dimensions: data.dimensions,
+        model: data.model || 'flux-2-pro',
+        seed: data.seed,
+        verification: data.verification,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, aspectRatio, conversationId]);
+  }, [prompt, aspectRatio, conversationId, onImageGenerated]);
 
   const handleDownload = useCallback(async () => {
     if (!result?.imageUrl) return;

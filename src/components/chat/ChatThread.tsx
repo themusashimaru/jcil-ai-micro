@@ -36,6 +36,7 @@ interface ChatThreadProps {
   lastUserMessage?: string;
   onQuickPrompt?: (prompt: string) => void;
   onCarouselSelect?: (cardId: string) => void;
+  onRegenerateImage?: (generationId: string, originalPrompt: string, feedback: string) => void;
 }
 
 /**
@@ -58,6 +59,7 @@ export function ChatThread({
   enableCodeActions,
   lastUserMessage,
   onCarouselSelect,
+  onRegenerateImage,
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -199,6 +201,7 @@ export function ChatThread({
                   isAdmin={isAdmin}
                   onReply={onReply}
                   enableCodeActions={enableCodeActions}
+                  onRegenerateImage={onRegenerateImage}
                 />
               </MessageErrorBoundary>
             </div>
