@@ -581,7 +581,20 @@ export async function routeChatWithTools(
           // Execute tool calls and collect results
           usedTools = true;
           const toolResults: UnifiedToolResult[] = [];
-          const TOOL_TIMEOUT_MS = 15000; // 15 second timeout per tool
+
+          // Per-tool timeouts - some tools need more time than others
+          const TOOL_TIMEOUTS: Record<string, number> = {
+            web_search: 45000, // Web search can be slow
+            browser_visit: 45000, // Browser automation needs time
+            run_code: 45000, // Code execution can take time
+            parallel_research: 60000, // Multiple parallel agents
+            create_and_run_tool: 45000, // Dynamic tool creation
+            fetch_url: 30000, // URL fetching
+            analyze_image: 30000, // Vision analysis
+            extract_pdf_url: 30000, // PDF extraction
+            extract_table: 30000, // Table extraction
+          };
+          const DEFAULT_TIMEOUT_MS = 30000; // 30 second default
           const KEEPALIVE_INTERVAL_MS = 8000; // Send keepalive every 8s to prevent Vercel timeout
 
           // Send initial status message - visible feedback for user + keeps connection alive
@@ -615,12 +628,18 @@ export async function routeChatWithTools(
               log.info('Executing tool', { name: toolCall.name, id: toolCall.id });
               toolsUsed.push(toolCall.name);
 
+              // Get timeout for this specific tool
+              const toolTimeout = TOOL_TIMEOUTS[toolCall.name] || DEFAULT_TIMEOUT_MS;
+
               try {
                 // Wrap tool execution with timeout to prevent infinite hangs
                 const result = await Promise.race([
                   toolExecutor(toolCall),
                   new Promise<UnifiedToolResult>((_, reject) =>
-                    setTimeout(() => reject(new Error('Tool execution timeout')), TOOL_TIMEOUT_MS)
+                    setTimeout(
+                      () => reject(new Error(`Tool execution timeout (${toolTimeout / 1000}s)`)),
+                      toolTimeout
+                    )
                   ),
                 ]);
                 toolResults.push(result);
@@ -633,6 +652,7 @@ export async function routeChatWithTools(
                 log.error('Tool execution failed', {
                   name: toolCall.name,
                   error: (execErr as Error).message,
+                  timeout: toolTimeout,
                 });
                 toolResults.push({
                   toolCallId: toolCall.id,
