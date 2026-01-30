@@ -57,11 +57,7 @@ import { RepoSelector } from '@/components/chat/RepoSelector';
 import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
-import {
-  InlineImageCreate,
-  InlineImageEdit,
-  InlineSlideCreate,
-} from '@/components/chat/InlineCreative';
+// Inline creative components removed - all creative features now work through natural chat flow
 import type { Chat, Message, Attachment, GeneratedImage } from './types';
 
 // Re-export types for convenience
@@ -184,12 +180,9 @@ export function ChatClient() {
   // Quick prompt text from welcome screen
   const [quickPromptText, setQuickPromptText] = useState<string>('');
   // Carousel-triggered modal state (for creative buttons from welcome carousel)
+  // Modal state removed - all creative features now use natural chat flow
   const [openCreateImage, setOpenCreateImage] = useState(false);
   const [openEditImage, setOpenEditImage] = useState(false);
-  // Inline creative mode (replaces modals for in-chat experience)
-  const [inlineCreativeMode, setInlineCreativeMode] = useState<
-    'create-image' | 'edit-image' | 'create-slides' | null
-  >(null);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
   // Pending tool suggestion from AI response analysis (for auto web search/fact check)
@@ -734,25 +727,24 @@ export function ChatClient() {
     }
   };
 
-  // Handle carousel card selection - uses inline components instead of modals
+  // Handle carousel card selection - pre-fills chat input for natural flow
   const handleCarouselSelect = async (cardId: string) => {
     switch (cardId) {
       case 'create-image':
-        // Use inline component instead of modal
-        setInlineCreativeMode('create-image');
+        // Pre-fill chat with prompt template - natural language detection handles generation
+        setQuickPromptText('Create an image of ');
         break;
       case 'edit-image':
-        // Use inline component instead of modal
-        setInlineCreativeMode('edit-image');
+        // Guide user to describe what they want to edit
+        setQuickPromptText('Edit this image: ');
         break;
       case 'create-slides':
-        // Use inline slide creator
-        setInlineCreativeMode('create-slides');
+        // Pre-fill with slide creation prompt
+        setQuickPromptText('Create a presentation slide about ');
         break;
       case 'research':
-        // Use the agent selector callback - this will be handled by ChatComposer
-        // For now, just set a quick prompt to guide the user
-        setQuickPromptText('');
+        // Research agent prompt
+        setQuickPromptText('Research ');
         break;
       case 'deep-research':
         // Start deep research mode
@@ -3803,29 +3795,6 @@ ${artifactSection}
               />
             )}
 
-            {/* Inline Creative Components - appears above the composer */}
-            {inlineCreativeMode === 'create-image' && (
-              <InlineImageCreate
-                onClose={() => setInlineCreativeMode(null)}
-                onImageGenerated={handleImageGenerated}
-                conversationId={currentChatId || undefined}
-              />
-            )}
-            {inlineCreativeMode === 'edit-image' && (
-              <InlineImageEdit
-                onClose={() => setInlineCreativeMode(null)}
-                onImageGenerated={handleImageGenerated}
-                conversationId={currentChatId || undefined}
-              />
-            )}
-            {inlineCreativeMode === 'create-slides' && (
-              <InlineSlideCreate
-                onClose={() => setInlineCreativeMode(null)}
-                onSlideGenerated={handleImageGenerated}
-                conversationId={currentChatId || undefined}
-              />
-            )}
-
             <ChatComposer
               onSendMessage={handleSendMessage}
               onStop={handleStop}
@@ -3926,15 +3895,15 @@ ${artifactSection}
               onCloseCreateImage={() => setOpenCreateImage(false)}
               onCloseEditImage={() => setOpenEditImage(false)}
               onCreativeMode={(mode) => {
+                // All creative features now use natural chat flow with prompt pre-fill
                 if (mode === 'view-gallery') {
                   // Gallery still uses modal for now
-                  // TODO: Convert gallery to inline if needed
                 } else if (mode === 'create-image') {
-                  setInlineCreativeMode('create-image');
+                  setQuickPromptText('Create an image of ');
                 } else if (mode === 'edit-image') {
-                  setInlineCreativeMode('edit-image');
+                  setQuickPromptText('Edit this image: ');
                 } else if (mode === 'create-slides') {
-                  setInlineCreativeMode('create-slides');
+                  setQuickPromptText('Create a presentation slide about ');
                 }
               }}
               conversationId={currentChatId || undefined}

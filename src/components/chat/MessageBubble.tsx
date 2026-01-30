@@ -683,13 +683,7 @@ export function MessageBubble({
             </div>
             {/* Type badge */}
             <div className="absolute top-2 left-2">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  message.generatedImage.type === 'edit'
-                    ? 'bg-violet-500/80 text-white'
-                    : 'bg-pink-500/80 text-white'
-                }`}
-              >
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-800/90 text-white border border-gray-600">
                 {message.generatedImage.type === 'edit' ? 'Edited' : 'Created'}
               </span>
             </div>

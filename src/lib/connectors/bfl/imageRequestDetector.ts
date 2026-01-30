@@ -40,6 +40,9 @@ const STRONG_CREATE_PATTERNS = [
   /^(?:please\s+)?(?:can you|could you|would you)\s+(?:generate|create|make|produce|render|draw|paint|design|illustrate)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration)/i,
   /^i\s+(?:want|need|would like|'d like)\s+(?:an?\s+)?(?:image|picture|photo|illustration|artwork)\s+(?:of|showing|depicting|with|that)/i,
   /^(?:show me|give me|get me)\s+(?:an?\s+)?(?:image|picture|photo|illustration)\s+(?:of|showing)/i,
+  // Slide creation patterns - generates 16:9 images
+  /^(?:please\s+)?(?:create|make|generate|design)\s+(?:me\s+)?(?:a|an)\s+(?:presentation\s+)?slide\s+(?:about|for|on|showing|with)/i,
+  /^(?:please\s+)?(?:can you|could you)\s+(?:create|make|generate)\s+(?:me\s+)?(?:a|an)\s+slide\s+/i,
 ];
 
 // Medium indicators - need more context
@@ -71,7 +74,7 @@ const ASPECT_RATIO_PATTERNS = {
   landscape: /(?:landscape|horizontal|wide|panorama|banner|header)/i,
   portrait: /(?:portrait|vertical|tall|phone|mobile)/i,
   square: /(?:square|instagram|profile|avatar|icon)/i,
-  wide: /(?:cinematic|movie|film|widescreen|16.?9|ultrawide)/i,
+  wide: /(?:cinematic|movie|film|widescreen|16.?9|ultrawide|slide|presentation|deck)/i,
 };
 
 /**
