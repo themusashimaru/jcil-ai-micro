@@ -1,7 +1,7 @@
 # JCIL AI Chat System Architecture
 
-> Last Updated: January 26, 2026
-> Branch: claude/audit-chat-tools-xTqRJ
+> Last Updated: January 30, 2026
+> Branch: claude/evaluate-chat-workflow-AZh3A
 
 ## Overview
 
@@ -26,7 +26,9 @@ The JCIL AI chat system is a multi-provider, tool-enabled conversational AI plat
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │              CHAT ROUTER (routeChatWithTools)                   │
-│  ├─ Tools: [web_search]                                         │
+│  ├─ Tools: [web_search, fetch_url, run_code, vision,            │
+│  │          browser_visit, extract_pdf, extract_table,          │
+│  │          parallel_research (mini-agent)]                     │
 │  ├─ Streaming with tool loop                                    │
 │  ├─ Status messages during tool execution (8s interval)         │
 │  └─ 15s timeout per tool execution                              │
@@ -34,7 +36,7 @@ The JCIL AI chat system is a multi-provider, tool-enabled conversational AI plat
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │              MULTI-PROVIDER SYSTEM                              │
-│  ├─ Primary: Claude (Haiku 4.5 for chat, Sonnet for synthesis)  │
+│  ├─ Primary: Claude Sonnet 4.5 (intelligent orchestration)      │
 │  ├─ Fallback: xAI Grok                                          │
 │  └─ API Key Pooling with rotation                               │
 └─────────────────────────────────────────────────────────────────┘

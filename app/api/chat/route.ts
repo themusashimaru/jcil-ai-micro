@@ -1,15 +1,21 @@
 /**
- * CHAT API ROUTE - Clean & Minimal
+ * CHAT API ROUTE - Intelligent Orchestration
  *
  * PURPOSE:
  * - Handle chat messages with streaming responses
  * - Route research requests to Brave-powered Research Agent
- * - Use Claude Haiku 4.5 for simple queries, Sonnet 4.5 for complex
+ * - Use Claude Sonnet 4.5 for intelligent tool orchestration
+ *
+ * MODEL:
+ * - Claude Sonnet 4.5: Primary model with full tool access
+ *   - Web search, code execution, vision, browser automation
+ *   - Parallel research agents (mini_agent tool)
+ *   - PDF extraction, table extraction
+ * - Fallback: xAI Grok for provider failover
  *
  * ROUTING:
- * - Research requests → Research Agent (Brave web searches)
- * - Simple queries → Claude Haiku 4.5 (fast, cost-optimized)
- * - Complex queries → Claude Sonnet 4.5 (deep reasoning)
+ * - Research requests → Research Agent (explicit button)
+ * - All other queries → Sonnet 4.5 with native tool use
  */
 
 import { NextRequest } from 'next/server';
@@ -3556,7 +3562,7 @@ SECURITY:
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
-        model: 'claude-haiku-4-5',
+        model: 'claude-sonnet-4-5',
       });
       if (pendingRequestId) {
         log.debug('Created pending request for stream recovery', {
@@ -3573,7 +3579,7 @@ SECURITY:
     // Claude can call web_search tool when it needs current information
     // ========================================
     const routeOptions: ChatRouteOptions = {
-      model: 'claude-haiku-4-5-20251001', // Default to Haiku for cost-effective chat
+      model: 'claude-sonnet-4-5-20250929', // Upgraded to Sonnet 4.5 for intelligent orchestration (tools, parallel agents, workflows)
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
