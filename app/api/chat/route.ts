@@ -419,6 +419,12 @@ function findPreviousGeneratedImage(messages: CoreMessage[]): string | null {
 
     // Handle string content - look for image URLs
     if (typeof content === 'string') {
+      // Look for markdown image links first: ![...](url)
+      const markdownImageMatch = content.match(/!\[[^\]]*\]\((https:\/\/[^)]+)\)/);
+      if (markdownImageMatch) {
+        return markdownImageMatch[1];
+      }
+
       // Look for Supabase storage URLs (our generated images)
       const supabaseUrlMatch = content.match(
         /https:\/\/[^\/]+\.supabase\.co\/storage\/v1\/object\/public\/generations\/[^\s"')]+/
@@ -2082,13 +2088,14 @@ export async function POST(request: NextRequest) {
               .eq('id', generationId);
 
             // Return as JSON response with image data
+            // Include URL in content for conversation continuity (so edits can find it)
             return new Response(
               JSON.stringify({
                 type: 'image_generation',
                 content:
                   verification?.matches === false
-                    ? `I've generated this image based on your request. ${verification.feedback}`
-                    : `I've created this image for you based on: "${prompt}"`,
+                    ? `I've generated this image based on your request. ${verification.feedback}\n\n![Generated Image](${storedUrl})`
+                    : `I've created this image for you based on: "${prompt}"\n\n![Generated Image](${storedUrl})`,
                 generatedImage: {
                   id: generationId,
                   type: 'create',
@@ -2225,10 +2232,11 @@ export async function POST(request: NextRequest) {
               log.info('Image edit complete', { generationId, storedUrl });
 
               // Return as JSON response with edited image data
+              // Include URL in content for conversation continuity
               return new Response(
                 JSON.stringify({
                   type: 'image_generation',
-                  content: `I've edited your image based on: "${editPrompt}"`,
+                  content: `I've edited your image based on: "${editPrompt}"\n\n![Edited Image](${storedUrl})`,
                   generatedImage: {
                     id: generationId,
                     type: 'edit',
@@ -2370,10 +2378,11 @@ export async function POST(request: NextRequest) {
               log.info('Conversational image edit complete', { generationId, storedUrl });
 
               // Return as JSON response with edited image data
+              // Include URL in content for conversation continuity
               return new Response(
                 JSON.stringify({
                   type: 'image_generation',
-                  content: `I've edited the image: "${editPrompt}"`,
+                  content: `I've edited the image: "${editPrompt}"\n\n![Edited Image](${storedUrl})`,
                   generatedImage: {
                     id: generationId,
                     type: 'edit',
