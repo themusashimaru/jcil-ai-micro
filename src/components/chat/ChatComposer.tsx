@@ -28,6 +28,12 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 // import { RepoDropdown } from './RepoDropdown';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  CreativeButton,
+  CreateImageModal,
+  EditImageModal,
+  type CreativeMode,
+} from './CreativeButton';
 
 // Tool mode types - search and research tools only
 // Document generation is now integrated into regular chat for all users
@@ -172,6 +178,10 @@ export function ChatComposer({
   const [showAgentsMenu, setShowAgentsMenu] = useState(false);
   const agentsButtonRef = useRef<HTMLButtonElement>(null);
   const agentsMenuRef = useRef<HTMLDivElement>(null);
+  // Creative mode state
+  const [creativeMode, setCreativeMode] = useState<CreativeMode | null>(null);
+  const [showCreateImageModal, setShowCreateImageModal] = useState(false);
+  const [showEditImageModal, setShowEditImageModal] = useState(false);
   // Track last applied initialText to prevent re-applying on message changes
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
@@ -1068,6 +1078,21 @@ export function ChatComposer({
                   )}
                 </div>
               )}
+
+              {/* Creative button - Image generation, editing, slides */}
+              <CreativeButton
+                disabled={isStreaming || disabled}
+                activeMode={creativeMode}
+                onSelect={(mode) => {
+                  setCreativeMode(mode);
+                  if (mode === 'create-image') {
+                    setShowCreateImageModal(true);
+                  } else if (mode === 'edit-image') {
+                    setShowEditImageModal(true);
+                  }
+                  // slides - coming soon
+                }}
+              />
             </div>
 
             {/* Right side - send button */}
@@ -1206,6 +1231,22 @@ export function ChatComposer({
           </>,
           document.body
         )}
+
+      {/* Creative Modals */}
+      <CreateImageModal
+        isOpen={showCreateImageModal}
+        onClose={() => {
+          setShowCreateImageModal(false);
+          setCreativeMode(null);
+        }}
+      />
+      <EditImageModal
+        isOpen={showEditImageModal}
+        onClose={() => {
+          setShowEditImageModal(false);
+          setCreativeMode(null);
+        }}
+      />
     </div>
   );
 }
