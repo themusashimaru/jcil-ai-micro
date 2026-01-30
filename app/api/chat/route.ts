@@ -1,15 +1,21 @@
 /**
- * CHAT API ROUTE - Clean & Minimal
+ * CHAT API ROUTE - Intelligent Orchestration
  *
  * PURPOSE:
  * - Handle chat messages with streaming responses
  * - Route research requests to Brave-powered Research Agent
- * - Use Claude Haiku 4.5 for simple queries, Sonnet 4.5 for complex
+ * - Use Claude Sonnet 4.5 for intelligent tool orchestration
+ *
+ * MODEL:
+ * - Claude Sonnet 4.5: Primary model with full tool access
+ *   - Web search, code execution, vision, browser automation
+ *   - Parallel research agents (mini_agent tool)
+ *   - PDF extraction, table extraction
+ * - Fallback: xAI Grok for provider failover
  *
  * ROUTING:
- * - Research requests → Research Agent (Brave web searches)
- * - Simple queries → Claude Haiku 4.5 (fast, cost-optimized)
- * - Complex queries → Claude Sonnet 4.5 (deep reasoning)
+ * - Research requests → Research Agent (explicit button)
+ * - All other queries → Sonnet 4.5 with native tool use
  */
 
 import { NextRequest } from 'next/server';
@@ -53,6 +59,10 @@ import {
   miniAgentTool,
   executeMiniAgent,
   isMiniAgentAvailable,
+  // Dynamic tool creation
+  dynamicToolTool,
+  executeDynamicTool,
+  isDynamicToolAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3415,6 +3425,7 @@ SECURITY:
     if (await isExtractPdfAvailable()) tools.push(extractPdfTool);
     if (await isExtractTableAvailable()) tools.push(extractTableTool);
     if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
+    if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3425,16 +3436,17 @@ SECURITY:
     const toolExecutor: ToolExecutor = async (toolCall): Promise<UnifiedToolResult> => {
       const toolName = toolCall.name;
 
-      // Estimate cost per tool
+      // Estimate cost per tool (tracked for usage-based billing)
       const toolCosts: Record<string, number> = {
         web_search: 0.001,
         fetch_url: 0.0005,
-        run_code: 0.01,
+        run_code: 0.02,
         analyze_image: 0.02,
-        browser_visit: 0.03,
+        browser_visit: 0.05,
         extract_pdf_url: 0.005,
         extract_table: 0.03,
-        parallel_research: 0.1, // Higher because it runs multiple agents
+        parallel_research: 0.15, // Multiple Haiku agents
+        create_and_run_tool: 0.25, // E2B sandbox + execution
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3497,6 +3509,9 @@ SECURITY:
         case 'parallel_research':
           result = await executeMiniAgent(toolCallWithSession);
           break;
+        case 'create_and_run_tool':
+          result = await executeDynamicTool(toolCallWithSession);
+          break;
         default:
           result = {
             toolCallId: toolCall.id,
@@ -3556,7 +3571,7 @@ SECURITY:
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
-        model: 'claude-haiku-4-5',
+        model: 'claude-sonnet-4-5',
       });
       if (pendingRequestId) {
         log.debug('Created pending request for stream recovery', {
@@ -3573,7 +3588,7 @@ SECURITY:
     // Claude can call web_search tool when it needs current information
     // ========================================
     const routeOptions: ChatRouteOptions = {
-      model: 'claude-haiku-4-5-20251001', // Default to Haiku for cost-effective chat
+      model: 'claude-sonnet-4-5-20250929', // Upgraded to Sonnet 4.5 for intelligent orchestration (tools, parallel agents, workflows)
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
