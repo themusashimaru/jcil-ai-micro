@@ -4,7 +4,6 @@
  * Dropdown button for creative AI tools:
  * - Create Image (text-to-image)
  * - Edit Image (image editing with references)
- * - Create Slides (coming soon)
  *
  * Matches the design of the Agents dropdown.
  */
@@ -13,9 +12,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ImagePlus, Wand2, Presentation, Sparkles, Images } from 'lucide-react';
+import { ImagePlus, Wand2, Sparkles, Images } from 'lucide-react';
 
-export type CreativeMode = 'create-image' | 'edit-image' | 'create-slides' | 'view-gallery';
+export type CreativeMode = 'create-image' | 'edit-image' | 'view-gallery';
 
 interface CreativeButtonProps {
   onSelect: (mode: CreativeMode) => void;
@@ -61,8 +60,6 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
         return 'Create Image';
       case 'edit-image':
         return 'Edit Image';
-      case 'create-slides':
-        return 'Slides';
       default:
         return 'Create';
     }
@@ -152,24 +149,6 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                   <div className="text-left">
                     <p className="text-sm font-medium">Edit Image</p>
                     <p className="text-xs text-gray-500">Modify images with AI assistance</p>
-                  </div>
-                </button>
-
-                {/* Create Slides */}
-                <button
-                  onClick={() => handleSelect('create-slides')}
-                  className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
-                    activeMode === 'create-slides'
-                      ? 'bg-gray-700/50 text-white'
-                      : 'hover:bg-gray-800 text-gray-300'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
-                    <Presentation className="w-4 h-4 text-gray-300" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium">Create Slides</p>
-                    <p className="text-xs text-gray-500">Generate presentations with AI visuals</p>
                   </div>
                 </button>
 
