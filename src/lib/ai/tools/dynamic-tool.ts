@@ -16,12 +16,42 @@
  * - Output is sanitized
  */
 
-import { Sandbox } from '@e2b/code-interpreter';
 import { logger } from '@/lib/logger';
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 import { getChatSessionCosts, CHAT_COST_LIMITS } from './safety';
 
 const log = logger('DynamicTool');
+
+// ============================================================================
+// E2B LAZY LOADING (prevents module load failures)
+// ============================================================================
+
+let e2bAvailable: boolean | null = null;
+let Sandbox: typeof import('@e2b/code-interpreter').Sandbox | null = null;
+
+async function initE2B(): Promise<boolean> {
+  if (e2bAvailable !== null) {
+    return e2bAvailable;
+  }
+
+  try {
+    if (!process.env.E2B_API_KEY) {
+      log.warn('E2B_API_KEY not configured - dynamic tool disabled');
+      e2bAvailable = false;
+      return false;
+    }
+
+    const e2bModule = await import('@e2b/code-interpreter');
+    Sandbox = e2bModule.Sandbox;
+    e2bAvailable = true;
+    log.info('E2B dynamic tool available');
+    return true;
+  } catch (error) {
+    log.error('Failed to initialize E2B for dynamic tool', { error: (error as Error).message });
+    e2bAvailable = false;
+    return false;
+  }
+}
 
 // ============================================================================
 // COST LIMITS FOR DYNAMIC TOOLS
@@ -193,6 +223,16 @@ export async function executeDynamicTool(
 
   log.info('Dynamic tool execution requested', { sessionId });
 
+  // Initialize E2B (lazy load)
+  const available = await initE2B();
+  if (!available || !Sandbox) {
+    return {
+      toolCallId: toolCall.id,
+      content: 'Dynamic tool execution is not available. E2B sandbox service is not configured.',
+      isError: true,
+    };
+  }
+
   try {
     // Parse arguments
     const args =
@@ -245,7 +285,7 @@ export async function executeDynamicTool(
     log.info('Executing dynamic tool', { purpose, codeLength: code.length });
 
     // Execute in E2B sandbox
-    let sandbox: Sandbox | null = null;
+    let sandbox: InstanceType<typeof import('@e2b/code-interpreter').Sandbox> | null = null;
     try {
       sandbox = await Sandbox.create({
         timeoutMs: DYNAMIC_TOOL_LIMITS.executionTimeoutMs,
