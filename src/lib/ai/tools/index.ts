@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available:
+ * Tools available (22 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -21,11 +21,17 @@
  * - create_chart: Generate charts and data visualizations
  * - create_document: Generate PDF, DOCX, TXT documents
  * - transcribe_audio: Transcribe audio files with Whisper
+ * - create_spreadsheet: Generate Excel files with formulas (ExcelJS)
+ * - http_request: Make HTTP requests to APIs and webhooks
+ * - generate_qr_code: Create QR codes from text/URLs
+ * - transform_image: Resize, compress, convert, watermark images
+ * - convert_file: Convert between file formats
+ * - shorten_link: Create shortened URLs
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
  *
- * Last updated: 2026-01-31
+ * Last updated: 2026-01-31 12:00 PM UTC
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -111,6 +117,28 @@ export {
   executeAudioTranscribe,
   isAudioTranscribeAvailable,
 } from './audio-transcribe';
+
+// Spreadsheet Generation (Excel)
+export { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } from './spreadsheet-tool';
+
+// HTTP Request (API calls, webhooks)
+export { httpRequestTool, executeHttpRequest, isHttpRequestAvailable } from './http-request-tool';
+
+// QR Code Generation
+export { qrCodeTool, executeQRCode, isQRCodeAvailable } from './qr-code-tool';
+
+// Image Transform (resize, compress, convert, watermark)
+export {
+  imageTransformTool,
+  executeImageTransform,
+  isImageTransformAvailable,
+} from './image-transform-tool';
+
+// File Conversion (format conversion)
+export { fileConvertTool, executeFileConvert, isFileConvertAvailable } from './file-convert-tool';
+
+// Link Shortening
+export { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } from './link-shorten-tool';
 
 // Workflow Tasks (Claude Code style todo lists)
 export {
@@ -251,6 +279,22 @@ async function initializeTools() {
   const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import(
     './audio-transcribe'
   );
+  const { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } = await import(
+    './spreadsheet-tool'
+  );
+  const { httpRequestTool, executeHttpRequest, isHttpRequestAvailable } = await import(
+    './http-request-tool'
+  );
+  const { qrCodeTool, executeQRCode, isQRCodeAvailable } = await import('./qr-code-tool');
+  const { imageTransformTool, executeImageTransform, isImageTransformAvailable } = await import(
+    './image-transform-tool'
+  );
+  const { fileConvertTool, executeFileConvert, isFileConvertAvailable } = await import(
+    './file-convert-tool'
+  );
+  const { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } = await import(
+    './link-shorten-tool'
+  );
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -300,6 +344,32 @@ async function initializeTools() {
       tool: audioTranscribeTool,
       executor: executeAudioTranscribe,
       checkAvailability: isAudioTranscribeAvailable,
+    },
+    {
+      tool: spreadsheetTool,
+      executor: executeSpreadsheet,
+      checkAvailability: isSpreadsheetAvailable,
+    },
+    {
+      tool: httpRequestTool,
+      executor: executeHttpRequest,
+      checkAvailability: isHttpRequestAvailable,
+    },
+    { tool: qrCodeTool, executor: executeQRCode, checkAvailability: isQRCodeAvailable },
+    {
+      tool: imageTransformTool,
+      executor: executeImageTransform,
+      checkAvailability: isImageTransformAvailable,
+    },
+    {
+      tool: fileConvertTool,
+      executor: executeFileConvert,
+      checkAvailability: isFileConvertAvailable,
+    },
+    {
+      tool: linkShortenTool,
+      executor: executeLinkShorten,
+      checkAvailability: isLinkShortenAvailable,
     }
   );
 
