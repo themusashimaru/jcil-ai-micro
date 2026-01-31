@@ -4052,7 +4052,7 @@ SECURITY:
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
-      tools, // Give Claude the web_search tool
+      tools, // Give Claude all 58 available tools for autonomous use
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });
       },
