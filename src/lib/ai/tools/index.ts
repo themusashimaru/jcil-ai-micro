@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (46 total):
+ * Tools available (58 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -51,11 +51,23 @@
  * - cron_explain: Cron expression parsing
  * - convert_units: Unit conversions (convert-units)
  * - audio_synth: Audio tone generation specs (Tone.js)
+ * - analyze_statistics: Statistical analysis (simple-statistics + jstat)
+ * - geo_calculate: Geospatial calculations (turf.js)
+ * - phone_validate: Phone number validation (libphonenumber-js)
+ * - analyze_password: Password strength analysis (zxcvbn)
+ * - analyze_molecule: Chemistry/molecule analysis (openchemlib-js)
+ * - analyze_sequence: DNA/RNA/protein sequences (custom)
+ * - matrix_compute: Matrix/linear algebra (ml-matrix)
+ * - analyze_graph: Graph/network analysis (graphology)
+ * - periodic_table: Element properties lookup (custom)
+ * - physics_constants: Physical constants (custom)
+ * - signal_process: Signal processing/FFT (fft-js)
+ * - check_accessibility: WCAG accessibility checking (axe-core)
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
  *
- * Last updated: 2026-01-31 02:30 PM UTC
+ * Last updated: 2026-01-31 04:00 PM UTC
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -247,6 +259,62 @@ export { unitConvertTool, executeUnitConvert, isUnitConvertAvailable } from './u
 
 // Audio Synthesis (Tone.js)
 export { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } from './audio-synth-tool';
+
+// ============================================================================
+// SCIENTIFIC & RESEARCH TOOLS (12 new tools)
+// ============================================================================
+
+// Statistical Analysis (simple-statistics + jstat)
+export { statisticsTool, executeStatistics, isStatisticsAvailable } from './statistics-tool';
+
+// Geospatial Calculations (turf.js)
+export { geospatialTool, executeGeospatial, isGeospatialAvailable } from './geospatial-tool';
+
+// Phone Validation (libphonenumber-js)
+export { phoneTool, executePhone, isPhoneAvailable } from './phone-tool';
+
+// Password Strength (zxcvbn)
+export {
+  passwordStrengthTool,
+  executePasswordStrength,
+  isPasswordStrengthAvailable,
+} from './password-strength-tool';
+
+// Chemistry/Molecules (openchemlib-js)
+export { chemistryTool, executeChemistry, isChemistryAvailable } from './chemistry-tool';
+
+// DNA/Bio Sequences (custom)
+export { dnaBioTool, executeDnaBio, isDnaBioAvailable } from './dna-bio-tool';
+
+// Matrix/Linear Algebra (ml-matrix)
+export { matrixTool, executeMatrix, isMatrixAvailable } from './matrix-tool';
+
+// Graph/Network Analysis (graphology)
+export { graphTool, executeGraph, isGraphAvailable } from './graph-tool';
+
+// Periodic Table (custom)
+export {
+  periodicTableTool,
+  executePeriodicTable,
+  isPeriodicTableAvailable,
+} from './periodic-table-tool';
+
+// Physics Constants (custom)
+export {
+  physicsConstantsTool,
+  executePhysicsConstants,
+  isPhysicsConstantsAvailable,
+} from './physics-constants-tool';
+
+// Signal Processing (fft-js)
+export { signalTool, executeSignal, isSignalAvailable } from './signal-tool';
+
+// Accessibility Checking (axe-core)
+export {
+  accessibilityTool,
+  executeAccessibility,
+  isAccessibilityAvailable,
+} from './accessibility-tool';
 
 // Workflow Tasks (Claude Code style todo lists)
 export {
@@ -443,6 +511,32 @@ async function initializeTools() {
     './audio-synth-tool'
   );
 
+  // Scientific & Research tools (12 new)
+  const { statisticsTool, executeStatistics, isStatisticsAvailable } = await import(
+    './statistics-tool'
+  );
+  const { geospatialTool, executeGeospatial, isGeospatialAvailable } = await import(
+    './geospatial-tool'
+  );
+  const { phoneTool, executePhone, isPhoneAvailable } = await import('./phone-tool');
+  const { passwordStrengthTool, executePasswordStrength, isPasswordStrengthAvailable } =
+    await import('./password-strength-tool');
+  const { chemistryTool, executeChemistry, isChemistryAvailable } = await import(
+    './chemistry-tool'
+  );
+  const { dnaBioTool, executeDnaBio, isDnaBioAvailable } = await import('./dna-bio-tool');
+  const { matrixTool, executeMatrix, isMatrixAvailable } = await import('./matrix-tool');
+  const { graphTool, executeGraph, isGraphAvailable } = await import('./graph-tool');
+  const { periodicTableTool, executePeriodicTable, isPeriodicTableAvailable } = await import(
+    './periodic-table-tool'
+  );
+  const { physicsConstantsTool, executePhysicsConstants, isPhysicsConstantsAvailable } =
+    await import('./physics-constants-tool');
+  const { signalTool, executeSignal, isSignalAvailable } = await import('./signal-tool');
+  const { accessibilityTool, executeAccessibility, isAccessibilityAvailable } = await import(
+    './accessibility-tool'
+  );
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -558,7 +652,36 @@ async function initializeTools() {
       executor: executeUnitConvert,
       checkAvailability: isUnitConvertAvailable,
     },
-    { tool: audioSynthTool, executor: executeAudioSynth, checkAvailability: isAudioSynthAvailable }
+    { tool: audioSynthTool, executor: executeAudioSynth, checkAvailability: isAudioSynthAvailable },
+    // Scientific & Research tools (12 new)
+    { tool: statisticsTool, executor: executeStatistics, checkAvailability: isStatisticsAvailable },
+    { tool: geospatialTool, executor: executeGeospatial, checkAvailability: isGeospatialAvailable },
+    { tool: phoneTool, executor: executePhone, checkAvailability: isPhoneAvailable },
+    {
+      tool: passwordStrengthTool,
+      executor: executePasswordStrength,
+      checkAvailability: isPasswordStrengthAvailable,
+    },
+    { tool: chemistryTool, executor: executeChemistry, checkAvailability: isChemistryAvailable },
+    { tool: dnaBioTool, executor: executeDnaBio, checkAvailability: isDnaBioAvailable },
+    { tool: matrixTool, executor: executeMatrix, checkAvailability: isMatrixAvailable },
+    { tool: graphTool, executor: executeGraph, checkAvailability: isGraphAvailable },
+    {
+      tool: periodicTableTool,
+      executor: executePeriodicTable,
+      checkAvailability: isPeriodicTableAvailable,
+    },
+    {
+      tool: physicsConstantsTool,
+      executor: executePhysicsConstants,
+      checkAvailability: isPhysicsConstantsAvailable,
+    },
+    { tool: signalTool, executor: executeSignal, checkAvailability: isSignalAvailable },
+    {
+      tool: accessibilityTool,
+      executor: executeAccessibility,
+      checkAvailability: isAccessibilityAvailable,
+    }
   );
 
   toolsInitialized = true;

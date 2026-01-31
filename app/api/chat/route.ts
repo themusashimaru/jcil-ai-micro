@@ -211,6 +211,55 @@ import {
   audioSynthTool,
   executeAudioSynth,
   isAudioSynthAvailable,
+  // Scientific & Research Tools (12 new)
+  // Statistics Tool
+  statisticsTool,
+  executeStatistics,
+  isStatisticsAvailable,
+  // Geospatial Tool
+  geospatialTool,
+  executeGeospatial,
+  isGeospatialAvailable,
+  // Phone Validation Tool
+  phoneTool,
+  executePhone,
+  isPhoneAvailable,
+  // Password Strength Tool
+  passwordStrengthTool,
+  executePasswordStrength,
+  isPasswordStrengthAvailable,
+  // Chemistry Tool
+  chemistryTool,
+  executeChemistry,
+  isChemistryAvailable,
+  // DNA/Bio Tool
+  dnaBioTool,
+  executeDnaBio,
+  isDnaBioAvailable,
+  // Matrix Tool
+  matrixTool,
+  executeMatrix,
+  isMatrixAvailable,
+  // Graph Tool
+  graphTool,
+  executeGraph,
+  isGraphAvailable,
+  // Periodic Table Tool
+  periodicTableTool,
+  executePeriodicTable,
+  isPeriodicTableAvailable,
+  // Physics Constants Tool
+  physicsConstantsTool,
+  executePhysicsConstants,
+  isPhysicsConstantsAvailable,
+  // Signal Processing Tool
+  signalTool,
+  executeSignal,
+  isSignalAvailable,
+  // Accessibility Tool
+  accessibilityTool,
+  executeAccessibility,
+  isAccessibilityAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3617,6 +3666,19 @@ SECURITY:
     if (isCronAvailable()) tools.push(cronTool);
     if (isUnitConvertAvailable()) tools.push(unitConvertTool);
     if (isAudioSynthAvailable()) tools.push(audioSynthTool);
+    // Scientific & Research tools (12 new)
+    if (isStatisticsAvailable()) tools.push(statisticsTool);
+    if (isGeospatialAvailable()) tools.push(geospatialTool);
+    if (isPhoneAvailable()) tools.push(phoneTool);
+    if (isPasswordStrengthAvailable()) tools.push(passwordStrengthTool);
+    if (isChemistryAvailable()) tools.push(chemistryTool);
+    if (isDnaBioAvailable()) tools.push(dnaBioTool);
+    if (isMatrixAvailable()) tools.push(matrixTool);
+    if (isGraphAvailable()) tools.push(graphTool);
+    if (isPeriodicTableAvailable()) tools.push(periodicTableTool);
+    if (isPhysicsConstantsAvailable()) tools.push(physicsConstantsTool);
+    if (isSignalAvailable()) tools.push(signalTool);
+    if (isAccessibilityAvailable()) tools.push(accessibilityTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3670,6 +3732,19 @@ SECURITY:
         cron_explain: 0.0001, // cron-parser
         convert_units: 0.0001, // convert-units
         audio_synth: 0.0001, // Tone.js specs
+        // Scientific & Research tools (12 new)
+        analyze_statistics: 0.0001, // simple-statistics + jstat
+        geo_calculate: 0.0001, // turf.js
+        phone_validate: 0.0001, // libphonenumber-js
+        analyze_password: 0.0001, // zxcvbn
+        analyze_molecule: 0.0001, // openchemlib-js
+        analyze_sequence: 0.0001, // custom DNA/bio
+        matrix_compute: 0.0001, // ml-matrix
+        analyze_graph: 0.0001, // graphology
+        periodic_table: 0.0001, // custom
+        physics_constants: 0.0001, // custom
+        signal_process: 0.0001, // fft-js
+        check_accessibility: 0.0001, // axe-core
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3847,6 +3922,43 @@ SECURITY:
             break;
           case 'audio_synth':
             result = await executeAudioSynth(toolCallWithSession);
+            break;
+          // Scientific & Research tools (12 new)
+          case 'analyze_statistics':
+            result = await executeStatistics(toolCallWithSession);
+            break;
+          case 'geo_calculate':
+            result = await executeGeospatial(toolCallWithSession);
+            break;
+          case 'phone_validate':
+            result = await executePhone(toolCallWithSession);
+            break;
+          case 'analyze_password':
+            result = await executePasswordStrength(toolCallWithSession);
+            break;
+          case 'analyze_molecule':
+            result = await executeChemistry(toolCallWithSession);
+            break;
+          case 'analyze_sequence':
+            result = await executeDnaBio(toolCallWithSession);
+            break;
+          case 'matrix_compute':
+            result = await executeMatrix(toolCallWithSession);
+            break;
+          case 'analyze_graph':
+            result = await executeGraph(toolCallWithSession);
+            break;
+          case 'periodic_table':
+            result = await executePeriodicTable(toolCallWithSession);
+            break;
+          case 'physics_constants':
+            result = await executePhysicsConstants(toolCallWithSession);
+            break;
+          case 'signal_process':
+            result = await executeSignal(toolCallWithSession);
+            break;
+          case 'check_accessibility':
+            result = await executeAccessibility(toolCallWithSession);
             break;
           default:
             result = {
