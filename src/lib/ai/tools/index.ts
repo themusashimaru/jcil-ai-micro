@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available:
+ * Tools available (18 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -21,11 +21,13 @@
  * - create_chart: Generate charts and data visualizations
  * - create_document: Generate PDF, DOCX, TXT documents
  * - transcribe_audio: Transcribe audio files with Whisper
+ * - create_spreadsheet: Generate Excel files with formulas (ExcelJS)
+ * - http_request: Make HTTP requests to APIs and webhooks
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
  *
- * Last updated: 2026-01-31
+ * Last updated: 2026-01-31 11:30 AM UTC
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';

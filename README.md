@@ -6,7 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/)
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
-[![Tools](https://img.shields.io/badge/Agentic%20Tools-55+-purple)]()
+[![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-18-green)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
 
 ---
@@ -206,6 +207,59 @@ $20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
 ```
 
 📄 **Full documentation**: [docs/DEEP_STRATEGY.md](./docs/DEEP_STRATEGY.md)
+
+---
+
+## Chat AI Tools (18 Tools)
+
+**Updated:** January 31, 2026 at 11:30 AM UTC
+
+The main chat interface provides **18 AI-powered tools** that enable the assistant to take real actions:
+
+### Research & Information
+
+| Tool                 | Description                       | Requires      |
+| -------------------- | --------------------------------- | ------------- |
+| `web_search`         | Real-time web search via Brave    | BRAVE_API_KEY |
+| `fetch_url`          | Fetch and extract URL content     | -             |
+| `youtube_transcript` | Extract YouTube video transcripts | -             |
+| `github`             | Search repos, code, issues        | GITHUB_TOKEN  |
+
+### Creation & Generation
+
+| Tool                 | Description                                    | Requires    |
+| -------------------- | ---------------------------------------------- | ----------- |
+| `create_chart`       | Generate data visualizations (bar, line, pie)  | -           |
+| `create_document`    | Generate PDF, DOCX, TXT documents              | -           |
+| `create_spreadsheet` | Excel files with formulas (SUM, VLOOKUP, etc.) | -           |
+| `screenshot`         | Capture webpage screenshots                    | E2B_API_KEY |
+
+### Analysis & Processing
+
+| Tool               | Description                      | Requires          |
+| ------------------ | -------------------------------- | ----------------- |
+| `analyze_image`    | Claude Vision image analysis     | ANTHROPIC_API_KEY |
+| `extract_pdf_url`  | Extract text from PDF URLs       | -                 |
+| `extract_table`    | Vision-based table extraction    | ANTHROPIC_API_KEY |
+| `transcribe_audio` | Audio to text via Whisper        | OPENAI_API_KEY    |
+| `calculator`       | Advanced math with Wolfram Alpha | WOLFRAM_APP_ID    |
+
+### Code & Automation
+
+| Tool                  | Description                      | Requires    |
+| --------------------- | -------------------------------- | ----------- |
+| `run_code`            | Execute Python/JS in E2B sandbox | E2B_API_KEY |
+| `browser_visit`       | Full browser automation          | E2B_API_KEY |
+| `http_request`        | Call any API or webhook          | -           |
+| `create_and_run_tool` | Dynamic tool creation            | E2B_API_KEY |
+
+### Multi-Agent
+
+| Tool                | Description                           | Requires          |
+| ------------------- | ------------------------------------- | ----------------- |
+| `parallel_research` | Mini-agent orchestrator (5-10 agents) | ANTHROPIC_API_KEY |
+
+📄 **Full audit**: [docs/audits/PLATFORM_CAPABILITIES_AUDIT_2026-01-31.md](./docs/audits/PLATFORM_CAPABILITIES_AUDIT_2026-01-31.md)
 
 ---
 
@@ -620,7 +674,7 @@ Copyright (c) 2024-2026 JCIL.AI
 
 <div align="center">
 
-**Built with Anthropic Claude** | **55+ Agentic Tools** | **5 MCP Servers** | **Cloud Sandboxed**
+**Built with Anthropic Claude** | **55+ Code Lab Tools** | **18 Chat Tools** | **5 MCP Servers** | **Cloud Sandboxed**
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
 
