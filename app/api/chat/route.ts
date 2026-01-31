@@ -63,6 +63,30 @@ import {
   dynamicToolTool,
   executeDynamicTool,
   isDynamicToolAvailable,
+  // YouTube Transcript
+  youtubeTranscriptTool,
+  executeYouTubeTranscript,
+  isYouTubeTranscriptAvailable,
+  // GitHub Tool
+  githubTool,
+  executeGitHub,
+  isGitHubAvailable,
+  // Screenshot Tool
+  screenshotTool,
+  executeScreenshot,
+  isScreenshotAvailable,
+  // Calculator Tool
+  calculatorTool,
+  executeCalculator,
+  isCalculatorAvailable,
+  // Chart Tool
+  chartTool,
+  executeChart,
+  isChartAvailable,
+  // Document Generation Tool
+  documentTool,
+  executeDocument,
+  isDocumentAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3431,6 +3455,12 @@ SECURITY:
     if (await isExtractTableAvailable()) tools.push(extractTableTool);
     if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
     if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
+    if (isYouTubeTranscriptAvailable()) tools.push(youtubeTranscriptTool);
+    if (isGitHubAvailable()) tools.push(githubTool);
+    if (await isScreenshotAvailable()) tools.push(screenshotTool);
+    if (isCalculatorAvailable()) tools.push(calculatorTool);
+    if (isChartAvailable()) tools.push(chartTool);
+    if (isDocumentAvailable()) tools.push(documentTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3517,6 +3547,24 @@ SECURITY:
             break;
           case 'create_and_run_tool':
             result = await executeDynamicTool(toolCallWithSession);
+            break;
+          case 'youtube_transcript':
+            result = await executeYouTubeTranscript(toolCallWithSession);
+            break;
+          case 'github':
+            result = await executeGitHub(toolCallWithSession);
+            break;
+          case 'screenshot':
+            result = await executeScreenshot(toolCallWithSession);
+            break;
+          case 'calculator':
+            result = await executeCalculator(toolCallWithSession);
+            break;
+          case 'create_chart':
+            result = await executeChart(toolCallWithSession);
+            break;
+          case 'create_document':
+            result = await executeDocument(toolCallWithSession);
             break;
           default:
             result = {

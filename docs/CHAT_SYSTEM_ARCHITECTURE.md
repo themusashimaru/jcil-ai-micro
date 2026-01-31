@@ -1,7 +1,7 @@
 # JCIL AI Chat System Architecture
 
-> Last Updated: January 30, 2026
-> Branch: claude/evaluate-chat-workflow-AZh3A
+> Last Updated: January 31, 2026
+> Branch: claude/audit-create-slides-GUEgj
 
 ## Overview
 
@@ -28,7 +28,9 @@ The JCIL AI chat system is a multi-provider, tool-enabled conversational AI plat
 │              CHAT ROUTER (routeChatWithTools)                   │
 │  ├─ Tools: [web_search, fetch_url, run_code, vision,            │
 │  │          browser_visit, extract_pdf, extract_table,          │
-│  │          parallel_research, create_and_run_tool]             │
+│  │          parallel_research, create_and_run_tool,             │
+│  │          youtube_transcript, github, screenshot,             │
+│  │          calculator, create_chart, create_document]          │
 │  ├─ Dynamic tool creation (cost-limited)                        │
 │  ├─ Streaming with tool loop                                    │
 │  ├─ Status messages during tool execution (8s interval)         │
@@ -123,6 +125,7 @@ Allows Sonnet to create custom tools on-the-fly when existing tools aren't suffi
 ```
 
 **Cost Controls:**
+
 - Max $0.15 per dynamic tool execution
 - Max 3 dynamic tools per session
 - 30 second timeout per execution
@@ -145,12 +148,166 @@ Claude Code style todo lists for multi-step workflows:
 ```
 
 **Status Symbols:**
+
 - `[ ]` - Pending
 - `[>]` - In-progress (with intelligent status like "analyzing", "searching")
 - `[x]` - Completed
 - `[-]` - Skipped
 
-### 6. Provider System (`/src/lib/ai/providers/`)
+### 6. YouTube Transcript Tool (`/src/lib/ai/tools/youtube-transcript.ts`)
+
+Extracts transcripts from YouTube videos:
+
+```typescript
+{
+  name: 'youtube_transcript',
+  description: 'Extract transcript from YouTube video',
+  parameters: {
+    video_url: string,       // YouTube URL
+    language: string,        // Language code (default: 'en')
+    include_timestamps: boolean  // Include time markers
+  }
+}
+```
+
+**Features:**
+
+- Supports youtube.com, youtu.be, and shorts URLs
+- Auto-generated and manual captions
+- Multi-language support
+- No API key required (uses public YouTube API)
+
+### 7. GitHub Tool (`/src/lib/ai/tools/github-tool.ts`)
+
+Search and browse GitHub repositories:
+
+```typescript
+{
+  name: 'github',
+  description: 'Search and browse GitHub',
+  parameters: {
+    action: 'search_code' | 'search_repos' | 'get_file' | 'list_dir' | 'get_repo' | 'search_issues',
+    query: string,      // For search actions
+    owner: string,      // Repo owner
+    repo: string,       // Repo name
+    path: string,       // File/directory path
+    branch: string      // Branch name
+  }
+}
+```
+
+**Rate Limits:**
+
+- Without GITHUB_TOKEN: 60 requests/hour
+- With GITHUB_TOKEN: 5000 requests/hour
+
+### 8. Screenshot Tool (`/src/lib/ai/tools/screenshot-tool.ts`)
+
+Capture screenshots of any webpage:
+
+```typescript
+{
+  name: 'screenshot',
+  description: 'Capture screenshot of webpage',
+  parameters: {
+    url: string,         // URL to screenshot
+    full_page: boolean,  // Capture full scroll (default: false)
+    width: number,       // Viewport width (default: 1280)
+    height: number,      // Viewport height (default: 720)
+    wait_for: string,    // CSS selector to wait for
+    delay_ms: number     // Additional delay (default: 1000)
+  }
+}
+```
+
+**Implementation:**
+
+- Uses E2B sandbox with Playwright
+- Returns base64 PNG image
+- 30 second timeout
+- URL safety validation
+
+### 9. Calculator Tool (`/src/lib/ai/tools/calculator-tool.ts`)
+
+Advanced mathematical calculations:
+
+```typescript
+{
+  name: 'calculator',
+  description: 'Perform math calculations',
+  parameters: {
+    query: string,           // Math question/calculation
+    include_steps: boolean   // Show step-by-step solution
+  }
+}
+```
+
+**Capabilities:**
+
+- Arithmetic, algebra, calculus
+- Unit conversions
+- Statistical calculations
+- Symbolic math (derivatives, integrals)
+- Uses Wolfram Alpha API (with fallback)
+
+### 10. Chart Tool (`/src/lib/ai/tools/chart-tool.ts`)
+
+Generate data visualizations:
+
+```typescript
+{
+  name: 'create_chart',
+  description: 'Generate charts from data',
+  parameters: {
+    chart_type: 'line' | 'bar' | 'pie' | 'doughnut' | 'radar' | 'scatter',
+    title: string,
+    labels: string[],     // X-axis or pie slice labels
+    datasets: [{          // Data series
+      label: string,
+      data: number[],
+      color: string
+    }],
+    width: number,        // Default: 600
+    height: number        // Default: 400
+  }
+}
+```
+
+**Implementation:**
+
+- Uses QuickChart.io API (serverless-compatible)
+- Returns image URL
+- Auto-styling with color palette
+- Multiple dataset support
+
+### 11. Document Tool (`/src/lib/ai/tools/document-tool.ts`)
+
+Generate professional documents:
+
+```typescript
+{
+  name: 'create_document',
+  description: 'Generate PDF, DOCX, or TXT documents',
+  parameters: {
+    format: 'pdf' | 'docx' | 'txt',
+    title: string,
+    content: string,      // Markdown-formatted content
+    author: string,
+    sections: [{          // Optional structured sections
+      heading: string,
+      body: string
+    }]
+  }
+}
+```
+
+**Libraries:**
+
+- PDF: pdfkit
+- DOCX: docx package
+- Returns base64 data URL for download
+
+### 12. Provider System (`/src/lib/ai/providers/`)
 
 **Adapters:**
 
