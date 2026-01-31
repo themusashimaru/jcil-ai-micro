@@ -3263,21 +3263,28 @@ IMPORTANT:
 
               // Step 4: Stream final result
               if (finalSlides.length > 0) {
-                controller.enqueue(encoder.encode('\n'));
+                controller.enqueue(encoder.encode('\n---\n\n'));
                 controller.enqueue(
                   encoder.encode(
-                    `**Your ${finalSlides.length} presentation slide${finalSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
+                    `## Your ${finalSlides.length} Presentation Slide${finalSlides.length > 1 ? 's' : ''}\n\n`
                   )
                 );
 
-                // Stream each slide with its image reference AND text content
+                // Stream each slide with its image as a proper markdown link
                 for (const s of finalSlides) {
-                  let slideOutput = `**Slide ${s.slideNumber}: ${s.title}**\n`;
+                  // Clean slide output with proper markdown formatting
+                  let slideOutput = `### Slide ${s.slideNumber}: ${s.title}\n\n`;
+
                   // Add bullet points as actual readable text
                   if (s.bullets && s.bullets.length > 0) {
-                    slideOutput += s.bullets.map((b) => `• ${b}`).join('\n') + '\n';
+                    for (const bullet of s.bullets) {
+                      slideOutput += `- ${bullet}\n`;
+                    }
+                    slideOutput += '\n';
                   }
-                  slideOutput += `[ref:${s.imageUrl}]\n\n`;
+
+                  // Use proper markdown image link with clean label
+                  slideOutput += `[![Slide ${s.slideNumber}](${s.imageUrl})](${s.imageUrl})\n\n`;
                   controller.enqueue(encoder.encode(slideOutput));
                 }
 
@@ -3891,21 +3898,28 @@ Output ONLY JSON array:
 
             // Final output
             if (finalSlides.length > 0) {
-              controller.enqueue(encoder.encode('\n'));
+              controller.enqueue(encoder.encode('\n---\n\n'));
               controller.enqueue(
                 encoder.encode(
-                  `**Your ${finalSlides.length} presentation slide${finalSlides.length > 1 ? 's are' : ' is'} ready!**\n\n`
+                  `## Your ${finalSlides.length} Presentation Slide${finalSlides.length > 1 ? 's' : ''}\n\n`
                 )
               );
 
-              // Stream each slide with its image reference AND text content
+              // Stream each slide with its image as a proper markdown link
               for (const s of finalSlides) {
-                let slideOutput = `**Slide ${s.slideNumber}: ${s.title}**\n`;
+                // Clean slide output with proper markdown formatting
+                let slideOutput = `### Slide ${s.slideNumber}: ${s.title}\n\n`;
+
                 // Add bullet points as actual readable text
                 if (s.bullets && s.bullets.length > 0) {
-                  slideOutput += s.bullets.map((b) => `• ${b}`).join('\n') + '\n';
+                  for (const bullet of s.bullets) {
+                    slideOutput += `- ${bullet}\n`;
+                  }
+                  slideOutput += '\n';
                 }
-                slideOutput += `[ref:${s.imageUrl}]\n\n`;
+
+                // Use proper markdown image link with clean label
+                slideOutput += `[![Slide ${s.slideNumber}](${s.imageUrl})](${s.imageUrl})\n\n`;
                 controller.enqueue(encoder.encode(slideOutput));
               }
 
