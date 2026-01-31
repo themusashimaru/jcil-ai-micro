@@ -8,14 +8,13 @@ const nextConfig = {
   reactStrictMode: true,
   // Note: swcMinify removed - deprecated in Next.js 16
 
-  // Turbopack config (empty to allow webpack fallback)
-  turbopack: {},
-
   // App Router optimizations
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Server-side native packages (for @napi-rs/canvas)
+    serverComponentsExternalPackages: ['@napi-rs/canvas'],
   },
 
   // Image optimization

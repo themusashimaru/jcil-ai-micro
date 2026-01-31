@@ -92,6 +92,51 @@ export async function downloadAndStore(
 }
 
 /**
+ * Store a buffer directly to Supabase Storage
+ *
+ * @param buffer - Image buffer (e.g., from canvas rendering)
+ * @param userId - User who owns this generation
+ * @param generationId - Unique generation identifier
+ * @param format - Image format (default: png)
+ * @returns Permanent Supabase Storage URL
+ */
+export async function storeBuffer(
+  buffer: Buffer | Uint8Array,
+  userId: string,
+  generationId: string,
+  format: ImageFormat = 'png'
+): Promise<string> {
+  log.info('Storing buffer to storage', { generationId, userId, sizeBytes: buffer.length });
+
+  const bytes = buffer instanceof Buffer ? new Uint8Array(buffer) : buffer;
+  const storagePath = `${userId}/${generationId}.${format}`;
+
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await supabase.storage.from(STORAGE_BUCKET).upload(storagePath, bytes, {
+    contentType: MIME_TYPES[format],
+    upsert: false,
+  });
+
+  if (error) {
+    log.error('Failed to upload buffer to storage', {
+      generationId,
+      error: error.message,
+    });
+    throw new BFLError(`Failed to store image: ${error.message}`, 'STORAGE_FAILED');
+  }
+
+  const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(data.path);
+
+  log.info('Buffer stored successfully', {
+    generationId,
+    path: data.path,
+  });
+
+  return urlData.publicUrl;
+}
+
+/**
  * Store a base64-encoded image directly to Supabase
  *
  * @param base64Data - Base64-encoded image data (with or without data URL prefix)
