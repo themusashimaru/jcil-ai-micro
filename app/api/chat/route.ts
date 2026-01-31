@@ -3487,42 +3487,55 @@ SECURITY:
       // Inject session ID into tool call for cost tracking
       const toolCallWithSession = { ...toolCall, sessionId };
 
-      // Execute the appropriate tool
+      // Execute the appropriate tool with error handling to prevent crashes
       let result: UnifiedToolResult;
-      switch (toolName) {
-        case 'web_search':
-          result = await executeWebSearch(toolCallWithSession);
-          break;
-        case 'fetch_url':
-          result = await executeFetchUrl(toolCallWithSession);
-          break;
-        case 'run_code':
-          result = await executeRunCode(toolCallWithSession);
-          break;
-        case 'analyze_image':
-          result = await executeVisionAnalyze(toolCallWithSession);
-          break;
-        case 'browser_visit':
-          result = await executeBrowserVisitTool(toolCallWithSession);
-          break;
-        case 'extract_pdf_url':
-          result = await executeExtractPdf(toolCallWithSession);
-          break;
-        case 'extract_table':
-          result = await executeExtractTable(toolCallWithSession);
-          break;
-        case 'parallel_research':
-          result = await executeMiniAgent(toolCallWithSession);
-          break;
-        case 'create_and_run_tool':
-          result = await executeDynamicTool(toolCallWithSession);
-          break;
-        default:
-          result = {
-            toolCallId: toolCall.id,
-            content: `Unknown tool: ${toolName}`,
-            isError: true,
-          };
+      try {
+        switch (toolName) {
+          case 'web_search':
+            result = await executeWebSearch(toolCallWithSession);
+            break;
+          case 'fetch_url':
+            result = await executeFetchUrl(toolCallWithSession);
+            break;
+          case 'run_code':
+            result = await executeRunCode(toolCallWithSession);
+            break;
+          case 'analyze_image':
+            result = await executeVisionAnalyze(toolCallWithSession);
+            break;
+          case 'browser_visit':
+            result = await executeBrowserVisitTool(toolCallWithSession);
+            break;
+          case 'extract_pdf_url':
+            result = await executeExtractPdf(toolCallWithSession);
+            break;
+          case 'extract_table':
+            result = await executeExtractTable(toolCallWithSession);
+            break;
+          case 'parallel_research':
+            result = await executeMiniAgent(toolCallWithSession);
+            break;
+          case 'create_and_run_tool':
+            result = await executeDynamicTool(toolCallWithSession);
+            break;
+          default:
+            result = {
+              toolCallId: toolCall.id,
+              content: `Unknown tool: ${toolName}`,
+              isError: true,
+            };
+        }
+      } catch (toolError) {
+        // Catch any unhandled tool errors to prevent stream crashes
+        log.error('Tool execution failed with unhandled error', {
+          tool: toolName,
+          error: (toolError as Error).message,
+        });
+        result = {
+          toolCallId: toolCall.id,
+          content: `Tool execution failed: ${(toolError as Error).message}`,
+          isError: true,
+        };
       }
 
       // Record cost if successful
