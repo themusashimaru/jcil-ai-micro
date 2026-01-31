@@ -260,6 +260,54 @@ import {
   accessibilityTool,
   executeAccessibility,
   isAccessibilityAvailable,
+  // Symbolic Math Tool (nerdamer)
+  symbolicMathTool,
+  executeSymbolicMath,
+  isSymbolicMathAvailable,
+  // ODE Solver Tool (odex)
+  odeSolverTool,
+  executeOdeSolver,
+  isOdeSolverAvailable,
+  // Optimization Tool (javascript-lp-solver)
+  optimizationTool,
+  executeOptimization,
+  isOptimizationAvailable,
+  // Financial Tool
+  financialTool,
+  executeFinancial,
+  isFinancialAvailable,
+  // Music Theory Tool (tonal)
+  musicTheoryTool,
+  executeMusicTheory,
+  isMusicTheoryAvailable,
+  // Geometry Tool (delaunator + earcut)
+  geometryTool,
+  executeGeometry,
+  isGeometryAvailable,
+  // Parser Tool (nearley)
+  parserTool,
+  executeParser,
+  isParserAvailable,
+  // Recurrence Tool (rrule)
+  recurrenceTool,
+  executeRecurrence,
+  isRecurrenceAvailable,
+  // Constraint Tool (logic-solver)
+  constraintTool,
+  executeConstraint,
+  isConstraintAvailable,
+  // Time Series Tool
+  timeseriesTool,
+  executeTimeseries,
+  isTimeseriesAvailable,
+  // Tensor Tool (ndarray)
+  tensorTool,
+  executeTensor,
+  isTensorAvailable,
+  // String Distance Tool (fastest-levenshtein)
+  stringDistanceTool,
+  executeStringDistance,
+  isStringDistanceAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3679,6 +3727,19 @@ SECURITY:
     if (isPhysicsConstantsAvailable()) tools.push(physicsConstantsTool);
     if (isSignalAvailable()) tools.push(signalTool);
     if (isAccessibilityAvailable()) tools.push(accessibilityTool);
+    // Computational & Algorithmic tools (12 new)
+    if (isSymbolicMathAvailable()) tools.push(symbolicMathTool);
+    if (isOdeSolverAvailable()) tools.push(odeSolverTool);
+    if (isOptimizationAvailable()) tools.push(optimizationTool);
+    if (isFinancialAvailable()) tools.push(financialTool);
+    if (isMusicTheoryAvailable()) tools.push(musicTheoryTool);
+    if (isGeometryAvailable()) tools.push(geometryTool);
+    if (isParserAvailable()) tools.push(parserTool);
+    if (isRecurrenceAvailable()) tools.push(recurrenceTool);
+    if (isConstraintAvailable()) tools.push(constraintTool);
+    if (isTimeseriesAvailable()) tools.push(timeseriesTool);
+    if (isTensorAvailable()) tools.push(tensorTool);
+    if (isStringDistanceAvailable()) tools.push(stringDistanceTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3745,6 +3806,19 @@ SECURITY:
         physics_constants: 0.0001, // custom
         signal_process: 0.0001, // fft-js
         check_accessibility: 0.0001, // axe-core
+        // Computational & Algorithmic tools (12 new)
+        symbolic_math: 0.0001, // nerdamer CAS
+        solve_ode: 0.0001, // odex differential equations
+        optimize: 0.0001, // javascript-lp-solver
+        financial_calc: 0.0001, // financial math
+        music_theory: 0.0001, // tonal
+        compute_geometry: 0.0001, // delaunator + earcut
+        parse_grammar: 0.0001, // nearley
+        recurrence_rule: 0.0001, // rrule
+        solve_constraints: 0.0001, // logic-solver
+        analyze_timeseries: 0.0001, // custom
+        tensor_ops: 0.0001, // ndarray
+        string_distance: 0.0001, // fastest-levenshtein
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3959,6 +4033,42 @@ SECURITY:
             break;
           case 'check_accessibility':
             result = await executeAccessibility(toolCallWithSession);
+            break;
+          case 'symbolic_math':
+            result = await executeSymbolicMath(toolCallWithSession);
+            break;
+          case 'solve_ode':
+            result = await executeOdeSolver(toolCallWithSession);
+            break;
+          case 'optimize':
+            result = await executeOptimization(toolCallWithSession);
+            break;
+          case 'financial_calc':
+            result = await executeFinancial(toolCallWithSession);
+            break;
+          case 'music_theory':
+            result = await executeMusicTheory(toolCallWithSession);
+            break;
+          case 'geometry':
+            result = await executeGeometry(toolCallWithSession);
+            break;
+          case 'parse_grammar':
+            result = await executeParser(toolCallWithSession);
+            break;
+          case 'recurrence':
+            result = await executeRecurrence(toolCallWithSession);
+            break;
+          case 'solve_constraints':
+            result = await executeConstraint(toolCallWithSession);
+            break;
+          case 'analyze_timeseries':
+            result = await executeTimeseries(toolCallWithSession);
+            break;
+          case 'tensor_ops':
+            result = await executeTensor(toolCallWithSession);
+            break;
+          case 'string_distance':
+            result = await executeStringDistance(toolCallWithSession);
             break;
           default:
             result = {
