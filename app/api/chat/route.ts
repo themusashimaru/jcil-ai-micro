@@ -115,6 +115,30 @@ import {
   linkShortenTool,
   executeLinkShorten,
   isLinkShortenAvailable,
+  // Mermaid Diagram Tool
+  mermaidDiagramTool,
+  executeMermaidDiagram,
+  isMermaidDiagramAvailable,
+  // Faker Tool
+  fakerTool,
+  executeFaker,
+  isFakerAvailable,
+  // Diff Tool
+  diffTool,
+  executeDiff,
+  isDiffAvailable,
+  // NLP Tool
+  nlpTool,
+  executeNLP,
+  isNLPAvailable,
+  // Entity Extraction Tool
+  entityExtractionTool,
+  executeEntityExtraction,
+  isEntityExtractionAvailable,
+  // Barcode Tool
+  barcodeTool,
+  executeBarcode,
+  isBarcodeAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3496,6 +3520,12 @@ SECURITY:
     if (await isImageTransformAvailable()) tools.push(imageTransformTool);
     if (isFileConvertAvailable()) tools.push(fileConvertTool);
     if (isLinkShortenAvailable()) tools.push(linkShortenTool);
+    if (isMermaidDiagramAvailable()) tools.push(mermaidDiagramTool);
+    if (await isFakerAvailable()) tools.push(fakerTool);
+    if (await isDiffAvailable()) tools.push(diffTool);
+    if (await isNLPAvailable()) tools.push(nlpTool);
+    if (await isEntityExtractionAvailable()) tools.push(entityExtractionTool);
+    if (await isBarcodeAvailable()) tools.push(barcodeTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3524,6 +3554,12 @@ SECURITY:
         transform_image: 0.001, // Local Sharp processing
         convert_file: 0.001, // Local conversion
         shorten_link: 0.0001, // External API call
+        generate_diagram: 0.0001, // Local Mermaid processing
+        generate_fake_data: 0.0001, // Local Faker processing
+        diff_compare: 0.0001, // Local diff processing
+        analyze_text_nlp: 0.0002, // Local NLP processing
+        extract_entities: 0.0002, // Local Compromise processing
+        generate_barcode: 0.0001, // Local JsBarcode processing
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3628,6 +3664,24 @@ SECURITY:
             break;
           case 'shorten_link':
             result = await executeLinkShorten(toolCallWithSession);
+            break;
+          case 'generate_diagram':
+            result = await executeMermaidDiagram(toolCallWithSession);
+            break;
+          case 'generate_fake_data':
+            result = await executeFaker(toolCallWithSession);
+            break;
+          case 'diff_compare':
+            result = await executeDiff(toolCallWithSession);
+            break;
+          case 'analyze_text_nlp':
+            result = await executeNLP(toolCallWithSession);
+            break;
+          case 'extract_entities':
+            result = await executeEntityExtraction(toolCallWithSession);
+            break;
+          case 'generate_barcode':
+            result = await executeBarcode(toolCallWithSession);
             break;
           default:
             result = {

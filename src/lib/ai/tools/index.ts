@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (22 total):
+ * Tools available (28 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -27,11 +27,17 @@
  * - transform_image: Resize, compress, convert, watermark images
  * - convert_file: Convert between file formats
  * - shorten_link: Create shortened URLs
+ * - generate_diagram: Create diagrams with Mermaid.js (flowcharts, sequence, etc.)
+ * - generate_fake_data: Generate realistic fake data with Faker.js
+ * - diff_compare: Compare texts and show differences
+ * - analyze_text_nlp: NLP analysis (sentiment, tokenize, stem, etc.)
+ * - extract_entities: Extract named entities from text
+ * - generate_barcode: Create barcodes (CODE128, EAN, UPC, etc.)
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
  *
- * Last updated: 2026-01-31 12:00 PM UTC
+ * Last updated: 2026-01-31 02:30 PM UTC
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -139,6 +145,32 @@ export { fileConvertTool, executeFileConvert, isFileConvertAvailable } from './f
 
 // Link Shortening
 export { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } from './link-shorten-tool';
+
+// Mermaid Diagram Generation
+export {
+  mermaidDiagramTool,
+  executeMermaidDiagram,
+  isMermaidDiagramAvailable,
+} from './mermaid-diagram-tool';
+
+// Fake Data Generation (Faker.js)
+export { fakerTool, executeFaker, isFakerAvailable } from './faker-tool';
+
+// Text Diff Comparison
+export { diffTool, executeDiff, isDiffAvailable } from './diff-tool';
+
+// NLP Analysis (Natural)
+export { nlpTool, executeNLP, isNLPAvailable } from './nlp-tool';
+
+// Entity Extraction (Compromise)
+export {
+  entityExtractionTool,
+  executeEntityExtraction,
+  isEntityExtractionAvailable,
+} from './entity-extraction-tool';
+
+// Barcode Generation (JsBarcode)
+export { barcodeTool, executeBarcode, isBarcodeAvailable } from './barcode-tool';
 
 // Workflow Tasks (Claude Code style todo lists)
 export {
@@ -295,6 +327,15 @@ async function initializeTools() {
   const { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } = await import(
     './link-shorten-tool'
   );
+  const { mermaidDiagramTool, executeMermaidDiagram, isMermaidDiagramAvailable } = await import(
+    './mermaid-diagram-tool'
+  );
+  const { fakerTool, executeFaker, isFakerAvailable } = await import('./faker-tool');
+  const { diffTool, executeDiff, isDiffAvailable } = await import('./diff-tool');
+  const { nlpTool, executeNLP, isNLPAvailable } = await import('./nlp-tool');
+  const { entityExtractionTool, executeEntityExtraction, isEntityExtractionAvailable } =
+    await import('./entity-extraction-tool');
+  const { barcodeTool, executeBarcode, isBarcodeAvailable } = await import('./barcode-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -370,7 +411,21 @@ async function initializeTools() {
       tool: linkShortenTool,
       executor: executeLinkShorten,
       checkAvailability: isLinkShortenAvailable,
-    }
+    },
+    {
+      tool: mermaidDiagramTool,
+      executor: executeMermaidDiagram,
+      checkAvailability: isMermaidDiagramAvailable,
+    },
+    { tool: fakerTool, executor: executeFaker, checkAvailability: isFakerAvailable },
+    { tool: diffTool, executor: executeDiff, checkAvailability: isDiffAvailable },
+    { tool: nlpTool, executor: executeNLP, checkAvailability: isNLPAvailable },
+    {
+      tool: entityExtractionTool,
+      executor: executeEntityExtraction,
+      checkAvailability: isEntityExtractionAvailable,
+    },
+    { tool: barcodeTool, executor: executeBarcode, checkAvailability: isBarcodeAvailable }
   );
 
   toolsInitialized = true;
