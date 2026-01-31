@@ -751,7 +751,7 @@ IMPORTANT:
     contentArray.push({ type: 'text', text: qcPrompt });
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096, // More tokens for detailed per-slide feedback
       messages: [{ role: 'user', content: contentArray }],
     });

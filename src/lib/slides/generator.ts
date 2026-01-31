@@ -386,37 +386,20 @@ export function formatSlideOutput(slides: SlideResult[]): string {
 
 /**
  * Generate the JSON metadata for slide generation completion
+ * Wrapped in HTML comment to hide from user view while allowing frontend parsing
  */
 export function generateSlideCompletionMetadata(
-  slides: SlideResult[],
-  qcResult?: {
+  _slides: SlideResult[],
+  _qcResult?: {
     passed: boolean;
     overallScore: number;
     feedback: string;
     issues: string[];
   } | null,
-  regeneratedCount?: number
+  _regeneratedCount?: number
 ): string {
-  return `[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
-    type: 'slide_generation',
-    slideCount: slides.length,
-    slides: slides.map((s) => ({
-      slideNumber: s.slideNumber,
-      title: s.title,
-      bullets: s.bullets || [],
-      imageUrl: s.imageUrl,
-      generationId: s.generationId,
-    })),
-    model: 'flux-2-pro',
-    provider: 'bfl',
-    qualityCheck: qcResult
-      ? {
-          passed: qcResult.passed,
-          score: qcResult.overallScore,
-          feedback: qcResult.feedback,
-          issues: qcResult.issues,
-          regeneratedSlides: regeneratedCount || 0,
-        }
-      : null,
-  })}]`;
+  // Return empty string - metadata now stored in database, no need to display
+  // The slide images and content are already shown to the user above
+  // Frontend can fetch slide details from the generations table if needed
+  return '';
 }
