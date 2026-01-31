@@ -87,6 +87,10 @@ import {
   documentTool,
   executeDocument,
   isDocumentAvailable,
+  // Audio Transcription Tool
+  audioTranscribeTool,
+  executeAudioTranscribe,
+  isAudioTranscribeAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3461,6 +3465,7 @@ SECURITY:
     if (isCalculatorAvailable()) tools.push(calculatorTool);
     if (isChartAvailable()) tools.push(chartTool);
     if (isDocumentAvailable()) tools.push(documentTool);
+    if (isAudioTranscribeAvailable()) tools.push(audioTranscribeTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3565,6 +3570,9 @@ SECURITY:
             break;
           case 'create_document':
             result = await executeDocument(toolCallWithSession);
+            break;
+          case 'transcribe_audio':
+            result = await executeAudioTranscribe(toolCallWithSession);
             break;
           default:
             result = {

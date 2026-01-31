@@ -20,6 +20,7 @@
  * - calculator: Advanced math with Wolfram Alpha
  * - create_chart: Generate charts and data visualizations
  * - create_document: Generate PDF, DOCX, TXT documents
+ * - transcribe_audio: Transcribe audio files with Whisper
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
@@ -103,6 +104,13 @@ export { chartTool, executeChart, isChartAvailable } from './chart-tool';
 
 // Document Generation Tool
 export { documentTool, executeDocument, isDocumentAvailable } from './document-tool';
+
+// Audio Transcription (Whisper)
+export {
+  audioTranscribeTool,
+  executeAudioTranscribe,
+  isAudioTranscribeAvailable,
+} from './audio-transcribe';
 
 // Workflow Tasks (Claude Code style todo lists)
 export {
@@ -240,6 +248,9 @@ async function initializeTools() {
   );
   const { chartTool, executeChart, isChartAvailable } = await import('./chart-tool');
   const { documentTool, executeDocument, isDocumentAvailable } = await import('./document-tool');
+  const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import(
+    './audio-transcribe'
+  );
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -284,7 +295,12 @@ async function initializeTools() {
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },
-    { tool: documentTool, executor: executeDocument, checkAvailability: isDocumentAvailable }
+    { tool: documentTool, executor: executeDocument, checkAvailability: isDocumentAvailable },
+    {
+      tool: audioTranscribeTool,
+      executor: executeAudioTranscribe,
+      checkAvailability: isAudioTranscribeAvailable,
+    }
   );
 
   toolsInitialized = true;
