@@ -39,7 +39,7 @@ import {
   CHAT_LENGTH_WARNING,
   generateSummaryPrompt,
 } from '@/components/chat/ChatContinuationBanner';
-import { LiveTodoList } from '@/components/chat/LiveTodoList';
+// LiveTodoList removed - user prefers simple agentic approach without visible todo widget
 import { parseSlashCommand } from '@/lib/slashCommands';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import {
@@ -737,10 +737,6 @@ export function ChatClient() {
       case 'edit-image':
         // Guide user to describe what they want to edit
         setQuickPromptText('Edit this image: ');
-        break;
-      case 'create-slides':
-        // Pre-fill with slide creation prompt
-        setQuickPromptText('Create a presentation slide about ');
         break;
       case 'research':
         // Research agent prompt
@@ -3785,8 +3781,8 @@ ${artifactSection}
               onCarouselSelect={handleCarouselSelect}
               onRegenerateImage={handleRegenerateImage}
             />
-            {/* Live To-Do List - extracted from AI responses */}
-            <LiveTodoList messages={messages} conversationId={currentChatId} />
+            {/* Live To-Do List removed - user prefers simple agentic approach
+                The AI can manage its own tasks internally without showing a UI widget */}
             {/* Deep Strategy Progress - shows live research activity */}
             {strategyPhase === 'executing' && strategyEvents.length > 0 && (
               <div className="px-4 pb-4">
@@ -3924,8 +3920,6 @@ ${artifactSection}
                   setQuickPromptText('Create an image of ');
                 } else if (mode === 'edit-image') {
                   setQuickPromptText('Edit this image: ');
-                } else if (mode === 'create-slides') {
-                  setQuickPromptText('Create a presentation slide about ');
                 }
               }}
               conversationId={currentChatId || undefined}

@@ -11,8 +11,7 @@
  * - Quality control integration ready
  */
 
-import { generateImage, storeBuffer, enhanceImagePrompt } from '@/lib/connectors/bfl';
-import { overlayTextOnSlide } from './text-overlay';
+import { generateImage, downloadAndStore, enhanceImagePrompt } from '@/lib/connectors/bfl';
 import { ASPECT_RATIOS } from '@/lib/connectors/bfl/models';
 import { logger } from '@/lib/logger';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -138,38 +137,32 @@ IMPORTANT:
 
 /**
  * Standard progress messages for slide generation
- * Ensures consistent formatting across all code paths
+ * These are internal-only and not shown to users
+ * The user just sees "Creating presentation slides..." and then the final result
  */
 export const ProgressMessages = {
-  // Research phase
-  researchStart: '- [ ] Researching topic\n',
-  researchComplete: '- [x] Researching topic\n',
-
-  // Design phase
-  designStart: '- [ ] Designing slide layouts\n',
-  designComplete: (count: number) =>
-    `- [x] Designing slide layouts\n\n**Generating ${count} slides:**\n\n`,
-
-  // Per-slide generation
-  slideStart: (num: number, title: string) => `- [ ] Slide ${num}: ${title}\n`,
-  slideBackgroundStart: '  - [ ] Generating background\n',
-  slideBackgroundComplete: '  - [x] Background complete\n',
-  slideTextStart: '  - [ ] Rendering text overlay\n',
-  slideTextComplete: '  - [x] Text overlay complete\n',
-  slideComplete: (num: number, title: string) => `- [x] Slide ${num}: ${title}\n`,
-  slideFailed: (num: number, title: string) => `- [!] Slide ${num}: ${title} (failed)\n`,
-
-  // QC phase
-  qcStart: '- [ ] Running quality check\n',
-  qcRecheck: '- [ ] Re-checking quality\n',
-  qcPassed: (score: number) => `- [x] Quality check passed (${score}/10)\n`,
-  qcFixing: (score: number, count: number) =>
-    `- [~] Quality check (${score}/10) - fixing ${count} slide(s)\n`,
-  qcMaxRetries: (score: number) => `- [~] Quality check (${score}/10) - max retries reached\n`,
-  regenerateStart: (num: number) => `  - [ ] Regenerating slide ${num}\n`,
-  regenerateComplete: (num: number) => `  - [x] Slide ${num} regenerated\n`,
-  regenerateFailed: (num: number) => `  - [!] Slide ${num} failed\n`,
-  autoImproved: (count: number) => `- [x] ${count} slide(s) automatically improved\n`,
+  // All progress is now silent (internal logging only)
+  // Return empty strings so they don't appear in the chat
+  researchStart: '',
+  researchComplete: '',
+  designStart: '',
+  designComplete: (_count: number) => '',
+  slideStart: (_num: number, _title: string) => '',
+  slideBackgroundStart: '',
+  slideBackgroundComplete: '',
+  slideTextStart: '',
+  slideTextComplete: '',
+  slideComplete: (_num: number, _title: string) => '',
+  slideFailed: (_num: number, _title: string) => '',
+  qcStart: '',
+  qcRecheck: '',
+  qcPassed: (_score: number) => '',
+  qcFixing: (_score: number, _count: number) => '',
+  qcMaxRetries: (_score: number) => '',
+  regenerateStart: (_num: number) => '',
+  regenerateComplete: (_num: number) => '',
+  regenerateFailed: (_num: number) => '',
+  autoImproved: (_count: number) => '',
 };
 
 // =============================================================================
@@ -192,7 +185,8 @@ export async function generateSingleSlide(
   slide: SlideInput,
   options: SlideGenerationOptions
 ): Promise<SlideResult | null> {
-  const { userId, conversationId, serviceClient, onProgress, isRegeneration, source } = options;
+  const { userId, conversationId, serviceClient, isRegeneration, source } = options;
+  // Note: onProgress is no longer used since text overlay was removed
 
   try {
     // Generate unique ID for this slide
@@ -229,8 +223,6 @@ export async function generateSingleSlide(
     });
 
     // Step 1: Generate the background image via FLUX
-    onProgress?.(ProgressMessages.slideBackgroundStart);
-
     const result = await generateImage(enhancedPrompt, {
       model: 'flux-2-pro',
       width: SLIDE_WIDTH,
@@ -238,45 +230,9 @@ export async function generateSingleSlide(
       promptUpsampling: true,
     });
 
-    onProgress?.(ProgressMessages.slideBackgroundComplete);
-
-    // Step 2: Try to overlay text on the background
-    // Falls back to original image if text overlay fails
-    let storedUrl: string;
-    let hasTextOverlay = false;
-
-    onProgress?.(ProgressMessages.slideTextStart);
-
-    try {
-      const compositedBuffer = await overlayTextOnSlide(
-        result.imageUrl,
-        {
-          title: slide.title,
-          bullets: slide.bullets || [],
-        },
-        {
-          addOverlay: true,
-          overlayOpacity: 0.5,
-        }
-      );
-
-      // Store the composited image
-      storedUrl = await storeBuffer(compositedBuffer, userId, genId, 'png');
-      hasTextOverlay = true;
-      onProgress?.(ProgressMessages.slideTextComplete);
-    } catch (overlayError) {
-      // Text overlay failed - fall back to storing original FLUX image
-      log.warn('Text overlay failed, using original image', {
-        slideNumber: slide.slideNumber,
-        error: (overlayError as Error).message,
-      });
-
-      // Download and store the original FLUX image
-      const { downloadAndStore } = await import('@/lib/connectors/bfl');
-      storedUrl = await downloadAndStore(result.imageUrl, userId, genId);
-      hasTextOverlay = false;
-      onProgress?.('  - [~] Text overlay skipped (using background only)\n');
-    }
+    // Step 2: Store the generated image directly
+    // Text content is displayed separately in markdown (more reliable than SVG text on serverless)
+    const storedUrl = await downloadAndStore(result.imageUrl, userId, genId);
 
     // Step 3: Update generation record with results
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -288,7 +244,6 @@ export async function generateSingleSlide(
         result_data: {
           seed: result.seed,
           enhancedPrompt: result.enhancedPrompt,
-          hasTextOverlay,
         },
         cost_credits: result.cost,
         completed_at: new Date().toISOString(),

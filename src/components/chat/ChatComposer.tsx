@@ -76,7 +76,7 @@ interface ChatComposerProps {
   onCloseCreateImage?: () => void;
   onCloseEditImage?: () => void;
   // Inline creative mode callback (replaces modals)
-  onCreativeMode?: (mode: 'create-image' | 'edit-image' | 'create-slides' | 'view-gallery') => void;
+  onCreativeMode?: (mode: 'create-image' | 'edit-image' | 'view-gallery') => void;
   // Current conversation ID (for linking generated images)
   conversationId?: string;
   // Callback when image is generated (to add to conversation)

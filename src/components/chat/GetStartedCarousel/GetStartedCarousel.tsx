@@ -4,10 +4,9 @@
  * Horizontal scrollable carousel shown on empty/new chats.
  * Provides quick access to creative tools and AI agents.
  *
- * Card order (matching Manus.AI):
+ * Card order:
  * - Edit Image
  * - Create Image
- * - Create Slides
  * - Research Agent (all users)
  * - Deep Research (admin only)
  * - Deep Strategy (admin only)
@@ -44,15 +43,6 @@ const ALL_CARDS: CarouselCardData[] = [
     iconBg: 'bg-gray-700/50',
     iconColor: 'text-gray-300',
     icon: 'image-plus',
-    adminOnly: false,
-  },
-  {
-    id: 'create-slides',
-    title: 'Create Slides',
-    description: 'Pro presentations with AI visuals',
-    iconBg: 'bg-gray-700/50',
-    iconColor: 'text-gray-300',
-    icon: 'presentation',
     adminOnly: false,
   },
   {
