@@ -7,7 +7,7 @@
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
 [![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
-[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-22-green)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-28-green)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
 
 ---
@@ -210,11 +210,11 @@ $20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
 
 ---
 
-## Chat AI Tools (22 Tools)
+## Chat AI Tools (28 Tools)
 
-**Updated:** January 31, 2026 at 12:00 PM UTC
+**Updated:** January 31, 2026 at 02:30 PM UTC
 
-The main chat interface provides **22 AI-powered tools** that enable the assistant to take real actions:
+The main chat interface provides **28 AI-powered tools** that enable the assistant to take real actions:
 
 ### Research & Information
 
@@ -234,6 +234,9 @@ The main chat interface provides **22 AI-powered tools** that enable the assista
 | `create_spreadsheet` | Excel files with formulas (SUM, VLOOKUP, etc.) | -           |
 | `screenshot`         | Capture webpage screenshots                    | E2B_API_KEY |
 | `generate_qr_code`   | Create QR codes from text/URLs                 | -           |
+| `generate_diagram`   | Mermaid diagrams (flowchart, sequence, ERD)    | -           |
+| `generate_fake_data` | Faker.js realistic test data                   | -           |
+| `generate_barcode`   | CODE128, EAN, UPC barcodes                     | -           |
 
 ### Analysis & Processing
 
@@ -246,6 +249,9 @@ The main chat interface provides **22 AI-powered tools** that enable the assista
 | `calculator`       | Advanced math with Wolfram Alpha         | WOLFRAM_APP_ID    |
 | `transform_image`  | Resize, compress, convert, watermark     | -                 |
 | `convert_file`     | Convert between formats (MD, HTML, JSON) | -                 |
+| `diff_compare`     | Compare texts and show differences       | -                 |
+| `analyze_text_nlp` | NLP: sentiment, tokenize, TF-IDF         | -                 |
+| `extract_entities` | Extract people, places, organizations    | -                 |
 
 ### Code & Automation
 
@@ -678,7 +684,7 @@ Copyright (c) 2024-2026 JCIL.AI
 
 <div align="center">
 
-**Built with Anthropic Claude** | **55+ Code Lab Tools** | **22 Chat Tools** | **5 MCP Servers** | **Cloud Sandboxed**
+**Built with Anthropic Claude** | **55+ Code Lab Tools** | **28 Chat Tools** | **5 MCP Servers** | **Cloud Sandboxed**
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
 
