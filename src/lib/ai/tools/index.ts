@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (70 total):
+ * Tools available (82 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -63,6 +63,18 @@
  * - physics_constants: Physical constants (custom)
  * - signal_process: Signal processing/FFT (fft-js)
  * - check_accessibility: WCAG accessibility checking (axe-core)
+ * - numerical_integrate: Numerical integration (Simpson's, Gauss-Legendre, Romberg)
+ * - find_roots: Root finding (Newton, bisection, secant, Brent)
+ * - interpolate: Interpolation (linear, Lagrange, spline, polynomial fit)
+ * - special_functions: Math special functions (Gamma, Bessel, erf, Legendre)
+ * - complex_math: Complex number operations (complex.js)
+ * - combinatorics: Combinatorial math (permutations, combinations, Stirling)
+ * - number_theory: Number theory (primes, factorization, modular arithmetic)
+ * - probability_dist: Probability distributions (normal, binomial, chi-squared)
+ * - polynomial_ops: Polynomial operations (arithmetic, roots, GCD)
+ * - astronomy_calc: Celestial mechanics (planet positions, moon phases)
+ * - coordinate_transform: Geographic projections (proj4)
+ * - sequence_analyze: Sequence analysis and pattern detection
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
@@ -368,6 +380,82 @@ export {
   isStringDistanceAvailable,
 } from './string-distance-tool';
 
+// ============================================================================
+// ADVANCED SCIENTIFIC COMPUTING TOOLS (12 new tools)
+// ============================================================================
+
+// Numerical Integration (Simpson's, Gaussian, Romberg)
+export {
+  numericalIntegrateTool,
+  executeNumericalIntegrate,
+  isNumericalIntegrateAvailable,
+} from './numerical-integrate-tool';
+
+// Root Finding (Newton, Bisection, Brent)
+export { rootFinderTool, executeRootFinder, isRootFinderAvailable } from './root-finder-tool';
+
+// Interpolation (Lagrange, Spline, Polynomial)
+export {
+  interpolationTool,
+  executeInterpolation,
+  isInterpolationAvailable,
+} from './interpolation-tool';
+
+// Special Functions (Gamma, Bessel, erf, Legendre)
+export {
+  specialFunctionsTool,
+  executeSpecialFunctions,
+  isSpecialFunctionsAvailable,
+} from './special-functions-tool';
+
+// Complex Math (complex.js)
+export { complexMathTool, executeComplexMath, isComplexMathAvailable } from './complex-math-tool';
+
+// Combinatorics (js-combinatorics)
+export {
+  combinatoricsTool,
+  executeCombinatorics,
+  isCombinatoricsAvailable,
+} from './combinatorics-tool';
+
+// Number Theory (big-integer)
+export {
+  numberTheoryTool,
+  executeNumberTheory,
+  isNumberTheoryAvailable,
+} from './number-theory-tool';
+
+// Probability Distributions
+export {
+  probabilityDistTool,
+  executeProbabilityDist,
+  isProbabilityDistAvailable,
+} from './probability-dist-tool';
+
+// Polynomial Operations
+export {
+  polynomialOpsTool,
+  executePolynomialOps,
+  isPolynomialOpsAvailable,
+} from './polynomial-ops-tool';
+
+// Astronomy Calculations (astronomy-engine)
+export { astronomyTool, executeAstronomy, isAstronomyAvailable } from './astronomy-tool';
+
+// Coordinate Transformations (proj4)
+export {
+  coordinateTransformTool,
+  executeCoordinateTransform,
+  isCoordinateTransformAvailable,
+} from './coordinate-transform-tool';
+
+// Sequence Analysis
+export {
+  sequenceAnalyzeTool,
+  executeSequenceAnalyze,
+  isSequenceAnalyzeAvailable,
+} from './sequence-analyze-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -621,6 +709,41 @@ async function initializeTools() {
     './string-distance-tool'
   );
 
+  // Advanced Scientific Computing tools (12 new)
+  const { numericalIntegrateTool, executeNumericalIntegrate, isNumericalIntegrateAvailable } =
+    await import('./numerical-integrate-tool');
+  const { rootFinderTool, executeRootFinder, isRootFinderAvailable } = await import(
+    './root-finder-tool'
+  );
+  const { interpolationTool, executeInterpolation, isInterpolationAvailable } = await import(
+    './interpolation-tool'
+  );
+  const { specialFunctionsTool, executeSpecialFunctions, isSpecialFunctionsAvailable } =
+    await import('./special-functions-tool');
+  const { complexMathTool, executeComplexMath, isComplexMathAvailable } = await import(
+    './complex-math-tool'
+  );
+  const { combinatoricsTool, executeCombinatorics, isCombinatoricsAvailable } = await import(
+    './combinatorics-tool'
+  );
+  const { numberTheoryTool, executeNumberTheory, isNumberTheoryAvailable } = await import(
+    './number-theory-tool'
+  );
+  const { probabilityDistTool, executeProbabilityDist, isProbabilityDistAvailable } = await import(
+    './probability-dist-tool'
+  );
+  const { polynomialOpsTool, executePolynomialOps, isPolynomialOpsAvailable } = await import(
+    './polynomial-ops-tool'
+  );
+  const { astronomyTool, executeAstronomy, isAstronomyAvailable } = await import(
+    './astronomy-tool'
+  );
+  const { coordinateTransformTool, executeCoordinateTransform, isCoordinateTransformAvailable } =
+    await import('./coordinate-transform-tool');
+  const { sequenceAnalyzeTool, executeSequenceAnalyze, isSequenceAnalyzeAvailable } = await import(
+    './sequence-analyze-tool'
+  );
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -806,6 +929,59 @@ async function initializeTools() {
       tool: stringDistanceTool,
       executor: executeStringDistance,
       checkAvailability: isStringDistanceAvailable,
+    },
+    // Advanced Scientific Computing tools (12 new)
+    {
+      tool: numericalIntegrateTool,
+      executor: executeNumericalIntegrate,
+      checkAvailability: isNumericalIntegrateAvailable,
+    },
+    { tool: rootFinderTool, executor: executeRootFinder, checkAvailability: isRootFinderAvailable },
+    {
+      tool: interpolationTool,
+      executor: executeInterpolation,
+      checkAvailability: isInterpolationAvailable,
+    },
+    {
+      tool: specialFunctionsTool,
+      executor: executeSpecialFunctions,
+      checkAvailability: isSpecialFunctionsAvailable,
+    },
+    {
+      tool: complexMathTool,
+      executor: executeComplexMath,
+      checkAvailability: isComplexMathAvailable,
+    },
+    {
+      tool: combinatoricsTool,
+      executor: executeCombinatorics,
+      checkAvailability: isCombinatoricsAvailable,
+    },
+    {
+      tool: numberTheoryTool,
+      executor: executeNumberTheory,
+      checkAvailability: isNumberTheoryAvailable,
+    },
+    {
+      tool: probabilityDistTool,
+      executor: executeProbabilityDist,
+      checkAvailability: isProbabilityDistAvailable,
+    },
+    {
+      tool: polynomialOpsTool,
+      executor: executePolynomialOps,
+      checkAvailability: isPolynomialOpsAvailable,
+    },
+    { tool: astronomyTool, executor: executeAstronomy, checkAvailability: isAstronomyAvailable },
+    {
+      tool: coordinateTransformTool,
+      executor: executeCoordinateTransform,
+      checkAvailability: isCoordinateTransformAvailable,
+    },
+    {
+      tool: sequenceAnalyzeTool,
+      executor: executeSequenceAnalyze,
+      checkAvailability: isSequenceAnalyzeAvailable,
     }
   );
 

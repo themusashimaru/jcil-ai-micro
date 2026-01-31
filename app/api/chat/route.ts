@@ -308,6 +308,43 @@ import {
   stringDistanceTool,
   executeStringDistance,
   isStringDistanceAvailable,
+  // Advanced Scientific Computing Tools (12 new)
+  numericalIntegrateTool,
+  executeNumericalIntegrate,
+  isNumericalIntegrateAvailable,
+  rootFinderTool,
+  executeRootFinder,
+  isRootFinderAvailable,
+  interpolationTool,
+  executeInterpolation,
+  isInterpolationAvailable,
+  specialFunctionsTool,
+  executeSpecialFunctions,
+  isSpecialFunctionsAvailable,
+  complexMathTool,
+  executeComplexMath,
+  isComplexMathAvailable,
+  combinatoricsTool,
+  executeCombinatorics,
+  isCombinatoricsAvailable,
+  numberTheoryTool,
+  executeNumberTheory,
+  isNumberTheoryAvailable,
+  probabilityDistTool,
+  executeProbabilityDist,
+  isProbabilityDistAvailable,
+  polynomialOpsTool,
+  executePolynomialOps,
+  isPolynomialOpsAvailable,
+  astronomyTool,
+  executeAstronomy,
+  isAstronomyAvailable,
+  coordinateTransformTool,
+  executeCoordinateTransform,
+  isCoordinateTransformAvailable,
+  sequenceAnalyzeTool,
+  executeSequenceAnalyze,
+  isSequenceAnalyzeAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3740,6 +3777,19 @@ SECURITY:
     if (isTimeseriesAvailable()) tools.push(timeseriesTool);
     if (isTensorAvailable()) tools.push(tensorTool);
     if (isStringDistanceAvailable()) tools.push(stringDistanceTool);
+    // Advanced Scientific Computing (12 new)
+    if (isNumericalIntegrateAvailable()) tools.push(numericalIntegrateTool);
+    if (isRootFinderAvailable()) tools.push(rootFinderTool);
+    if (isInterpolationAvailable()) tools.push(interpolationTool);
+    if (isSpecialFunctionsAvailable()) tools.push(specialFunctionsTool);
+    if (isComplexMathAvailable()) tools.push(complexMathTool);
+    if (isCombinatoricsAvailable()) tools.push(combinatoricsTool);
+    if (isNumberTheoryAvailable()) tools.push(numberTheoryTool);
+    if (isProbabilityDistAvailable()) tools.push(probabilityDistTool);
+    if (isPolynomialOpsAvailable()) tools.push(polynomialOpsTool);
+    if (isAstronomyAvailable()) tools.push(astronomyTool);
+    if (isCoordinateTransformAvailable()) tools.push(coordinateTransformTool);
+    if (isSequenceAnalyzeAvailable()) tools.push(sequenceAnalyzeTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3819,6 +3869,19 @@ SECURITY:
         analyze_timeseries: 0.0001, // custom
         tensor_ops: 0.0001, // ndarray
         string_distance: 0.0001, // fastest-levenshtein
+        // Advanced Scientific Computing tools (12 new)
+        numerical_integrate: 0.0001, // quadrature methods
+        find_roots: 0.0001, // Newton, bisection, etc.
+        interpolate: 0.0001, // Lagrange, spline, etc.
+        special_functions: 0.0001, // Gamma, Bessel, etc.
+        complex_math: 0.0001, // complex.js
+        combinatorics: 0.0001, // js-combinatorics
+        number_theory: 0.0001, // big-integer
+        probability_dist: 0.0001, // distributions
+        polynomial_ops: 0.0001, // polynomial math
+        astronomy_calc: 0.0001, // astronomy-engine
+        coordinate_transform: 0.0001, // proj4
+        sequence_analyze: 0.0001, // pattern detection
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4069,6 +4132,43 @@ SECURITY:
             break;
           case 'string_distance':
             result = await executeStringDistance(toolCallWithSession);
+            break;
+          // Advanced Scientific Computing tools (12 new)
+          case 'numerical_integrate':
+            result = await executeNumericalIntegrate(toolCallWithSession);
+            break;
+          case 'find_roots':
+            result = await executeRootFinder(toolCallWithSession);
+            break;
+          case 'interpolate':
+            result = await executeInterpolation(toolCallWithSession);
+            break;
+          case 'special_functions':
+            result = await executeSpecialFunctions(toolCallWithSession);
+            break;
+          case 'complex_math':
+            result = await executeComplexMath(toolCallWithSession);
+            break;
+          case 'combinatorics':
+            result = await executeCombinatorics(toolCallWithSession);
+            break;
+          case 'number_theory':
+            result = await executeNumberTheory(toolCallWithSession);
+            break;
+          case 'probability_dist':
+            result = await executeProbabilityDist(toolCallWithSession);
+            break;
+          case 'polynomial_ops':
+            result = await executePolynomialOps(toolCallWithSession);
+            break;
+          case 'astronomy_calc':
+            result = await executeAstronomy(toolCallWithSession);
+            break;
+          case 'coordinate_transform':
+            result = await executeCoordinateTransform(toolCallWithSession);
+            break;
+          case 'sequence_analyze':
+            result = await executeSequenceAnalyze(toolCallWithSession);
             break;
           default:
             result = {
