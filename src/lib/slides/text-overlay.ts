@@ -7,6 +7,9 @@
 
 import { createCanvas, loadImage, GlobalFonts, SKRSContext2D } from '@napi-rs/canvas';
 import { existsSync } from 'fs';
+import { logger } from '@/lib/logger';
+
+const log = logger('TextOverlay');
 
 // Slide dimensions (16:9 aspect ratio)
 const SLIDE_WIDTH = 1920;
@@ -26,32 +29,49 @@ const TEXT_COLOR_LIGHT = '#FFFFFF';
 const TEXT_COLOR_DARK = '#1A1A2E';
 const SHADOW_COLOR = 'rgba(0, 0, 0, 0.5)';
 
+// Note: canvasAvailable would be used for fallback logic
+// but @napi-rs/canvas is always required for text rendering
+
 // Try to register system fonts
-function registerFonts() {
+function registerFonts(): boolean {
   const fontPaths = [
+    // Vercel/AWS Lambda paths (if fonts are bundled)
+    '/var/task/fonts/DejaVuSans-Bold.ttf',
+    '/var/task/fonts/DejaVuSans.ttf',
     // Common Linux paths
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+    '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
+    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
     // macOS paths
     '/System/Library/Fonts/Helvetica.ttc',
     '/Library/Fonts/Arial.ttf',
   ];
 
+  let fontsRegistered = 0;
   for (const fontPath of fontPaths) {
     if (existsSync(fontPath)) {
       try {
         GlobalFonts.registerFromPath(fontPath);
-      } catch {
-        // Font registration failed, continue with defaults
+        fontsRegistered++;
+        log.info('Font registered', { path: fontPath });
+      } catch (err) {
+        log.warn('Font registration failed', { path: fontPath, error: (err as Error).message });
       }
     }
   }
+
+  if (fontsRegistered === 0) {
+    log.warn('No fonts registered - text overlay may not work correctly');
+  }
+
+  return fontsRegistered > 0;
 }
 
 // Register fonts on module load
-registerFonts();
+const fontsLoaded = registerFonts();
 
 interface SlideTextContent {
   title: string;
@@ -154,21 +174,41 @@ export async function overlayTextOnSlide(
   content: SlideTextContent,
   options: TextOverlayOptions = {}
 ): Promise<Buffer> {
+  log.info('Starting text overlay', {
+    title: content.title,
+    bulletCount: content.bullets?.length || 0,
+    url: backgroundImageUrl.substring(0, 50) + '...',
+  });
+
   // Fetch the background image
   const response = await fetch(backgroundImageUrl, {
     headers: { 'User-Agent': 'JCIL-SlideRenderer/1.0' },
   });
 
   if (!response.ok) {
+    log.error('Failed to fetch background image', { status: response.status });
     throw new Error(`Failed to fetch background image: ${response.status}`);
   }
 
   const imageBuffer = Buffer.from(await response.arrayBuffer());
-  const backgroundImage = await loadImage(imageBuffer);
+  log.info('Background image fetched', { sizeBytes: imageBuffer.length });
+
+  let backgroundImage;
+  try {
+    backgroundImage = await loadImage(imageBuffer);
+    log.info('Image loaded into canvas', {
+      width: backgroundImage.width,
+      height: backgroundImage.height,
+    });
+  } catch (err) {
+    log.error('Failed to load image into canvas', { error: (err as Error).message });
+    throw err;
+  }
 
   // Analyze brightness to determine text color
   const isLightImage = options.darkText ?? (await analyzeImageBrightness(imageBuffer));
   const textColor = isLightImage ? TEXT_COLOR_DARK : TEXT_COLOR_LIGHT;
+  log.info('Text color determined', { isLightImage, textColor });
 
   // Create canvas
   const canvas = createCanvas(SLIDE_WIDTH, SLIDE_HEIGHT);
@@ -243,7 +283,19 @@ export async function overlayTextOnSlide(
   }
 
   // Export as PNG buffer
-  return canvas.toBuffer('image/png');
+  log.info('Rendering canvas to buffer', {
+    title: content.title,
+    bulletCount: content.bullets?.length || 0,
+  });
+
+  const outputBuffer = canvas.toBuffer('image/png');
+  log.info('Text overlay complete', {
+    title: content.title,
+    outputSizeBytes: outputBuffer.length,
+    fontsLoaded,
+  });
+
+  return outputBuffer;
 }
 
 /**
