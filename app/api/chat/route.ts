@@ -502,8 +502,10 @@ function findPreviousGeneratedImage(messages: CoreMessage[]): string | null {
 // SLIDE QUALITY CONTROL WITH INTELLIGENT AUTO-FIX
 // ============================================================================
 
-const SLIDE_QC_MAX_RETRIES = 2; // Max retry attempts per failed slide
-const SLIDE_QC_PASS_THRESHOLD = 6; // Score >= 6 passes
+// TEMPORARILY DISABLED: Set to 0 to prevent infinite regeneration loops
+// TODO: Re-enable once text overlay is reliably working
+const SLIDE_QC_MAX_RETRIES = 0; // Disabled - was causing infinite loops
+const SLIDE_QC_PASS_THRESHOLD = 3; // Lowered threshold - text overlay still being fixed
 
 interface SlideForQC {
   slideNumber: number;

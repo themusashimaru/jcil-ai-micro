@@ -240,27 +240,45 @@ export async function generateSingleSlide(
 
     onProgress?.(ProgressMessages.slideBackgroundComplete);
 
-    // Step 2: Overlay text on the background using canvas
+    // Step 2: Try to overlay text on the background
+    // Falls back to original image if text overlay fails
+    let storedUrl: string;
+    let hasTextOverlay = false;
+
     onProgress?.(ProgressMessages.slideTextStart);
 
-    const compositedBuffer = await overlayTextOnSlide(
-      result.imageUrl,
-      {
-        title: slide.title,
-        bullets: slide.bullets || [],
-      },
-      {
-        addOverlay: true,
-        overlayOpacity: 0.5,
-      }
-    );
+    try {
+      const compositedBuffer = await overlayTextOnSlide(
+        result.imageUrl,
+        {
+          title: slide.title,
+          bullets: slide.bullets || [],
+        },
+        {
+          addOverlay: true,
+          overlayOpacity: 0.5,
+        }
+      );
 
-    onProgress?.(ProgressMessages.slideTextComplete);
+      // Store the composited image
+      storedUrl = await storeBuffer(compositedBuffer, userId, genId, 'png');
+      hasTextOverlay = true;
+      onProgress?.(ProgressMessages.slideTextComplete);
+    } catch (overlayError) {
+      // Text overlay failed - fall back to storing original FLUX image
+      log.warn('Text overlay failed, using original image', {
+        slideNumber: slide.slideNumber,
+        error: (overlayError as Error).message,
+      });
 
-    // Step 3: Store the composited slide image to Supabase
-    const storedUrl = await storeBuffer(compositedBuffer, userId, genId, 'png');
+      // Download and store the original FLUX image
+      const { downloadAndStore } = await import('@/lib/connectors/bfl');
+      storedUrl = await downloadAndStore(result.imageUrl, userId, genId);
+      hasTextOverlay = false;
+      onProgress?.('  - [~] Text overlay skipped (using background only)\n');
+    }
 
-    // Step 4: Update generation record with results
+    // Step 3: Update generation record with results
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (serviceClient as any)
       .from('generations')
@@ -270,7 +288,7 @@ export async function generateSingleSlide(
         result_data: {
           seed: result.seed,
           enhancedPrompt: result.enhancedPrompt,
-          hasTextOverlay: true,
+          hasTextOverlay,
         },
         cost_credits: result.cost,
         completed_at: new Date().toISOString(),
