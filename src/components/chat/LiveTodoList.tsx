@@ -32,20 +32,23 @@ const STORAGE_KEY_PREFIX = 'chat_todos_';
  * These are system status messages that shouldn't appear in the interactive to-do list
  */
 const PROGRESS_INDICATOR_PATTERNS = [
-  // Slide generation progress
+  // Slide generation progress - COMPREHENSIVE patterns
   /^Researching topic$/i,
   /^Research complete$/i,
-  /^Designing slide layouts?$/i,
-  /^Slide \d+:/i, // "Slide 1: Title", "Slide 2: Introduction", etc.
+  /^Designing slide layout/i,
+  /^Slide \d+/i, // Matches "Slide 1: Title", "Slide 1 regenerated", etc.
+  /regenerated$/i, // Matches anything ending in "regenerated"
   /^Generating background$/i,
   /^Background complete$/i,
   /^Rendering text overlay$/i,
   /^Text overlay complete$/i,
   /^Running quality check$/i,
   /^Re-checking quality$/i,
-  /^Quality check/i, // "Quality check passed (8/10)", "Quality check (7/10) - fixing..."
-  /^Regenerating slide/i,
-  /slide\(s\) automatically improved$/i,
+  /^Quality check/i,
+  /^Regenerating/i, // "Regenerating slide 1", etc.
+  /automatically improved$/i,
+  /^Creating presentation/i,
+  /^Generating \d+ slides/i,
   // Image generation progress
   /^Generating image$/i,
   /^Image complete$/i,
@@ -64,6 +67,12 @@ const PROGRESS_INDICATOR_PATTERNS = [
   /^Processing scout findings$/i,
   /^Discovering insights$/i,
   /^Synthesizing strategy$/i,
+  // Generic progress patterns
+  /^Almost ready/i,
+  /^Processing/i,
+  /^Analyzing/i,
+  /^Fetching/i,
+  /^Loading/i,
 ];
 
 /**
