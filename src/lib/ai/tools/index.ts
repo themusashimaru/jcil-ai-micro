@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (58 total):
+ * Tools available (70 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -316,6 +316,58 @@ export {
   isAccessibilityAvailable,
 } from './accessibility-tool';
 
+// ============================================================================
+// COMPUTATIONAL & ALGORITHMIC TOOLS (12 new tools)
+// ============================================================================
+
+// Symbolic Math / CAS (nerdamer)
+export {
+  symbolicMathTool,
+  executeSymbolicMath,
+  isSymbolicMathAvailable,
+} from './symbolic-math-tool';
+
+// ODE Solver (odex)
+export { odeSolverTool, executeOdeSolver, isOdeSolverAvailable } from './ode-solver-tool';
+
+// Optimization / LP (javascript-lp-solver)
+export {
+  optimizationTool,
+  executeOptimization,
+  isOptimizationAvailable,
+} from './optimization-tool';
+
+// Financial Math (financial)
+export { financialTool, executeFinancial, isFinancialAvailable } from './financial-tool';
+
+// Music Theory (tonal)
+export { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } from './music-theory-tool';
+
+// Computational Geometry (delaunator + earcut)
+export { geometryTool, executeGeometry, isGeometryAvailable } from './geometry-tool';
+
+// Parser / Grammar (nearley)
+export { parserTool, executeParser, isParserAvailable } from './parser-tool';
+
+// Recurrence Rules (rrule)
+export { recurrenceTool, executeRecurrence, isRecurrenceAvailable } from './recurrence-tool';
+
+// Constraint Solver (logic-solver)
+export { constraintTool, executeConstraint, isConstraintAvailable } from './constraint-tool';
+
+// Time Series Analysis
+export { timeseriesTool, executeTimeseries, isTimeseriesAvailable } from './timeseries-tool';
+
+// Tensor / N-dimensional Arrays (ndarray)
+export { tensorTool, executeTensor, isTensorAvailable } from './tensor-tool';
+
+// String Distance / Fuzzy Matching (fastest-levenshtein)
+export {
+  stringDistanceTool,
+  executeStringDistance,
+  isStringDistanceAvailable,
+} from './string-distance-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -537,6 +589,38 @@ async function initializeTools() {
     './accessibility-tool'
   );
 
+  // Computational & Algorithmic tools (12 new)
+  const { symbolicMathTool, executeSymbolicMath, isSymbolicMathAvailable } = await import(
+    './symbolic-math-tool'
+  );
+  const { odeSolverTool, executeOdeSolver, isOdeSolverAvailable } = await import(
+    './ode-solver-tool'
+  );
+  const { optimizationTool, executeOptimization, isOptimizationAvailable } = await import(
+    './optimization-tool'
+  );
+  const { financialTool, executeFinancial, isFinancialAvailable } = await import(
+    './financial-tool'
+  );
+  const { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } = await import(
+    './music-theory-tool'
+  );
+  const { geometryTool, executeGeometry, isGeometryAvailable } = await import('./geometry-tool');
+  const { parserTool, executeParser, isParserAvailable } = await import('./parser-tool');
+  const { recurrenceTool, executeRecurrence, isRecurrenceAvailable } = await import(
+    './recurrence-tool'
+  );
+  const { constraintTool, executeConstraint, isConstraintAvailable } = await import(
+    './constraint-tool'
+  );
+  const { timeseriesTool, executeTimeseries, isTimeseriesAvailable } = await import(
+    './timeseries-tool'
+  );
+  const { tensorTool, executeTensor, isTensorAvailable } = await import('./tensor-tool');
+  const { stringDistanceTool, executeStringDistance, isStringDistanceAvailable } = await import(
+    './string-distance-tool'
+  );
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -681,6 +765,47 @@ async function initializeTools() {
       tool: accessibilityTool,
       executor: executeAccessibility,
       checkAvailability: isAccessibilityAvailable,
+    },
+    // Computational & Algorithmic tools (12 new)
+    {
+      tool: symbolicMathTool,
+      executor: executeSymbolicMath,
+      checkAvailability: isSymbolicMathAvailable,
+    },
+    { tool: odeSolverTool, executor: executeOdeSolver, checkAvailability: isOdeSolverAvailable },
+    {
+      tool: optimizationTool,
+      executor: executeOptimization,
+      checkAvailability: isOptimizationAvailable,
+    },
+    { tool: financialTool, executor: executeFinancial, checkAvailability: isFinancialAvailable },
+    {
+      tool: musicTheoryTool,
+      executor: executeMusicTheory,
+      checkAvailability: isMusicTheoryAvailable,
+    },
+    { tool: geometryTool, executor: executeGeometry, checkAvailability: isGeometryAvailable },
+    { tool: parserTool, executor: executeParser, checkAvailability: isParserAvailable },
+    {
+      tool: recurrenceTool,
+      executor: executeRecurrence,
+      checkAvailability: isRecurrenceAvailable,
+    },
+    {
+      tool: constraintTool,
+      executor: executeConstraint,
+      checkAvailability: isConstraintAvailable,
+    },
+    {
+      tool: timeseriesTool,
+      executor: executeTimeseries,
+      checkAvailability: isTimeseriesAvailable,
+    },
+    { tool: tensorTool, executor: executeTensor, checkAvailability: isTensorAvailable },
+    {
+      tool: stringDistanceTool,
+      executor: executeStringDistance,
+      checkAvailability: isStringDistanceAvailable,
     }
   );
 
