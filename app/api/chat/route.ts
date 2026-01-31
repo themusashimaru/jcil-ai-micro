@@ -345,6 +345,40 @@ import {
   sequenceAnalyzeTool,
   executeSequenceAnalyze,
   isSequenceAnalyzeAvailable,
+  // Tier Omega - Advanced Scientific Computing (12 new tools)
+  mlToolkitTool,
+  executeMLToolkit,
+  isMLToolkitAvailable,
+  quantumCircuitTool,
+  executeQuantumCircuit,
+  isQuantumCircuitAvailable,
+  controlTheoryTool,
+  executeControlTheory,
+  isControlTheoryAvailable,
+  monteCarloTool,
+  executeMonteCarlo,
+  isMonteCarloAvailable,
+  gameTheoryTool,
+  executeGameTheory,
+  isGameTheoryAvailable,
+  orbitalMechanicsTool,
+  executeOrbitalMechanics,
+  isOrbitalMechanicsAvailable,
+  thermodynamicsTool,
+  executeThermodynamics,
+  isThermodynamicsAvailable,
+  emFieldsTool,
+  executeEMFields,
+  isEMFieldsAvailable,
+  imageComputeTool,
+  executeImageCompute,
+  isImageComputeAvailable,
+  waveletTransformTool,
+  executeWaveletTransform,
+  isWaveletTransformAvailable,
+  latexRenderTool,
+  executeLatexRender,
+  isLatexRenderAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3791,6 +3825,19 @@ SECURITY:
     if (isCoordinateTransformAvailable()) tools.push(coordinateTransformTool);
     if (isSequenceAnalyzeAvailable()) tools.push(sequenceAnalyzeTool);
 
+    // Tier Omega - Advanced Scientific Computing tools
+    if (isMLToolkitAvailable()) tools.push(mlToolkitTool);
+    if (isQuantumCircuitAvailable()) tools.push(quantumCircuitTool);
+    if (isControlTheoryAvailable()) tools.push(controlTheoryTool);
+    if (isMonteCarloAvailable()) tools.push(monteCarloTool);
+    if (isGameTheoryAvailable()) tools.push(gameTheoryTool);
+    if (isOrbitalMechanicsAvailable()) tools.push(orbitalMechanicsTool);
+    if (isThermodynamicsAvailable()) tools.push(thermodynamicsTool);
+    if (isEMFieldsAvailable()) tools.push(emFieldsTool);
+    if (isImageComputeAvailable()) tools.push(imageComputeTool);
+    if (isWaveletTransformAvailable()) tools.push(waveletTransformTool);
+    if (isLatexRenderAvailable()) tools.push(latexRenderTool);
+
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
     // Session ID for cost tracking
@@ -3882,6 +3929,18 @@ SECURITY:
         astronomy_calc: 0.0001, // astronomy-engine
         coordinate_transform: 0.0001, // proj4
         sequence_analyze: 0.0001, // pattern detection
+        // Tier Omega - Advanced Scientific Computing
+        ml_toolkit: 0.0001, // machine learning
+        quantum_circuit: 0.0001, // quantum computing
+        control_theory: 0.0001, // control systems
+        monte_carlo_sim: 0.0001, // monte carlo
+        game_solver: 0.0001, // game theory
+        orbital_calc: 0.0001, // orbital mechanics
+        thermo_calc: 0.0001, // thermodynamics
+        em_fields: 0.0001, // electromagnetics
+        image_compute: 0.0001, // image processing
+        wavelet_transform: 0.0001, // wavelets
+        latex_render: 0.0001, // latex rendering
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4169,6 +4228,40 @@ SECURITY:
             break;
           case 'sequence_analyze':
             result = await executeSequenceAnalyze(toolCallWithSession);
+            break;
+          // Tier Omega - Advanced Scientific Computing
+          case 'ml_toolkit':
+            result = await executeMLToolkit(toolCallWithSession);
+            break;
+          case 'quantum_circuit':
+            result = await executeQuantumCircuit(toolCallWithSession);
+            break;
+          case 'control_theory':
+            result = await executeControlTheory(toolCallWithSession);
+            break;
+          case 'monte_carlo_sim':
+            result = await executeMonteCarlo(toolCallWithSession);
+            break;
+          case 'game_solver':
+            result = await executeGameTheory(toolCallWithSession);
+            break;
+          case 'orbital_calc':
+            result = await executeOrbitalMechanics(toolCallWithSession);
+            break;
+          case 'thermo_calc':
+            result = await executeThermodynamics(toolCallWithSession);
+            break;
+          case 'em_fields':
+            result = await executeEMFields(toolCallWithSession);
+            break;
+          case 'image_compute':
+            result = await executeImageCompute(toolCallWithSession);
+            break;
+          case 'wavelet_transform':
+            result = await executeWaveletTransform(toolCallWithSession);
+            break;
+          case 'latex_render':
+            result = await executeLatexRender(toolCallWithSession);
             break;
           default:
             result = {
