@@ -99,6 +99,22 @@ import {
   httpRequestTool,
   executeHttpRequest,
   isHttpRequestAvailable,
+  // QR Code Tool
+  qrCodeTool,
+  executeQRCode,
+  isQRCodeAvailable,
+  // Image Transform Tool
+  imageTransformTool,
+  executeImageTransform,
+  isImageTransformAvailable,
+  // File Convert Tool
+  fileConvertTool,
+  executeFileConvert,
+  isFileConvertAvailable,
+  // Link Shorten Tool
+  linkShortenTool,
+  executeLinkShorten,
+  isLinkShortenAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3476,6 +3492,10 @@ SECURITY:
     if (isAudioTranscribeAvailable()) tools.push(audioTranscribeTool);
     if (isSpreadsheetAvailable()) tools.push(spreadsheetTool);
     if (isHttpRequestAvailable()) tools.push(httpRequestTool);
+    if (isQRCodeAvailable()) tools.push(qrCodeTool);
+    if (await isImageTransformAvailable()) tools.push(imageTransformTool);
+    if (isFileConvertAvailable()) tools.push(fileConvertTool);
+    if (isLinkShortenAvailable()) tools.push(linkShortenTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3500,6 +3520,10 @@ SECURITY:
         transcribe_audio: 0.006, // Whisper API
         create_spreadsheet: 0.001, // Local processing
         http_request: 0.0001, // Just network call
+        generate_qr_code: 0.0001, // Local processing
+        transform_image: 0.001, // Local Sharp processing
+        convert_file: 0.001, // Local conversion
+        shorten_link: 0.0001, // External API call
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3592,6 +3616,18 @@ SECURITY:
             break;
           case 'http_request':
             result = await executeHttpRequest(toolCallWithSession);
+            break;
+          case 'generate_qr_code':
+            result = await executeQRCode(toolCallWithSession);
+            break;
+          case 'transform_image':
+            result = await executeImageTransform(toolCallWithSession);
+            break;
+          case 'convert_file':
+            result = await executeFileConvert(toolCallWithSession);
+            break;
+          case 'shorten_link':
+            result = await executeLinkShorten(toolCallWithSession);
             break;
           default:
             result = {

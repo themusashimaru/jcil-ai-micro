@@ -7,7 +7,7 @@
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
 [![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
-[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-18-green)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-22-green)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
 
 ---
@@ -210,11 +210,11 @@ $20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
 
 ---
 
-## Chat AI Tools (18 Tools)
+## Chat AI Tools (22 Tools)
 
-**Updated:** January 31, 2026 at 11:30 AM UTC
+**Updated:** January 31, 2026 at 12:00 PM UTC
 
-The main chat interface provides **18 AI-powered tools** that enable the assistant to take real actions:
+The main chat interface provides **22 AI-powered tools** that enable the assistant to take real actions:
 
 ### Research & Information
 
@@ -233,16 +233,19 @@ The main chat interface provides **18 AI-powered tools** that enable the assista
 | `create_document`    | Generate PDF, DOCX, TXT documents              | -           |
 | `create_spreadsheet` | Excel files with formulas (SUM, VLOOKUP, etc.) | -           |
 | `screenshot`         | Capture webpage screenshots                    | E2B_API_KEY |
+| `generate_qr_code`   | Create QR codes from text/URLs                 | -           |
 
 ### Analysis & Processing
 
-| Tool               | Description                      | Requires          |
-| ------------------ | -------------------------------- | ----------------- |
-| `analyze_image`    | Claude Vision image analysis     | ANTHROPIC_API_KEY |
-| `extract_pdf_url`  | Extract text from PDF URLs       | -                 |
-| `extract_table`    | Vision-based table extraction    | ANTHROPIC_API_KEY |
-| `transcribe_audio` | Audio to text via Whisper        | OPENAI_API_KEY    |
-| `calculator`       | Advanced math with Wolfram Alpha | WOLFRAM_APP_ID    |
+| Tool               | Description                              | Requires          |
+| ------------------ | ---------------------------------------- | ----------------- |
+| `analyze_image`    | Claude Vision image analysis             | ANTHROPIC_API_KEY |
+| `extract_pdf_url`  | Extract text from PDF URLs               | -                 |
+| `extract_table`    | Vision-based table extraction            | ANTHROPIC_API_KEY |
+| `transcribe_audio` | Audio to text via Whisper                | OPENAI_API_KEY    |
+| `calculator`       | Advanced math with Wolfram Alpha         | WOLFRAM_APP_ID    |
+| `transform_image`  | Resize, compress, convert, watermark     | -                 |
+| `convert_file`     | Convert between formats (MD, HTML, JSON) | -                 |
 
 ### Code & Automation
 
@@ -252,6 +255,7 @@ The main chat interface provides **18 AI-powered tools** that enable the assista
 | `browser_visit`       | Full browser automation          | E2B_API_KEY |
 | `http_request`        | Call any API or webhook          | -           |
 | `create_and_run_tool` | Dynamic tool creation            | E2B_API_KEY |
+| `shorten_link`        | Create shortened URLs            | -           |
 
 ### Multi-Agent
 
@@ -674,7 +678,7 @@ Copyright (c) 2024-2026 JCIL.AI
 
 <div align="center">
 
-**Built with Anthropic Claude** | **55+ Code Lab Tools** | **18 Chat Tools** | **5 MCP Servers** | **Cloud Sandboxed**
+**Built with Anthropic Claude** | **55+ Code Lab Tools** | **22 Chat Tools** | **5 MCP Servers** | **Cloud Sandboxed**
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
 
