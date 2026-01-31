@@ -3,14 +3,14 @@
 ## Complete Tool Catalog
 
 **Last Updated:** January 31, 2026
-**Total Tools:** 46
+**Total Tools:** 58
 **Prepared by:** Chief Engineering Officer
 
 ---
 
 ## Executive Summary
 
-The JCIL.AI platform provides Claude Sonnet 4.5 with unrestricted access to 46 powerful tools. All tools are fully wired, tested, and production-ready. This document serves as the authoritative reference for all available chat capabilities.
+The JCIL.AI platform provides Claude Sonnet 4.5 with unrestricted access to 58 powerful tools. All tools are fully wired, tested, and production-ready. This document serves as the authoritative reference for all available chat capabilities.
 
 ---
 
@@ -18,14 +18,15 @@ The JCIL.AI platform provides Claude Sonnet 4.5 with unrestricted access to 46 p
 
 ### Category Overview
 
-| Category               | Tool Count | Description                                    |
-| ---------------------- | ---------- | ---------------------------------------------- |
-| **Web & Research**     | 5          | Web scraping, search, browser automation       |
-| **Code & Development** | 6          | Code execution, formatting, diagrams           |
-| **Media & Images**     | 7          | OCR, image processing, charts, screenshots     |
-| **Documents & Data**   | 10         | PDF, Excel, spreadsheets, SQL, data processing |
-| **Text Processing**    | 4          | NLP, entity extraction, diff comparison        |
-| **Utilities**          | 14         | Crypto, ZIP, validators, converters, etc.      |
+| Category                  | Tool Count | Description                                     |
+| ------------------------- | ---------- | ----------------------------------------------- |
+| **Web & Research**        | 5          | Web scraping, search, browser automation        |
+| **Code & Development**    | 6          | Code execution, formatting, diagrams            |
+| **Media & Images**        | 7          | OCR, image processing, charts, screenshots      |
+| **Documents & Data**      | 10         | PDF, Excel, spreadsheets, SQL, data processing  |
+| **Text Processing**       | 4          | NLP, entity extraction, diff comparison         |
+| **Utilities**             | 14         | Crypto, ZIP, validators, converters, etc.       |
+| **Scientific & Research** | 12         | Statistics, chemistry, biology, physics, graphs |
 
 ---
 
@@ -107,6 +108,23 @@ The JCIL.AI platform provides Claude Sonnet 4.5 with unrestricted access to 46 p
 | 45  | `audio_synth`      | executeAudioSynth  | Audio synthesis specifications with Tone.js |
 | 46  | `media_process`    | executeMedia       | Audio/video processing with FFmpeg.wasm     |
 
+### 7. Scientific & Research Tools (12)
+
+| #   | Tool Name             | Function                | Description                                                       |
+| --- | --------------------- | ----------------------- | ----------------------------------------------------------------- |
+| 47  | `analyze_statistics`  | executeStatistics       | Statistical analysis: t-test, ANOVA, regression, correlation      |
+| 48  | `geo_calculate`       | executeGeospatial       | Geospatial calculations with turf.js (distance, area, bearing)    |
+| 49  | `phone_validate`      | executePhone            | Phone number validation and formatting (libphonenumber-js)        |
+| 50  | `analyze_password`    | executePasswordStrength | Password strength analysis with pattern detection (zxcvbn)        |
+| 51  | `analyze_molecule`    | executeChemistry        | Chemistry/molecular analysis: SMILES, properties (openchemlib-js) |
+| 52  | `analyze_sequence`    | executeDnaBio           | DNA/RNA/protein sequences: complement, translate, GC content      |
+| 53  | `matrix_compute`      | executeMatrix           | Linear algebra: eigenvalues, SVD, matrix operations (ml-matrix)   |
+| 54  | `analyze_graph`       | executeGraph            | Network/graph analysis: shortest path, centrality (graphology)    |
+| 55  | `periodic_table`      | executePeriodicTable    | Element properties lookup and molecular mass calculation          |
+| 56  | `physics_constants`   | executePhysicsConstants | Physical constants lookup and unit calculations                   |
+| 57  | `signal_process`      | executeSignal           | FFT/signal processing: spectrum analysis, waveforms (fft-js)      |
+| 58  | `check_accessibility` | executeAccessibility    | WCAG accessibility checking for HTML content                      |
+
 ---
 
 ## Tool Execution Architecture
@@ -129,7 +147,7 @@ All tools are registered in two locations:
 
 1. **Tool Index** (`/src/lib/ai/tools/index.ts`)
    - Static tool definitions exported
-   - CHAT_TOOLS array with all 46 tools
+   - CHAT_TOOLS array with all 58 tools
    - Lazy loading for optimal performance
 
 2. **Chat Route** (`/app/api/chat/route.ts`)
@@ -156,6 +174,7 @@ All tools include availability checks:
 | Tool Category    | Cost Range   | Notes                           |
 | ---------------- | ------------ | ------------------------------- |
 | Local tools      | $0.0001      | Runs entirely in-browser/server |
+| Scientific tools | $0.0001      | Local computation only          |
 | Web tools        | $0.001-$0.01 | API calls to external services  |
 | Code execution   | $0.001-$0.05 | E2B sandbox time                |
 | Image processing | $0.001-$0.01 | Compute-intensive               |
@@ -164,36 +183,37 @@ All tools include availability checks:
 
 ## Recent Updates
 
-### January 31, 2026 - Tier S/A/B Tool Expansion
+### January 31, 2026 - Scientific & Research Tools (58 Total)
 
-Added 18 new local-only tools:
+Added 12 new scientific/research tools for pharmaceutical, physics, chemistry, and biology research:
 
-**Tier S (Game Changers):**
+**Statistical & Data Science:**
 
-- `ocr_extract_text` - Tesseract.js OCR
-- `pdf_manipulate` - pdf-lib PDF operations
-- `media_process` - FFmpeg.wasm audio/video
-- `query_data_sql` - sql.js SQLite database
-- `excel_advanced` - SheetJS Excel processing
+- `analyze_statistics` - T-test, ANOVA, regression, correlation (simple-statistics + jstat)
+- `matrix_compute` - Linear algebra, eigenvalues, SVD (ml-matrix)
+- `analyze_graph` - Network analysis, shortest path, centrality (graphology)
+- `signal_process` - FFT, signal analysis, waveforms (fft-js)
 
-**Tier A (High Value):**
+**Chemistry & Biology:**
 
-- `format_code` - Prettier code formatting
-- `crypto_toolkit` - jose JWT/encryption
-- `zip_files` - JSZip archives
-- `capture_webpage` - Puppeteer captures
-- `math_compute` - math.js computations
-- `image_metadata` - exifr metadata
-- `search_index` - Lunr.js search
+- `analyze_molecule` - SMILES parsing, molecular properties (openchemlib-js)
+- `analyze_sequence` - DNA/RNA/protein analysis, translation, GC content
+- `periodic_table` - Element lookup, molecular mass calculations
 
-**Tier B (Utilities):**
+**Physics & Engineering:**
 
-- `ascii_art` - FIGlet ASCII art
-- `color_tools` - chroma-js colors
-- `validate_data` - validator.js
-- `cron_explain` - cron-parser
-- `convert_units` - convert-units
-- `audio_synth` - Tone.js specs
+- `physics_constants` - Physical constants (c, h, G, etc.) with calculations
+- `geo_calculate` - Geospatial calculations (turf.js)
+
+**Security & Validation:**
+
+- `phone_validate` - International phone validation (libphonenumber-js)
+- `analyze_password` - Password strength scoring (zxcvbn)
+- `check_accessibility` - WCAG accessibility checking
+
+### January 31, 2026 - Tier S/A/B Tool Expansion (46 Total)
+
+Added 18 local-only tools covering OCR, PDF, media processing, SQL, Excel, code formatting, and utilities.
 
 ---
 
@@ -201,8 +221,8 @@ Added 18 new local-only tools:
 
 | Check                                                 | Status      |
 | ----------------------------------------------------- | ----------- |
-| All 46 tools exported from index.ts                   | ✅ Verified |
-| All 46 tools have switch cases in route.ts            | ✅ Verified |
+| All 58 tools exported from index.ts                   | ✅ Verified |
+| All 58 tools have switch cases in route.ts            | ✅ Verified |
 | All tool names match between definitions and handlers | ✅ Verified |
 | Build passes with no TypeScript errors                | ✅ Verified |
 | All tools have proper documentation headers           | ✅ Verified |
