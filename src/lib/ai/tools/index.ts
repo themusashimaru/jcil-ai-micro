@@ -4,13 +4,13 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (28 total):
+ * Tools available (46 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
  * - analyze_image: Vision analysis with Claude
  * - browser_visit: Full browser via Puppeteer
- * - extract_pdf_url: Extract text from PDF URLs
+ * - extract_pdf: Extract text from PDF URLs
  * - extract_table: Vision-based table extraction
  * - parallel_research: Mini-agent orchestrator (5-10 agents max)
  * - create_and_run_tool: Dynamic tool creation (cost-limited)
@@ -33,6 +33,24 @@
  * - analyze_text_nlp: NLP analysis (sentiment, tokenize, stem, etc.)
  * - extract_entities: Extract named entities from text
  * - generate_barcode: Create barcodes (CODE128, EAN, UPC, etc.)
+ * - ocr_extract_text: Extract text from images (Tesseract.js OCR)
+ * - pdf_manipulate: Create, merge, split, watermark PDFs (pdf-lib)
+ * - media_process: Audio/video processing (FFmpeg.js)
+ * - query_data_sql: SQL queries on data (SQL.js)
+ * - excel_advanced: Advanced Excel manipulation (SheetJS)
+ * - format_code: Code formatting (Prettier)
+ * - crypto_toolkit: JWT, encryption, hashing (jose)
+ * - zip_files: Create/extract ZIP archives (JSZip)
+ * - capture_webpage: Web screenshots and PDFs (Puppeteer)
+ * - math_compute: Advanced math and unit conversion (math.js)
+ * - image_metadata: EXIF/metadata extraction (exifr)
+ * - search_index: Full-text search indexing (Lunr.js)
+ * - ascii_art: ASCII art text generation (FIGlet)
+ * - color_tools: Color manipulation and palettes (chroma-js)
+ * - validate_data: Data validation (validator.js)
+ * - cron_explain: Cron expression parsing
+ * - convert_units: Unit conversions (convert-units)
+ * - audio_synth: Audio tone generation specs (Tone.js)
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
@@ -171,6 +189,64 @@ export {
 
 // Barcode Generation (JsBarcode)
 export { barcodeTool, executeBarcode, isBarcodeAvailable } from './barcode-tool';
+
+// ============================================================================
+// NEW TIER S/A/B TOOLS (19 new tools)
+// ============================================================================
+
+// OCR - Text extraction from images (Tesseract.js)
+export { ocrTool, executeOCR, isOCRAvailable } from './ocr-tool';
+
+// PDF Manipulation (pdf-lib)
+export { pdfTool, executePDF, isPDFAvailable } from './pdf-tool';
+
+// Media Processing (FFmpeg.js)
+export { mediaTool, executeMedia, isMediaAvailable } from './media-tool';
+
+// SQL Queries (SQL.js)
+export { sqlTool, executeSQL, isSQLAvailable } from './sql-tool';
+
+// Advanced Excel (SheetJS xlsx)
+export { excelTool, executeExcel, isExcelAvailable } from './excel-tool';
+
+// Code Formatting (Prettier)
+export { prettierTool, executePrettier, isPrettierAvailable } from './prettier-tool';
+
+// Cryptography (jose)
+export { cryptoTool, executeCryptoTool, isCryptoToolAvailable } from './crypto-tool';
+
+// ZIP Files (JSZip)
+export { zipTool, executeZip, isZipAvailable } from './zip-tool';
+
+// Web Capture (Puppeteer)
+export { webCaptureTool, executeWebCapture, isWebCaptureAvailable } from './web-capture-tool';
+
+// Advanced Math (math.js)
+export { mathTool, executeMath, isMathAvailable } from './math-tool';
+
+// EXIF/Image Metadata (exifr)
+export { exifTool, executeExif, isExifAvailable } from './exif-tool';
+
+// Search Index (Lunr.js)
+export { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } from './search-index-tool';
+
+// ASCII Art (FIGlet)
+export { asciiArtTool, executeAsciiArt, isAsciiArtAvailable } from './ascii-art-tool';
+
+// Color Tools (chroma-js)
+export { colorTool, executeColor, isColorAvailable } from './color-tool';
+
+// Data Validation (validator.js)
+export { validatorTool, executeValidator, isValidatorAvailable } from './validator-tool';
+
+// Cron Expression (cron-parser)
+export { cronTool, executeCron, isCronAvailable } from './cron-tool';
+
+// Unit Conversion (convert-units)
+export { unitConvertTool, executeUnitConvert, isUnitConvertAvailable } from './unit-convert-tool';
+
+// Audio Synthesis (Tone.js)
+export { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } from './audio-synth-tool';
 
 // Workflow Tasks (Claude Code style todo lists)
 export {
@@ -337,6 +413,36 @@ async function initializeTools() {
     await import('./entity-extraction-tool');
   const { barcodeTool, executeBarcode, isBarcodeAvailable } = await import('./barcode-tool');
 
+  // New Tier S/A/B tools (19 new tools)
+  const { ocrTool, executeOCR, isOCRAvailable } = await import('./ocr-tool');
+  const { pdfTool, executePDF, isPDFAvailable } = await import('./pdf-tool');
+  const { mediaTool, executeMedia, isMediaAvailable } = await import('./media-tool');
+  const { sqlTool, executeSQL, isSQLAvailable } = await import('./sql-tool');
+  const { excelTool, executeExcel, isExcelAvailable } = await import('./excel-tool');
+  const { prettierTool, executePrettier, isPrettierAvailable } = await import('./prettier-tool');
+  const { cryptoTool, executeCryptoTool, isCryptoToolAvailable } = await import('./crypto-tool');
+  const { zipTool, executeZip, isZipAvailable } = await import('./zip-tool');
+  const { webCaptureTool, executeWebCapture, isWebCaptureAvailable } = await import(
+    './web-capture-tool'
+  );
+  const { mathTool, executeMath, isMathAvailable } = await import('./math-tool');
+  const { exifTool, executeExif, isExifAvailable } = await import('./exif-tool');
+  const { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } = await import(
+    './search-index-tool'
+  );
+  const { asciiArtTool, executeAsciiArt, isAsciiArtAvailable } = await import('./ascii-art-tool');
+  const { colorTool, executeColor, isColorAvailable } = await import('./color-tool');
+  const { validatorTool, executeValidator, isValidatorAvailable } = await import(
+    './validator-tool'
+  );
+  const { cronTool, executeCron, isCronAvailable } = await import('./cron-tool');
+  const { unitConvertTool, executeUnitConvert, isUnitConvertAvailable } = await import(
+    './unit-convert-tool'
+  );
+  const { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } = await import(
+    './audio-synth-tool'
+  );
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -425,7 +531,34 @@ async function initializeTools() {
       executor: executeEntityExtraction,
       checkAvailability: isEntityExtractionAvailable,
     },
-    { tool: barcodeTool, executor: executeBarcode, checkAvailability: isBarcodeAvailable }
+    { tool: barcodeTool, executor: executeBarcode, checkAvailability: isBarcodeAvailable },
+    // New Tier S/A/B tools (19 new)
+    { tool: ocrTool, executor: executeOCR, checkAvailability: isOCRAvailable },
+    { tool: pdfTool, executor: executePDF, checkAvailability: isPDFAvailable },
+    { tool: mediaTool, executor: executeMedia, checkAvailability: isMediaAvailable },
+    { tool: sqlTool, executor: executeSQL, checkAvailability: isSQLAvailable },
+    { tool: excelTool, executor: executeExcel, checkAvailability: isExcelAvailable },
+    { tool: prettierTool, executor: executePrettier, checkAvailability: isPrettierAvailable },
+    { tool: cryptoTool, executor: executeCryptoTool, checkAvailability: isCryptoToolAvailable },
+    { tool: zipTool, executor: executeZip, checkAvailability: isZipAvailable },
+    { tool: webCaptureTool, executor: executeWebCapture, checkAvailability: isWebCaptureAvailable },
+    { tool: mathTool, executor: executeMath, checkAvailability: isMathAvailable },
+    { tool: exifTool, executor: executeExif, checkAvailability: isExifAvailable },
+    {
+      tool: searchIndexTool,
+      executor: executeSearchIndex,
+      checkAvailability: isSearchIndexAvailable,
+    },
+    { tool: asciiArtTool, executor: executeAsciiArt, checkAvailability: isAsciiArtAvailable },
+    { tool: colorTool, executor: executeColor, checkAvailability: isColorAvailable },
+    { tool: validatorTool, executor: executeValidator, checkAvailability: isValidatorAvailable },
+    { tool: cronTool, executor: executeCron, checkAvailability: isCronAvailable },
+    {
+      tool: unitConvertTool,
+      executor: executeUnitConvert,
+      checkAvailability: isUnitConvertAvailable,
+    },
+    { tool: audioSynthTool, executor: executeAudioSynth, checkAvailability: isAudioSynthAvailable }
   );
 
   toolsInitialized = true;

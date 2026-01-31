@@ -139,6 +139,78 @@ import {
   barcodeTool,
   executeBarcode,
   isBarcodeAvailable,
+  // OCR Tool (Tesseract.js)
+  ocrTool,
+  executeOCR,
+  isOCRAvailable,
+  // PDF Tool (pdf-lib)
+  pdfTool,
+  executePDF,
+  isPDFAvailable,
+  // Media Tool (FFmpeg.js)
+  mediaTool,
+  executeMedia,
+  isMediaAvailable,
+  // SQL Tool (SQL.js)
+  sqlTool,
+  executeSQL,
+  isSQLAvailable,
+  // Excel Tool (SheetJS)
+  excelTool,
+  executeExcel,
+  isExcelAvailable,
+  // Prettier Tool
+  prettierTool,
+  executePrettier,
+  isPrettierAvailable,
+  // Crypto Tool (jose)
+  cryptoTool,
+  executeCryptoTool,
+  isCryptoToolAvailable,
+  // ZIP Tool (JSZip)
+  zipTool,
+  executeZip,
+  isZipAvailable,
+  // Web Capture Tool (Puppeteer)
+  webCaptureTool,
+  executeWebCapture,
+  isWebCaptureAvailable,
+  // Math Tool (math.js)
+  mathTool,
+  executeMath,
+  isMathAvailable,
+  // EXIF Tool (exifr)
+  exifTool,
+  executeExif,
+  isExifAvailable,
+  // Search Index Tool (Lunr.js)
+  searchIndexTool,
+  executeSearchIndex,
+  isSearchIndexAvailable,
+  // ASCII Art Tool (FIGlet)
+  asciiArtTool,
+  executeAsciiArt,
+  isAsciiArtAvailable,
+  // Color Tool (chroma-js)
+  colorTool,
+  executeColor,
+  isColorAvailable,
+  // Validator Tool
+  validatorTool,
+  executeValidator,
+  isValidatorAvailable,
+  // Cron Tool
+  cronTool,
+  executeCron,
+  isCronAvailable,
+  // Unit Convert Tool
+  unitConvertTool,
+  executeUnitConvert,
+  isUnitConvertAvailable,
+  // Audio Synth Tool
+  audioSynthTool,
+  executeAudioSynth,
+  isAudioSynthAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3526,6 +3598,25 @@ SECURITY:
     if (await isNLPAvailable()) tools.push(nlpTool);
     if (await isEntityExtractionAvailable()) tools.push(entityExtractionTool);
     if (await isBarcodeAvailable()) tools.push(barcodeTool);
+    // New Tier S/A/B tools (19 new)
+    if (isOCRAvailable()) tools.push(ocrTool);
+    if (isPDFAvailable()) tools.push(pdfTool);
+    if (isMediaAvailable()) tools.push(mediaTool);
+    if (isSQLAvailable()) tools.push(sqlTool);
+    if (isExcelAvailable()) tools.push(excelTool);
+    if (isPrettierAvailable()) tools.push(prettierTool);
+    if (isCryptoToolAvailable()) tools.push(cryptoTool);
+    if (isZipAvailable()) tools.push(zipTool);
+    if (isWebCaptureAvailable()) tools.push(webCaptureTool);
+    if (isMathAvailable()) tools.push(mathTool);
+    if (isExifAvailable()) tools.push(exifTool);
+    if (isSearchIndexAvailable()) tools.push(searchIndexTool);
+    if (isAsciiArtAvailable()) tools.push(asciiArtTool);
+    if (isColorAvailable()) tools.push(colorTool);
+    if (isValidatorAvailable()) tools.push(validatorTool);
+    if (isCronAvailable()) tools.push(cronTool);
+    if (isUnitConvertAvailable()) tools.push(unitConvertTool);
+    if (isAudioSynthAvailable()) tools.push(audioSynthTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3560,6 +3651,25 @@ SECURITY:
         analyze_text_nlp: 0.0002, // Local NLP processing
         extract_entities: 0.0002, // Local Compromise processing
         generate_barcode: 0.0001, // Local JsBarcode processing
+        // New Tier S/A/B tools (19 new)
+        ocr_extract_text: 0.002, // Tesseract OCR processing
+        pdf_manipulate: 0.001, // pdf-lib processing
+        media_process: 0.01, // FFmpeg processing
+        query_data_sql: 0.0001, // SQL.js query
+        excel_advanced: 0.001, // SheetJS processing
+        format_code: 0.0001, // Prettier formatting
+        crypto_toolkit: 0.0001, // jose crypto operations
+        zip_files: 0.0005, // JSZip processing
+        capture_webpage: 0.005, // Puppeteer capture
+        math_compute: 0.0001, // math.js computation
+        image_metadata: 0.0001, // exifr metadata extraction
+        search_index: 0.0002, // Lunr.js indexing
+        ascii_art: 0.0001, // FIGlet text
+        color_tools: 0.0001, // chroma-js operations
+        validate_data: 0.0001, // validator.js validation
+        cron_explain: 0.0001, // cron-parser
+        convert_units: 0.0001, // convert-units
+        audio_synth: 0.0001, // Tone.js specs
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3614,7 +3724,7 @@ SECURITY:
           case 'browser_visit':
             result = await executeBrowserVisitTool(toolCallWithSession);
             break;
-          case 'extract_pdf_url':
+          case 'extract_pdf':
             result = await executeExtractPdf(toolCallWithSession);
             break;
           case 'extract_table':
@@ -3682,6 +3792,61 @@ SECURITY:
             break;
           case 'generate_barcode':
             result = await executeBarcode(toolCallWithSession);
+            break;
+          // New Tier S/A/B tools (19 new)
+          case 'ocr_extract_text':
+            result = await executeOCR(toolCallWithSession);
+            break;
+          case 'pdf_manipulate':
+            result = await executePDF(toolCallWithSession);
+            break;
+          case 'media_process':
+            result = await executeMedia(toolCallWithSession);
+            break;
+          case 'query_data_sql':
+            result = await executeSQL(toolCallWithSession);
+            break;
+          case 'excel_advanced':
+            result = await executeExcel(toolCallWithSession);
+            break;
+          case 'format_code':
+            result = await executePrettier(toolCallWithSession);
+            break;
+          case 'crypto_toolkit':
+            result = await executeCryptoTool(toolCallWithSession);
+            break;
+          case 'zip_files':
+            result = await executeZip(toolCallWithSession);
+            break;
+          case 'capture_webpage':
+            result = await executeWebCapture(toolCallWithSession);
+            break;
+          case 'math_compute':
+            result = await executeMath(toolCallWithSession);
+            break;
+          case 'image_metadata':
+            result = await executeExif(toolCallWithSession);
+            break;
+          case 'search_index':
+            result = await executeSearchIndex(toolCallWithSession);
+            break;
+          case 'ascii_art':
+            result = await executeAsciiArt(toolCallWithSession);
+            break;
+          case 'color_tools':
+            result = await executeColor(toolCallWithSession);
+            break;
+          case 'validate_data':
+            result = await executeValidator(toolCallWithSession);
+            break;
+          case 'cron_explain':
+            result = await executeCron(toolCallWithSession);
+            break;
+          case 'convert_units':
+            result = await executeUnitConvert(toolCallWithSession);
+            break;
+          case 'audio_synth':
+            result = await executeAudioSynth(toolCallWithSession);
             break;
           default:
             result = {
