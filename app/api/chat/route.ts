@@ -96,14 +96,22 @@ import {
   generateImage,
   editImage,
   downloadAndStore,
-  storeBuffer,
   enhanceImagePrompt,
   enhanceEditPromptWithVision,
   verifyGenerationResult,
   ASPECT_RATIOS,
   BFLError,
 } from '@/lib/connectors/bfl';
-import { overlayTextOnSlide } from '@/lib/slides';
+import {
+  MAX_SLIDES_PER_REQUEST,
+  generateSingleSlide,
+  getSlideDesignSystemPrompt,
+  parseSlidePrompts,
+  formatSlideOutput,
+  generateSlideCompletionMetadata,
+  ProgressMessages,
+  type SlideResult,
+} from '@/lib/slides';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const log = logger('ChatAPI');
@@ -2917,9 +2925,6 @@ export async function POST(request: NextRequest) {
     // NOTE: Be specific - "presentation" alone could mean PDF report
     // Only trigger on: slides, slide deck, PowerPoint, pptx
     if (effectiveToolMode === 'none' && isBFLConfigured() && isAuthenticated) {
-      // Max 10 slides per request
-      const MAX_SLIDES_PER_REQUEST = 10;
-
       // Specific patterns for SLIDES (not generic "presentation" which could be PDF)
       const slidePatterns = [
         // Explicit slide requests
@@ -2971,7 +2976,7 @@ export async function POST(request: NextRequest) {
 
               let researchContext = '';
               if (needsResearch && isBraveConfigured()) {
-                controller.enqueue(encoder.encode('- [ ] Researching topic\n'));
+                controller.enqueue(encoder.encode(ProgressMessages.researchStart));
 
                 try {
                   // Extract topic for research
@@ -2982,8 +2987,8 @@ export async function POST(request: NextRequest) {
 
                   const searchResult = await braveSearch({ query: topic, mode: 'search' });
                   if (searchResult.answer) {
-                    researchContext = `\n\nResearch context for accurate content:\n${searchResult.answer.substring(0, 2000)}`;
-                    controller.enqueue(encoder.encode('- [x] Researching topic\n'));
+                    researchContext = searchResult.answer.substring(0, 2000);
+                    controller.enqueue(encoder.encode(ProgressMessages.researchComplete));
                   }
                 } catch (researchError) {
                   log.warn('Slide research failed, continuing without', {
@@ -2993,56 +2998,13 @@ export async function POST(request: NextRequest) {
               }
 
               // Step 2: Have Claude analyze and create slide prompts
-              controller.enqueue(encoder.encode('- [ ] Designing slide layouts\n'));
+              controller.enqueue(encoder.encode(ProgressMessages.designStart));
 
-              const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides.
-
-CRITICAL: AI image generators CANNOT render text reliably. Text in generated images comes out garbled and unreadable.
-
-Your task: Create visual slide BACKGROUNDS and GRAPHICS only. The actual text will be overlaid separately.
-
-Analyze their request and create:
-1. Image prompts for VISUAL-ONLY slide backgrounds (NO TEXT in the image)
-2. The actual text content that should appear on each slide
-
-${researchContext}
-
-Rules for IMAGE PROMPTS:
-1. DO NOT include any text, words, letters, or numbers in the image prompt
-2. Focus on: backgrounds, gradients, icons, graphics, illustrations, patterns, imagery
-3. Describe visual elements that support the slide's topic
-4. Use 16:9 landscape aspect ratio
-5. Professional, clean presentation aesthetic
-6. Each slide should have a distinct but cohesive visual theme
-
-Rules for CONTENT:
-1. Title: Short, clear slide title (will be rendered as actual text)
-2. Bullets: 2-4 key points per slide (will be rendered as actual text)
-3. Use accurate, factual information based on research context if provided
-4. Structure slides logically: title slide, content slides, conclusion
-
-Output format (JSON array):
-[
-  {
-    "slideNumber": 1,
-    "title": "The actual title text for this slide",
-    "bullets": ["Key point 1", "Key point 2", "Key point 3"],
-    "prompt": "Visual-only image prompt - NO TEXT. Describe background, colors, graphics, icons, imagery only."
-  }
-]
-
-Example:
-{
-  "slideNumber": 1,
-  "title": "German Shepherd Nutrition",
-  "bullets": ["High protein requirements (22-26%)", "Joint support supplements recommended", "Avoid common allergens like wheat"],
-  "prompt": "Professional presentation slide background with dark blue gradient. Centered illustration of a healthy German Shepherd dog in profile view. Subtle paw print pattern in corners. Clean corporate design with soft lighting. Abstract geometric shapes. NO TEXT."
-}
-
-IMPORTANT:
-- Create ${MAX_SLIDES_PER_REQUEST} slides max
-- If user doesn't specify count, create 4-6 slides
-- NEVER include text/words/letters in the "prompt" field`;
+              // Use shared system prompt for slide design
+              const slidePromptSystemMessage = getSlideDesignSystemPrompt(
+                MAX_SLIDES_PER_REQUEST,
+                researchContext
+              );
 
               const slideMessages: CoreMessage[] = [{ role: 'user', content: lastUserContent }];
 
@@ -3053,148 +3015,33 @@ IMPORTANT:
                 temperature: 0.7,
               });
 
-              // Parse the slide prompts
-              let jsonText = slidePromptResult.text.trim();
-              if (jsonText.startsWith('```json')) {
-                jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-              } else if (jsonText.startsWith('```')) {
-                jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
-              }
-
-              let slidePrompts = JSON.parse(jsonText) as Array<{
-                slideNumber: number;
-                title: string;
-                bullets?: string[];
-                prompt: string;
-              }>;
-
-              // Enforce max slides limit
-              if (slidePrompts.length > MAX_SLIDES_PER_REQUEST) {
-                slidePrompts = slidePrompts.slice(0, MAX_SLIDES_PER_REQUEST);
-              }
+              // Parse slide prompts using shared parser
+              const slidePrompts = parseSlidePrompts(slidePromptResult.text);
 
               log.info('Generated slide prompts (natural language)', {
                 slideCount: slidePrompts.length,
               });
 
               controller.enqueue(
-                encoder.encode(
-                  `- [x] Designing slide layouts\n\n**Generating ${slidePrompts.length} slides:**\n\n`
-                )
+                encoder.encode(ProgressMessages.designComplete(slidePrompts.length))
               );
 
               // Step 3: Generate images for each slide via BFL with streaming progress
-              const { randomUUID } = await import('crypto');
               const serviceClient = createServiceRoleClient();
-              const generatedSlides: Array<{
-                slideNumber: number;
-                title: string;
-                bullets?: string[];
-                imageUrl: string;
-                generationId: string;
-                originalPrompt?: string;
-              }> = [];
+              const generatedSlides: SlideResult[] = [];
 
-              const slideWidth = ASPECT_RATIOS['16:9'].width;
-              const slideHeight = ASPECT_RATIOS['16:9'].height;
-
-              // Helper function to generate a single slide with text overlay
-              const generateSingleSlide = async (
-                slideNum: number,
-                prompt: string,
-                title: string,
-                bullets: string[] = [],
-                isRegeneration = false,
-                onProgress?: (msg: string) => void
-              ): Promise<{ imageUrl: string; generationId: string } | null> => {
-                try {
-                  const genId = randomUUID();
-                  const enhancedPrompt = await enhanceImagePrompt(prompt, {
-                    type: 'create',
-                    aspectRatio: '16:9',
-                  });
-
-                  // Create generation record
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  await (serviceClient as any).from('generations').insert({
-                    id: genId,
-                    user_id: rateLimitIdentifier,
-                    conversation_id: conversationId || null,
-                    type: 'slide',
-                    model: 'flux-2-pro',
-                    provider: 'bfl',
-                    prompt: enhancedPrompt,
-                    input_data: {
-                      originalPrompt: prompt,
-                      slideNumber: slideNum,
-                      slideTitle: title,
-                      bullets,
-                      detectedFromChat: true,
-                      isRegeneration,
-                    },
-                    dimensions: { width: slideWidth, height: slideHeight },
-                    status: 'processing',
-                  });
-
-                  // Step 1: Generate the background image via FLUX
-                  onProgress?.('  - [ ] Generating background\n');
-                  const result = await generateImage(enhancedPrompt, {
-                    model: 'flux-2-pro',
-                    width: slideWidth,
-                    height: slideHeight,
-                    promptUpsampling: true,
-                  });
-                  onProgress?.('  - [x] Background complete\n');
-
-                  // Step 2: Overlay text on the background
-                  onProgress?.('  - [ ] Rendering text overlay\n');
-                  const compositedBuffer = await overlayTextOnSlide(
-                    result.imageUrl,
-                    { title, bullets },
-                    { addOverlay: true, overlayOpacity: 0.5 }
-                  );
-                  onProgress?.('  - [x] Text overlay complete\n');
-
-                  // Step 3: Store the composited slide image
-                  const storedUrl = await storeBuffer(
-                    compositedBuffer,
-                    rateLimitIdentifier,
-                    genId,
-                    'png'
-                  );
-
-                  // Update generation record
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  await (serviceClient as any)
-                    .from('generations')
-                    .update({
-                      status: 'completed',
-                      result_url: storedUrl,
-                      result_data: {
-                        seed: result.seed,
-                        enhancedPrompt: result.enhancedPrompt,
-                        hasTextOverlay: true,
-                      },
-                      cost_credits: result.cost,
-                      completed_at: new Date().toISOString(),
-                    })
-                    .eq('id', genId);
-
-                  return { imageUrl: storedUrl, generationId: genId };
-                } catch (error) {
-                  log.error('Failed to generate slide', {
-                    slideNumber: slideNum,
-                    isRegeneration,
-                    error: (error as Error).message,
-                  });
-                  return null;
-                }
+              // Shared slide generation options
+              const slideGenOptions = {
+                userId: rateLimitIdentifier,
+                conversationId: conversationId || null,
+                serviceClient,
+                source: 'chat' as const,
               };
 
-              // Step 3: Generate initial slides
+              // Generate initial slides using shared module
               for (const slide of slidePrompts) {
                 controller.enqueue(
-                  encoder.encode(`- [ ] Slide ${slide.slideNumber}: ${slide.title}\n`)
+                  encoder.encode(ProgressMessages.slideStart(slide.slideNumber, slide.title))
                 );
 
                 // Progress callback for detailed updates
@@ -3203,25 +3050,19 @@ IMPORTANT:
                 };
 
                 const result = await generateSingleSlide(
-                  slide.slideNumber,
-                  slide.prompt,
-                  slide.title,
-                  slide.bullets || [],
-                  false,
-                  slideProgress
+                  {
+                    slideNumber: slide.slideNumber,
+                    title: slide.title,
+                    bullets: slide.bullets || [],
+                    prompt: slide.prompt,
+                  },
+                  { ...slideGenOptions, onProgress: slideProgress }
                 );
 
                 if (result) {
-                  generatedSlides.push({
-                    slideNumber: slide.slideNumber,
-                    title: slide.title,
-                    bullets: slide.bullets,
-                    imageUrl: result.imageUrl,
-                    generationId: result.generationId,
-                    originalPrompt: slide.prompt,
-                  });
+                  generatedSlides.push(result);
                   controller.enqueue(
-                    encoder.encode(`- [x] Slide ${slide.slideNumber}: ${slide.title}\n`)
+                    encoder.encode(ProgressMessages.slideComplete(slide.slideNumber, slide.title))
                   );
                   log.info('Slide generated with text overlay', {
                     slideNumber: slide.slideNumber,
@@ -3229,7 +3070,7 @@ IMPORTANT:
                   });
                 } else {
                   controller.enqueue(
-                    encoder.encode(`- [!] Slide ${slide.slideNumber}: ${slide.title} (failed)\n`)
+                    encoder.encode(ProgressMessages.slideFailed(slide.slideNumber, slide.title))
                   );
                 }
               }
@@ -3240,21 +3081,25 @@ IMPORTANT:
               let regeneratedCount = 0;
 
               if (generatedSlides.length > 0) {
-                // Regeneration callback for the QC system
+                // Regeneration callback for the QC system (uses shared generateSingleSlide)
                 const regenerateSlide = async (
                   slideNumber: number,
                   improvedPrompt: string,
                   title: string
                 ): Promise<{ imageUrl: string; generationId: string } | null> => {
-                  // Find the original slide to get bullets
                   const originalSlide = generatedSlides.find((s) => s.slideNumber === slideNumber);
-                  return generateSingleSlide(
-                    slideNumber,
-                    improvedPrompt,
-                    title,
-                    originalSlide?.bullets || [],
-                    true
+                  const result = await generateSingleSlide(
+                    {
+                      slideNumber,
+                      title,
+                      bullets: originalSlide?.bullets || [],
+                      prompt: improvedPrompt,
+                    },
+                    { ...slideGenOptions, isRegeneration: true }
                   );
+                  return result
+                    ? { imageUrl: result.imageUrl, generationId: result.generationId }
+                    : null;
                 };
 
                 // Progress callback to stream updates
@@ -3276,63 +3121,31 @@ IMPORTANT:
 
                 if (regeneratedCount > 0) {
                   controller.enqueue(
-                    encoder.encode(`- [x] ${regeneratedCount} slide(s) automatically improved\n`)
+                    encoder.encode(ProgressMessages.autoImproved(regeneratedCount))
                   );
                 }
               }
 
-              // Step 4: Stream final result
+              // Step 4: Stream final result using shared formatters
               if (finalSlides.length > 0) {
-                controller.enqueue(encoder.encode('\n---\n\n'));
-                controller.enqueue(
-                  encoder.encode(
-                    `## Your ${finalSlides.length} Presentation Slide${finalSlides.length > 1 ? 's' : ''}\n\n`
-                  )
-                );
-
-                // Stream each slide with its image as a proper markdown link
-                for (const s of finalSlides) {
-                  // Clean slide output with proper markdown formatting
-                  let slideOutput = `### Slide ${s.slideNumber}: ${s.title}\n\n`;
-
-                  // Add bullet points as actual readable text
-                  if (s.bullets && s.bullets.length > 0) {
-                    for (const bullet of s.bullets) {
-                      slideOutput += `- ${bullet}\n`;
-                    }
-                    slideOutput += '\n';
-                  }
-
-                  // Use proper markdown image link with clean label
-                  slideOutput += `[![Slide ${s.slideNumber}](${s.imageUrl})](${s.imageUrl})\n\n`;
-                  controller.enqueue(encoder.encode(slideOutput));
-                }
+                controller.enqueue(encoder.encode(formatSlideOutput(finalSlides)));
 
                 // Send JSON metadata at end for frontend parsing
                 controller.enqueue(
                   encoder.encode(
-                    `\n[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
-                      type: 'slide_generation',
-                      slideCount: finalSlides.length,
-                      slides: finalSlides.map((s) => ({
-                        slideNumber: s.slideNumber,
-                        title: s.title,
-                        bullets: s.bullets || [],
-                        imageUrl: s.imageUrl,
-                        generationId: s.generationId,
-                      })),
-                      model: 'flux-2-pro',
-                      provider: 'bfl',
-                      qualityCheck: qcResult
-                        ? {
-                            passed: qcResult.passed,
-                            score: qcResult.overallScore,
-                            feedback: qcResult.feedback,
-                            issues: qcResult.issues,
-                            regeneratedSlides: regeneratedCount,
-                          }
-                        : null,
-                    })}]`
+                    '\n' +
+                      generateSlideCompletionMetadata(
+                        finalSlides,
+                        qcResult
+                          ? {
+                              passed: qcResult.passed,
+                              overallScore: qcResult.overallScore,
+                              feedback: qcResult.feedback,
+                              issues: qcResult.issues,
+                            }
+                          : null,
+                        regeneratedCount
+                      )
                   )
                 );
               } else {
@@ -3612,8 +3425,6 @@ IMPORTANT:
     // generate actual visual slides as images via FLUX instead of PowerPoint
     // Same streaming approach as Route 0.65 for consistency
     if (explicitDocType === 'pptx' && isBFLConfigured() && isAuthenticated) {
-      const MAX_SLIDES = 10;
-
       log.info('Visual slide generation requested via BFL (button)', {
         userRequest: lastUserContent.substring(0, 100),
       });
@@ -3627,7 +3438,7 @@ IMPORTANT:
       // Extract requested slide count
       const slideCountMatch = lastUserContent.match(/\b(\d+)\s*slides?\b/i);
       const requestedCount = slideCountMatch ? parseInt(slideCountMatch[1], 10) : null;
-      const willTruncate = requestedCount && requestedCount > MAX_SLIDES;
+      const willTruncate = requestedCount && requestedCount > MAX_SLIDES_PER_REQUEST;
 
       // Create streaming response
       const encoder = new TextEncoder();
@@ -3638,11 +3449,11 @@ IMPORTANT:
             if (willTruncate) {
               controller.enqueue(
                 encoder.encode(
-                  `You requested ${requestedCount} slides. I'll create the maximum of ${MAX_SLIDES} high-quality slides for you.\n\n`
+                  `You requested ${requestedCount} slides. I'll create the maximum of ${MAX_SLIDES_PER_REQUEST} high-quality slides for you.\n\n`
                 )
               );
             }
-            controller.enqueue(encoder.encode('Creating presentation slides...\n\n'));
+            controller.enqueue(encoder.encode('**Creating presentation slides...**\n\n'));
 
             // Research phase if needed
             const needsResearch =
@@ -3651,7 +3462,7 @@ IMPORTANT:
 
             let researchContext = '';
             if (needsResearch && isBraveConfigured()) {
-              controller.enqueue(encoder.encode('- [ ] Researching topic\n'));
+              controller.enqueue(encoder.encode(ProgressMessages.researchStart));
               try {
                 const topicMatch = lastUserContent.match(
                   /\b(?:about|regarding|on|for)\s+(.+?)(?:\.|$|\s+(?:slide|presentation|powerpoint))/i
@@ -3659,40 +3470,21 @@ IMPORTANT:
                 const topic = topicMatch ? topicMatch[1].trim() : lastUserContent;
                 const searchResult = await braveSearch({ query: topic, mode: 'search' });
                 if (searchResult.answer) {
-                  researchContext = `\n\nResearch context:\n${searchResult.answer.substring(0, 2000)}`;
-                  controller.enqueue(encoder.encode('- [x] Research complete\n'));
+                  researchContext = searchResult.answer.substring(0, 2000);
+                  controller.enqueue(encoder.encode(ProgressMessages.researchComplete));
                 }
               } catch {
                 // Continue without research
               }
             }
 
-            // Design slides
-            controller.enqueue(encoder.encode('- [ ] Designing slide layouts\n'));
+            // Design slides using shared system prompt
+            controller.enqueue(encoder.encode(ProgressMessages.designStart));
 
-            const slidePromptSystemMessage = `You are a presentation designer. The user wants visual presentation slides.
-
-CRITICAL: AI image generators CANNOT render text reliably. Text in generated images comes out garbled.
-
-Your task: Create visual slide BACKGROUNDS and GRAPHICS only. The actual text will be overlaid separately.
-${researchContext}
-
-Rules for IMAGE PROMPTS:
-1. DO NOT include any text, words, letters, or numbers in the image prompt
-2. Focus on: backgrounds, gradients, icons, graphics, illustrations, patterns, imagery
-3. Describe visual elements that support the slide's topic
-4. Use 16:9 landscape aspect ratio
-5. Professional, clean presentation aesthetic
-
-Rules for CONTENT:
-1. Title: Short, clear slide title
-2. Bullets: 2-4 key points per slide
-3. Structure: title slide → content → conclusion
-4. If user specifies slide count, create EXACTLY that many (max ${MAX_SLIDES})
-5. Default to 4-6 slides if not specified
-
-Output ONLY JSON array:
-[{"slideNumber": 1, "title": "Title text", "bullets": ["Point 1", "Point 2"], "prompt": "Visual-only prompt - NO TEXT"}]`;
+            const slidePromptSystemMessage = getSlideDesignSystemPrompt(
+              MAX_SLIDES_PER_REQUEST,
+              researchContext
+            );
 
             const slidePromptResult = await completeChat(
               [{ role: 'user', content: lastUserContent }],
@@ -3704,136 +3496,29 @@ Output ONLY JSON array:
               }
             );
 
-            let jsonText = slidePromptResult.text.trim();
-            if (jsonText.startsWith('```json')) {
-              jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-            } else if (jsonText.startsWith('```')) {
-              jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
-            }
-
-            let slidePrompts = JSON.parse(jsonText) as Array<{
-              slideNumber: number;
-              title: string;
-              bullets?: string[];
-              prompt: string;
-            }>;
-
-            if (slidePrompts.length > MAX_SLIDES) {
-              slidePrompts = slidePrompts.slice(0, MAX_SLIDES);
-            }
+            // Parse slide prompts using shared parser
+            const slidePrompts = parseSlidePrompts(slidePromptResult.text);
 
             controller.enqueue(
-              encoder.encode(
-                `- [x] Designing slide layouts\n\n**Generating ${slidePrompts.length} slides:**\n\n`
-              )
+              encoder.encode(ProgressMessages.designComplete(slidePrompts.length))
             );
 
-            // Generate slides
-            const { randomUUID } = await import('crypto');
+            // Generate slides using shared module
             const serviceClient = createServiceRoleClient();
-            const generatedSlides: Array<{
-              slideNumber: number;
-              title: string;
-              bullets?: string[];
-              imageUrl: string;
-              generationId: string;
-              originalPrompt?: string;
-            }> = [];
+            const generatedSlides: SlideResult[] = [];
 
-            const slideWidth = ASPECT_RATIOS['16:9'].width;
-            const slideHeight = ASPECT_RATIOS['16:9'].height;
-
-            // Helper function to generate a single slide with text overlay
-            const generateSingleSlide = async (
-              slideNum: number,
-              prompt: string,
-              title: string,
-              bullets: string[] = [],
-              isRegeneration = false,
-              onProgress?: (msg: string) => void
-            ): Promise<{ imageUrl: string; generationId: string } | null> => {
-              try {
-                const genId = randomUUID();
-                const enhancedPrompt = await enhanceImagePrompt(prompt, {
-                  type: 'create',
-                  aspectRatio: '16:9',
-                });
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (serviceClient as any).from('generations').insert({
-                  id: genId,
-                  user_id: rateLimitIdentifier,
-                  conversation_id: conversationId || null,
-                  type: 'slide',
-                  model: 'flux-2-pro',
-                  provider: 'bfl',
-                  prompt: enhancedPrompt,
-                  input_data: {
-                    originalPrompt: prompt,
-                    slideNumber: slideNum,
-                    slideTitle: title,
-                    bullets,
-                    fromButton: true,
-                    isRegeneration,
-                  },
-                  dimensions: { width: slideWidth, height: slideHeight },
-                  status: 'processing',
-                });
-
-                // Step 1: Generate the background image via FLUX
-                onProgress?.('  - [ ] Generating background\n');
-                const result = await generateImage(enhancedPrompt, {
-                  model: 'flux-2-pro',
-                  width: slideWidth,
-                  height: slideHeight,
-                  promptUpsampling: true,
-                });
-                onProgress?.('  - [x] Background complete\n');
-
-                // Step 2: Overlay text on the background
-                onProgress?.('  - [ ] Rendering text overlay\n');
-                const compositedBuffer = await overlayTextOnSlide(
-                  result.imageUrl,
-                  { title, bullets },
-                  { addOverlay: true, overlayOpacity: 0.5 }
-                );
-                onProgress?.('  - [x] Text overlay complete\n');
-
-                // Step 3: Store the composited slide image
-                const storedUrl = await storeBuffer(
-                  compositedBuffer,
-                  rateLimitIdentifier,
-                  genId,
-                  'png'
-                );
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (serviceClient as any)
-                  .from('generations')
-                  .update({
-                    status: 'completed',
-                    result_url: storedUrl,
-                    result_data: { seed: result.seed, enhancedPrompt: result.enhancedPrompt },
-                    cost_credits: result.cost,
-                    completed_at: new Date().toISOString(),
-                  })
-                  .eq('id', genId);
-
-                return { imageUrl: storedUrl, generationId: genId };
-              } catch (error) {
-                log.error('Failed to generate slide', {
-                  slideNumber: slideNum,
-                  isRegeneration,
-                  error: (error as Error).message,
-                });
-                return null;
-              }
+            // Shared slide generation options
+            const slideGenOptions = {
+              userId: rateLimitIdentifier,
+              conversationId: conversationId || null,
+              serviceClient,
+              source: 'button' as const,
             };
 
             // Generate initial slides with text overlay
             for (const slide of slidePrompts) {
               controller.enqueue(
-                encoder.encode(`- [ ] Slide ${slide.slideNumber}: ${slide.title}\n`)
+                encoder.encode(ProgressMessages.slideStart(slide.slideNumber, slide.title))
               );
 
               // Progress callback for detailed streaming
@@ -3842,29 +3527,23 @@ Output ONLY JSON array:
               };
 
               const result = await generateSingleSlide(
-                slide.slideNumber,
-                slide.prompt,
-                slide.title,
-                slide.bullets || [],
-                false,
-                slideProgress
+                {
+                  slideNumber: slide.slideNumber,
+                  title: slide.title,
+                  bullets: slide.bullets || [],
+                  prompt: slide.prompt,
+                },
+                { ...slideGenOptions, onProgress: slideProgress }
               );
 
               if (result) {
-                generatedSlides.push({
-                  slideNumber: slide.slideNumber,
-                  title: slide.title,
-                  bullets: slide.bullets,
-                  imageUrl: result.imageUrl,
-                  generationId: result.generationId,
-                  originalPrompt: slide.prompt,
-                });
+                generatedSlides.push(result);
                 controller.enqueue(
-                  encoder.encode(`- [x] Slide ${slide.slideNumber}: ${slide.title}\n`)
+                  encoder.encode(ProgressMessages.slideComplete(slide.slideNumber, slide.title))
                 );
               } else {
                 controller.enqueue(
-                  encoder.encode(`- [!] Slide ${slide.slideNumber}: ${slide.title} (failed)\n`)
+                  encoder.encode(ProgressMessages.slideFailed(slide.slideNumber, slide.title))
                 );
               }
             }
@@ -3875,21 +3554,25 @@ Output ONLY JSON array:
             let regeneratedCount = 0;
 
             if (generatedSlides.length > 0) {
-              // Regeneration callback for the QC system
+              // Regeneration callback for the QC system (uses shared generateSingleSlide)
               const regenerateSlide = async (
                 slideNumber: number,
                 improvedPrompt: string,
                 title: string
               ): Promise<{ imageUrl: string; generationId: string } | null> => {
-                // Find the original slide to get bullets
                 const originalSlide = generatedSlides.find((s) => s.slideNumber === slideNumber);
-                return generateSingleSlide(
-                  slideNumber,
-                  improvedPrompt,
-                  title,
-                  originalSlide?.bullets || [],
-                  true
+                const result = await generateSingleSlide(
+                  {
+                    slideNumber,
+                    title,
+                    bullets: originalSlide?.bullets || [],
+                    prompt: improvedPrompt,
+                  },
+                  { ...slideGenOptions, isRegeneration: true }
                 );
+                return result
+                  ? { imageUrl: result.imageUrl, generationId: result.generationId }
+                  : null;
               };
 
               // Progress callback to stream updates
@@ -3910,63 +3593,30 @@ Output ONLY JSON array:
               regeneratedCount = qcFixResult.regeneratedCount;
 
               if (regeneratedCount > 0) {
-                controller.enqueue(
-                  encoder.encode(`- [x] ${regeneratedCount} slide(s) automatically improved\n`)
-                );
+                controller.enqueue(encoder.encode(ProgressMessages.autoImproved(regeneratedCount)));
               }
             }
 
-            // Final output
+            // Final output using shared formatters
             if (finalSlides.length > 0) {
-              controller.enqueue(encoder.encode('\n---\n\n'));
+              controller.enqueue(encoder.encode(formatSlideOutput(finalSlides)));
+
+              // Send JSON metadata at end for frontend parsing
               controller.enqueue(
                 encoder.encode(
-                  `## Your ${finalSlides.length} Presentation Slide${finalSlides.length > 1 ? 's' : ''}\n\n`
-                )
-              );
-
-              // Stream each slide with its image as a proper markdown link
-              for (const s of finalSlides) {
-                // Clean slide output with proper markdown formatting
-                let slideOutput = `### Slide ${s.slideNumber}: ${s.title}\n\n`;
-
-                // Add bullet points as actual readable text
-                if (s.bullets && s.bullets.length > 0) {
-                  for (const bullet of s.bullets) {
-                    slideOutput += `- ${bullet}\n`;
-                  }
-                  slideOutput += '\n';
-                }
-
-                // Use proper markdown image link with clean label
-                slideOutput += `[![Slide ${s.slideNumber}](${s.imageUrl})](${s.imageUrl})\n\n`;
-                controller.enqueue(encoder.encode(slideOutput));
-              }
-
-              controller.enqueue(
-                encoder.encode(
-                  `\n[SLIDE_GENERATION_COMPLETE:${JSON.stringify({
-                    type: 'slide_generation',
-                    slideCount: finalSlides.length,
-                    slides: finalSlides.map((s) => ({
-                      slideNumber: s.slideNumber,
-                      title: s.title,
-                      bullets: s.bullets || [],
-                      imageUrl: s.imageUrl,
-                      generationId: s.generationId,
-                    })),
-                    model: 'flux-2-pro',
-                    provider: 'bfl',
-                    qualityCheck: qcResult
-                      ? {
-                          passed: qcResult.passed,
-                          score: qcResult.overallScore,
-                          feedback: qcResult.feedback,
-                          issues: qcResult.issues,
-                          regeneratedSlides: regeneratedCount,
-                        }
-                      : null,
-                  })}]`
+                  '\n' +
+                    generateSlideCompletionMetadata(
+                      finalSlides,
+                      qcResult
+                        ? {
+                            passed: qcResult.passed,
+                            overallScore: qcResult.overallScore,
+                            feedback: qcResult.feedback,
+                            issues: qcResult.issues,
+                          }
+                        : null,
+                      regeneratedCount
+                    )
                 )
               );
             } else {

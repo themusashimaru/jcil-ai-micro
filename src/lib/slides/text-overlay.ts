@@ -7,6 +7,7 @@
 
 import { createCanvas, loadImage, GlobalFonts, SKRSContext2D } from '@napi-rs/canvas';
 import { existsSync } from 'fs';
+import { join } from 'path';
 import { logger } from '@/lib/logger';
 
 const log = logger('TextOverlay');
@@ -29,49 +30,140 @@ const TEXT_COLOR_LIGHT = '#FFFFFF';
 const TEXT_COLOR_DARK = '#1A1A2E';
 const SHADOW_COLOR = 'rgba(0, 0, 0, 0.5)';
 
-// Note: canvasAvailable would be used for fallback logic
-// but @napi-rs/canvas is always required for text rendering
+// Font family string - uses system fonts with robust fallback chain
+// The canvas will try each font in order until one works
+const FONT_FAMILY =
+  '"DejaVu Sans", "Liberation Sans", "Noto Sans", "Roboto", "Helvetica Neue", "Arial", "FreeSans", sans-serif';
 
-// Try to register system fonts
-function registerFonts(): boolean {
+/**
+ * Register system fonts from various common locations
+ * Supports multiple environments: local dev, Docker, Vercel, AWS Lambda, CI
+ */
+function registerFonts(): { registered: number; paths: string[] } {
+  const registeredPaths: string[] = [];
+
+  // Font paths organized by priority and environment
   const fontPaths = [
-    // Vercel/AWS Lambda paths (if fonts are bundled)
+    // ============================================
+    // PROJECT-BUNDLED FONTS (highest priority)
+    // ============================================
+    // Bundled fonts in the project (for Vercel/production)
+    join(process.cwd(), 'public', 'fonts', 'DejaVuSans-Bold.ttf'),
+    join(process.cwd(), 'public', 'fonts', 'DejaVuSans.ttf'),
+    join(process.cwd(), 'fonts', 'DejaVuSans-Bold.ttf'),
+    join(process.cwd(), 'fonts', 'DejaVuSans.ttf'),
+
+    // ============================================
+    // VERCEL / AWS LAMBDA PATHS
+    // ============================================
     '/var/task/fonts/DejaVuSans-Bold.ttf',
     '/var/task/fonts/DejaVuSans.ttf',
-    // Common Linux paths
+    '/var/task/public/fonts/DejaVuSans-Bold.ttf',
+    '/var/task/public/fonts/DejaVuSans.ttf',
+
+    // ============================================
+    // LINUX SYSTEM FONTS (common distros)
+    // ============================================
+    // DejaVu (most common, wide unicode support)
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    // Liberation (metric-compatible with Arial/Helvetica)
     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-    '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
+    // Noto (Google's universal font)
+    '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf',
+    '/usr/share/fonts/noto/NotoSans-Bold.ttf',
+    '/usr/share/fonts/noto/NotoSans-Regular.ttf',
+    // FreeFonts
     '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-    // macOS paths
+    '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
+    // Ubuntu fonts
+    '/usr/share/fonts/truetype/ubuntu/Ubuntu-Bold.ttf',
+    '/usr/share/fonts/truetype/ubuntu/Ubuntu-Regular.ttf',
+    // Alternative Linux paths (some distros)
+    '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/TTF/DejaVuSans.ttf',
+
+    // ============================================
+    // DOCKER / ALPINE LINUX PATHS
+    // ============================================
+    '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/liberation/LiberationSans-Bold.ttf',
+    '/usr/share/fonts/liberation/LiberationSans-Regular.ttf',
+
+    // ============================================
+    // macOS PATHS
+    // ============================================
     '/System/Library/Fonts/Helvetica.ttc',
+    '/System/Library/Fonts/SFNSText.ttf',
+    '/System/Library/Fonts/SFNSDisplay.ttf',
     '/Library/Fonts/Arial.ttf',
+    '/Library/Fonts/Arial Bold.ttf',
+
+    // ============================================
+    // WINDOWS PATHS (for local dev on Windows)
+    // ============================================
+    'C:\\Windows\\Fonts\\arial.ttf',
+    'C:\\Windows\\Fonts\\arialbd.ttf',
+    'C:\\Windows\\Fonts\\segoeui.ttf',
+    'C:\\Windows\\Fonts\\segoeuib.ttf',
   ];
 
-  let fontsRegistered = 0;
   for (const fontPath of fontPaths) {
-    if (existsSync(fontPath)) {
-      try {
+    try {
+      if (existsSync(fontPath)) {
         GlobalFonts.registerFromPath(fontPath);
-        fontsRegistered++;
-        log.info('Font registered', { path: fontPath });
-      } catch (err) {
-        log.warn('Font registration failed', { path: fontPath, error: (err as Error).message });
+        registeredPaths.push(fontPath);
+        log.debug('Font registered', { path: fontPath });
       }
+    } catch (err) {
+      // Log at debug level to avoid noise in production logs
+      log.debug('Font registration failed', {
+        path: fontPath,
+        error: (err as Error).message,
+      });
     }
   }
 
-  if (fontsRegistered === 0) {
-    log.warn('No fonts registered - text overlay may not work correctly');
+  // Log summary
+  if (registeredPaths.length > 0) {
+    log.info('Fonts registered for text overlay', {
+      count: registeredPaths.length,
+      fonts: registeredPaths.slice(0, 3), // Log first 3 to avoid noise
+    });
+  } else {
+    log.warn('No fonts registered - text overlay will use canvas default font', {
+      searchedPaths: fontPaths.length,
+      hint: 'To fix: install fonts package (apt-get install fonts-dejavu) or bundle fonts in public/fonts/',
+    });
   }
 
-  return fontsRegistered > 0;
+  return { registered: registeredPaths.length, paths: registeredPaths };
 }
 
-// Register fonts on module load
-const fontsLoaded = registerFonts();
+// Register fonts on module load and track status
+const fontRegistration = registerFonts();
+const fontsLoaded = fontRegistration.registered > 0;
+
+/**
+ * Check if fonts are properly loaded for text rendering
+ */
+export function areFontsLoaded(): boolean {
+  return fontsLoaded;
+}
+
+/**
+ * Get information about registered fonts
+ */
+export function getFontInfo(): { loaded: boolean; count: number; paths: string[] } {
+  return {
+    loaded: fontsLoaded,
+    count: fontRegistration.registered,
+    paths: fontRegistration.paths,
+  };
+}
 
 interface SlideTextContent {
   title: string;
@@ -248,7 +340,7 @@ export async function overlayTextOnSlide(
   const maxTextWidth = SLIDE_WIDTH - PADDING_X * 2;
 
   // Render title
-  ctx.font = `bold ${TITLE_FONT_SIZE}px "DejaVu Sans", "Liberation Sans", "Helvetica", "Arial", sans-serif`;
+  ctx.font = `bold ${TITLE_FONT_SIZE}px ${FONT_FAMILY}`;
 
   const titleLines = wrapText(ctx, content.title, maxTextWidth);
   let currentY = PADDING_TOP;
@@ -260,7 +352,7 @@ export async function overlayTextOnSlide(
 
   // Render bullets
   if (content.bullets && content.bullets.length > 0) {
-    ctx.font = `${BULLET_FONT_SIZE}px "DejaVu Sans", "Liberation Sans", "Helvetica", "Arial", sans-serif`;
+    ctx.font = `${BULLET_FONT_SIZE}px ${FONT_FAMILY}`;
 
     currentY = Math.max(currentY + 40, BULLET_START_Y);
     const bulletIndent = 40;
@@ -347,7 +439,7 @@ export async function overlayTextOnSlideBuffer(
   const maxTextWidth = SLIDE_WIDTH - PADDING_X * 2;
 
   // Render title
-  ctx.font = `bold ${TITLE_FONT_SIZE}px "DejaVu Sans", "Liberation Sans", "Helvetica", "Arial", sans-serif`;
+  ctx.font = `bold ${TITLE_FONT_SIZE}px ${FONT_FAMILY}`;
 
   const titleLines = wrapText(ctx, content.title, maxTextWidth);
   let currentY = PADDING_TOP;
@@ -359,7 +451,7 @@ export async function overlayTextOnSlideBuffer(
 
   // Render bullets
   if (content.bullets && content.bullets.length > 0) {
-    ctx.font = `${BULLET_FONT_SIZE}px "DejaVu Sans", "Liberation Sans", "Helvetica", "Arial", sans-serif`;
+    ctx.font = `${BULLET_FONT_SIZE}px ${FONT_FAMILY}`;
 
     currentY = Math.max(currentY + 40, BULLET_START_Y);
     const bulletIndent = 40;
