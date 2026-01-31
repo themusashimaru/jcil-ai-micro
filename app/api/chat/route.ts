@@ -96,12 +96,14 @@ import {
   generateImage,
   editImage,
   downloadAndStore,
+  storeBuffer,
   enhanceImagePrompt,
   enhanceEditPromptWithVision,
   verifyGenerationResult,
   ASPECT_RATIOS,
   BFLError,
 } from '@/lib/connectors/bfl';
+import { overlayTextOnSlide } from '@/lib/slides';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const log = logger('ChatAPI');
@@ -3076,12 +3078,14 @@ IMPORTANT:
               const slideWidth = ASPECT_RATIOS['16:9'].width;
               const slideHeight = ASPECT_RATIOS['16:9'].height;
 
-              // Helper function to generate a single slide (used for initial gen and regeneration)
+              // Helper function to generate a single slide with text overlay
               const generateSingleSlide = async (
                 slideNum: number,
                 prompt: string,
                 title: string,
-                isRegeneration = false
+                bullets: string[] = [],
+                isRegeneration = false,
+                onProgress?: (msg: string) => void
               ): Promise<{ imageUrl: string; generationId: string } | null> => {
                 try {
                   const genId = randomUUID();
@@ -3104,6 +3108,7 @@ IMPORTANT:
                       originalPrompt: prompt,
                       slideNumber: slideNum,
                       slideTitle: title,
+                      bullets,
                       detectedFromChat: true,
                       isRegeneration,
                     },
@@ -3111,17 +3116,28 @@ IMPORTANT:
                     status: 'processing',
                   });
 
-                  // Generate the slide image
+                  // Step 1: Generate the background image via FLUX
+                  onProgress?.('    [ ] Generating background\n');
                   const result = await generateImage(enhancedPrompt, {
                     model: 'flux-2-pro',
                     width: slideWidth,
                     height: slideHeight,
                     promptUpsampling: true,
                   });
+                  onProgress?.('    [✓] Background complete\n');
 
-                  // Store the image
-                  const storedUrl = await downloadAndStore(
+                  // Step 2: Overlay text on the background
+                  onProgress?.('    [ ] Rendering text overlay\n');
+                  const compositedBuffer = await overlayTextOnSlide(
                     result.imageUrl,
+                    { title, bullets },
+                    { addOverlay: true, overlayOpacity: 0.5 }
+                  );
+                  onProgress?.('    [✓] Text overlay complete\n');
+
+                  // Step 3: Store the composited slide image
+                  const storedUrl = await storeBuffer(
+                    compositedBuffer,
                     rateLimitIdentifier,
                     genId,
                     'png'
@@ -3137,6 +3153,7 @@ IMPORTANT:
                       result_data: {
                         seed: result.seed,
                         enhancedPrompt: result.enhancedPrompt,
+                        hasTextOverlay: true,
                       },
                       cost_credits: result.cost,
                       completed_at: new Date().toISOString(),
@@ -3160,11 +3177,18 @@ IMPORTANT:
                   encoder.encode(`[ ] Slide ${slide.slideNumber}: ${slide.title}\n`)
                 );
 
+                // Progress callback for detailed updates
+                const slideProgress = (msg: string) => {
+                  controller.enqueue(encoder.encode(msg));
+                };
+
                 const result = await generateSingleSlide(
                   slide.slideNumber,
                   slide.prompt,
                   slide.title,
-                  false
+                  slide.bullets || [],
+                  false,
+                  slideProgress
                 );
 
                 if (result) {
@@ -3179,7 +3203,7 @@ IMPORTANT:
                   controller.enqueue(
                     encoder.encode(`[✓] Slide ${slide.slideNumber}: ${slide.title}\n`)
                   );
-                  log.info('Slide generated (natural language streaming)', {
+                  log.info('Slide generated with text overlay', {
                     slideNumber: slide.slideNumber,
                     generationId: result.generationId,
                   });
@@ -3202,7 +3226,15 @@ IMPORTANT:
                   improvedPrompt: string,
                   title: string
                 ): Promise<{ imageUrl: string; generationId: string } | null> => {
-                  return generateSingleSlide(slideNumber, improvedPrompt, title, true);
+                  // Find the original slide to get bullets
+                  const originalSlide = generatedSlides.find((s) => s.slideNumber === slideNumber);
+                  return generateSingleSlide(
+                    slideNumber,
+                    improvedPrompt,
+                    title,
+                    originalSlide?.bullets || [],
+                    true
+                  );
                 };
 
                 // Progress callback to stream updates
@@ -3684,12 +3716,14 @@ Output ONLY JSON array:
             const slideWidth = ASPECT_RATIOS['16:9'].width;
             const slideHeight = ASPECT_RATIOS['16:9'].height;
 
-            // Helper function to generate a single slide (used for initial gen and regeneration)
+            // Helper function to generate a single slide with text overlay
             const generateSingleSlide = async (
               slideNum: number,
               prompt: string,
               title: string,
-              isRegeneration = false
+              bullets: string[] = [],
+              isRegeneration = false,
+              onProgress?: (msg: string) => void
             ): Promise<{ imageUrl: string; generationId: string } | null> => {
               try {
                 const genId = randomUUID();
@@ -3711,6 +3745,7 @@ Output ONLY JSON array:
                     originalPrompt: prompt,
                     slideNumber: slideNum,
                     slideTitle: title,
+                    bullets,
                     fromButton: true,
                     isRegeneration,
                   },
@@ -3718,15 +3753,28 @@ Output ONLY JSON array:
                   status: 'processing',
                 });
 
+                // Step 1: Generate the background image via FLUX
+                onProgress?.('    [ ] Generating background\n');
                 const result = await generateImage(enhancedPrompt, {
                   model: 'flux-2-pro',
                   width: slideWidth,
                   height: slideHeight,
                   promptUpsampling: true,
                 });
+                onProgress?.('    [✓] Background complete\n');
 
-                const storedUrl = await downloadAndStore(
+                // Step 2: Overlay text on the background
+                onProgress?.('    [ ] Rendering text overlay\n');
+                const compositedBuffer = await overlayTextOnSlide(
                   result.imageUrl,
+                  { title, bullets },
+                  { addOverlay: true, overlayOpacity: 0.5 }
+                );
+                onProgress?.('    [✓] Text overlay complete\n');
+
+                // Step 3: Store the composited slide image
+                const storedUrl = await storeBuffer(
+                  compositedBuffer,
                   rateLimitIdentifier,
                   genId,
                   'png'
@@ -3755,17 +3803,24 @@ Output ONLY JSON array:
               }
             };
 
-            // Generate initial slides
+            // Generate initial slides with text overlay
             for (const slide of slidePrompts) {
               controller.enqueue(
                 encoder.encode(`[ ] Slide ${slide.slideNumber}: ${slide.title}\n`)
               );
 
+              // Progress callback for detailed streaming
+              const slideProgress = (msg: string) => {
+                controller.enqueue(encoder.encode(msg));
+              };
+
               const result = await generateSingleSlide(
                 slide.slideNumber,
                 slide.prompt,
                 slide.title,
-                false
+                slide.bullets || [],
+                false,
+                slideProgress
               );
 
               if (result) {
@@ -3799,7 +3854,15 @@ Output ONLY JSON array:
                 improvedPrompt: string,
                 title: string
               ): Promise<{ imageUrl: string; generationId: string } | null> => {
-                return generateSingleSlide(slideNumber, improvedPrompt, title, true);
+                // Find the original slide to get bullets
+                const originalSlide = generatedSlides.find((s) => s.slideNumber === slideNumber);
+                return generateSingleSlide(
+                  slideNumber,
+                  improvedPrompt,
+                  title,
+                  originalSlide?.bullets || [],
+                  true
+                );
               };
 
               // Progress callback to stream updates

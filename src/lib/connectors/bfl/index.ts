@@ -51,6 +51,7 @@ export {
 // Storage functions
 export {
   downloadAndStore,
+  storeBuffer,
   storeBase64Image,
   deleteGeneration,
   getSignedUrl,
