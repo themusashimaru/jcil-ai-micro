@@ -14,9 +14,18 @@
  * - extract_table: Vision-based table extraction
  * - parallel_research: Mini-agent orchestrator (5-10 agents max)
  * - create_and_run_tool: Dynamic tool creation (cost-limited)
+ * - youtube_transcript: Extract transcripts from YouTube videos
+ * - github: Search and browse GitHub repos, code, issues
+ * - screenshot: Capture screenshots of any webpage
+ * - calculator: Advanced math with Wolfram Alpha
+ * - create_chart: Generate charts and data visualizations
+ * - create_document: Generate PDF, DOCX, TXT documents
+ * - transcribe_audio: Transcribe audio files with Whisper
  *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
+ *
+ * Last updated: 2026-01-31
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -38,12 +47,7 @@ export { webSearchTool, executeWebSearch, isWebSearchAvailable } from './web-sea
 export { fetchUrlTool, executeFetchUrl, isFetchUrlAvailable } from './fetch-url';
 
 // Code Execution
-export {
-  runCodeTool,
-  executeRunCode,
-  isRunCodeAvailable,
-  cleanupCodeSandbox,
-} from './run-code';
+export { runCodeTool, executeRunCode, isRunCodeAvailable, cleanupCodeSandbox } from './run-code';
 
 // Vision Analysis
 export {
@@ -65,11 +69,7 @@ export {
 export { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } from './extract-pdf';
 
 // Table Extraction
-export {
-  extractTableTool,
-  executeExtractTable,
-  isExtractTableAvailable,
-} from './extract-table';
+export { extractTableTool, executeExtractTable, isExtractTableAvailable } from './extract-table';
 
 // Mini-Agent Orchestrator
 export { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } from './mini-agent';
@@ -82,6 +82,35 @@ export {
   getDynamicToolSessionInfo,
   DYNAMIC_TOOL_LIMITS,
 } from './dynamic-tool';
+
+// YouTube Transcript
+export {
+  youtubeTranscriptTool,
+  executeYouTubeTranscript,
+  isYouTubeTranscriptAvailable,
+} from './youtube-transcript';
+
+// GitHub Tool
+export { githubTool, executeGitHub, isGitHubAvailable } from './github-tool';
+
+// Screenshot Tool
+export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
+
+// Calculator/Math Tool
+export { calculatorTool, executeCalculator, isCalculatorAvailable } from './calculator-tool';
+
+// Chart/Data Visualization Tool
+export { chartTool, executeChart, isChartAvailable } from './chart-tool';
+
+// Document Generation Tool
+export { documentTool, executeDocument, isDocumentAvailable } from './document-tool';
+
+// Audio Transcription (Whisper)
+export {
+  audioTranscribeTool,
+  executeAudioTranscribe,
+  isAudioTranscribeAvailable,
+} from './audio-transcribe';
 
 // Workflow Tasks (Claude Code style todo lists)
 export {
@@ -208,6 +237,20 @@ async function initializeTools() {
   const { dynamicToolTool, executeDynamicTool, isDynamicToolAvailable } = await import(
     './dynamic-tool'
   );
+  const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
+    await import('./youtube-transcript');
+  const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
+  const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
+    './screenshot-tool'
+  );
+  const { calculatorTool, executeCalculator, isCalculatorAvailable } = await import(
+    './calculator-tool'
+  );
+  const { chartTool, executeChart, isChartAvailable } = await import('./chart-tool');
+  const { documentTool, executeDocument, isDocumentAvailable } = await import('./document-tool');
+  const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import(
+    './audio-transcribe'
+  );
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -242,6 +285,21 @@ async function initializeTools() {
       tool: dynamicToolTool,
       executor: executeDynamicTool,
       checkAvailability: isDynamicToolAvailable,
+    },
+    {
+      tool: youtubeTranscriptTool,
+      executor: executeYouTubeTranscript,
+      checkAvailability: isYouTubeTranscriptAvailable,
+    },
+    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
+    { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
+    { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
+    { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },
+    { tool: documentTool, executor: executeDocument, checkAvailability: isDocumentAvailable },
+    {
+      tool: audioTranscribeTool,
+      executor: executeAudioTranscribe,
+      checkAvailability: isAudioTranscribeAvailable,
     }
   );
 
