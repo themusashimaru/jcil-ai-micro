@@ -91,6 +91,14 @@ import {
   audioTranscribeTool,
   executeAudioTranscribe,
   isAudioTranscribeAvailable,
+  // Spreadsheet Tool
+  spreadsheetTool,
+  executeSpreadsheet,
+  isSpreadsheetAvailable,
+  // HTTP Request Tool
+  httpRequestTool,
+  executeHttpRequest,
+  isHttpRequestAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3466,6 +3474,8 @@ SECURITY:
     if (isChartAvailable()) tools.push(chartTool);
     if (isDocumentAvailable()) tools.push(documentTool);
     if (isAudioTranscribeAvailable()) tools.push(audioTranscribeTool);
+    if (isSpreadsheetAvailable()) tools.push(spreadsheetTool);
+    if (isHttpRequestAvailable()) tools.push(httpRequestTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -3487,6 +3497,9 @@ SECURITY:
         extract_table: 0.03,
         parallel_research: 0.15, // Multiple Haiku agents
         create_and_run_tool: 0.25, // E2B sandbox + execution
+        transcribe_audio: 0.006, // Whisper API
+        create_spreadsheet: 0.001, // Local processing
+        http_request: 0.0001, // Just network call
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -3573,6 +3586,12 @@ SECURITY:
             break;
           case 'transcribe_audio':
             result = await executeAudioTranscribe(toolCallWithSession);
+            break;
+          case 'create_spreadsheet':
+            result = await executeSpreadsheet(toolCallWithSession);
+            break;
+          case 'http_request':
+            result = await executeHttpRequest(toolCallWithSession);
             break;
           default:
             result = {

@@ -112,6 +112,12 @@ export {
   isAudioTranscribeAvailable,
 } from './audio-transcribe';
 
+// Spreadsheet Generation (Excel)
+export { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } from './spreadsheet-tool';
+
+// HTTP Request (API calls, webhooks)
+export { httpRequestTool, executeHttpRequest, isHttpRequestAvailable } from './http-request-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -251,6 +257,12 @@ async function initializeTools() {
   const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import(
     './audio-transcribe'
   );
+  const { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } = await import(
+    './spreadsheet-tool'
+  );
+  const { httpRequestTool, executeHttpRequest, isHttpRequestAvailable } = await import(
+    './http-request-tool'
+  );
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -300,6 +312,16 @@ async function initializeTools() {
       tool: audioTranscribeTool,
       executor: executeAudioTranscribe,
       checkAvailability: isAudioTranscribeAvailable,
+    },
+    {
+      tool: spreadsheetTool,
+      executor: executeSpreadsheet,
+      checkAvailability: isSpreadsheetAvailable,
+    },
+    {
+      tool: httpRequestTool,
+      executor: executeHttpRequest,
+      checkAvailability: isHttpRequestAvailable,
     }
   );
 
