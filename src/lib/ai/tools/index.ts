@@ -764,12 +764,7 @@ export {
 // TIER SOUND & MUSIC - Audio Tools
 // ============================================================================
 
-// Music Theory - Scales, chords, progressions, intervals
-export {
-  musicTheoryTool,
-  executeMusicTheory,
-  isMusicTheoryAvailable,
-} from './music-theory-tool';
+// Music Theory is already exported in COMPUTATIONAL & ALGORITHMIC TOOLS section (line 391)
 
 // Bezier Curves - Mathematical bezier curve calculations
 export {
@@ -1279,9 +1274,7 @@ async function initializeTools() {
   );
 
   // TIER SOUND & MUSIC - Audio Tools
-  const { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } = await import(
-    './music-theory-tool'
-  );
+  // musicTheoryTool already imported in Computational & Algorithmic tools section
 
   // Additional VISUAL MADNESS
   const { bezierCurvesTool, executeBezierCurves, isBezierCurvesAvailable } = await import(
@@ -1771,11 +1764,7 @@ async function initializeTools() {
       checkAvailability: isParticleSystemAvailable,
     },
     // TIER SOUND & MUSIC - Audio Tools
-    {
-      tool: musicTheoryTool,
-      executor: executeMusicTheory,
-      checkAvailability: isMusicTheoryAvailable,
-    },
+    // musicTheoryTool already registered in Computational & Algorithmic tools section
     // Additional VISUAL MADNESS
     {
       tool: bezierCurvesTool,
