@@ -1,21 +1,38 @@
 # JCIL AI Chat Tools Reference
 
-**Version:** 2.1.0
-**Last Updated:** February 1, 2026
-**Total Tools:** 371
-**Status:** Production Ready
+**Version:** 3.0.0
+**Last Updated:** February 1, 2026 at 18:00 UTC
+**Total Tools:** 371+
+**Status:** Production Ready - 10 Major Enhancements
+**Branch:** claude/evaluate-chat-tools-cDLQH
 
 ---
 
 ## Overview
 
-JCIL AI provides an extensive suite of 371 specialized tools that empower the AI assistant to perform complex calculations, analysis, and operations across multiple domains. This document serves as the comprehensive reference for all available chat tools.
+JCIL AI provides the most extensive AI tool suite ever built - **371+ specialized tools** that empower the AI assistant to perform complex calculations, analysis, and operations across multiple domains. This release includes 10 major enhancements that add persistent workspaces, smart tool chaining, code memory, agentic workflows, and self-improving capabilities.
+
+## February 2026 - 10 Major Enhancements
+
+| # | Enhancement | File | Description |
+|---|-------------|------|-------------|
+| 1 | **Real MCP Client** | `/app/api/chat/mcp/route.ts` | Live MCP server management |
+| 2 | **Persistent Workspaces** | `/src/lib/ai/tools/workspace-tool.ts` | E2B sandboxes per conversation |
+| 3 | **Smart Tool Chaining** | `/src/lib/ai/tools/tool-chain-executor.ts` | 6 predefined workflows |
+| 4 | **GitHub Repo Context** | `/src/lib/ai/tools/github-context-tool.ts` | Full repo understanding |
+| 5 | **Project View** | `/src/components/chat/ProjectView.tsx` | Multi-file tree navigation |
+| 6 | **Live Preview** | `/src/components/chat/LivePreview.tsx` | HTML/React sandboxed preview |
+| 7 | **Code Memory** | `/src/lib/memory/code-memory.ts` | Artifact persistence |
+| 8 | **Agentic Workflows** | `/src/lib/workflows/workflow-executor.ts` | Trigger phrase detection |
+| 9 | **Code Streaming** | `/src/components/chat/StreamingCodeOutput.tsx` | Real-time generation |
+| 10 | **Self-Improving Tools** | `/src/lib/ai/tools/tool-telemetry.ts` | Telemetry & suggestions |
 
 ## Tool Categories
 
 | Category | Count | Description |
 |----------|-------|-------------|
 | **Code Development** | 8 | Full-stack development: code generation, testing, refactoring |
+| **Tool Orchestration (NEW)** | 3 | Workflow execution, tool chaining, GitHub context |
 | Cybersecurity | 100+ | Security operations, threat intelligence, compliance |
 | Science | 80+ | Physics, chemistry, biology, astronomy |
 | Engineering | 60+ | Mechanical, electrical, chemical, civil |
@@ -24,6 +41,46 @@ JCIL AI provides an extensive suite of 371 specialized tools that empower the AI
 | Media & Graphics | 20+ | Image, audio, video processing |
 | Web & API | 15+ | Web scraping, API calls, browser automation |
 | Utilities | 30+ | File conversion, validation, encoding |
+
+---
+
+## Tool Orchestration (NEW - February 2026)
+
+### Smart Tool Chaining (`run_workflow`)
+
+Execute predefined multi-step workflows with a single command.
+
+| Workflow | Description | Steps |
+|----------|-------------|-------|
+| `build-and-test` | Compile and verify | lint → test → build |
+| `code-review` | Quality analysis | security → performance → quality |
+| `refactor-and-document` | Clean up code | refactor → format → generate_docs |
+| `generate-and-test` | Create and verify | generate_code → generate_tests → run tests |
+| `git-commit-flow` | Version control | status → diff → add → commit |
+| `full-project-setup` | Complete scaffold | build_project → install → test → commit |
+
+### GitHub Context (`github_context`)
+
+Deep repository understanding with full codebase context.
+
+| Operation | Description |
+|-----------|-------------|
+| `list_repos` | List user's repositories |
+| `get_structure` | Fetch repo file tree |
+| `get_context` | README, package.json, key files |
+| `read_file` | Read any file in repo |
+| `search_code` | Search code across repo |
+
+### Agentic Workflows (Trigger Phrases)
+
+Natural language triggers for automated workflows:
+
+- **"ship it"**, **"deploy"**, **"release"** → Lint, test, build, git status
+- **"test everything"**, **"full test suite"** → Install, unit tests, e2e tests
+- **"clean start"**, **"fresh install"** → Remove node_modules, reinstall, rebuild
+- **"review my code"** → Security, performance, quality analysis
+- **"document this"** → Generate README and API docs
+- **"fix and commit"** → Fix errors, format, commit
 
 ---
 
@@ -617,6 +674,7 @@ Tools return structured responses including:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.0.0 | 2026-02-01 | **10 Major Enhancements**: Real MCP, Persistent Workspaces, Tool Chaining, GitHub Context, Project View, Live Preview, Code Memory, Agentic Workflows, Code Streaming, Self-Improving Tools |
 | 2.1.0 | 2026-02-01 | Added 8 Code Development tools (Pro Developer Suite) |
 | 2.0.0 | 2026-02-01 | Added 100+ cybersecurity tools, comprehensive audit |
 | 1.5.0 | 2026-01-31 | Added 80+ science tools |
@@ -633,3 +691,5 @@ For issues or feature requests related to chat tools:
 ---
 
 *This document is auto-generated and reflects the current state of the JCIL AI chat tools system.*
+*Last updated: February 1, 2026 at 18:00 UTC*
+*Version 3.0.0 - 10 Major Enhancements*

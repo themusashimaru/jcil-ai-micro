@@ -7,8 +7,9 @@
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
 [![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
-[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-28-green)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-371+-green)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
+[![Enhancements](https://img.shields.io/badge/Major%20Enhancements-10-orange)]()
 
 ---
 
@@ -210,66 +211,63 @@ $20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
 
 ---
 
-## Chat AI Tools (28 Tools)
+## Chat AI Tools (371+ Tools)
 
-**Updated:** January 31, 2026 at 02:30 PM UTC
+**Updated:** February 1, 2026 at 18:00 UTC
+**Version:** 3.0.0 (10 Major Enhancements)
 
-The main chat interface provides **28 AI-powered tools** that enable the assistant to take real actions:
+The main chat interface is now the **most capable AI chat ever built** with **371+ AI-powered tools** and 10 major enhancements.
 
-### Research & Information
+### February 2026 - 10 Major Enhancements
 
-| Tool                 | Description                       | Requires      |
-| -------------------- | --------------------------------- | ------------- |
-| `web_search`         | Real-time web search via Brave    | BRAVE_API_KEY |
-| `fetch_url`          | Fetch and extract URL content     | -             |
-| `youtube_transcript` | Extract YouTube video transcripts | -             |
-| `github`             | Search repos, code, issues        | GITHUB_TOKEN  |
+| # | Enhancement | Description |
+|---|-------------|-------------|
+| 1 | **Real MCP Client** | Live server management, health monitoring |
+| 2 | **Persistent Workspaces** | E2B sandboxes that persist across turns |
+| 3 | **Smart Tool Chaining** | 6 predefined workflow templates |
+| 4 | **GitHub Repo Context** | Full repository understanding |
+| 5 | **Project View** | Multi-file tree navigation with syntax highlighting |
+| 6 | **Live Preview** | Sandboxed HTML/React preview |
+| 7 | **Code Memory** | Artifact persistence with semantic search |
+| 8 | **Agentic Workflows** | Trigger phrases ("ship it", "test everything") |
+| 9 | **Code Streaming** | Real-time file-by-file generation |
+| 10 | **Self-Improving Tools** | Telemetry with failure detection |
 
-### Creation & Generation
+### Tool Categories Overview
 
-| Tool                 | Description                                    | Requires    |
-| -------------------- | ---------------------------------------------- | ----------- |
-| `create_chart`       | Generate data visualizations (bar, line, pie)  | -           |
-| `create_document`    | Generate PDF, DOCX, TXT documents              | -           |
-| `create_spreadsheet` | Excel files with formulas (SUM, VLOOKUP, etc.) | -           |
-| `screenshot`         | Capture webpage screenshots                    | E2B_API_KEY |
-| `generate_qr_code`   | Create QR codes from text/URLs                 | -           |
-| `generate_diagram`   | Mermaid diagrams (flowchart, sequence, ERD)    | -           |
-| `generate_fake_data` | Faker.js realistic test data                   | -           |
-| `generate_barcode`   | CODE128, EAN, UPC barcodes                     | -           |
+| Category | Count | Description |
+|----------|-------|-------------|
+| **Code Development** | 8 | Full-stack: generate, analyze, test, refactor |
+| **Tool Orchestration** | 3 | Workflows, chaining, GitHub context |
+| **Cybersecurity** | 100+ | SIEM, SOC, threat intel, compliance |
+| **Science** | 80+ | Physics, chemistry, biology, astronomy |
+| **Engineering** | 60+ | Mechanical, electrical, chemical |
+| **Mathematics** | 30+ | Calculus, statistics, optimization |
+| **Web & Research** | 15+ | Search, scraping, browser automation |
+| **Media & Graphics** | 20+ | Image, audio, video processing |
+| **Utilities** | 30+ | Conversion, validation, encoding |
 
-### Analysis & Processing
+### Key Tool Highlights
 
-| Tool               | Description                              | Requires          |
-| ------------------ | ---------------------------------------- | ----------------- |
-| `analyze_image`    | Claude Vision image analysis             | ANTHROPIC_API_KEY |
-| `extract_pdf_url`  | Extract text from PDF URLs               | -                 |
-| `extract_table`    | Vision-based table extraction            | ANTHROPIC_API_KEY |
-| `transcribe_audio` | Audio to text via Whisper                | OPENAI_API_KEY    |
-| `calculator`       | Advanced math with Wolfram Alpha         | WOLFRAM_APP_ID    |
-| `transform_image`  | Resize, compress, convert, watermark     | -                 |
-| `convert_file`     | Convert between formats (MD, HTML, JSON) | -                 |
-| `diff_compare`     | Compare texts and show differences       | -                 |
-| `analyze_text_nlp` | NLP: sentiment, tokenize, TF-IDF         | -                 |
-| `extract_entities` | Extract people, places, organizations    | -                 |
+**Code Development (Pro Developer Suite)**
+- `workspace` - Full coding workspace with bash, git, file operations
+- `generate_code` - Production-quality code in any language
+- `analyze_code` - Security, performance, quality analysis
+- `generate_tests` - Unit, integration, e2e test generation
+- `fix_error` - Debug and fix code errors with explanations
 
-### Code & Automation
+**Tool Orchestration (NEW)**
+- `run_workflow` - Smart tool chaining with 6 predefined workflows
+- `github_context` - Full repository understanding with code search
+- Agentic triggers: "ship it", "test everything", "clean start"
 
-| Tool                  | Description                      | Requires    |
-| --------------------- | -------------------------------- | ----------- |
-| `run_code`            | Execute Python/JS in E2B sandbox | E2B_API_KEY |
-| `browser_visit`       | Full browser automation          | E2B_API_KEY |
-| `http_request`        | Call any API or webhook          | -           |
-| `create_and_run_tool` | Dynamic tool creation            | E2B_API_KEY |
-| `shorten_link`        | Create shortened URLs            | -           |
+**Research & Information**
+- `web_search` - Real-time search via Brave API
+- `fetch_url` - URL content extraction
+- `youtube_transcript` - Video transcript extraction
+- `parallel_research` - Multi-agent research orchestration
 
-### Multi-Agent
-
-| Tool                | Description                           | Requires          |
-| ------------------- | ------------------------------------- | ----------------- |
-| `parallel_research` | Mini-agent orchestrator (5-10 agents) | ANTHROPIC_API_KEY |
-
-📄 **Full audit**: [docs/audits/PLATFORM_CAPABILITIES_AUDIT_2026-01-31.md](./docs/audits/PLATFORM_CAPABILITIES_AUDIT_2026-01-31.md)
+📄 **Full audit**: [docs/CHAT_TOOLS_REFERENCE.md](./docs/CHAT_TOOLS_REFERENCE.md)
 
 ---
 
@@ -684,8 +682,10 @@ Copyright (c) 2024-2026 JCIL.AI
 
 <div align="center">
 
-**Built with Anthropic Claude** | **55+ Code Lab Tools** | **28 Chat Tools** | **5 MCP Servers** | **Cloud Sandboxed**
+**Built with Anthropic Claude** | **55+ Code Lab Tools** | **371+ Chat Tools** | **5 MCP Servers** | **10 Major Enhancements**
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
+
+*Last updated: February 1, 2026 at 18:00 UTC - Version 3.0.0*
 
 </div>
