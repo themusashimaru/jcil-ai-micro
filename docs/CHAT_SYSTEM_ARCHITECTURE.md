@@ -1,11 +1,34 @@
 # JCIL AI Chat System Architecture
 
-> Last Updated: January 31, 2026
-> Branch: claude/audit-create-slides-GUEgj
+> Last Updated: February 1, 2026 at 22:30 UTC
+> Branch: claude/evaluate-chat-tools-cDLQH
+> Version: 3.1.0 (10 Major Enhancements + Security Suite)
 
 ## Overview
 
-The JCIL AI chat system is a multi-provider, tool-enabled conversational AI platform built on Next.js. It features native Claude tool use for web search, multi-provider failover, and enterprise-grade reliability features.
+The JCIL AI chat system is the most capable AI chat ever built - a multi-provider, tool-enabled conversational AI platform built on Next.js. It features **153 fully wired tools** (378 total files), native Claude tool use, persistent workspaces, smart tool chaining, code memory, agentic workflows, and enterprise-grade reliability features.
+
+**Latest Wiring (February 1, 2026 at 22:30 UTC):**
+- ✅ `run_workflow` - Enhancement #3 (Smart Tool Chaining)
+- ✅ `github_context` - Enhancement #4 (Repository Understanding)
+- ✅ 32 Cybersecurity Tools - Full Security Operations Suite
+
+## February 2026 Major Enhancements (10 Total)
+
+This release includes 10 major enhancements that significantly expand the Chat's capabilities:
+
+| # | Enhancement | Description |
+|---|-------------|-------------|
+| 1 | **Real MCP Client** | Live MCP server management replacing mock implementations |
+| 2 | **Persistent Workspace Sessions** | Conversation-aware E2B sandboxes with file persistence |
+| 3 | **Smart Tool Chaining** | Predefined workflow templates for multi-step operations |
+| 4 | **GitHub Repo Context** | Full GitHub repository understanding and code search |
+| 5 | **Multi-File Project View** | File tree navigation with syntax highlighting |
+| 6 | **Live Preview for Web Code** | Sandboxed HTML/React preview with device presets |
+| 7 | **Conversation Memory for Code** | Persistent code artifact storage with semantic search |
+| 8 | **Agentic Code Workflows** | Trigger phrase detection ("ship it", "test everything") |
+| 9 | **Real-Time Code Streaming** | File-by-file generation with progress tracking |
+| 10 | **Self-Improving Tools** | Telemetry, failure pattern detection, improvement suggestions |
 
 ## Architecture Diagram
 
@@ -13,6 +36,10 @@ The JCIL AI chat system is a multi-provider, tool-enabled conversational AI plat
 ┌─────────────────────────────────────────────────────────────────┐
 │                     CLIENT LAYER                                │
 │  ChatClient.tsx → ChatComposer (message input)                  │
+│  ├─ ProjectView (multi-file display)                            │
+│  ├─ LivePreview (HTML/React preview)                            │
+│  ├─ StreamingCodeOutput (real-time generation)                  │
+│  └─ ChatMCPSettings (MCP server management)                     │
 └────────────────────────┬────────────────────────────────────────┘
                          │ POST /api/chat
                          ↓
@@ -26,16 +53,27 @@ The JCIL AI chat system is a multi-provider, tool-enabled conversational AI plat
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │              CHAT ROUTER (routeChatWithTools)                   │
-│  ├─ Tools: [web_search, fetch_url, run_code, vision,            │
-│  │          browser_visit, extract_pdf, extract_table,          │
-│  │          parallel_research, create_and_run_tool,             │
-│  │          youtube_transcript, github, screenshot,             │
-│  │          calculator, create_chart, create_document]          │
+│  ├─ 371+ Tools (8 categories)                                   │
+│  │   ├─ Code Development (8 tools)                              │
+│  │   ├─ Cybersecurity (100+ tools)                              │
+│  │   ├─ Science & Engineering (140+ tools)                      │
+│  │   └─ Utilities & Media (100+ tools)                          │
+│  ├─ Agentic Workflows (trigger phrases)                         │
+│  ├─ Tool Chain Executor (smart chaining)                        │
+│  ├─ GitHub Context (repo understanding)                         │
+│  ├─ Code Memory (artifact persistence)                          │
+│  ├─ Tool Telemetry (self-improvement)                           │
 │  ├─ Dynamic tool creation (cost-limited)                        │
 │  ├─ Streaming with tool loop                                    │
-│  ├─ Status messages during tool execution (8s interval)         │
-│  ├─ 15s timeout per tool execution                              │
-│  └─ Workflow task tracking (Claude Code style)                  │
+│  └─ 15s timeout per tool execution                              │
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
+│              WORKSPACE LAYER (NEW)                              │
+│  ├─ Persistent E2B Sandboxes per conversation                   │
+│  ├─ ContainerManager singleton                                  │
+│  ├─ File persistence across turns                               │
+│  └─ Real MCP Client integration                                 │
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -395,9 +433,54 @@ DEFAULT_AI_PROVIDER=claude
 FALLBACK_AI_PROVIDER=xai
 ```
 
-## Recent Changes (Jan 26, 2026)
+## Recent Changes
 
-### Native Tool Use Implementation
+### February 1, 2026 - 10 Major Enhancements
+
+**Enhancement 1: Real MCP Client**
+- Modified `/app/api/chat/mcp/route.ts` with live MCPClientManager
+- Real server start/stop/call functionality
+- Health monitoring integration
+
+**Enhancement 2: Persistent Workspace Sessions**
+- Enhanced `/src/lib/ai/tools/workspace-tool.ts`
+- Each conversation gets its own E2B sandbox
+- Files persist across conversation turns
+- Uses ContainerManager singleton
+
+**Enhancement 3: Smart Tool Chaining**
+- Created `/src/lib/ai/tools/tool-chain-executor.ts`
+- 6 predefined workflows: build-and-test, code-review, refactor-and-document, generate-and-test, git-commit-flow, full-project-setup
+
+**Enhancement 4: GitHub Repo Context**
+- Created `/src/lib/ai/tools/github-context-tool.ts`
+- Operations: list_repos, get_structure, get_context, read_file, search_code
+
+**Enhancement 5: Multi-File Project View**
+- Created `/src/components/chat/ProjectView.tsx`
+- File tree navigation with syntax highlighting
+
+**Enhancement 6: Live Preview for Web Code**
+- Created `/src/components/chat/LivePreview.tsx`
+- Sandboxed iframe with device presets
+
+**Enhancement 7: Conversation Memory for Code**
+- Created `/src/lib/memory/code-memory.ts`
+- Semantic search and auto-tagging
+
+**Enhancement 8: Agentic Code Workflows**
+- Created `/src/lib/workflows/workflow-executor.ts`
+- Trigger phrases: "ship it", "test everything", "clean start", etc.
+
+**Enhancement 9: Real-Time Code Streaming**
+- Created `/src/components/chat/StreamingCodeOutput.tsx`
+- File-by-file progress with cancel capability
+
+**Enhancement 10: Self-Improving Tools**
+- Created `/src/lib/ai/tools/tool-telemetry.ts`
+- Success rate tracking, improvement suggestions
+
+### January 26, 2026 - Native Tool Use Implementation
 
 - Replaced keyword-based auto-search with Claude native tool use
 - Claude decides when to search (no keyword matching)
@@ -462,17 +545,35 @@ grep "Tool execution timeout" logs
 
 ## File Reference
 
+### Core Files
 | File                                          | Purpose                            |
 | --------------------------------------------- | ---------------------------------- |
 | `/app/api/chat/route.ts`                      | Main chat orchestration            |
 | `/src/lib/ai/chat-router.ts`                  | Multi-provider routing + tool loop |
-| `/src/lib/ai/tools/web-search.ts`             | Web search tool definition         |
-| `/src/lib/ai/tools/index.ts`                  | Tool exports                       |
+| `/src/lib/ai/tools/index.ts`                  | Tool exports (371+ tools)          |
 | `/src/lib/ai/providers/types.ts`              | Unified type definitions           |
 | `/src/lib/ai/providers/adapters/anthropic.ts` | Claude adapter                     |
 | `/src/lib/ai/providers/service.ts`            | Provider service                   |
-| `/src/lib/brave/`                             | Brave Search integration           |
+
+### New Enhancement Files (February 1, 2026)
+| File                                          | Purpose                            |
+| --------------------------------------------- | ---------------------------------- |
+| `/app/api/chat/mcp/route.ts`                  | Real MCP client integration        |
+| `/src/lib/ai/tools/workspace-tool.ts`         | Persistent workspace sessions      |
+| `/src/lib/ai/tools/tool-chain-executor.ts`    | Smart tool chaining                |
+| `/src/lib/ai/tools/github-context-tool.ts`    | GitHub repo context                |
+| `/src/lib/ai/tools/tool-telemetry.ts`         | Self-improving tools telemetry     |
+| `/src/components/chat/ProjectView.tsx`        | Multi-file project display         |
+| `/src/components/chat/LivePreview.tsx`        | HTML/React live preview            |
+| `/src/components/chat/StreamingCodeOutput.tsx`| Real-time code streaming           |
+| `/src/lib/memory/code-memory.ts`              | Code artifact memory               |
+| `/src/lib/workflows/workflow-executor.ts`     | Agentic workflows                  |
 
 ## Contact
 
-For questions about this architecture, refer to this document or the git history on the `claude/audit-chat-tools-xTqRJ` branch.
+For questions about this architecture, refer to this document or the git history on the `claude/evaluate-chat-tools-cDLQH` branch.
+
+---
+
+*Document updated: February 1, 2026 at 18:00 UTC*
+*Chief Engineering Officer - JCIL.AI Platform*

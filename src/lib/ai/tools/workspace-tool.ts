@@ -1,5 +1,5 @@
 /**
- * WORKSPACE TOOL
+ * WORKSPACE TOOL (Enhancement #2: Persistent Workspace Sessions)
  *
  * Provides full workspace capabilities for the AI:
  * - Execute bash commands
@@ -8,20 +8,28 @@
  * - Git operations
  *
  * Uses E2B sandbox for secure execution.
+ *
+ * ENHANCEMENT #2: Now supports persistent workspace sessions per conversation.
+ * - Each conversation gets its own workspace that persists across turns
+ * - Uses ContainerManager singleton for proper resource management
+ * - Supports workspace handoff context (file tree, git state, etc.)
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
+import { getContainerManager, type ExecutionResult } from '@/lib/workspace/container';
 import { logger } from '@/lib/logger';
 
 const log = logger('WorkspaceTool');
 
 // Track E2B availability
 let e2bAvailable: boolean | null = null;
-let Sandbox: typeof import('@e2b/code-interpreter').Sandbox | null = null;
-let sharedSandbox: InstanceType<typeof import('@e2b/code-interpreter').Sandbox> | null = null;
-let sandboxLastUsed = 0;
-const SANDBOX_TIMEOUT_MS = 600000; // 10 minutes for workspace operations
-const SANDBOX_IDLE_CLEANUP_MS = 300000; // 5 min idle
+
+// Session-to-workspace mapping for Chat (Enhancement #2)
+// Maps conversationId -> workspaceId
+const conversationWorkspaces = new Map<string, string>();
+
+// Default workspace ID for backward compatibility (shared sandbox mode)
+const DEFAULT_WORKSPACE_ID = 'chat-shared-workspace';
 
 // Dangerous command patterns
 const DANGEROUS_PATTERNS: RegExp[] = [
@@ -41,8 +49,6 @@ async function initE2B(): Promise<boolean> {
       e2bAvailable = false;
       return false;
     }
-    const e2bModule = await import('@e2b/code-interpreter');
-    Sandbox = e2bModule.Sandbox;
     e2bAvailable = true;
     return true;
   } catch (error) {
@@ -52,21 +58,88 @@ async function initE2B(): Promise<boolean> {
   }
 }
 
-async function getSandbox(): Promise<InstanceType<typeof import('@e2b/code-interpreter').Sandbox>> {
-  if (!Sandbox) throw new Error('E2B not initialized');
-  const now = Date.now();
-  if (sharedSandbox && now - sandboxLastUsed > SANDBOX_IDLE_CLEANUP_MS) {
-    try { await sharedSandbox.kill(); } catch { /* ignore */ }
-    sharedSandbox = null;
+/**
+ * Get or create a workspace ID for a conversation (Enhancement #2)
+ */
+export function getWorkspaceForConversation(conversationId?: string): string {
+  if (!conversationId) {
+    return DEFAULT_WORKSPACE_ID;
   }
-  if (!sharedSandbox) {
-    log.info('Creating workspace sandbox');
-    sharedSandbox = await Sandbox.create({ timeoutMs: SANDBOX_TIMEOUT_MS });
-    // Install git and common tools
-    sharedSandbox.commands.run('apt-get update && apt-get install -y git', { timeoutMs: 60000 }).catch(() => {});
+
+  if (!conversationWorkspaces.has(conversationId)) {
+    // Create a new workspace ID for this conversation
+    const workspaceId = `chat-${conversationId}`;
+    conversationWorkspaces.set(conversationId, workspaceId);
+    log.info('Created workspace for conversation', { conversationId, workspaceId });
   }
-  sandboxLastUsed = now;
-  return sharedSandbox;
+
+  return conversationWorkspaces.get(conversationId)!;
+}
+
+/**
+ * Get workspace context for a conversation (Enhancement #2)
+ * Returns info about the current workspace state for AI context
+ */
+export async function getWorkspaceContext(conversationId?: string): Promise<{
+  hasWorkspace: boolean;
+  workspaceId?: string;
+  fileCount?: number;
+  gitStatus?: string;
+}> {
+  if (!await initE2B()) {
+    return { hasWorkspace: false };
+  }
+
+  const workspaceId = getWorkspaceForConversation(conversationId);
+  const container = getContainerManager();
+
+  try {
+    const status = await container.getStatus(workspaceId);
+    if (!status.isRunning) {
+      return { hasWorkspace: false, workspaceId };
+    }
+
+    // Get file count
+    const files = await container.getFileTree(workspaceId, '/workspace', 2);
+    const fileCount = files.filter(f => !f.isDirectory).length;
+
+    // Get git status if it's a git repo
+    let gitStatus: string | undefined;
+    try {
+      const gitResult = await container.executeCommand(workspaceId, 'git status --short 2>/dev/null');
+      if (gitResult.exitCode === 0) {
+        gitStatus = gitResult.stdout || '(clean)';
+      }
+    } catch {
+      // Not a git repo
+    }
+
+    return {
+      hasWorkspace: true,
+      workspaceId,
+      fileCount,
+      gitStatus,
+    };
+  } catch {
+    return { hasWorkspace: false, workspaceId };
+  }
+}
+
+/**
+ * Clean up a conversation's workspace (Enhancement #2)
+ */
+export async function cleanupConversationWorkspace(conversationId: string): Promise<void> {
+  const workspaceId = conversationWorkspaces.get(conversationId);
+  if (!workspaceId) return;
+
+  try {
+    const container = getContainerManager();
+    await container.terminateContainer(workspaceId);
+    conversationWorkspaces.delete(conversationId);
+    log.info('Cleaned up conversation workspace', { conversationId, workspaceId });
+  } catch (error) {
+    log.warn('Failed to cleanup workspace', { conversationId, error: (error as Error).message });
+  }
 }
 
 function isCommandSafe(command: string): { safe: boolean; reason?: string } {
@@ -89,19 +162,23 @@ export const workspaceTool: UnifiedTool = {
 - git_status: Check git status
 - git_commit: Commit changes
 - git_push: Push to remote
+- get_context: Get workspace context (files, git state)
 
 Use this when user wants to:
 - Build/run code projects
 - Manage files
 - Use git version control
 - Install dependencies
-- Run tests`,
+- Run tests
+
+PERSISTENT WORKSPACE: Each conversation has its own workspace that persists across messages.
+Files created in one message are available in subsequent messages.`,
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['bash', 'read_file', 'write_file', 'list_files', 'git_clone', 'git_status', 'git_commit', 'git_push'],
+        enum: ['bash', 'read_file', 'write_file', 'list_files', 'git_clone', 'git_status', 'git_commit', 'git_push', 'get_context'],
         description: 'The operation to perform',
       },
       command: { type: 'string', description: 'For bash: the command to run' },
@@ -109,6 +186,7 @@ Use this when user wants to:
       content: { type: 'string', description: 'For write_file: content to write' },
       url: { type: 'string', description: 'For git_clone: repository URL' },
       message: { type: 'string', description: 'For git_commit: commit message' },
+      conversationId: { type: 'string', description: 'Conversation ID for persistent workspace (auto-provided by system)' },
     },
     required: ['operation'],
   },
@@ -118,15 +196,18 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
   const { id, arguments: rawArgs } = toolCall;
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { operation, command, path, content, url, message } = args;
+    const { operation, command, path, content, url, message, conversationId } = args;
 
     const available = await initE2B();
     if (!available) {
       return { toolCallId: id, content: 'Workspace not available (E2B not configured)', isError: true };
     }
 
-    const sandbox = await getSandbox();
+    // Get workspace for this conversation (Enhancement #2: Persistent Workspaces)
+    const workspaceId = getWorkspaceForConversation(conversationId);
+    const container = getContainerManager();
     let result: string;
+    let execResult: ExecutionResult;
 
     switch (operation) {
       case 'bash': {
@@ -137,8 +218,11 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
         if (!safety.safe) {
           return { toolCallId: id, content: `Command blocked: ${safety.reason}`, isError: true };
         }
-        const cmdResult = await sandbox.commands.run(command, { timeoutMs: 60000 });
-        result = cmdResult.stdout + (cmdResult.stderr ? `\nSTDERR: ${cmdResult.stderr}` : '');
+        execResult = await container.executeCommand(workspaceId, command, { timeout: 60000 });
+        result = execResult.stdout + (execResult.stderr ? `\nSTDERR: ${execResult.stderr}` : '');
+        if (execResult.error) {
+          result += `\nERROR: ${execResult.error}`;
+        }
         break;
       }
 
@@ -146,8 +230,12 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
         if (!path) {
           return { toolCallId: id, content: 'Path required for read_file', isError: true };
         }
-        const readResult = await sandbox.commands.run(`cat "${path}"`, { timeoutMs: 10000 });
-        result = readResult.stdout || readResult.stderr || '(empty file)';
+        try {
+          const fileContent = await container.readFile(workspaceId, path.startsWith('/') ? path : `/workspace/${path}`);
+          result = fileContent || '(empty file)';
+        } catch (error) {
+          result = `Error reading file: ${(error as Error).message}`;
+        }
         break;
       }
 
@@ -155,17 +243,26 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
         if (!path || content === undefined) {
           return { toolCallId: id, content: 'Path and content required for write_file', isError: true };
         }
-        // Use heredoc to write content - escape content properly
-        const safeContent = content.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
-        await sandbox.commands.run(`mkdir -p "$(dirname "${path}")" && cat > "${path}" << 'EOFCONTENT'\n${safeContent}\nEOFCONTENT`, { timeoutMs: 10000 });
-        result = `File written: ${path}`;
+        try {
+          const fullPath = path.startsWith('/') ? path : `/workspace/${path}`;
+          await container.writeFile(workspaceId, fullPath, content);
+          result = `File written: ${fullPath}`;
+        } catch (error) {
+          result = `Error writing file: ${(error as Error).message}`;
+        }
         break;
       }
 
       case 'list_files': {
-        const targetPath = path || '.';
-        const lsResult = await sandbox.commands.run(`ls -la "${targetPath}"`, { timeoutMs: 10000 });
-        result = lsResult.stdout || lsResult.stderr;
+        const targetPath = path ? (path.startsWith('/') ? path : `/workspace/${path}`) : '/workspace';
+        try {
+          const files = await container.listDirectory(workspaceId, targetPath);
+          result = files.map(f => `${f.isDirectory ? 'd' : '-'} ${f.path}`).join('\n') || '(empty directory)';
+        } catch {
+          // Fall back to ls command
+          execResult = await container.executeCommand(workspaceId, `ls -la "${targetPath}"`, { timeout: 10000 });
+          result = execResult.stdout || execResult.stderr || '(empty directory)';
+        }
         break;
       }
 
@@ -173,14 +270,14 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
         if (!url) {
           return { toolCallId: id, content: 'URL required for git_clone', isError: true };
         }
-        const cloneResult = await sandbox.commands.run(`git clone "${url}"`, { timeoutMs: 120000 });
-        result = cloneResult.stdout + cloneResult.stderr;
+        execResult = await container.cloneRepository(workspaceId, url, 'main', '/workspace');
+        result = execResult.stdout + execResult.stderr;
         break;
       }
 
       case 'git_status': {
-        const statusResult = await sandbox.commands.run('git status', { timeoutMs: 10000 });
-        result = statusResult.stdout || statusResult.stderr;
+        execResult = await container.executeCommand(workspaceId, 'git status', { timeout: 10000, cwd: '/workspace' });
+        result = execResult.stdout || execResult.stderr;
         break;
       }
 
@@ -188,15 +285,24 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
         if (!message) {
           return { toolCallId: id, content: 'Message required for git_commit', isError: true };
         }
-        await sandbox.commands.run('git add -A', { timeoutMs: 10000 });
-        const commitResult = await sandbox.commands.run(`git commit -m "${message}"`, { timeoutMs: 10000 });
-        result = commitResult.stdout + commitResult.stderr;
+        await container.executeCommand(workspaceId, 'git add -A', { timeout: 10000, cwd: '/workspace' });
+        // Escape message for shell
+        const escapedMessage = message.replace(/"/g, '\\"');
+        execResult = await container.executeCommand(workspaceId, `git commit -m "${escapedMessage}"`, { timeout: 10000, cwd: '/workspace' });
+        result = execResult.stdout + execResult.stderr;
         break;
       }
 
       case 'git_push': {
-        const pushResult = await sandbox.commands.run('git push', { timeoutMs: 60000 });
-        result = pushResult.stdout + pushResult.stderr;
+        execResult = await container.executeCommand(workspaceId, 'git push', { timeout: 60000, cwd: '/workspace' });
+        result = execResult.stdout + execResult.stderr;
+        break;
+      }
+
+      case 'get_context': {
+        // New operation: Get workspace context (Enhancement #2)
+        const context = await getWorkspaceContext(conversationId);
+        result = JSON.stringify(context, null, 2);
         break;
       }
 
@@ -213,4 +319,25 @@ export async function executeWorkspace(toolCall: UnifiedToolCall): Promise<Unifi
 
 export async function isWorkspaceAvailable(): Promise<boolean> {
   return initE2B();
+}
+
+/**
+ * Execute workspace with conversation context (Enhancement #2)
+ * This is a convenience function for the chat API to use
+ */
+export async function executeWorkspaceWithConversation(
+  toolCall: UnifiedToolCall,
+  conversationId: string
+): Promise<UnifiedToolResult> {
+  // Inject conversationId into the tool call arguments
+  const args = typeof toolCall.arguments === 'string'
+    ? JSON.parse(toolCall.arguments)
+    : toolCall.arguments;
+
+  const enhancedToolCall: UnifiedToolCall = {
+    ...toolCall,
+    arguments: { ...args, conversationId },
+  };
+
+  return executeWorkspace(enhancedToolCall);
 }
