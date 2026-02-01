@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (267 total):
+ * Tools available (363 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1540,6 +1540,108 @@ async function initializeTools() {
   const { biophysicsTool, executeBiophysics, isBiophysicsAvailable } = await import('./biophysics-tool');
   const { metallurgyTool, executeMetallurgy, isMetallurgyAvailable } = await import('./metallurgy-tool');
 
+  // Cybersecurity tools batch 1 (15 new tools)
+  const { hashAnalysisTool, executeHashAnalysis, isHashAnalysisAvailable } = await import('./hash-analysis-tool');
+  const { encodingTool, executeEncoding, isEncodingAvailable } = await import('./encoding-tool');
+  const { securityMetricsTool, executeSecurityMetrics, isSecurityMetricsAvailable } = await import('./security-metrics-tool');
+  const { jwtTool, executeJwt, isJwtAvailable } = await import('./jwt-tool');
+  const { ipSecurityTool, executeIpSecurity, isIpSecurityAvailable } = await import('./ip-security-tool');
+  const { certificateTool, executeCertificate, isCertificateAvailable } = await import('./certificate-tool');
+  const { entropyAnalysisTool, executeEntropyAnalysis, isEntropyAnalysisAvailable } = await import('./entropy-analysis-tool');
+  const { securityHeadersTool, executeSecurityHeaders, isSecurityHeadersAvailable } = await import('./security-headers-tool');
+  const { malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable } = await import('./malware-indicators-tool');
+  const { portScannerTool, executePortScanner, isPortScannerAvailable } = await import('./port-scanner-tool');
+  const { owaspTool, executeOwasp, isOwaspAvailable } = await import('./owasp-tool');
+  const { dnsSecurityTool, executeDnsSecurity, isDnsSecurityAvailable } = await import('./dns-security-tool');
+  const { threatModelTool, executeThreatModel, isThreatModelAvailable } = await import('./threat-model-tool');
+  const { complianceTool, executeCompliance, isComplianceAvailable } = await import('./compliance-tool');
+  const { cipherTool, executeCipher, isCipherAvailable } = await import('./cipher-tool');
+
+  // Cybersecurity tools batch 2 (55 more tools)
+  const { authProtocolTool, executeAuthProtocol, isAuthProtocolAvailable } = await import('./auth-protocol-tool');
+  const { vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable } = await import('./vuln-assessment-tool');
+  const { incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable } = await import('./incident-response-tool');
+  const { networkSecurityTool, executeNetworkSecurity, isNetworkSecurityAvailable } = await import('./network-security-tool');
+  const { firewallTool, executeFirewall, isFirewallAvailable } = await import('./firewall-tool');
+  const { idsIpsTool, executeIdsIps, isIdsIpsAvailable } = await import('./ids-ips-tool');
+  const { logAnalysisTool, executeLogAnalysis, isLogAnalysisAvailable } = await import('./log-analysis-tool');
+  const { penTestTool, executePenTest, isPenTestAvailable } = await import('./pen-test-tool');
+  const { socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable } = await import('./social-engineering-tool');
+  const { cryptanalysisTool, executeCryptanalysis, isCryptanalysisAvailable } = await import('./cryptanalysis-tool');
+  const { secureSdlcTool, executeSecureSdlc, isSecureSdlcAvailable } = await import('./secure-sdlc-tool');
+  const { privacyTool, executePrivacy, isPrivacyAvailable } = await import('./privacy-tool');
+  const { accessControlTool, executeAccessControl, isAccessControlAvailable } = await import('./access-control-tool');
+  const { siemTool, executeSiem, isSiemAvailable } = await import('./siem-tool');
+  const { vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable } = await import('./vulnerability-scanner-tool');
+  const { malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable } = await import('./malware-analysis-tool');
+  const { endpointSecurityTool, executeEndpointSecurity, isEndpointSecurityAvailable } = await import('./endpoint-security-tool');
+  const { cloudSecurityTool, executeCloudSecurity, isCloudSecurityAvailable } = await import('./cloud-security-tool');
+  const { containerSecurityTool, executeContainerSecurity, isContainerSecurityAvailable } = await import('./container-security-tool');
+  const { apiSecurityTool, executeApiSecurity, isApiSecurityAvailable } = await import('./api-security-tool');
+  const { mobileSecurityTool, executeMobileSecurity, isMobileSecurityAvailable } = await import('./mobile-security-tool');
+  const { iotSecurityTool, executeIotSecurity, isIotSecurityAvailable } = await import('./iot-security-tool');
+  const { zeroTrustTool, executeZeroTrust, isZeroTrustAvailable } = await import('./zero-trust-tool');
+  const { securityArchitectureTool, executeSecurityArchitecture, isSecurityArchitectureAvailable } = await import('./security-architecture-tool');
+  const { riskManagementTool, executeRiskManagement, isRiskManagementAvailable } = await import('./risk-management-tool');
+  const { businessContinuityTool, executeBusinessContinuity, isBusinessContinuityAvailable } = await import('./business-continuity-tool');
+  const { securityAwarenessTool, executeSecurityAwareness, isSecurityAwarenessAvailable } = await import('./security-awareness-tool');
+  const { threatIntelTool, executeThreatIntel, isThreatIntelAvailable } = await import('./threat-intel-tool');
+  const { devsecOpsTool, executeDevsecOps, isDevsecOpsAvailable } = await import('./devsecops-tool');
+  const { blockchainSecurityTool, executeBlockchainSecurity, isBlockchainSecurityAvailable } = await import('./blockchain-security-tool');
+  const { wirelessSecurityTool, executeWirelessSecurity, isWirelessSecurityAvailable } = await import('./wireless-security-tool');
+  const { vpnTool, executeVpn, isVpnAvailable } = await import('./vpn-tool');
+  const { pkiTool, executePki, isPkiAvailable } = await import('./pki-tool');
+  const { dataLossPreventionTool, executeDataLossPrevention, isDataLossPreventionAvailable } = await import('./data-loss-prevention-tool');
+  const { redTeamTool, executeRedTeam, isRedTeamAvailable } = await import('./red-team-tool');
+  const { blueTeamTool, executeBlueTeam, isBlueTeamAvailable } = await import('./blue-team-tool');
+  const { socTool, executeSoc, isSocAvailable } = await import('./soc-tool');
+  const { identityManagementTool, executeIdentityManagement, isIdentityManagementAvailable } = await import('./identity-management-tool');
+  const { emailSecurityTool, executeEmailSecurity, isEmailSecurityAvailable } = await import('./email-security-tool');
+  const { vendorRiskTool, executeVendorRisk, isVendorRiskAvailable } = await import('./vendor-risk-tool');
+  const { patchManagementTool, executePatchManagement, isPatchManagementAvailable } = await import('./patch-management-tool');
+  const { threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable } = await import('./threat-hunting-tool');
+  const { osintTool, executeOsint, isOsintAvailable } = await import('./osint-tool');
+  const { ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable } = await import('./ransomware-defense-tool');
+  const { credentialSecurityTool, executeCredentialSecurity, isCredentialSecurityAvailable } = await import('./credential-security-tool');
+  const { databaseSecurityTool, executeDatabaseSecurity, isDatabaseSecurityAvailable } = await import('./database-security-tool');
+  const { scadaIcsTool, executeScadaIcs, isScadaIcsAvailable } = await import('./scada-ics-tool');
+  const { attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable } = await import('./attack-surface-tool');
+  const { dataClassificationTool, executeDataClassification, isDataClassificationAvailable } = await import('./data-classification-tool');
+  const { keyManagementTool, executeKeyManagement, isKeyManagementAvailable } = await import('./key-management-tool');
+  const { securityPolicyTool, executeSecurityPolicy, isSecurityPolicyAvailable } = await import('./security-policy-tool');
+  const { securityAuditTool, executeSecurityAudit, isSecurityAuditAvailable } = await import('./security-audit-tool');
+  const { assetManagementTool, executeAssetManagement, isAssetManagementAvailable } = await import('./asset-management-tool');
+  // Additional security tools batch 3 (13 more tools)
+  const { honeypotTool, executeHoneypot, isHoneypotAvailable } = await import('./honeypot-tool');
+  const { complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable } = await import('./compliance-framework-tool');
+  const { securityArchitecturePatternsTool, executeSecurityArchitecturePatterns, isSecurityArchitecturePatternsAvailable } = await import('./security-architecture-patterns-tool');
+  const { soarTool, executeSoar, isSoarAvailable } = await import('./soar-tool');
+  const { supplyChainSecurityTool, executeSupplyChainSecurity, isSupplyChainSecurityAvailable } = await import('./supply-chain-security-tool');
+  const { webSecurityTool, executeWebSecurity, isWebSecurityAvailable } = await import('./web-security-tool');
+  const { networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable } = await import('./network-defense-tool');
+  const { secretsManagementTool, executeSecretsManagement, isSecretsManagementAvailable } = await import('./secrets-management-tool');
+  const { xdrTool, executeXdr, isXdrAvailable } = await import('./xdr-tool');
+  const { privacyEngineeringTool, executePrivacyEngineering, isPrivacyEngineeringAvailable } = await import('./privacy-engineering-tool');
+  const { secureCommunicationsTool, executeSecureCommunications, isSecureCommunicationsAvailable } = await import('./secure-communications-tool');
+  const { securityTestingTool, executeSecurityTesting, isSecurityTestingAvailable } = await import('./security-testing-tool');
+  const { industrialControlTool, executeIndustrialControl, isIndustrialControlAvailable } = await import('./industrial-control-tool');
+  const { cloudNativeSecurityTool, executeCloudNativeSecurity, isCloudNativeSecurityAvailable } = await import('./cloud-native-security-tool');
+  const { browserSecurityTool, executeBrowserSecurity, isBrowserSecurityAvailable } = await import('./browser-security-tool');
+  const { physicalSecurityTool, executePhysicalSecurity, isPhysicalSecurityAvailable } = await import('./physical-security-tool');
+  const { securityOperationsTool, executeSecurityOperations, isSecurityOperationsAvailable } = await import('./security-operations-tool');
+  const { threatModelingTool, executeThreatModeling, isThreatModelingAvailable } = await import('./threat-modeling-tool');
+  const { aiSecurityTool, executeAiSecurity, isAiSecurityAvailable } = await import('./ai-security-tool');
+  const { securityCultureTool, executeSecurityCulture, isSecurityCultureAvailable } = await import('./security-culture-tool');
+  const { logManagementTool, executeLogManagement, isLogManagementAvailable } = await import('./log-management-tool');
+  const { authenticationTool, executeAuthentication, isAuthenticationAvailable } = await import('./authentication-tool');
+  const { backupRecoveryTool, executeBackupRecovery, isBackupRecoveryAvailable } = await import('./backup-recovery-tool');
+  // Additional security tools batch 4
+  const { securityBudgetTool, executeSecurityBudget, isSecurityBudgetAvailable } = await import('./security-budget-tool');
+  const { cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable } = await import('./cyber-insurance-tool');
+  const { saseTool, executeSase, isSaseAvailable } = await import('./sase-tool');
+  const { identityGovernanceTool, executeIdentityGovernance, isIdentityGovernanceAvailable } = await import('./identity-governance-tool');
+  const { dataSecurityTool, executeDataSecurity, isDataSecurityAvailable } = await import('./data-security-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2314,7 +2416,107 @@ async function initializeTools() {
     { tool: petrologyTool, executor: executePetrology, checkAvailability: isPetrologyAvailable },
     { tool: mineralogyTool, executor: executeMineralogy, checkAvailability: isMineralogyAvailable },
     { tool: biophysicsTool, executor: executeBiophysics, checkAvailability: isBiophysicsAvailable },
-    { tool: metallurgyTool, executor: executeMetallurgy, checkAvailability: isMetallurgyAvailable }
+    { tool: metallurgyTool, executor: executeMetallurgy, checkAvailability: isMetallurgyAvailable },
+    // Cybersecurity tools batch 1 (15 new tools)
+    { tool: hashAnalysisTool, executor: executeHashAnalysis, checkAvailability: isHashAnalysisAvailable },
+    { tool: encodingTool, executor: executeEncoding, checkAvailability: isEncodingAvailable },
+    { tool: securityMetricsTool, executor: executeSecurityMetrics, checkAvailability: isSecurityMetricsAvailable },
+    { tool: jwtTool, executor: executeJwt, checkAvailability: isJwtAvailable },
+    { tool: ipSecurityTool, executor: executeIpSecurity, checkAvailability: isIpSecurityAvailable },
+    { tool: certificateTool, executor: executeCertificate, checkAvailability: isCertificateAvailable },
+    { tool: entropyAnalysisTool, executor: executeEntropyAnalysis, checkAvailability: isEntropyAnalysisAvailable },
+    { tool: securityHeadersTool, executor: executeSecurityHeaders, checkAvailability: isSecurityHeadersAvailable },
+    { tool: malwareIndicatorsTool, executor: executeMalwareIndicators, checkAvailability: isMalwareIndicatorsAvailable },
+    { tool: portScannerTool, executor: executePortScanner, checkAvailability: isPortScannerAvailable },
+    { tool: owaspTool, executor: executeOwasp, checkAvailability: isOwaspAvailable },
+    { tool: dnsSecurityTool, executor: executeDnsSecurity, checkAvailability: isDnsSecurityAvailable },
+    { tool: threatModelTool, executor: executeThreatModel, checkAvailability: isThreatModelAvailable },
+    { tool: complianceTool, executor: executeCompliance, checkAvailability: isComplianceAvailable },
+    { tool: cipherTool, executor: executeCipher, checkAvailability: isCipherAvailable },
+    // Cybersecurity tools batch 2 (55 more tools)
+    { tool: authProtocolTool, executor: executeAuthProtocol, checkAvailability: isAuthProtocolAvailable },
+    { tool: vulnAssessmentTool, executor: executeVulnAssessment, checkAvailability: isVulnAssessmentAvailable },
+    { tool: incidentResponseTool, executor: executeIncidentResponse, checkAvailability: isIncidentResponseAvailable },
+    { tool: networkSecurityTool, executor: executeNetworkSecurity, checkAvailability: isNetworkSecurityAvailable },
+    { tool: firewallTool, executor: executeFirewall, checkAvailability: isFirewallAvailable },
+    { tool: idsIpsTool, executor: executeIdsIps, checkAvailability: isIdsIpsAvailable },
+    { tool: logAnalysisTool, executor: executeLogAnalysis, checkAvailability: isLogAnalysisAvailable },
+    { tool: penTestTool, executor: executePenTest, checkAvailability: isPenTestAvailable },
+    { tool: socialEngineeringTool, executor: executeSocialEngineering, checkAvailability: isSocialEngineeringAvailable },
+    { tool: cryptanalysisTool, executor: executeCryptanalysis, checkAvailability: isCryptanalysisAvailable },
+    { tool: secureSdlcTool, executor: executeSecureSdlc, checkAvailability: isSecureSdlcAvailable },
+    { tool: privacyTool, executor: executePrivacy, checkAvailability: isPrivacyAvailable },
+    { tool: accessControlTool, executor: executeAccessControl, checkAvailability: isAccessControlAvailable },
+    { tool: siemTool, executor: executeSiem, checkAvailability: isSiemAvailable },
+    { tool: vulnerabilityScannerTool, executor: executeVulnerabilityScanner, checkAvailability: isVulnerabilityScannerAvailable },
+    { tool: malwareAnalysisTool, executor: executeMalwareAnalysis, checkAvailability: isMalwareAnalysisAvailable },
+    { tool: endpointSecurityTool, executor: executeEndpointSecurity, checkAvailability: isEndpointSecurityAvailable },
+    { tool: cloudSecurityTool, executor: executeCloudSecurity, checkAvailability: isCloudSecurityAvailable },
+    { tool: containerSecurityTool, executor: executeContainerSecurity, checkAvailability: isContainerSecurityAvailable },
+    { tool: apiSecurityTool, executor: executeApiSecurity, checkAvailability: isApiSecurityAvailable },
+    { tool: mobileSecurityTool, executor: executeMobileSecurity, checkAvailability: isMobileSecurityAvailable },
+    { tool: iotSecurityTool, executor: executeIotSecurity, checkAvailability: isIotSecurityAvailable },
+    { tool: zeroTrustTool, executor: executeZeroTrust, checkAvailability: isZeroTrustAvailable },
+    { tool: securityArchitectureTool, executor: executeSecurityArchitecture, checkAvailability: isSecurityArchitectureAvailable },
+    { tool: riskManagementTool, executor: executeRiskManagement, checkAvailability: isRiskManagementAvailable },
+    { tool: businessContinuityTool, executor: executeBusinessContinuity, checkAvailability: isBusinessContinuityAvailable },
+    { tool: securityAwarenessTool, executor: executeSecurityAwareness, checkAvailability: isSecurityAwarenessAvailable },
+    { tool: threatIntelTool, executor: executeThreatIntel, checkAvailability: isThreatIntelAvailable },
+    { tool: devsecOpsTool, executor: executeDevsecOps, checkAvailability: isDevsecOpsAvailable },
+    { tool: blockchainSecurityTool, executor: executeBlockchainSecurity, checkAvailability: isBlockchainSecurityAvailable },
+    { tool: wirelessSecurityTool, executor: executeWirelessSecurity, checkAvailability: isWirelessSecurityAvailable },
+    { tool: vpnTool, executor: executeVpn, checkAvailability: isVpnAvailable },
+    { tool: pkiTool, executor: executePki, checkAvailability: isPkiAvailable },
+    { tool: dataLossPreventionTool, executor: executeDataLossPrevention, checkAvailability: isDataLossPreventionAvailable },
+    { tool: redTeamTool, executor: executeRedTeam, checkAvailability: isRedTeamAvailable },
+    { tool: blueTeamTool, executor: executeBlueTeam, checkAvailability: isBlueTeamAvailable },
+    { tool: socTool, executor: executeSoc, checkAvailability: isSocAvailable },
+    { tool: identityManagementTool, executor: executeIdentityManagement, checkAvailability: isIdentityManagementAvailable },
+    { tool: emailSecurityTool, executor: executeEmailSecurity, checkAvailability: isEmailSecurityAvailable },
+    { tool: vendorRiskTool, executor: executeVendorRisk, checkAvailability: isVendorRiskAvailable },
+    { tool: patchManagementTool, executor: executePatchManagement, checkAvailability: isPatchManagementAvailable },
+    { tool: threatHuntingTool, executor: executeThreatHunting, checkAvailability: isThreatHuntingAvailable },
+    { tool: osintTool, executor: executeOsint, checkAvailability: isOsintAvailable },
+    { tool: ransomwareDefenseTool, executor: executeRansomwareDefense, checkAvailability: isRansomwareDefenseAvailable },
+    { tool: credentialSecurityTool, executor: executeCredentialSecurity, checkAvailability: isCredentialSecurityAvailable },
+    { tool: databaseSecurityTool, executor: executeDatabaseSecurity, checkAvailability: isDatabaseSecurityAvailable },
+    { tool: scadaIcsTool, executor: executeScadaIcs, checkAvailability: isScadaIcsAvailable },
+    { tool: attackSurfaceTool, executor: executeAttackSurface, checkAvailability: isAttackSurfaceAvailable },
+    { tool: dataClassificationTool, executor: executeDataClassification, checkAvailability: isDataClassificationAvailable },
+    { tool: keyManagementTool, executor: executeKeyManagement, checkAvailability: isKeyManagementAvailable },
+    { tool: securityPolicyTool, executor: executeSecurityPolicy, checkAvailability: isSecurityPolicyAvailable },
+    { tool: securityAuditTool, executor: executeSecurityAudit, checkAvailability: isSecurityAuditAvailable },
+    { tool: assetManagementTool, executor: executeAssetManagement, checkAvailability: isAssetManagementAvailable },
+    // Additional security tools batch 3 (23 more tools)
+    { tool: honeypotTool, executor: executeHoneypot, checkAvailability: isHoneypotAvailable },
+    { tool: complianceFrameworkTool, executor: executeComplianceFramework, checkAvailability: isComplianceFrameworkAvailable },
+    { tool: securityArchitecturePatternsTool, executor: executeSecurityArchitecturePatterns, checkAvailability: isSecurityArchitecturePatternsAvailable },
+    { tool: soarTool, executor: executeSoar, checkAvailability: isSoarAvailable },
+    { tool: supplyChainSecurityTool, executor: executeSupplyChainSecurity, checkAvailability: isSupplyChainSecurityAvailable },
+    { tool: webSecurityTool, executor: executeWebSecurity, checkAvailability: isWebSecurityAvailable },
+    { tool: networkDefenseTool, executor: executeNetworkDefense, checkAvailability: isNetworkDefenseAvailable },
+    { tool: secretsManagementTool, executor: executeSecretsManagement, checkAvailability: isSecretsManagementAvailable },
+    { tool: xdrTool, executor: executeXdr, checkAvailability: isXdrAvailable },
+    { tool: privacyEngineeringTool, executor: executePrivacyEngineering, checkAvailability: isPrivacyEngineeringAvailable },
+    { tool: secureCommunicationsTool, executor: executeSecureCommunications, checkAvailability: isSecureCommunicationsAvailable },
+    { tool: securityTestingTool, executor: executeSecurityTesting, checkAvailability: isSecurityTestingAvailable },
+    { tool: industrialControlTool, executor: executeIndustrialControl, checkAvailability: isIndustrialControlAvailable },
+    { tool: cloudNativeSecurityTool, executor: executeCloudNativeSecurity, checkAvailability: isCloudNativeSecurityAvailable },
+    { tool: browserSecurityTool, executor: executeBrowserSecurity, checkAvailability: isBrowserSecurityAvailable },
+    { tool: physicalSecurityTool, executor: executePhysicalSecurity, checkAvailability: isPhysicalSecurityAvailable },
+    { tool: securityOperationsTool, executor: executeSecurityOperations, checkAvailability: isSecurityOperationsAvailable },
+    { tool: threatModelingTool, executor: executeThreatModeling, checkAvailability: isThreatModelingAvailable },
+    { tool: aiSecurityTool, executor: executeAiSecurity, checkAvailability: isAiSecurityAvailable },
+    { tool: securityCultureTool, executor: executeSecurityCulture, checkAvailability: isSecurityCultureAvailable },
+    { tool: logManagementTool, executor: executeLogManagement, checkAvailability: isLogManagementAvailable },
+    { tool: authenticationTool, executor: executeAuthentication, checkAvailability: isAuthenticationAvailable },
+    { tool: backupRecoveryTool, executor: executeBackupRecovery, checkAvailability: isBackupRecoveryAvailable },
+    // Additional security tools batch 4
+    { tool: securityBudgetTool, executor: executeSecurityBudget, checkAvailability: isSecurityBudgetAvailable },
+    { tool: cyberInsuranceTool, executor: executeCyberInsurance, checkAvailability: isCyberInsuranceAvailable },
+    { tool: saseTool, executor: executeSase, checkAvailability: isSaseAvailable },
+    { tool: identityGovernanceTool, executor: executeIdentityGovernance, checkAvailability: isIdentityGovernanceAvailable },
+    { tool: dataSecurityTool, executor: executeDataSecurity, checkAvailability: isDataSecurityAvailable }
   );
 
   toolsInitialized = true;
