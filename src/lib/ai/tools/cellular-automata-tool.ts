@@ -91,7 +91,7 @@ function runGameOfLife(
   generations: number
 ): { history: CAState[]; stable: boolean; period?: number } {
   const history: CAState[] = [];
-  const grid = initialGrid;
+  let grid = initialGrid;
 
   // Track seen states for cycle detection
   const seenStates = new Map<string, number>();
@@ -408,7 +408,7 @@ function runLangtonsAnt(
   height: number,
   steps: number
 ): { grid: Grid; antPath: { x: number; y: number }[]; highwayDetected: boolean } {
-  const grid = createGrid(width, height);
+  let grid = createGrid(width, height);
   let ant: AntState = {
     x: Math.floor(width / 2),
     y: Math.floor(height / 2),
@@ -677,7 +677,7 @@ export async function executeCellularAutomata(
           );
         }
 
-        const grid = createGrid(width, height);
+        let grid = createGrid(width, height);
         grid = placePattern(grid, pattern.cells, Math.floor(width / 2), Math.floor(height / 2));
 
         const simulation = runGameOfLife(grid, generations);
