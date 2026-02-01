@@ -2257,6 +2257,64 @@ async function initializeTools() {
   const { dnaSequenceTool, executeDnaSequence, isDnaSequenceAvailable } = await import('./dna-sequence-tool');
   const { artificialLifeTool, executeArtificialLife, isArtificialLifeAvailable } = await import('./artificial-life-tool');
 
+  // MEGA BATCH #3 - CS Fundamentals, Medical, Legal, Education, Advanced Math
+  const { satSolverTool, executeSatSolver, isSatSolverAvailable } = await import('./sat-solver-tool');
+  const { theoremProverTool, executeTheoremProver, isTheoremProverAvailable } = await import('./theorem-prover-tool');
+  const { compilerTool, executeCompiler, isCompilerAvailable } = await import('./compiler-tool');
+  const { typeInferenceTool, executeTypeInference, isTypeInferenceAvailable } = await import('./type-inference-tool');
+  const { linearProgrammingTool, executeLinearProgramming, isLinearProgrammingAvailable } = await import('./linear-programming-tool');
+  const { knowledgeGraphTool, executeKnowledgeGraph, isKnowledgeGraphAvailable } = await import('./knowledge-graph-tool');
+  const { proteinFoldingTool, executeProteinFolding, isProteinFoldingAvailable } = await import('./protein-folding-tool');
+  const { regexEngineTool, executeRegexEngine, isRegexEngineAvailable } = await import('./regex-engine-tool');
+  const { timeSeriesTool, executeTimeSeries, isTimeSeriesAvailable } = await import('./time-series-tool');
+  const { cspSolverTool, executeCspSolver, isCspSolverAvailable } = await import('./csp-solver-tool');
+  const { virtualMachineTool, executeVirtualMachine, isVirtualMachineAvailable } = await import('./virtual-machine-tool');
+  const { garbageCollectorTool, executeGarbageCollector, isGarbageCollectorAvailable } = await import('./garbage-collector-tool');
+  // Medical tools
+  const { medicaldiagnosisTool, executemedicaldiagnosis, ismedicaldiagnosisAvailable } = await import('./medical-diagnosis-tool');
+  const { druginteractionTool, executedruginteraction, isdruginteractionAvailable } = await import('./drug-interaction-tool');
+  const { ecganalyzerTool, executeecganalyzer, isecganalyzerAvailable } = await import('./ecg-analyzer-tool');
+  const { dosagecalculatorTool, executedosagecalculator, isdosagecalculatorAvailable } = await import('./dosage-calculator-tool');
+  const { labvaluesTool, executelabvalues, islabvaluesAvailable } = await import('./lab-values-tool');
+  // Creative writing tools
+  const { storystructureTool, executestorystructure, isstorystructureAvailable } = await import('./story-structure-tool');
+  const { characterarcTool, executecharacterarc, ischaracterarcAvailable } = await import('./character-arc-tool');
+  const { dialoguegeneratorTool, executedialoguegenerator, isdialoguegeneratorAvailable } = await import('./dialogue-generator-tool');
+  const { worldbuilderTool, executeworldbuilder, isworldbuilderAvailable } = await import('./world-builder-tool');
+  const { plottwistTool, executeplottwist, isplottwistAvailable } = await import('./plot-twist-tool');
+  // Education tools
+  const { quizgeneratorTool, executequizgenerator, isquizgeneratorAvailable } = await import('./quiz-generator-tool');
+  const { learningpathTool, executelearningpath, islearningpathAvailable } = await import('./learning-path-tool');
+  const { flashcardTool, executeflashcard, isflashcardAvailable } = await import('./flashcard-tool');
+  const { skillassessmentTool, executeskillassessment, isskillassessmentAvailable } = await import('./skill-assessment-tool');
+  const { curriculumTool, executecurriculum, iscurriculumAvailable } = await import('./curriculum-tool');
+  // Legal tools
+  const { contractanalyzerTool, executecontractanalyzer, iscontractanalyzerAvailable } = await import('./contract-analyzer-tool');
+  const { legalcitationTool, executelegalcitation, islegalcitationAvailable } = await import('./legal-citation-tool');
+  const { caselawTool, executecaselaw, iscaselawAvailable } = await import('./case-law-tool');
+  const { legaldocumentTool, executelegaldocument, islegaldocumentAvailable } = await import('./legal-document-tool');
+  const { compliancecheckerTool, executecompliancechecker, iscompliancecheckerAvailable } = await import('./compliance-checker-tool');
+  const { gdprTool, executegdpr, isgdprAvailable } = await import('./gdpr-tool');
+  const { hipaaTool, executehipaa, ishipaaAvailable } = await import('./hipaa-tool');
+  // Advanced math tools
+  const { categorytheoryTool, executecategorytheory, iscategorytheoryAvailable } = await import('./category-theory-tool');
+  const { topologyTool, executetopology, istopologyAvailable } = await import('./topology-tool');
+  const { abstractalgebraTool, executeabstractalgebra, isabstractalgebraAvailable } = await import('./abstract-algebra-tool');
+  const { differentialgeometryTool, executedifferentialgeometry, isdifferentialgeometryAvailable } = await import('./differential-geometry-tool');
+  const { homologicalalgebraTool, executehomologicalalgebra, ishomologicalalgebraAvailable } = await import('./homological-algebra-tool');
+  const { liealgebraTool, executeliealgebra, isliealgebraAvailable } = await import('./lie-algebra-tool');
+  const { galoistheoryTool, executegaloistheory, isgaloistheoryAvailable } = await import('./galois-theory-tool');
+  const { representationtheoryTool, executerepresentationtheory, isrepresentationtheoryAvailable } = await import('./representation-theory-tool');
+  // Algorithm tools
+  const { networkflowTool, executenetworkflow, isnetworkflowAvailable } = await import('./network-flow-tool');
+  const { graphisomorphismTool, executegraphisomorphism, isgraphisomorphismAvailable } = await import('./graph-isomorphism-tool');
+  const { convexoptimizationTool, executeconvexoptimization, isconvexoptimizationAvailable } = await import('./convex-optimization-tool');
+  const { integerprogrammingTool, executeintegerprogramming, isintegerprogrammingAvailable } = await import('./integer-programming-tool');
+  const { dynamicprogrammingTool, executedynamicprogramming, isdynamicprogrammingAvailable } = await import('./dynamic-programming-tool');
+  const { greedyalgorithmsTool, executegreedyalgorithms, isgreedyalgorithmsAvailable } = await import('./greedy-algorithms-tool');
+  const { divideconquerTool, executedivideconquer, isdivideconquerAvailable } = await import('./divide-conquer-tool');
+  const { branchboundTool, executebranchbound, isbranchboundAvailable } = await import('./branch-bound-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -3254,7 +3312,64 @@ async function initializeTools() {
     { tool: blockchainTool, executor: executeBlockchain, checkAvailability: isBlockchainAvailable },
     { tool: chessEngineTool, executor: executeChessEngine, checkAvailability: isChessEngineAvailable },
     { tool: dnaSequenceTool, executor: executeDnaSequence, checkAvailability: isDnaSequenceAvailable },
-    { tool: artificialLifeTool, executor: executeArtificialLife, checkAvailability: isArtificialLifeAvailable }
+    { tool: artificialLifeTool, executor: executeArtificialLife, checkAvailability: isArtificialLifeAvailable },
+    // MEGA BATCH #3 - CS Fundamentals
+    { tool: satSolverTool, executor: executeSatSolver, checkAvailability: isSatSolverAvailable },
+    { tool: theoremProverTool, executor: executeTheoremProver, checkAvailability: isTheoremProverAvailable },
+    { tool: compilerTool, executor: executeCompiler, checkAvailability: isCompilerAvailable },
+    { tool: typeInferenceTool, executor: executeTypeInference, checkAvailability: isTypeInferenceAvailable },
+    { tool: linearProgrammingTool, executor: executeLinearProgramming, checkAvailability: isLinearProgrammingAvailable },
+    { tool: knowledgeGraphTool, executor: executeKnowledgeGraph, checkAvailability: isKnowledgeGraphAvailable },
+    { tool: proteinFoldingTool, executor: executeProteinFolding, checkAvailability: isProteinFoldingAvailable },
+    { tool: regexEngineTool, executor: executeRegexEngine, checkAvailability: isRegexEngineAvailable },
+    { tool: timeSeriesTool, executor: executeTimeSeries, checkAvailability: isTimeSeriesAvailable },
+    { tool: cspSolverTool, executor: executeCspSolver, checkAvailability: isCspSolverAvailable },
+    { tool: virtualMachineTool, executor: executeVirtualMachine, checkAvailability: isVirtualMachineAvailable },
+    { tool: garbageCollectorTool, executor: executeGarbageCollector, checkAvailability: isGarbageCollectorAvailable },
+    // Medical tools
+    { tool: medicaldiagnosisTool, executor: executemedicaldiagnosis, checkAvailability: ismedicaldiagnosisAvailable },
+    { tool: druginteractionTool, executor: executedruginteraction, checkAvailability: isdruginteractionAvailable },
+    { tool: ecganalyzerTool, executor: executeecganalyzer, checkAvailability: isecganalyzerAvailable },
+    { tool: dosagecalculatorTool, executor: executedosagecalculator, checkAvailability: isdosagecalculatorAvailable },
+    { tool: labvaluesTool, executor: executelabvalues, checkAvailability: islabvaluesAvailable },
+    // Creative writing tools
+    { tool: storystructureTool, executor: executestorystructure, checkAvailability: isstorystructureAvailable },
+    { tool: characterarcTool, executor: executecharacterarc, checkAvailability: ischaracterarcAvailable },
+    { tool: dialoguegeneratorTool, executor: executedialoguegenerator, checkAvailability: isdialoguegeneratorAvailable },
+    { tool: worldbuilderTool, executor: executeworldbuilder, checkAvailability: isworldbuilderAvailable },
+    { tool: plottwistTool, executor: executeplottwist, checkAvailability: isplottwistAvailable },
+    // Education tools
+    { tool: quizgeneratorTool, executor: executequizgenerator, checkAvailability: isquizgeneratorAvailable },
+    { tool: learningpathTool, executor: executelearningpath, checkAvailability: islearningpathAvailable },
+    { tool: flashcardTool, executor: executeflashcard, checkAvailability: isflashcardAvailable },
+    { tool: skillassessmentTool, executor: executeskillassessment, checkAvailability: isskillassessmentAvailable },
+    { tool: curriculumTool, executor: executecurriculum, checkAvailability: iscurriculumAvailable },
+    // Legal tools
+    { tool: contractanalyzerTool, executor: executecontractanalyzer, checkAvailability: iscontractanalyzerAvailable },
+    { tool: legalcitationTool, executor: executelegalcitation, checkAvailability: islegalcitationAvailable },
+    { tool: caselawTool, executor: executecaselaw, checkAvailability: iscaselawAvailable },
+    { tool: legaldocumentTool, executor: executelegaldocument, checkAvailability: islegaldocumentAvailable },
+    { tool: compliancecheckerTool, executor: executecompliancechecker, checkAvailability: iscompliancecheckerAvailable },
+    { tool: gdprTool, executor: executegdpr, checkAvailability: isgdprAvailable },
+    { tool: hipaaTool, executor: executehipaa, checkAvailability: ishipaaAvailable },
+    // Advanced math tools
+    { tool: categorytheoryTool, executor: executecategorytheory, checkAvailability: iscategorytheoryAvailable },
+    { tool: topologyTool, executor: executetopology, checkAvailability: istopologyAvailable },
+    { tool: abstractalgebraTool, executor: executeabstractalgebra, checkAvailability: isabstractalgebraAvailable },
+    { tool: differentialgeometryTool, executor: executedifferentialgeometry, checkAvailability: isdifferentialgeometryAvailable },
+    { tool: homologicalalgebraTool, executor: executehomologicalalgebra, checkAvailability: ishomologicalalgebraAvailable },
+    { tool: liealgebraTool, executor: executeliealgebra, checkAvailability: isliealgebraAvailable },
+    { tool: galoistheoryTool, executor: executegaloistheory, checkAvailability: isgaloistheoryAvailable },
+    { tool: representationtheoryTool, executor: executerepresentationtheory, checkAvailability: isrepresentationtheoryAvailable },
+    // Algorithm tools
+    { tool: networkflowTool, executor: executenetworkflow, checkAvailability: isnetworkflowAvailable },
+    { tool: graphisomorphismTool, executor: executegraphisomorphism, checkAvailability: isgraphisomorphismAvailable },
+    { tool: convexoptimizationTool, executor: executeconvexoptimization, checkAvailability: isconvexoptimizationAvailable },
+    { tool: integerprogrammingTool, executor: executeintegerprogramming, checkAvailability: isintegerprogrammingAvailable },
+    { tool: dynamicprogrammingTool, executor: executedynamicprogramming, checkAvailability: isdynamicprogrammingAvailable },
+    { tool: greedyalgorithmsTool, executor: executegreedyalgorithms, checkAvailability: isgreedyalgorithmsAvailable },
+    { tool: divideconquerTool, executor: executedivideconquer, checkAvailability: isdivideconquerAvailable },
+    { tool: branchboundTool, executor: executebranchbound, checkAvailability: isbranchboundAvailable }
   );
 
   toolsInitialized = true;
