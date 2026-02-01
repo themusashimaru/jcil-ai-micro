@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (136 total):
+ * Tools available (145 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -828,6 +828,41 @@ export {
   isNeuralNetworkAvailable,
 } from './neural-network-tool';
 
+// Information Theory - Entropy, coding, compression bounds
+export {
+  informationTheoryTool,
+  executeInformationTheory,
+  isInformationTheoryAvailable,
+} from './information-theory-tool';
+
+// Procedural Generation - Terrain, noise, dungeons, mazes
+export {
+  proceduralGenerationTool,
+  executeProceduralGeneration,
+  isProceduralGenerationAvailable,
+} from './procedural-generation-tool';
+
+// Ray Tracing - 3D graphics ray tracing fundamentals
+export {
+  rayTracingTool,
+  executeRayTracing,
+  isRayTracingAvailable,
+} from './ray-tracing-tool';
+
+// Automata Theory - DFA, NFA, regex, formal languages
+export {
+  automataTheoryTool,
+  executeAutomataTheory,
+  isAutomataTheoryAvailable,
+} from './automata-theory-tool';
+
+// Computational Complexity - Big-O, recurrences, algorithm analysis
+export {
+  computationalComplexityTool,
+  executeComputationalComplexity,
+  isComputationalComplexityAvailable,
+} from './computational-complexity-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1273,6 +1308,23 @@ async function initializeTools() {
   );
   const { neuralNetworkTool, executeNeuralNetwork, isNeuralNetworkAvailable } = await import(
     './neural-network-tool'
+  );
+
+  // TIER ADVANCED SCIENCE - Part 2 (5 more tools)
+  const { informationTheoryTool, executeInformationTheory, isInformationTheoryAvailable } = await import(
+    './information-theory-tool'
+  );
+  const { proceduralGenerationTool, executeProceduralGeneration, isProceduralGenerationAvailable } = await import(
+    './procedural-generation-tool'
+  );
+  const { rayTracingTool, executeRayTracing, isRayTracingAvailable } = await import(
+    './ray-tracing-tool'
+  );
+  const { automataTheoryTool, executeAutomataTheory, isAutomataTheoryAvailable } = await import(
+    './automata-theory-tool'
+  );
+  const { computationalComplexityTool, executeComputationalComplexity, isComputationalComplexityAvailable } = await import(
+    './computational-complexity-tool'
   );
 
   CHAT_TOOLS.push(
@@ -1761,6 +1813,32 @@ async function initializeTools() {
       tool: neuralNetworkTool,
       executor: executeNeuralNetwork,
       checkAvailability: isNeuralNetworkAvailable,
+    },
+    // TIER ADVANCED SCIENCE - Part 2 (5 more tools)
+    {
+      tool: informationTheoryTool,
+      executor: executeInformationTheory,
+      checkAvailability: isInformationTheoryAvailable,
+    },
+    {
+      tool: proceduralGenerationTool,
+      executor: executeProceduralGeneration,
+      checkAvailability: isProceduralGenerationAvailable,
+    },
+    {
+      tool: rayTracingTool,
+      executor: executeRayTracing,
+      checkAvailability: isRayTracingAvailable,
+    },
+    {
+      tool: automataTheoryTool,
+      executor: executeAutomataTheory,
+      checkAvailability: isAutomataTheoryAvailable,
+    },
+    {
+      tool: computationalComplexityTool,
+      executor: executeComputationalComplexity,
+      checkAvailability: isComputationalComplexityAvailable,
     }
   );
 
