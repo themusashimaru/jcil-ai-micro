@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (250 total):
+ * Tools available (253 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1507,6 +1507,11 @@ async function initializeTools() {
   const { sedimentationTool, executeSedimentation, isSedimentationAvailable } = await import('./sedimentation-tool');
   const { filtrationTool, executeFiltration, isFiltrationAvailable } = await import('./filtration-tool');
 
+  // TIER MASS TRANSFER OPERATIONS (3 more compact tools)
+  const { evaporationTool, executeEvaporation, isEvaporationAvailable } = await import('./evaporation-tool');
+  const { humidificationTool, executeHumidification, isHumidificationAvailable } = await import('./humidification-tool');
+  const { absorptionTool, executeAbsorption, isAbsorptionAvailable } = await import('./absorption-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2156,7 +2161,11 @@ async function initializeTools() {
     { tool: crystallizationTool, executor: executeCrystallization, checkAvailability: isCrystallizationAvailable },
     { tool: mixingTool, executor: executeMixing, checkAvailability: isMixingAvailable },
     { tool: sedimentationTool, executor: executeSedimentation, checkAvailability: isSedimentationAvailable },
-    { tool: filtrationTool, executor: executeFiltration, checkAvailability: isFiltrationAvailable }
+    { tool: filtrationTool, executor: executeFiltration, checkAvailability: isFiltrationAvailable },
+    // TIER MASS TRANSFER OPERATIONS (3 more compact tools)
+    { tool: evaporationTool, executor: executeEvaporation, checkAvailability: isEvaporationAvailable },
+    { tool: humidificationTool, executor: executeHumidification, checkAvailability: isHumidificationAvailable },
+    { tool: absorptionTool, executor: executeAbsorption, checkAvailability: isAbsorptionAvailable }
   );
 
   toolsInitialized = true;
