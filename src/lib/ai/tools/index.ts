@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (151 total):
+ * Tools available (166 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1386,6 +1386,23 @@ async function initializeTools() {
     './statistical-mechanics-tool'
   );
 
+  // TIER ENGINEERING & APPLIED SCIENCE (15 new compact tools)
+  const { hydrologyTool, executeHydrology, isHydrologyAvailable } = await import('./hydrology-tool');
+  const { structuralEngineeringTool, executeStructuralEngineering, isStructuralEngineeringAvailable } = await import('./structural-engineering-tool');
+  const { geotechnicalTool, executeGeotechnical, isGeotechnicalAvailable } = await import('./geotechnical-tool');
+  const { photonicsTool, executePhotonics, isPhotonicsAvailable } = await import('./photonics-tool');
+  const { semiconductorTool, executeSemiconductor, isSemiconductorAvailable } = await import('./semiconductor-tool');
+  const { cosmologyTool, executeCosmology, isCosmologyAvailable } = await import('./cosmology-tool');
+  const { crystallographyTool, executeCrystallography, isCrystallographyAvailable } = await import('./crystallography-tool');
+  const { polymerChemistryTool, executePolymerChemistry, isPolymerChemistryAvailable } = await import('./polymer-chemistry-tool');
+  const { heatTransferTool, executeHeatTransfer, isHeatTransferAvailable } = await import('./heat-transfer-tool');
+  const { powerSystemsTool, executePowerSystems, isPowerSystemsAvailable } = await import('./power-systems-tool');
+  const { psychologyTool, executePsychology, isPsychologyAvailable } = await import('./psychology-tool');
+  const { tribologyTool, executeTribology, isTribologyAvailable } = await import('./tribology-tool');
+  const { hvacTool, executeHvac, isHvacAvailable } = await import('./hvac-tool');
+  const { surveyingTool, executeSurveying, isSurveyingAvailable } = await import('./surveying-tool');
+  const { trafficEngineeringTool, executeTrafficEngineering, isTrafficEngineeringAvailable } = await import('./traffic-engineering-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -1925,7 +1942,23 @@ async function initializeTools() {
       tool: statisticalMechanicsTool,
       executor: executeStatisticalMechanics,
       checkAvailability: isStatisticalMechanicsAvailable,
-    }
+    },
+    // TIER ENGINEERING & APPLIED SCIENCE (15 new compact tools)
+    { tool: hydrologyTool, executor: executeHydrology, checkAvailability: isHydrologyAvailable },
+    { tool: structuralEngineeringTool, executor: executeStructuralEngineering, checkAvailability: isStructuralEngineeringAvailable },
+    { tool: geotechnicalTool, executor: executeGeotechnical, checkAvailability: isGeotechnicalAvailable },
+    { tool: photonicsTool, executor: executePhotonics, checkAvailability: isPhotonicsAvailable },
+    { tool: semiconductorTool, executor: executeSemiconductor, checkAvailability: isSemiconductorAvailable },
+    { tool: cosmologyTool, executor: executeCosmology, checkAvailability: isCosmologyAvailable },
+    { tool: crystallographyTool, executor: executeCrystallography, checkAvailability: isCrystallographyAvailable },
+    { tool: polymerChemistryTool, executor: executePolymerChemistry, checkAvailability: isPolymerChemistryAvailable },
+    { tool: heatTransferTool, executor: executeHeatTransfer, checkAvailability: isHeatTransferAvailable },
+    { tool: powerSystemsTool, executor: executePowerSystems, checkAvailability: isPowerSystemsAvailable },
+    { tool: psychologyTool, executor: executePsychology, checkAvailability: isPsychologyAvailable },
+    { tool: tribologyTool, executor: executeTribology, checkAvailability: isTribologyAvailable },
+    { tool: hvacTool, executor: executeHvac, checkAvailability: isHvacAvailable },
+    { tool: surveyingTool, executor: executeSurveying, checkAvailability: isSurveyingAvailable },
+    { tool: trafficEngineeringTool, executor: executeTrafficEngineering, checkAvailability: isTrafficEngineeringAvailable }
   );
 
   toolsInitialized = true;
