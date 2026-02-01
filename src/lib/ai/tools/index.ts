@@ -654,6 +654,73 @@ export {
 // Acoustics (room modes, RT60, speaker design)
 export { acousticsTool, executeAcoustics, isAcousticsAvailable } from './acoustics-tool';
 
+// ============================================================================
+// TIER GODMODE - ULTIMATE INTELLIGENCE TOOLS (9 new tools)
+// ============================================================================
+
+// Symbolic Logic - Formal logic, theorem proving, SAT solving
+export {
+  symbolicLogicTool,
+  executeSymbolicLogic,
+  isSymbolicLogicAvailable,
+} from './symbolic-logic-tool';
+
+// Cellular Automata - Game of Life, Wolfram rules, Langton's Ant
+export {
+  cellularAutomataTool,
+  executeCellularAutomata,
+  isCellularAutomataAvailable,
+} from './cellular-automata-tool';
+
+// Medical Calculator - Clinical scores, drug dosing, body calculations
+export {
+  medicalCalcTool,
+  executeMedicalCalc,
+  isMedicalCalcAvailable,
+} from './medical-calc-tool';
+
+// Graphics 3D - 3D mesh generation, OBJ/STL export, scene composition
+export {
+  graphics3dTool,
+  executeGraphics3D,
+  isGraphics3DAvailable,
+} from './graphics-3d-tool';
+
+// Compression Algorithms - Huffman, LZ77, RLE, BWT demonstrations
+export {
+  compressionAlgoTool,
+  executeCompressionAlgo,
+  isCompressionAlgoAvailable,
+} from './compression-algo-tool';
+
+// Error Correction - Hamming codes, CRC, checksums, SECDED
+export {
+  errorCorrectionTool,
+  executeErrorCorrection,
+  isErrorCorrectionAvailable,
+} from './error-correction-tool';
+
+// Hough Vision - Computer vision: edge detection, Hough transform, corners
+export {
+  houghVisionTool,
+  executeHoughVision,
+  isHoughVisionAvailable,
+} from './hough-vision-tool';
+
+// Cryptography Advanced - Elliptic curves, DH, ECDSA, zero-knowledge proofs
+export {
+  cryptographyAdvancedTool,
+  executeCryptographyAdvanced,
+  isCryptographyAdvancedAvailable,
+} from './cryptography-advanced-tool';
+
+// Solar Environmental - Solar energy, carbon footprint, sustainability
+export {
+  solarEnvironmentalTool,
+  executeSolarEnvironmental,
+  isSolarEnvironmentalAvailable,
+} from './solar-environmental-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1026,6 +1093,32 @@ async function initializeTools() {
     './acoustics-tool'
   );
 
+  // Tier GODMODE - Ultimate Intelligence tools (9 new)
+  const { symbolicLogicTool, executeSymbolicLogic, isSymbolicLogicAvailable } = await import(
+    './symbolic-logic-tool'
+  );
+  const { cellularAutomataTool, executeCellularAutomata, isCellularAutomataAvailable } =
+    await import('./cellular-automata-tool');
+  const { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } = await import(
+    './medical-calc-tool'
+  );
+  const { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } = await import(
+    './graphics-3d-tool'
+  );
+  const { compressionAlgoTool, executeCompressionAlgo, isCompressionAlgoAvailable } = await import(
+    './compression-algo-tool'
+  );
+  const { errorCorrectionTool, executeErrorCorrection, isErrorCorrectionAvailable } = await import(
+    './error-correction-tool'
+  );
+  const { houghVisionTool, executeHoughVision, isHoughVisionAvailable } = await import(
+    './hough-vision-tool'
+  );
+  const { cryptographyAdvancedTool, executeCryptographyAdvanced, isCryptographyAdvancedAvailable } =
+    await import('./cryptography-advanced-tool');
+  const { solarEnvironmentalTool, executeSolarEnvironmental, isSolarEnvironmentalAvailable } =
+    await import('./solar-environmental-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -1396,6 +1489,52 @@ async function initializeTools() {
       tool: acousticsTool,
       executor: executeAcoustics,
       checkAvailability: isAcousticsAvailable,
+    },
+    // Tier GODMODE - Ultimate Intelligence tools (9 new)
+    {
+      tool: symbolicLogicTool,
+      executor: executeSymbolicLogic,
+      checkAvailability: isSymbolicLogicAvailable,
+    },
+    {
+      tool: cellularAutomataTool,
+      executor: executeCellularAutomata,
+      checkAvailability: isCellularAutomataAvailable,
+    },
+    {
+      tool: medicalCalcTool,
+      executor: executeMedicalCalc,
+      checkAvailability: isMedicalCalcAvailable,
+    },
+    {
+      tool: graphics3dTool,
+      executor: executeGraphics3D,
+      checkAvailability: isGraphics3DAvailable,
+    },
+    {
+      tool: compressionAlgoTool,
+      executor: executeCompressionAlgo,
+      checkAvailability: isCompressionAlgoAvailable,
+    },
+    {
+      tool: errorCorrectionTool,
+      executor: executeErrorCorrection,
+      checkAvailability: isErrorCorrectionAvailable,
+    },
+    {
+      tool: houghVisionTool,
+      executor: executeHoughVision,
+      checkAvailability: isHoughVisionAvailable,
+    },
+    {
+      tool: cryptographyAdvancedTool,
+      executor: executeCryptographyAdvanced,
+      checkAvailability: isCryptographyAdvancedAvailable,
+    },
+    {
+      tool: solarEnvironmentalTool,
+      executor: executeSolarEnvironmental,
+      checkAvailability: isSolarEnvironmentalAvailable,
     }
   );
 
