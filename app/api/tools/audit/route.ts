@@ -5,7 +5,7 @@
  * Returns a comprehensive audit of all registered chat tools
  *
  * Created: 2026-02-01
- * Total Tools: 363
+ * Total Tools: 371
  */
 
 import { NextResponse } from 'next/server';

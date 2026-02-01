@@ -435,6 +435,31 @@ import {
   acousticsTool,
   executeAcoustics,
   isAcousticsAvailable,
+  // Code Agent Brain Tools - Full Coding Capabilities
+  workspaceTool,
+  executeWorkspace,
+  isWorkspaceAvailable,
+  codeGenerationTool,
+  executeCodeGeneration,
+  isCodeGenerationAvailable,
+  codeAnalysisTool,
+  executeCodeAnalysis,
+  isCodeAnalysisAvailable,
+  projectBuilderTool,
+  executeProjectBuilder,
+  isProjectBuilderAvailable,
+  testGeneratorTool,
+  executeTestGenerator,
+  isTestGeneratorAvailable,
+  errorFixerTool,
+  executeErrorFixer,
+  isErrorFixerAvailable,
+  refactorTool,
+  executeRefactor,
+  isRefactorAvailable,
+  docGeneratorTool,
+  executeDocGenerator,
+  isDocGeneratorAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3661,6 +3686,28 @@ CAPABILITIES:
 **CODE EXECUTION**:
 - **run_code**: Execute Python or JavaScript code in a secure sandbox. Use for calculations, data analysis, testing code, generating visualizations, or any task that benefits from running actual code.
 
+**FULL CODE DEVELOPMENT** (Pro Developer Suite):
+- **workspace**: Full coding workspace with bash, file operations, and git. Use for:
+  * Running shell commands (npm, pip, git, builds)
+  * Reading and writing files
+  * Git operations (clone, status, commit, push)
+  * Installing dependencies
+- **generate_code**: Generate production-quality code in any language. Use when user wants new code, functions, components, or features.
+- **analyze_code**: Security audit, performance review, and quality analysis. Use when user shares code for review or asks about potential issues.
+- **build_project**: Create complete project structures with all files. Use when user wants to start a new project or needs scaffolding.
+- **generate_tests**: Create comprehensive test suites. Use when user needs unit tests, integration tests, or test coverage.
+- **fix_error**: Debug and fix code errors. Use when user has build failures, runtime errors, or test failures.
+- **refactor_code**: Improve code quality while preserving functionality. Use when user wants cleaner, more maintainable code.
+- **generate_docs**: Create README, API docs, and code comments. Use when user needs documentation for their code.
+
+**CODE DEVELOPMENT BEHAVIOR**:
+- When user shares code, proactively offer to analyze it for issues
+- For errors, provide root cause analysis AND the fix
+- Generate complete, working code - not placeholders or TODOs
+- Include proper types, error handling, and security best practices
+- Offer to run tests and builds to verify code works
+- For complex tasks, break down the work and show progress
+
 **DOCUMENT & IMAGE ANALYSIS**:
 - **analyze_image**: Analyze images in the conversation. Use for understanding charts, screenshots, documents, or any visual content the user shares.
 - **extract_pdf_url**: Extract text from PDF documents at a URL. Use when user shares a PDF link and wants to discuss its contents.
@@ -3915,6 +3962,15 @@ SECURITY:
     if (isSeismologyAvailable()) tools.push(seismologyTool);
     if (isBioinformaticsProAvailable()) tools.push(bioinformaticsProTool);
     if (isAcousticsAvailable()) tools.push(acousticsTool);
+    // Code Agent Brain Tools - Full Coding Capabilities
+    if (await isWorkspaceAvailable()) tools.push(workspaceTool);
+    if (isCodeGenerationAvailable()) tools.push(codeGenerationTool);
+    if (isCodeAnalysisAvailable()) tools.push(codeAnalysisTool);
+    if (isProjectBuilderAvailable()) tools.push(projectBuilderTool);
+    if (isTestGeneratorAvailable()) tools.push(testGeneratorTool);
+    if (isErrorFixerAvailable()) tools.push(errorFixerTool);
+    if (isRefactorAvailable()) tools.push(refactorTool);
+    if (isDocGeneratorAvailable()) tools.push(docGeneratorTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -4039,6 +4095,15 @@ SECURITY:
         seismology: 0.0001, // earthquake modeling
         bioinformatics_pro: 0.0001, // sequence alignment
         acoustics: 0.0001, // room acoustics
+        // Code Agent Brain Tools - Full Coding Capabilities
+        workspace: 0.02, // E2B sandbox operations
+        generate_code: 0.05, // AI code generation
+        analyze_code: 0.03, // AI code analysis
+        build_project: 0.10, // Full project generation
+        generate_tests: 0.05, // AI test generation
+        fix_error: 0.03, // AI error analysis
+        refactor_code: 0.05, // AI refactoring
+        generate_docs: 0.03, // AI documentation
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4416,6 +4481,31 @@ SECURITY:
             break;
           case 'acoustics':
             result = await executeAcoustics(toolCallWithSession);
+            break;
+          // Code Agent Brain Tools - Full Coding Capabilities
+          case 'workspace':
+            result = await executeWorkspace(toolCallWithSession);
+            break;
+          case 'generate_code':
+            result = await executeCodeGeneration(toolCallWithSession);
+            break;
+          case 'analyze_code':
+            result = await executeCodeAnalysis(toolCallWithSession);
+            break;
+          case 'build_project':
+            result = await executeProjectBuilder(toolCallWithSession);
+            break;
+          case 'generate_tests':
+            result = await executeTestGenerator(toolCallWithSession);
+            break;
+          case 'fix_error':
+            result = await executeErrorFixer(toolCallWithSession);
+            break;
+          case 'refactor_code':
+            result = await executeRefactor(toolCallWithSession);
+            break;
+          case 'generate_docs':
+            result = await executeDocGenerator(toolCallWithSession);
             break;
           default:
             result = {

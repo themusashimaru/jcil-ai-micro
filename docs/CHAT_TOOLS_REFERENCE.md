@@ -1,20 +1,21 @@
 # JCIL AI Chat Tools Reference
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Last Updated:** February 1, 2026
-**Total Tools:** 363
+**Total Tools:** 371
 **Status:** Production Ready
 
 ---
 
 ## Overview
 
-JCIL AI provides an extensive suite of 363 specialized tools that empower the AI assistant to perform complex calculations, analysis, and operations across multiple domains. This document serves as the comprehensive reference for all available chat tools.
+JCIL AI provides an extensive suite of 371 specialized tools that empower the AI assistant to perform complex calculations, analysis, and operations across multiple domains. This document serves as the comprehensive reference for all available chat tools.
 
 ## Tool Categories
 
 | Category | Count | Description |
 |----------|-------|-------------|
+| **Code Development** | 8 | Full-stack development: code generation, testing, refactoring |
 | Cybersecurity | 100+ | Security operations, threat intelligence, compliance |
 | Science | 80+ | Physics, chemistry, biology, astronomy |
 | Engineering | 60+ | Mechanical, electrical, chemical, civil |
@@ -23,6 +24,55 @@ JCIL AI provides an extensive suite of 363 specialized tools that empower the AI
 | Media & Graphics | 20+ | Image, audio, video processing |
 | Web & API | 15+ | Web scraping, API calls, browser automation |
 | Utilities | 30+ | File conversion, validation, encoding |
+
+---
+
+## Code Development Tools (8) - Pro Developer Suite
+
+JCIL AI now includes a comprehensive suite of coding tools that bring full-stack development capabilities directly into the chat. These tools enable the AI to generate, analyze, test, debug, and refactor code in any programming language.
+
+### Workspace Operations
+| Tool | Description |
+|------|-------------|
+| `workspace` | Full coding workspace with bash, file operations, and git. Supports: running shell commands (npm, pip, git, builds), reading/writing files, git operations (clone, status, commit, push), installing dependencies |
+
+### Code Generation & Analysis
+| Tool | Description |
+|------|-------------|
+| `generate_code` | Generate production-quality code in any language (TypeScript, Python, Rust, Go, Java, C#, etc.) and framework (React, Next.js, Vue, Django, FastAPI, Spring, etc.) |
+| `analyze_code` | Comprehensive code analysis: security vulnerabilities, performance issues, code quality metrics, bug detection |
+| `build_project` | Create complete project structures with package configs, source files, configuration, README, and basic tests |
+
+### Testing & Debugging
+| Tool | Description |
+|------|-------------|
+| `generate_tests` | Generate comprehensive test suites (unit, integration, e2e) for any testing framework (Jest, Vitest, Mocha, PyTest, JUnit, etc.) |
+| `fix_error` | Debug and fix code errors: root cause analysis, corrected code, prevention tips. Handles syntax, type, runtime, and logic errors |
+
+### Refactoring & Documentation
+| Tool | Description |
+|------|-------------|
+| `refactor_code` | Improve code quality while preserving functionality: reduce complexity, improve readability, apply design patterns, eliminate duplication |
+| `generate_docs` | Generate professional documentation: README files, API docs, JSDoc/TSDoc comments, inline explanations |
+
+### Example Usage
+
+```
+User: Build me a React component for a user profile card
+
+AI: [Uses generate_code tool]
+→ Generates complete TypeScript component with props, styling, and tests
+→ Returns usable code with proper types and documentation
+```
+
+```
+User: This code is throwing a type error: [error message]
+
+AI: [Uses fix_error tool]
+→ Analyzes root cause
+→ Provides corrected code
+→ Explains the fix and how to prevent similar issues
+```
 
 ---
 
@@ -567,6 +617,7 @@ Tools return structured responses including:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.1.0 | 2026-02-01 | Added 8 Code Development tools (Pro Developer Suite) |
 | 2.0.0 | 2026-02-01 | Added 100+ cybersecurity tools, comprehensive audit |
 | 1.5.0 | 2026-01-31 | Added 80+ science tools |
 | 1.0.0 | 2026-01-30 | Initial release with 167 tools |
