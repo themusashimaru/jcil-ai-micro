@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (196 total):
+ * Tools available (206 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1437,6 +1437,18 @@ async function initializeTools() {
   const { laserTool, executeLaser, isLaserAvailable } = await import('./laser-tool');
   const { edmTool, executeEdm, isEdmAvailable } = await import('./edm-tool');
 
+  // TIER BUILDING & INDUSTRIAL SYSTEMS (10 more compact tools)
+  const { ndtTool, executeNdt, isNdtAvailable } = await import('./ndt-tool');
+  const { metrologyTool, executeMetrology, isMetrologyAvailable } = await import('./metrology-tool');
+  const { qualityTool, executeQuality, isQualityAvailable } = await import('./quality-tool');
+  const { safetyTool, executeSafety, isSafetyAvailable } = await import('./safety-tool');
+  const { ergonomicsTool, executeErgonomics, isErgonomicsAvailable } = await import('./ergonomics-tool');
+  const { packagingTool, executePackaging, isPackagingAvailable } = await import('./packaging-tool');
+  const { plumbingTool, executePlumbing, isPlumbingAvailable } = await import('./plumbing-tool');
+  const { fireProtectionTool, executeFireProtection, isFireProtectionAvailable } = await import('./fire-protection-tool');
+  const { elevatorTool, executeElevator, isElevatorAvailable } = await import('./elevator-tool');
+  const { lightingTool, executeLighting, isLightingAvailable } = await import('./lighting-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2024,7 +2036,18 @@ async function initializeTools() {
     { tool: cncTool, executor: executeCnc, checkAvailability: isCncAvailable },
     { tool: printingTool, executor: executePrinting, checkAvailability: isPrintingAvailable },
     { tool: laserTool, executor: executeLaser, checkAvailability: isLaserAvailable },
-    { tool: edmTool, executor: executeEdm, checkAvailability: isEdmAvailable }
+    { tool: edmTool, executor: executeEdm, checkAvailability: isEdmAvailable },
+    // TIER BUILDING & INDUSTRIAL SYSTEMS (10 more compact tools)
+    { tool: ndtTool, executor: executeNdt, checkAvailability: isNdtAvailable },
+    { tool: metrologyTool, executor: executeMetrology, checkAvailability: isMetrologyAvailable },
+    { tool: qualityTool, executor: executeQuality, checkAvailability: isQualityAvailable },
+    { tool: safetyTool, executor: executeSafety, checkAvailability: isSafetyAvailable },
+    { tool: ergonomicsTool, executor: executeErgonomics, checkAvailability: isErgonomicsAvailable },
+    { tool: packagingTool, executor: executePackaging, checkAvailability: isPackagingAvailable },
+    { tool: plumbingTool, executor: executePlumbing, checkAvailability: isPlumbingAvailable },
+    { tool: fireProtectionTool, executor: executeFireProtection, checkAvailability: isFireProtectionAvailable },
+    { tool: elevatorTool, executor: executeElevator, checkAvailability: isElevatorAvailable },
+    { tool: lightingTool, executor: executeLighting, checkAvailability: isLightingAvailable }
   );
 
   toolsInitialized = true;
