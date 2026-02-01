@@ -2315,6 +2315,154 @@ async function initializeTools() {
   const { divideconquerTool, executedivideconquer, isdivideconquerAvailable } = await import('./divide-conquer-tool');
   const { branchboundTool, executebranchbound, isbranchboundAvailable } = await import('./branch-bound-tool');
 
+  // MEGA BATCH #4 - IoT, Robotics, Computer Vision, Distributed Systems
+  // IoT/Embedded
+  const { mqttprotocolTool, executemqttprotocol, ismqttprotocolAvailable } = await import('./mqtt-protocol-tool');
+  const { modbusTool, executemodbus, ismodbusAvailable } = await import('./modbus-tool');
+  const { sensorfusionTool, executesensorfusion, issensorfusionAvailable } = await import('./sensor-fusion-tool');
+  const { embeddedschedulerTool, executeembeddedscheduler, isembeddedschedulerAvailable } = await import('./embedded-scheduler-tool');
+  const { pwmcontrollerTool, executepwmcontroller, ispwmcontrollerAvailable } = await import('./pwm-controller-tool');
+  const { i2cprotocolTool, executei2cprotocol, isi2cprotocolAvailable } = await import('./i2c-protocol-tool');
+  const { spiprotocolTool, executespiprotocol, isspiprotocolAvailable } = await import('./spi-protocol-tool');
+  const { uartprotocolTool, executeuartprotocol, isuartprotocolAvailable } = await import('./uart-protocol-tool');
+  const { gpiosimulatorTool, executegpiosimulator, isgpiosimulatorAvailable } = await import('./gpio-simulator-tool');
+  const { watchdogtimerTool, executewatchdogtimer, iswatchdogtimerAvailable } = await import('./watchdog-timer-tool');
+  const { powermanagementTool, executepowermanagement, ispowermanagementAvailable } = await import('./power-management-tool');
+  const { bootloaderTool, executebootloader, isbootloaderAvailable } = await import('./bootloader-tool');
+  const { firmwareupdateTool, executefirmwareupdate, isfirmwareupdateAvailable } = await import('./firmware-update-tool');
+  // Robotics
+  const { pidcontrollerTool, executepidcontroller, ispidcontrollerAvailable } = await import('./pid-controller-tool');
+  const { inversekinematicsTool, executeinversekinematics, isinversekinematicsAvailable } = await import('./inverse-kinematics-tool');
+  const { forwardkinematicsTool, executeforwardkinematics, isforwardkinematicsAvailable } = await import('./forward-kinematics-tool');
+  const { trajectoryplanningTool, executetrajectoryplanning, istrajectoryplanningAvailable } = await import('./trajectory-planning-tool');
+  const { motionplanningTool, executemotionplanning, ismotionplanningAvailable } = await import('./motion-planning-tool');
+  const { slamalgorithmTool, executeslamalgorithm, isslamalgorithmAvailable } = await import('./slam-algorithm-tool');
+  const { odometryTool, executeodometry, isodometryAvailable } = await import('./odometry-tool');
+  const { lidarprocessingTool, executelidarprocessing, islidarprocessingAvailable } = await import('./lidar-processing-tool');
+  const { robotdynamicsTool, executerobotdynamics, isrobotdynamicsAvailable } = await import('./robot-dynamics-tool');
+  const { manipulatorcontrolTool, executemanipulatorcontrol, ismanipulatorcontrolAvailable } = await import('./manipulator-control-tool');
+  const { mobilerobotTool, executemobilerobot, ismobilerobotAvailable } = await import('./mobile-robot-tool');
+  const { swarmroboticsTool, executeswarmrobotics, isswarmroboticsAvailable } = await import('./swarm-robotics-tool');
+  // Computer Vision
+  const { edgedetectionTool, executeedgedetection, isedgedetectionAvailable } = await import('./edge-detection-tool');
+  const { harriscornersTool, executeharriscorners, isharriscornersAvailable } = await import('./harris-corners-tool');
+  const { siftfeaturesTool, executesiftfeatures, issiftfeaturesAvailable } = await import('./sift-features-tool');
+  const { orbfeaturesTool, executeorbfeatures, isorbfeaturesAvailable } = await import('./orb-features-tool');
+  const { opticalflowTool, executeopticalflow, isopticalflowAvailable } = await import('./optical-flow-tool');
+  const { imagesegmentationTool, executeimagesegmentation, isimagesegmentationAvailable } = await import('./image-segmentation-tool');
+  const { objecttrackingTool, executeobjecttracking, isobjecttrackingAvailable } = await import('./object-tracking-tool');
+  const { stereovisionTool, executestereovision, isstereovisionAvailable } = await import('./stereo-vision-tool');
+  const { cameracalibrationTool, executecameracalibration, iscameracalibrationAvailable } = await import('./camera-calibration-tool');
+  const { homographyTool, executehomography, ishomographyAvailable } = await import('./homography-tool');
+  const { histogramequalizationTool, executehistogramequalization, ishistogramequalizationAvailable } = await import('./histogram-equalization-tool');
+  const { morphologicalopsTool, executemorphologicalops, ismorphologicalopsAvailable } = await import('./morphological-ops-tool');
+  const { contourdetectionTool, executecontourdetection, iscontourdetectionAvailable } = await import('./contour-detection-tool');
+  const { templatematchingTool, executetemplatematching, istemplatematchingAvailable } = await import('./template-matching-tool');
+  // Distributed Systems
+  const { raftconsensusTool, executeraftconsensus, israftconsensusAvailable } = await import('./raft-consensus-tool');
+  const { paxosTool, executepaxos, ispaxosAvailable } = await import('./paxos-tool');
+  const { gossipprotocolTool, executegossipprotocol, isgossipprotocolAvailable } = await import('./gossip-protocol-tool');
+  const { consistenthashingTool, executeconsistenthashing, isconsistenthashingAvailable } = await import('./consistent-hashing-tool');
+  const { vectorclockTool, executevectorclock, isvectorclockAvailable } = await import('./vector-clock-tool');
+  const { lamportclockTool, executelamportclock, islamportclockAvailable } = await import('./lamport-clock-tool');
+  const { twophasecommitTool, executetwophasecommit, istwophasecommitAvailable } = await import('./two-phase-commit-tool');
+  const { sagapatternTool, executesagapattern, issagapatternAvailable } = await import('./saga-pattern-tool');
+  const { circuitbreakeradvancedTool, executecircuitbreakeradvanced, iscircuitbreakeradvancedAvailable } = await import('./circuit-breaker-advanced-tool');
+  const { loadbalancerTool, executeloadbalancer, isloadbalancerAvailable } = await import('./load-balancer-tool');
+  const { servicemeshTool, executeservicemesh, isservicemeshAvailable } = await import('./service-mesh-tool');
+  const { eventsourcingTool, executeeventsourcing, iseventsourcingAvailable } = await import('./event-sourcing-tool');
+  // AI/ML Advanced
+  const { reinforcementlearningTool, executereinforcementlearning, isreinforcementlearningAvailable } = await import('./reinforcement-learning-tool');
+  const { mctsTool, executemcts, ismctsAvailable } = await import('./mcts-tool');
+  const { alphabetaTool, executealphabeta, isalphabetaAvailable } = await import('./alpha-beta-tool');
+  const { bayesiannetworkTool, executebayesiannetwork, isbayesiannetworkAvailable } = await import('./bayesian-network-tool');
+  const { hiddenmarkovTool, executehiddenmarkov, ishiddenmarkovAvailable } = await import('./hidden-markov-tool');
+  const { particlefilterTool, executeparticlefilter, isparticlefilterAvailable } = await import('./particle-filter-tool');
+  const { kalmanfilterTool, executekalmanfilter, iskalmanfilterAvailable } = await import('./kalman-filter-tool');
+  const { cmaesTool, executecmaes, iscmaesAvailable } = await import('./cma-es-tool');
+  const { neatalgorithmTool, executeneatalgorithm, isneatalgorithmAvailable } = await import('./neat-algorithm-tool');
+  const { psooptimizerTool, executepsooptimizer, ispsooptimizerAvailable } = await import('./pso-optimizer-tool');
+  const { antcolonyTool, executeantcolony, isantcolonyAvailable } = await import('./ant-colony-tool');
+  const { simulatedannealingTool, executesimulatedannealing, issimulatedannealingAvailable } = await import('./simulated-annealing-tool');
+  // Physics Simulations
+  const { latticeboltzmannTool, executelatticeboltzmann, islatticeboltzmannAvailable } = await import('./lattice-boltzmann-tool');
+  const { sphfluidTool, executesphfluid, issphfluidAvailable } = await import('./sph-fluid-tool');
+  const { nbodysimulationTool, executenbodysimulation, isnbodysimulationAvailable } = await import('./nbody-simulation-tool');
+  const { verletintegrationTool, executeverletintegration, isverletintegrationAvailable } = await import('./verlet-integration-tool');
+  const { clothsimulationTool, executeclothsimulation, isclothsimulationAvailable } = await import('./cloth-simulation-tool');
+  const { softbodyTool, executesoftbody, issoftbodyAvailable } = await import('./soft-body-tool');
+  const { ropephysicsTool, executeropephysics, isropephysicsAvailable } = await import('./rope-physics-tool');
+  const { ragdollphysicsTool, executeragdollphysics, isragdollphysicsAvailable } = await import('./ragdoll-physics-tool');
+  const { buoyancysimTool, executebuoyancysim, isbuoyancysimAvailable } = await import('./buoyancy-sim-tool');
+  const { projectilemotionTool, executeprojectilemotion, isprojectilemotionAvailable } = await import('./projectile-motion-tool');
+  const { pendulumsimTool, executependulumsim, ispendulumsimAvailable } = await import('./pendulum-sim-tool');
+  const { springsystemTool, executespringsystem, isspringsystemAvailable } = await import('./spring-system-tool');
+  // Formal Methods
+  const { modelcheckerTool, executemodelchecker, ismodelcheckerAvailable } = await import('./model-checker-tool');
+  const { symbolicexecutionTool, executesymbolicexecution, issymbolicexecutionAvailable } = await import('./symbolic-execution-tool');
+  const { abstractinterpretationTool, executeabstractinterpretation, isabstractinterpretationAvailable } = await import('./abstract-interpretation-tool');
+  const { smtsolverTool, executesmtsolver, issmtsolverAvailable } = await import('./smt-solver-tool');
+  const { bddtoolTool, executebddtool, isbddtoolAvailable } = await import('./bdd-tool-tool');
+  const { tlaplusTool, executetlaplus, istlaplusAvailable } = await import('./tla-plus-tool');
+  const { petrinetTool, executepetrinet, ispetrinetAvailable } = await import('./petri-net-tool');
+  const { automataminimizerTool, executeautomataminimizer, isautomataminimizerAvailable } = await import('./automata-minimizer-tool');
+  const { regextodfaTool, executeregextodfa, isregextodfaAvailable } = await import('./regex-to-dfa-tool');
+  const { grammarparserTool, executegrammarparser, isgrammarparserAvailable } = await import('./grammar-parser-tool');
+  const { llparserTool, executellparser, isllparserAvailable } = await import('./ll-parser-tool');
+  const { lrparserTool, executelrparser, islrparserAvailable } = await import('./lr-parser-tool');
+  // Database Internals
+  const { btreeindexTool, executebtreeindex, isbtreeindexAvailable } = await import('./btree-index-tool');
+  const { hashindexTool, executehashindex, ishashindexAvailable } = await import('./hash-index-tool');
+  const { bloomfilterTool, executebloomfilter, isbloomfilterAvailable } = await import('./bloom-filter-tool');
+  const { skiplistTool, executeskiplist, isskiplistAvailable } = await import('./skip-list-tool');
+  const { lsmtreeTool, executelsmtree, islsmtreeAvailable } = await import('./lsm-tree-tool');
+  const { wallogTool, executewallog, iswallogAvailable } = await import('./wal-log-tool');
+  const { mvccTool, executemvcc, ismvccAvailable } = await import('./mvcc-tool');
+  const { queryplannerTool, executequeryplanner, isqueryplannerAvailable } = await import('./query-planner-tool');
+  const { costestimatorTool, executecostestimator, iscostestimatorAvailable } = await import('./cost-estimator-tool');
+  const { joinalgorithmsTool, executejoinalgorithms, isjoinalgorithmsAvailable } = await import('./join-algorithms-tool');
+  const { bufferpoolTool, executebufferpool, isbufferpoolAvailable } = await import('./buffer-pool-tool');
+  const { lockmanagerTool, executelockmanager, islockmanagerAvailable } = await import('./lock-manager-tool');
+  // OS Internals
+  const { processschedulerTool, executeprocessscheduler, isprocessschedulerAvailable } = await import('./process-scheduler-tool');
+  const { memoryallocatorTool, executememoryallocator, ismemoryallocatorAvailable } = await import('./memory-allocator-tool');
+  const { pagereplacementTool, executepagereplacement, ispagereplacementAvailable } = await import('./page-replacement-tool');
+  const { diskschedulerTool, executediskscheduler, isdiskschedulerAvailable } = await import('./disk-scheduler-tool');
+  const { filesystemTool, executefilesystem, isfilesystemAvailable } = await import('./file-system-tool');
+  const { inodemanagerTool, executeinodemanager, isinodemanagerAvailable } = await import('./inode-manager-tool');
+  const { deadlockdetectorTool, executedeadlockdetector, isdeadlockdetectorAvailable } = await import('./deadlock-detector-tool');
+  const { semaphoreTool, executesemaphore, issemaphoreAvailable } = await import('./semaphore-tool');
+  const { mutexlockTool, executemutexlock, ismutexlockAvailable } = await import('./mutex-lock-tool');
+  const { readerwriterTool, executereaderwriter, isreaderwriterAvailable } = await import('./reader-writer-tool');
+  const { producerconsumerTool, executeproducerconsumer, isproducerconsumerAvailable } = await import('./producer-consumer-tool');
+  const { diningphilosophersTool, executediningphilosophers, isdiningphilosophersAvailable } = await import('./dining-philosophers-tool');
+  // Graphics
+  const { rasterizerTool, executerasterizer, israsterizerAvailable } = await import('./rasterizer-tool');
+  const { zbufferTool, executezbuffer, iszbufferAvailable } = await import('./z-buffer-tool');
+  const { texturemappingTool, executetexturemapping, istexturemappingAvailable } = await import('./texture-mapping-tool');
+  const { phongshadingTool, executephongshading, isphongshadingAvailable } = await import('./phong-shading-tool');
+  const { pbrmaterialTool, executepbrmaterial, ispbrmaterialAvailable } = await import('./pbr-material-tool');
+  const { shadowmappingTool, executeshadowmapping, isshadowmappingAvailable } = await import('./shadow-mapping-tool');
+  const { ambientocclusionTool, executeambientocclusion, isambientocclusionAvailable } = await import('./ambient-occlusion-tool');
+  const { bloomeffectTool, executebloomeffect, isbloomeffectAvailable } = await import('./bloom-effect-tool');
+  const { dofeffectTool, executedofeffect, isdofeffectAvailable } = await import('./dof-effect-tool');
+  const { motionblurTool, executemotionblur, ismotionblurAvailable } = await import('./motion-blur-tool');
+  const { antialiasingTool, executeantialiasing, isantialiasingAvailable } = await import('./anti-aliasing-tool');
+  const { colorgradingTool, executecolorgrading, iscolorgradingAvailable } = await import('./color-grading-tool');
+  // Audio DSP
+  const { fftanalyzerTool, executefftanalyzer, isfftanalyzerAvailable } = await import('./fft-analyzer-tool');
+  const { equalizerTool, executeequalizer, isequalizerAvailable } = await import('./equalizer-tool');
+  const { compressorTool, executecompressor, iscompressorAvailable } = await import('./compressor-tool');
+  const { reverbTool, executereverb, isreverbAvailable } = await import('./reverb-tool');
+  const { delayeffectTool, executedelayeffect, isdelayeffectAvailable } = await import('./delay-effect-tool');
+  const { choruseffectTool, executechoruseffect, ischoruseffectAvailable } = await import('./chorus-effect-tool');
+  const { distortionTool, executedistortion, isdistortionAvailable } = await import('./distortion-tool');
+  const { noisegateTool, executenoisegate, isnoisegateAvailable } = await import('./noise-gate-tool');
+  const { limiterTool, executelimiter, islimiterAvailable } = await import('./limiter-tool');
+  const { pitchshifterTool, executepitchshifter, ispitchshifterAvailable } = await import('./pitch-shifter-tool');
+  const { timestretchTool, executetimestretch, istimestretchAvailable } = await import('./time-stretch-tool');
+  const { vocoderTool, executevocoder, isvocoderAvailable } = await import('./vocoder-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -3369,7 +3517,153 @@ async function initializeTools() {
     { tool: dynamicprogrammingTool, executor: executedynamicprogramming, checkAvailability: isdynamicprogrammingAvailable },
     { tool: greedyalgorithmsTool, executor: executegreedyalgorithms, checkAvailability: isgreedyalgorithmsAvailable },
     { tool: divideconquerTool, executor: executedivideconquer, checkAvailability: isdivideconquerAvailable },
-    { tool: branchboundTool, executor: executebranchbound, checkAvailability: isbranchboundAvailable }
+    { tool: branchboundTool, executor: executebranchbound, checkAvailability: isbranchboundAvailable },
+    // IoT & Embedded Systems tools
+    { tool: mqttprotocolTool, executor: executemqttprotocol, checkAvailability: ismqttprotocolAvailable },
+    { tool: modbusTool, executor: executemodbus, checkAvailability: ismodbusAvailable },
+    { tool: sensorfusionTool, executor: executesensorfusion, checkAvailability: issensorfusionAvailable },
+    { tool: embeddedschedulerTool, executor: executeembeddedscheduler, checkAvailability: isembeddedschedulerAvailable },
+    { tool: pwmcontrollerTool, executor: executepwmcontroller, checkAvailability: ispwmcontrollerAvailable },
+    { tool: i2cprotocolTool, executor: executei2cprotocol, checkAvailability: isi2cprotocolAvailable },
+    { tool: spiprotocolTool, executor: executespiprotocol, checkAvailability: isspiprotocolAvailable },
+    { tool: uartprotocolTool, executor: executeuartprotocol, checkAvailability: isuartprotocolAvailable },
+    { tool: gpiosimulatorTool, executor: executegpiosimulator, checkAvailability: isgpiosimulatorAvailable },
+    { tool: watchdogtimerTool, executor: executewatchdogtimer, checkAvailability: iswatchdogtimerAvailable },
+    { tool: powermanagementTool, executor: executepowermanagement, checkAvailability: ispowermanagementAvailable },
+    { tool: bootloaderTool, executor: executebootloader, checkAvailability: isbootloaderAvailable },
+    { tool: firmwareupdateTool, executor: executefirmwareupdate, checkAvailability: isfirmwareupdateAvailable },
+    // Robotics & Control tools
+    { tool: pidcontrollerTool, executor: executepidcontroller, checkAvailability: ispidcontrollerAvailable },
+    { tool: inversekinematicsTool, executor: executeinversekinematics, checkAvailability: isinversekinematicsAvailable },
+    { tool: forwardkinematicsTool, executor: executeforwardkinematics, checkAvailability: isforwardkinematicsAvailable },
+    { tool: trajectoryplanningTool, executor: executetrajectoryplanning, checkAvailability: istrajectoryplanningAvailable },
+    { tool: motionplanningTool, executor: executemotionplanning, checkAvailability: ismotionplanningAvailable },
+    { tool: slamalgorithmTool, executor: executeslamalgorithm, checkAvailability: isslamalgorithmAvailable },
+    { tool: odometryTool, executor: executeodometry, checkAvailability: isodometryAvailable },
+    { tool: lidarprocessingTool, executor: executelidarprocessing, checkAvailability: islidarprocessingAvailable },
+    { tool: robotdynamicsTool, executor: executerobotdynamics, checkAvailability: isrobotdynamicsAvailable },
+    { tool: manipulatorcontrolTool, executor: executemanipulatorcontrol, checkAvailability: ismanipulatorcontrolAvailable },
+    { tool: mobilerobotTool, executor: executemobilerobot, checkAvailability: ismobilerobotAvailable },
+    { tool: swarmroboticsTool, executor: executeswarmrobotics, checkAvailability: isswarmroboticsAvailable },
+    // Computer Vision tools
+    { tool: edgedetectionTool, executor: executeedgedetection, checkAvailability: isedgedetectionAvailable },
+    { tool: harriscornersTool, executor: executeharriscorners, checkAvailability: isharriscornersAvailable },
+    { tool: siftfeaturesTool, executor: executesiftfeatures, checkAvailability: issiftfeaturesAvailable },
+    { tool: orbfeaturesTool, executor: executeorbfeatures, checkAvailability: isorbfeaturesAvailable },
+    { tool: opticalflowTool, executor: executeopticalflow, checkAvailability: isopticalflowAvailable },
+    { tool: imagesegmentationTool, executor: executeimagesegmentation, checkAvailability: isimagesegmentationAvailable },
+    { tool: objecttrackingTool, executor: executeobjecttracking, checkAvailability: isobjecttrackingAvailable },
+    { tool: stereovisionTool, executor: executestereovision, checkAvailability: isstereovisionAvailable },
+    { tool: cameracalibrationTool, executor: executecameracalibration, checkAvailability: iscameracalibrationAvailable },
+    { tool: homographyTool, executor: executehomography, checkAvailability: ishomographyAvailable },
+    { tool: histogramequalizationTool, executor: executehistogramequalization, checkAvailability: ishistogramequalizationAvailable },
+    { tool: morphologicalopsTool, executor: executemorphologicalops, checkAvailability: ismorphologicalopsAvailable },
+    { tool: contourdetectionTool, executor: executecontourdetection, checkAvailability: iscontourdetectionAvailable },
+    { tool: templatematchingTool, executor: executetemplatematching, checkAvailability: istemplatematchingAvailable },
+    // Distributed Systems tools
+    { tool: raftconsensusTool, executor: executeraftconsensus, checkAvailability: israftconsensusAvailable },
+    { tool: paxosTool, executor: executepaxos, checkAvailability: ispaxosAvailable },
+    { tool: gossipprotocolTool, executor: executegossipprotocol, checkAvailability: isgossipprotocolAvailable },
+    { tool: consistenthashingTool, executor: executeconsistenthashing, checkAvailability: isconsistenthashingAvailable },
+    { tool: vectorclockTool, executor: executevectorclock, checkAvailability: isvectorclockAvailable },
+    { tool: lamportclockTool, executor: executelamportclock, checkAvailability: islamportclockAvailable },
+    { tool: twophasecommitTool, executor: executetwophasecommit, checkAvailability: istwophasecommitAvailable },
+    { tool: sagapatternTool, executor: executesagapattern, checkAvailability: issagapatternAvailable },
+    { tool: circuitbreakeradvancedTool, executor: executecircuitbreakeradvanced, checkAvailability: iscircuitbreakeradvancedAvailable },
+    { tool: loadbalancerTool, executor: executeloadbalancer, checkAvailability: isloadbalancerAvailable },
+    { tool: servicemeshTool, executor: executeservicemesh, checkAvailability: isservicemeshAvailable },
+    { tool: eventsourcingTool, executor: executeeventsourcing, checkAvailability: iseventsourcingAvailable },
+    // AI/ML Advanced tools
+    { tool: reinforcementlearningTool, executor: executereinforcementlearning, checkAvailability: isreinforcementlearningAvailable },
+    { tool: mctsTool, executor: executemcts, checkAvailability: ismctsAvailable },
+    { tool: alphabetaTool, executor: executealphabeta, checkAvailability: isalphabetaAvailable },
+    { tool: bayesiannetworkTool, executor: executebayesiannetwork, checkAvailability: isbayesiannetworkAvailable },
+    { tool: hiddenmarkovTool, executor: executehiddenmarkov, checkAvailability: ishiddenmarkovAvailable },
+    { tool: particlefilterTool, executor: executeparticlefilter, checkAvailability: isparticlefilterAvailable },
+    { tool: kalmanfilterTool, executor: executekalmanfilter, checkAvailability: iskalmanfilterAvailable },
+    { tool: cmaesTool, executor: executecmaes, checkAvailability: iscmaesAvailable },
+    { tool: neatalgorithmTool, executor: executeneatalgorithm, checkAvailability: isneatalgorithmAvailable },
+    { tool: psooptimizerTool, executor: executepsooptimizer, checkAvailability: ispsooptimizerAvailable },
+    { tool: antcolonyTool, executor: executeantcolony, checkAvailability: isantcolonyAvailable },
+    { tool: simulatedannealingTool, executor: executesimulatedannealing, checkAvailability: issimulatedannealingAvailable },
+    // Physics Simulation tools
+    { tool: latticeboltzmannTool, executor: executelatticeboltzmann, checkAvailability: islatticeboltzmannAvailable },
+    { tool: sphfluidTool, executor: executesphfluid, checkAvailability: issphfluidAvailable },
+    { tool: nbodysimulationTool, executor: executenbodysimulation, checkAvailability: isnbodysimulationAvailable },
+    { tool: verletintegrationTool, executor: executeverletintegration, checkAvailability: isverletintegrationAvailable },
+    { tool: clothsimulationTool, executor: executeclothsimulation, checkAvailability: isclothsimulationAvailable },
+    { tool: softbodyTool, executor: executesoftbody, checkAvailability: issoftbodyAvailable },
+    { tool: ropephysicsTool, executor: executeropephysics, checkAvailability: isropephysicsAvailable },
+    { tool: ragdollphysicsTool, executor: executeragdollphysics, checkAvailability: isragdollphysicsAvailable },
+    { tool: buoyancysimTool, executor: executebuoyancysim, checkAvailability: isbuoyancysimAvailable },
+    { tool: projectilemotionTool, executor: executeprojectilemotion, checkAvailability: isprojectilemotionAvailable },
+    { tool: pendulumsimTool, executor: executependulumsim, checkAvailability: ispendulumsimAvailable },
+    { tool: springsystemTool, executor: executespringsystem, checkAvailability: isspringsystemAvailable },
+    // Formal Methods tools
+    { tool: modelcheckerTool, executor: executemodelchecker, checkAvailability: ismodelcheckerAvailable },
+    { tool: symbolicexecutionTool, executor: executesymbolicexecution, checkAvailability: issymbolicexecutionAvailable },
+    { tool: abstractinterpretationTool, executor: executeabstractinterpretation, checkAvailability: isabstractinterpretationAvailable },
+    { tool: smtsolverTool, executor: executesmtsolver, checkAvailability: issmtsolverAvailable },
+    { tool: bddtoolTool, executor: executebddtool, checkAvailability: isbddtoolAvailable },
+    { tool: tlaplusTool, executor: executetlaplus, checkAvailability: istlaplusAvailable },
+    { tool: petrinetTool, executor: executepetrinet, checkAvailability: ispetrinetAvailable },
+    { tool: automataminimizerTool, executor: executeautomataminimizer, checkAvailability: isautomataminimizerAvailable },
+    { tool: regextodfaTool, executor: executeregextodfa, checkAvailability: isregextodfaAvailable },
+    { tool: grammarparserTool, executor: executegrammarparser, checkAvailability: isgrammarparserAvailable },
+    { tool: llparserTool, executor: executellparser, checkAvailability: isllparserAvailable },
+    { tool: lrparserTool, executor: executelrparser, checkAvailability: islrparserAvailable },
+    // Database Internals tools
+    { tool: btreeindexTool, executor: executebtreeindex, checkAvailability: isbtreeindexAvailable },
+    { tool: hashindexTool, executor: executehashindex, checkAvailability: ishashindexAvailable },
+    { tool: bloomfilterTool, executor: executebloomfilter, checkAvailability: isbloomfilterAvailable },
+    { tool: skiplistTool, executor: executeskiplist, checkAvailability: isskiplistAvailable },
+    { tool: lsmtreeTool, executor: executelsmtree, checkAvailability: islsmtreeAvailable },
+    { tool: wallogTool, executor: executewallog, checkAvailability: iswallogAvailable },
+    { tool: mvccTool, executor: executemvcc, checkAvailability: ismvccAvailable },
+    { tool: queryplannerTool, executor: executequeryplanner, checkAvailability: isqueryplannerAvailable },
+    { tool: costestimatorTool, executor: executecostestimator, checkAvailability: iscostestimatorAvailable },
+    { tool: joinalgorithmsTool, executor: executejoinalgorithms, checkAvailability: isjoinalgorithmsAvailable },
+    { tool: bufferpoolTool, executor: executebufferpool, checkAvailability: isbufferpoolAvailable },
+    { tool: lockmanagerTool, executor: executelockmanager, checkAvailability: islockmanagerAvailable },
+    // OS Internals tools
+    { tool: processschedulerTool, executor: executeprocessscheduler, checkAvailability: isprocessschedulerAvailable },
+    { tool: memoryallocatorTool, executor: executememoryallocator, checkAvailability: ismemoryallocatorAvailable },
+    { tool: pagereplacementTool, executor: executepagereplacement, checkAvailability: ispagereplacementAvailable },
+    { tool: diskschedulerTool, executor: executediskscheduler, checkAvailability: isdiskschedulerAvailable },
+    { tool: filesystemTool, executor: executefilesystem, checkAvailability: isfilesystemAvailable },
+    { tool: inodemanagerTool, executor: executeinodemanager, checkAvailability: isinodemanagerAvailable },
+    { tool: deadlockdetectorTool, executor: executedeadlockdetector, checkAvailability: isdeadlockdetectorAvailable },
+    { tool: semaphoreTool, executor: executesemaphore, checkAvailability: issemaphoreAvailable },
+    { tool: mutexlockTool, executor: executemutexlock, checkAvailability: ismutexlockAvailable },
+    { tool: readerwriterTool, executor: executereaderwriter, checkAvailability: isreaderwriterAvailable },
+    { tool: producerconsumerTool, executor: executeproducerconsumer, checkAvailability: isproducerconsumerAvailable },
+    { tool: diningphilosophersTool, executor: executediningphilosophers, checkAvailability: isdiningphilosophersAvailable },
+    // Graphics & Rendering tools
+    { tool: rasterizerTool, executor: executerasterizer, checkAvailability: israsterizerAvailable },
+    { tool: zbufferTool, executor: executezbuffer, checkAvailability: iszbufferAvailable },
+    { tool: texturemappingTool, executor: executetexturemapping, checkAvailability: istexturemappingAvailable },
+    { tool: phongshadingTool, executor: executephongshading, checkAvailability: isphongshadingAvailable },
+    { tool: pbrmaterialTool, executor: executepbrmaterial, checkAvailability: ispbrmaterialAvailable },
+    { tool: shadowmappingTool, executor: executeshadowmapping, checkAvailability: isshadowmappingAvailable },
+    { tool: ambientocclusionTool, executor: executeambientocclusion, checkAvailability: isambientocclusionAvailable },
+    { tool: bloomeffectTool, executor: executebloomeffect, checkAvailability: isbloomeffectAvailable },
+    { tool: dofeffectTool, executor: executedofeffect, checkAvailability: isdofeffectAvailable },
+    { tool: motionblurTool, executor: executemotionblur, checkAvailability: ismotionblurAvailable },
+    { tool: antialiasingTool, executor: executeantialiasing, checkAvailability: isantialiasingAvailable },
+    { tool: colorgradingTool, executor: executecolorgrading, checkAvailability: iscolorgradingAvailable },
+    // Audio DSP tools
+    { tool: fftanalyzerTool, executor: executefftanalyzer, checkAvailability: isfftanalyzerAvailable },
+    { tool: equalizerTool, executor: executeequalizer, checkAvailability: isequalizerAvailable },
+    { tool: compressorTool, executor: executecompressor, checkAvailability: iscompressorAvailable },
+    { tool: reverbTool, executor: executereverb, checkAvailability: isreverbAvailable },
+    { tool: delayeffectTool, executor: executedelayeffect, checkAvailability: isdelayeffectAvailable },
+    { tool: choruseffectTool, executor: executechoruseffect, checkAvailability: ischoruseffectAvailable },
+    { tool: distortionTool, executor: executedistortion, checkAvailability: isdistortionAvailable },
+    { tool: noisegateTool, executor: executenoisegate, checkAvailability: isnoisegateAvailable },
+    { tool: limiterTool, executor: executelimiter, checkAvailability: islimiterAvailable },
+    { tool: pitchshifterTool, executor: executepitchshifter, checkAvailability: ispitchshifterAvailable },
+    { tool: timestretchTool, executor: executetimestretch, checkAvailability: istimestretchAvailable },
+    { tool: vocoderTool, executor: executevocoder, checkAvailability: isvocoderAvailable }
   );
 
   toolsInitialized = true;
