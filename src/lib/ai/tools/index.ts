@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (224 total):
+ * Tools available (231 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1471,6 +1471,15 @@ async function initializeTools() {
   const { demographyTool, executeDemography, isDemographyAvailable } = await import('./demography-tool');
   const { cartographyTool, executeCartography, isCartographyAvailable } = await import('./cartography-tool');
 
+  // TIER ADVANCED SCIENCE DOMAINS (7 more compact tools)
+  const { nanotechTool, executeNanotech, isNanotechAvailable } = await import('./nanotech-tool');
+  const { tribologyAdvancedTool, executeTribologyAdvanced, isTribologyAdvancedAvailable } = await import('./tribology-advanced-tool');
+  const { cryogenicsTool, executeCryogenics, isCryogenicsAvailable } = await import('./cryogenics-tool');
+  const { biomechanicsTool, executeBiomechanics, isBiomechanicsAvailable } = await import('./biomechanics-tool');
+  const { photogrammetryTool, executePhotogrammetry, isPhotogrammetryAvailable } = await import('./photogrammetry-tool');
+  const { rheologyTool, executeRheology, isRheologyAvailable } = await import('./rheology-tool');
+  const { acousticsAdvancedTool, executeAcousticsAdvanced, isAcousticsAdvancedAvailable } = await import('./acoustics-advanced-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2089,7 +2098,15 @@ async function initializeTools() {
     { tool: paleontologyTool, executor: executePaleontology, checkAvailability: isPaleontologyAvailable },
     { tool: archaeologyTool, executor: executeArchaeology, checkAvailability: isArchaeologyAvailable },
     { tool: demographyTool, executor: executeDemography, checkAvailability: isDemographyAvailable },
-    { tool: cartographyTool, executor: executeCartography, checkAvailability: isCartographyAvailable }
+    { tool: cartographyTool, executor: executeCartography, checkAvailability: isCartographyAvailable },
+    // TIER ADVANCED SCIENCE DOMAINS (7 more compact tools)
+    { tool: nanotechTool, executor: executeNanotech, checkAvailability: isNanotechAvailable },
+    { tool: tribologyAdvancedTool, executor: executeTribologyAdvanced, checkAvailability: isTribologyAdvancedAvailable },
+    { tool: cryogenicsTool, executor: executeCryogenics, checkAvailability: isCryogenicsAvailable },
+    { tool: biomechanicsTool, executor: executeBiomechanics, checkAvailability: isBiomechanicsAvailable },
+    { tool: photogrammetryTool, executor: executePhotogrammetry, checkAvailability: isPhotogrammetryAvailable },
+    { tool: rheologyTool, executor: executeRheology, checkAvailability: isRheologyAvailable },
+    { tool: acousticsAdvancedTool, executor: executeAcousticsAdvanced, checkAvailability: isAcousticsAdvancedAvailable }
   );
 
   toolsInitialized = true;
