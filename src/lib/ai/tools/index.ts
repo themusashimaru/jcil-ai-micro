@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (262 total):
+ * Tools available (267 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1533,7 +1533,12 @@ async function initializeTools() {
   const { vulnerabilityTool, executeVulnerability, isVulnerabilityAvailable } = await import('./vulnerability-tool');
   const { encryptionTool, executeEncryption, isEncryptionAvailable } = await import('./encryption-tool');
 
-  // All tools from batch 2 are already imported above
+  // New science tools batch 3 (5 new tools)
+  const { taxonomyTool, executeTaxonomy, isTaxonomyAvailable } = await import('./taxonomy-tool');
+  const { petrologyTool, executePetrology, isPetrologyAvailable } = await import('./petrology-tool');
+  const { mineralogyTool, executeMineralogy, isMineralogyAvailable } = await import('./mineralogy-tool');
+  const { biophysicsTool, executeBiophysics, isBiophysicsAvailable } = await import('./biophysics-tool');
+  const { metallurgyTool, executeMetallurgy, isMetallurgyAvailable } = await import('./metallurgy-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -2303,7 +2308,13 @@ async function initializeTools() {
     { tool: spectroscopyTool, executor: executeSpectroscopy, checkAvailability: isSpectroscopyAvailable },
     { tool: quantumMechanicsTool, executor: executeQuantumMechanics, checkAvailability: isQuantumMechanicsAvailable },
     { tool: relativityTool, executor: executeRelativity, checkAvailability: isRelativityAvailable },
-    { tool: statisticalMechanicsTool, executor: executeStatisticalMechanics, checkAvailability: isStatisticalMechanicsAvailable }
+    { tool: statisticalMechanicsTool, executor: executeStatisticalMechanics, checkAvailability: isStatisticalMechanicsAvailable },
+    // New science tools batch 3 (5 new tools)
+    { tool: taxonomyTool, executor: executeTaxonomy, checkAvailability: isTaxonomyAvailable },
+    { tool: petrologyTool, executor: executePetrology, checkAvailability: isPetrologyAvailable },
+    { tool: mineralogyTool, executor: executeMineralogy, checkAvailability: isMineralogyAvailable },
+    { tool: biophysicsTool, executor: executeBiophysics, checkAvailability: isBiophysicsAvailable },
+    { tool: metallurgyTool, executor: executeMetallurgy, checkAvailability: isMetallurgyAvailable }
   );
 
   toolsInitialized = true;
