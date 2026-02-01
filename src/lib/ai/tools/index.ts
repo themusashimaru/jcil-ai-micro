@@ -2186,6 +2186,77 @@ async function initializeTools() {
   // Documentation
   const { readmeGeneratorTool, executeReadmeGenerator, isReadmeGeneratorAvailable } = await import('./readme-generator-tool');
 
+  // ============================================================================
+  // PROCEDURAL GENERATION & GAME DEV TOOLS (New Batch)
+  // ============================================================================
+  const { perlinNoiseTool, executePerlinNoise, isPerlinNoiseAvailable } = await import('./perlin-noise-tool');
+  const { mazeGeneratorTool, executeMazeGenerator, isMazeGeneratorAvailable } = await import('./maze-generator-tool');
+  const { voronoiTool, executeVoronoi, isVoronoiAvailable } = await import('./voronoi-tool');
+  const { lSystemTool, executeLSystem, isLSystemAvailable } = await import('./l-system-tool');
+  const { markovChainTool, executeMarkovChain, isMarkovChainAvailable } = await import('./markov-chain-tool');
+  const { pathfindingTool, executePathfinding, isPathfindingAvailable } = await import('./pathfinding-tool');
+  const { particleEffectTool, executeParticleEffect, isParticleEffectAvailable } = await import('./particle-effect-tool');
+  const { collisionDetectionTool, executeCollisionDetection, isCollisionDetectionAvailable } = await import('./collision-detection-tool');
+  const { steeringBehaviorsTool, executeSteeringBehaviors, isSteeringBehaviorsAvailable } = await import('./steering-behaviors-tool');
+  const { behaviorTreeTool, executeBehaviorTree, isBehaviorTreeAvailable } = await import('./behavior-tree-tool');
+  const { quadtreeTool, executeQuadtree, isQuadtreeAvailable } = await import('./quadtree-tool');
+  const { cssGeneratorTool, executeCssGenerator, isCssGeneratorAvailable } = await import('./css-generator-tool');
+  const { chordProgressionTool, executeChordProgression, isChordProgressionAvailable } = await import('./chord-progression-tool');
+  const { regexBuilderTool, executeRegexBuilder, isRegexBuilderAvailable } = await import('./regex-builder-tool');
+  const { haversineTool, executeHaversine, isHaversineAvailable } = await import('./haversine-tool');
+  const { lootTableTool, executeLootTable, isLootTableAvailable } = await import('./loot-table-tool');
+  const { proceduralDungeonTool, executeProceduralDungeon, isProceduralDungeonAvailable } = await import('./procedural-dungeon-tool');
+  const { nameGeneratorTool, executeNameGenerator, isNameGeneratorAvailable } = await import('./name-generator-tool');
+  const { decisionMatrixTool, executeDecisionMatrix, isDecisionMatrixAvailable } = await import('./decision-matrix-tool');
+  const { waveFunctionCollapseTool, executeWaveFunctionCollapse, isWaveFunctionCollapseAvailable } = await import('./wave-function-collapse-tool');
+  const { terrainHeightmapTool, executeTerrainHeightmap, isTerrainHeightmapAvailable } = await import('./terrain-heightmap-tool');
+  const { biomeGeneratorTool, executeBiomeGenerator, isBiomeGeneratorAvailable } = await import('./biome-generator-tool');
+  const { planetGeneratorTool, executePlanetGenerator, isPlanetGeneratorAvailable } = await import('./planet-generator-tool');
+  const { cityGeneratorTool, executeCityGenerator, isCityGeneratorAvailable } = await import('./city-generator-tool');
+  const { spellSystemTool, executeSpellSystem, isSpellSystemAvailable } = await import('./spell-system-tool');
+  const { dialogueTreeTool, executeDialogueTree, isDialogueTreeAvailable } = await import('./dialogue-tree-tool');
+  const { questGeneratorTool, executeQuestGenerator, isQuestGeneratorAvailable } = await import('./quest-generator-tool');
+  const { skillTreeTool, executeSkillTree, isSkillTreeAvailable } = await import('./skill-tree-tool');
+  const { inventorySystemTool, executeInventorySystem, isInventorySystemAvailable } = await import('./inventory-system-tool');
+  const { musicScaleTool, executeMusicScale, isMusicScaleAvailable } = await import('./music-scale-tool');
+  const { drumPatternTool, executeDrumPattern, isDrumPatternAvailable } = await import('./drum-pattern-tool');
+  const { melodyGeneratorTool, executeMelodyGenerator, isMelodyGeneratorAvailable } = await import('./melody-generator-tool');
+  const { dataCompressionTool, executeDataCompression, isDataCompressionAvailable } = await import('./data-compression-tool');
+  const { binaryEncodingTool, executeBinaryEncoding, isBinaryEncodingAvailable } = await import('./binary-encoding-tool');
+  const { stateMachineTool, executeStateMachine, isStateMachineAvailable } = await import('./state-machine-tool');
+  const { entityComponentTool, executeEntityComponent, isEntityComponentAvailable } = await import('./entity-component-tool');
+
+  // NEW MEGA BATCH - 10 more tools
+  const { physicsEngineTool, executePhysicsEngine, isPhysicsEngineAvailable } = await import('./physics-engine-tool');
+  const { pathPlanningTool, executePathPlanning, isPathPlanningAvailable } = await import('./path-planning-tool');
+  const { tileMapTool, executeTileMap, isTileMapAvailable } = await import('./tile-map-tool');
+  const { cameraSystemTool, executeCameraSystem, isCameraSystemAvailable } = await import('./camera-system-tool');
+  const { audioWaveformTool, executeAudioWaveform, isAudioWaveformAvailable } = await import('./audio-waveform-tool');
+  const { textAdventureTool, executeTextAdventure, isTextAdventureAvailable } = await import('./text-adventure-tool');
+  const { gameEconomyTool, executeGameEconomy, isGameEconomyAvailable } = await import('./game-economy-tool');
+  const { proceduralStoryTool, executeProceduralStory, isProceduralStoryAvailable } = await import('./procedural-story-tool');
+  const { colorSchemeTool, executeColorScheme, isColorSchemeAvailable } = await import('./color-scheme-tool');
+  const { dataVisualizationTool, executeDataVisualization, isDataVisualizationAvailable } = await import('./data-visualization-tool');
+
+  // MEGA BATCH #2 - Game Dev, Finance, AI/ML, Scientific Tools
+  const { spriteAnimationTool, executeSpriteAnimation, isSpriteAnimationAvailable } = await import('./sprite-animation-tool');
+  const { gameInputTool, executeGameInput, isGameInputAvailable } = await import('./game-input-tool');
+  const { saveSystemTool, executeSaveSystem, isSaveSystemAvailable } = await import('./save-system-tool');
+  const { dialogSystemTool, executeDialogSystem, isDialogSystemAvailable } = await import('./dialog-system-tool');
+  const { questSystemTool, executeQuestSystem, isQuestSystemAvailable } = await import('./quest-system-tool');
+  const { achievementSystemTool, executeAchievementSystem, isAchievementSystemAvailable } = await import('./achievement-system-tool');
+  const { leaderboardTool, executeLeaderboard, isLeaderboardAvailable } = await import('./leaderboard-tool');
+  const { levelEditorTool, executeLevelEditor, isLevelEditorAvailable } = await import('./level-editor-tool');
+  const { stockAnalysisTool, executeStockAnalysis, isStockAnalysisAvailable } = await import('./stock-analysis-tool');
+  const { portfolioOptimizerTool, executePortfolioOptimizer, isPortfolioOptimizerAvailable } = await import('./portfolio-optimizer-tool');
+  const { decisionTreeTool, executeDecisionTree, isDecisionTreeAvailable } = await import('./decision-tree-tool');
+  const { kmeansClusteringTool, executeKmeansClustering, isKmeansClusteringAvailable } = await import('./kmeans-clustering-tool');
+  const { apiRateLimiterTool, executeApiRateLimiter, isApiRateLimiterAvailable } = await import('./api-rate-limiter-tool');
+  const { blockchainTool, executeBlockchain, isBlockchainAvailable } = await import('./blockchain-tool');
+  const { chessEngineTool, executeChessEngine, isChessEngineAvailable } = await import('./chess-engine-tool');
+  const { dnaSequenceTool, executeDnaSequence, isDnaSequenceAvailable } = await import('./dna-sequence-tool');
+  const { artificialLifeTool, executeArtificialLife, isArtificialLifeAvailable } = await import('./artificial-life-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -3115,7 +3186,75 @@ async function initializeTools() {
     // Game Development
     { tool: gameLogicTool, executor: executeGameLogic, checkAvailability: isGameLogicAvailable },
     // Documentation
-    { tool: readmeGeneratorTool, executor: executeReadmeGenerator, checkAvailability: isReadmeGeneratorAvailable }
+    { tool: readmeGeneratorTool, executor: executeReadmeGenerator, checkAvailability: isReadmeGeneratorAvailable },
+    // ============================================================================
+    // PROCEDURAL GENERATION & GAME DEV TOOLS (New Batch - 36 tools)
+    // ============================================================================
+    { tool: perlinNoiseTool, executor: executePerlinNoise, checkAvailability: isPerlinNoiseAvailable },
+    { tool: mazeGeneratorTool, executor: executeMazeGenerator, checkAvailability: isMazeGeneratorAvailable },
+    { tool: voronoiTool, executor: executeVoronoi, checkAvailability: isVoronoiAvailable },
+    { tool: lSystemTool, executor: executeLSystem, checkAvailability: isLSystemAvailable },
+    { tool: markovChainTool, executor: executeMarkovChain, checkAvailability: isMarkovChainAvailable },
+    { tool: pathfindingTool, executor: executePathfinding, checkAvailability: isPathfindingAvailable },
+    { tool: particleEffectTool, executor: executeParticleEffect, checkAvailability: isParticleEffectAvailable },
+    { tool: collisionDetectionTool, executor: executeCollisionDetection, checkAvailability: isCollisionDetectionAvailable },
+    { tool: steeringBehaviorsTool, executor: executeSteeringBehaviors, checkAvailability: isSteeringBehaviorsAvailable },
+    { tool: behaviorTreeTool, executor: executeBehaviorTree, checkAvailability: isBehaviorTreeAvailable },
+    { tool: quadtreeTool, executor: executeQuadtree, checkAvailability: isQuadtreeAvailable },
+    { tool: cssGeneratorTool, executor: executeCssGenerator, checkAvailability: isCssGeneratorAvailable },
+    { tool: chordProgressionTool, executor: executeChordProgression, checkAvailability: isChordProgressionAvailable },
+    { tool: regexBuilderTool, executor: executeRegexBuilder, checkAvailability: isRegexBuilderAvailable },
+    { tool: haversineTool, executor: executeHaversine, checkAvailability: isHaversineAvailable },
+    { tool: lootTableTool, executor: executeLootTable, checkAvailability: isLootTableAvailable },
+    { tool: proceduralDungeonTool, executor: executeProceduralDungeon, checkAvailability: isProceduralDungeonAvailable },
+    { tool: nameGeneratorTool, executor: executeNameGenerator, checkAvailability: isNameGeneratorAvailable },
+    { tool: decisionMatrixTool, executor: executeDecisionMatrix, checkAvailability: isDecisionMatrixAvailable },
+    { tool: waveFunctionCollapseTool, executor: executeWaveFunctionCollapse, checkAvailability: isWaveFunctionCollapseAvailable },
+    { tool: terrainHeightmapTool, executor: executeTerrainHeightmap, checkAvailability: isTerrainHeightmapAvailable },
+    { tool: biomeGeneratorTool, executor: executeBiomeGenerator, checkAvailability: isBiomeGeneratorAvailable },
+    { tool: planetGeneratorTool, executor: executePlanetGenerator, checkAvailability: isPlanetGeneratorAvailable },
+    { tool: cityGeneratorTool, executor: executeCityGenerator, checkAvailability: isCityGeneratorAvailable },
+    { tool: spellSystemTool, executor: executeSpellSystem, checkAvailability: isSpellSystemAvailable },
+    { tool: dialogueTreeTool, executor: executeDialogueTree, checkAvailability: isDialogueTreeAvailable },
+    { tool: questGeneratorTool, executor: executeQuestGenerator, checkAvailability: isQuestGeneratorAvailable },
+    { tool: skillTreeTool, executor: executeSkillTree, checkAvailability: isSkillTreeAvailable },
+    { tool: inventorySystemTool, executor: executeInventorySystem, checkAvailability: isInventorySystemAvailable },
+    { tool: musicScaleTool, executor: executeMusicScale, checkAvailability: isMusicScaleAvailable },
+    { tool: drumPatternTool, executor: executeDrumPattern, checkAvailability: isDrumPatternAvailable },
+    { tool: melodyGeneratorTool, executor: executeMelodyGenerator, checkAvailability: isMelodyGeneratorAvailable },
+    { tool: dataCompressionTool, executor: executeDataCompression, checkAvailability: isDataCompressionAvailable },
+    { tool: binaryEncodingTool, executor: executeBinaryEncoding, checkAvailability: isBinaryEncodingAvailable },
+    { tool: stateMachineTool, executor: executeStateMachine, checkAvailability: isStateMachineAvailable },
+    { tool: entityComponentTool, executor: executeEntityComponent, checkAvailability: isEntityComponentAvailable },
+    // NEW MEGA BATCH - 10 more tools
+    { tool: physicsEngineTool, executor: executePhysicsEngine, checkAvailability: isPhysicsEngineAvailable },
+    { tool: pathPlanningTool, executor: executePathPlanning, checkAvailability: isPathPlanningAvailable },
+    { tool: tileMapTool, executor: executeTileMap, checkAvailability: isTileMapAvailable },
+    { tool: cameraSystemTool, executor: executeCameraSystem, checkAvailability: isCameraSystemAvailable },
+    { tool: audioWaveformTool, executor: executeAudioWaveform, checkAvailability: isAudioWaveformAvailable },
+    { tool: textAdventureTool, executor: executeTextAdventure, checkAvailability: isTextAdventureAvailable },
+    { tool: gameEconomyTool, executor: executeGameEconomy, checkAvailability: isGameEconomyAvailable },
+    { tool: proceduralStoryTool, executor: executeProceduralStory, checkAvailability: isProceduralStoryAvailable },
+    { tool: colorSchemeTool, executor: executeColorScheme, checkAvailability: isColorSchemeAvailable },
+    { tool: dataVisualizationTool, executor: executeDataVisualization, checkAvailability: isDataVisualizationAvailable },
+    // MEGA BATCH #2 - 17 more incredible tools
+    { tool: spriteAnimationTool, executor: executeSpriteAnimation, checkAvailability: isSpriteAnimationAvailable },
+    { tool: gameInputTool, executor: executeGameInput, checkAvailability: isGameInputAvailable },
+    { tool: saveSystemTool, executor: executeSaveSystem, checkAvailability: isSaveSystemAvailable },
+    { tool: dialogSystemTool, executor: executeDialogSystem, checkAvailability: isDialogSystemAvailable },
+    { tool: questSystemTool, executor: executeQuestSystem, checkAvailability: isQuestSystemAvailable },
+    { tool: achievementSystemTool, executor: executeAchievementSystem, checkAvailability: isAchievementSystemAvailable },
+    { tool: leaderboardTool, executor: executeLeaderboard, checkAvailability: isLeaderboardAvailable },
+    { tool: levelEditorTool, executor: executeLevelEditor, checkAvailability: isLevelEditorAvailable },
+    { tool: stockAnalysisTool, executor: executeStockAnalysis, checkAvailability: isStockAnalysisAvailable },
+    { tool: portfolioOptimizerTool, executor: executePortfolioOptimizer, checkAvailability: isPortfolioOptimizerAvailable },
+    { tool: decisionTreeTool, executor: executeDecisionTree, checkAvailability: isDecisionTreeAvailable },
+    { tool: kmeansClusteringTool, executor: executeKmeansClustering, checkAvailability: isKmeansClusteringAvailable },
+    { tool: apiRateLimiterTool, executor: executeApiRateLimiter, checkAvailability: isApiRateLimiterAvailable },
+    { tool: blockchainTool, executor: executeBlockchain, checkAvailability: isBlockchainAvailable },
+    { tool: chessEngineTool, executor: executeChessEngine, checkAvailability: isChessEngineAvailable },
+    { tool: dnaSequenceTool, executor: executeDnaSequence, checkAvailability: isDnaSequenceAvailable },
+    { tool: artificialLifeTool, executor: executeArtificialLife, checkAvailability: isArtificialLifeAvailable }
   );
 
   toolsInitialized = true;
