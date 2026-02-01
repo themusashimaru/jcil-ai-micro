@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (215 total):
+ * Tools available (224 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1460,6 +1460,17 @@ async function initializeTools() {
   const { geneticsTool, executeGenetics, isGeneticsAvailable } = await import('./genetics-tool');
   const { proteomicsTool, executeProteomics, isProteomicsAvailable } = await import('./proteomics-tool');
 
+  // TIER EARTH & SOCIAL SCIENCES (9 more compact tools)
+  const { climatologyTool, executeClimatology, isClimatologyAvailable } = await import('./climatology-tool');
+  const { volcanologyTool, executeVolcanology, isVolcanologyAvailable } = await import('./volcanology-tool');
+  const { glaciologyTool, executeGlaciology, isGlaciologyAvailable } = await import('./glaciology-tool');
+  const { limnologyTool, executeLimnology, isLimnologyAvailable } = await import('./limnology-tool');
+  const { pedologyTool, executePedology, isPedologyAvailable } = await import('./pedology-tool');
+  const { paleontologyTool, executePaleontology, isPaleontologyAvailable } = await import('./paleontology-tool');
+  const { archaeologyTool, executeArchaeology, isArchaeologyAvailable } = await import('./archaeology-tool');
+  const { demographyTool, executeDemography, isDemographyAvailable } = await import('./demography-tool');
+  const { cartographyTool, executeCartography, isCartographyAvailable } = await import('./cartography-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2068,7 +2079,17 @@ async function initializeTools() {
     { tool: immunologyTool, executor: executeImmunology, checkAvailability: isImmunologyAvailable },
     { tool: toxicologyTool, executor: executeToxicology, checkAvailability: isToxicologyAvailable },
     { tool: geneticsTool, executor: executeGenetics, checkAvailability: isGeneticsAvailable },
-    { tool: proteomicsTool, executor: executeProteomics, checkAvailability: isProteomicsAvailable }
+    { tool: proteomicsTool, executor: executeProteomics, checkAvailability: isProteomicsAvailable },
+    // TIER EARTH & SOCIAL SCIENCES (9 more compact tools)
+    { tool: climatologyTool, executor: executeClimatology, checkAvailability: isClimatologyAvailable },
+    { tool: volcanologyTool, executor: executeVolcanology, checkAvailability: isVolcanologyAvailable },
+    { tool: glaciologyTool, executor: executeGlaciology, checkAvailability: isGlaciologyAvailable },
+    { tool: limnologyTool, executor: executeLimnology, checkAvailability: isLimnologyAvailable },
+    { tool: pedologyTool, executor: executePedology, checkAvailability: isPedologyAvailable },
+    { tool: paleontologyTool, executor: executePaleontology, checkAvailability: isPaleontologyAvailable },
+    { tool: archaeologyTool, executor: executeArchaeology, checkAvailability: isArchaeologyAvailable },
+    { tool: demographyTool, executor: executeDemography, checkAvailability: isDemographyAvailable },
+    { tool: cartographyTool, executor: executeCartography, checkAvailability: isCartographyAvailable }
   );
 
   toolsInitialized = true;
