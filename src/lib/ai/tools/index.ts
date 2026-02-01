@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (186 total):
+ * Tools available (196 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1425,6 +1425,18 @@ async function initializeTools() {
   const { compositesTool, executeComposites, isCompositesAvailable } = await import('./composites-tool');
   const { corrosionTool, executeCorrosion, isCorrosionAvailable } = await import('./corrosion-tool');
 
+  // TIER MANUFACTURING PROCESSES (10 more compact tools)
+  const { weldingTool, executeWelding, isWeldingAvailable } = await import('./welding-tool');
+  const { castingTool, executeCasting, isCastingAvailable } = await import('./casting-tool');
+  const { forgingTool, executeForging, isForgingAvailable } = await import('./forging-tool');
+  const { extrusionTool, executeExtrusion, isExtrusionAvailable } = await import('./extrusion-tool');
+  const { rollingTool, executeRolling, isRollingAvailable } = await import('./rolling-tool');
+  const { injectionMoldingTool, executeInjectionMolding, isInjectionMoldingAvailable } = await import('./injection-molding-tool');
+  const { cncTool, executeCnc, isCncAvailable } = await import('./cnc-tool');
+  const { printingTool, executePrinting, isPrintingAvailable } = await import('./printing-tool');
+  const { laserTool, executeLaser, isLaserAvailable } = await import('./laser-tool');
+  const { edmTool, executeEdm, isEdmAvailable } = await import('./edm-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2001,7 +2013,18 @@ async function initializeTools() {
     { tool: ceramicsTool, executor: executeCeramics, checkAvailability: isCeramicsAvailable },
     { tool: glassTool, executor: executeGlass, checkAvailability: isGlassAvailable },
     { tool: compositesTool, executor: executeComposites, checkAvailability: isCompositesAvailable },
-    { tool: corrosionTool, executor: executeCorrosion, checkAvailability: isCorrosionAvailable }
+    { tool: corrosionTool, executor: executeCorrosion, checkAvailability: isCorrosionAvailable },
+    // TIER MANUFACTURING PROCESSES (10 more compact tools)
+    { tool: weldingTool, executor: executeWelding, checkAvailability: isWeldingAvailable },
+    { tool: castingTool, executor: executeCasting, checkAvailability: isCastingAvailable },
+    { tool: forgingTool, executor: executeForging, checkAvailability: isForgingAvailable },
+    { tool: extrusionTool, executor: executeExtrusion, checkAvailability: isExtrusionAvailable },
+    { tool: rollingTool, executor: executeRolling, checkAvailability: isRollingAvailable },
+    { tool: injectionMoldingTool, executor: executeInjectionMolding, checkAvailability: isInjectionMoldingAvailable },
+    { tool: cncTool, executor: executeCnc, checkAvailability: isCncAvailable },
+    { tool: printingTool, executor: executePrinting, checkAvailability: isPrintingAvailable },
+    { tool: laserTool, executor: executeLaser, checkAvailability: isLaserAvailable },
+    { tool: edmTool, executor: executeEdm, checkAvailability: isEdmAvailable }
   );
 
   toolsInitialized = true;
