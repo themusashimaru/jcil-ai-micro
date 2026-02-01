@@ -103,6 +103,28 @@ const KERNELS: Record<string, Kernel> = {
 };
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function getKernelDescription(name: string): string {
+  const descriptions: Record<string, string> = {
+    sobel_x: 'Sobel operator for horizontal edge detection',
+    sobel_y: 'Sobel operator for vertical edge detection',
+    prewitt_x: 'Prewitt operator for horizontal edges',
+    prewitt_y: 'Prewitt operator for vertical edges',
+    laplacian: 'Laplacian for edge detection (4-connected)',
+    laplacian_diag: 'Laplacian with diagonals (8-connected)',
+    box_blur_3x3: 'Simple averaging blur (3x3)',
+    gaussian_3x3: 'Gaussian blur (3x3, sigma~0.85)',
+    gaussian_5x5: 'Gaussian blur (5x5, sigma~1)',
+    sharpen: 'Basic sharpening filter',
+    unsharp_mask: 'Unsharp masking for detail enhancement',
+    emboss: 'Emboss effect (3D appearance)',
+  };
+  return descriptions[name] || 'Custom kernel';
+}
+
+// ============================================================================
 // CORE IMAGE OPERATIONS
 // ============================================================================
 
@@ -767,6 +789,31 @@ export async function executeImageCompute(call: UnifiedToolCall): Promise<Unifie
         const dftResult = dft2D(image);
         result.magnitude = dftResult.magnitude;
         result.note = 'Full complex result available if needed';
+        break;
+      }
+
+      case 'list_kernels': {
+        // List all available kernels
+        const kernelInfo = Object.entries(KERNELS).map(([name, kernel]) => ({
+          name,
+          size: `${kernel.length}x${kernel[0].length}`,
+          description: getKernelDescription(name),
+        }));
+        result.kernels = kernelInfo;
+        result.total = kernelInfo.length;
+        result.categories = {
+          edge_detection: [
+            'sobel_x',
+            'sobel_y',
+            'prewitt_x',
+            'prewitt_y',
+            'laplacian',
+            'laplacian_diag',
+          ],
+          blur: ['box_blur_3x3', 'gaussian_3x3', 'gaussian_5x5'],
+          sharpen: ['sharpen', 'unsharp_mask'],
+          emboss: ['emboss'],
+        };
         break;
       }
 

@@ -141,7 +141,14 @@ const TOOL_TEST_CASES: ToolTestCase[] = [
   // Chart & Document Tools
   {
     name: 'create_chart',
-    testArgs: { chart_type: 'bar', title: 'Test Chart', labels: ['A', 'B'], data: [1, 2] },
+    testArgs: {
+      chart_type: 'bar',
+      title: 'Test Chart',
+      labels: ['A', 'B'],
+      datasets: [{ label: 'Series 1', data: [1, 2] }],
+    },
+    skipExecution: true,
+    skipReason: 'Requires QuickChart API (network)',
   },
   {
     name: 'create_document',
@@ -169,9 +176,9 @@ const TOOL_TEST_CASES: ToolTestCase[] = [
   {
     name: 'transform_image',
     testArgs: {
-      input_base64:
+      image_base64:
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      resize: { width: 10, height: 10 },
+      operations: [{ type: 'resize', width: 10, height: 10 }],
     },
   },
   { name: 'generate_barcode', testArgs: { data: '1234567890', format: 'CODE128' } },
@@ -187,7 +194,7 @@ const TOOL_TEST_CASES: ToolTestCase[] = [
   {
     name: 'image_metadata',
     testArgs: {
-      image_base64:
+      image_data:
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     },
   },
@@ -209,7 +216,7 @@ const TOOL_TEST_CASES: ToolTestCase[] = [
   { name: 'diff_compare', testArgs: { text1: 'hello', text2: 'world' } },
   {
     name: 'convert_file',
-    testArgs: { input_format: 'json', output_format: 'yaml', content: '{"a":1}' },
+    testArgs: { from_format: 'json', to_format: 'yaml', content: '{"a":1}' },
   },
   {
     name: 'zip_files',
