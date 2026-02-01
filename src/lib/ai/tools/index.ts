@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (237 total):
+ * Tools available (242 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1488,6 +1488,13 @@ async function initializeTools() {
   const { fatigueTool, executeFatigue, isFatigueAvailable } = await import('./fatigue-tool');
   const { fermentationTool, executeFermentation, isFermentationAvailable } = await import('./fermentation-tool');
 
+  // TIER CHEMICAL ENGINEERING (5 more compact tools)
+  const { electroplatingTool, executeElectroplating, isElectroplatingAvailable } = await import('./electroplating-tool');
+  const { chromatographyTool, executeChromatography, isChromatographyAvailable } = await import('./chromatography-tool');
+  const { distillationTool, executeDistillation, isDistillationAvailable } = await import('./distillation-tool');
+  const { membraneTool, executeMembrane, isMembraneAvailable } = await import('./membrane-tool');
+  const { adsorptionTool, executeAdsorption, isAdsorptionAvailable } = await import('./adsorption-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2121,7 +2128,13 @@ async function initializeTools() {
     { tool: spectralAnalysisTool, executor: executeSpectralAnalysis, checkAvailability: isSpectralAnalysisAvailable },
     { tool: vibrationTool, executor: executeVibration, checkAvailability: isVibrationAvailable },
     { tool: fatigueTool, executor: executeFatigue, checkAvailability: isFatigueAvailable },
-    { tool: fermentationTool, executor: executeFermentation, checkAvailability: isFermentationAvailable }
+    { tool: fermentationTool, executor: executeFermentation, checkAvailability: isFermentationAvailable },
+    // TIER CHEMICAL ENGINEERING (5 more compact tools)
+    { tool: electroplatingTool, executor: executeElectroplating, checkAvailability: isElectroplatingAvailable },
+    { tool: chromatographyTool, executor: executeChromatography, checkAvailability: isChromatographyAvailable },
+    { tool: distillationTool, executor: executeDistillation, checkAvailability: isDistillationAvailable },
+    { tool: membraneTool, executor: executeMembrane, checkAvailability: isMembraneAvailable },
+    { tool: adsorptionTool, executor: executeAdsorption, checkAvailability: isAdsorptionAvailable }
   );
 
   toolsInitialized = true;
