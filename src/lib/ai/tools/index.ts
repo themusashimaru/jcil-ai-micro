@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (363 total):
+ * Tools available (371 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -992,6 +992,66 @@ export {
 } from './safety';
 
 // ============================================================================
+// CODE AGENT BRAIN TOOLS - Full Coding Capabilities
+// ============================================================================
+
+// Workspace Tool - Bash, File Operations, Git
+export {
+  workspaceTool,
+  executeWorkspace,
+  isWorkspaceAvailable,
+} from './workspace-tool';
+
+// Code Generation Tool - Generate production code
+export {
+  codeGenerationTool,
+  executeCodeGeneration,
+  isCodeGenerationAvailable,
+} from './code-generation-tool';
+
+// Code Analysis Tool - Security/performance/quality analysis
+export {
+  codeAnalysisTool,
+  executeCodeAnalysis,
+  isCodeAnalysisAvailable,
+} from './code-analysis-tool';
+
+// Project Builder Tool - Create complete project structures
+export {
+  projectBuilderTool,
+  executeProjectBuilder,
+  isProjectBuilderAvailable,
+} from './project-builder-tool';
+
+// Test Generator Tool - Generate comprehensive tests
+export {
+  testGeneratorTool,
+  executeTestGenerator,
+  isTestGeneratorAvailable,
+} from './test-generator-tool';
+
+// Error Fixer Tool - Debug and fix code errors
+export {
+  errorFixerTool,
+  executeErrorFixer,
+  isErrorFixerAvailable,
+} from './error-fixer-tool';
+
+// Refactor Tool - Improve code quality
+export {
+  refactorTool,
+  executeRefactor,
+  isRefactorAvailable,
+} from './refactor-tool';
+
+// Doc Generator Tool - Generate documentation
+export {
+  docGeneratorTool,
+  executeDocGenerator,
+  isDocGeneratorAvailable,
+} from './doc-generator-tool';
+
+// ============================================================================
 // TOOL REGISTRY
 // ============================================================================
 
@@ -1641,6 +1701,18 @@ async function initializeTools() {
   const { saseTool, executeSase, isSaseAvailable } = await import('./sase-tool');
   const { identityGovernanceTool, executeIdentityGovernance, isIdentityGovernanceAvailable } = await import('./identity-governance-tool');
   const { dataSecurityTool, executeDataSecurity, isDataSecurityAvailable } = await import('./data-security-tool');
+
+  // ============================================================================
+  // CODE AGENT BRAIN TOOLS - Full coding capabilities
+  // ============================================================================
+  const { workspaceTool, executeWorkspace, isWorkspaceAvailable } = await import('./workspace-tool');
+  const { codeGenerationTool, executeCodeGeneration, isCodeGenerationAvailable } = await import('./code-generation-tool');
+  const { codeAnalysisTool, executeCodeAnalysis, isCodeAnalysisAvailable } = await import('./code-analysis-tool');
+  const { projectBuilderTool, executeProjectBuilder, isProjectBuilderAvailable } = await import('./project-builder-tool');
+  const { testGeneratorTool, executeTestGenerator, isTestGeneratorAvailable } = await import('./test-generator-tool');
+  const { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } = await import('./error-fixer-tool');
+  const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
+  const { docGeneratorTool, executeDocGenerator, isDocGeneratorAvailable } = await import('./doc-generator-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -2516,7 +2588,16 @@ async function initializeTools() {
     { tool: cyberInsuranceTool, executor: executeCyberInsurance, checkAvailability: isCyberInsuranceAvailable },
     { tool: saseTool, executor: executeSase, checkAvailability: isSaseAvailable },
     { tool: identityGovernanceTool, executor: executeIdentityGovernance, checkAvailability: isIdentityGovernanceAvailable },
-    { tool: dataSecurityTool, executor: executeDataSecurity, checkAvailability: isDataSecurityAvailable }
+    { tool: dataSecurityTool, executor: executeDataSecurity, checkAvailability: isDataSecurityAvailable },
+    // Code Agent Brain Tools - Full coding capabilities (8 new tools)
+    { tool: workspaceTool, executor: executeWorkspace, checkAvailability: isWorkspaceAvailable },
+    { tool: codeGenerationTool, executor: executeCodeGeneration, checkAvailability: isCodeGenerationAvailable },
+    { tool: codeAnalysisTool, executor: executeCodeAnalysis, checkAvailability: isCodeAnalysisAvailable },
+    { tool: projectBuilderTool, executor: executeProjectBuilder, checkAvailability: isProjectBuilderAvailable },
+    { tool: testGeneratorTool, executor: executeTestGenerator, checkAvailability: isTestGeneratorAvailable },
+    { tool: errorFixerTool, executor: executeErrorFixer, checkAvailability: isErrorFixerAvailable },
+    { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
+    { tool: docGeneratorTool, executor: executeDocGenerator, checkAvailability: isDocGeneratorAvailable }
   );
 
   toolsInitialized = true;
