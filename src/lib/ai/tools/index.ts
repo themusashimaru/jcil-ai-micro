@@ -995,11 +995,15 @@ export {
 // CODE AGENT BRAIN TOOLS - Full Coding Capabilities
 // ============================================================================
 
-// Workspace Tool - Bash, File Operations, Git
+// Workspace Tool - Bash, File Operations, Git (with Enhancement #2: Persistent Sessions)
 export {
   workspaceTool,
   executeWorkspace,
   isWorkspaceAvailable,
+  getWorkspaceForConversation,
+  getWorkspaceContext,
+  cleanupConversationWorkspace,
+  executeWorkspaceWithConversation,
 } from './workspace-tool';
 
 // Code Generation Tool - Generate production code
@@ -1050,6 +1054,26 @@ export {
   executeDocGenerator,
   isDocGeneratorAvailable,
 } from './doc-generator-tool';
+
+// Tool Chain Executor - Smart multi-tool workflows (Enhancement #3)
+export {
+  toolChainTool,
+  createToolChainExecutor,
+  ToolChainExecutor,
+  WORKFLOW_TEMPLATES,
+  type ToolChainPlan,
+  type ToolChainProgress,
+  type ToolChainResult,
+  type ToolChainStep,
+} from './tool-chain-executor';
+
+// GitHub Context Tool - Understand user codebases (Enhancement #4)
+export {
+  githubContextTool,
+  executeGitHubContext,
+  isGitHubContextAvailable,
+  getRepoSummaryForPrompt,
+} from './github-context-tool';
 
 // ============================================================================
 // TOOL REGISTRY
