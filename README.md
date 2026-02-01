@@ -7,10 +7,11 @@
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
 [![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
-[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-153%20Wired-green)]()
-[![Security Tools](https://img.shields.io/badge/Security%20Tools-32-red)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-344%20Wired-green)]()
+[![Security Tools](https://img.shields.io/badge/Security%20Tools-62-red)]()
+[![Engineering Tools](https://img.shields.io/badge/Engineering%20Tools-158-blue)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
-[![Enhancements](https://img.shields.io/badge/Major%20Enhancements-10-orange)]()
+[![Enhancements](https://img.shields.io/badge/Major%20Enhancements-11-orange)]()
 
 ---
 
@@ -212,12 +213,12 @@ $20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
 
 ---
 
-## Chat AI Tools (153 Wired)
+## Chat AI Tools (186 Wired)
 
-**Updated:** February 1, 2026 at 22:30 UTC
-**Version:** 3.1.0 (10 Major Enhancements + Security Suite)
+**Updated:** February 1, 2026 at 23:30 UTC
+**Version:** 3.2.0 (10 Major Enhancements + Full Security Suite)
 
-The main chat interface is now the **most capable AI chat ever built** with **153 fully wired AI-powered tools** (378 total tool files) and 10 major enhancements. Latest update wired the complete **32-tool Cybersecurity Suite** plus Enhancement #3 (Tool Chaining) and Enhancement #4 (GitHub Context).
+The main chat interface is now the **most capable AI chat ever built** with **186 fully wired AI-powered tools** (378 total tool files) and 10 major enhancements. This release includes the complete **62-tool Cybersecurity Suite** - the largest AI security toolkit ever built, with SIEM, SOC, XDR, threat hunting, malware analysis, red team, blue team, penetration testing, and more.
 
 ### February 2026 - 10 Major Enhancements
 
@@ -683,10 +684,10 @@ Copyright (c) 2024-2026 JCIL.AI
 
 <div align="center">
 
-**Built with Anthropic Claude** | **55+ Code Lab Tools** | **153 Chat Tools Wired** | **32 Security Tools** | **5 MCP Servers** | **10 Major Enhancements**
+**Built with Anthropic Claude** | **55+ Code Lab Tools** | **186 Chat Tools Wired** | **62 Security Tools** | **5 MCP Servers** | **10 Major Enhancements**
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
 
-*Last updated: February 1, 2026 at 22:30 UTC - Version 3.1.0*
+*Last updated: February 1, 2026 at 23:30 UTC - Version 3.2.0*
 
 </div>

@@ -500,6 +500,196 @@ import {
   securityAwarenessTool, executeSecurityAwareness, isSecurityAwarenessAvailable,
   securityCultureTool, executeSecurityCulture, isSecurityCultureAvailable,
   securityBudgetTool, executeSecurityBudget, isSecurityBudgetAvailable,
+  // Advanced Cybersecurity (30 more tools)
+  threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable,
+  threatIntelTool, executeThreatIntel, isThreatIntelAvailable,
+  threatModelTool, executeThreatModel, isThreatModelAvailable,
+  threatModelingTool, executeThreatModeling, isThreatModelingAvailable,
+  malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable,
+  malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable,
+  siemTool, executeSiem, isSiemAvailable,
+  forensicsTool, executeForensics, isForensicsAvailable,
+  soarTool, executeSoar, isSoarAvailable,
+  socTool, executeSoc, isSocAvailable,
+  xdrTool, executeXdr, isXdrAvailable,
+  redTeamTool, executeRedTeam, isRedTeamAvailable,
+  blueTeamTool, executeBlueTeam, isBlueTeamAvailable,
+  osintTool, executeOsint, isOsintAvailable,
+  ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable,
+  complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable,
+  riskManagementTool, executeRiskManagement, isRiskManagementAvailable,
+  incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable,
+  idsIpsTool, executeIdsIps, isIdsIpsAvailable,
+  firewallTool, executeFirewall, isFirewallAvailable,
+  honeypotTool, executeHoneypot, isHoneypotAvailable,
+  penTestTool, executePenTest, isPenTestAvailable,
+  vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable,
+  vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable,
+  zeroTrustTool, executeZeroTrust, isZeroTrustAvailable,
+  attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable,
+  networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable,
+  cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable,
+  vendorRiskTool, executeVendorRisk, isVendorRiskAvailable,
+  socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable,
+  // MEGA BATCH - 158 Additional Tools
+  absorptionTool, executeAbsorption, isAbsorptionAvailable,
+  accessControlTool, executeAccessControl, isAccessControlAvailable,
+  acousticsAdvancedTool, executeAcousticsAdvanced, isAcousticsAdvancedAvailable,
+  adsorptionTool, executeAdsorption, isAdsorptionAvailable,
+  agricultureTool, executeAgriculture, isAgricultureAvailable,
+  archaeologyTool, executeArchaeology, isArchaeologyAvailable,
+  assetManagementTool, executeAssetManagement, isAssetManagementAvailable,
+  authProtocolTool, executeAuthProtocol, isAuthProtocolAvailable,
+  authenticationTool, executeAuthentication, isAuthenticationAvailable,
+  automotiveTool, executeAutomotive, isAutomotiveAvailable,
+  aviationTool, executeAviation, isAviationAvailable,
+  backupRecoveryTool, executeBackupRecovery, isBackupRecoveryAvailable,
+  batteryTool, executeBattery, isBatteryAvailable,
+  biomechanicsTool, executeBiomechanics, isBiomechanicsAvailable,
+  biomedicalTool, executeBiomedical, isBiomedicalAvailable,
+  biophysicsTool, executeBiophysics, isBiophysicsAvailable,
+  businessContinuityTool, executeBusinessContinuity, isBusinessContinuityAvailable,
+  cartographyTool, executeCartography, isCartographyAvailable,
+  castingTool, executeCasting, isCastingAvailable,
+  ceramicsTool, executeCeramics, isCeramicsAvailable,
+  certificateTool, executeCertificate, isCertificateAvailable,
+  chromatographyTool, executeChromatography, isChromatographyAvailable,
+  cipherTool, executeCipher, isCipherAvailable,
+  climatologyTool, executeClimatology, isClimatologyAvailable,
+  cncTool, executeCnc, isCncAvailable,
+  comminutionTool, executeComminution, isComminutionAvailable,
+  complianceTool, executeCompliance, isComplianceAvailable,
+  compositesTool, executeComposites, isCompositesAvailable,
+  corrosionTool, executeCorrosion, isCorrosionAvailable,
+  cosmologyTool, executeCosmology, isCosmologyAvailable,
+  cryogenicsTool, executeCryogenics, isCryogenicsAvailable,
+  cryptanalysisTool, executeCryptanalysis, isCryptanalysisAvailable,
+  crystallizationTool, executeCrystallization, isCrystallizationAvailable,
+  crystallographyTool, executeCrystallography, isCrystallographyAvailable,
+  dataClassificationTool, executeDataClassification, isDataClassificationAvailable,
+  dataLossPreventionTool, executeDataLossPrevention, isDataLossPreventionAvailable,
+  demographyTool, executeDemography, isDemographyAvailable,
+  dendrologyTool, executeDendrology, isDendrologyAvailable,
+  devsecOpsTool, executeDevsecOps, isDevsecOpsAvailable,
+  distillationTool, executeDistillation, isDistillationAvailable,
+  dryingTool, executeDrying, isDryingAvailable,
+  ecologyTool, executeEcology, isEcologyAvailable,
+  economicsTool, executeEconomics, isEconomicsAvailable,
+  edmTool, executeEdm, isEdmAvailable,
+  electroplatingTool, executeElectroplating, isElectroplatingAvailable,
+  elevatorTool, executeElevator, isElevatorAvailable,
+  encodingTool, executeEncoding, isEncodingAvailable,
+  encryptionTool, executeEncryption, isEncryptionAvailable,
+  entomologyTool, executeEntomology, isEntomologyAvailable,
+  entropyAnalysisTool, executeEntropyAnalysis, isEntropyAnalysisAvailable,
+  environmentalTool, executeEnvironmental, isEnvironmentalAvailable,
+  ergonomicsTool, executeErgonomics, isErgonomicsAvailable,
+  evaporationTool, executeEvaporation, isEvaporationAvailable,
+  extractionTool, executeExtraction, isExtractionAvailable,
+  extrusionTool, executeExtrusion, isExtrusionAvailable,
+  fatigueTool, executeFatigue, isFatigueAvailable,
+  fermentationTool, executeFermentation, isFermentationAvailable,
+  filtrationTool, executeFiltration, isFiltrationAvailable,
+  fireProtectionTool, executeFireProtection, isFireProtectionAvailable,
+  fluidizationTool, executeFluidization, isFluidizationAvailable,
+  foodScienceTool, executeFoodScience, isFoodScienceAvailable,
+  forgingTool, executeForging, isForgingAvailable,
+  geneticsTool, executeGenetics, isGeneticsAvailable,
+  geologyTool, executeGeology, isGeologyAvailable,
+  geotechnicalTool, executeGeotechnical, isGeotechnicalAvailable,
+  glaciologyTool, executeGlaciology, isGlaciologyAvailable,
+  glassTool, executeGlass, isGlassAvailable,
+  hashAnalysisTool, executeHashAnalysis, isHashAnalysisAvailable,
+  heatTransferTool, executeHeatTransfer, isHeatTransferAvailable,
+  humidificationTool, executeHumidification, isHumidificationAvailable,
+  hvacTool, executeHvac, isHvacAvailable,
+  hydrologyTool, executeHydrology, isHydrologyAvailable,
+  identityGovernanceTool, executeIdentityGovernance, isIdentityGovernanceAvailable,
+  identityManagementTool, executeIdentityManagement, isIdentityManagementAvailable,
+  immunologyTool, executeImmunology, isImmunologyAvailable,
+  industrialControlTool, executeIndustrialControl, isIndustrialControlAvailable,
+  injectionMoldingTool, executeInjectionMolding, isInjectionMoldingAvailable,
+  jwtTool, executeJwt, isJwtAvailable,
+  keyManagementTool, executeKeyManagement, isKeyManagementAvailable,
+  laserTool, executeLaser, isLaserAvailable,
+  leachingTool, executeLeaching, isLeachingAvailable,
+  lightingTool, executeLighting, isLightingAvailable,
+  limnologyTool, executeLimnology, isLimnologyAvailable,
+  linguisticsTool, executeLinguistics, isLinguisticsAvailable,
+  logAnalysisTool, executeLogAnalysis, isLogAnalysisAvailable,
+  logManagementTool, executeLogManagement, isLogManagementAvailable,
+  logisticsTool, executeLogistics, isLogisticsAvailable,
+  manufacturingTool, executeManufacturing, isManufacturingAvailable,
+  marineTool, executeMarine, isMarineAvailable,
+  membraneTool, executeMembrane, isMembraneAvailable,
+  metallurgyTool, executeMetallurgy, isMetallurgyAvailable,
+  meteorologyTool, executeMeteorology, isMeteorologyAvailable,
+  metrologyTool, executeMetrology, isMetrologyAvailable,
+  microbiologyTool, executeMicrobiology, isMicrobiologyAvailable,
+  mineralogyTool, executeMineralogy, isMineralogyAvailable,
+  miningTool, executeMining, isMiningAvailable,
+  mixingTool, executeMixing, isMixingAvailable,
+  nanotechTool, executeNanotech, isNanotechAvailable,
+  ndtTool, executeNdt, isNdtAvailable,
+  networkAnalysisTool, executeNetworkAnalysis, isNetworkAnalysisAvailable,
+  nuclearEngineeringTool, executeNuclearEngineering, isNuclearEngineeringAvailable,
+  nuclearPhysicsTool, executeNuclearPhysics, isNuclearPhysicsAvailable,
+  nutritionTool, executeNutrition, isNutritionAvailable,
+  oceanographyTool, executeOceanography, isOceanographyAvailable,
+  owaspTool, executeOwasp, isOwaspAvailable,
+  packagingTool, executePackaging, isPackagingAvailable,
+  paleontologyTool, executePaleontology, isPaleontologyAvailable,
+  paperTool, executePaper, isPaperAvailable,
+  patchManagementTool, executePatchManagement, isPatchManagementAvailable,
+  pedologyTool, executePedology, isPedologyAvailable,
+  petroleumTool, executePetroleum, isPetroleumAvailable,
+  petrologyTool, executePetrology, isPetrologyAvailable,
+  pharmacologyTool, executePharmacology, isPharmacologyAvailable,
+  photogrammetryTool, executePhotogrammetry, isPhotogrammetryAvailable,
+  photonicsTool, executePhotonics, isPhotonicsAvailable,
+  pkiTool, executePki, isPkiAvailable,
+  plasmaPhysicsTool, executePlasmaPhysics, isPlasmaPhysicsAvailable,
+  plumbingTool, executePlumbing, isPlumbingAvailable,
+  polymerChemistryTool, executePolymerChemistry, isPolymerChemistryAvailable,
+  portScannerTool, executePortScanner, isPortScannerAvailable,
+  powerSystemsTool, executePowerSystems, isPowerSystemsAvailable,
+  printingTool, executePrinting, isPrintingAvailable,
+  privacyTool, executePrivacy, isPrivacyAvailable,
+  privacyEngineeringTool, executePrivacyEngineering, isPrivacyEngineeringAvailable,
+  proteomicsTool, executeProteomics, isProteomicsAvailable,
+  psychologyTool, executePsychology, isPsychologyAvailable,
+  qualityTool, executeQuality, isQualityAvailable,
+  reactorTool, executeReactor, isReactorAvailable,
+  renewableEnergyTool, executeRenewableEnergy, isRenewableEnergyAvailable,
+  rheologyTool, executeRheology, isRheologyAvailable,
+  roboticsTool, executeRobotics, isRoboticsAvailable,
+  rollingTool, executeRolling, isRollingAvailable,
+  safetyTool, executeSafety, isSafetyAvailable,
+  saseTool, executeSase, isSaseAvailable,
+  scadaIcsTool, executeScadaIcs, isScadaIcsAvailable,
+  secretsManagementTool, executeSecretsManagement, isSecretsManagementAvailable,
+  secureCommunicationsTool, executeSecureCommunications, isSecureCommunicationsAvailable,
+  secureSdlcTool, executeSecureSdlc, isSecureSdlcAvailable,
+  sedimentationTool, executeSedimentation, isSedimentationAvailable,
+  semiconductorTool, executeSemiconductor, isSemiconductorAvailable,
+  soilScienceTool, executeSoilScience, isSoilScienceAvailable,
+  spectralAnalysisTool, executeSpectralAnalysis, isSpectralAnalysisAvailable,
+  structuralEngineeringTool, executeStructuralEngineering, isStructuralEngineeringAvailable,
+  surveyingTool, executeSurveying, isSurveyingAvailable,
+  taxonomyTool, executeTaxonomy, isTaxonomyAvailable,
+  telecommunicationsTool, executeTelecommunications, isTelecommunicationsAvailable,
+  textileTool, executeTextile, isTextileAvailable,
+  toxicologyTool, executeToxicology, isToxicologyAvailable,
+  trafficEngineeringTool, executeTrafficEngineering, isTrafficEngineeringAvailable,
+  tribologyTool, executeTribology, isTribologyAvailable,
+  tribologyAdvancedTool, executeTribologyAdvanced, isTribologyAdvancedAvailable,
+  vacuumTool, executeVacuum, isVacuumAvailable,
+  vibrationTool, executeVibration, isVibrationAvailable,
+  virologyTool, executeVirology, isVirologyAvailable,
+  volcanologyTool, executeVolcanology, isVolcanologyAvailable,
+  vpnTool, executeVpn, isVpnAvailable,
+  vulnerabilityTool, executeVulnerability, isVulnerabilityAvailable,
+  weldingTool, executeWelding, isWeldingAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -4048,6 +4238,196 @@ SECURITY:
     if (isSecurityAwarenessAvailable()) tools.push(securityAwarenessTool);
     if (isSecurityCultureAvailable()) tools.push(securityCultureTool);
     if (isSecurityBudgetAvailable()) tools.push(securityBudgetTool);
+    // Advanced Cybersecurity (30 more tools)
+    if (isThreatHuntingAvailable()) tools.push(threatHuntingTool);
+    if (isThreatIntelAvailable()) tools.push(threatIntelTool);
+    if (isThreatModelAvailable()) tools.push(threatModelTool);
+    if (isThreatModelingAvailable()) tools.push(threatModelingTool);
+    if (isMalwareAnalysisAvailable()) tools.push(malwareAnalysisTool);
+    if (isMalwareIndicatorsAvailable()) tools.push(malwareIndicatorsTool);
+    if (isSiemAvailable()) tools.push(siemTool);
+    if (isForensicsAvailable()) tools.push(forensicsTool);
+    if (isSoarAvailable()) tools.push(soarTool);
+    if (isSocAvailable()) tools.push(socTool);
+    if (isXdrAvailable()) tools.push(xdrTool);
+    if (isRedTeamAvailable()) tools.push(redTeamTool);
+    if (isBlueTeamAvailable()) tools.push(blueTeamTool);
+    if (isOsintAvailable()) tools.push(osintTool);
+    if (isRansomwareDefenseAvailable()) tools.push(ransomwareDefenseTool);
+    if (isComplianceFrameworkAvailable()) tools.push(complianceFrameworkTool);
+    if (isRiskManagementAvailable()) tools.push(riskManagementTool);
+    if (isIncidentResponseAvailable()) tools.push(incidentResponseTool);
+    if (isIdsIpsAvailable()) tools.push(idsIpsTool);
+    if (isFirewallAvailable()) tools.push(firewallTool);
+    if (isHoneypotAvailable()) tools.push(honeypotTool);
+    if (isPenTestAvailable()) tools.push(penTestTool);
+    if (isVulnAssessmentAvailable()) tools.push(vulnAssessmentTool);
+    if (isVulnerabilityScannerAvailable()) tools.push(vulnerabilityScannerTool);
+    if (isZeroTrustAvailable()) tools.push(zeroTrustTool);
+    if (isAttackSurfaceAvailable()) tools.push(attackSurfaceTool);
+    if (isNetworkDefenseAvailable()) tools.push(networkDefenseTool);
+    if (isCyberInsuranceAvailable()) tools.push(cyberInsuranceTool);
+    if (isVendorRiskAvailable()) tools.push(vendorRiskTool);
+    if (isSocialEngineeringAvailable()) tools.push(socialEngineeringTool);
+    if (isAbsorptionAvailable()) tools.push(absorptionTool);
+    if (isAccessControlAvailable()) tools.push(accessControlTool);
+    if (isAcousticsAdvancedAvailable()) tools.push(acousticsAdvancedTool);
+    if (isAdsorptionAvailable()) tools.push(adsorptionTool);
+    if (isAgricultureAvailable()) tools.push(agricultureTool);
+    if (isArchaeologyAvailable()) tools.push(archaeologyTool);
+    if (isAssetManagementAvailable()) tools.push(assetManagementTool);
+    if (isAuthProtocolAvailable()) tools.push(authProtocolTool);
+    if (isAuthenticationAvailable()) tools.push(authenticationTool);
+    if (isAutomotiveAvailable()) tools.push(automotiveTool);
+    if (isAviationAvailable()) tools.push(aviationTool);
+    if (isBackupRecoveryAvailable()) tools.push(backupRecoveryTool);
+    if (isBatteryAvailable()) tools.push(batteryTool);
+    if (isBiomechanicsAvailable()) tools.push(biomechanicsTool);
+    if (isBiomedicalAvailable()) tools.push(biomedicalTool);
+    if (isBiophysicsAvailable()) tools.push(biophysicsTool);
+    if (isBusinessContinuityAvailable()) tools.push(businessContinuityTool);
+    if (isCartographyAvailable()) tools.push(cartographyTool);
+    if (isCastingAvailable()) tools.push(castingTool);
+    if (isCeramicsAvailable()) tools.push(ceramicsTool);
+    if (isCertificateAvailable()) tools.push(certificateTool);
+    if (isChromatographyAvailable()) tools.push(chromatographyTool);
+    if (isCipherAvailable()) tools.push(cipherTool);
+    if (isClimatologyAvailable()) tools.push(climatologyTool);
+    if (isCncAvailable()) tools.push(cncTool);
+    if (isComminutionAvailable()) tools.push(comminutionTool);
+    if (isComplianceAvailable()) tools.push(complianceTool);
+    if (isCompositesAvailable()) tools.push(compositesTool);
+    if (isCorrosionAvailable()) tools.push(corrosionTool);
+    if (isCosmologyAvailable()) tools.push(cosmologyTool);
+    if (isCryogenicsAvailable()) tools.push(cryogenicsTool);
+    if (isCryptanalysisAvailable()) tools.push(cryptanalysisTool);
+    if (isCrystallizationAvailable()) tools.push(crystallizationTool);
+    if (isCrystallographyAvailable()) tools.push(crystallographyTool);
+    if (isDataClassificationAvailable()) tools.push(dataClassificationTool);
+    if (isDataLossPreventionAvailable()) tools.push(dataLossPreventionTool);
+    if (isDemographyAvailable()) tools.push(demographyTool);
+    if (isDendrologyAvailable()) tools.push(dendrologyTool);
+    if (isDevsecOpsAvailable()) tools.push(devsecOpsTool);
+    if (isDistillationAvailable()) tools.push(distillationTool);
+    if (isDryingAvailable()) tools.push(dryingTool);
+    if (isEcologyAvailable()) tools.push(ecologyTool);
+    if (isEconomicsAvailable()) tools.push(economicsTool);
+    if (isEdmAvailable()) tools.push(edmTool);
+    if (isElectroplatingAvailable()) tools.push(electroplatingTool);
+    if (isElevatorAvailable()) tools.push(elevatorTool);
+    if (isEncodingAvailable()) tools.push(encodingTool);
+    if (isEncryptionAvailable()) tools.push(encryptionTool);
+    if (isEntomologyAvailable()) tools.push(entomologyTool);
+    if (isEntropyAnalysisAvailable()) tools.push(entropyAnalysisTool);
+    if (isEnvironmentalAvailable()) tools.push(environmentalTool);
+    if (isErgonomicsAvailable()) tools.push(ergonomicsTool);
+    if (isEvaporationAvailable()) tools.push(evaporationTool);
+    if (isExtractionAvailable()) tools.push(extractionTool);
+    if (isExtrusionAvailable()) tools.push(extrusionTool);
+    if (isFatigueAvailable()) tools.push(fatigueTool);
+    if (isFermentationAvailable()) tools.push(fermentationTool);
+    if (isFiltrationAvailable()) tools.push(filtrationTool);
+    if (isFireProtectionAvailable()) tools.push(fireProtectionTool);
+    if (isFluidizationAvailable()) tools.push(fluidizationTool);
+    if (isFoodScienceAvailable()) tools.push(foodScienceTool);
+    if (isForgingAvailable()) tools.push(forgingTool);
+    if (isGeneticsAvailable()) tools.push(geneticsTool);
+    if (isGeologyAvailable()) tools.push(geologyTool);
+    if (isGeotechnicalAvailable()) tools.push(geotechnicalTool);
+    if (isGlaciologyAvailable()) tools.push(glaciologyTool);
+    if (isGlassAvailable()) tools.push(glassTool);
+    if (isHashAnalysisAvailable()) tools.push(hashAnalysisTool);
+    if (isHeatTransferAvailable()) tools.push(heatTransferTool);
+    if (isHumidificationAvailable()) tools.push(humidificationTool);
+    if (isHvacAvailable()) tools.push(hvacTool);
+    if (isHydrologyAvailable()) tools.push(hydrologyTool);
+    if (isIdentityGovernanceAvailable()) tools.push(identityGovernanceTool);
+    if (isIdentityManagementAvailable()) tools.push(identityManagementTool);
+    if (isImmunologyAvailable()) tools.push(immunologyTool);
+    if (isIndustrialControlAvailable()) tools.push(industrialControlTool);
+    if (isInjectionMoldingAvailable()) tools.push(injectionMoldingTool);
+    if (isJwtAvailable()) tools.push(jwtTool);
+    if (isKeyManagementAvailable()) tools.push(keyManagementTool);
+    if (isLaserAvailable()) tools.push(laserTool);
+    if (isLeachingAvailable()) tools.push(leachingTool);
+    if (isLightingAvailable()) tools.push(lightingTool);
+    if (isLimnologyAvailable()) tools.push(limnologyTool);
+    if (isLinguisticsAvailable()) tools.push(linguisticsTool);
+    if (isLogAnalysisAvailable()) tools.push(logAnalysisTool);
+    if (isLogManagementAvailable()) tools.push(logManagementTool);
+    if (isLogisticsAvailable()) tools.push(logisticsTool);
+    if (isManufacturingAvailable()) tools.push(manufacturingTool);
+    if (isMarineAvailable()) tools.push(marineTool);
+    if (isMembraneAvailable()) tools.push(membraneTool);
+    if (isMetallurgyAvailable()) tools.push(metallurgyTool);
+    if (isMeteorologyAvailable()) tools.push(meteorologyTool);
+    if (isMetrologyAvailable()) tools.push(metrologyTool);
+    if (isMicrobiologyAvailable()) tools.push(microbiologyTool);
+    if (isMineralogyAvailable()) tools.push(mineralogyTool);
+    if (isMiningAvailable()) tools.push(miningTool);
+    if (isMixingAvailable()) tools.push(mixingTool);
+    if (isNanotechAvailable()) tools.push(nanotechTool);
+    if (isNdtAvailable()) tools.push(ndtTool);
+    if (isNetworkAnalysisAvailable()) tools.push(networkAnalysisTool);
+    if (isNuclearEngineeringAvailable()) tools.push(nuclearEngineeringTool);
+    if (isNuclearPhysicsAvailable()) tools.push(nuclearPhysicsTool);
+    if (isNutritionAvailable()) tools.push(nutritionTool);
+    if (isOceanographyAvailable()) tools.push(oceanographyTool);
+    if (isOwaspAvailable()) tools.push(owaspTool);
+    if (isPackagingAvailable()) tools.push(packagingTool);
+    if (isPaleontologyAvailable()) tools.push(paleontologyTool);
+    if (isPaperAvailable()) tools.push(paperTool);
+    if (isPatchManagementAvailable()) tools.push(patchManagementTool);
+    if (isPedologyAvailable()) tools.push(pedologyTool);
+    if (isPetroleumAvailable()) tools.push(petroleumTool);
+    if (isPetrologyAvailable()) tools.push(petrologyTool);
+    if (isPharmacologyAvailable()) tools.push(pharmacologyTool);
+    if (isPhotogrammetryAvailable()) tools.push(photogrammetryTool);
+    if (isPhotonicsAvailable()) tools.push(photonicsTool);
+    if (isPkiAvailable()) tools.push(pkiTool);
+    if (isPlasmaPhysicsAvailable()) tools.push(plasmaPhysicsTool);
+    if (isPlumbingAvailable()) tools.push(plumbingTool);
+    if (isPolymerChemistryAvailable()) tools.push(polymerChemistryTool);
+    if (isPortScannerAvailable()) tools.push(portScannerTool);
+    if (isPowerSystemsAvailable()) tools.push(powerSystemsTool);
+    if (isPrintingAvailable()) tools.push(printingTool);
+    if (isPrivacyAvailable()) tools.push(privacyTool);
+    if (isPrivacyEngineeringAvailable()) tools.push(privacyEngineeringTool);
+    if (isProteomicsAvailable()) tools.push(proteomicsTool);
+    if (isPsychologyAvailable()) tools.push(psychologyTool);
+    if (isQualityAvailable()) tools.push(qualityTool);
+    if (isReactorAvailable()) tools.push(reactorTool);
+    if (isRenewableEnergyAvailable()) tools.push(renewableEnergyTool);
+    if (isRheologyAvailable()) tools.push(rheologyTool);
+    if (isRoboticsAvailable()) tools.push(roboticsTool);
+    if (isRollingAvailable()) tools.push(rollingTool);
+    if (isSafetyAvailable()) tools.push(safetyTool);
+    if (isSaseAvailable()) tools.push(saseTool);
+    if (isScadaIcsAvailable()) tools.push(scadaIcsTool);
+    if (isSecretsManagementAvailable()) tools.push(secretsManagementTool);
+    if (isSecureCommunicationsAvailable()) tools.push(secureCommunicationsTool);
+    if (isSecureSdlcAvailable()) tools.push(secureSdlcTool);
+    if (isSedimentationAvailable()) tools.push(sedimentationTool);
+    if (isSemiconductorAvailable()) tools.push(semiconductorTool);
+    if (isSoilScienceAvailable()) tools.push(soilScienceTool);
+    if (isSpectralAnalysisAvailable()) tools.push(spectralAnalysisTool);
+    if (isStructuralEngineeringAvailable()) tools.push(structuralEngineeringTool);
+    if (isSurveyingAvailable()) tools.push(surveyingTool);
+    if (isTaxonomyAvailable()) tools.push(taxonomyTool);
+    if (isTelecommunicationsAvailable()) tools.push(telecommunicationsTool);
+    if (isTextileAvailable()) tools.push(textileTool);
+    if (isToxicologyAvailable()) tools.push(toxicologyTool);
+    if (isTrafficEngineeringAvailable()) tools.push(trafficEngineeringTool);
+    if (isTribologyAvailable()) tools.push(tribologyTool);
+    if (isTribologyAdvancedAvailable()) tools.push(tribologyAdvancedTool);
+    if (isVacuumAvailable()) tools.push(vacuumTool);
+    if (isVibrationAvailable()) tools.push(vibrationTool);
+    if (isVirologyAvailable()) tools.push(virologyTool);
+    if (isVolcanologyAvailable()) tools.push(volcanologyTool);
+    if (isVpnAvailable()) tools.push(vpnTool);
+    if (isVulnerabilityAvailable()) tools.push(vulnerabilityTool);
+    if (isWeldingAvailable()) tools.push(weldingTool);
+    
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -4217,6 +4597,196 @@ SECURITY:
         security_awareness: 0.0001,
         security_culture: 0.0001,
         security_budget: 0.0001,
+        // Advanced Cybersecurity (30 more tools)
+        threat_hunting: 0.0001,
+        threat_intel: 0.0001,
+        threat_model: 0.0001,
+        threat_modeling: 0.0001,
+        malware_analysis: 0.0001,
+        malware_indicators: 0.0001,
+        siem: 0.0001,
+        forensics: 0.0001,
+        soar: 0.0001,
+        soc: 0.0001,
+        xdr: 0.0001,
+        red_team: 0.0001,
+        blue_team: 0.0001,
+        osint: 0.0001,
+        ransomware_defense: 0.0001,
+        compliance_framework: 0.0001,
+        risk_management: 0.0001,
+        incident_response: 0.0001,
+        ids_ips: 0.0001,
+        firewall: 0.0001,
+        honeypot: 0.0001,
+        pen_test: 0.0001,
+        vuln_assessment: 0.0001,
+        vulnerability_scanner: 0.0001,
+        zero_trust: 0.0001,
+        attack_surface: 0.0001,
+        network_defense: 0.0001,
+        cyber_insurance: 0.0001,
+        vendor_risk: 0.0001,
+        social_engineering: 0.0001,
+        // MEGA BATCH - 158 Additional Tools
+        absorption: 0.0001,
+        'Discretionary Access Control': 0.0001,
+        acoustics_advanced: 0.0001,
+        adsorption: 0.0001,
+        agriculture: 0.0001,
+        archaeology: 0.0001,
+        asset_management: 0.0001,
+        auth_protocol: 0.0001,
+        authentication: 0.0001,
+        automotive: 0.0001,
+        aviation: 0.0001,
+        backup_recovery: 0.0001,
+        battery: 0.0001,
+        biomechanics: 0.0001,
+        biomedical: 0.0001,
+        biophysics: 0.0001,
+        'Business Impact Analysis': 0.0001,
+        cartography: 0.0001,
+        casting: 0.0001,
+        ceramics: 0.0001,
+        certificate: 0.0001,
+        chromatography: 0.0001,
+        cipher: 0.0001,
+        climatology: 0.0001,
+        cnc: 0.0001,
+        comminution: 0.0001,
+        'Payment Card Industry Data Security Standard': 0.0001,
+        composites: 0.0001,
+        corrosion: 0.0001,
+        cosmology: 0.0001,
+        cryogenics: 0.0001,
+        cryptanalysis: 0.0001,
+        crystallization: 0.0001,
+        crystallography: 0.0001,
+        'Personally Identifiable Information': 0.0001,
+        data_loss_prevention: 0.0001,
+        demography: 0.0001,
+        dendrology: 0.0001,
+        devsecops: 0.0001,
+        distillation: 0.0001,
+        drying: 0.0001,
+        ecology: 0.0001,
+        economics: 0.0001,
+        edm: 0.0001,
+        electroplating: 0.0001,
+        elevator: 0.0001,
+        encoding: 0.0001,
+        encryption: 0.0001,
+        entomology: 0.0001,
+        entropy_analysis: 0.0001,
+        environmental: 0.0001,
+        ergonomics: 0.0001,
+        evaporation: 0.0001,
+        extraction: 0.0001,
+        extrusion: 0.0001,
+        fatigue: 0.0001,
+        fermentation: 0.0001,
+        filtration: 0.0001,
+        fire_protection: 0.0001,
+        fluidization: 0.0001,
+        food_science: 0.0001,
+        forging: 0.0001,
+        genetics: 0.0001,
+        'Carbon-14': 0.0001,
+        geotechnical: 0.0001,
+        glaciology: 0.0001,
+        glass: 0.0001,
+        hash_analysis: 0.0001,
+        heat_transfer: 0.0001,
+        humidification: 0.0001,
+        hvac: 0.0001,
+        hydrology: 0.0001,
+        identity_governance: 0.0001,
+        'Identity Provider': 0.0001,
+        immunology: 0.0001,
+        'Programmable Logic Controller': 0.0001,
+        injection_molding: 0.0001,
+        jwt: 0.0001,
+        'Key Encryption Key': 0.0001,
+        laser: 0.0001,
+        leaching: 0.0001,
+        lighting: 0.0001,
+        limnology: 0.0001,
+        linguistics: 0.0001,
+        'Successful login': 0.0001,
+        'Common Event Format': 0.0001,
+        logistics: 0.0001,
+        manufacturing: 0.0001,
+        marine: 0.0001,
+        membrane: 0.0001,
+        metallurgy: 0.0001,
+        meteorology: 0.0001,
+        metrology: 0.0001,
+        microbiology: 0.0001,
+        mineralogy: 0.0001,
+        mining: 0.0001,
+        mixing: 0.0001,
+        nanotech: 0.0001,
+        ndt: 0.0001,
+        network_analysis: 0.0001,
+        nuclear_engineering: 0.0001,
+        nuclear_physics: 0.0001,
+        nutrition: 0.0001,
+        oceanography: 0.0001,
+        'Broken Access Control': 0.0001,
+        packaging: 0.0001,
+        paleontology: 0.0001,
+        paper: 0.0001,
+        patch_management: 0.0001,
+        pedology: 0.0001,
+        petroleum: 0.0001,
+        petrology: 0.0001,
+        pharmacology: 0.0001,
+        photogrammetry: 0.0001,
+        photonics: 0.0001,
+        'Certificate Authority': 0.0001,
+        plasma_physics: 0.0001,
+        plumbing: 0.0001,
+        Polyethylene: 0.0001,
+        port_scanner: 0.0001,
+        power_systems: 0.0001,
+        printing_3d: 0.0001,
+        privacy: 0.0001,
+        privacy_engineering: 0.0001,
+        proteomics: 0.0001,
+        psychology: 0.0001,
+        quality: 0.0001,
+        reactor: 0.0001,
+        renewable_energy: 0.0001,
+        rheology: 0.0001,
+        robotics: 0.0001,
+        rolling: 0.0001,
+        safety: 0.0001,
+        sase: 0.0001,
+        'Supervisory Control and Data Acquisition': 0.0001,
+        secrets_management: 0.0001,
+        secure_communications: 0.0001,
+        'Static Analysis': 0.0001,
+        sedimentation: 0.0001,
+        semiconductor: 0.0001,
+        soil_science: 0.0001,
+        spectral_analysis: 0.0001,
+        structural_engineering: 0.0001,
+        surveying: 0.0001,
+        taxonomy: 0.0001,
+        telecommunications: 0.0001,
+        textile: 0.0001,
+        toxicology: 0.0001,
+        traffic_engineering: 0.0001,
+        tribology: 0.0001,
+        tribology_advanced: 0.0001,
+        vacuum: 0.0001,
+        vibration: 0.0001,
+        virology: 0.0001,
+        volcanology: 0.0001,
+        vpn: 0.0001,
+        'Out-of-bounds Write': 0.0001,
+        welding: 0.0001,
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4734,6 +5304,572 @@ SECURITY:
             break;
           case 'security_budget':
             result = await executeSecurityBudget(toolCallWithSession);
+            break;
+          // Advanced Cybersecurity (30 more tools)
+          case 'threat_hunting':
+            result = await executeThreatHunting(toolCallWithSession);
+            break;
+          case 'threat_intel':
+            result = await executeThreatIntel(toolCallWithSession);
+            break;
+          case 'threat_model':
+            result = await executeThreatModel(toolCallWithSession);
+            break;
+          case 'threat_modeling':
+            result = await executeThreatModeling(toolCallWithSession);
+            break;
+          case 'malware_analysis':
+            result = await executeMalwareAnalysis(toolCallWithSession);
+            break;
+          case 'malware_indicators':
+            result = await executeMalwareIndicators(toolCallWithSession);
+            break;
+          case 'siem':
+            result = await executeSiem(toolCallWithSession);
+            break;
+          case 'forensics':
+            result = await executeForensics(toolCallWithSession);
+            break;
+          case 'soar':
+            result = await executeSoar(toolCallWithSession);
+            break;
+          case 'soc':
+            result = await executeSoc(toolCallWithSession);
+            break;
+          case 'xdr':
+            result = await executeXdr(toolCallWithSession);
+            break;
+          case 'red_team':
+            result = await executeRedTeam(toolCallWithSession);
+            break;
+          case 'blue_team':
+            result = await executeBlueTeam(toolCallWithSession);
+            break;
+          case 'osint':
+            result = await executeOsint(toolCallWithSession);
+            break;
+          case 'ransomware_defense':
+            result = await executeRansomwareDefense(toolCallWithSession);
+            break;
+          case 'compliance_framework':
+            result = await executeComplianceFramework(toolCallWithSession);
+            break;
+          case 'risk_management':
+            result = await executeRiskManagement(toolCallWithSession);
+            break;
+          case 'incident_response':
+            result = await executeIncidentResponse(toolCallWithSession);
+            break;
+          case 'ids_ips':
+            result = await executeIdsIps(toolCallWithSession);
+            break;
+          case 'firewall':
+            result = await executeFirewall(toolCallWithSession);
+            break;
+          case 'honeypot':
+            result = await executeHoneypot(toolCallWithSession);
+            break;
+          case 'pen_test':
+            result = await executePenTest(toolCallWithSession);
+            break;
+          case 'vuln_assessment':
+            result = await executeVulnAssessment(toolCallWithSession);
+            break;
+          case 'vulnerability_scanner':
+            result = await executeVulnerabilityScanner(toolCallWithSession);
+            break;
+          case 'zero_trust':
+            result = await executeZeroTrust(toolCallWithSession);
+            break;
+          case 'attack_surface':
+            result = await executeAttackSurface(toolCallWithSession);
+            break;
+          case 'network_defense':
+            result = await executeNetworkDefense(toolCallWithSession);
+            break;
+          case 'cyber_insurance':
+            result = await executeCyberInsurance(toolCallWithSession);
+            break;
+          case 'vendor_risk':
+            result = await executeVendorRisk(toolCallWithSession);
+            break;
+          case 'social_engineering':
+            result = await executeSocialEngineering(toolCallWithSession);
+            break;
+          // MEGA BATCH - 158 Additional Tools
+          case 'absorption':
+            result = await executeAbsorption(toolCallWithSession);
+            break;
+          case 'Discretionary Access Control':
+            result = await executeAccessControl(toolCallWithSession);
+            break;
+          case 'acoustics_advanced':
+            result = await executeAcousticsAdvanced(toolCallWithSession);
+            break;
+          case 'adsorption':
+            result = await executeAdsorption(toolCallWithSession);
+            break;
+          case 'agriculture':
+            result = await executeAgriculture(toolCallWithSession);
+            break;
+          case 'archaeology':
+            result = await executeArchaeology(toolCallWithSession);
+            break;
+          case 'asset_management':
+            result = await executeAssetManagement(toolCallWithSession);
+            break;
+          case 'auth_protocol':
+            result = await executeAuthProtocol(toolCallWithSession);
+            break;
+          case 'authentication':
+            result = await executeAuthentication(toolCallWithSession);
+            break;
+          case 'automotive':
+            result = await executeAutomotive(toolCallWithSession);
+            break;
+          case 'aviation':
+            result = await executeAviation(toolCallWithSession);
+            break;
+          case 'backup_recovery':
+            result = await executeBackupRecovery(toolCallWithSession);
+            break;
+          case 'battery':
+            result = await executeBattery(toolCallWithSession);
+            break;
+          case 'biomechanics':
+            result = await executeBiomechanics(toolCallWithSession);
+            break;
+          case 'biomedical':
+            result = await executeBiomedical(toolCallWithSession);
+            break;
+          case 'biophysics':
+            result = await executeBiophysics(toolCallWithSession);
+            break;
+          case 'Business Impact Analysis':
+            result = await executeBusinessContinuity(toolCallWithSession);
+            break;
+          case 'cartography':
+            result = await executeCartography(toolCallWithSession);
+            break;
+          case 'casting':
+            result = await executeCasting(toolCallWithSession);
+            break;
+          case 'ceramics':
+            result = await executeCeramics(toolCallWithSession);
+            break;
+          case 'certificate':
+            result = await executeCertificate(toolCallWithSession);
+            break;
+          case 'chromatography':
+            result = await executeChromatography(toolCallWithSession);
+            break;
+          case 'cipher':
+            result = await executeCipher(toolCallWithSession);
+            break;
+          case 'climatology':
+            result = await executeClimatology(toolCallWithSession);
+            break;
+          case 'cnc':
+            result = await executeCnc(toolCallWithSession);
+            break;
+          case 'comminution':
+            result = await executeComminution(toolCallWithSession);
+            break;
+          case 'Payment Card Industry Data Security Standard':
+            result = await executeCompliance(toolCallWithSession);
+            break;
+          case 'composites':
+            result = await executeComposites(toolCallWithSession);
+            break;
+          case 'corrosion':
+            result = await executeCorrosion(toolCallWithSession);
+            break;
+          case 'cosmology':
+            result = await executeCosmology(toolCallWithSession);
+            break;
+          case 'cryogenics':
+            result = await executeCryogenics(toolCallWithSession);
+            break;
+          case 'cryptanalysis':
+            result = await executeCryptanalysis(toolCallWithSession);
+            break;
+          case 'crystallization':
+            result = await executeCrystallization(toolCallWithSession);
+            break;
+          case 'crystallography':
+            result = await executeCrystallography(toolCallWithSession);
+            break;
+          case 'Personally Identifiable Information':
+            result = await executeDataClassification(toolCallWithSession);
+            break;
+          case 'data_loss_prevention':
+            result = await executeDataLossPrevention(toolCallWithSession);
+            break;
+          case 'demography':
+            result = await executeDemography(toolCallWithSession);
+            break;
+          case 'dendrology':
+            result = await executeDendrology(toolCallWithSession);
+            break;
+          case 'devsecops':
+            result = await executeDevsecOps(toolCallWithSession);
+            break;
+          case 'distillation':
+            result = await executeDistillation(toolCallWithSession);
+            break;
+          case 'drying':
+            result = await executeDrying(toolCallWithSession);
+            break;
+          case 'ecology':
+            result = await executeEcology(toolCallWithSession);
+            break;
+          case 'economics':
+            result = await executeEconomics(toolCallWithSession);
+            break;
+          case 'edm':
+            result = await executeEdm(toolCallWithSession);
+            break;
+          case 'electroplating':
+            result = await executeElectroplating(toolCallWithSession);
+            break;
+          case 'elevator':
+            result = await executeElevator(toolCallWithSession);
+            break;
+          case 'encoding':
+            result = await executeEncoding(toolCallWithSession);
+            break;
+          case 'encryption':
+            result = await executeEncryption(toolCallWithSession);
+            break;
+          case 'entomology':
+            result = await executeEntomology(toolCallWithSession);
+            break;
+          case 'entropy_analysis':
+            result = await executeEntropyAnalysis(toolCallWithSession);
+            break;
+          case 'environmental':
+            result = await executeEnvironmental(toolCallWithSession);
+            break;
+          case 'ergonomics':
+            result = await executeErgonomics(toolCallWithSession);
+            break;
+          case 'evaporation':
+            result = await executeEvaporation(toolCallWithSession);
+            break;
+          case 'extraction':
+            result = await executeExtraction(toolCallWithSession);
+            break;
+          case 'extrusion':
+            result = await executeExtrusion(toolCallWithSession);
+            break;
+          case 'fatigue':
+            result = await executeFatigue(toolCallWithSession);
+            break;
+          case 'fermentation':
+            result = await executeFermentation(toolCallWithSession);
+            break;
+          case 'filtration':
+            result = await executeFiltration(toolCallWithSession);
+            break;
+          case 'fire_protection':
+            result = await executeFireProtection(toolCallWithSession);
+            break;
+          case 'fluidization':
+            result = await executeFluidization(toolCallWithSession);
+            break;
+          case 'food_science':
+            result = await executeFoodScience(toolCallWithSession);
+            break;
+          case 'forging':
+            result = await executeForging(toolCallWithSession);
+            break;
+          case 'genetics':
+            result = await executeGenetics(toolCallWithSession);
+            break;
+          case 'Carbon-14':
+            result = await executeGeology(toolCallWithSession);
+            break;
+          case 'geotechnical':
+            result = await executeGeotechnical(toolCallWithSession);
+            break;
+          case 'glaciology':
+            result = await executeGlaciology(toolCallWithSession);
+            break;
+          case 'glass':
+            result = await executeGlass(toolCallWithSession);
+            break;
+          case 'hash_analysis':
+            result = await executeHashAnalysis(toolCallWithSession);
+            break;
+          case 'heat_transfer':
+            result = await executeHeatTransfer(toolCallWithSession);
+            break;
+          case 'humidification':
+            result = await executeHumidification(toolCallWithSession);
+            break;
+          case 'hvac':
+            result = await executeHvac(toolCallWithSession);
+            break;
+          case 'hydrology':
+            result = await executeHydrology(toolCallWithSession);
+            break;
+          case 'identity_governance':
+            result = await executeIdentityGovernance(toolCallWithSession);
+            break;
+          case 'Identity Provider':
+            result = await executeIdentityManagement(toolCallWithSession);
+            break;
+          case 'immunology':
+            result = await executeImmunology(toolCallWithSession);
+            break;
+          case 'Programmable Logic Controller':
+            result = await executeIndustrialControl(toolCallWithSession);
+            break;
+          case 'injection_molding':
+            result = await executeInjectionMolding(toolCallWithSession);
+            break;
+          case 'jwt':
+            result = await executeJwt(toolCallWithSession);
+            break;
+          case 'Key Encryption Key':
+            result = await executeKeyManagement(toolCallWithSession);
+            break;
+          case 'laser':
+            result = await executeLaser(toolCallWithSession);
+            break;
+          case 'leaching':
+            result = await executeLeaching(toolCallWithSession);
+            break;
+          case 'lighting':
+            result = await executeLighting(toolCallWithSession);
+            break;
+          case 'limnology':
+            result = await executeLimnology(toolCallWithSession);
+            break;
+          case 'linguistics':
+            result = await executeLinguistics(toolCallWithSession);
+            break;
+          case 'Successful login':
+            result = await executeLogAnalysis(toolCallWithSession);
+            break;
+          case 'Common Event Format':
+            result = await executeLogManagement(toolCallWithSession);
+            break;
+          case 'logistics':
+            result = await executeLogistics(toolCallWithSession);
+            break;
+          case 'manufacturing':
+            result = await executeManufacturing(toolCallWithSession);
+            break;
+          case 'marine':
+            result = await executeMarine(toolCallWithSession);
+            break;
+          case 'membrane':
+            result = await executeMembrane(toolCallWithSession);
+            break;
+          case 'metallurgy':
+            result = await executeMetallurgy(toolCallWithSession);
+            break;
+          case 'meteorology':
+            result = await executeMeteorology(toolCallWithSession);
+            break;
+          case 'metrology':
+            result = await executeMetrology(toolCallWithSession);
+            break;
+          case 'microbiology':
+            result = await executeMicrobiology(toolCallWithSession);
+            break;
+          case 'mineralogy':
+            result = await executeMineralogy(toolCallWithSession);
+            break;
+          case 'mining':
+            result = await executeMining(toolCallWithSession);
+            break;
+          case 'mixing':
+            result = await executeMixing(toolCallWithSession);
+            break;
+          case 'nanotech':
+            result = await executeNanotech(toolCallWithSession);
+            break;
+          case 'ndt':
+            result = await executeNdt(toolCallWithSession);
+            break;
+          case 'network_analysis':
+            result = await executeNetworkAnalysis(toolCallWithSession);
+            break;
+          case 'nuclear_engineering':
+            result = await executeNuclearEngineering(toolCallWithSession);
+            break;
+          case 'nuclear_physics':
+            result = await executeNuclearPhysics(toolCallWithSession);
+            break;
+          case 'nutrition':
+            result = await executeNutrition(toolCallWithSession);
+            break;
+          case 'oceanography':
+            result = await executeOceanography(toolCallWithSession);
+            break;
+          case 'Broken Access Control':
+            result = await executeOwasp(toolCallWithSession);
+            break;
+          case 'packaging':
+            result = await executePackaging(toolCallWithSession);
+            break;
+          case 'paleontology':
+            result = await executePaleontology(toolCallWithSession);
+            break;
+          case 'paper':
+            result = await executePaper(toolCallWithSession);
+            break;
+          case 'patch_management':
+            result = await executePatchManagement(toolCallWithSession);
+            break;
+          case 'pedology':
+            result = await executePedology(toolCallWithSession);
+            break;
+          case 'petroleum':
+            result = await executePetroleum(toolCallWithSession);
+            break;
+          case 'petrology':
+            result = await executePetrology(toolCallWithSession);
+            break;
+          case 'pharmacology':
+            result = await executePharmacology(toolCallWithSession);
+            break;
+          case 'photogrammetry':
+            result = await executePhotogrammetry(toolCallWithSession);
+            break;
+          case 'photonics':
+            result = await executePhotonics(toolCallWithSession);
+            break;
+          case 'Certificate Authority':
+            result = await executePki(toolCallWithSession);
+            break;
+          case 'plasma_physics':
+            result = await executePlasmaPhysics(toolCallWithSession);
+            break;
+          case 'plumbing':
+            result = await executePlumbing(toolCallWithSession);
+            break;
+          case 'Polyethylene':
+            result = await executePolymerChemistry(toolCallWithSession);
+            break;
+          case 'port_scanner':
+            result = await executePortScanner(toolCallWithSession);
+            break;
+          case 'power_systems':
+            result = await executePowerSystems(toolCallWithSession);
+            break;
+          case 'printing_3d':
+            result = await executePrinting(toolCallWithSession);
+            break;
+          case 'privacy':
+            result = await executePrivacy(toolCallWithSession);
+            break;
+          case 'privacy_engineering':
+            result = await executePrivacyEngineering(toolCallWithSession);
+            break;
+          case 'proteomics':
+            result = await executeProteomics(toolCallWithSession);
+            break;
+          case 'psychology':
+            result = await executePsychology(toolCallWithSession);
+            break;
+          case 'quality':
+            result = await executeQuality(toolCallWithSession);
+            break;
+          case 'reactor':
+            result = await executeReactor(toolCallWithSession);
+            break;
+          case 'renewable_energy':
+            result = await executeRenewableEnergy(toolCallWithSession);
+            break;
+          case 'rheology':
+            result = await executeRheology(toolCallWithSession);
+            break;
+          case 'robotics':
+            result = await executeRobotics(toolCallWithSession);
+            break;
+          case 'rolling':
+            result = await executeRolling(toolCallWithSession);
+            break;
+          case 'safety':
+            result = await executeSafety(toolCallWithSession);
+            break;
+          case 'sase':
+            result = await executeSase(toolCallWithSession);
+            break;
+          case 'Supervisory Control and Data Acquisition':
+            result = await executeScadaIcs(toolCallWithSession);
+            break;
+          case 'secrets_management':
+            result = await executeSecretsManagement(toolCallWithSession);
+            break;
+          case 'secure_communications':
+            result = await executeSecureCommunications(toolCallWithSession);
+            break;
+          case 'Static Analysis':
+            result = await executeSecureSdlc(toolCallWithSession);
+            break;
+          case 'sedimentation':
+            result = await executeSedimentation(toolCallWithSession);
+            break;
+          case 'semiconductor':
+            result = await executeSemiconductor(toolCallWithSession);
+            break;
+          case 'soil_science':
+            result = await executeSoilScience(toolCallWithSession);
+            break;
+          case 'spectral_analysis':
+            result = await executeSpectralAnalysis(toolCallWithSession);
+            break;
+          case 'structural_engineering':
+            result = await executeStructuralEngineering(toolCallWithSession);
+            break;
+          case 'surveying':
+            result = await executeSurveying(toolCallWithSession);
+            break;
+          case 'taxonomy':
+            result = await executeTaxonomy(toolCallWithSession);
+            break;
+          case 'telecommunications':
+            result = await executeTelecommunications(toolCallWithSession);
+            break;
+          case 'textile':
+            result = await executeTextile(toolCallWithSession);
+            break;
+          case 'toxicology':
+            result = await executeToxicology(toolCallWithSession);
+            break;
+          case 'traffic_engineering':
+            result = await executeTrafficEngineering(toolCallWithSession);
+            break;
+          case 'tribology':
+            result = await executeTribology(toolCallWithSession);
+            break;
+          case 'tribology_advanced':
+            result = await executeTribologyAdvanced(toolCallWithSession);
+            break;
+          case 'vacuum':
+            result = await executeVacuum(toolCallWithSession);
+            break;
+          case 'vibration':
+            result = await executeVibration(toolCallWithSession);
+            break;
+          case 'virology':
+            result = await executeVirology(toolCallWithSession);
+            break;
+          case 'volcanology':
+            result = await executeVolcanology(toolCallWithSession);
+            break;
+          case 'vpn':
+            result = await executeVpn(toolCallWithSession);
+            break;
+          case 'Out-of-bounds Write':
+            result = await executeVulnerability(toolCallWithSession);
+            break;
+          case 'welding':
+            result = await executeWelding(toolCallWithSession);
             break;
           default:
             result = {

@@ -1280,6 +1280,200 @@ export {
   isSecurityBudgetAvailable,
 } from './security-budget-tool';
 
+// Advanced Cybersecurity (30 more tools)
+export { threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable } from './threat-hunting-tool';
+export { threatIntelTool, executeThreatIntel, isThreatIntelAvailable } from './threat-intel-tool';
+export { threatModelTool, executeThreatModel, isThreatModelAvailable } from './threat-model-tool';
+export { threatModelingTool, executeThreatModeling, isThreatModelingAvailable } from './threat-modeling-tool';
+export { malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable } from './malware-analysis-tool';
+export { malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable } from './malware-indicators-tool';
+export { siemTool, executeSiem, isSiemAvailable } from './siem-tool';
+export { forensicsTool, executeForensics, isForensicsAvailable } from './forensics-tool';
+export { soarTool, executeSoar, isSoarAvailable } from './soar-tool';
+export { socTool, executeSoc, isSocAvailable } from './soc-tool';
+export { xdrTool, executeXdr, isXdrAvailable } from './xdr-tool';
+export { redTeamTool, executeRedTeam, isRedTeamAvailable } from './red-team-tool';
+export { blueTeamTool, executeBlueTeam, isBlueTeamAvailable } from './blue-team-tool';
+export { osintTool, executeOsint, isOsintAvailable } from './osint-tool';
+export { ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable } from './ransomware-defense-tool';
+export { complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable } from './compliance-framework-tool';
+export { riskManagementTool, executeRiskManagement, isRiskManagementAvailable } from './risk-management-tool';
+export { incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable } from './incident-response-tool';
+export { idsIpsTool, executeIdsIps, isIdsIpsAvailable } from './ids-ips-tool';
+export { firewallTool, executeFirewall, isFirewallAvailable } from './firewall-tool';
+export { honeypotTool, executeHoneypot, isHoneypotAvailable } from './honeypot-tool';
+export { penTestTool, executePenTest, isPenTestAvailable } from './pen-test-tool';
+export { vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable } from './vuln-assessment-tool';
+export { vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable } from './vulnerability-scanner-tool';
+export { zeroTrustTool, executeZeroTrust, isZeroTrustAvailable } from './zero-trust-tool';
+export { attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable } from './attack-surface-tool';
+export { networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable } from './network-defense-tool';
+export { cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable } from './cyber-insurance-tool';
+export { vendorRiskTool, executeVendorRisk, isVendorRiskAvailable } from './vendor-risk-tool';
+export { socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable } from './social-engineering-tool';
+
+// ============================================================================
+// MEGA BATCH - 158 Additional Engineering/Science/Manufacturing Tools
+// ============================================================================
+export { absorptionTool, executeAbsorption, isAbsorptionAvailable } from './absorption-tool';
+export { accessControlTool, executeAccessControl, isAccessControlAvailable } from './access-control-tool';
+export { acousticsAdvancedTool, executeAcousticsAdvanced, isAcousticsAdvancedAvailable } from './acoustics-advanced-tool';
+export { adsorptionTool, executeAdsorption, isAdsorptionAvailable } from './adsorption-tool';
+export { agricultureTool, executeAgriculture, isAgricultureAvailable } from './agriculture-tool';
+export { archaeologyTool, executeArchaeology, isArchaeologyAvailable } from './archaeology-tool';
+export { assetManagementTool, executeAssetManagement, isAssetManagementAvailable } from './asset-management-tool';
+export { authProtocolTool, executeAuthProtocol, isAuthProtocolAvailable } from './auth-protocol-tool';
+export { authenticationTool, executeAuthentication, isAuthenticationAvailable } from './authentication-tool';
+export { automotiveTool, executeAutomotive, isAutomotiveAvailable } from './automotive-tool';
+export { aviationTool, executeAviation, isAviationAvailable } from './aviation-tool';
+export { backupRecoveryTool, executeBackupRecovery, isBackupRecoveryAvailable } from './backup-recovery-tool';
+export { batteryTool, executeBattery, isBatteryAvailable } from './battery-tool';
+export { biomechanicsTool, executeBiomechanics, isBiomechanicsAvailable } from './biomechanics-tool';
+export { biomedicalTool, executeBiomedical, isBiomedicalAvailable } from './biomedical-tool';
+export { biophysicsTool, executeBiophysics, isBiophysicsAvailable } from './biophysics-tool';
+export { businessContinuityTool, executeBusinessContinuity, isBusinessContinuityAvailable } from './business-continuity-tool';
+export { cartographyTool, executeCartography, isCartographyAvailable } from './cartography-tool';
+export { castingTool, executeCasting, isCastingAvailable } from './casting-tool';
+export { ceramicsTool, executeCeramics, isCeramicsAvailable } from './ceramics-tool';
+export { certificateTool, executeCertificate, isCertificateAvailable } from './certificate-tool';
+export { chromatographyTool, executeChromatography, isChromatographyAvailable } from './chromatography-tool';
+export { cipherTool, executeCipher, isCipherAvailable } from './cipher-tool';
+export { climatologyTool, executeClimatology, isClimatologyAvailable } from './climatology-tool';
+export { cncTool, executeCnc, isCncAvailable } from './cnc-tool';
+export { comminutionTool, executeComminution, isComminutionAvailable } from './comminution-tool';
+export { complianceTool, executeCompliance, isComplianceAvailable } from './compliance-tool';
+export { compositesTool, executeComposites, isCompositesAvailable } from './composites-tool';
+export { corrosionTool, executeCorrosion, isCorrosionAvailable } from './corrosion-tool';
+export { cosmologyTool, executeCosmology, isCosmologyAvailable } from './cosmology-tool';
+export { cryogenicsTool, executeCryogenics, isCryogenicsAvailable } from './cryogenics-tool';
+export { cryptanalysisTool, executeCryptanalysis, isCryptanalysisAvailable } from './cryptanalysis-tool';
+export { crystallizationTool, executeCrystallization, isCrystallizationAvailable } from './crystallization-tool';
+export { crystallographyTool, executeCrystallography, isCrystallographyAvailable } from './crystallography-tool';
+export { dataClassificationTool, executeDataClassification, isDataClassificationAvailable } from './data-classification-tool';
+export { dataLossPreventionTool, executeDataLossPrevention, isDataLossPreventionAvailable } from './data-loss-prevention-tool';
+export { demographyTool, executeDemography, isDemographyAvailable } from './demography-tool';
+export { dendrologyTool, executeDendrology, isDendrologyAvailable } from './dendrology-tool';
+export { devsecOpsTool, executeDevsecOps, isDevsecOpsAvailable } from './devsecops-tool';
+export { distillationTool, executeDistillation, isDistillationAvailable } from './distillation-tool';
+export { dryingTool, executeDrying, isDryingAvailable } from './drying-tool';
+export { ecologyTool, executeEcology, isEcologyAvailable } from './ecology-tool';
+export { economicsTool, executeEconomics, isEconomicsAvailable } from './economics-tool';
+export { edmTool, executeEdm, isEdmAvailable } from './edm-tool';
+export { electroplatingTool, executeElectroplating, isElectroplatingAvailable } from './electroplating-tool';
+export { elevatorTool, executeElevator, isElevatorAvailable } from './elevator-tool';
+export { encodingTool, executeEncoding, isEncodingAvailable } from './encoding-tool';
+export { encryptionTool, executeEncryption, isEncryptionAvailable } from './encryption-tool';
+export { entomologyTool, executeEntomology, isEntomologyAvailable } from './entomology-tool';
+export { entropyAnalysisTool, executeEntropyAnalysis, isEntropyAnalysisAvailable } from './entropy-analysis-tool';
+export { environmentalTool, executeEnvironmental, isEnvironmentalAvailable } from './environmental-tool';
+export { ergonomicsTool, executeErgonomics, isErgonomicsAvailable } from './ergonomics-tool';
+export { evaporationTool, executeEvaporation, isEvaporationAvailable } from './evaporation-tool';
+export { extractionTool, executeExtraction, isExtractionAvailable } from './extraction-tool';
+export { extrusionTool, executeExtrusion, isExtrusionAvailable } from './extrusion-tool';
+export { fatigueTool, executeFatigue, isFatigueAvailable } from './fatigue-tool';
+export { fermentationTool, executeFermentation, isFermentationAvailable } from './fermentation-tool';
+export { filtrationTool, executeFiltration, isFiltrationAvailable } from './filtration-tool';
+export { fireProtectionTool, executeFireProtection, isFireProtectionAvailable } from './fire-protection-tool';
+export { fluidizationTool, executeFluidization, isFluidizationAvailable } from './fluidization-tool';
+export { foodScienceTool, executeFoodScience, isFoodScienceAvailable } from './food-science-tool';
+export { forgingTool, executeForging, isForgingAvailable } from './forging-tool';
+export { geneticsTool, executeGenetics, isGeneticsAvailable } from './genetics-tool';
+export { geologyTool, executeGeology, isGeologyAvailable } from './geology-tool';
+export { geotechnicalTool, executeGeotechnical, isGeotechnicalAvailable } from './geotechnical-tool';
+export { glaciologyTool, executeGlaciology, isGlaciologyAvailable } from './glaciology-tool';
+export { glassTool, executeGlass, isGlassAvailable } from './glass-tool';
+export { hashAnalysisTool, executeHashAnalysis, isHashAnalysisAvailable } from './hash-analysis-tool';
+export { heatTransferTool, executeHeatTransfer, isHeatTransferAvailable } from './heat-transfer-tool';
+export { humidificationTool, executeHumidification, isHumidificationAvailable } from './humidification-tool';
+export { hvacTool, executeHvac, isHvacAvailable } from './hvac-tool';
+export { hydrologyTool, executeHydrology, isHydrologyAvailable } from './hydrology-tool';
+export { identityGovernanceTool, executeIdentityGovernance, isIdentityGovernanceAvailable } from './identity-governance-tool';
+export { identityManagementTool, executeIdentityManagement, isIdentityManagementAvailable } from './identity-management-tool';
+export { immunologyTool, executeImmunology, isImmunologyAvailable } from './immunology-tool';
+export { industrialControlTool, executeIndustrialControl, isIndustrialControlAvailable } from './industrial-control-tool';
+export { injectionMoldingTool, executeInjectionMolding, isInjectionMoldingAvailable } from './injection-molding-tool';
+export { jwtTool, executeJwt, isJwtAvailable } from './jwt-tool';
+export { keyManagementTool, executeKeyManagement, isKeyManagementAvailable } from './key-management-tool';
+export { laserTool, executeLaser, isLaserAvailable } from './laser-tool';
+export { leachingTool, executeLeaching, isLeachingAvailable } from './leaching-tool';
+export { lightingTool, executeLighting, isLightingAvailable } from './lighting-tool';
+export { limnologyTool, executeLimnology, isLimnologyAvailable } from './limnology-tool';
+export { linguisticsTool, executeLinguistics, isLinguisticsAvailable } from './linguistics-tool';
+export { logAnalysisTool, executeLogAnalysis, isLogAnalysisAvailable } from './log-analysis-tool';
+export { logManagementTool, executeLogManagement, isLogManagementAvailable } from './log-management-tool';
+export { logisticsTool, executeLogistics, isLogisticsAvailable } from './logistics-tool';
+export { manufacturingTool, executeManufacturing, isManufacturingAvailable } from './manufacturing-tool';
+export { marineTool, executeMarine, isMarineAvailable } from './marine-tool';
+export { membraneTool, executeMembrane, isMembraneAvailable } from './membrane-tool';
+export { metallurgyTool, executeMetallurgy, isMetallurgyAvailable } from './metallurgy-tool';
+export { meteorologyTool, executeMeteorology, isMeteorologyAvailable } from './meteorology-tool';
+export { metrologyTool, executeMetrology, isMetrologyAvailable } from './metrology-tool';
+export { microbiologyTool, executeMicrobiology, isMicrobiologyAvailable } from './microbiology-tool';
+export { mineralogyTool, executeMineralogy, isMineralogyAvailable } from './mineralogy-tool';
+export { miningTool, executeMining, isMiningAvailable } from './mining-tool';
+export { mixingTool, executeMixing, isMixingAvailable } from './mixing-tool';
+export { nanotechTool, executeNanotech, isNanotechAvailable } from './nanotech-tool';
+export { ndtTool, executeNdt, isNdtAvailable } from './ndt-tool';
+export { networkAnalysisTool, executeNetworkAnalysis, isNetworkAnalysisAvailable } from './network-analysis-tool';
+export { nuclearEngineeringTool, executeNuclearEngineering, isNuclearEngineeringAvailable } from './nuclear-engineering-tool';
+export { nuclearPhysicsTool, executeNuclearPhysics, isNuclearPhysicsAvailable } from './nuclear-physics-tool';
+export { nutritionTool, executeNutrition, isNutritionAvailable } from './nutrition-tool';
+export { oceanographyTool, executeOceanography, isOceanographyAvailable } from './oceanography-tool';
+export { owaspTool, executeOwasp, isOwaspAvailable } from './owasp-tool';
+export { packagingTool, executePackaging, isPackagingAvailable } from './packaging-tool';
+export { paleontologyTool, executePaleontology, isPaleontologyAvailable } from './paleontology-tool';
+export { paperTool, executePaper, isPaperAvailable } from './paper-tool';
+export { patchManagementTool, executePatchManagement, isPatchManagementAvailable } from './patch-management-tool';
+export { pedologyTool, executePedology, isPedologyAvailable } from './pedology-tool';
+export { petroleumTool, executePetroleum, isPetroleumAvailable } from './petroleum-tool';
+export { petrologyTool, executePetrology, isPetrologyAvailable } from './petrology-tool';
+export { pharmacologyTool, executePharmacology, isPharmacologyAvailable } from './pharmacology-tool';
+export { photogrammetryTool, executePhotogrammetry, isPhotogrammetryAvailable } from './photogrammetry-tool';
+export { photonicsTool, executePhotonics, isPhotonicsAvailable } from './photonics-tool';
+export { pkiTool, executePki, isPkiAvailable } from './pki-tool';
+export { plasmaPhysicsTool, executePlasmaPhysics, isPlasmaPhysicsAvailable } from './plasma-physics-tool';
+export { plumbingTool, executePlumbing, isPlumbingAvailable } from './plumbing-tool';
+export { polymerChemistryTool, executePolymerChemistry, isPolymerChemistryAvailable } from './polymer-chemistry-tool';
+export { portScannerTool, executePortScanner, isPortScannerAvailable } from './port-scanner-tool';
+export { powerSystemsTool, executePowerSystems, isPowerSystemsAvailable } from './power-systems-tool';
+export { printingTool, executePrinting, isPrintingAvailable } from './printing-tool';
+export { privacyTool, executePrivacy, isPrivacyAvailable } from './privacy-tool';
+export { privacyEngineeringTool, executePrivacyEngineering, isPrivacyEngineeringAvailable } from './privacy-engineering-tool';
+export { proteomicsTool, executeProteomics, isProteomicsAvailable } from './proteomics-tool';
+export { psychologyTool, executePsychology, isPsychologyAvailable } from './psychology-tool';
+export { qualityTool, executeQuality, isQualityAvailable } from './quality-tool';
+export { reactorTool, executeReactor, isReactorAvailable } from './reactor-tool';
+export { renewableEnergyTool, executeRenewableEnergy, isRenewableEnergyAvailable } from './renewable-energy-tool';
+export { rheologyTool, executeRheology, isRheologyAvailable } from './rheology-tool';
+export { roboticsTool, executeRobotics, isRoboticsAvailable } from './robotics-tool';
+export { rollingTool, executeRolling, isRollingAvailable } from './rolling-tool';
+export { safetyTool, executeSafety, isSafetyAvailable } from './safety-tool';
+export { saseTool, executeSase, isSaseAvailable } from './sase-tool';
+export { scadaIcsTool, executeScadaIcs, isScadaIcsAvailable } from './scada-ics-tool';
+export { secretsManagementTool, executeSecretsManagement, isSecretsManagementAvailable } from './secrets-management-tool';
+export { secureCommunicationsTool, executeSecureCommunications, isSecureCommunicationsAvailable } from './secure-communications-tool';
+export { secureSdlcTool, executeSecureSdlc, isSecureSdlcAvailable } from './secure-sdlc-tool';
+export { sedimentationTool, executeSedimentation, isSedimentationAvailable } from './sedimentation-tool';
+export { semiconductorTool, executeSemiconductor, isSemiconductorAvailable } from './semiconductor-tool';
+export { soilScienceTool, executeSoilScience, isSoilScienceAvailable } from './soil-science-tool';
+export { spectralAnalysisTool, executeSpectralAnalysis, isSpectralAnalysisAvailable } from './spectral-analysis-tool';
+export { structuralEngineeringTool, executeStructuralEngineering, isStructuralEngineeringAvailable } from './structural-engineering-tool';
+export { surveyingTool, executeSurveying, isSurveyingAvailable } from './surveying-tool';
+export { taxonomyTool, executeTaxonomy, isTaxonomyAvailable } from './taxonomy-tool';
+export { telecommunicationsTool, executeTelecommunications, isTelecommunicationsAvailable } from './telecommunications-tool';
+export { textileTool, executeTextile, isTextileAvailable } from './textile-tool';
+export { toxicologyTool, executeToxicology, isToxicologyAvailable } from './toxicology-tool';
+export { trafficEngineeringTool, executeTrafficEngineering, isTrafficEngineeringAvailable } from './traffic-engineering-tool';
+export { tribologyTool, executeTribology, isTribologyAvailable } from './tribology-tool';
+export { tribologyAdvancedTool, executeTribologyAdvanced, isTribologyAdvancedAvailable } from './tribology-advanced-tool';
+export { vacuumTool, executeVacuum, isVacuumAvailable } from './vacuum-tool';
+export { vibrationTool, executeVibration, isVibrationAvailable } from './vibration-tool';
+export { virologyTool, executeVirology, isVirologyAvailable } from './virology-tool';
+export { volcanologyTool, executeVolcanology, isVolcanologyAvailable } from './volcanology-tool';
+export { vpnTool, executeVpn, isVpnAvailable } from './vpn-tool';
+export { vulnerabilityTool, executeVulnerability, isVulnerabilityAvailable } from './vulnerability-tool';
+export { weldingTool, executeWelding, isWeldingAvailable } from './welding-tool';
+
 // ============================================================================
 // TOOL REGISTRY
 // ============================================================================
@@ -1942,6 +2136,55 @@ async function initializeTools() {
   const { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } = await import('./error-fixer-tool');
   const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
   const { docGeneratorTool, executeDocGenerator, isDocGeneratorAvailable } = await import('./doc-generator-tool');
+
+  // ============================================================================
+  // ULTRA DEVELOPER TOOLKIT - Advanced DevOps, Architecture & AI Tools
+  // ============================================================================
+  // Code Intelligence
+  const { astAnalyzerTool, executeAstAnalyzer, isAstAnalyzerAvailable } = await import('./ast-analyzer-tool');
+  const { codeComplexityTool, executeCodeComplexity, isCodeComplexityAvailable } = await import('./code-complexity-tool');
+  const { designPatternTool, executeDesignPattern, isDesignPatternAvailable } = await import('./design-pattern-tool');
+  const { dependencyGraphTool, executeDependencyGraph, isDependencyGraphAvailable } = await import('./dependency-graph-tool');
+  const { refactorSuggesterTool, executeRefactorSuggester, isRefactorSuggesterAvailable } = await import('./refactor-suggester-tool');
+  const { techDebtTool, executeTechDebt, isTechDebtAvailable } = await import('./tech-debt-tool');
+  const { codeSmellDetectorTool, executeCodeSmellDetector, isCodeSmellDetectorAvailable } = await import('./code-smell-detector-tool');
+  // DevOps & Infrastructure
+  const { kubernetesGenTool, executeKubernetesGen, isKubernetesGenAvailable } = await import('./kubernetes-gen-tool');
+  const { dockerOptimizerTool, executeDockerOptimizer, isDockerOptimizerAvailable } = await import('./docker-optimizer-tool');
+  const { ciCdGeneratorTool, executeCiCdGenerator, isCiCdGeneratorAvailable } = await import('./ci-cd-generator-tool');
+  const { terraformGenTool, executeTerraformGen, isTerraformGenAvailable } = await import('./terraform-gen-tool');
+  const { helmChartTool, executeHelmChart, isHelmChartAvailable } = await import('./helm-chart-tool');
+  const { observabilityTool, executeObservability, isObservabilityAvailable } = await import('./observability-tool');
+  // Database & Data
+  const { sqlOptimizerTool, executeSqlOptimizer, isSqlOptimizerAvailable } = await import('./sql-optimizer-tool');
+  const { migrationGeneratorTool, executeMigrationGenerator, isMigrationGeneratorAvailable } = await import('./migration-generator-tool');
+  const { nosqlSchemaTool, executeNosqlSchema, isNosqlSchemaAvailable } = await import('./nosql-schema-tool');
+  const { dataPipelineTool, executeDataPipeline, isDataPipelineAvailable } = await import('./data-pipeline-tool');
+  // API Development
+  const { apiDesignTool, executeApiDesign, isApiDesignAvailable } = await import('./api-design-tool');
+  const { graphqlSchemaTool, executeGraphqlSchema, isGraphqlSchemaAvailable } = await import('./graphql-schema-tool');
+  // Architecture & Design
+  const { systemDesignTool, executeSystemDesign, isSystemDesignAvailable } = await import('./system-design-tool');
+  const { microservicesTool, executeMicroservices, isMicroservicesAvailable } = await import('./microservices-tool');
+  const { cacheStrategyTool, executeCacheStrategy, isCacheStrategyAvailable } = await import('./cache-strategy-tool');
+  const { circuitBreakerTool, executeCircuitBreaker, isCircuitBreakerAvailable } = await import('./circuit-breaker-tool');
+  const { featureFlagTool, executeFeatureFlag, isFeatureFlagAvailable } = await import('./feature-flag-tool');
+  // Testing & Quality
+  const { unitTestGenTool, executeUnitTestGen, isUnitTestGenAvailable } = await import('./unit-test-gen-tool');
+  const { e2eTestGenTool, executeE2eTestGen, isE2eTestGenAvailable } = await import('./e2e-test-gen-tool');
+  const { loadTestDesignTool, executeLoadTestDesign, isLoadTestDesignAvailable } = await import('./load-test-design-tool');
+  // AI/ML Development
+  const { promptEngineeringTool, executePromptEngineering, isPromptEngineeringAvailable } = await import('./prompt-engineering-tool');
+  const { modelEvaluationTool, executeModelEvaluation, isModelEvaluationAvailable } = await import('./model-evaluation-tool');
+  const { mlModelServingTool, executeMlModelServing, isMlModelServingAvailable } = await import('./ml-model-serving-tool');
+  // Blockchain & Web3
+  const { smartContractTool, executeSmartContract, isSmartContractAvailable } = await import('./smart-contract-tool');
+  // Real-time & WebSockets
+  const { websocketDesignTool, executeWebsocketDesign, isWebsocketDesignAvailable } = await import('./websocket-design-tool');
+  // Game Development
+  const { gameLogicTool, executeGameLogic, isGameLogicAvailable } = await import('./game-logic-tool');
+  // Documentation
+  const { readmeGeneratorTool, executeReadmeGenerator, isReadmeGeneratorAvailable } = await import('./readme-generator-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -2826,7 +3069,53 @@ async function initializeTools() {
     { tool: testGeneratorTool, executor: executeTestGenerator, checkAvailability: isTestGeneratorAvailable },
     { tool: errorFixerTool, executor: executeErrorFixer, checkAvailability: isErrorFixerAvailable },
     { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
-    { tool: docGeneratorTool, executor: executeDocGenerator, checkAvailability: isDocGeneratorAvailable }
+    { tool: docGeneratorTool, executor: executeDocGenerator, checkAvailability: isDocGeneratorAvailable },
+    // ULTRA DEVELOPER TOOLKIT - Advanced DevOps, Architecture & AI Tools
+    // Code Intelligence
+    { tool: astAnalyzerTool, executor: executeAstAnalyzer, checkAvailability: isAstAnalyzerAvailable },
+    { tool: codeComplexityTool, executor: executeCodeComplexity, checkAvailability: isCodeComplexityAvailable },
+    { tool: designPatternTool, executor: executeDesignPattern, checkAvailability: isDesignPatternAvailable },
+    { tool: dependencyGraphTool, executor: executeDependencyGraph, checkAvailability: isDependencyGraphAvailable },
+    { tool: refactorSuggesterTool, executor: executeRefactorSuggester, checkAvailability: isRefactorSuggesterAvailable },
+    { tool: techDebtTool, executor: executeTechDebt, checkAvailability: isTechDebtAvailable },
+    { tool: codeSmellDetectorTool, executor: executeCodeSmellDetector, checkAvailability: isCodeSmellDetectorAvailable },
+    // DevOps & Infrastructure
+    { tool: kubernetesGenTool, executor: executeKubernetesGen, checkAvailability: isKubernetesGenAvailable },
+    { tool: dockerOptimizerTool, executor: executeDockerOptimizer, checkAvailability: isDockerOptimizerAvailable },
+    { tool: ciCdGeneratorTool, executor: executeCiCdGenerator, checkAvailability: isCiCdGeneratorAvailable },
+    { tool: terraformGenTool, executor: executeTerraformGen, checkAvailability: isTerraformGenAvailable },
+    { tool: helmChartTool, executor: executeHelmChart, checkAvailability: isHelmChartAvailable },
+    { tool: observabilityTool, executor: executeObservability, checkAvailability: isObservabilityAvailable },
+    // Database & Data
+    { tool: sqlOptimizerTool, executor: executeSqlOptimizer, checkAvailability: isSqlOptimizerAvailable },
+    { tool: migrationGeneratorTool, executor: executeMigrationGenerator, checkAvailability: isMigrationGeneratorAvailable },
+    { tool: nosqlSchemaTool, executor: executeNosqlSchema, checkAvailability: isNosqlSchemaAvailable },
+    { tool: dataPipelineTool, executor: executeDataPipeline, checkAvailability: isDataPipelineAvailable },
+    // API Development
+    { tool: apiDesignTool, executor: executeApiDesign, checkAvailability: isApiDesignAvailable },
+    { tool: graphqlSchemaTool, executor: executeGraphqlSchema, checkAvailability: isGraphqlSchemaAvailable },
+    // Architecture & Design
+    { tool: systemDesignTool, executor: executeSystemDesign, checkAvailability: isSystemDesignAvailable },
+    { tool: microservicesTool, executor: executeMicroservices, checkAvailability: isMicroservicesAvailable },
+    { tool: cacheStrategyTool, executor: executeCacheStrategy, checkAvailability: isCacheStrategyAvailable },
+    { tool: circuitBreakerTool, executor: executeCircuitBreaker, checkAvailability: isCircuitBreakerAvailable },
+    { tool: featureFlagTool, executor: executeFeatureFlag, checkAvailability: isFeatureFlagAvailable },
+    // Testing & Quality
+    { tool: unitTestGenTool, executor: executeUnitTestGen, checkAvailability: isUnitTestGenAvailable },
+    { tool: e2eTestGenTool, executor: executeE2eTestGen, checkAvailability: isE2eTestGenAvailable },
+    { tool: loadTestDesignTool, executor: executeLoadTestDesign, checkAvailability: isLoadTestDesignAvailable },
+    // AI/ML Development
+    { tool: promptEngineeringTool, executor: executePromptEngineering, checkAvailability: isPromptEngineeringAvailable },
+    { tool: modelEvaluationTool, executor: executeModelEvaluation, checkAvailability: isModelEvaluationAvailable },
+    { tool: mlModelServingTool, executor: executeMlModelServing, checkAvailability: isMlModelServingAvailable },
+    // Blockchain & Web3
+    { tool: smartContractTool, executor: executeSmartContract, checkAvailability: isSmartContractAvailable },
+    // Real-time & WebSockets
+    { tool: websocketDesignTool, executor: executeWebsocketDesign, checkAvailability: isWebsocketDesignAvailable },
+    // Game Development
+    { tool: gameLogicTool, executor: executeGameLogic, checkAvailability: isGameLogicAvailable },
+    // Documentation
+    { tool: readmeGeneratorTool, executor: executeReadmeGenerator, checkAvailability: isReadmeGeneratorAvailable }
   );
 
   toolsInitialized = true;
