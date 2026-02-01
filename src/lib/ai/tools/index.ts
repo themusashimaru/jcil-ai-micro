@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (82 total):
+ * Tools available (94 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -76,10 +76,23 @@
  * - coordinate_transform: Geographic projections (proj4)
  * - sequence_analyze: Sequence analysis and pattern detection
  *
+ * TIER OMEGA - Advanced Scientific Computing (12 new tools):
+ * - ml_toolkit: Machine Learning (K-means, PCA, regression, neural networks)
+ * - quantum_circuit: Quantum Computing (gates, Bell states, Grover's algorithm)
+ * - control_theory: Control Systems (transfer functions, PID, Bode plots)
+ * - monte_carlo_sim: Monte Carlo (integration, option pricing, VaR, bootstrap)
+ * - game_solver: Game Theory (Nash equilibrium, minimax, replicator dynamics)
+ * - orbital_calc: Orbital Mechanics (Hohmann transfers, delta-v, orbital elements)
+ * - thermo_calc: Thermodynamics (gas laws, Carnot, heat transfer)
+ * - em_fields: Electromagnetics (E/B fields, transmission lines, antennas)
+ * - image_compute: Image Processing (convolution, edge detection, morphology)
+ * - wavelet_transform: Wavelets (DWT, CWT, denoising, multi-resolution)
+ * - latex_render: LaTeX Rendering (MathML/SVG output, equation templates)
+ *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
  *
- * Last updated: 2026-01-31 04:00 PM UTC
+ * Last updated: 2026-01-31 05:30 PM UTC
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -456,6 +469,67 @@ export {
   isSequenceAnalyzeAvailable,
 } from './sequence-analyze-tool';
 
+// ============================================================================
+// TIER OMEGA - ADVANCED SCIENTIFIC COMPUTING TOOLS (12 new tools)
+// ============================================================================
+
+// Machine Learning Toolkit (K-means, PCA, regression, neural networks)
+export { mlToolkitTool, executeMLToolkit, isMLToolkitAvailable } from './ml-toolkit-tool';
+
+// Quantum Circuit Simulator (gates, Bell states, Grover's algorithm)
+export {
+  quantumCircuitTool,
+  executeQuantumCircuit,
+  isQuantumCircuitAvailable,
+} from './quantum-circuit-tool';
+
+// Control Theory (transfer functions, PID tuning, Bode plots)
+export {
+  controlTheoryTool,
+  executeControlTheory,
+  isControlTheoryAvailable,
+} from './control-theory-tool';
+
+// Monte Carlo Simulation (integration, option pricing, VaR, bootstrap)
+export { monteCarloTool, executeMonteCarlo, isMonteCarloAvailable } from './monte-carlo-tool';
+
+// Game Theory Solver (Nash equilibrium, minimax, replicator dynamics)
+export { gameTheoryTool, executeGameTheory, isGameTheoryAvailable } from './game-theory-tool';
+
+// Orbital Mechanics (Hohmann transfers, delta-v, orbital elements)
+export {
+  orbitalMechanicsTool,
+  executeOrbitalMechanics,
+  isOrbitalMechanicsAvailable,
+} from './orbital-mechanics-tool';
+
+// Thermodynamics (gas laws, Carnot cycle, heat transfer)
+export {
+  thermodynamicsTool,
+  executeThermodynamics,
+  isThermodynamicsAvailable,
+} from './thermodynamics-tool';
+
+// Electromagnetics (E/B fields, transmission lines, antennas)
+export { emFieldsTool, executeEMFields, isEMFieldsAvailable } from './em-fields-tool';
+
+// Image Processing (convolution, edge detection, morphology)
+export {
+  imageComputeTool,
+  executeImageCompute,
+  isImageComputeAvailable,
+} from './image-compute-tool';
+
+// Wavelet Transforms (DWT, CWT, denoising, multi-resolution analysis)
+export {
+  waveletTransformTool,
+  executeWaveletTransform,
+  isWaveletTransformAvailable,
+} from './wavelet-transform-tool';
+
+// LaTeX Rendering (MathML/SVG output, equation templates)
+export { latexRenderTool, executeLatexRender, isLatexRenderAvailable } from './latex-render-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -744,6 +818,37 @@ async function initializeTools() {
     './sequence-analyze-tool'
   );
 
+  // Tier Omega - Advanced Scientific Computing tools (12 new)
+  const { mlToolkitTool, executeMLToolkit, isMLToolkitAvailable } = await import(
+    './ml-toolkit-tool'
+  );
+  const { quantumCircuitTool, executeQuantumCircuit, isQuantumCircuitAvailable } = await import(
+    './quantum-circuit-tool'
+  );
+  const { controlTheoryTool, executeControlTheory, isControlTheoryAvailable } = await import(
+    './control-theory-tool'
+  );
+  const { monteCarloTool, executeMonteCarlo, isMonteCarloAvailable } = await import(
+    './monte-carlo-tool'
+  );
+  const { gameTheoryTool, executeGameTheory, isGameTheoryAvailable } = await import(
+    './game-theory-tool'
+  );
+  const { orbitalMechanicsTool, executeOrbitalMechanics, isOrbitalMechanicsAvailable } =
+    await import('./orbital-mechanics-tool');
+  const { thermodynamicsTool, executeThermodynamics, isThermodynamicsAvailable } = await import(
+    './thermodynamics-tool'
+  );
+  const { emFieldsTool, executeEMFields, isEMFieldsAvailable } = await import('./em-fields-tool');
+  const { imageComputeTool, executeImageCompute, isImageComputeAvailable } = await import(
+    './image-compute-tool'
+  );
+  const { waveletTransformTool, executeWaveletTransform, isWaveletTransformAvailable } =
+    await import('./wavelet-transform-tool');
+  const { latexRenderTool, executeLatexRender, isLatexRenderAvailable } = await import(
+    './latex-render-tool'
+  );
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -982,6 +1087,46 @@ async function initializeTools() {
       tool: sequenceAnalyzeTool,
       executor: executeSequenceAnalyze,
       checkAvailability: isSequenceAnalyzeAvailable,
+    },
+    // Tier Omega - Advanced Scientific Computing tools (12 new)
+    { tool: mlToolkitTool, executor: executeMLToolkit, checkAvailability: isMLToolkitAvailable },
+    {
+      tool: quantumCircuitTool,
+      executor: executeQuantumCircuit,
+      checkAvailability: isQuantumCircuitAvailable,
+    },
+    {
+      tool: controlTheoryTool,
+      executor: executeControlTheory,
+      checkAvailability: isControlTheoryAvailable,
+    },
+    { tool: monteCarloTool, executor: executeMonteCarlo, checkAvailability: isMonteCarloAvailable },
+    { tool: gameTheoryTool, executor: executeGameTheory, checkAvailability: isGameTheoryAvailable },
+    {
+      tool: orbitalMechanicsTool,
+      executor: executeOrbitalMechanics,
+      checkAvailability: isOrbitalMechanicsAvailable,
+    },
+    {
+      tool: thermodynamicsTool,
+      executor: executeThermodynamics,
+      checkAvailability: isThermodynamicsAvailable,
+    },
+    { tool: emFieldsTool, executor: executeEMFields, checkAvailability: isEMFieldsAvailable },
+    {
+      tool: imageComputeTool,
+      executor: executeImageCompute,
+      checkAvailability: isImageComputeAvailable,
+    },
+    {
+      tool: waveletTransformTool,
+      executor: executeWaveletTransform,
+      checkAvailability: isWaveletTransformAvailable,
+    },
+    {
+      tool: latexRenderTool,
+      executor: executeLatexRender,
+      checkAvailability: isLatexRenderAvailable,
     }
   );
 
