@@ -379,6 +379,62 @@ import {
   latexRenderTool,
   executeLatexRender,
   isLatexRenderAvailable,
+  // Tier Infinity - Rocket Science & Engineering (12 new tools)
+  rocketPropulsionTool,
+  executeRocketPropulsion,
+  isRocketPropulsionAvailable,
+  fluidDynamicsTool,
+  executeFluidDynamics,
+  isFluidDynamicsAvailable,
+  aerodynamicsTool,
+  executeAerodynamics,
+  isAerodynamicsAvailable,
+  droneFlightTool,
+  executeDroneFlight,
+  isDroneFlightAvailable,
+  pathfinderTool,
+  executePathfinder,
+  isPathfinderAvailable,
+  circuitSimTool,
+  executeCircuitSim,
+  isCircuitSimAvailable,
+  ballisticsTool,
+  executeBallistics,
+  isBallisticsAvailable,
+  geneticAlgorithmTool,
+  executeGeneticAlgorithm,
+  isGeneticAlgorithmAvailable,
+  chaosDynamicsTool,
+  executeChaosDynamics,
+  isChaosDynamicsAvailable,
+  roboticsKinematicsTool,
+  executeRoboticsKinematics,
+  isRoboticsKinematicsAvailable,
+  opticsSimTool,
+  executeOpticsSim,
+  isOpticsSimAvailable,
+  epidemiologyTool,
+  executeEpidemiology,
+  isEpidemiologyAvailable,
+  // Tier Beyond - Advanced Engineering (6 bonus tools)
+  finiteElementTool,
+  executeFiniteElement,
+  isFiniteElementAvailable,
+  antennaRfTool,
+  executeAntennaRf,
+  isAntennaRfAvailable,
+  materialsScienceTool,
+  executeMaterialsScience,
+  isMaterialsScienceAvailable,
+  seismologyTool,
+  executeSeismology,
+  isSeismologyAvailable,
+  bioinformaticsProTool,
+  executeBioinformaticsPro,
+  isBioinformaticsProAvailable,
+  acousticsTool,
+  executeAcoustics,
+  isAcousticsAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -3838,6 +3894,28 @@ SECURITY:
     if (isWaveletTransformAvailable()) tools.push(waveletTransformTool);
     if (isLatexRenderAvailable()) tools.push(latexRenderTool);
 
+    // Tier Infinity - Rocket Science & Engineering tools
+    if (isRocketPropulsionAvailable()) tools.push(rocketPropulsionTool);
+    if (isFluidDynamicsAvailable()) tools.push(fluidDynamicsTool);
+    if (isAerodynamicsAvailable()) tools.push(aerodynamicsTool);
+    if (isDroneFlightAvailable()) tools.push(droneFlightTool);
+    if (isPathfinderAvailable()) tools.push(pathfinderTool);
+    if (isCircuitSimAvailable()) tools.push(circuitSimTool);
+    if (isBallisticsAvailable()) tools.push(ballisticsTool);
+    if (isGeneticAlgorithmAvailable()) tools.push(geneticAlgorithmTool);
+    if (isChaosDynamicsAvailable()) tools.push(chaosDynamicsTool);
+    if (isRoboticsKinematicsAvailable()) tools.push(roboticsKinematicsTool);
+    if (isOpticsSimAvailable()) tools.push(opticsSimTool);
+    if (isEpidemiologyAvailable()) tools.push(epidemiologyTool);
+
+    // Tier Beyond - Advanced Engineering tools
+    if (isFiniteElementAvailable()) tools.push(finiteElementTool);
+    if (isAntennaRfAvailable()) tools.push(antennaRfTool);
+    if (isMaterialsScienceAvailable()) tools.push(materialsScienceTool);
+    if (isSeismologyAvailable()) tools.push(seismologyTool);
+    if (isBioinformaticsProAvailable()) tools.push(bioinformaticsProTool);
+    if (isAcousticsAvailable()) tools.push(acousticsTool);
+
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
     // Session ID for cost tracking
@@ -3941,6 +4019,26 @@ SECURITY:
         image_compute: 0.0001, // image processing
         wavelet_transform: 0.0001, // wavelets
         latex_render: 0.0001, // latex rendering
+        // Tier Infinity - Rocket Science & Engineering
+        rocket_propulsion: 0.0001, // rocket science
+        fluid_dynamics: 0.0001, // fluid mechanics
+        aerodynamics: 0.0001, // aircraft aerodynamics
+        drone_flight: 0.0001, // UAV flight planning
+        pathfinder: 0.0001, // routing algorithms
+        circuit_sim: 0.0001, // circuit analysis
+        ballistics: 0.0001, // projectile motion
+        genetic_algorithm: 0.0001, // evolutionary optimization
+        chaos_dynamics: 0.0001, // chaos theory
+        robotics_kinematics: 0.0001, // robot kinematics
+        optics_sim: 0.0001, // optics simulation
+        epidemiology: 0.0001, // disease modeling
+        // Tier Beyond - Advanced Engineering
+        finite_element: 0.0001, // structural mechanics
+        antenna_rf: 0.0001, // RF engineering
+        materials_science: 0.0001, // materials science
+        seismology: 0.0001, // earthquake modeling
+        bioinformatics_pro: 0.0001, // sequence alignment
+        acoustics: 0.0001, // room acoustics
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4262,6 +4360,62 @@ SECURITY:
             break;
           case 'latex_render':
             result = await executeLatexRender(toolCallWithSession);
+            break;
+          // Tier Infinity - Rocket Science & Engineering (12 new tools)
+          case 'rocket_propulsion':
+            result = await executeRocketPropulsion(toolCallWithSession);
+            break;
+          case 'fluid_dynamics':
+            result = await executeFluidDynamics(toolCallWithSession);
+            break;
+          case 'aerodynamics':
+            result = await executeAerodynamics(toolCallWithSession);
+            break;
+          case 'drone_flight':
+            result = await executeDroneFlight(toolCallWithSession);
+            break;
+          case 'pathfinder':
+            result = await executePathfinder(toolCallWithSession);
+            break;
+          case 'circuit_sim':
+            result = await executeCircuitSim(toolCallWithSession);
+            break;
+          case 'ballistics':
+            result = await executeBallistics(toolCallWithSession);
+            break;
+          case 'genetic_algorithm':
+            result = await executeGeneticAlgorithm(toolCallWithSession);
+            break;
+          case 'chaos_dynamics':
+            result = await executeChaosDynamics(toolCallWithSession);
+            break;
+          case 'robotics_kinematics':
+            result = await executeRoboticsKinematics(toolCallWithSession);
+            break;
+          case 'optics_sim':
+            result = await executeOpticsSim(toolCallWithSession);
+            break;
+          case 'epidemiology':
+            result = await executeEpidemiology(toolCallWithSession);
+            break;
+          // Tier Beyond - Advanced Engineering (6 bonus tools)
+          case 'finite_element':
+            result = await executeFiniteElement(toolCallWithSession);
+            break;
+          case 'antenna_rf':
+            result = await executeAntennaRf(toolCallWithSession);
+            break;
+          case 'materials_science':
+            result = await executeMaterialsScience(toolCallWithSession);
+            break;
+          case 'seismology':
+            result = await executeSeismology(toolCallWithSession);
+            break;
+          case 'bioinformatics_pro':
+            result = await executeBioinformaticsPro(toolCallWithSession);
+            break;
+          case 'acoustics':
+            result = await executeAcoustics(toolCallWithSession);
             break;
           default:
             result = {

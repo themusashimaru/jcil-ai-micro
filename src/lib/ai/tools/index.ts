@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (94 total):
+ * Tools available (112 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -89,10 +89,32 @@
  * - wavelet_transform: Wavelets (DWT, CWT, denoising, multi-resolution)
  * - latex_render: LaTeX Rendering (MathML/SVG output, equation templates)
  *
+ * TIER INFINITY - Rocket Science & Engineering (12 new tools):
+ * - rocket_propulsion: Rocket Science (Tsiolkovsky, staging, thrust curves)
+ * - fluid_dynamics: Fluid Mechanics (Reynolds, Bernoulli, pipe flow, drag)
+ * - aerodynamics: Aircraft Aerodynamics (lift/drag, airfoils, atmosphere)
+ * - drone_flight: UAV Flight (hover, endurance, waypoints, battery)
+ * - pathfinder: Routing Algorithms (A*, Dijkstra, TSP, BFS)
+ * - circuit_sim: Circuit Analysis (RC/RLC, impedance, filters)
+ * - ballistics: Projectile Motion (drag, wind, Coriolis, terminal velocity)
+ * - genetic_algorithm: Evolutionary Optimization (crossover, mutation)
+ * - chaos_dynamics: Chaos Theory (Lorenz, Lyapunov, bifurcation, fractals)
+ * - robotics_kinematics: Robot Kinematics (forward/inverse, Jacobian)
+ * - optics_sim: Optics (Snell's law, lenses, diffraction, interference)
+ * - epidemiology: Disease Modeling (SIR/SEIR, R0, herd immunity)
+ *
+ * TIER BEYOND - Advanced Engineering (6 bonus tools):
+ * - finite_element: Structural Mechanics (stress/strain, beams, buckling)
+ * - antenna_rf: RF Engineering (link budgets, path loss, impedance)
+ * - materials_science: Materials (crystals, phase diagrams, Hall-Petch)
+ * - seismology: Earthquake Modeling (magnitude, waves, ground motion)
+ * - bioinformatics_pro: Sequence Alignment (Needleman-Wunsch, phylogenetics)
+ * - acoustics: Sound/Acoustics (room modes, RT60, speaker design)
+ *
  * Workflow utilities:
  * - Workflow tasks: Claude Code style todo lists with borders
  *
- * Last updated: 2026-01-31 05:30 PM UTC
+ * Last updated: 2026-02-01 12:00 AM UTC
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -530,6 +552,108 @@ export {
 // LaTeX Rendering (MathML/SVG output, equation templates)
 export { latexRenderTool, executeLatexRender, isLatexRenderAvailable } from './latex-render-tool';
 
+// ============================================================================
+// TIER INFINITY - ROCKET SCIENCE & ENGINEERING TOOLS (12 new tools)
+// ============================================================================
+
+// Rocket Propulsion (Tsiolkovsky, staging, thrust curves)
+export {
+  rocketPropulsionTool,
+  executeRocketPropulsion,
+  isRocketPropulsionAvailable,
+} from './rocket-propulsion-tool';
+
+// Fluid Dynamics (Reynolds, Bernoulli, pipe flow, drag)
+export {
+  fluidDynamicsTool,
+  executeFluidDynamics,
+  isFluidDynamicsAvailable,
+} from './fluid-dynamics-tool';
+
+// Aerodynamics (lift/drag, airfoils, atmosphere)
+export {
+  aerodynamicsTool,
+  executeAerodynamics,
+  isAerodynamicsAvailable,
+} from './aerodynamics-tool';
+
+// Drone/UAV Flight (hover, endurance, waypoints, battery)
+export { droneFlightTool, executeDroneFlight, isDroneFlightAvailable } from './drone-flight-tool';
+
+// Pathfinding Algorithms (A*, Dijkstra, TSP, BFS)
+export { pathfinderTool, executePathfinder, isPathfinderAvailable } from './pathfinder-tool';
+
+// Circuit Simulation (RC/RLC, impedance, filters)
+export { circuitSimTool, executeCircuitSim, isCircuitSimAvailable } from './circuit-sim-tool';
+
+// Ballistics (projectile motion, drag, wind, Coriolis)
+export { ballisticsTool, executeBallistics, isBallisticsAvailable } from './ballistics-tool';
+
+// Genetic Algorithm (evolutionary optimization)
+export {
+  geneticAlgorithmTool,
+  executeGeneticAlgorithm,
+  isGeneticAlgorithmAvailable,
+} from './genetic-algorithm-tool';
+
+// Chaos Dynamics (Lorenz, Lyapunov, bifurcation, fractals)
+export {
+  chaosDynamicsTool,
+  executeChaosDynamics,
+  isChaosDynamicsAvailable,
+} from './chaos-dynamics-tool';
+
+// Robotics Kinematics (forward/inverse kinematics, Jacobian)
+export {
+  roboticsKinematicsTool,
+  executeRoboticsKinematics,
+  isRoboticsKinematicsAvailable,
+} from './robotics-kinematics-tool';
+
+// Optics Simulation (Snell's law, lenses, diffraction)
+export { opticsSimTool, executeOpticsSim, isOpticsSimAvailable } from './optics-sim-tool';
+
+// Epidemiology (SIR/SEIR models, R0, herd immunity)
+export {
+  epidemiologyTool,
+  executeEpidemiology,
+  isEpidemiologyAvailable,
+} from './epidemiology-tool';
+
+// ============================================================================
+// TIER BEYOND - ADVANCED ENGINEERING TOOLS (6 bonus tools)
+// ============================================================================
+
+// Finite Element Analysis (stress/strain, beams, buckling)
+export {
+  finiteElementTool,
+  executeFiniteElement,
+  isFiniteElementAvailable,
+} from './finite-element-tool';
+
+// Antenna/RF Engineering (link budgets, path loss, impedance)
+export { antennaRfTool, executeAntennaRf, isAntennaRfAvailable } from './antenna-rf-tool';
+
+// Materials Science (crystals, phase diagrams, Hall-Petch)
+export {
+  materialsScienceTool,
+  executeMaterialsScience,
+  isMaterialsScienceAvailable,
+} from './materials-science-tool';
+
+// Seismology (earthquake magnitude, waves, ground motion)
+export { seismologyTool, executeSeismology, isSeismologyAvailable } from './seismology-tool';
+
+// Advanced Bioinformatics (Needleman-Wunsch, Smith-Waterman, phylogenetics)
+export {
+  bioinformaticsProTool,
+  executeBioinformaticsPro,
+  isBioinformaticsProAvailable,
+} from './bioinformatics-pro-tool';
+
+// Acoustics (room modes, RT60, speaker design)
+export { acousticsTool, executeAcoustics, isAcousticsAvailable } from './acoustics-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -849,6 +973,59 @@ async function initializeTools() {
     './latex-render-tool'
   );
 
+  // Tier Infinity - Rocket Science & Engineering tools (12 new)
+  const { rocketPropulsionTool, executeRocketPropulsion, isRocketPropulsionAvailable } =
+    await import('./rocket-propulsion-tool');
+  const { fluidDynamicsTool, executeFluidDynamics, isFluidDynamicsAvailable } = await import(
+    './fluid-dynamics-tool'
+  );
+  const { aerodynamicsTool, executeAerodynamics, isAerodynamicsAvailable } = await import(
+    './aerodynamics-tool'
+  );
+  const { droneFlightTool, executeDroneFlight, isDroneFlightAvailable } = await import(
+    './drone-flight-tool'
+  );
+  const { pathfinderTool, executePathfinder, isPathfinderAvailable } = await import(
+    './pathfinder-tool'
+  );
+  const { circuitSimTool, executeCircuitSim, isCircuitSimAvailable } = await import(
+    './circuit-sim-tool'
+  );
+  const { ballisticsTool, executeBallistics, isBallisticsAvailable } = await import(
+    './ballistics-tool'
+  );
+  const { geneticAlgorithmTool, executeGeneticAlgorithm, isGeneticAlgorithmAvailable } =
+    await import('./genetic-algorithm-tool');
+  const { chaosDynamicsTool, executeChaosDynamics, isChaosDynamicsAvailable } = await import(
+    './chaos-dynamics-tool'
+  );
+  const { roboticsKinematicsTool, executeRoboticsKinematics, isRoboticsKinematicsAvailable } =
+    await import('./robotics-kinematics-tool');
+  const { opticsSimTool, executeOpticsSim, isOpticsSimAvailable } = await import(
+    './optics-sim-tool'
+  );
+  const { epidemiologyTool, executeEpidemiology, isEpidemiologyAvailable } = await import(
+    './epidemiology-tool'
+  );
+
+  // Tier Beyond - Advanced Engineering tools (6 new)
+  const { finiteElementTool, executeFiniteElement, isFiniteElementAvailable } = await import(
+    './finite-element-tool'
+  );
+  const { antennaRfTool, executeAntennaRf, isAntennaRfAvailable } = await import(
+    './antenna-rf-tool'
+  );
+  const { materialsScienceTool, executeMaterialsScience, isMaterialsScienceAvailable } =
+    await import('./materials-science-tool');
+  const { seismologyTool, executeSeismology, isSeismologyAvailable } = await import(
+    './seismology-tool'
+  );
+  const { bioinformaticsProTool, executeBioinformaticsPro, isBioinformaticsProAvailable } =
+    await import('./bioinformatics-pro-tool');
+  const { acousticsTool, executeAcoustics, isAcousticsAvailable } = await import(
+    './acoustics-tool'
+  );
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -1127,6 +1304,98 @@ async function initializeTools() {
       tool: latexRenderTool,
       executor: executeLatexRender,
       checkAvailability: isLatexRenderAvailable,
+    },
+    // Tier Infinity - Rocket Science & Engineering tools (12 new)
+    {
+      tool: rocketPropulsionTool,
+      executor: executeRocketPropulsion,
+      checkAvailability: isRocketPropulsionAvailable,
+    },
+    {
+      tool: fluidDynamicsTool,
+      executor: executeFluidDynamics,
+      checkAvailability: isFluidDynamicsAvailable,
+    },
+    {
+      tool: aerodynamicsTool,
+      executor: executeAerodynamics,
+      checkAvailability: isAerodynamicsAvailable,
+    },
+    {
+      tool: droneFlightTool,
+      executor: executeDroneFlight,
+      checkAvailability: isDroneFlightAvailable,
+    },
+    {
+      tool: pathfinderTool,
+      executor: executePathfinder,
+      checkAvailability: isPathfinderAvailable,
+    },
+    {
+      tool: circuitSimTool,
+      executor: executeCircuitSim,
+      checkAvailability: isCircuitSimAvailable,
+    },
+    {
+      tool: ballisticsTool,
+      executor: executeBallistics,
+      checkAvailability: isBallisticsAvailable,
+    },
+    {
+      tool: geneticAlgorithmTool,
+      executor: executeGeneticAlgorithm,
+      checkAvailability: isGeneticAlgorithmAvailable,
+    },
+    {
+      tool: chaosDynamicsTool,
+      executor: executeChaosDynamics,
+      checkAvailability: isChaosDynamicsAvailable,
+    },
+    {
+      tool: roboticsKinematicsTool,
+      executor: executeRoboticsKinematics,
+      checkAvailability: isRoboticsKinematicsAvailable,
+    },
+    {
+      tool: opticsSimTool,
+      executor: executeOpticsSim,
+      checkAvailability: isOpticsSimAvailable,
+    },
+    {
+      tool: epidemiologyTool,
+      executor: executeEpidemiology,
+      checkAvailability: isEpidemiologyAvailable,
+    },
+    // Tier Beyond - Advanced Engineering tools (6 new)
+    {
+      tool: finiteElementTool,
+      executor: executeFiniteElement,
+      checkAvailability: isFiniteElementAvailable,
+    },
+    {
+      tool: antennaRfTool,
+      executor: executeAntennaRf,
+      checkAvailability: isAntennaRfAvailable,
+    },
+    {
+      tool: materialsScienceTool,
+      executor: executeMaterialsScience,
+      checkAvailability: isMaterialsScienceAvailable,
+    },
+    {
+      tool: seismologyTool,
+      executor: executeSeismology,
+      checkAvailability: isSeismologyAvailable,
+    },
+    {
+      tool: bioinformaticsProTool,
+      executor: executeBioinformaticsPro,
+      checkAvailability: isBioinformaticsProAvailable,
+    },
+    {
+      tool: acousticsTool,
+      executor: executeAcoustics,
+      checkAvailability: isAcousticsAvailable,
     }
   );
 
