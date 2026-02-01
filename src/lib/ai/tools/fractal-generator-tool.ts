@@ -162,7 +162,7 @@ function generateJulia(
 
 function generateSierpinskiTriangle(size: number, iterations: number): string {
   // Create triangle using chaos game or recursive subdivision
-  let grid: boolean[][] = [];
+  const grid: boolean[][] = [];
 
   // Initialize grid
   for (let y = 0; y < size; y++) {

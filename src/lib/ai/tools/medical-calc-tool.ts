@@ -891,3 +891,4 @@ export async function executeMedicalCalc(toolCall: UnifiedToolCall): Promise<Uni
 export function isMedicalCalcAvailable(): boolean {
   return true;
 }
+void _calculateAPACHEII; // reserved for ICU scoring

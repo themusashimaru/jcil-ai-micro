@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (145 total):
+ * Tools available (151 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -858,6 +858,52 @@ export {
   isComputationalComplexityAvailable,
 } from './computational-complexity-tool';
 
+// ============================================================================
+// TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
+// ============================================================================
+
+// Reaction Kinetics - Rate laws, Arrhenius, mechanisms
+export {
+  reactionKineticsTool,
+  executeReactionKinetics,
+  isReactionKineticsAvailable,
+} from './reaction-kinetics-tool';
+
+// Electrochemistry - Nernst, electrolysis, batteries
+export {
+  electrochemistryTool,
+  executeElectrochemistry,
+  isElectrochemistryAvailable,
+} from './electrochemistry-tool';
+
+// Spectroscopy - Beer-Lambert, IR/NMR peaks
+export {
+  spectroscopyTool,
+  executeSpectroscopy,
+  isSpectroscopyAvailable,
+} from './spectroscopy-tool';
+
+// Quantum Mechanics - Wavefunctions, hydrogen atom
+export {
+  quantumMechanicsTool,
+  executeQuantumMechanics,
+  isQuantumMechanicsAvailable,
+} from './quantum-mechanics-tool';
+
+// Relativity - Lorentz transformations, time dilation
+export {
+  relativityTool,
+  executeRelativity,
+  isRelativityAvailable,
+} from './relativity-tool';
+
+// Statistical Mechanics - Boltzmann, partition functions
+export {
+  statisticalMechanicsTool,
+  executeStatisticalMechanics,
+  isStatisticalMechanicsAvailable,
+} from './statistical-mechanics-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1318,6 +1364,26 @@ async function initializeTools() {
   );
   const { computationalComplexityTool, executeComputationalComplexity, isComputationalComplexityAvailable } = await import(
     './computational-complexity-tool'
+  );
+
+  // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
+  const { reactionKineticsTool, executeReactionKinetics, isReactionKineticsAvailable } = await import(
+    './reaction-kinetics-tool'
+  );
+  const { electrochemistryTool, executeElectrochemistry, isElectrochemistryAvailable } = await import(
+    './electrochemistry-tool'
+  );
+  const { spectroscopyTool, executeSpectroscopy, isSpectroscopyAvailable } = await import(
+    './spectroscopy-tool'
+  );
+  const { quantumMechanicsTool, executeQuantumMechanics, isQuantumMechanicsAvailable } = await import(
+    './quantum-mechanics-tool'
+  );
+  const { relativityTool, executeRelativity, isRelativityAvailable } = await import(
+    './relativity-tool'
+  );
+  const { statisticalMechanicsTool, executeStatisticalMechanics, isStatisticalMechanicsAvailable } = await import(
+    './statistical-mechanics-tool'
   );
 
   CHAT_TOOLS.push(
@@ -1828,6 +1894,37 @@ async function initializeTools() {
       tool: computationalComplexityTool,
       executor: executeComputationalComplexity,
       checkAvailability: isComputationalComplexityAvailable,
+    },
+    // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
+    {
+      tool: reactionKineticsTool,
+      executor: executeReactionKinetics,
+      checkAvailability: isReactionKineticsAvailable,
+    },
+    {
+      tool: electrochemistryTool,
+      executor: executeElectrochemistry,
+      checkAvailability: isElectrochemistryAvailable,
+    },
+    {
+      tool: spectroscopyTool,
+      executor: executeSpectroscopy,
+      checkAvailability: isSpectroscopyAvailable,
+    },
+    {
+      tool: quantumMechanicsTool,
+      executor: executeQuantumMechanics,
+      checkAvailability: isQuantumMechanicsAvailable,
+    },
+    {
+      tool: relativityTool,
+      executor: executeRelativity,
+      checkAvailability: isRelativityAvailable,
+    },
+    {
+      tool: statisticalMechanicsTool,
+      executor: executeStatisticalMechanics,
+      checkAvailability: isStatisticalMechanicsAvailable,
     }
   );
 

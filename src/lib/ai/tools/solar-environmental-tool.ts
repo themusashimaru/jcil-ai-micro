@@ -13,13 +13,13 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 const SOLAR_CONSTANT = 1361; // W/m² at Earth's distance from Sun
-const _EARTH_RADIUS = 6371; // km
+const __EARTH_RADIUS = 6371; // km
 const CO2_PER_KWH_COAL = 0.91; // kg CO2 per kWh
-const _CO2_PER_KWH_GAS = 0.41; // kg CO2 per kWh
+const __CO2_PER_KWH_GAS = 0.41; // kg CO2 per kWh
 const CO2_PER_KWH_SOLAR = 0.041; // kg CO2 per kWh (lifecycle)
-const _CO2_PER_KWH_WIND = 0.011; // kg CO2 per kWh (lifecycle)
-const CO2_PER_KWH_NUCLEAR = 0.012; // kg CO2 per kWh (lifecycle)
-const CO2_PER_KWH_HYDRO = 0.024; // kg CO2 per kWh (lifecycle)
+const __CO2_PER_KWH_WIND = 0.011; // kg CO2 per kWh (lifecycle)
+const _CO2_PER_KWH_NUCLEAR = 0.012; // kg CO2 per kWh (lifecycle)
+const _CO2_PER_KWH_HYDRO = 0.024; // kg CO2 per kWh (lifecycle)
 
 // ============================================================================
 // SOLAR POSITION CALCULATIONS
@@ -78,7 +78,7 @@ function calculateSolarPosition(
 
   // Sunrise/Sunset
   const cosHa = -Math.tan(latRad) * Math.tan(decRad);
-  let sunriseHA = Math.acos(Math.max(-1, Math.min(1, cosHa))) * (180 / Math.PI);
+  const sunriseHA = Math.acos(Math.max(-1, Math.min(1, cosHa))) * (180 / Math.PI);
   const dayLength = (2 * sunriseHA) / 15;
 
   const sunriseHour = 12 - sunriseHA / 15 + longitude / 15;
@@ -115,10 +115,10 @@ interface SolarIrradiance {
 
 function calculateSolarIrradiance(
   altitude: number,
-  airMass: number = 1.5,
+  _airMass: number = 1.5,
   clearness: number = 0.7,
   tiltAngle: number = 0,
-  surfaceAzimuth: number = 180
+  _surfaceAzimuth: number = 180
 ): SolarIrradiance {
   if (altitude <= 0) {
     return {

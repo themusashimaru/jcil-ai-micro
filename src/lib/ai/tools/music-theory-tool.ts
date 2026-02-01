@@ -65,7 +65,7 @@ const CHORD_PROGRESSIONS: Record<string, { numerals: string[]; chords: number[] 
 function noteToMidi(noteName: string): number {
   const match = noteName.match(/^([A-G][#b]?)(\d)?$/i);
   if (!match) return 60;
-  let note = match[1].toUpperCase();
+  const note = match[1].toUpperCase();
   const octave = match[2] ? parseInt(match[2]) : 4;
   let noteIndex = NOTE_NAMES.indexOf(note);
   if (noteIndex < 0) noteIndex = NOTE_NAMES_FLAT.indexOf(note);

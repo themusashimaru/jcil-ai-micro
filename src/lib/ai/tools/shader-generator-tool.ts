@@ -356,7 +356,7 @@ function generateColorShader(colors: string[], direction: 'horizontal' | 'vertic
 
   let mixCode = '';
   if (colors.length === 2) {
-    let coord = direction === 'horizontal' ? 'uv.x' : direction === 'vertical' ? 'uv.y' : 'length(uv - 0.5) * 2.0';
+    const coord = direction === 'horizontal' ? 'uv.x' : direction === 'vertical' ? 'uv.y' : 'length(uv - 0.5) * 2.0';
     mixCode = `vec3 color = mix(c0, c1, ${coord});`;
   } else {
     mixCode = `vec3 color = c0;`;

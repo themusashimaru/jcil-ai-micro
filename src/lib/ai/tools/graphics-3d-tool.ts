@@ -965,3 +965,4 @@ export async function executeGraphics3D(toolCall: UnifiedToolCall): Promise<Unif
 export function isGraphics3DAvailable(): boolean {
   return true;
 }
+void _scaleVec3; void _dotVec3; void _mergeMeshes; void _sceneToGLTF; // reserved

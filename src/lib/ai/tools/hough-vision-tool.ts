@@ -12,7 +12,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES
 // ============================================================================
 
-interface _Point {
+interface __Point {
   x: number;
   y: number;
 }
@@ -63,10 +63,10 @@ function createImage(width: number, height: number, value: number = 0): Grayscal
 
 function drawLine(img: GrayscaleImage, x1: number, y1: number, x2: number, y2: number, value: number = 255): void {
   // Bresenham's line algorithm
-  let dx = Math.abs(x2 - x1);
-  let dy = Math.abs(y2 - y1);
-  let sx = x1 < x2 ? 1 : -1;
-  let sy = y1 < y2 ? 1 : -1;
+  const dx = Math.abs(x2 - x1);
+  const dy = Math.abs(y2 - y1);
+  const sx = x1 < x2 ? 1 : -1;
+  const sy = y1 < y2 ? 1 : -1;
   let err = dx - dy;
 
   let x = x1;

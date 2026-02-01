@@ -13,8 +13,8 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES
 // ============================================================================
 
-type LogicValue = boolean | null; // null = unknown
-type TruthTableRow = Record<string, boolean>;
+type _LogicValue = boolean | null; // null = unknown
+type _TruthTableRow = Record<string, boolean>;
 type Clause = number[]; // CNF clause: positive = variable, negative = negation
 
 interface ProofStep {
@@ -384,8 +384,8 @@ function toCNF(expr: LogicExpr): CNF {
   const varIndex: Record<string, number> = {};
   vars.forEach((v, i) => (varIndex[v] = i + 1));
 
-  const clauses: Clause[] = [];
-  let auxCounter = vars.length;
+  const _clauses: Clause[] = [];
+  const _auxCounter = vars.length;
 
   function distribute(e: LogicExpr): number[][] {
     switch (e.type) {
@@ -665,7 +665,7 @@ const INFERENCE_RULES = {
 // PREDICATE LOGIC (First-Order Logic basics)
 // ============================================================================
 
-interface FOLResult {
+interface _FOLResult {
   domain: string[];
   predicates: Record<string, (args: string[]) => boolean>;
   interpretation: string;

@@ -91,7 +91,7 @@ function runGameOfLife(
   generations: number
 ): { history: CAState[]; stable: boolean; period?: number } {
   const history: CAState[] = [];
-  let grid = initialGrid;
+  const grid = initialGrid;
 
   // Track seen states for cycle detection
   const seenStates = new Map<string, number>();
@@ -408,7 +408,7 @@ function runLangtonsAnt(
   height: number,
   steps: number
 ): { grid: Grid; antPath: { x: number; y: number }[]; highwayDetected: boolean } {
-  let grid = createGrid(width, height);
+  const grid = createGrid(width, height);
   let ant: AntState = {
     x: Math.floor(width / 2),
     y: Math.floor(height / 2),
@@ -495,7 +495,7 @@ function gridToAscii(grid: Grid, alive: string = '█', dead: string = '·'): st
   return grid.map((row) => row.map((c) => (c ? alive : dead)).join('')).join('\n');
 }
 
-function _gridToCompact(grid: Grid): string {
+function __gridToCompact(grid: Grid): string {
   return grid.map((row) => row.map((c) => (c ? '1' : '0')).join('')).join('\n');
 }
 
@@ -584,7 +584,7 @@ export async function executeCellularAutomata(
         const random = args.random || false;
         const initialCells = args.initial_cells as [number, number][] | undefined;
 
-        let grid = createGrid(width, height, random);
+        const grid = createGrid(width, height, random);
 
         if (initialCells && !random) {
           for (const [x, y] of initialCells) {
@@ -677,7 +677,7 @@ export async function executeCellularAutomata(
           );
         }
 
-        let grid = createGrid(width, height);
+        const grid = createGrid(width, height);
         grid = placePattern(grid, pattern.cells, Math.floor(width / 2), Math.floor(height / 2));
 
         const simulation = runGameOfLife(grid, generations);
@@ -737,7 +737,7 @@ export async function executeCellularAutomata(
         const width = Math.min(Math.max(maxX - minX, 20), 50);
         const height = Math.min(Math.max(maxY - minY, 20), 50);
 
-        let grid = createGrid(width, height);
+        const grid = createGrid(width, height);
         for (const [x, y] of initialCells) {
           const gx = x - minX;
           const gy = y - minY;
@@ -860,3 +860,4 @@ export async function executeCellularAutomata(
 export function isCellularAutomataAvailable(): boolean {
   return true;
 }
+void __gridToCompact; // reserved for compact output

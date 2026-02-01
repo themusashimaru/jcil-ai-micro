@@ -223,7 +223,7 @@ function crcCalculate(
 
   // Append zeros for division
   const polyLen = polynomial.length;
-  let dividend = data + '0'.repeat(polyLen - 1);
+  const dividend = data + '0'.repeat(polyLen - 1);
   steps.push(`Data with appended zeros: ${dividend}`);
   steps.push(`Polynomial (divisor): ${polynomial}`);
 

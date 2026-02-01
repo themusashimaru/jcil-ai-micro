@@ -737,3 +737,4 @@ export async function executeCryptographyAdvanced(
 export function isCryptographyAdvancedAvailable(): boolean {
   return true;
 }
+void _gcd; // reserved for modular arithmetic
