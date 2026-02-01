@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (166 total):
+ * Tools available (186 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1403,6 +1403,28 @@ async function initializeTools() {
   const { surveyingTool, executeSurveying, isSurveyingAvailable } = await import('./surveying-tool');
   const { trafficEngineeringTool, executeTrafficEngineering, isTrafficEngineeringAvailable } = await import('./traffic-engineering-tool');
 
+  // TIER INDUSTRY & APPLIED SCIENCE (20 more compact tools)
+  const { biomedicalTool, executeBiomedical, isBiomedicalAvailable } = await import('./biomedical-tool');
+  const { roboticsTool, executeRobotics, isRoboticsAvailable } = await import('./robotics-tool');
+  const { environmentalTool, executeEnvironmental, isEnvironmentalAvailable } = await import('./environmental-tool');
+  const { manufacturingTool, executeManufacturing, isManufacturingAvailable } = await import('./manufacturing-tool');
+  const { logisticsTool, executeLogistics, isLogisticsAvailable } = await import('./logistics-tool');
+  const { telecommunicationsTool, executeTelecommunications, isTelecommunicationsAvailable } = await import('./telecommunications-tool');
+  const { renewableEnergyTool, executeRenewableEnergy, isRenewableEnergyAvailable } = await import('./renewable-energy-tool');
+  const { batteryTool, executeBattery, isBatteryAvailable } = await import('./battery-tool');
+  const { automotiveTool, executeAutomotive, isAutomotiveAvailable } = await import('./automotive-tool');
+  const { aviationTool, executeAviation, isAviationAvailable } = await import('./aviation-tool');
+  const { marineTool, executeMarine, isMarineAvailable } = await import('./marine-tool');
+  const { miningTool, executeMining, isMiningAvailable } = await import('./mining-tool');
+  const { petroleumTool, executePetroleum, isPetroleumAvailable } = await import('./petroleum-tool');
+  const { foodScienceTool, executeFoodScience, isFoodScienceAvailable } = await import('./food-science-tool');
+  const { textileTool, executeTextile, isTextileAvailable } = await import('./textile-tool');
+  const { paperTool, executePaper, isPaperAvailable } = await import('./paper-tool');
+  const { ceramicsTool, executeCeramics, isCeramicsAvailable } = await import('./ceramics-tool');
+  const { glassTool, executeGlass, isGlassAvailable } = await import('./glass-tool');
+  const { compositesTool, executeComposites, isCompositesAvailable } = await import('./composites-tool');
+  const { corrosionTool, executeCorrosion, isCorrosionAvailable } = await import('./corrosion-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -1958,7 +1980,28 @@ async function initializeTools() {
     { tool: tribologyTool, executor: executeTribology, checkAvailability: isTribologyAvailable },
     { tool: hvacTool, executor: executeHvac, checkAvailability: isHvacAvailable },
     { tool: surveyingTool, executor: executeSurveying, checkAvailability: isSurveyingAvailable },
-    { tool: trafficEngineeringTool, executor: executeTrafficEngineering, checkAvailability: isTrafficEngineeringAvailable }
+    { tool: trafficEngineeringTool, executor: executeTrafficEngineering, checkAvailability: isTrafficEngineeringAvailable },
+    // TIER INDUSTRY & APPLIED SCIENCE (20 more compact tools)
+    { tool: biomedicalTool, executor: executeBiomedical, checkAvailability: isBiomedicalAvailable },
+    { tool: roboticsTool, executor: executeRobotics, checkAvailability: isRoboticsAvailable },
+    { tool: environmentalTool, executor: executeEnvironmental, checkAvailability: isEnvironmentalAvailable },
+    { tool: manufacturingTool, executor: executeManufacturing, checkAvailability: isManufacturingAvailable },
+    { tool: logisticsTool, executor: executeLogistics, checkAvailability: isLogisticsAvailable },
+    { tool: telecommunicationsTool, executor: executeTelecommunications, checkAvailability: isTelecommunicationsAvailable },
+    { tool: renewableEnergyTool, executor: executeRenewableEnergy, checkAvailability: isRenewableEnergyAvailable },
+    { tool: batteryTool, executor: executeBattery, checkAvailability: isBatteryAvailable },
+    { tool: automotiveTool, executor: executeAutomotive, checkAvailability: isAutomotiveAvailable },
+    { tool: aviationTool, executor: executeAviation, checkAvailability: isAviationAvailable },
+    { tool: marineTool, executor: executeMarine, checkAvailability: isMarineAvailable },
+    { tool: miningTool, executor: executeMining, checkAvailability: isMiningAvailable },
+    { tool: petroleumTool, executor: executePetroleum, checkAvailability: isPetroleumAvailable },
+    { tool: foodScienceTool, executor: executeFoodScience, checkAvailability: isFoodScienceAvailable },
+    { tool: textileTool, executor: executeTextile, checkAvailability: isTextileAvailable },
+    { tool: paperTool, executor: executePaper, checkAvailability: isPaperAvailable },
+    { tool: ceramicsTool, executor: executeCeramics, checkAvailability: isCeramicsAvailable },
+    { tool: glassTool, executor: executeGlass, checkAvailability: isGlassAvailable },
+    { tool: compositesTool, executor: executeComposites, checkAvailability: isCompositesAvailable },
+    { tool: corrosionTool, executor: executeCorrosion, checkAvailability: isCorrosionAvailable }
   );
 
   toolsInitialized = true;
