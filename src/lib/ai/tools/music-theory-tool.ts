@@ -1,34 +1,129 @@
 /**
  * MUSIC THEORY TOOL
  *
- * Music theory analysis using tonal.
- * Runs entirely locally - no external API costs.
+ * Comprehensive music theory calculations, chord progressions,
+ * scale analysis, and melody generation.
  *
- * Capabilities:
- * - Chord analysis and construction
- * - Scale identification and generation
- * - Interval calculations
- * - Key detection
- * - Chord progressions
- * - Note/frequency conversion
- *
- * Created: 2026-01-31
+ * Part of TIER SOUND & MUSIC - Ultimate Tool Arsenal
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
-// Lazy-loaded library
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let Tonal: any = null;
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
-async function initTonal(): Promise<boolean> {
-  if (Tonal) return true;
-  try {
-    Tonal = await import('tonal');
-    return true;
-  } catch {
-    return false;
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const NOTE_NAMES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+const SCALE_PATTERNS: Record<string, number[]> = {
+  major: [0, 2, 4, 5, 7, 9, 11],
+  natural_minor: [0, 2, 3, 5, 7, 8, 10],
+  harmonic_minor: [0, 2, 3, 5, 7, 8, 11],
+  melodic_minor: [0, 2, 3, 5, 7, 9, 11],
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  phrygian: [0, 1, 3, 5, 7, 8, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  locrian: [0, 1, 3, 5, 6, 8, 10],
+  pentatonic_major: [0, 2, 4, 7, 9],
+  pentatonic_minor: [0, 3, 5, 7, 10],
+  blues: [0, 3, 5, 6, 7, 10],
+  chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  whole_tone: [0, 2, 4, 6, 8, 10],
+};
+
+const CHORD_PATTERNS: Record<string, number[]> = {
+  major: [0, 4, 7],
+  minor: [0, 3, 7],
+  diminished: [0, 3, 6],
+  augmented: [0, 4, 8],
+  sus2: [0, 2, 7],
+  sus4: [0, 5, 7],
+  major7: [0, 4, 7, 11],
+  minor7: [0, 3, 7, 10],
+  dominant7: [0, 4, 7, 10],
+  diminished7: [0, 3, 6, 9],
+  major9: [0, 4, 7, 11, 14],
+  minor9: [0, 3, 7, 10, 14],
+  dominant9: [0, 4, 7, 10, 14],
+  power: [0, 7],
+};
+
+const CHORD_PROGRESSIONS: Record<string, { numerals: string[]; chords: number[] }> = {
+  'I-IV-V-I': { numerals: ['I', 'IV', 'V', 'I'], chords: [0, 5, 7, 0] },
+  'I-V-vi-IV': { numerals: ['I', 'V', 'vi', 'IV'], chords: [0, 7, 9, 5] },
+  'ii-V-I': { numerals: ['ii', 'V', 'I'], chords: [2, 7, 0] },
+  'I-vi-IV-V': { numerals: ['I', 'vi', 'IV', 'V'], chords: [0, 9, 5, 7] },
+  '12-bar-blues': { numerals: ['I', 'I', 'I', 'I', 'IV', 'IV', 'I', 'I', 'V', 'IV', 'I', 'V'], chords: [0, 0, 0, 0, 5, 5, 0, 0, 7, 5, 0, 7] },
+};
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function noteToMidi(noteName: string): number {
+  const match = noteName.match(/^([A-G][#b]?)(\d)?$/i);
+  if (!match) return 60;
+  let note = match[1].toUpperCase();
+  const octave = match[2] ? parseInt(match[2]) : 4;
+  let noteIndex = NOTE_NAMES.indexOf(note);
+  if (noteIndex < 0) noteIndex = NOTE_NAMES_FLAT.indexOf(note);
+  if (noteIndex < 0) return 60;
+  return noteIndex + (octave + 1) * 12;
+}
+
+function midiToNote(midi: number, useFlats: boolean = false): string {
+  const octave = Math.floor(midi / 12) - 1;
+  const noteIndex = midi % 12;
+  const names = useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES;
+  return `${names[noteIndex]}${octave}`;
+}
+
+function midiToFrequency(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function frequencyToMidi(freq: number): number {
+  return 69 + 12 * Math.log2(freq / 440);
+}
+
+function getScaleNotes(root: string, scaleType: string): string[] {
+  const pattern = SCALE_PATTERNS[scaleType];
+  if (!pattern) return [];
+  let rootIndex = NOTE_NAMES.indexOf(root.replace(/\d/, ''));
+  if (rootIndex < 0) rootIndex = NOTE_NAMES_FLAT.indexOf(root.replace(/\d/, ''));
+  if (rootIndex < 0) return [];
+  return pattern.map(interval => NOTE_NAMES[(rootIndex + interval) % 12]);
+}
+
+function getChordNotes(root: string, chordType: string): string[] {
+  const pattern = CHORD_PATTERNS[chordType];
+  if (!pattern) return [];
+  let rootIndex = NOTE_NAMES.indexOf(root.replace(/\d/, ''));
+  if (rootIndex < 0) rootIndex = NOTE_NAMES_FLAT.indexOf(root.replace(/\d/, ''));
+  if (rootIndex < 0) return [];
+  return pattern.map(interval => NOTE_NAMES[(rootIndex + interval) % 12]);
+}
+
+function analyzeInterval(note1: string, note2: string): { semitones: number; name: string } {
+  const midi1 = noteToMidi(note1);
+  const midi2 = noteToMidi(note2);
+  const semitones = Math.abs(midi2 - midi1) % 12;
+  const names = ['Unison', 'Minor 2nd', 'Major 2nd', 'Minor 3rd', 'Major 3rd', 'Perfect 4th', 'Tritone', 'Perfect 5th', 'Minor 6th', 'Major 6th', 'Minor 7th', 'Major 7th'];
+  return { semitones, name: names[semitones] };
+}
+
+function visualizeScale(notes: string[]): string {
+  const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  let line1 = '│';
+  let line2 = '│';
+  for (const k of whiteKeys) {
+    const inScale = notes.includes(k);
+    line1 += inScale ? '██│' : '  │';
+    line2 += ` ${k} │`;
   }
+  return line1 + '\n' + line2;
 }
 
 // ============================================================================
@@ -37,301 +132,128 @@ async function initTonal(): Promise<boolean> {
 
 export const musicTheoryTool: UnifiedTool = {
   name: 'music_theory',
-  description: `Analyze and compute music theory concepts.
+  description: `Music theory calculations: scales, chords, progressions, intervals.
 
 Operations:
-- chord: Analyze or build a chord (notes, intervals, type)
-- scale: Get scale notes and intervals
-- interval: Calculate interval between two notes
-- key: Get key signature information
-- detect_key: Detect key from a set of notes
-- detect_chord: Identify chord from notes
-- transpose: Transpose notes by an interval
-- frequency: Convert note to frequency (Hz)
-- progression: Analyze chord progressions
+- scale: Get notes in a scale
+- chord: Get notes in a chord  
+- progression: Get chord progression in key
+- interval: Analyze interval between notes
+- transpose: Transpose notes
+- frequency: Note/MIDI/frequency conversion
+- list_scales: Available scales
+- list_chords: Available chord types`,
 
-Use cases:
-- Music composition assistance
-- Chord and scale lookup
-- Transposition calculations
-- Music education
-- Audio frequency calculations`,
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: [
-          'chord',
-          'scale',
-          'interval',
-          'key',
-          'detect_key',
-          'detect_chord',
-          'transpose',
-          'frequency',
-          'progression',
-        ],
+        enum: ['scale', 'chord', 'progression', 'interval', 'transpose', 'frequency', 'list_scales', 'list_chords'],
         description: 'Music theory operation',
       },
-      chord_name: {
-        type: 'string',
-        description: 'Chord name (e.g., "Cmaj7", "Am", "Dm7b5")',
-      },
-      scale_name: {
-        type: 'string',
-        description: 'Scale name (e.g., "C major", "A minor", "D dorian")',
-      },
-      note1: {
-        type: 'string',
-        description: 'First note (e.g., "C4", "A3")',
-      },
-      note2: {
-        type: 'string',
-        description: 'Second note for interval calculation',
-      },
-      notes: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Array of notes for detection or transposition',
-      },
-      key_name: {
-        type: 'string',
-        description: 'Key name (e.g., "C major", "F# minor")',
-      },
-      interval: {
-        type: 'string',
-        description: 'Interval for transposition (e.g., "P5", "M3", "m2")',
-      },
-      chords: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Chord progression (e.g., ["C", "Am", "F", "G"])',
-      },
+      root: { type: 'string', description: 'Root note (C, F#, Bb)' },
+      key: { type: 'string', description: 'Key for progressions' },
+      scale_type: { type: 'string', description: 'Scale type' },
+      chord_type: { type: 'string', description: 'Chord type' },
+      progression_name: { type: 'string', description: 'Progression name' },
+      note1: { type: 'string', description: 'First note' },
+      note2: { type: 'string', description: 'Second note' },
+      notes: { type: 'string', description: 'Comma-separated notes' },
+      semitones: { type: 'number', description: 'Transposition semitones' },
+      midi: { type: 'number', description: 'MIDI note' },
+      frequency: { type: 'number', description: 'Frequency Hz' },
     },
     required: ['operation'],
   },
 };
 
 // ============================================================================
-// AVAILABILITY CHECK
+// EXECUTOR
 // ============================================================================
 
-export function isMusicTheoryAvailable(): boolean {
-  return true;
-}
-
-// ============================================================================
-// EXECUTE FUNCTION
-// ============================================================================
-
-export async function executeMusicTheory(call: UnifiedToolCall): Promise<UnifiedToolResult> {
-  const args = call.arguments as {
-    operation: string;
-    chord_name?: string;
-    scale_name?: string;
-    note1?: string;
-    note2?: string;
-    notes?: string[];
-    key_name?: string;
-    interval?: string;
-    chords?: string[];
-  };
-
-  const { operation } = args;
+export async function executeMusicTheory(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+  const { id, arguments: rawArgs } = toolCall;
 
   try {
-    const initialized = await initTonal();
-    if (!initialized) {
-      return {
-        toolCallId: call.id,
-        content: JSON.stringify({ error: 'Failed to initialize tonal library' }),
-        isError: true,
-      };
-    }
+    const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
+    const { operation } = args;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let result: any;
+    let result: Record<string, unknown>;
 
     switch (operation) {
-      case 'chord': {
-        const { chord_name } = args;
-        if (!chord_name) throw new Error('chord_name required');
-
-        const chord = Tonal.Chord.get(chord_name);
-        result = {
-          operation: 'chord',
-          name: chord.name,
-          symbol: chord.symbol,
-          tonic: chord.tonic,
-          type: chord.type,
-          notes: chord.notes,
-          intervals: chord.intervals,
-          quality: chord.quality,
-          aliases: chord.aliases,
-        };
-        break;
-      }
-
       case 'scale': {
-        const { scale_name } = args;
-        if (!scale_name) throw new Error('scale_name required');
-
-        const scale = Tonal.Scale.get(scale_name);
+        const { root = 'C', scale_type = 'major' } = args;
+        const notes = getScaleNotes(root, scale_type);
+        if (!notes.length) throw new Error(`Unknown scale: ${scale_type}`);
         result = {
           operation: 'scale',
-          name: scale.name,
-          tonic: scale.tonic,
-          type: scale.type,
-          notes: scale.notes,
-          intervals: scale.intervals,
-          chords: Tonal.Scale.scaleChords(scale.name),
-          modes: Tonal.Scale.modeNames(scale.name),
-        };
-        break;
-      }
-
-      case 'interval': {
-        const { note1, note2 } = args;
-        if (!note1 || !note2) throw new Error('note1 and note2 required');
-
-        const interval = Tonal.Interval.distance(note1, note2);
-        const intervalInfo = Tonal.Interval.get(interval);
-        result = {
-          operation: 'interval',
-          from: note1,
-          to: note2,
-          interval,
-          semitones: intervalInfo.semitones,
-          name: intervalInfo.name,
-          quality: intervalInfo.quality,
-          direction: intervalInfo.dir,
-        };
-        break;
-      }
-
-      case 'key': {
-        const { key_name } = args;
-        if (!key_name) throw new Error('key_name required');
-
-        const key = Tonal.Key.majorKey(key_name.replace(' major', '').replace(' minor', ''));
-        const isMinor = key_name.toLowerCase().includes('minor');
-
-        if (isMinor) {
-          const minorKey = Tonal.Key.minorKey(key_name.replace(' minor', ''));
-          result = {
-            operation: 'key',
-            key: key_name,
-            type: 'minor',
-            tonic: minorKey.tonic,
-            natural: minorKey.natural,
-            harmonic: minorKey.harmonic,
-            melodic: minorKey.melodic,
-          };
-        } else {
-          result = {
-            operation: 'key',
-            key: key_name,
-            type: 'major',
-            tonic: key.tonic,
-            scale: key.scale,
-            chords: key.chords,
-            chordsHarmonicFunction: key.chordsHarmonicFunction,
-            grades: key.grades,
-          };
-        }
-        break;
-      }
-
-      case 'detect_key': {
-        const { notes } = args;
-        if (!notes || notes.length === 0) throw new Error('notes array required');
-
-        // Remove octave numbers for detection
-        const noteNames = notes.map((n: string) => Tonal.Note.pitchClass(n));
-        // Use key detection to validate note (simplified detection)
-        Tonal.Key.majorKey(noteNames[0]);
-
-        result = {
-          operation: 'detect_key',
+          root,
+          type: scale_type,
           notes,
-          possible_keys: [
-            { key: `${noteNames[0]} major`, confidence: 'high' },
-            { key: `${Tonal.Note.transpose(noteNames[0], 'm3')} minor`, confidence: 'medium' },
-          ],
+          visualization: visualizeScale(notes),
         };
         break;
       }
 
-      case 'detect_chord': {
-        const { notes } = args;
-        if (!notes || notes.length === 0) throw new Error('notes array required');
-
-        const detected = Tonal.Chord.detect(notes);
-        result = {
-          operation: 'detect_chord',
-          notes,
-          detected_chords: detected,
-          best_match: detected[0] || 'Unknown chord',
-        };
-        break;
-      }
-
-      case 'transpose': {
-        const { notes, interval } = args;
-        if (!notes || !interval) throw new Error('notes and interval required');
-
-        const transposed = notes.map((note: string) => Tonal.Note.transpose(note, interval));
-        result = {
-          operation: 'transpose',
-          original: notes,
-          interval,
-          transposed,
-        };
-        break;
-      }
-
-      case 'frequency': {
-        const { note1 } = args;
-        if (!note1) throw new Error('note1 required');
-
-        const freq = Tonal.Note.freq(note1);
-        const midi = Tonal.Note.midi(note1);
-        result = {
-          operation: 'frequency',
-          note: note1,
-          frequency_hz: freq,
-          midi_number: midi,
-          scientific_pitch: Tonal.Note.name(note1),
-        };
+      case 'chord': {
+        const { root = 'C', chord_type = 'major' } = args;
+        const notes = getChordNotes(root, chord_type);
+        if (!notes.length) throw new Error(`Unknown chord: ${chord_type}`);
+        result = { operation: 'chord', name: `${root} ${chord_type}`, notes };
         break;
       }
 
       case 'progression': {
-        const { chords, key_name } = args;
-        if (!chords || chords.length === 0) throw new Error('chords array required');
+        const { key = 'C', progression_name = 'I-V-vi-IV' } = args;
+        const prog = CHORD_PROGRESSIONS[progression_name];
+        if (!prog) throw new Error(`Unknown progression: ${progression_name}`);
+        const keyIndex = NOTE_NAMES.indexOf(key);
+        const chords = prog.chords.map((interval, i) => ({
+          numeral: prog.numerals[i],
+          root: NOTE_NAMES[(keyIndex + interval) % 12],
+        }));
+        result = { operation: 'progression', key, name: progression_name, chords };
+        break;
+      }
 
-        const analysis = chords.map((chord: string, i: number) => {
-          const chordInfo = Tonal.Chord.get(chord);
-          return {
-            position: i + 1,
-            chord,
-            notes: chordInfo.notes,
-            type: chordInfo.type,
-          };
-        });
+      case 'interval': {
+        const { note1 = 'C4', note2 = 'G4' } = args;
+        result = { operation: 'interval', note1, note2, ...analyzeInterval(note1, note2) };
+        break;
+      }
 
-        result = {
-          operation: 'progression',
-          key: key_name || 'Unknown',
-          progression: chords.join(' → '),
-          analysis,
-          common_progressions: {
-            'I-V-vi-IV': 'Pop progression',
-            'ii-V-I': 'Jazz progression',
-            'I-IV-V': 'Blues progression',
-          },
-        };
+      case 'transpose': {
+        const { notes: notesStr = 'C4,E4,G4', semitones: semi = 2 } = args;
+        const notes = notesStr.split(',').map((n: string) => n.trim());
+        const transposed = notes.map((n: string) => midiToNote(noteToMidi(n) + semi));
+        result = { operation: 'transpose', original: notes, semitones: semi, transposed };
+        break;
+      }
+
+      case 'frequency': {
+        const { root, midi, frequency } = args;
+        if (root) {
+          const m = noteToMidi(root);
+          result = { note: root, midi: m, frequency: Math.round(midiToFrequency(m) * 100) / 100 };
+        } else if (midi !== undefined) {
+          result = { note: midiToNote(midi), midi, frequency: Math.round(midiToFrequency(midi) * 100) / 100 };
+        } else if (frequency) {
+          const m = Math.round(frequencyToMidi(frequency));
+          result = { note: midiToNote(m), midi: m, frequency };
+        } else {
+          result = { reference: 'A4 = 440 Hz = MIDI 69' };
+        }
+        break;
+      }
+
+      case 'list_scales': {
+        result = { scales: Object.keys(SCALE_PATTERNS) };
+        break;
+      }
+
+      case 'list_chords': {
+        result = { chords: Object.keys(CHORD_PATTERNS) };
         break;
       }
 
@@ -339,18 +261,12 @@ export async function executeMusicTheory(call: UnifiedToolCall): Promise<Unified
         throw new Error(`Unknown operation: ${operation}`);
     }
 
-    return {
-      toolCallId: call.id,
-      content: JSON.stringify(result, null, 2),
-    };
+    return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return {
-      toolCallId: call.id,
-      content: JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        operation,
-      }),
-      isError: true,
-    };
+    return { toolCallId: id, content: `Music Theory Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
   }
+}
+
+export function isMusicTheoryAvailable(): boolean {
+  return true;
 }

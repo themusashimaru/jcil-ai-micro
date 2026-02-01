@@ -721,6 +721,56 @@ export {
   isSolarEnvironmentalAvailable,
 } from './solar-environmental-tool';
 
+// ============================================================================
+// TIER VISUAL MADNESS - Graphics & Animation Tools
+// ============================================================================
+
+// SVG Generator - Create SVG graphics, charts, icons
+export {
+  svgGeneratorTool,
+  executeSVGGenerator,
+  isSVGGeneratorAvailable,
+} from './svg-generator-tool';
+
+// Fractal Generator - Mandelbrot, Julia, Sierpinski, Koch
+export {
+  fractalGeneratorTool,
+  executeFractalGenerator,
+  isFractalGeneratorAvailable,
+} from './fractal-generator-tool';
+
+// Color Theory - Color manipulation, harmonies, palettes
+export {
+  colorTheoryTool,
+  executeColorTheory,
+  isColorTheoryAvailable,
+} from './color-theory-tool';
+
+// Animation Easing - Easing functions for smooth animation
+export {
+  animationEasingTool,
+  executeAnimationEasing,
+  isAnimationEasingAvailable,
+} from './animation-easing-tool';
+
+// Particle System - Physics-based particle simulation
+export {
+  particleSystemTool,
+  executeParticleSystem,
+  isParticleSystemAvailable,
+} from './particle-system-tool';
+
+// ============================================================================
+// TIER SOUND & MUSIC - Audio Tools
+// ============================================================================
+
+// Music Theory - Scales, chords, progressions, intervals
+export {
+  musicTheoryTool,
+  executeMusicTheory,
+  isMusicTheoryAvailable,
+} from './music-theory-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1118,6 +1168,28 @@ async function initializeTools() {
     await import('./cryptography-advanced-tool');
   const { solarEnvironmentalTool, executeSolarEnvironmental, isSolarEnvironmentalAvailable } =
     await import('./solar-environmental-tool');
+
+  // TIER VISUAL MADNESS - Graphics & Animation Tools
+  const { svgGeneratorTool, executeSVGGenerator, isSVGGeneratorAvailable } = await import(
+    './svg-generator-tool'
+  );
+  const { fractalGeneratorTool, executeFractalGenerator, isFractalGeneratorAvailable } = await import(
+    './fractal-generator-tool'
+  );
+  const { colorTheoryTool, executeColorTheory, isColorTheoryAvailable } = await import(
+    './color-theory-tool'
+  );
+  const { animationEasingTool, executeAnimationEasing, isAnimationEasingAvailable } = await import(
+    './animation-easing-tool'
+  );
+  const { particleSystemTool, executeParticleSystem, isParticleSystemAvailable } = await import(
+    './particle-system-tool'
+  );
+
+  // TIER SOUND & MUSIC - Audio Tools
+  const { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } = await import(
+    './music-theory-tool'
+  );
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -1535,6 +1607,38 @@ async function initializeTools() {
       tool: solarEnvironmentalTool,
       executor: executeSolarEnvironmental,
       checkAvailability: isSolarEnvironmentalAvailable,
+    },
+    // TIER VISUAL MADNESS - Graphics & Animation Tools (6 new)
+    {
+      tool: svgGeneratorTool,
+      executor: executeSVGGenerator,
+      checkAvailability: isSVGGeneratorAvailable,
+    },
+    {
+      tool: fractalGeneratorTool,
+      executor: executeFractalGenerator,
+      checkAvailability: isFractalGeneratorAvailable,
+    },
+    {
+      tool: colorTheoryTool,
+      executor: executeColorTheory,
+      checkAvailability: isColorTheoryAvailable,
+    },
+    {
+      tool: animationEasingTool,
+      executor: executeAnimationEasing,
+      checkAvailability: isAnimationEasingAvailable,
+    },
+    {
+      tool: particleSystemTool,
+      executor: executeParticleSystem,
+      checkAvailability: isParticleSystemAvailable,
+    },
+    // TIER SOUND & MUSIC - Audio Tools
+    {
+      tool: musicTheoryTool,
+      executor: executeMusicTheory,
+      checkAvailability: isMusicTheoryAvailable,
     }
   );
 
