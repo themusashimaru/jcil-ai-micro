@@ -500,6 +500,37 @@ import {
   securityAwarenessTool, executeSecurityAwareness, isSecurityAwarenessAvailable,
   securityCultureTool, executeSecurityCulture, isSecurityCultureAvailable,
   securityBudgetTool, executeSecurityBudget, isSecurityBudgetAvailable,
+  // Advanced Cybersecurity (30 more tools)
+  threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable,
+  threatIntelTool, executeThreatIntel, isThreatIntelAvailable,
+  threatModelTool, executeThreatModel, isThreatModelAvailable,
+  threatModelingTool, executeThreatModeling, isThreatModelingAvailable,
+  malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable,
+  malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable,
+  siemTool, executeSiem, isSiemAvailable,
+  forensicsTool, executeForensics, isForensicsAvailable,
+  soarTool, executeSoar, isSoarAvailable,
+  socTool, executeSoc, isSocAvailable,
+  xdrTool, executeXdr, isXdrAvailable,
+  redTeamTool, executeRedTeam, isRedTeamAvailable,
+  blueTeamTool, executeBlueTeam, isBlueTeamAvailable,
+  osintTool, executeOsint, isOsintAvailable,
+  ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable,
+  complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable,
+  riskManagementTool, executeRiskManagement, isRiskManagementAvailable,
+  incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable,
+  idsIpsTool, executeIdsIps, isIdsIpsAvailable,
+  firewallTool, executeFirewall, isFirewallAvailable,
+  honeypotTool, executeHoneypot, isHoneypotAvailable,
+  penTestTool, executePenTest, isPenTestAvailable,
+  vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable,
+  vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable,
+  zeroTrustTool, executeZeroTrust, isZeroTrustAvailable,
+  attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable,
+  networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable,
+  cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable,
+  vendorRiskTool, executeVendorRisk, isVendorRiskAvailable,
+  socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
@@ -4048,6 +4079,37 @@ SECURITY:
     if (isSecurityAwarenessAvailable()) tools.push(securityAwarenessTool);
     if (isSecurityCultureAvailable()) tools.push(securityCultureTool);
     if (isSecurityBudgetAvailable()) tools.push(securityBudgetTool);
+    // Advanced Cybersecurity (30 more tools)
+    if (isThreatHuntingAvailable()) tools.push(threatHuntingTool);
+    if (isThreatIntelAvailable()) tools.push(threatIntelTool);
+    if (isThreatModelAvailable()) tools.push(threatModelTool);
+    if (isThreatModelingAvailable()) tools.push(threatModelingTool);
+    if (isMalwareAnalysisAvailable()) tools.push(malwareAnalysisTool);
+    if (isMalwareIndicatorsAvailable()) tools.push(malwareIndicatorsTool);
+    if (isSiemAvailable()) tools.push(siemTool);
+    if (isForensicsAvailable()) tools.push(forensicsTool);
+    if (isSoarAvailable()) tools.push(soarTool);
+    if (isSocAvailable()) tools.push(socTool);
+    if (isXdrAvailable()) tools.push(xdrTool);
+    if (isRedTeamAvailable()) tools.push(redTeamTool);
+    if (isBlueTeamAvailable()) tools.push(blueTeamTool);
+    if (isOsintAvailable()) tools.push(osintTool);
+    if (isRansomwareDefenseAvailable()) tools.push(ransomwareDefenseTool);
+    if (isComplianceFrameworkAvailable()) tools.push(complianceFrameworkTool);
+    if (isRiskManagementAvailable()) tools.push(riskManagementTool);
+    if (isIncidentResponseAvailable()) tools.push(incidentResponseTool);
+    if (isIdsIpsAvailable()) tools.push(idsIpsTool);
+    if (isFirewallAvailable()) tools.push(firewallTool);
+    if (isHoneypotAvailable()) tools.push(honeypotTool);
+    if (isPenTestAvailable()) tools.push(penTestTool);
+    if (isVulnAssessmentAvailable()) tools.push(vulnAssessmentTool);
+    if (isVulnerabilityScannerAvailable()) tools.push(vulnerabilityScannerTool);
+    if (isZeroTrustAvailable()) tools.push(zeroTrustTool);
+    if (isAttackSurfaceAvailable()) tools.push(attackSurfaceTool);
+    if (isNetworkDefenseAvailable()) tools.push(networkDefenseTool);
+    if (isCyberInsuranceAvailable()) tools.push(cyberInsuranceTool);
+    if (isVendorRiskAvailable()) tools.push(vendorRiskTool);
+    if (isSocialEngineeringAvailable()) tools.push(socialEngineeringTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -4217,6 +4279,37 @@ SECURITY:
         security_awareness: 0.0001,
         security_culture: 0.0001,
         security_budget: 0.0001,
+        // Advanced Cybersecurity (30 more tools)
+        threat_hunting: 0.0001,
+        threat_intel: 0.0001,
+        threat_model: 0.0001,
+        threat_modeling: 0.0001,
+        malware_analysis: 0.0001,
+        malware_indicators: 0.0001,
+        siem: 0.0001,
+        forensics: 0.0001,
+        soar: 0.0001,
+        soc: 0.0001,
+        xdr: 0.0001,
+        red_team: 0.0001,
+        blue_team: 0.0001,
+        osint: 0.0001,
+        ransomware_defense: 0.0001,
+        compliance_framework: 0.0001,
+        risk_management: 0.0001,
+        incident_response: 0.0001,
+        ids_ips: 0.0001,
+        firewall: 0.0001,
+        honeypot: 0.0001,
+        pen_test: 0.0001,
+        vuln_assessment: 0.0001,
+        vulnerability_scanner: 0.0001,
+        zero_trust: 0.0001,
+        attack_surface: 0.0001,
+        network_defense: 0.0001,
+        cyber_insurance: 0.0001,
+        vendor_risk: 0.0001,
+        social_engineering: 0.0001,
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4734,6 +4827,97 @@ SECURITY:
             break;
           case 'security_budget':
             result = await executeSecurityBudget(toolCallWithSession);
+            break;
+          // Advanced Cybersecurity (30 more tools)
+          case 'threat_hunting':
+            result = await executeThreatHunting(toolCallWithSession);
+            break;
+          case 'threat_intel':
+            result = await executeThreatIntel(toolCallWithSession);
+            break;
+          case 'threat_model':
+            result = await executeThreatModel(toolCallWithSession);
+            break;
+          case 'threat_modeling':
+            result = await executeThreatModeling(toolCallWithSession);
+            break;
+          case 'malware_analysis':
+            result = await executeMalwareAnalysis(toolCallWithSession);
+            break;
+          case 'malware_indicators':
+            result = await executeMalwareIndicators(toolCallWithSession);
+            break;
+          case 'siem':
+            result = await executeSiem(toolCallWithSession);
+            break;
+          case 'forensics':
+            result = await executeForensics(toolCallWithSession);
+            break;
+          case 'soar':
+            result = await executeSoar(toolCallWithSession);
+            break;
+          case 'soc':
+            result = await executeSoc(toolCallWithSession);
+            break;
+          case 'xdr':
+            result = await executeXdr(toolCallWithSession);
+            break;
+          case 'red_team':
+            result = await executeRedTeam(toolCallWithSession);
+            break;
+          case 'blue_team':
+            result = await executeBlueTeam(toolCallWithSession);
+            break;
+          case 'osint':
+            result = await executeOsint(toolCallWithSession);
+            break;
+          case 'ransomware_defense':
+            result = await executeRansomwareDefense(toolCallWithSession);
+            break;
+          case 'compliance_framework':
+            result = await executeComplianceFramework(toolCallWithSession);
+            break;
+          case 'risk_management':
+            result = await executeRiskManagement(toolCallWithSession);
+            break;
+          case 'incident_response':
+            result = await executeIncidentResponse(toolCallWithSession);
+            break;
+          case 'ids_ips':
+            result = await executeIdsIps(toolCallWithSession);
+            break;
+          case 'firewall':
+            result = await executeFirewall(toolCallWithSession);
+            break;
+          case 'honeypot':
+            result = await executeHoneypot(toolCallWithSession);
+            break;
+          case 'pen_test':
+            result = await executePenTest(toolCallWithSession);
+            break;
+          case 'vuln_assessment':
+            result = await executeVulnAssessment(toolCallWithSession);
+            break;
+          case 'vulnerability_scanner':
+            result = await executeVulnerabilityScanner(toolCallWithSession);
+            break;
+          case 'zero_trust':
+            result = await executeZeroTrust(toolCallWithSession);
+            break;
+          case 'attack_surface':
+            result = await executeAttackSurface(toolCallWithSession);
+            break;
+          case 'network_defense':
+            result = await executeNetworkDefense(toolCallWithSession);
+            break;
+          case 'cyber_insurance':
+            result = await executeCyberInsurance(toolCallWithSession);
+            break;
+          case 'vendor_risk':
+            result = await executeVendorRisk(toolCallWithSession);
+            break;
+          case 'social_engineering':
+            result = await executeSocialEngineering(toolCallWithSession);
             break;
           default:
             result = {

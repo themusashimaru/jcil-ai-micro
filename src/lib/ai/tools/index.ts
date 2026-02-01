@@ -1280,6 +1280,38 @@ export {
   isSecurityBudgetAvailable,
 } from './security-budget-tool';
 
+// Advanced Cybersecurity (30 more tools)
+export { threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable } from './threat-hunting-tool';
+export { threatIntelTool, executeThreatIntel, isThreatIntelAvailable } from './threat-intel-tool';
+export { threatModelTool, executeThreatModel, isThreatModelAvailable } from './threat-model-tool';
+export { threatModelingTool, executeThreatModeling, isThreatModelingAvailable } from './threat-modeling-tool';
+export { malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable } from './malware-analysis-tool';
+export { malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable } from './malware-indicators-tool';
+export { siemTool, executeSiem, isSiemAvailable } from './siem-tool';
+export { forensicsTool, executeForensics, isForensicsAvailable } from './forensics-tool';
+export { soarTool, executeSoar, isSoarAvailable } from './soar-tool';
+export { socTool, executeSoc, isSocAvailable } from './soc-tool';
+export { xdrTool, executeXdr, isXdrAvailable } from './xdr-tool';
+export { redTeamTool, executeRedTeam, isRedTeamAvailable } from './red-team-tool';
+export { blueTeamTool, executeBlueTeam, isBlueTeamAvailable } from './blue-team-tool';
+export { osintTool, executeOsint, isOsintAvailable } from './osint-tool';
+export { ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable } from './ransomware-defense-tool';
+export { complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable } from './compliance-framework-tool';
+export { riskManagementTool, executeRiskManagement, isRiskManagementAvailable } from './risk-management-tool';
+export { incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable } from './incident-response-tool';
+export { idsIpsTool, executeIdsIps, isIdsIpsAvailable } from './ids-ips-tool';
+export { firewallTool, executeFirewall, isFirewallAvailable } from './firewall-tool';
+export { honeypotTool, executeHoneypot, isHoneypotAvailable } from './honeypot-tool';
+export { penTestTool, executePenTest, isPenTestAvailable } from './pen-test-tool';
+export { vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable } from './vuln-assessment-tool';
+export { vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable } from './vulnerability-scanner-tool';
+export { zeroTrustTool, executeZeroTrust, isZeroTrustAvailable } from './zero-trust-tool';
+export { attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable } from './attack-surface-tool';
+export { networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable } from './network-defense-tool';
+export { cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable } from './cyber-insurance-tool';
+export { vendorRiskTool, executeVendorRisk, isVendorRiskAvailable } from './vendor-risk-tool';
+export { socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable } from './social-engineering-tool';
+
 // ============================================================================
 // TOOL REGISTRY
 // ============================================================================
