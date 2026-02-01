@@ -2137,6 +2137,55 @@ async function initializeTools() {
   const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
   const { docGeneratorTool, executeDocGenerator, isDocGeneratorAvailable } = await import('./doc-generator-tool');
 
+  // ============================================================================
+  // ULTRA DEVELOPER TOOLKIT - Advanced DevOps, Architecture & AI Tools
+  // ============================================================================
+  // Code Intelligence
+  const { astAnalyzerTool, executeAstAnalyzer, isAstAnalyzerAvailable } = await import('./ast-analyzer-tool');
+  const { codeComplexityTool, executeCodeComplexity, isCodeComplexityAvailable } = await import('./code-complexity-tool');
+  const { designPatternTool, executeDesignPattern, isDesignPatternAvailable } = await import('./design-pattern-tool');
+  const { dependencyGraphTool, executeDependencyGraph, isDependencyGraphAvailable } = await import('./dependency-graph-tool');
+  const { refactorSuggesterTool, executeRefactorSuggester, isRefactorSuggesterAvailable } = await import('./refactor-suggester-tool');
+  const { techDebtTool, executeTechDebt, isTechDebtAvailable } = await import('./tech-debt-tool');
+  const { codeSmellDetectorTool, executeCodeSmellDetector, isCodeSmellDetectorAvailable } = await import('./code-smell-detector-tool');
+  // DevOps & Infrastructure
+  const { kubernetesGenTool, executeKubernetesGen, isKubernetesGenAvailable } = await import('./kubernetes-gen-tool');
+  const { dockerOptimizerTool, executeDockerOptimizer, isDockerOptimizerAvailable } = await import('./docker-optimizer-tool');
+  const { ciCdGeneratorTool, executeCiCdGenerator, isCiCdGeneratorAvailable } = await import('./ci-cd-generator-tool');
+  const { terraformGenTool, executeTerraformGen, isTerraformGenAvailable } = await import('./terraform-gen-tool');
+  const { helmChartTool, executeHelmChart, isHelmChartAvailable } = await import('./helm-chart-tool');
+  const { observabilityTool, executeObservability, isObservabilityAvailable } = await import('./observability-tool');
+  // Database & Data
+  const { sqlOptimizerTool, executeSqlOptimizer, isSqlOptimizerAvailable } = await import('./sql-optimizer-tool');
+  const { migrationGeneratorTool, executeMigrationGenerator, isMigrationGeneratorAvailable } = await import('./migration-generator-tool');
+  const { nosqlSchemaTool, executeNosqlSchema, isNosqlSchemaAvailable } = await import('./nosql-schema-tool');
+  const { dataPipelineTool, executeDataPipeline, isDataPipelineAvailable } = await import('./data-pipeline-tool');
+  // API Development
+  const { apiDesignTool, executeApiDesign, isApiDesignAvailable } = await import('./api-design-tool');
+  const { graphqlSchemaTool, executeGraphqlSchema, isGraphqlSchemaAvailable } = await import('./graphql-schema-tool');
+  // Architecture & Design
+  const { systemDesignTool, executeSystemDesign, isSystemDesignAvailable } = await import('./system-design-tool');
+  const { microservicesTool, executeMicroservices, isMicroservicesAvailable } = await import('./microservices-tool');
+  const { cacheStrategyTool, executeCacheStrategy, isCacheStrategyAvailable } = await import('./cache-strategy-tool');
+  const { circuitBreakerTool, executeCircuitBreaker, isCircuitBreakerAvailable } = await import('./circuit-breaker-tool');
+  const { featureFlagTool, executeFeatureFlag, isFeatureFlagAvailable } = await import('./feature-flag-tool');
+  // Testing & Quality
+  const { unitTestGenTool, executeUnitTestGen, isUnitTestGenAvailable } = await import('./unit-test-gen-tool');
+  const { e2eTestGenTool, executeE2eTestGen, isE2eTestGenAvailable } = await import('./e2e-test-gen-tool');
+  const { loadTestDesignTool, executeLoadTestDesign, isLoadTestDesignAvailable } = await import('./load-test-design-tool');
+  // AI/ML Development
+  const { promptEngineeringTool, executePromptEngineering, isPromptEngineeringAvailable } = await import('./prompt-engineering-tool');
+  const { modelEvaluationTool, executeModelEvaluation, isModelEvaluationAvailable } = await import('./model-evaluation-tool');
+  const { mlModelServingTool, executeMlModelServing, isMlModelServingAvailable } = await import('./ml-model-serving-tool');
+  // Blockchain & Web3
+  const { smartContractTool, executeSmartContract, isSmartContractAvailable } = await import('./smart-contract-tool');
+  // Real-time & WebSockets
+  const { websocketDesignTool, executeWebsocketDesign, isWebsocketDesignAvailable } = await import('./websocket-design-tool');
+  // Game Development
+  const { gameLogicTool, executeGameLogic, isGameLogicAvailable } = await import('./game-logic-tool');
+  // Documentation
+  const { readmeGeneratorTool, executeReadmeGenerator, isReadmeGeneratorAvailable } = await import('./readme-generator-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -3020,7 +3069,53 @@ async function initializeTools() {
     { tool: testGeneratorTool, executor: executeTestGenerator, checkAvailability: isTestGeneratorAvailable },
     { tool: errorFixerTool, executor: executeErrorFixer, checkAvailability: isErrorFixerAvailable },
     { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
-    { tool: docGeneratorTool, executor: executeDocGenerator, checkAvailability: isDocGeneratorAvailable }
+    { tool: docGeneratorTool, executor: executeDocGenerator, checkAvailability: isDocGeneratorAvailable },
+    // ULTRA DEVELOPER TOOLKIT - Advanced DevOps, Architecture & AI Tools
+    // Code Intelligence
+    { tool: astAnalyzerTool, executor: executeAstAnalyzer, checkAvailability: isAstAnalyzerAvailable },
+    { tool: codeComplexityTool, executor: executeCodeComplexity, checkAvailability: isCodeComplexityAvailable },
+    { tool: designPatternTool, executor: executeDesignPattern, checkAvailability: isDesignPatternAvailable },
+    { tool: dependencyGraphTool, executor: executeDependencyGraph, checkAvailability: isDependencyGraphAvailable },
+    { tool: refactorSuggesterTool, executor: executeRefactorSuggester, checkAvailability: isRefactorSuggesterAvailable },
+    { tool: techDebtTool, executor: executeTechDebt, checkAvailability: isTechDebtAvailable },
+    { tool: codeSmellDetectorTool, executor: executeCodeSmellDetector, checkAvailability: isCodeSmellDetectorAvailable },
+    // DevOps & Infrastructure
+    { tool: kubernetesGenTool, executor: executeKubernetesGen, checkAvailability: isKubernetesGenAvailable },
+    { tool: dockerOptimizerTool, executor: executeDockerOptimizer, checkAvailability: isDockerOptimizerAvailable },
+    { tool: ciCdGeneratorTool, executor: executeCiCdGenerator, checkAvailability: isCiCdGeneratorAvailable },
+    { tool: terraformGenTool, executor: executeTerraformGen, checkAvailability: isTerraformGenAvailable },
+    { tool: helmChartTool, executor: executeHelmChart, checkAvailability: isHelmChartAvailable },
+    { tool: observabilityTool, executor: executeObservability, checkAvailability: isObservabilityAvailable },
+    // Database & Data
+    { tool: sqlOptimizerTool, executor: executeSqlOptimizer, checkAvailability: isSqlOptimizerAvailable },
+    { tool: migrationGeneratorTool, executor: executeMigrationGenerator, checkAvailability: isMigrationGeneratorAvailable },
+    { tool: nosqlSchemaTool, executor: executeNosqlSchema, checkAvailability: isNosqlSchemaAvailable },
+    { tool: dataPipelineTool, executor: executeDataPipeline, checkAvailability: isDataPipelineAvailable },
+    // API Development
+    { tool: apiDesignTool, executor: executeApiDesign, checkAvailability: isApiDesignAvailable },
+    { tool: graphqlSchemaTool, executor: executeGraphqlSchema, checkAvailability: isGraphqlSchemaAvailable },
+    // Architecture & Design
+    { tool: systemDesignTool, executor: executeSystemDesign, checkAvailability: isSystemDesignAvailable },
+    { tool: microservicesTool, executor: executeMicroservices, checkAvailability: isMicroservicesAvailable },
+    { tool: cacheStrategyTool, executor: executeCacheStrategy, checkAvailability: isCacheStrategyAvailable },
+    { tool: circuitBreakerTool, executor: executeCircuitBreaker, checkAvailability: isCircuitBreakerAvailable },
+    { tool: featureFlagTool, executor: executeFeatureFlag, checkAvailability: isFeatureFlagAvailable },
+    // Testing & Quality
+    { tool: unitTestGenTool, executor: executeUnitTestGen, checkAvailability: isUnitTestGenAvailable },
+    { tool: e2eTestGenTool, executor: executeE2eTestGen, checkAvailability: isE2eTestGenAvailable },
+    { tool: loadTestDesignTool, executor: executeLoadTestDesign, checkAvailability: isLoadTestDesignAvailable },
+    // AI/ML Development
+    { tool: promptEngineeringTool, executor: executePromptEngineering, checkAvailability: isPromptEngineeringAvailable },
+    { tool: modelEvaluationTool, executor: executeModelEvaluation, checkAvailability: isModelEvaluationAvailable },
+    { tool: mlModelServingTool, executor: executeMlModelServing, checkAvailability: isMlModelServingAvailable },
+    // Blockchain & Web3
+    { tool: smartContractTool, executor: executeSmartContract, checkAvailability: isSmartContractAvailable },
+    // Real-time & WebSockets
+    { tool: websocketDesignTool, executor: executeWebsocketDesign, checkAvailability: isWebsocketDesignAvailable },
+    // Game Development
+    { tool: gameLogicTool, executor: executeGameLogic, checkAvailability: isGameLogicAvailable },
+    // Documentation
+    { tool: readmeGeneratorTool, executor: executeReadmeGenerator, checkAvailability: isReadmeGeneratorAvailable }
   );
 
   toolsInitialized = true;
