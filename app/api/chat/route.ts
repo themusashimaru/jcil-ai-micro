@@ -460,10 +460,51 @@ import {
   docGeneratorTool,
   executeDocGenerator,
   isDocGeneratorAvailable,
+  // Tool Chain Executor - Smart multi-tool workflows (Enhancement #3)
+  toolChainTool,
+  createToolChainExecutor,
+  // GitHub Context Tool - Understand user codebases (Enhancement #4)
+  githubContextTool,
+  executeGitHubContext,
+  isGitHubContextAvailable,
+  // Cybersecurity Tools (32 tools) - Full Security Operations Suite
+  networkSecurityTool, executeNetworkSecurity, isNetworkSecurityAvailable,
+  dnsSecurityTool, executeDnsSecurity, isDnsSecurityAvailable,
+  ipSecurityTool, executeIpSecurity, isIpSecurityAvailable,
+  wirelessSecurityTool, executeWirelessSecurity, isWirelessSecurityAvailable,
+  apiSecurityTool, executeApiSecurity, isApiSecurityAvailable,
+  webSecurityTool, executeWebSecurity, isWebSecurityAvailable,
+  browserSecurityTool, executeBrowserSecurity, isBrowserSecurityAvailable,
+  mobileSecurityTool, executeMobileSecurity, isMobileSecurityAvailable,
+  cloudSecurityTool, executeCloudSecurity, isCloudSecurityAvailable,
+  cloudNativeSecurityTool, executeCloudNativeSecurity, isCloudNativeSecurityAvailable,
+  containerSecurityTool, executeContainerSecurity, isContainerSecurityAvailable,
+  dataSecurityTool, executeDataSecurity, isDataSecurityAvailable,
+  databaseSecurityTool, executeDatabaseSecurity, isDatabaseSecurityAvailable,
+  credentialSecurityTool, executeCredentialSecurity, isCredentialSecurityAvailable,
+  emailSecurityTool, executeEmailSecurity, isEmailSecurityAvailable,
+  endpointSecurityTool, executeEndpointSecurity, isEndpointSecurityAvailable,
+  iotSecurityTool, executeIotSecurity, isIotSecurityAvailable,
+  physicalSecurityTool, executePhysicalSecurity, isPhysicalSecurityAvailable,
+  blockchainSecurityTool, executeBlockchainSecurity, isBlockchainSecurityAvailable,
+  aiSecurityTool, executeAiSecurity, isAiSecurityAvailable,
+  supplyChainSecurityTool, executeSupplyChainSecurity, isSupplyChainSecurityAvailable,
+  securityOperationsTool, executeSecurityOperations, isSecurityOperationsAvailable,
+  securityMetricsTool, executeSecurityMetrics, isSecurityMetricsAvailable,
+  securityHeadersTool, executeSecurityHeaders, isSecurityHeadersAvailable,
+  securityTestingTool, executeSecurityTesting, isSecurityTestingAvailable,
+  securityAuditTool, executeSecurityAudit, isSecurityAuditAvailable,
+  securityArchitectureTool, executeSecurityArchitecture, isSecurityArchitectureAvailable,
+  securityArchitecturePatternsTool, executeSecurityArchitecturePatterns, isSecurityArchitecturePatternsAvailable,
+  securityPolicyTool, executeSecurityPolicy, isSecurityPolicyAvailable,
+  securityAwarenessTool, executeSecurityAwareness, isSecurityAwarenessAvailable,
+  securityCultureTool, executeSecurityCulture, isSecurityCultureAvailable,
+  securityBudgetTool, executeSecurityBudget, isSecurityBudgetAvailable,
   // Safety & cost control
   canExecuteTool,
   recordToolCost,
   type UnifiedToolResult,
+  type UnifiedToolCall,
   // Quality control
   shouldRunQC,
   verifyOutput,
@@ -3971,6 +4012,42 @@ SECURITY:
     if (isErrorFixerAvailable()) tools.push(errorFixerTool);
     if (isRefactorAvailable()) tools.push(refactorTool);
     if (isDocGeneratorAvailable()) tools.push(docGeneratorTool);
+    // Tool Orchestration - Smart workflows (Enhancement #3 & #4)
+    tools.push(toolChainTool); // run_workflow - always available
+    if (isGitHubContextAvailable()) tools.push(githubContextTool);
+    // Cybersecurity Tools (32 tools) - Full Security Operations Suite
+    if (isNetworkSecurityAvailable()) tools.push(networkSecurityTool);
+    if (isDnsSecurityAvailable()) tools.push(dnsSecurityTool);
+    if (isIpSecurityAvailable()) tools.push(ipSecurityTool);
+    if (isWirelessSecurityAvailable()) tools.push(wirelessSecurityTool);
+    if (isApiSecurityAvailable()) tools.push(apiSecurityTool);
+    if (isWebSecurityAvailable()) tools.push(webSecurityTool);
+    if (isBrowserSecurityAvailable()) tools.push(browserSecurityTool);
+    if (isMobileSecurityAvailable()) tools.push(mobileSecurityTool);
+    if (isCloudSecurityAvailable()) tools.push(cloudSecurityTool);
+    if (isCloudNativeSecurityAvailable()) tools.push(cloudNativeSecurityTool);
+    if (isContainerSecurityAvailable()) tools.push(containerSecurityTool);
+    if (isDataSecurityAvailable()) tools.push(dataSecurityTool);
+    if (isDatabaseSecurityAvailable()) tools.push(databaseSecurityTool);
+    if (isCredentialSecurityAvailable()) tools.push(credentialSecurityTool);
+    if (isEmailSecurityAvailable()) tools.push(emailSecurityTool);
+    if (isEndpointSecurityAvailable()) tools.push(endpointSecurityTool);
+    if (isIotSecurityAvailable()) tools.push(iotSecurityTool);
+    if (isPhysicalSecurityAvailable()) tools.push(physicalSecurityTool);
+    if (isBlockchainSecurityAvailable()) tools.push(blockchainSecurityTool);
+    if (isAiSecurityAvailable()) tools.push(aiSecurityTool);
+    if (isSupplyChainSecurityAvailable()) tools.push(supplyChainSecurityTool);
+    if (isSecurityOperationsAvailable()) tools.push(securityOperationsTool);
+    if (isSecurityMetricsAvailable()) tools.push(securityMetricsTool);
+    if (isSecurityHeadersAvailable()) tools.push(securityHeadersTool);
+    if (isSecurityTestingAvailable()) tools.push(securityTestingTool);
+    if (isSecurityAuditAvailable()) tools.push(securityAuditTool);
+    if (isSecurityArchitectureAvailable()) tools.push(securityArchitectureTool);
+    if (isSecurityArchitecturePatternsAvailable()) tools.push(securityArchitecturePatternsTool);
+    if (isSecurityPolicyAvailable()) tools.push(securityPolicyTool);
+    if (isSecurityAwarenessAvailable()) tools.push(securityAwarenessTool);
+    if (isSecurityCultureAvailable()) tools.push(securityCultureTool);
+    if (isSecurityBudgetAvailable()) tools.push(securityBudgetTool);
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
@@ -4104,6 +4181,42 @@ SECURITY:
         fix_error: 0.03, // AI error analysis
         refactor_code: 0.05, // AI refactoring
         generate_docs: 0.03, // AI documentation
+        // Tool Orchestration (Enhancement #3 & #4)
+        run_workflow: 0.10, // Multi-tool workflow execution
+        github_context: 0.02, // GitHub API calls
+        // Cybersecurity Tools (32 tools) - all local processing
+        network_security: 0.0001,
+        dns_security: 0.0001,
+        ip_security: 0.0001,
+        wireless_security: 0.0001,
+        api_security: 0.0001,
+        web_security: 0.0001,
+        browser_security: 0.0001,
+        mobile_security: 0.0001,
+        cloud_security: 0.0001,
+        cloud_native_security: 0.0001,
+        container_security: 0.0001,
+        data_security: 0.0001,
+        database_security: 0.0001,
+        credential_security: 0.0001,
+        email_security: 0.0001,
+        endpoint_security: 0.0001,
+        iot_security: 0.0001,
+        physical_security: 0.0001,
+        blockchain_security: 0.0001,
+        ai_security: 0.0001,
+        supply_chain_security: 0.0001,
+        security_operations: 0.0001,
+        security_metrics: 0.0001,
+        security_headers: 0.0001,
+        security_testing: 0.0001,
+        security_audit: 0.0001,
+        security_architecture: 0.0001,
+        security_architecture_patterns: 0.0001,
+        security_policy: 0.0001,
+        security_awareness: 0.0001,
+        security_culture: 0.0001,
+        security_budget: 0.0001,
       };
       const estimatedCost = toolCosts[toolName] || 0.01;
 
@@ -4506,6 +4619,121 @@ SECURITY:
             break;
           case 'generate_docs':
             result = await executeDocGenerator(toolCallWithSession);
+            break;
+          // Tool Orchestration (Enhancement #3 & #4)
+          case 'run_workflow': {
+            // Create executor map for tool chaining
+            const executorMap = new Map<string, (call: UnifiedToolCall) => Promise<UnifiedToolResult>>();
+            executorMap.set('workspace', executeWorkspace);
+            executorMap.set('generate_code', executeCodeGeneration);
+            executorMap.set('analyze_code', executeCodeAnalysis);
+            executorMap.set('generate_tests', executeTestGenerator);
+            executorMap.set('refactor_code', executeRefactor);
+            executorMap.set('generate_docs', executeDocGenerator);
+            executorMap.set('fix_error', executeErrorFixer);
+            const chainExecutor = createToolChainExecutor(executorMap);
+            result = await chainExecutor(toolCallWithSession);
+            break;
+          }
+          case 'github_context':
+            result = await executeGitHubContext(toolCallWithSession);
+            break;
+          // Cybersecurity Tools (32 tools)
+          case 'network_security':
+            result = await executeNetworkSecurity(toolCallWithSession);
+            break;
+          case 'dns_security':
+            result = await executeDnsSecurity(toolCallWithSession);
+            break;
+          case 'ip_security':
+            result = await executeIpSecurity(toolCallWithSession);
+            break;
+          case 'wireless_security':
+            result = await executeWirelessSecurity(toolCallWithSession);
+            break;
+          case 'api_security':
+            result = await executeApiSecurity(toolCallWithSession);
+            break;
+          case 'web_security':
+            result = await executeWebSecurity(toolCallWithSession);
+            break;
+          case 'browser_security':
+            result = await executeBrowserSecurity(toolCallWithSession);
+            break;
+          case 'mobile_security':
+            result = await executeMobileSecurity(toolCallWithSession);
+            break;
+          case 'cloud_security':
+            result = await executeCloudSecurity(toolCallWithSession);
+            break;
+          case 'cloud_native_security':
+            result = await executeCloudNativeSecurity(toolCallWithSession);
+            break;
+          case 'container_security':
+            result = await executeContainerSecurity(toolCallWithSession);
+            break;
+          case 'data_security':
+            result = await executeDataSecurity(toolCallWithSession);
+            break;
+          case 'database_security':
+            result = await executeDatabaseSecurity(toolCallWithSession);
+            break;
+          case 'credential_security':
+            result = await executeCredentialSecurity(toolCallWithSession);
+            break;
+          case 'email_security':
+            result = await executeEmailSecurity(toolCallWithSession);
+            break;
+          case 'endpoint_security':
+            result = await executeEndpointSecurity(toolCallWithSession);
+            break;
+          case 'iot_security':
+            result = await executeIotSecurity(toolCallWithSession);
+            break;
+          case 'physical_security':
+            result = await executePhysicalSecurity(toolCallWithSession);
+            break;
+          case 'blockchain_security':
+            result = await executeBlockchainSecurity(toolCallWithSession);
+            break;
+          case 'ai_security':
+            result = await executeAiSecurity(toolCallWithSession);
+            break;
+          case 'supply_chain_security':
+            result = await executeSupplyChainSecurity(toolCallWithSession);
+            break;
+          case 'security_operations':
+            result = await executeSecurityOperations(toolCallWithSession);
+            break;
+          case 'security_metrics':
+            result = await executeSecurityMetrics(toolCallWithSession);
+            break;
+          case 'security_headers':
+            result = await executeSecurityHeaders(toolCallWithSession);
+            break;
+          case 'security_testing':
+            result = await executeSecurityTesting(toolCallWithSession);
+            break;
+          case 'security_audit':
+            result = await executeSecurityAudit(toolCallWithSession);
+            break;
+          case 'security_architecture':
+            result = await executeSecurityArchitecture(toolCallWithSession);
+            break;
+          case 'security_architecture_patterns':
+            result = await executeSecurityArchitecturePatterns(toolCallWithSession);
+            break;
+          case 'security_policy':
+            result = await executeSecurityPolicy(toolCallWithSession);
+            break;
+          case 'security_awareness':
+            result = await executeSecurityAwareness(toolCallWithSession);
+            break;
+          case 'security_culture':
+            result = await executeSecurityCulture(toolCallWithSession);
+            break;
+          case 'security_budget':
+            result = await executeSecurityBudget(toolCallWithSession);
             break;
           default:
             result = {

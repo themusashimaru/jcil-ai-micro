@@ -1076,6 +1076,211 @@ export {
 } from './github-context-tool';
 
 // ============================================================================
+// CYBERSECURITY TOOLS (32 tools) - Full Security Operations Suite
+// ============================================================================
+
+// Network & Infrastructure Security
+export {
+  networkSecurityTool,
+  executeNetworkSecurity,
+  isNetworkSecurityAvailable,
+} from './network-security-tool';
+
+export {
+  dnsSecurityTool,
+  executeDnsSecurity,
+  isDnsSecurityAvailable,
+} from './dns-security-tool';
+
+export {
+  ipSecurityTool,
+  executeIpSecurity,
+  isIpSecurityAvailable,
+} from './ip-security-tool';
+
+export {
+  wirelessSecurityTool,
+  executeWirelessSecurity,
+  isWirelessSecurityAvailable,
+} from './wireless-security-tool';
+
+// Application Security
+export {
+  apiSecurityTool,
+  executeApiSecurity,
+  isApiSecurityAvailable,
+} from './api-security-tool';
+
+export {
+  webSecurityTool,
+  executeWebSecurity,
+  isWebSecurityAvailable,
+} from './web-security-tool';
+
+export {
+  browserSecurityTool,
+  executeBrowserSecurity,
+  isBrowserSecurityAvailable,
+} from './browser-security-tool';
+
+export {
+  mobileSecurityTool,
+  executeMobileSecurity,
+  isMobileSecurityAvailable,
+} from './mobile-security-tool';
+
+// Cloud & Container Security
+export {
+  cloudSecurityTool,
+  executeCloudSecurity,
+  isCloudSecurityAvailable,
+} from './cloud-security-tool';
+
+export {
+  cloudNativeSecurityTool,
+  executeCloudNativeSecurity,
+  isCloudNativeSecurityAvailable,
+} from './cloud-native-security-tool';
+
+export {
+  containerSecurityTool,
+  executeContainerSecurity,
+  isContainerSecurityAvailable,
+} from './container-security-tool';
+
+// Data & Identity Security
+export {
+  dataSecurityTool,
+  executeDataSecurity,
+  isDataSecurityAvailable,
+} from './data-security-tool';
+
+export {
+  databaseSecurityTool,
+  executeDatabaseSecurity,
+  isDatabaseSecurityAvailable,
+} from './database-security-tool';
+
+export {
+  credentialSecurityTool,
+  executeCredentialSecurity,
+  isCredentialSecurityAvailable,
+} from './credential-security-tool';
+
+export {
+  emailSecurityTool,
+  executeEmailSecurity,
+  isEmailSecurityAvailable,
+} from './email-security-tool';
+
+// Endpoint & IoT Security
+export {
+  endpointSecurityTool,
+  executeEndpointSecurity,
+  isEndpointSecurityAvailable,
+} from './endpoint-security-tool';
+
+export {
+  iotSecurityTool,
+  executeIotSecurity,
+  isIotSecurityAvailable,
+} from './iot-security-tool';
+
+export {
+  physicalSecurityTool,
+  executePhysicalSecurity,
+  isPhysicalSecurityAvailable,
+} from './physical-security-tool';
+
+// Specialized Security
+export {
+  blockchainSecurityTool,
+  executeBlockchainSecurity,
+  isBlockchainSecurityAvailable,
+} from './blockchain-security-tool';
+
+export {
+  aiSecurityTool,
+  executeAiSecurity,
+  isAiSecurityAvailable,
+} from './ai-security-tool';
+
+export {
+  supplyChainSecurityTool,
+  executeSupplyChainSecurity,
+  isSupplyChainSecurityAvailable,
+} from './supply-chain-security-tool';
+
+// Security Operations & Analysis
+export {
+  securityOperationsTool,
+  executeSecurityOperations,
+  isSecurityOperationsAvailable,
+} from './security-operations-tool';
+
+export {
+  securityMetricsTool,
+  executeSecurityMetrics,
+  isSecurityMetricsAvailable,
+} from './security-metrics-tool';
+
+export {
+  securityHeadersTool,
+  executeSecurityHeaders,
+  isSecurityHeadersAvailable,
+} from './security-headers-tool';
+
+export {
+  securityTestingTool,
+  executeSecurityTesting,
+  isSecurityTestingAvailable,
+} from './security-testing-tool';
+
+export {
+  securityAuditTool,
+  executeSecurityAudit,
+  isSecurityAuditAvailable,
+} from './security-audit-tool';
+
+// Security Architecture & Governance
+export {
+  securityArchitectureTool,
+  executeSecurityArchitecture,
+  isSecurityArchitectureAvailable,
+} from './security-architecture-tool';
+
+export {
+  securityArchitecturePatternsTool,
+  executeSecurityArchitecturePatterns,
+  isSecurityArchitecturePatternsAvailable,
+} from './security-architecture-patterns-tool';
+
+export {
+  securityPolicyTool,
+  executeSecurityPolicy,
+  isSecurityPolicyAvailable,
+} from './security-policy-tool';
+
+// Security Culture & Awareness
+export {
+  securityAwarenessTool,
+  executeSecurityAwareness,
+  isSecurityAwarenessAvailable,
+} from './security-awareness-tool';
+
+export {
+  securityCultureTool,
+  executeSecurityCulture,
+  isSecurityCultureAvailable,
+} from './security-culture-tool';
+
+export {
+  securityBudgetTool,
+  executeSecurityBudget,
+  isSecurityBudgetAvailable,
+} from './security-budget-tool';
+
+// ============================================================================
 // TOOL REGISTRY
 // ============================================================================
 

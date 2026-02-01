@@ -1,16 +1,21 @@
 # JCIL AI Chat Tools Reference
 
-**Version:** 3.0.0
-**Last Updated:** February 1, 2026 at 18:00 UTC
-**Total Tools:** 371+
-**Status:** Production Ready - 10 Major Enhancements
+**Version:** 3.1.0
+**Last Updated:** February 1, 2026 at 22:30 UTC
+**Total Tools:** 153 Wired (378 Total Files)
+**Status:** Production Ready - 10 Major Enhancements + Security Suite
 **Branch:** claude/evaluate-chat-tools-cDLQH
 
 ---
 
 ## Overview
 
-JCIL AI provides the most extensive AI tool suite ever built - **371+ specialized tools** that empower the AI assistant to perform complex calculations, analysis, and operations across multiple domains. This release includes 10 major enhancements that add persistent workspaces, smart tool chaining, code memory, agentic workflows, and self-improving capabilities.
+JCIL AI provides the most extensive AI tool suite ever built - **153 fully wired production tools** that empower the AI assistant to perform complex calculations, analysis, and operations across multiple domains. This release includes 10 major enhancements plus the complete **32-tool Cybersecurity Suite** now fully wired.
+
+**February 1, 2026 at 22:30 UTC - Wiring Update:**
+- ✅ `run_workflow` - Smart Tool Chaining (Enhancement #3)
+- ✅ `github_context` - Repository Understanding (Enhancement #4)
+- ✅ 32 Cybersecurity Tools - Full Security Operations Suite
 
 ## February 2026 - 10 Major Enhancements
 

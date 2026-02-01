@@ -7,7 +7,8 @@
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
 [![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
-[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-371+-green)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-153%20Wired-green)]()
+[![Security Tools](https://img.shields.io/badge/Security%20Tools-32-red)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
 [![Enhancements](https://img.shields.io/badge/Major%20Enhancements-10-orange)]()
 
@@ -211,12 +212,12 @@ $20 max budget │ 100 max scouts │ 500 max searches │ 10 min timeout
 
 ---
 
-## Chat AI Tools (371+ Tools)
+## Chat AI Tools (153 Wired)
 
-**Updated:** February 1, 2026 at 18:00 UTC
-**Version:** 3.0.0 (10 Major Enhancements)
+**Updated:** February 1, 2026 at 22:30 UTC
+**Version:** 3.1.0 (10 Major Enhancements + Security Suite)
 
-The main chat interface is now the **most capable AI chat ever built** with **371+ AI-powered tools** and 10 major enhancements.
+The main chat interface is now the **most capable AI chat ever built** with **153 fully wired AI-powered tools** (378 total tool files) and 10 major enhancements. Latest update wired the complete **32-tool Cybersecurity Suite** plus Enhancement #3 (Tool Chaining) and Enhancement #4 (GitHub Context).
 
 ### February 2026 - 10 Major Enhancements
 
@@ -682,10 +683,10 @@ Copyright (c) 2024-2026 JCIL.AI
 
 <div align="center">
 
-**Built with Anthropic Claude** | **55+ Code Lab Tools** | **371+ Chat Tools** | **5 MCP Servers** | **10 Major Enhancements**
+**Built with Anthropic Claude** | **55+ Code Lab Tools** | **153 Chat Tools Wired** | **32 Security Tools** | **5 MCP Servers** | **10 Major Enhancements**
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
 
-*Last updated: February 1, 2026 at 18:00 UTC - Version 3.0.0*
+*Last updated: February 1, 2026 at 22:30 UTC - Version 3.1.0*
 
 </div>
