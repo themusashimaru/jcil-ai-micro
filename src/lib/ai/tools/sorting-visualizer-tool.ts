@@ -156,7 +156,8 @@ export async function executeSortingVisualizer(toolCall: UnifiedToolCall): Promi
       });
       result = { operation: 'compare', input: arr, results: comparison };
     } else {
-      const sortFn = { bubble: bubbleSort, selection: selectionSort, insertion: insertionSort }[operation];
+      const algorithms = { bubble: bubbleSort, selection: selectionSort, insertion: insertionSort } as const;
+      const sortFn = algorithms[operation as keyof typeof algorithms];
       if (!sortFn) throw new Error(`Unknown: ${operation}`);
 
       const steps = sortFn([...arr]);

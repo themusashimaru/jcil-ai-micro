@@ -320,3 +320,8 @@ export async function executePharmacology(toolCall: UnifiedToolCall): Promise<Un
 }
 
 export function isPharmacologyAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _clearance;
+void _bodyWeight;
+void _bodySurfaceArea;

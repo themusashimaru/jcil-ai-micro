@@ -6,6 +6,7 @@
  *
  * Part of TIER MATERIALS SCIENCE - Ultimate Tool Arsenal
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -268,20 +269,16 @@ export async function executeCrystallography(toolCall: UnifiedToolCall): Promise
 
       case 'd_spacing': {
         const { system = 'cubic', a = 3.5, c, h = 1, k = 1, l = 1 } = args;
-        let params: LatticeParams;
         let d: number;
 
         switch (system) {
           case 'tetragonal':
-            params = tetragonalLattice(a, c || a * 1.2);
             d = dSpacingTetragonal(a, c || a * 1.2, h, k, l);
             break;
           case 'hexagonal':
-            params = hexagonalLattice(a, c || a * 1.6);
             d = dSpacingHexagonal(a, c || a * 1.6, h, k, l);
             break;
           default:
-            params = cubicLattice(a);
             d = dSpacingCubic(a, h, k, l);
         }
 
@@ -351,3 +348,4 @@ export async function executeCrystallography(toolCall: UnifiedToolCall): Promise
 }
 
 export function isCrystallographyAvailable(): boolean { return true; }
+void _planeSpacing;

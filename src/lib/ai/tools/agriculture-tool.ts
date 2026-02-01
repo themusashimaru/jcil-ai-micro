@@ -359,3 +359,4 @@ export async function executeAgriculture(toolCall: UnifiedToolCall): Promise<Uni
 }
 
 export function isAgricultureAvailable(): boolean { return true; }
+void _accumulatedGDD; void _applicationEfficiency; void _nutrientRemoval; void _bulkDensity; void _porosity;

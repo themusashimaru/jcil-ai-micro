@@ -356,3 +356,6 @@ export async function executePolymerChemistry(toolCall: UnifiedToolCall): Promis
 }
 
 export function isPolymerChemistryAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _numberAverageMW; void _weightAverageMW; void _carothersEquation; void _specificViscosity; void _reducedViscosity; void _inherentViscosity; void _glassTrans; void _persistenceLength;

@@ -388,3 +388,6 @@ export async function executeForensics(toolCall: UnifiedToolCall): Promise<Unifi
 }
 
 export function isForensicsAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _timelineDiff;

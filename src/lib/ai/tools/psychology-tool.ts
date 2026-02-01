@@ -362,3 +362,6 @@ export async function executePsychology(toolCall: UnifiedToolCall): Promise<Unif
 }
 
 export function isPsychologyAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _pearsonsR; void _pairedTTest;

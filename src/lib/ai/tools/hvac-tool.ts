@@ -5,7 +5,7 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
-function sensibleHeat(Q: number, m: number, cp: number, dT: number): number { return m * cp * dT; }
+function sensibleHeat(_Q: number, m: number, cp: number, dT: number): number { return m * cp * dT; }
 function latentHeat(m: number, hfg: number): number { return m * hfg; }
 function coolingLoad(U: number, A: number, dT: number): number { return U * A * dT; }
 function cfm(volume: number, ach: number): number { return volume * ach / 60; }

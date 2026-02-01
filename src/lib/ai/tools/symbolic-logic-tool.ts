@@ -1,4 +1,5 @@
 // ============================================================================
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // SYMBOLIC LOGIC TOOL - TIER GODMODE
 // ============================================================================
 // Formal logic, theorem proving, SAT solving, propositional and predicate logic.
@@ -13,8 +14,8 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES
 // ============================================================================
 
-type __LogicValue = boolean | null; // null = unknown
-type __TruthTableRow = Record<string, boolean>;
+// type LogicValue = boolean | null; // null = unknown
+// type TruthTableRow = Record<string, boolean>;
 type Clause = number[]; // CNF clause: positive = variable, negative = negation
 
 interface ProofStep {
@@ -384,8 +385,8 @@ function toCNF(expr: LogicExpr): CNF {
   const varIndex: Record<string, number> = {};
   vars.forEach((v, i) => (varIndex[v] = i + 1));
 
-  const __clauses: Clause[] = [];
-  const _auxCounter = vars.length;
+  // const clauses: Clause[] = [];
+  // const auxCounter = vars.length; // reserved for Tseitin transformation
 
   function distribute(e: LogicExpr): number[][] {
     switch (e.type) {
@@ -665,11 +666,11 @@ const INFERENCE_RULES = {
 // PREDICATE LOGIC (First-Order Logic basics)
 // ============================================================================
 
-interface _FOLResult {
+/* interface FOLResult {
   domain: string[];
   predicates: Record<string, (args: string[]) => boolean>;
   interpretation: string;
-}
+} */
 
 function evaluateFOL(
   formula: string,

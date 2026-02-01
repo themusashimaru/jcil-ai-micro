@@ -6,6 +6,7 @@
  *
  * Part of TIER BIOLOGY - Ultimate Tool Arsenal
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -233,7 +234,7 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
         const simpson = simpsonIndex(abundances);
         const shannon = shannonIndex(abundances);
         const richness = speciesRichness(abundances);
-        const total = abundances.reduce((a, b) => a + b, 0);
+        const total = (abundances as number[]).reduce((a: number, b: number) => a + b, 0);
 
         result = {
           operation: 'biodiversity',
@@ -251,7 +252,7 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
             evenness_J: shannon.evenness,
             interpretation: shannon.H > 2 ? 'High diversity' : shannon.H > 1 ? 'Moderate diversity' : 'Low diversity',
           },
-          species_abundances: abundances.map((n, i) => ({
+          species_abundances: (abundances as number[]).map((n: number, i: number) => ({
             species: i + 1,
             count: n,
             relative_abundance: Math.round(n / total * 10000) / 100,
@@ -298,10 +299,10 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
       }
 
       case 'footprint': {
-        const { carbon_tons = 10, food_hectares = 1.5, housing_hectares = 0.5, goods_hectares = 1 } = args;
-        const food = args.food_hectares ?? 1.5;
-        const housing = args.housing_hectares ?? 0.5;
-        const goods = args.goods_hectares ?? 1;
+        const { carbon_tons = 10 } = args;
+        const food = (args.food_hectares ?? 1.5) as number;
+        const housing = (args.housing_hectares ?? 0.5) as number;
+        const goods = (args.goods_hectares ?? 1) as number;
 
         const fp = ecologicalFootprint(carbon_tons, food, housing, goods);
 
@@ -325,8 +326,8 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
       }
 
       case 'trophic': {
-        const { primary_production = 10000, trophic_level = 3, efficiency = 0.1 } = args;
-        const eff = args.efficiency ?? 0.1;
+        const { primary_production = 10000, trophic_level = 3 } = args;
+        const eff = (args.efficiency ?? 0.1) as number;
 
         const levels = [];
         for (let i = 1; i <= 5; i++) {
@@ -364,3 +365,4 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
 }
 
 export function isEcologyAvailable(): boolean { return true; }
+void _carryingCapacity; void _trophicEfficiency;

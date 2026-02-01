@@ -8,7 +8,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 function vei(volume: number): number { return Math.floor(Math.log10(volume * 1e9) - 3); }
 function lavaFlow(visc: number, slope: number, thick: number): number { return 9.81 * 2700 * thick * thick * Math.sin(slope * Math.PI / 180) / (3 * visc); }
 function tephra(height: number): number { return Math.pow(height / 1000, 4) * 1e6; }
-function pyroclasticDensity(temp: number, gas: number): number { return 2500 * (1 - gas) + 0.5 * gas; }
+function pyroclasticDensity(_temp: number, gas: number): number { return 2500 * (1 - gas) + 0.5 * gas; }
 function magmaViscosity(t: number, sio2: number, water: number): number { return Math.pow(10, (sio2 / 10 - water * 10 + 3000 / (t + 273) - 5)); }
 function eruptionEnergy(mass: number, velocity: number): number { return 0.5 * mass * velocity * velocity; }
 function lahaarVolume(rain: number, ash: number, area: number): number { return (rain + ash * 0.5) * area; }

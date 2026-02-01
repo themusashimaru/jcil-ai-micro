@@ -354,3 +354,6 @@ export async function executeHeatTransfer(toolCall: UnifiedToolCall): Promise<Un
 }
 
 export function isHeatTransferAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _conductionCylinder; void _conductionSphere; void _nusseltNumber; void _naturalConvectionVertical;

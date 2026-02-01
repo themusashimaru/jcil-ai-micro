@@ -13,14 +13,12 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // RATE LAWS
 // ============================================================================
 
-interface _RateLaw {
+/* interface RateLaw {
   order: number;
   rateConstant: number;
   concentration: number;
   time: number;
-}
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _RateLawType = _RateLaw; // reserved for future typed operations
+} */
 
 function zeroOrderRate(k: number, A0: number, t: number): { concentration: number; halfLife: number } {
   const A = Math.max(0, A0 - k * t);

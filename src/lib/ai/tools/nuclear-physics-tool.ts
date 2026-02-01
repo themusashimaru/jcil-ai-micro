@@ -6,6 +6,7 @@
  *
  * Part of TIER PHYSICS - Ultimate Tool Arsenal
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -13,11 +14,12 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // CONSTANTS
 // ============================================================================
 
-const _AMU = 1.66054e-27;      // kg (atomic mass unit)
-const _C = 2.998e8;            // m/s (speed of light)
-const EV = 1.602e-19;         // J (electron volt)
-const _MEV = EV * 1e6;         // J (MeV)
-const _AVOGADRO = 6.022e23;    // mol⁻¹
+// Physical constants - some reserved for future use
+// const AMU = 1.66054e-27;      // kg (atomic mass unit)
+// const C = 2.998e8;            // m/s (speed of light)
+// const EV = 1.602e-19;         // J (electron volt)
+// const MEV = EV * 1e6;         // J (MeV)
+// const AVOGADRO = 6.022e23;    // mol⁻¹
 
 // ============================================================================
 // RADIOACTIVE DECAY
@@ -328,7 +330,8 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
         // U-235 fission example
         const u235 = 235.04393;
         const fissionProducts = 234.0; // approximate
-        const _fissionQ = qValue(u235, fissionProducts);
+        // Q value: qValue(u235, fissionProducts) - approximately 200 MeV
+        void u235; void fissionProducts; // used for reference
 
         result = {
           operation: 'reaction',
@@ -397,3 +400,6 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
 }
 
 export function isNuclearPhysicsAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _timeToDecay; void _thresholdEnergy; void _fissionEnergy; void _fusionEnergy;

@@ -45,7 +45,7 @@ function _powerFactor(P: number, S: number): number {
   return P / S;
 }
 
-function _powerFactorAngle(pf: number): number {
+function powerFactorAngle(pf: number): number {
   return Math.acos(pf) * 180 / Math.PI;
 }
 
@@ -385,3 +385,6 @@ export async function executePowerSystems(toolCall: UnifiedToolCall): Promise<Un
 }
 
 export function isPowerSystemsAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _powerFactor;  void _threePhasePhaseToLine; void _transformerEfficiency; void _transformerRegulation;

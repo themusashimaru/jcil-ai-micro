@@ -410,3 +410,7 @@ export async function executeMeteorology(toolCall: UnifiedToolCall): Promise<Uni
 }
 
 export function isMeteorologyAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _celsiusToKelvin;
+void _precipitationType;

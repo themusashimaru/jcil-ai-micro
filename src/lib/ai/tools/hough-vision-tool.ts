@@ -6,16 +6,17 @@
 // Pure TypeScript implementation.
 // ============================================================================
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface __Point {
+/* interface Point {
   x: number;
   y: number;
-}
+} */
 
 interface Line {
   rho: number; // Distance from origin

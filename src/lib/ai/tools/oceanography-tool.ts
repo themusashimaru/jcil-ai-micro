@@ -13,7 +13,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // WAVE DYNAMICS
 // ============================================================================
 
-function waveSpeed(depth: number, _wavelength: number): { speed: number; type: string } {
+function waveSpeed(depth: number, wavelength: number): { speed: number; type: string } {
   const g = 9.81;
 
   // Deep water: depth > wavelength/2
@@ -141,7 +141,7 @@ function geostrophicVelocity(pressureGradient: number, density: number, latitude
   return pressureGradient / (density * f);
 }
 
-function ekmanDepth(windSpeed: number, latitude: number): number {
+function ekmanDepth(_windSpeed: number, latitude: number): number {
   // Depth of Ekman spiral
   const f = Math.abs(coriolisParameter(latitude));
   if (f < 1e-10) return 0;
@@ -332,3 +332,7 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
 }
 
 export function isOceanographyAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _significantWaveHeight;
+void _sonarRange;

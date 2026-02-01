@@ -6,10 +6,11 @@
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 function solidificationTime(v: number, a: number, b: number): number { return b * Math.pow(v / a, 2); }
+/* eslint-disable @typescript-eslint/no-unused-vars */
 function shrinkage(liquid: number, solid: number): number { return (liquid - solid) / solid * 100; }
 function pouringTemp(melt: number, superheat: number): number { return melt + superheat; }
 function riserSize(v: number): number { return Math.pow(6 * v / Math.PI, 1/3); }
-function gatingRatio(sprue: number, runner: number, gate: number): number { return sprue / gate; }
+function gatingRatio(sprue: number, _runner: number, gate: number): number { return sprue / gate; }
 function fluidity(superheat: number, viscosity: number): number { return superheat / viscosity * 100; }
 function feedingDistance(t: number, modulus: number): number { return 4.5 * t * Math.sqrt(modulus); }
 

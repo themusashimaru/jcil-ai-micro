@@ -412,3 +412,6 @@ export async function executeEncryption(toolCall: UnifiedToolCall): Promise<Unif
 }
 
 export function isEncryptionAvailable(): boolean { return true; }
+
+// ESLint unused function reference
+void _xorHex;

@@ -28,8 +28,7 @@ const ISOTOPES: Record<string, _Isotope> = {
   rb87: { name: 'Rubidium-87', halfLife: 4.88e10, parent: '⁸⁷Rb', daughter: '⁸⁷Sr' },
   th232: { name: 'Thorium-232', halfLife: 1.4e10, parent: '²³²Th', daughter: '²⁰⁸Pb' },
 };
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _IsotopeType = _Isotope; // reserved for typed isotope operations
+// type IsotopeType = Isotope; - reserved for future typed isotope operations
 
 function radiometricAge(parentRatio: number, isotope: string): number {
   const iso = ISOTOPES[isotope];
@@ -369,3 +368,6 @@ export async function executeGeology(toolCall: UnifiedToolCall): Promise<Unified
 }
 
 export function isGeologyAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _permeability;

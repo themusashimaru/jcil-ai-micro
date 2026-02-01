@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (253 total):
+ * Tools available (270 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1512,6 +1512,27 @@ async function initializeTools() {
   const { humidificationTool, executeHumidification, isHumidificationAvailable } = await import('./humidification-tool');
   const { absorptionTool, executeAbsorption, isAbsorptionAvailable } = await import('./absorption-tool');
 
+  // TIER MINERAL PROCESSING (2 more compact tools)
+  const { leachingTool, executeLeaching, isLeachingAvailable } = await import('./leaching-tool');
+  const { comminutionTool, executeComminution, isComminutionAvailable } = await import('./comminution-tool');
+
+  // TIER ADDITIONAL SCIENCES (15 more compact tools)
+  const { agricultureTool, executeAgriculture, isAgricultureAvailable } = await import('./agriculture-tool');
+  const { ecologyTool, executeEcology, isEcologyAvailable } = await import('./ecology-tool');
+  const { economicsTool, executeEconomics, isEconomicsAvailable } = await import('./economics-tool');
+  const { forensicsTool, executeForensics, isForensicsAvailable } = await import('./forensics-tool');
+  const { geologyTool, executeGeology, isGeologyAvailable } = await import('./geology-tool');
+  const { linguisticsTool, executeLinguistics, isLinguisticsAvailable } = await import('./linguistics-tool');
+  const { meteorologyTool, executeMeteorology, isMeteorologyAvailable } = await import('./meteorology-tool');
+  const { networkAnalysisTool, executeNetworkAnalysis, isNetworkAnalysisAvailable } = await import('./network-analysis-tool');
+  const { nuclearPhysicsTool, executeNuclearPhysics, isNuclearPhysicsAvailable } = await import('./nuclear-physics-tool');
+  const { nutritionTool, executeNutrition, isNutritionAvailable } = await import('./nutrition-tool');
+  const { oceanographyTool, executeOceanography, isOceanographyAvailable } = await import('./oceanography-tool');
+  const { pharmacologyTool, executePharmacology, isPharmacologyAvailable } = await import('./pharmacology-tool');
+  const { plasmaPhysicsTool, executePlasmaPhysics, isPlasmaPhysicsAvailable } = await import('./plasma-physics-tool');
+  const { vulnerabilityTool, executeVulnerability, isVulnerabilityAvailable } = await import('./vulnerability-tool');
+  const { encryptionTool, executeEncryption, isEncryptionAvailable } = await import('./encryption-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2165,7 +2186,26 @@ async function initializeTools() {
     // TIER MASS TRANSFER OPERATIONS (3 more compact tools)
     { tool: evaporationTool, executor: executeEvaporation, checkAvailability: isEvaporationAvailable },
     { tool: humidificationTool, executor: executeHumidification, checkAvailability: isHumidificationAvailable },
-    { tool: absorptionTool, executor: executeAbsorption, checkAvailability: isAbsorptionAvailable }
+    { tool: absorptionTool, executor: executeAbsorption, checkAvailability: isAbsorptionAvailable },
+    // TIER MINERAL PROCESSING (2 more compact tools)
+    { tool: leachingTool, executor: executeLeaching, checkAvailability: isLeachingAvailable },
+    { tool: comminutionTool, executor: executeComminution, checkAvailability: isComminutionAvailable },
+    // TIER ADDITIONAL SCIENCES (15 more compact tools)
+    { tool: agricultureTool, executor: executeAgriculture, checkAvailability: isAgricultureAvailable },
+    { tool: ecologyTool, executor: executeEcology, checkAvailability: isEcologyAvailable },
+    { tool: economicsTool, executor: executeEconomics, checkAvailability: isEconomicsAvailable },
+    { tool: forensicsTool, executor: executeForensics, checkAvailability: isForensicsAvailable },
+    { tool: geologyTool, executor: executeGeology, checkAvailability: isGeologyAvailable },
+    { tool: linguisticsTool, executor: executeLinguistics, checkAvailability: isLinguisticsAvailable },
+    { tool: meteorologyTool, executor: executeMeteorology, checkAvailability: isMeteorologyAvailable },
+    { tool: networkAnalysisTool, executor: executeNetworkAnalysis, checkAvailability: isNetworkAnalysisAvailable },
+    { tool: nuclearPhysicsTool, executor: executeNuclearPhysics, checkAvailability: isNuclearPhysicsAvailable },
+    { tool: nutritionTool, executor: executeNutrition, checkAvailability: isNutritionAvailable },
+    { tool: oceanographyTool, executor: executeOceanography, checkAvailability: isOceanographyAvailable },
+    { tool: pharmacologyTool, executor: executePharmacology, checkAvailability: isPharmacologyAvailable },
+    { tool: plasmaPhysicsTool, executor: executePlasmaPhysics, checkAvailability: isPlasmaPhysicsAvailable },
+    { tool: vulnerabilityTool, executor: executeVulnerability, checkAvailability: isVulnerabilityAvailable },
+    { tool: encryptionTool, executor: executeEncryption, checkAvailability: isEncryptionAvailable }
   );
 
   toolsInitialized = true;

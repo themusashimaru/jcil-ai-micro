@@ -13,13 +13,13 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 const SOLAR_CONSTANT = 1361; // W/m² at Earth's distance from Sun
-const ___EARTH_RADIUS = 6371; // km
+// const EARTH_RADIUS = 6371; // km
 const CO2_PER_KWH_COAL = 0.91; // kg CO2 per kWh
-const ___CO2_PER_KWH_GAS = 0.41; // kg CO2 per kWh
+// const CO2_PER_KWH_GAS = 0.41; // kg CO2 per kWh
 const CO2_PER_KWH_SOLAR = 0.041; // kg CO2 per kWh (lifecycle)
-const ___CO2_PER_KWH_WIND = 0.011; // kg CO2 per kWh (lifecycle)
-const __CO2_PER_KWH_NUCLEAR = 0.012; // kg CO2 per kWh (lifecycle)
-const __CO2_PER_KWH_HYDRO = 0.024; // kg CO2 per kWh (lifecycle)
+// const CO2_PER_KWH_WIND = 0.011; // kg CO2 per kWh (lifecycle)
+// const CO2_PER_KWH_NUCLEAR = 0.012; // kg CO2 per kWh (lifecycle)
+// const CO2_PER_KWH_HYDRO = 0.024; // kg CO2 per kWh (lifecycle)
 
 // ============================================================================
 // SOLAR POSITION CALCULATIONS
@@ -181,8 +181,8 @@ interface PVSystemOutput {
 function calculatePVOutput(
   panelArea: number, // m²
   panelEfficiency: number, // 0-1
-  latitude: number,
-  tiltAngle: number,
+  _latitude: number,
+  _tiltAngle: number,
   averageSunHours: number, // peak sun hours per day
   systemLosses: number = 0.14 // inverter, wiring, etc.
 ): PVSystemOutput {

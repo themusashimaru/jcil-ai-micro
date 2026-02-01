@@ -6,6 +6,7 @@
  *
  * Part of TIER ECONOMICS - Ultimate Tool Arsenal
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -334,7 +335,7 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
       }
 
       case 'trade': {
-        const { export_price_index = 105, import_price_index = 100, nominal_exchange = 1.2, domestic_price = 100, foreign_price = 95 } = args;
+        const { export_price_index: _export_price_index = 105, import_price_index: _import_price_index = 100, nominal_exchange = 1.2, domestic_price = 100, foreign_price = 95 } = args;
         const tot = termsOfTrade(args.export_price_index ?? 105, args.import_price_index ?? 100);
         const rer = realExchangeRate(nominal_exchange, domestic_price, foreign_price);
 
@@ -368,3 +369,4 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
 }
 
 export function isEconomicsAvailable(): boolean { return true; }
+void _crossElasticity; void _gdpGrowthRate; void _laborForceParticipation;

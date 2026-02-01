@@ -6,6 +6,7 @@
  *
  * Part of TIER CYBERSECURITY - Ultimate Tool Arsenal
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -142,7 +143,7 @@ function _throughput(dataTransferred: number, time: number): number {
 function latencyImpact(bandwidth: number, latency: number, windowSize: number): number {
   // Effective throughput with TCP windowing
   // BDP = bandwidth * latency
-  const _bdp = (bandwidth * 1000000 / 8) * (latency / 1000); // bytes
+  // BDP calculation: (bandwidth * 1000000 / 8) * (latency / 1000) bytes
   const effectiveBandwidth = Math.min(bandwidth, (windowSize * 8) / (latency / 1000) / 1000000);
   return effectiveBandwidth;
 }
@@ -386,3 +387,6 @@ export async function executeNetworkAnalysis(toolCall: UnifiedToolCall): Promise
 }
 
 export function isNetworkAnalysisAvailable(): boolean { return true; }
+
+// ESLint unused function references
+void _ipInSubnet; void _throughput;

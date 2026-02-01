@@ -120,8 +120,8 @@ function analyzeMorphemes(word: string): { root: string; prefixes: string[]; suf
 // ============================================================================
 
 function fleschKincaid(text: string): { gradeLevel: number; readingEase: number } {
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  const words = text.split(/\s+/).filter(w => w.match(/[a-z]/i));
+  const sentences = text.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+  const words = text.split(/\s+/).filter((w: string) => w.match(/[a-z]/i));
   const syllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
 
   const wordsPerSentence = words.length / Math.max(1, sentences.length);
@@ -137,7 +137,7 @@ function fleschKincaid(text: string): { gradeLevel: number; readingEase: number 
 }
 
 function lexicalDiversity(text: string): number {
-  const words = text.toLowerCase().split(/\s+/).filter(w => w.match(/[a-z]/));
+  const words = text.toLowerCase().split(/\s+/).filter((w: string) => w.match(/[a-z]/));
   const unique = new Set(words);
   return words.length > 0 ? unique.size / words.length : 0;
 }
@@ -147,7 +147,7 @@ function lexicalDiversity(text: string): number {
 // ============================================================================
 
 function wordFrequency(text: string): Array<{ word: string; count: number; percent: number }> {
-  const words = text.toLowerCase().split(/\s+/).filter(w => w.match(/^[a-z]+$/));
+  const words = text.toLowerCase().split(/\s+/).filter((w: string) => w.match(/^[a-z]+$/));
   const freq: Record<string, number> = {};
 
   for (const word of words) {
@@ -237,8 +237,8 @@ export async function executeLinguistics(toolCall: UnifiedToolCall): Promise<Uni
           word: w,
           ipa_transcription: ipa,
           note: 'Simplified IPA approximation for English',
-          consonants: w.replace(/[aeiou]/gi, '').split('').filter((c, i, a) => a.indexOf(c) === i),
-          vowels: w.replace(/[^aeiou]/gi, '').split('').filter((c, i, a) => a.indexOf(c) === i),
+          consonants: w.replace(/[aeiou]/gi, '').split('').filter((c: string, i: number, a: string[]) => a.indexOf(c) === i),
+          vowels: w.replace(/[^aeiou]/gi, '').split('').filter((c: string, i: number, a: string[]) => a.indexOf(c) === i),
         };
         break;
       }
@@ -280,8 +280,8 @@ export async function executeLinguistics(toolCall: UnifiedToolCall): Promise<Uni
         const t = text || 'The quick brown fox jumps over the lazy dog. It was a simple sentence for testing.';
         const fk = fleschKincaid(t);
         const diversity = lexicalDiversity(t);
-        const words = t.split(/\s+/).filter(w => w.match(/[a-z]/i));
-        const sentences = t.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        const words = t.split(/\s+/).filter((w: string) => w.match(/[a-z]/i));
+        const sentences = t.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
 
         let level = 'College';
         if (fk.gradeLevel <= 6) level = 'Elementary';
@@ -309,23 +309,23 @@ export async function executeLinguistics(toolCall: UnifiedToolCall): Promise<Uni
       case 'frequency': {
         const t = text || 'The quick brown fox jumps over the lazy dog. The dog was not amused by the fox.';
         const freq = wordFrequency(t);
-        const words = t.toLowerCase().split(/\s+/).filter(w => w.match(/^[a-z]+$/));
+        const words = t.toLowerCase().split(/\s+/).filter((w: string) => w.match(/^[a-z]+$/));
 
         result = {
           operation: 'frequency',
           total_words: words.length,
           unique_words: new Set(words).size,
           top_words: freq.slice(0, 10),
-          hapax_legomena: freq.filter(f => f.count === 1).length,
+          hapax_legomena: freq.filter((f: { count: number }) => f.count === 1).length,
         };
         break;
       }
 
       case 'structure': {
         const t = text || 'Although it was raining, the children played outside, and they had a great time.';
-        const sentences = t.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        const sentences = t.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
 
-        const analyses = sentences.map(s => ({
+        const analyses = sentences.map((s: string) => ({
           sentence: s.trim(),
           ...sentenceStructure(s),
           word_count: s.split(/\s+/).length,
@@ -336,10 +336,10 @@ export async function executeLinguistics(toolCall: UnifiedToolCall): Promise<Uni
           sentence_count: sentences.length,
           analyses: analyses,
           summary: {
-            simple: analyses.filter(a => a.type === 'Simple').length,
-            compound: analyses.filter(a => a.type === 'Compound').length,
-            complex: analyses.filter(a => a.type === 'Complex').length,
-            compound_complex: analyses.filter(a => a.type === 'Compound-Complex').length,
+            simple: analyses.filter((a: { type: string }) => a.type === 'Simple').length,
+            compound: analyses.filter((a: { type: string }) => a.type === 'Compound').length,
+            complex: analyses.filter((a: { type: string }) => a.type === 'Complex').length,
+            compound_complex: analyses.filter((a: { type: string }) => a.type === 'Compound-Complex').length,
           },
         };
         break;

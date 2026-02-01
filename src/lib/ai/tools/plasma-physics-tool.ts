@@ -6,6 +6,7 @@
  *
  * Part of TIER PHYSICS - Ultimate Tool Arsenal
  */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -41,8 +42,8 @@ function thermalVelocity(temperature: number, mass: number): number {
 
 function plasmaParameter(temperature: number, density: number): number {
   // Λ = (4π/3) n λD³
-  const _lambda_D = debyeLength(temperature, density);
-  return (4 * Math.PI / 3) * density * Math.pow(lambda_D, 3);
+  const lambdaD = debyeLength(temperature, density);
+  return (4 * Math.PI / 3) * density * Math.pow(lambdaD, 3);
 }
 
 // ============================================================================
@@ -119,7 +120,7 @@ function classifyPlasma(temperature: number, density: number): {
   coupling: string;
   degeneracy: string;
 } {
-  const _lambda_D = debyeLength(temperature, density);
+  // const lambdaD = debyeLength(temperature, density);
   const Lambda = plasmaParameter(temperature, density);
 
   // Coupling parameter Γ = (e²/4πε₀) / (kB T × a)
@@ -189,7 +190,7 @@ export async function executePlasmaPhysics(toolCall: UnifiedToolCall): Promise<U
     switch (operation) {
       case 'parameters': {
         const { temperature = 1e6, density = 1e19 } = args;
-        const _lambda_D = debyeLength(temperature, density);
+        const lambdaD = debyeLength(temperature, density);
         const omega_pe = plasmaFrequency(density);
         const v_th_e = thermalVelocity(temperature, M_ELECTRON);
         const Lambda = plasmaParameter(temperature, density);
@@ -201,8 +202,8 @@ export async function executePlasmaPhysics(toolCall: UnifiedToolCall): Promise<U
             temperature_eV: temperature * K_B / E_CHARGE,
             density_m3: density,
           },
-          debye_length_m: lambda_D.toExponential(3),
-          debye_length_mm: (lambda_D * 1000).toExponential(3),
+          debye_length_m: lambdaD.toExponential(3),
+          debye_length_mm: (lambdaD * 1000).toExponential(3),
           plasma_frequency_rad_s: omega_pe.toExponential(3),
           plasma_frequency_Hz: (omega_pe / (2 * Math.PI)).toExponential(3),
           electron_thermal_velocity_m_s: v_th_e.toExponential(3),
