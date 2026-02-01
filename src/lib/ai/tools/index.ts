@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (112 total):
+ * Tools available (363 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -654,6 +654,256 @@ export {
 // Acoustics (room modes, RT60, speaker design)
 export { acousticsTool, executeAcoustics, isAcousticsAvailable } from './acoustics-tool';
 
+// ============================================================================
+// TIER GODMODE - ULTIMATE INTELLIGENCE TOOLS (9 new tools)
+// ============================================================================
+
+// Symbolic Logic - Formal logic, theorem proving, SAT solving
+export {
+  symbolicLogicTool,
+  executeSymbolicLogic,
+  isSymbolicLogicAvailable,
+} from './symbolic-logic-tool';
+
+// Cellular Automata - Game of Life, Wolfram rules, Langton's Ant
+export {
+  cellularAutomataTool,
+  executeCellularAutomata,
+  isCellularAutomataAvailable,
+} from './cellular-automata-tool';
+
+// Medical Calculator - Clinical scores, drug dosing, body calculations
+export {
+  medicalCalcTool,
+  executeMedicalCalc,
+  isMedicalCalcAvailable,
+} from './medical-calc-tool';
+
+// Graphics 3D - 3D mesh generation, OBJ/STL export, scene composition
+export {
+  graphics3dTool,
+  executeGraphics3D,
+  isGraphics3DAvailable,
+} from './graphics-3d-tool';
+
+// Compression Algorithms - Huffman, LZ77, RLE, BWT demonstrations
+export {
+  compressionAlgoTool,
+  executeCompressionAlgo,
+  isCompressionAlgoAvailable,
+} from './compression-algo-tool';
+
+// Error Correction - Hamming codes, CRC, checksums, SECDED
+export {
+  errorCorrectionTool,
+  executeErrorCorrection,
+  isErrorCorrectionAvailable,
+} from './error-correction-tool';
+
+// Hough Vision - Computer vision: edge detection, Hough transform, corners
+export {
+  houghVisionTool,
+  executeHoughVision,
+  isHoughVisionAvailable,
+} from './hough-vision-tool';
+
+// Cryptography Advanced - Elliptic curves, DH, ECDSA, zero-knowledge proofs
+export {
+  cryptographyAdvancedTool,
+  executeCryptographyAdvanced,
+  isCryptographyAdvancedAvailable,
+} from './cryptography-advanced-tool';
+
+// Solar Environmental - Solar energy, carbon footprint, sustainability
+export {
+  solarEnvironmentalTool,
+  executeSolarEnvironmental,
+  isSolarEnvironmentalAvailable,
+} from './solar-environmental-tool';
+
+// ============================================================================
+// TIER VISUAL MADNESS - Graphics & Animation Tools
+// ============================================================================
+
+// SVG Generator - Create SVG graphics, charts, icons
+export {
+  svgGeneratorTool,
+  executeSVGGenerator,
+  isSVGGeneratorAvailable,
+} from './svg-generator-tool';
+
+// Fractal Generator - Mandelbrot, Julia, Sierpinski, Koch
+export {
+  fractalGeneratorTool,
+  executeFractalGenerator,
+  isFractalGeneratorAvailable,
+} from './fractal-generator-tool';
+
+// Color Theory - Color manipulation, harmonies, palettes
+export {
+  colorTheoryTool,
+  executeColorTheory,
+  isColorTheoryAvailable,
+} from './color-theory-tool';
+
+// Animation Easing - Easing functions for smooth animation
+export {
+  animationEasingTool,
+  executeAnimationEasing,
+  isAnimationEasingAvailable,
+} from './animation-easing-tool';
+
+// Particle System - Physics-based particle simulation
+export {
+  particleSystemTool,
+  executeParticleSystem,
+  isParticleSystemAvailable,
+} from './particle-system-tool';
+
+// ============================================================================
+// TIER SOUND & MUSIC - Audio Tools
+// ============================================================================
+
+// Music Theory is already exported in COMPUTATIONAL & ALGORITHMIC TOOLS section (line 391)
+
+// Bezier Curves - Mathematical bezier curve calculations
+export {
+  bezierCurvesTool,
+  executeBezierCurves,
+  isBezierCurvesAvailable,
+} from './bezier-curves-tool';
+
+// ============================================================================
+// TIER EDUCATION - Interactive Learning Tools
+// ============================================================================
+
+// Sorting Visualizer - Step-by-step sorting algorithm visualization
+export {
+  sortingVisualizerTool,
+  executeSortingVisualizer,
+  isSortingVisualizerAvailable,
+} from './sorting-visualizer-tool';
+
+// Data Structures - Interactive data structure demonstrations
+export {
+  dataStructuresTool,
+  executeDataStructures,
+  isDataStructuresAvailable,
+} from './data-structures-tool';
+
+// ============================================================================
+// TIER ADVANCED SCIENCE - Cutting-Edge Scientific Tools
+// ============================================================================
+
+// Quantum Computing - Quantum circuits, gates, algorithms
+export {
+  quantumComputingTool,
+  executeQuantumComputing,
+  isQuantumComputingAvailable,
+} from './quantum-computing-tool';
+
+// Shader Generator - GLSL shader generation for visual effects
+export {
+  shaderGeneratorTool,
+  executeShaderGenerator,
+  isShaderGeneratorAvailable,
+} from './shader-generator-tool';
+
+// Signal Processing - FFT, filters, DSP
+export {
+  signalProcessingTool,
+  executeSignalProcessing,
+  isSignalProcessingAvailable,
+} from './signal-processing-tool';
+
+// Neural Network - Educational neural network demonstrations
+export {
+  neuralNetworkTool,
+  executeNeuralNetwork,
+  isNeuralNetworkAvailable,
+} from './neural-network-tool';
+
+// Information Theory - Entropy, coding, compression bounds
+export {
+  informationTheoryTool,
+  executeInformationTheory,
+  isInformationTheoryAvailable,
+} from './information-theory-tool';
+
+// Procedural Generation - Terrain, noise, dungeons, mazes
+export {
+  proceduralGenerationTool,
+  executeProceduralGeneration,
+  isProceduralGenerationAvailable,
+} from './procedural-generation-tool';
+
+// Ray Tracing - 3D graphics ray tracing fundamentals
+export {
+  rayTracingTool,
+  executeRayTracing,
+  isRayTracingAvailable,
+} from './ray-tracing-tool';
+
+// Automata Theory - DFA, NFA, regex, formal languages
+export {
+  automataTheoryTool,
+  executeAutomataTheory,
+  isAutomataTheoryAvailable,
+} from './automata-theory-tool';
+
+// Computational Complexity - Big-O, recurrences, algorithm analysis
+export {
+  computationalComplexityTool,
+  executeComputationalComplexity,
+  isComputationalComplexityAvailable,
+} from './computational-complexity-tool';
+
+// ============================================================================
+// TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
+// ============================================================================
+
+// Reaction Kinetics - Rate laws, Arrhenius, mechanisms
+export {
+  reactionKineticsTool,
+  executeReactionKinetics,
+  isReactionKineticsAvailable,
+} from './reaction-kinetics-tool';
+
+// Electrochemistry - Nernst, electrolysis, batteries
+export {
+  electrochemistryTool,
+  executeElectrochemistry,
+  isElectrochemistryAvailable,
+} from './electrochemistry-tool';
+
+// Spectroscopy - Beer-Lambert, IR/NMR peaks
+export {
+  spectroscopyTool,
+  executeSpectroscopy,
+  isSpectroscopyAvailable,
+} from './spectroscopy-tool';
+
+// Quantum Mechanics - Wavefunctions, hydrogen atom
+export {
+  quantumMechanicsTool,
+  executeQuantumMechanics,
+  isQuantumMechanicsAvailable,
+} from './quantum-mechanics-tool';
+
+// Relativity - Lorentz transformations, time dilation
+export {
+  relativityTool,
+  executeRelativity,
+  isRelativityAvailable,
+} from './relativity-tool';
+
+// Statistical Mechanics - Boltzmann, partition functions
+export {
+  statisticalMechanicsTool,
+  executeStatisticalMechanics,
+  isStatisticalMechanicsAvailable,
+} from './statistical-mechanics-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1026,6 +1276,372 @@ async function initializeTools() {
     './acoustics-tool'
   );
 
+  // Tier GODMODE - Ultimate Intelligence tools (9 new)
+  const { symbolicLogicTool, executeSymbolicLogic, isSymbolicLogicAvailable } = await import(
+    './symbolic-logic-tool'
+  );
+  const { cellularAutomataTool, executeCellularAutomata, isCellularAutomataAvailable } =
+    await import('./cellular-automata-tool');
+  const { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } = await import(
+    './medical-calc-tool'
+  );
+  const { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } = await import(
+    './graphics-3d-tool'
+  );
+  const { compressionAlgoTool, executeCompressionAlgo, isCompressionAlgoAvailable } = await import(
+    './compression-algo-tool'
+  );
+  const { errorCorrectionTool, executeErrorCorrection, isErrorCorrectionAvailable } = await import(
+    './error-correction-tool'
+  );
+  const { houghVisionTool, executeHoughVision, isHoughVisionAvailable } = await import(
+    './hough-vision-tool'
+  );
+  const { cryptographyAdvancedTool, executeCryptographyAdvanced, isCryptographyAdvancedAvailable } =
+    await import('./cryptography-advanced-tool');
+  const { solarEnvironmentalTool, executeSolarEnvironmental, isSolarEnvironmentalAvailable } =
+    await import('./solar-environmental-tool');
+
+  // TIER VISUAL MADNESS - Graphics & Animation Tools
+  const { svgGeneratorTool, executeSVGGenerator, isSVGGeneratorAvailable } = await import(
+    './svg-generator-tool'
+  );
+  const { fractalGeneratorTool, executeFractalGenerator, isFractalGeneratorAvailable } = await import(
+    './fractal-generator-tool'
+  );
+  const { colorTheoryTool, executeColorTheory, isColorTheoryAvailable } = await import(
+    './color-theory-tool'
+  );
+  const { animationEasingTool, executeAnimationEasing, isAnimationEasingAvailable } = await import(
+    './animation-easing-tool'
+  );
+  const { particleSystemTool, executeParticleSystem, isParticleSystemAvailable } = await import(
+    './particle-system-tool'
+  );
+
+  // TIER SOUND & MUSIC - Audio Tools
+  // musicTheoryTool already imported in Computational & Algorithmic tools section
+
+  // Additional VISUAL MADNESS
+  const { bezierCurvesTool, executeBezierCurves, isBezierCurvesAvailable } = await import(
+    './bezier-curves-tool'
+  );
+
+  // TIER EDUCATION - Interactive Learning Tools
+  const { sortingVisualizerTool, executeSortingVisualizer, isSortingVisualizerAvailable } = await import(
+    './sorting-visualizer-tool'
+  );
+  const { dataStructuresTool, executeDataStructures, isDataStructuresAvailable } = await import(
+    './data-structures-tool'
+  );
+
+  // TIER ADVANCED SCIENCE - Cutting-Edge Scientific Tools
+  const { quantumComputingTool, executeQuantumComputing, isQuantumComputingAvailable } = await import(
+    './quantum-computing-tool'
+  );
+  const { shaderGeneratorTool, executeShaderGenerator, isShaderGeneratorAvailable } = await import(
+    './shader-generator-tool'
+  );
+  const { signalProcessingTool, executeSignalProcessing, isSignalProcessingAvailable } = await import(
+    './signal-processing-tool'
+  );
+  const { neuralNetworkTool, executeNeuralNetwork, isNeuralNetworkAvailable } = await import(
+    './neural-network-tool'
+  );
+
+  // TIER ADVANCED SCIENCE - Part 2 (5 more tools)
+  const { informationTheoryTool, executeInformationTheory, isInformationTheoryAvailable } = await import(
+    './information-theory-tool'
+  );
+  const { proceduralGenerationTool, executeProceduralGeneration, isProceduralGenerationAvailable } = await import(
+    './procedural-generation-tool'
+  );
+  const { rayTracingTool, executeRayTracing, isRayTracingAvailable } = await import(
+    './ray-tracing-tool'
+  );
+  const { automataTheoryTool, executeAutomataTheory, isAutomataTheoryAvailable } = await import(
+    './automata-theory-tool'
+  );
+  const { computationalComplexityTool, executeComputationalComplexity, isComputationalComplexityAvailable } = await import(
+    './computational-complexity-tool'
+  );
+
+  // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
+  const { reactionKineticsTool, executeReactionKinetics, isReactionKineticsAvailable } = await import(
+    './reaction-kinetics-tool'
+  );
+  const { electrochemistryTool, executeElectrochemistry, isElectrochemistryAvailable } = await import(
+    './electrochemistry-tool'
+  );
+  const { spectroscopyTool, executeSpectroscopy, isSpectroscopyAvailable } = await import(
+    './spectroscopy-tool'
+  );
+  const { quantumMechanicsTool, executeQuantumMechanics, isQuantumMechanicsAvailable } = await import(
+    './quantum-mechanics-tool'
+  );
+  const { relativityTool, executeRelativity, isRelativityAvailable } = await import(
+    './relativity-tool'
+  );
+  const { statisticalMechanicsTool, executeStatisticalMechanics, isStatisticalMechanicsAvailable } = await import(
+    './statistical-mechanics-tool'
+  );
+
+  // TIER ENGINEERING & APPLIED SCIENCE (15 new compact tools)
+  const { hydrologyTool, executeHydrology, isHydrologyAvailable } = await import('./hydrology-tool');
+  const { structuralEngineeringTool, executeStructuralEngineering, isStructuralEngineeringAvailable } = await import('./structural-engineering-tool');
+  const { geotechnicalTool, executeGeotechnical, isGeotechnicalAvailable } = await import('./geotechnical-tool');
+  const { photonicsTool, executePhotonics, isPhotonicsAvailable } = await import('./photonics-tool');
+  const { semiconductorTool, executeSemiconductor, isSemiconductorAvailable } = await import('./semiconductor-tool');
+  const { cosmologyTool, executeCosmology, isCosmologyAvailable } = await import('./cosmology-tool');
+  const { crystallographyTool, executeCrystallography, isCrystallographyAvailable } = await import('./crystallography-tool');
+  const { polymerChemistryTool, executePolymerChemistry, isPolymerChemistryAvailable } = await import('./polymer-chemistry-tool');
+  const { heatTransferTool, executeHeatTransfer, isHeatTransferAvailable } = await import('./heat-transfer-tool');
+  const { powerSystemsTool, executePowerSystems, isPowerSystemsAvailable } = await import('./power-systems-tool');
+  const { psychologyTool, executePsychology, isPsychologyAvailable } = await import('./psychology-tool');
+  const { tribologyTool, executeTribology, isTribologyAvailable } = await import('./tribology-tool');
+  const { hvacTool, executeHvac, isHvacAvailable } = await import('./hvac-tool');
+  const { surveyingTool, executeSurveying, isSurveyingAvailable } = await import('./surveying-tool');
+  const { trafficEngineeringTool, executeTrafficEngineering, isTrafficEngineeringAvailable } = await import('./traffic-engineering-tool');
+
+  // TIER INDUSTRY & APPLIED SCIENCE (20 more compact tools)
+  const { biomedicalTool, executeBiomedical, isBiomedicalAvailable } = await import('./biomedical-tool');
+  const { roboticsTool, executeRobotics, isRoboticsAvailable } = await import('./robotics-tool');
+  const { environmentalTool, executeEnvironmental, isEnvironmentalAvailable } = await import('./environmental-tool');
+  const { manufacturingTool, executeManufacturing, isManufacturingAvailable } = await import('./manufacturing-tool');
+  const { logisticsTool, executeLogistics, isLogisticsAvailable } = await import('./logistics-tool');
+  const { telecommunicationsTool, executeTelecommunications, isTelecommunicationsAvailable } = await import('./telecommunications-tool');
+  const { renewableEnergyTool, executeRenewableEnergy, isRenewableEnergyAvailable } = await import('./renewable-energy-tool');
+  const { batteryTool, executeBattery, isBatteryAvailable } = await import('./battery-tool');
+  const { automotiveTool, executeAutomotive, isAutomotiveAvailable } = await import('./automotive-tool');
+  const { aviationTool, executeAviation, isAviationAvailable } = await import('./aviation-tool');
+  const { marineTool, executeMarine, isMarineAvailable } = await import('./marine-tool');
+  const { miningTool, executeMining, isMiningAvailable } = await import('./mining-tool');
+  const { petroleumTool, executePetroleum, isPetroleumAvailable } = await import('./petroleum-tool');
+  const { foodScienceTool, executeFoodScience, isFoodScienceAvailable } = await import('./food-science-tool');
+  const { textileTool, executeTextile, isTextileAvailable } = await import('./textile-tool');
+  const { paperTool, executePaper, isPaperAvailable } = await import('./paper-tool');
+  const { ceramicsTool, executeCeramics, isCeramicsAvailable } = await import('./ceramics-tool');
+  const { glassTool, executeGlass, isGlassAvailable } = await import('./glass-tool');
+  const { compositesTool, executeComposites, isCompositesAvailable } = await import('./composites-tool');
+  const { corrosionTool, executeCorrosion, isCorrosionAvailable } = await import('./corrosion-tool');
+
+  // TIER MANUFACTURING PROCESSES (10 more compact tools)
+  const { weldingTool, executeWelding, isWeldingAvailable } = await import('./welding-tool');
+  const { castingTool, executeCasting, isCastingAvailable } = await import('./casting-tool');
+  const { forgingTool, executeForging, isForgingAvailable } = await import('./forging-tool');
+  const { extrusionTool, executeExtrusion, isExtrusionAvailable } = await import('./extrusion-tool');
+  const { rollingTool, executeRolling, isRollingAvailable } = await import('./rolling-tool');
+  const { injectionMoldingTool, executeInjectionMolding, isInjectionMoldingAvailable } = await import('./injection-molding-tool');
+  const { cncTool, executeCnc, isCncAvailable } = await import('./cnc-tool');
+  const { printingTool, executePrinting, isPrintingAvailable } = await import('./printing-tool');
+  const { laserTool, executeLaser, isLaserAvailable } = await import('./laser-tool');
+  const { edmTool, executeEdm, isEdmAvailable } = await import('./edm-tool');
+
+  // TIER BUILDING & INDUSTRIAL SYSTEMS (10 more compact tools)
+  const { ndtTool, executeNdt, isNdtAvailable } = await import('./ndt-tool');
+  const { metrologyTool, executeMetrology, isMetrologyAvailable } = await import('./metrology-tool');
+  const { qualityTool, executeQuality, isQualityAvailable } = await import('./quality-tool');
+  const { safetyTool, executeSafety, isSafetyAvailable } = await import('./safety-tool');
+  const { ergonomicsTool, executeErgonomics, isErgonomicsAvailable } = await import('./ergonomics-tool');
+  const { packagingTool, executePackaging, isPackagingAvailable } = await import('./packaging-tool');
+  const { plumbingTool, executePlumbing, isPlumbingAvailable } = await import('./plumbing-tool');
+  const { fireProtectionTool, executeFireProtection, isFireProtectionAvailable } = await import('./fire-protection-tool');
+  const { elevatorTool, executeElevator, isElevatorAvailable } = await import('./elevator-tool');
+  const { lightingTool, executeLighting, isLightingAvailable } = await import('./lighting-tool');
+
+  // TIER LIFE SCIENCES (9 more compact tools)
+  const { soilScienceTool, executeSoilScience, isSoilScienceAvailable } = await import('./soil-science-tool');
+  const { dendrologyTool, executeDendrology, isDendrologyAvailable } = await import('./dendrology-tool');
+  const { entomologyTool, executeEntomology, isEntomologyAvailable } = await import('./entomology-tool');
+  const { microbiologyTool, executeMicrobiology, isMicrobiologyAvailable } = await import('./microbiology-tool');
+  const { virologyTool, executeVirology, isVirologyAvailable } = await import('./virology-tool');
+  const { immunologyTool, executeImmunology, isImmunologyAvailable } = await import('./immunology-tool');
+  const { toxicologyTool, executeToxicology, isToxicologyAvailable } = await import('./toxicology-tool');
+  const { geneticsTool, executeGenetics, isGeneticsAvailable } = await import('./genetics-tool');
+  const { proteomicsTool, executeProteomics, isProteomicsAvailable } = await import('./proteomics-tool');
+
+  // TIER EARTH & SOCIAL SCIENCES (9 more compact tools)
+  const { climatologyTool, executeClimatology, isClimatologyAvailable } = await import('./climatology-tool');
+  const { volcanologyTool, executeVolcanology, isVolcanologyAvailable } = await import('./volcanology-tool');
+  const { glaciologyTool, executeGlaciology, isGlaciologyAvailable } = await import('./glaciology-tool');
+  const { limnologyTool, executeLimnology, isLimnologyAvailable } = await import('./limnology-tool');
+  const { pedologyTool, executePedology, isPedologyAvailable } = await import('./pedology-tool');
+  const { paleontologyTool, executePaleontology, isPaleontologyAvailable } = await import('./paleontology-tool');
+  const { archaeologyTool, executeArchaeology, isArchaeologyAvailable } = await import('./archaeology-tool');
+  const { demographyTool, executeDemography, isDemographyAvailable } = await import('./demography-tool');
+  const { cartographyTool, executeCartography, isCartographyAvailable } = await import('./cartography-tool');
+
+  // TIER ADVANCED SCIENCE DOMAINS (7 more compact tools)
+  const { nanotechTool, executeNanotech, isNanotechAvailable } = await import('./nanotech-tool');
+  const { tribologyAdvancedTool, executeTribologyAdvanced, isTribologyAdvancedAvailable } = await import('./tribology-advanced-tool');
+  const { cryogenicsTool, executeCryogenics, isCryogenicsAvailable } = await import('./cryogenics-tool');
+  const { biomechanicsTool, executeBiomechanics, isBiomechanicsAvailable } = await import('./biomechanics-tool');
+  const { photogrammetryTool, executePhotogrammetry, isPhotogrammetryAvailable } = await import('./photogrammetry-tool');
+  const { rheologyTool, executeRheology, isRheologyAvailable } = await import('./rheology-tool');
+  const { acousticsAdvancedTool, executeAcousticsAdvanced, isAcousticsAdvancedAvailable } = await import('./acoustics-advanced-tool');
+
+  // TIER ENGINEERING SPECIALTIES (6 more compact tools)
+  const { nuclearEngineeringTool, executeNuclearEngineering, isNuclearEngineeringAvailable } = await import('./nuclear-engineering-tool');
+  const { vacuumTool, executeVacuum, isVacuumAvailable } = await import('./vacuum-tool');
+  const { spectralAnalysisTool, executeSpectralAnalysis, isSpectralAnalysisAvailable } = await import('./spectral-analysis-tool');
+  const { vibrationTool, executeVibration, isVibrationAvailable } = await import('./vibration-tool');
+  const { fatigueTool, executeFatigue, isFatigueAvailable } = await import('./fatigue-tool');
+  const { fermentationTool, executeFermentation, isFermentationAvailable } = await import('./fermentation-tool');
+
+  // TIER CHEMICAL ENGINEERING (5 more compact tools)
+  const { electroplatingTool, executeElectroplating, isElectroplatingAvailable } = await import('./electroplating-tool');
+  const { chromatographyTool, executeChromatography, isChromatographyAvailable } = await import('./chromatography-tool');
+  const { distillationTool, executeDistillation, isDistillationAvailable } = await import('./distillation-tool');
+  const { membraneTool, executeMembrane, isMembraneAvailable } = await import('./membrane-tool');
+  const { adsorptionTool, executeAdsorption, isAdsorptionAvailable } = await import('./adsorption-tool');
+
+  // TIER PROCESS ENGINEERING (4 more compact tools)
+  const { reactorTool, executeReactor, isReactorAvailable } = await import('./reactor-tool');
+  const { fluidizationTool, executeFluidization, isFluidizationAvailable } = await import('./fluidization-tool');
+  const { dryingTool, executeDrying, isDryingAvailable } = await import('./drying-tool');
+  const { extractionTool, executeExtraction, isExtractionAvailable } = await import('./extraction-tool');
+
+  // TIER SEPARATION PROCESSES (4 more compact tools)
+  const { crystallizationTool, executeCrystallization, isCrystallizationAvailable } = await import('./crystallization-tool');
+  const { mixingTool, executeMixing, isMixingAvailable } = await import('./mixing-tool');
+  const { sedimentationTool, executeSedimentation, isSedimentationAvailable } = await import('./sedimentation-tool');
+  const { filtrationTool, executeFiltration, isFiltrationAvailable } = await import('./filtration-tool');
+
+  // TIER MASS TRANSFER OPERATIONS (3 more compact tools)
+  const { evaporationTool, executeEvaporation, isEvaporationAvailable } = await import('./evaporation-tool');
+  const { humidificationTool, executeHumidification, isHumidificationAvailable } = await import('./humidification-tool');
+  const { absorptionTool, executeAbsorption, isAbsorptionAvailable } = await import('./absorption-tool');
+
+  // TIER MINERAL PROCESSING (2 more compact tools)
+  const { leachingTool, executeLeaching, isLeachingAvailable } = await import('./leaching-tool');
+  const { comminutionTool, executeComminution, isComminutionAvailable } = await import('./comminution-tool');
+
+  // TIER ADDITIONAL SCIENCES (15 more compact tools)
+  const { agricultureTool, executeAgriculture, isAgricultureAvailable } = await import('./agriculture-tool');
+  const { ecologyTool, executeEcology, isEcologyAvailable } = await import('./ecology-tool');
+  const { economicsTool, executeEconomics, isEconomicsAvailable } = await import('./economics-tool');
+  const { forensicsTool, executeForensics, isForensicsAvailable } = await import('./forensics-tool');
+  const { geologyTool, executeGeology, isGeologyAvailable } = await import('./geology-tool');
+  const { linguisticsTool, executeLinguistics, isLinguisticsAvailable } = await import('./linguistics-tool');
+  const { meteorologyTool, executeMeteorology, isMeteorologyAvailable } = await import('./meteorology-tool');
+  const { networkAnalysisTool, executeNetworkAnalysis, isNetworkAnalysisAvailable } = await import('./network-analysis-tool');
+  const { nuclearPhysicsTool, executeNuclearPhysics, isNuclearPhysicsAvailable } = await import('./nuclear-physics-tool');
+  const { nutritionTool, executeNutrition, isNutritionAvailable } = await import('./nutrition-tool');
+  const { oceanographyTool, executeOceanography, isOceanographyAvailable } = await import('./oceanography-tool');
+  const { pharmacologyTool, executePharmacology, isPharmacologyAvailable } = await import('./pharmacology-tool');
+  const { plasmaPhysicsTool, executePlasmaPhysics, isPlasmaPhysicsAvailable } = await import('./plasma-physics-tool');
+  const { vulnerabilityTool, executeVulnerability, isVulnerabilityAvailable } = await import('./vulnerability-tool');
+  const { encryptionTool, executeEncryption, isEncryptionAvailable } = await import('./encryption-tool');
+
+  // New science tools batch 3 (5 new tools)
+  const { taxonomyTool, executeTaxonomy, isTaxonomyAvailable } = await import('./taxonomy-tool');
+  const { petrologyTool, executePetrology, isPetrologyAvailable } = await import('./petrology-tool');
+  const { mineralogyTool, executeMineralogy, isMineralogyAvailable } = await import('./mineralogy-tool');
+  const { biophysicsTool, executeBiophysics, isBiophysicsAvailable } = await import('./biophysics-tool');
+  const { metallurgyTool, executeMetallurgy, isMetallurgyAvailable } = await import('./metallurgy-tool');
+
+  // Cybersecurity tools batch 1 (15 new tools)
+  const { hashAnalysisTool, executeHashAnalysis, isHashAnalysisAvailable } = await import('./hash-analysis-tool');
+  const { encodingTool, executeEncoding, isEncodingAvailable } = await import('./encoding-tool');
+  const { securityMetricsTool, executeSecurityMetrics, isSecurityMetricsAvailable } = await import('./security-metrics-tool');
+  const { jwtTool, executeJwt, isJwtAvailable } = await import('./jwt-tool');
+  const { ipSecurityTool, executeIpSecurity, isIpSecurityAvailable } = await import('./ip-security-tool');
+  const { certificateTool, executeCertificate, isCertificateAvailable } = await import('./certificate-tool');
+  const { entropyAnalysisTool, executeEntropyAnalysis, isEntropyAnalysisAvailable } = await import('./entropy-analysis-tool');
+  const { securityHeadersTool, executeSecurityHeaders, isSecurityHeadersAvailable } = await import('./security-headers-tool');
+  const { malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable } = await import('./malware-indicators-tool');
+  const { portScannerTool, executePortScanner, isPortScannerAvailable } = await import('./port-scanner-tool');
+  const { owaspTool, executeOwasp, isOwaspAvailable } = await import('./owasp-tool');
+  const { dnsSecurityTool, executeDnsSecurity, isDnsSecurityAvailable } = await import('./dns-security-tool');
+  const { threatModelTool, executeThreatModel, isThreatModelAvailable } = await import('./threat-model-tool');
+  const { complianceTool, executeCompliance, isComplianceAvailable } = await import('./compliance-tool');
+  const { cipherTool, executeCipher, isCipherAvailable } = await import('./cipher-tool');
+
+  // Cybersecurity tools batch 2 (55 more tools)
+  const { authProtocolTool, executeAuthProtocol, isAuthProtocolAvailable } = await import('./auth-protocol-tool');
+  const { vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable } = await import('./vuln-assessment-tool');
+  const { incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable } = await import('./incident-response-tool');
+  const { networkSecurityTool, executeNetworkSecurity, isNetworkSecurityAvailable } = await import('./network-security-tool');
+  const { firewallTool, executeFirewall, isFirewallAvailable } = await import('./firewall-tool');
+  const { idsIpsTool, executeIdsIps, isIdsIpsAvailable } = await import('./ids-ips-tool');
+  const { logAnalysisTool, executeLogAnalysis, isLogAnalysisAvailable } = await import('./log-analysis-tool');
+  const { penTestTool, executePenTest, isPenTestAvailable } = await import('./pen-test-tool');
+  const { socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable } = await import('./social-engineering-tool');
+  const { cryptanalysisTool, executeCryptanalysis, isCryptanalysisAvailable } = await import('./cryptanalysis-tool');
+  const { secureSdlcTool, executeSecureSdlc, isSecureSdlcAvailable } = await import('./secure-sdlc-tool');
+  const { privacyTool, executePrivacy, isPrivacyAvailable } = await import('./privacy-tool');
+  const { accessControlTool, executeAccessControl, isAccessControlAvailable } = await import('./access-control-tool');
+  const { siemTool, executeSiem, isSiemAvailable } = await import('./siem-tool');
+  const { vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable } = await import('./vulnerability-scanner-tool');
+  const { malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable } = await import('./malware-analysis-tool');
+  const { endpointSecurityTool, executeEndpointSecurity, isEndpointSecurityAvailable } = await import('./endpoint-security-tool');
+  const { cloudSecurityTool, executeCloudSecurity, isCloudSecurityAvailable } = await import('./cloud-security-tool');
+  const { containerSecurityTool, executeContainerSecurity, isContainerSecurityAvailable } = await import('./container-security-tool');
+  const { apiSecurityTool, executeApiSecurity, isApiSecurityAvailable } = await import('./api-security-tool');
+  const { mobileSecurityTool, executeMobileSecurity, isMobileSecurityAvailable } = await import('./mobile-security-tool');
+  const { iotSecurityTool, executeIotSecurity, isIotSecurityAvailable } = await import('./iot-security-tool');
+  const { zeroTrustTool, executeZeroTrust, isZeroTrustAvailable } = await import('./zero-trust-tool');
+  const { securityArchitectureTool, executeSecurityArchitecture, isSecurityArchitectureAvailable } = await import('./security-architecture-tool');
+  const { riskManagementTool, executeRiskManagement, isRiskManagementAvailable } = await import('./risk-management-tool');
+  const { businessContinuityTool, executeBusinessContinuity, isBusinessContinuityAvailable } = await import('./business-continuity-tool');
+  const { securityAwarenessTool, executeSecurityAwareness, isSecurityAwarenessAvailable } = await import('./security-awareness-tool');
+  const { threatIntelTool, executeThreatIntel, isThreatIntelAvailable } = await import('./threat-intel-tool');
+  const { devsecOpsTool, executeDevsecOps, isDevsecOpsAvailable } = await import('./devsecops-tool');
+  const { blockchainSecurityTool, executeBlockchainSecurity, isBlockchainSecurityAvailable } = await import('./blockchain-security-tool');
+  const { wirelessSecurityTool, executeWirelessSecurity, isWirelessSecurityAvailable } = await import('./wireless-security-tool');
+  const { vpnTool, executeVpn, isVpnAvailable } = await import('./vpn-tool');
+  const { pkiTool, executePki, isPkiAvailable } = await import('./pki-tool');
+  const { dataLossPreventionTool, executeDataLossPrevention, isDataLossPreventionAvailable } = await import('./data-loss-prevention-tool');
+  const { redTeamTool, executeRedTeam, isRedTeamAvailable } = await import('./red-team-tool');
+  const { blueTeamTool, executeBlueTeam, isBlueTeamAvailable } = await import('./blue-team-tool');
+  const { socTool, executeSoc, isSocAvailable } = await import('./soc-tool');
+  const { identityManagementTool, executeIdentityManagement, isIdentityManagementAvailable } = await import('./identity-management-tool');
+  const { emailSecurityTool, executeEmailSecurity, isEmailSecurityAvailable } = await import('./email-security-tool');
+  const { vendorRiskTool, executeVendorRisk, isVendorRiskAvailable } = await import('./vendor-risk-tool');
+  const { patchManagementTool, executePatchManagement, isPatchManagementAvailable } = await import('./patch-management-tool');
+  const { threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable } = await import('./threat-hunting-tool');
+  const { osintTool, executeOsint, isOsintAvailable } = await import('./osint-tool');
+  const { ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable } = await import('./ransomware-defense-tool');
+  const { credentialSecurityTool, executeCredentialSecurity, isCredentialSecurityAvailable } = await import('./credential-security-tool');
+  const { databaseSecurityTool, executeDatabaseSecurity, isDatabaseSecurityAvailable } = await import('./database-security-tool');
+  const { scadaIcsTool, executeScadaIcs, isScadaIcsAvailable } = await import('./scada-ics-tool');
+  const { attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable } = await import('./attack-surface-tool');
+  const { dataClassificationTool, executeDataClassification, isDataClassificationAvailable } = await import('./data-classification-tool');
+  const { keyManagementTool, executeKeyManagement, isKeyManagementAvailable } = await import('./key-management-tool');
+  const { securityPolicyTool, executeSecurityPolicy, isSecurityPolicyAvailable } = await import('./security-policy-tool');
+  const { securityAuditTool, executeSecurityAudit, isSecurityAuditAvailable } = await import('./security-audit-tool');
+  const { assetManagementTool, executeAssetManagement, isAssetManagementAvailable } = await import('./asset-management-tool');
+  // Additional security tools batch 3 (13 more tools)
+  const { honeypotTool, executeHoneypot, isHoneypotAvailable } = await import('./honeypot-tool');
+  const { complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable } = await import('./compliance-framework-tool');
+  const { securityArchitecturePatternsTool, executeSecurityArchitecturePatterns, isSecurityArchitecturePatternsAvailable } = await import('./security-architecture-patterns-tool');
+  const { soarTool, executeSoar, isSoarAvailable } = await import('./soar-tool');
+  const { supplyChainSecurityTool, executeSupplyChainSecurity, isSupplyChainSecurityAvailable } = await import('./supply-chain-security-tool');
+  const { webSecurityTool, executeWebSecurity, isWebSecurityAvailable } = await import('./web-security-tool');
+  const { networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable } = await import('./network-defense-tool');
+  const { secretsManagementTool, executeSecretsManagement, isSecretsManagementAvailable } = await import('./secrets-management-tool');
+  const { xdrTool, executeXdr, isXdrAvailable } = await import('./xdr-tool');
+  const { privacyEngineeringTool, executePrivacyEngineering, isPrivacyEngineeringAvailable } = await import('./privacy-engineering-tool');
+  const { secureCommunicationsTool, executeSecureCommunications, isSecureCommunicationsAvailable } = await import('./secure-communications-tool');
+  const { securityTestingTool, executeSecurityTesting, isSecurityTestingAvailable } = await import('./security-testing-tool');
+  const { industrialControlTool, executeIndustrialControl, isIndustrialControlAvailable } = await import('./industrial-control-tool');
+  const { cloudNativeSecurityTool, executeCloudNativeSecurity, isCloudNativeSecurityAvailable } = await import('./cloud-native-security-tool');
+  const { browserSecurityTool, executeBrowserSecurity, isBrowserSecurityAvailable } = await import('./browser-security-tool');
+  const { physicalSecurityTool, executePhysicalSecurity, isPhysicalSecurityAvailable } = await import('./physical-security-tool');
+  const { securityOperationsTool, executeSecurityOperations, isSecurityOperationsAvailable } = await import('./security-operations-tool');
+  const { threatModelingTool, executeThreatModeling, isThreatModelingAvailable } = await import('./threat-modeling-tool');
+  const { aiSecurityTool, executeAiSecurity, isAiSecurityAvailable } = await import('./ai-security-tool');
+  const { securityCultureTool, executeSecurityCulture, isSecurityCultureAvailable } = await import('./security-culture-tool');
+  const { logManagementTool, executeLogManagement, isLogManagementAvailable } = await import('./log-management-tool');
+  const { authenticationTool, executeAuthentication, isAuthenticationAvailable } = await import('./authentication-tool');
+  const { backupRecoveryTool, executeBackupRecovery, isBackupRecoveryAvailable } = await import('./backup-recovery-tool');
+  // Additional security tools batch 4
+  const { securityBudgetTool, executeSecurityBudget, isSecurityBudgetAvailable } = await import('./security-budget-tool');
+  const { cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable } = await import('./cyber-insurance-tool');
+  const { saseTool, executeSase, isSaseAvailable } = await import('./sase-tool');
+  const { identityGovernanceTool, executeIdentityGovernance, isIdentityGovernanceAvailable } = await import('./identity-governance-tool');
+  const { dataSecurityTool, executeDataSecurity, isDataSecurityAvailable } = await import('./data-security-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -1396,7 +2012,511 @@ async function initializeTools() {
       tool: acousticsTool,
       executor: executeAcoustics,
       checkAvailability: isAcousticsAvailable,
-    }
+    },
+    // Tier GODMODE - Ultimate Intelligence tools (9 new)
+    {
+      tool: symbolicLogicTool,
+      executor: executeSymbolicLogic,
+      checkAvailability: isSymbolicLogicAvailable,
+    },
+    {
+      tool: cellularAutomataTool,
+      executor: executeCellularAutomata,
+      checkAvailability: isCellularAutomataAvailable,
+    },
+    {
+      tool: medicalCalcTool,
+      executor: executeMedicalCalc,
+      checkAvailability: isMedicalCalcAvailable,
+    },
+    {
+      tool: graphics3dTool,
+      executor: executeGraphics3D,
+      checkAvailability: isGraphics3DAvailable,
+    },
+    {
+      tool: compressionAlgoTool,
+      executor: executeCompressionAlgo,
+      checkAvailability: isCompressionAlgoAvailable,
+    },
+    {
+      tool: errorCorrectionTool,
+      executor: executeErrorCorrection,
+      checkAvailability: isErrorCorrectionAvailable,
+    },
+    {
+      tool: houghVisionTool,
+      executor: executeHoughVision,
+      checkAvailability: isHoughVisionAvailable,
+    },
+    {
+      tool: cryptographyAdvancedTool,
+      executor: executeCryptographyAdvanced,
+      checkAvailability: isCryptographyAdvancedAvailable,
+    },
+    {
+      tool: solarEnvironmentalTool,
+      executor: executeSolarEnvironmental,
+      checkAvailability: isSolarEnvironmentalAvailable,
+    },
+    // TIER VISUAL MADNESS - Graphics & Animation Tools (6 new)
+    {
+      tool: svgGeneratorTool,
+      executor: executeSVGGenerator,
+      checkAvailability: isSVGGeneratorAvailable,
+    },
+    {
+      tool: fractalGeneratorTool,
+      executor: executeFractalGenerator,
+      checkAvailability: isFractalGeneratorAvailable,
+    },
+    {
+      tool: colorTheoryTool,
+      executor: executeColorTheory,
+      checkAvailability: isColorTheoryAvailable,
+    },
+    {
+      tool: animationEasingTool,
+      executor: executeAnimationEasing,
+      checkAvailability: isAnimationEasingAvailable,
+    },
+    {
+      tool: particleSystemTool,
+      executor: executeParticleSystem,
+      checkAvailability: isParticleSystemAvailable,
+    },
+    // TIER SOUND & MUSIC - Audio Tools
+    // musicTheoryTool already registered in Computational & Algorithmic tools section
+    // Additional VISUAL MADNESS
+    {
+      tool: bezierCurvesTool,
+      executor: executeBezierCurves,
+      checkAvailability: isBezierCurvesAvailable,
+    },
+    // TIER EDUCATION - Interactive Learning Tools
+    {
+      tool: sortingVisualizerTool,
+      executor: executeSortingVisualizer,
+      checkAvailability: isSortingVisualizerAvailable,
+    },
+    {
+      tool: dataStructuresTool,
+      executor: executeDataStructures,
+      checkAvailability: isDataStructuresAvailable,
+    },
+    // TIER ADVANCED SCIENCE - Cutting-Edge Scientific Tools
+    {
+      tool: quantumComputingTool,
+      executor: executeQuantumComputing,
+      checkAvailability: isQuantumComputingAvailable,
+    },
+    {
+      tool: shaderGeneratorTool,
+      executor: executeShaderGenerator,
+      checkAvailability: isShaderGeneratorAvailable,
+    },
+    {
+      tool: signalProcessingTool,
+      executor: executeSignalProcessing,
+      checkAvailability: isSignalProcessingAvailable,
+    },
+    {
+      tool: neuralNetworkTool,
+      executor: executeNeuralNetwork,
+      checkAvailability: isNeuralNetworkAvailable,
+    },
+    // TIER ADVANCED SCIENCE - Part 2 (5 more tools)
+    {
+      tool: informationTheoryTool,
+      executor: executeInformationTheory,
+      checkAvailability: isInformationTheoryAvailable,
+    },
+    {
+      tool: proceduralGenerationTool,
+      executor: executeProceduralGeneration,
+      checkAvailability: isProceduralGenerationAvailable,
+    },
+    {
+      tool: rayTracingTool,
+      executor: executeRayTracing,
+      checkAvailability: isRayTracingAvailable,
+    },
+    {
+      tool: automataTheoryTool,
+      executor: executeAutomataTheory,
+      checkAvailability: isAutomataTheoryAvailable,
+    },
+    {
+      tool: computationalComplexityTool,
+      executor: executeComputationalComplexity,
+      checkAvailability: isComputationalComplexityAvailable,
+    },
+    // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
+    {
+      tool: reactionKineticsTool,
+      executor: executeReactionKinetics,
+      checkAvailability: isReactionKineticsAvailable,
+    },
+    {
+      tool: electrochemistryTool,
+      executor: executeElectrochemistry,
+      checkAvailability: isElectrochemistryAvailable,
+    },
+    {
+      tool: spectroscopyTool,
+      executor: executeSpectroscopy,
+      checkAvailability: isSpectroscopyAvailable,
+    },
+    {
+      tool: quantumMechanicsTool,
+      executor: executeQuantumMechanics,
+      checkAvailability: isQuantumMechanicsAvailable,
+    },
+    {
+      tool: relativityTool,
+      executor: executeRelativity,
+      checkAvailability: isRelativityAvailable,
+    },
+    {
+      tool: statisticalMechanicsTool,
+      executor: executeStatisticalMechanics,
+      checkAvailability: isStatisticalMechanicsAvailable,
+    },
+    // TIER ENGINEERING & APPLIED SCIENCE (15 new compact tools)
+    { tool: hydrologyTool, executor: executeHydrology, checkAvailability: isHydrologyAvailable },
+    { tool: structuralEngineeringTool, executor: executeStructuralEngineering, checkAvailability: isStructuralEngineeringAvailable },
+    { tool: geotechnicalTool, executor: executeGeotechnical, checkAvailability: isGeotechnicalAvailable },
+    { tool: photonicsTool, executor: executePhotonics, checkAvailability: isPhotonicsAvailable },
+    { tool: semiconductorTool, executor: executeSemiconductor, checkAvailability: isSemiconductorAvailable },
+    { tool: cosmologyTool, executor: executeCosmology, checkAvailability: isCosmologyAvailable },
+    { tool: crystallographyTool, executor: executeCrystallography, checkAvailability: isCrystallographyAvailable },
+    { tool: polymerChemistryTool, executor: executePolymerChemistry, checkAvailability: isPolymerChemistryAvailable },
+    { tool: heatTransferTool, executor: executeHeatTransfer, checkAvailability: isHeatTransferAvailable },
+    { tool: powerSystemsTool, executor: executePowerSystems, checkAvailability: isPowerSystemsAvailable },
+    { tool: psychologyTool, executor: executePsychology, checkAvailability: isPsychologyAvailable },
+    { tool: tribologyTool, executor: executeTribology, checkAvailability: isTribologyAvailable },
+    { tool: hvacTool, executor: executeHvac, checkAvailability: isHvacAvailable },
+    { tool: surveyingTool, executor: executeSurveying, checkAvailability: isSurveyingAvailable },
+    { tool: trafficEngineeringTool, executor: executeTrafficEngineering, checkAvailability: isTrafficEngineeringAvailable },
+    // TIER INDUSTRY & APPLIED SCIENCE (20 more compact tools)
+    { tool: biomedicalTool, executor: executeBiomedical, checkAvailability: isBiomedicalAvailable },
+    { tool: roboticsTool, executor: executeRobotics, checkAvailability: isRoboticsAvailable },
+    { tool: environmentalTool, executor: executeEnvironmental, checkAvailability: isEnvironmentalAvailable },
+    { tool: manufacturingTool, executor: executeManufacturing, checkAvailability: isManufacturingAvailable },
+    { tool: logisticsTool, executor: executeLogistics, checkAvailability: isLogisticsAvailable },
+    { tool: telecommunicationsTool, executor: executeTelecommunications, checkAvailability: isTelecommunicationsAvailable },
+    { tool: renewableEnergyTool, executor: executeRenewableEnergy, checkAvailability: isRenewableEnergyAvailable },
+    { tool: batteryTool, executor: executeBattery, checkAvailability: isBatteryAvailable },
+    { tool: automotiveTool, executor: executeAutomotive, checkAvailability: isAutomotiveAvailable },
+    { tool: aviationTool, executor: executeAviation, checkAvailability: isAviationAvailable },
+    { tool: marineTool, executor: executeMarine, checkAvailability: isMarineAvailable },
+    { tool: miningTool, executor: executeMining, checkAvailability: isMiningAvailable },
+    { tool: petroleumTool, executor: executePetroleum, checkAvailability: isPetroleumAvailable },
+    { tool: foodScienceTool, executor: executeFoodScience, checkAvailability: isFoodScienceAvailable },
+    { tool: textileTool, executor: executeTextile, checkAvailability: isTextileAvailable },
+    { tool: paperTool, executor: executePaper, checkAvailability: isPaperAvailable },
+    { tool: ceramicsTool, executor: executeCeramics, checkAvailability: isCeramicsAvailable },
+    { tool: glassTool, executor: executeGlass, checkAvailability: isGlassAvailable },
+    { tool: compositesTool, executor: executeComposites, checkAvailability: isCompositesAvailable },
+    { tool: corrosionTool, executor: executeCorrosion, checkAvailability: isCorrosionAvailable },
+    // TIER MANUFACTURING PROCESSES (10 more compact tools)
+    { tool: weldingTool, executor: executeWelding, checkAvailability: isWeldingAvailable },
+    { tool: castingTool, executor: executeCasting, checkAvailability: isCastingAvailable },
+    { tool: forgingTool, executor: executeForging, checkAvailability: isForgingAvailable },
+    { tool: extrusionTool, executor: executeExtrusion, checkAvailability: isExtrusionAvailable },
+    { tool: rollingTool, executor: executeRolling, checkAvailability: isRollingAvailable },
+    { tool: injectionMoldingTool, executor: executeInjectionMolding, checkAvailability: isInjectionMoldingAvailable },
+    { tool: cncTool, executor: executeCnc, checkAvailability: isCncAvailable },
+    { tool: printingTool, executor: executePrinting, checkAvailability: isPrintingAvailable },
+    { tool: laserTool, executor: executeLaser, checkAvailability: isLaserAvailable },
+    { tool: edmTool, executor: executeEdm, checkAvailability: isEdmAvailable },
+    // TIER BUILDING & INDUSTRIAL SYSTEMS (10 more compact tools)
+    { tool: ndtTool, executor: executeNdt, checkAvailability: isNdtAvailable },
+    { tool: metrologyTool, executor: executeMetrology, checkAvailability: isMetrologyAvailable },
+    { tool: qualityTool, executor: executeQuality, checkAvailability: isQualityAvailable },
+    { tool: safetyTool, executor: executeSafety, checkAvailability: isSafetyAvailable },
+    { tool: ergonomicsTool, executor: executeErgonomics, checkAvailability: isErgonomicsAvailable },
+    { tool: packagingTool, executor: executePackaging, checkAvailability: isPackagingAvailable },
+    { tool: plumbingTool, executor: executePlumbing, checkAvailability: isPlumbingAvailable },
+    { tool: fireProtectionTool, executor: executeFireProtection, checkAvailability: isFireProtectionAvailable },
+    { tool: elevatorTool, executor: executeElevator, checkAvailability: isElevatorAvailable },
+    { tool: lightingTool, executor: executeLighting, checkAvailability: isLightingAvailable },
+    // TIER LIFE SCIENCES (9 more compact tools)
+    { tool: soilScienceTool, executor: executeSoilScience, checkAvailability: isSoilScienceAvailable },
+    { tool: dendrologyTool, executor: executeDendrology, checkAvailability: isDendrologyAvailable },
+    { tool: entomologyTool, executor: executeEntomology, checkAvailability: isEntomologyAvailable },
+    { tool: microbiologyTool, executor: executeMicrobiology, checkAvailability: isMicrobiologyAvailable },
+    { tool: virologyTool, executor: executeVirology, checkAvailability: isVirologyAvailable },
+    { tool: immunologyTool, executor: executeImmunology, checkAvailability: isImmunologyAvailable },
+    { tool: toxicologyTool, executor: executeToxicology, checkAvailability: isToxicologyAvailable },
+    { tool: geneticsTool, executor: executeGenetics, checkAvailability: isGeneticsAvailable },
+    { tool: proteomicsTool, executor: executeProteomics, checkAvailability: isProteomicsAvailable },
+    // TIER EARTH & SOCIAL SCIENCES (9 more compact tools)
+    { tool: climatologyTool, executor: executeClimatology, checkAvailability: isClimatologyAvailable },
+    { tool: volcanologyTool, executor: executeVolcanology, checkAvailability: isVolcanologyAvailable },
+    { tool: glaciologyTool, executor: executeGlaciology, checkAvailability: isGlaciologyAvailable },
+    { tool: limnologyTool, executor: executeLimnology, checkAvailability: isLimnologyAvailable },
+    { tool: pedologyTool, executor: executePedology, checkAvailability: isPedologyAvailable },
+    { tool: paleontologyTool, executor: executePaleontology, checkAvailability: isPaleontologyAvailable },
+    { tool: archaeologyTool, executor: executeArchaeology, checkAvailability: isArchaeologyAvailable },
+    { tool: demographyTool, executor: executeDemography, checkAvailability: isDemographyAvailable },
+    { tool: cartographyTool, executor: executeCartography, checkAvailability: isCartographyAvailable },
+    // TIER ADVANCED SCIENCE DOMAINS (7 more compact tools)
+    { tool: nanotechTool, executor: executeNanotech, checkAvailability: isNanotechAvailable },
+    { tool: tribologyAdvancedTool, executor: executeTribologyAdvanced, checkAvailability: isTribologyAdvancedAvailable },
+    { tool: cryogenicsTool, executor: executeCryogenics, checkAvailability: isCryogenicsAvailable },
+    { tool: biomechanicsTool, executor: executeBiomechanics, checkAvailability: isBiomechanicsAvailable },
+    { tool: photogrammetryTool, executor: executePhotogrammetry, checkAvailability: isPhotogrammetryAvailable },
+    { tool: rheologyTool, executor: executeRheology, checkAvailability: isRheologyAvailable },
+    { tool: acousticsAdvancedTool, executor: executeAcousticsAdvanced, checkAvailability: isAcousticsAdvancedAvailable },
+    // TIER ENGINEERING SPECIALTIES (6 more compact tools)
+    { tool: nuclearEngineeringTool, executor: executeNuclearEngineering, checkAvailability: isNuclearEngineeringAvailable },
+    { tool: vacuumTool, executor: executeVacuum, checkAvailability: isVacuumAvailable },
+    { tool: spectralAnalysisTool, executor: executeSpectralAnalysis, checkAvailability: isSpectralAnalysisAvailable },
+    { tool: vibrationTool, executor: executeVibration, checkAvailability: isVibrationAvailable },
+    { tool: fatigueTool, executor: executeFatigue, checkAvailability: isFatigueAvailable },
+    { tool: fermentationTool, executor: executeFermentation, checkAvailability: isFermentationAvailable },
+    // TIER CHEMICAL ENGINEERING (5 more compact tools)
+    { tool: electroplatingTool, executor: executeElectroplating, checkAvailability: isElectroplatingAvailable },
+    { tool: chromatographyTool, executor: executeChromatography, checkAvailability: isChromatographyAvailable },
+    { tool: distillationTool, executor: executeDistillation, checkAvailability: isDistillationAvailable },
+    { tool: membraneTool, executor: executeMembrane, checkAvailability: isMembraneAvailable },
+    { tool: adsorptionTool, executor: executeAdsorption, checkAvailability: isAdsorptionAvailable },
+    // TIER PROCESS ENGINEERING (4 more compact tools)
+    { tool: reactorTool, executor: executeReactor, checkAvailability: isReactorAvailable },
+    { tool: fluidizationTool, executor: executeFluidization, checkAvailability: isFluidizationAvailable },
+    { tool: dryingTool, executor: executeDrying, checkAvailability: isDryingAvailable },
+    { tool: extractionTool, executor: executeExtraction, checkAvailability: isExtractionAvailable },
+    // TIER SEPARATION PROCESSES (4 more compact tools)
+    { tool: crystallizationTool, executor: executeCrystallization, checkAvailability: isCrystallizationAvailable },
+    { tool: mixingTool, executor: executeMixing, checkAvailability: isMixingAvailable },
+    { tool: sedimentationTool, executor: executeSedimentation, checkAvailability: isSedimentationAvailable },
+    { tool: filtrationTool, executor: executeFiltration, checkAvailability: isFiltrationAvailable },
+    // TIER MASS TRANSFER OPERATIONS (3 more compact tools)
+    { tool: evaporationTool, executor: executeEvaporation, checkAvailability: isEvaporationAvailable },
+    { tool: humidificationTool, executor: executeHumidification, checkAvailability: isHumidificationAvailable },
+    { tool: absorptionTool, executor: executeAbsorption, checkAvailability: isAbsorptionAvailable },
+    // TIER MINERAL PROCESSING (2 more compact tools)
+    { tool: leachingTool, executor: executeLeaching, checkAvailability: isLeachingAvailable },
+    { tool: comminutionTool, executor: executeComminution, checkAvailability: isComminutionAvailable },
+    // TIER ADDITIONAL SCIENCES (15 more compact tools)
+    { tool: agricultureTool, executor: executeAgriculture, checkAvailability: isAgricultureAvailable },
+    { tool: ecologyTool, executor: executeEcology, checkAvailability: isEcologyAvailable },
+    { tool: economicsTool, executor: executeEconomics, checkAvailability: isEconomicsAvailable },
+    { tool: forensicsTool, executor: executeForensics, checkAvailability: isForensicsAvailable },
+    { tool: geologyTool, executor: executeGeology, checkAvailability: isGeologyAvailable },
+    { tool: linguisticsTool, executor: executeLinguistics, checkAvailability: isLinguisticsAvailable },
+    { tool: meteorologyTool, executor: executeMeteorology, checkAvailability: isMeteorologyAvailable },
+    { tool: networkAnalysisTool, executor: executeNetworkAnalysis, checkAvailability: isNetworkAnalysisAvailable },
+    { tool: nuclearPhysicsTool, executor: executeNuclearPhysics, checkAvailability: isNuclearPhysicsAvailable },
+    { tool: nutritionTool, executor: executeNutrition, checkAvailability: isNutritionAvailable },
+    { tool: oceanographyTool, executor: executeOceanography, checkAvailability: isOceanographyAvailable },
+    { tool: pharmacologyTool, executor: executePharmacology, checkAvailability: isPharmacologyAvailable },
+    { tool: plasmaPhysicsTool, executor: executePlasmaPhysics, checkAvailability: isPlasmaPhysicsAvailable },
+    { tool: vulnerabilityTool, executor: executeVulnerability, checkAvailability: isVulnerabilityAvailable },
+    { tool: encryptionTool, executor: executeEncryption, checkAvailability: isEncryptionAvailable },
+    // Previously unregistered tools (95 tools)
+    { tool: runCodeTool, executor: executeRunCode, checkAvailability: isRunCodeAvailable },
+    { tool: visionAnalyzeTool, executor: executeVisionAnalyze, checkAvailability: isVisionAnalyzeAvailable },
+    { tool: browserVisitTool, executor: executeBrowserVisitTool, checkAvailability: isBrowserVisitAvailable },
+    { tool: extractPdfTool, executor: executeExtractPdf, checkAvailability: isExtractPdfAvailable },
+    { tool: extractTableTool, executor: executeExtractTable, checkAvailability: isExtractTableAvailable },
+    { tool: dynamicToolTool, executor: executeDynamicTool, checkAvailability: isDynamicToolAvailable },
+    { tool: youtubeTranscriptTool, executor: executeYouTubeTranscript, checkAvailability: isYouTubeTranscriptAvailable },
+    { tool: audioTranscribeTool, executor: executeAudioTranscribe, checkAvailability: isAudioTranscribeAvailable },
+    { tool: spreadsheetTool, executor: executeSpreadsheet, checkAvailability: isSpreadsheetAvailable },
+    { tool: httpRequestTool, executor: executeHttpRequest, checkAvailability: isHttpRequestAvailable },
+    { tool: imageTransformTool, executor: executeImageTransform, checkAvailability: isImageTransformAvailable },
+    { tool: fileConvertTool, executor: executeFileConvert, checkAvailability: isFileConvertAvailable },
+    { tool: linkShortenTool, executor: executeLinkShorten, checkAvailability: isLinkShortenAvailable },
+    { tool: mermaidDiagramTool, executor: executeMermaidDiagram, checkAvailability: isMermaidDiagramAvailable },
+    { tool: entityExtractionTool, executor: executeEntityExtraction, checkAvailability: isEntityExtractionAvailable },
+    { tool: searchIndexTool, executor: executeSearchIndex, checkAvailability: isSearchIndexAvailable },
+    { tool: unitConvertTool, executor: executeUnitConvert, checkAvailability: isUnitConvertAvailable },
+    { tool: passwordStrengthTool, executor: executePasswordStrength, checkAvailability: isPasswordStrengthAvailable },
+    { tool: periodicTableTool, executor: executePeriodicTable, checkAvailability: isPeriodicTableAvailable },
+    { tool: physicsConstantsTool, executor: executePhysicsConstants, checkAvailability: isPhysicsConstantsAvailable },
+    { tool: accessibilityTool, executor: executeAccessibility, checkAvailability: isAccessibilityAvailable },
+    { tool: symbolicMathTool, executor: executeSymbolicMath, checkAvailability: isSymbolicMathAvailable },
+    { tool: optimizationTool, executor: executeOptimization, checkAvailability: isOptimizationAvailable },
+    { tool: musicTheoryTool, executor: executeMusicTheory, checkAvailability: isMusicTheoryAvailable },
+    { tool: recurrenceTool, executor: executeRecurrence, checkAvailability: isRecurrenceAvailable },
+    { tool: constraintTool, executor: executeConstraint, checkAvailability: isConstraintAvailable },
+    { tool: timeseriesTool, executor: executeTimeseries, checkAvailability: isTimeseriesAvailable },
+    { tool: stringDistanceTool, executor: executeStringDistance, checkAvailability: isStringDistanceAvailable },
+    { tool: numericalIntegrateTool, executor: executeNumericalIntegrate, checkAvailability: isNumericalIntegrateAvailable },
+    { tool: interpolationTool, executor: executeInterpolation, checkAvailability: isInterpolationAvailable },
+    { tool: specialFunctionsTool, executor: executeSpecialFunctions, checkAvailability: isSpecialFunctionsAvailable },
+    { tool: complexMathTool, executor: executeComplexMath, checkAvailability: isComplexMathAvailable },
+    { tool: combinatoricsTool, executor: executeCombinatorics, checkAvailability: isCombinatoricsAvailable },
+    { tool: numberTheoryTool, executor: executeNumberTheory, checkAvailability: isNumberTheoryAvailable },
+    { tool: probabilityDistTool, executor: executeProbabilityDist, checkAvailability: isProbabilityDistAvailable },
+    { tool: polynomialOpsTool, executor: executePolynomialOps, checkAvailability: isPolynomialOpsAvailable },
+    { tool: coordinateTransformTool, executor: executeCoordinateTransform, checkAvailability: isCoordinateTransformAvailable },
+    { tool: sequenceAnalyzeTool, executor: executeSequenceAnalyze, checkAvailability: isSequenceAnalyzeAvailable },
+    { tool: quantumCircuitTool, executor: executeQuantumCircuit, checkAvailability: isQuantumCircuitAvailable },
+    { tool: controlTheoryTool, executor: executeControlTheory, checkAvailability: isControlTheoryAvailable },
+    { tool: orbitalMechanicsTool, executor: executeOrbitalMechanics, checkAvailability: isOrbitalMechanicsAvailable },
+    { tool: thermodynamicsTool, executor: executeThermodynamics, checkAvailability: isThermodynamicsAvailable },
+    { tool: imageComputeTool, executor: executeImageCompute, checkAvailability: isImageComputeAvailable },
+    { tool: waveletTransformTool, executor: executeWaveletTransform, checkAvailability: isWaveletTransformAvailable },
+    { tool: latexRenderTool, executor: executeLatexRender, checkAvailability: isLatexRenderAvailable },
+    { tool: rocketPropulsionTool, executor: executeRocketPropulsion, checkAvailability: isRocketPropulsionAvailable },
+    { tool: fluidDynamicsTool, executor: executeFluidDynamics, checkAvailability: isFluidDynamicsAvailable },
+    { tool: aerodynamicsTool, executor: executeAerodynamics, checkAvailability: isAerodynamicsAvailable },
+    { tool: droneFlightTool, executor: executeDroneFlight, checkAvailability: isDroneFlightAvailable },
+    { tool: pathfinderTool, executor: executePathfinder, checkAvailability: isPathfinderAvailable },
+    { tool: circuitSimTool, executor: executeCircuitSim, checkAvailability: isCircuitSimAvailable },
+    { tool: ballisticsTool, executor: executeBallistics, checkAvailability: isBallisticsAvailable },
+    { tool: geneticAlgorithmTool, executor: executeGeneticAlgorithm, checkAvailability: isGeneticAlgorithmAvailable },
+    { tool: chaosDynamicsTool, executor: executeChaosDynamics, checkAvailability: isChaosDynamicsAvailable },
+    { tool: roboticsKinematicsTool, executor: executeRoboticsKinematics, checkAvailability: isRoboticsKinematicsAvailable },
+    { tool: opticsSimTool, executor: executeOpticsSim, checkAvailability: isOpticsSimAvailable },
+    { tool: epidemiologyTool, executor: executeEpidemiology, checkAvailability: isEpidemiologyAvailable },
+    { tool: finiteElementTool, executor: executeFiniteElement, checkAvailability: isFiniteElementAvailable },
+    { tool: antennaRfTool, executor: executeAntennaRf, checkAvailability: isAntennaRfAvailable },
+    { tool: materialsScienceTool, executor: executeMaterialsScience, checkAvailability: isMaterialsScienceAvailable },
+    { tool: seismologyTool, executor: executeSeismology, checkAvailability: isSeismologyAvailable },
+    { tool: bioinformaticsProTool, executor: executeBioinformaticsPro, checkAvailability: isBioinformaticsProAvailable },
+    { tool: acousticsTool, executor: executeAcoustics, checkAvailability: isAcousticsAvailable },
+    { tool: symbolicLogicTool, executor: executeSymbolicLogic, checkAvailability: isSymbolicLogicAvailable },
+    { tool: cellularAutomataTool, executor: executeCellularAutomata, checkAvailability: isCellularAutomataAvailable },
+    { tool: medicalCalcTool, executor: executeMedicalCalc, checkAvailability: isMedicalCalcAvailable },
+    { tool: graphics3dTool, executor: executeGraphics3D, checkAvailability: isGraphics3DAvailable },
+    { tool: compressionAlgoTool, executor: executeCompressionAlgo, checkAvailability: isCompressionAlgoAvailable },
+    { tool: errorCorrectionTool, executor: executeErrorCorrection, checkAvailability: isErrorCorrectionAvailable },
+    { tool: houghVisionTool, executor: executeHoughVision, checkAvailability: isHoughVisionAvailable },
+    { tool: cryptographyAdvancedTool, executor: executeCryptographyAdvanced, checkAvailability: isCryptographyAdvancedAvailable },
+    { tool: solarEnvironmentalTool, executor: executeSolarEnvironmental, checkAvailability: isSolarEnvironmentalAvailable },
+    { tool: svgGeneratorTool, executor: executeSVGGenerator, checkAvailability: isSVGGeneratorAvailable },
+    { tool: fractalGeneratorTool, executor: executeFractalGenerator, checkAvailability: isFractalGeneratorAvailable },
+    { tool: colorTheoryTool, executor: executeColorTheory, checkAvailability: isColorTheoryAvailable },
+    { tool: animationEasingTool, executor: executeAnimationEasing, checkAvailability: isAnimationEasingAvailable },
+    { tool: particleSystemTool, executor: executeParticleSystem, checkAvailability: isParticleSystemAvailable },
+    { tool: bezierCurvesTool, executor: executeBezierCurves, checkAvailability: isBezierCurvesAvailable },
+    { tool: sortingVisualizerTool, executor: executeSortingVisualizer, checkAvailability: isSortingVisualizerAvailable },
+    { tool: dataStructuresTool, executor: executeDataStructures, checkAvailability: isDataStructuresAvailable },
+    { tool: quantumComputingTool, executor: executeQuantumComputing, checkAvailability: isQuantumComputingAvailable },
+    { tool: shaderGeneratorTool, executor: executeShaderGenerator, checkAvailability: isShaderGeneratorAvailable },
+    { tool: signalProcessingTool, executor: executeSignalProcessing, checkAvailability: isSignalProcessingAvailable },
+    { tool: neuralNetworkTool, executor: executeNeuralNetwork, checkAvailability: isNeuralNetworkAvailable },
+    { tool: informationTheoryTool, executor: executeInformationTheory, checkAvailability: isInformationTheoryAvailable },
+    { tool: proceduralGenerationTool, executor: executeProceduralGeneration, checkAvailability: isProceduralGenerationAvailable },
+    { tool: rayTracingTool, executor: executeRayTracing, checkAvailability: isRayTracingAvailable },
+    { tool: automataTheoryTool, executor: executeAutomataTheory, checkAvailability: isAutomataTheoryAvailable },
+    { tool: computationalComplexityTool, executor: executeComputationalComplexity, checkAvailability: isComputationalComplexityAvailable },
+    { tool: reactionKineticsTool, executor: executeReactionKinetics, checkAvailability: isReactionKineticsAvailable },
+    { tool: electrochemistryTool, executor: executeElectrochemistry, checkAvailability: isElectrochemistryAvailable },
+    { tool: spectroscopyTool, executor: executeSpectroscopy, checkAvailability: isSpectroscopyAvailable },
+    { tool: quantumMechanicsTool, executor: executeQuantumMechanics, checkAvailability: isQuantumMechanicsAvailable },
+    { tool: relativityTool, executor: executeRelativity, checkAvailability: isRelativityAvailable },
+    { tool: statisticalMechanicsTool, executor: executeStatisticalMechanics, checkAvailability: isStatisticalMechanicsAvailable },
+    // New science tools batch 3 (5 new tools)
+    { tool: taxonomyTool, executor: executeTaxonomy, checkAvailability: isTaxonomyAvailable },
+    { tool: petrologyTool, executor: executePetrology, checkAvailability: isPetrologyAvailable },
+    { tool: mineralogyTool, executor: executeMineralogy, checkAvailability: isMineralogyAvailable },
+    { tool: biophysicsTool, executor: executeBiophysics, checkAvailability: isBiophysicsAvailable },
+    { tool: metallurgyTool, executor: executeMetallurgy, checkAvailability: isMetallurgyAvailable },
+    // Cybersecurity tools batch 1 (15 new tools)
+    { tool: hashAnalysisTool, executor: executeHashAnalysis, checkAvailability: isHashAnalysisAvailable },
+    { tool: encodingTool, executor: executeEncoding, checkAvailability: isEncodingAvailable },
+    { tool: securityMetricsTool, executor: executeSecurityMetrics, checkAvailability: isSecurityMetricsAvailable },
+    { tool: jwtTool, executor: executeJwt, checkAvailability: isJwtAvailable },
+    { tool: ipSecurityTool, executor: executeIpSecurity, checkAvailability: isIpSecurityAvailable },
+    { tool: certificateTool, executor: executeCertificate, checkAvailability: isCertificateAvailable },
+    { tool: entropyAnalysisTool, executor: executeEntropyAnalysis, checkAvailability: isEntropyAnalysisAvailable },
+    { tool: securityHeadersTool, executor: executeSecurityHeaders, checkAvailability: isSecurityHeadersAvailable },
+    { tool: malwareIndicatorsTool, executor: executeMalwareIndicators, checkAvailability: isMalwareIndicatorsAvailable },
+    { tool: portScannerTool, executor: executePortScanner, checkAvailability: isPortScannerAvailable },
+    { tool: owaspTool, executor: executeOwasp, checkAvailability: isOwaspAvailable },
+    { tool: dnsSecurityTool, executor: executeDnsSecurity, checkAvailability: isDnsSecurityAvailable },
+    { tool: threatModelTool, executor: executeThreatModel, checkAvailability: isThreatModelAvailable },
+    { tool: complianceTool, executor: executeCompliance, checkAvailability: isComplianceAvailable },
+    { tool: cipherTool, executor: executeCipher, checkAvailability: isCipherAvailable },
+    // Cybersecurity tools batch 2 (55 more tools)
+    { tool: authProtocolTool, executor: executeAuthProtocol, checkAvailability: isAuthProtocolAvailable },
+    { tool: vulnAssessmentTool, executor: executeVulnAssessment, checkAvailability: isVulnAssessmentAvailable },
+    { tool: incidentResponseTool, executor: executeIncidentResponse, checkAvailability: isIncidentResponseAvailable },
+    { tool: networkSecurityTool, executor: executeNetworkSecurity, checkAvailability: isNetworkSecurityAvailable },
+    { tool: firewallTool, executor: executeFirewall, checkAvailability: isFirewallAvailable },
+    { tool: idsIpsTool, executor: executeIdsIps, checkAvailability: isIdsIpsAvailable },
+    { tool: logAnalysisTool, executor: executeLogAnalysis, checkAvailability: isLogAnalysisAvailable },
+    { tool: penTestTool, executor: executePenTest, checkAvailability: isPenTestAvailable },
+    { tool: socialEngineeringTool, executor: executeSocialEngineering, checkAvailability: isSocialEngineeringAvailable },
+    { tool: cryptanalysisTool, executor: executeCryptanalysis, checkAvailability: isCryptanalysisAvailable },
+    { tool: secureSdlcTool, executor: executeSecureSdlc, checkAvailability: isSecureSdlcAvailable },
+    { tool: privacyTool, executor: executePrivacy, checkAvailability: isPrivacyAvailable },
+    { tool: accessControlTool, executor: executeAccessControl, checkAvailability: isAccessControlAvailable },
+    { tool: siemTool, executor: executeSiem, checkAvailability: isSiemAvailable },
+    { tool: vulnerabilityScannerTool, executor: executeVulnerabilityScanner, checkAvailability: isVulnerabilityScannerAvailable },
+    { tool: malwareAnalysisTool, executor: executeMalwareAnalysis, checkAvailability: isMalwareAnalysisAvailable },
+    { tool: endpointSecurityTool, executor: executeEndpointSecurity, checkAvailability: isEndpointSecurityAvailable },
+    { tool: cloudSecurityTool, executor: executeCloudSecurity, checkAvailability: isCloudSecurityAvailable },
+    { tool: containerSecurityTool, executor: executeContainerSecurity, checkAvailability: isContainerSecurityAvailable },
+    { tool: apiSecurityTool, executor: executeApiSecurity, checkAvailability: isApiSecurityAvailable },
+    { tool: mobileSecurityTool, executor: executeMobileSecurity, checkAvailability: isMobileSecurityAvailable },
+    { tool: iotSecurityTool, executor: executeIotSecurity, checkAvailability: isIotSecurityAvailable },
+    { tool: zeroTrustTool, executor: executeZeroTrust, checkAvailability: isZeroTrustAvailable },
+    { tool: securityArchitectureTool, executor: executeSecurityArchitecture, checkAvailability: isSecurityArchitectureAvailable },
+    { tool: riskManagementTool, executor: executeRiskManagement, checkAvailability: isRiskManagementAvailable },
+    { tool: businessContinuityTool, executor: executeBusinessContinuity, checkAvailability: isBusinessContinuityAvailable },
+    { tool: securityAwarenessTool, executor: executeSecurityAwareness, checkAvailability: isSecurityAwarenessAvailable },
+    { tool: threatIntelTool, executor: executeThreatIntel, checkAvailability: isThreatIntelAvailable },
+    { tool: devsecOpsTool, executor: executeDevsecOps, checkAvailability: isDevsecOpsAvailable },
+    { tool: blockchainSecurityTool, executor: executeBlockchainSecurity, checkAvailability: isBlockchainSecurityAvailable },
+    { tool: wirelessSecurityTool, executor: executeWirelessSecurity, checkAvailability: isWirelessSecurityAvailable },
+    { tool: vpnTool, executor: executeVpn, checkAvailability: isVpnAvailable },
+    { tool: pkiTool, executor: executePki, checkAvailability: isPkiAvailable },
+    { tool: dataLossPreventionTool, executor: executeDataLossPrevention, checkAvailability: isDataLossPreventionAvailable },
+    { tool: redTeamTool, executor: executeRedTeam, checkAvailability: isRedTeamAvailable },
+    { tool: blueTeamTool, executor: executeBlueTeam, checkAvailability: isBlueTeamAvailable },
+    { tool: socTool, executor: executeSoc, checkAvailability: isSocAvailable },
+    { tool: identityManagementTool, executor: executeIdentityManagement, checkAvailability: isIdentityManagementAvailable },
+    { tool: emailSecurityTool, executor: executeEmailSecurity, checkAvailability: isEmailSecurityAvailable },
+    { tool: vendorRiskTool, executor: executeVendorRisk, checkAvailability: isVendorRiskAvailable },
+    { tool: patchManagementTool, executor: executePatchManagement, checkAvailability: isPatchManagementAvailable },
+    { tool: threatHuntingTool, executor: executeThreatHunting, checkAvailability: isThreatHuntingAvailable },
+    { tool: osintTool, executor: executeOsint, checkAvailability: isOsintAvailable },
+    { tool: ransomwareDefenseTool, executor: executeRansomwareDefense, checkAvailability: isRansomwareDefenseAvailable },
+    { tool: credentialSecurityTool, executor: executeCredentialSecurity, checkAvailability: isCredentialSecurityAvailable },
+    { tool: databaseSecurityTool, executor: executeDatabaseSecurity, checkAvailability: isDatabaseSecurityAvailable },
+    { tool: scadaIcsTool, executor: executeScadaIcs, checkAvailability: isScadaIcsAvailable },
+    { tool: attackSurfaceTool, executor: executeAttackSurface, checkAvailability: isAttackSurfaceAvailable },
+    { tool: dataClassificationTool, executor: executeDataClassification, checkAvailability: isDataClassificationAvailable },
+    { tool: keyManagementTool, executor: executeKeyManagement, checkAvailability: isKeyManagementAvailable },
+    { tool: securityPolicyTool, executor: executeSecurityPolicy, checkAvailability: isSecurityPolicyAvailable },
+    { tool: securityAuditTool, executor: executeSecurityAudit, checkAvailability: isSecurityAuditAvailable },
+    { tool: assetManagementTool, executor: executeAssetManagement, checkAvailability: isAssetManagementAvailable },
+    // Additional security tools batch 3 (23 more tools)
+    { tool: honeypotTool, executor: executeHoneypot, checkAvailability: isHoneypotAvailable },
+    { tool: complianceFrameworkTool, executor: executeComplianceFramework, checkAvailability: isComplianceFrameworkAvailable },
+    { tool: securityArchitecturePatternsTool, executor: executeSecurityArchitecturePatterns, checkAvailability: isSecurityArchitecturePatternsAvailable },
+    { tool: soarTool, executor: executeSoar, checkAvailability: isSoarAvailable },
+    { tool: supplyChainSecurityTool, executor: executeSupplyChainSecurity, checkAvailability: isSupplyChainSecurityAvailable },
+    { tool: webSecurityTool, executor: executeWebSecurity, checkAvailability: isWebSecurityAvailable },
+    { tool: networkDefenseTool, executor: executeNetworkDefense, checkAvailability: isNetworkDefenseAvailable },
+    { tool: secretsManagementTool, executor: executeSecretsManagement, checkAvailability: isSecretsManagementAvailable },
+    { tool: xdrTool, executor: executeXdr, checkAvailability: isXdrAvailable },
+    { tool: privacyEngineeringTool, executor: executePrivacyEngineering, checkAvailability: isPrivacyEngineeringAvailable },
+    { tool: secureCommunicationsTool, executor: executeSecureCommunications, checkAvailability: isSecureCommunicationsAvailable },
+    { tool: securityTestingTool, executor: executeSecurityTesting, checkAvailability: isSecurityTestingAvailable },
+    { tool: industrialControlTool, executor: executeIndustrialControl, checkAvailability: isIndustrialControlAvailable },
+    { tool: cloudNativeSecurityTool, executor: executeCloudNativeSecurity, checkAvailability: isCloudNativeSecurityAvailable },
+    { tool: browserSecurityTool, executor: executeBrowserSecurity, checkAvailability: isBrowserSecurityAvailable },
+    { tool: physicalSecurityTool, executor: executePhysicalSecurity, checkAvailability: isPhysicalSecurityAvailable },
+    { tool: securityOperationsTool, executor: executeSecurityOperations, checkAvailability: isSecurityOperationsAvailable },
+    { tool: threatModelingTool, executor: executeThreatModeling, checkAvailability: isThreatModelingAvailable },
+    { tool: aiSecurityTool, executor: executeAiSecurity, checkAvailability: isAiSecurityAvailable },
+    { tool: securityCultureTool, executor: executeSecurityCulture, checkAvailability: isSecurityCultureAvailable },
+    { tool: logManagementTool, executor: executeLogManagement, checkAvailability: isLogManagementAvailable },
+    { tool: authenticationTool, executor: executeAuthentication, checkAvailability: isAuthenticationAvailable },
+    { tool: backupRecoveryTool, executor: executeBackupRecovery, checkAvailability: isBackupRecoveryAvailable },
+    // Additional security tools batch 4
+    { tool: securityBudgetTool, executor: executeSecurityBudget, checkAvailability: isSecurityBudgetAvailable },
+    { tool: cyberInsuranceTool, executor: executeCyberInsurance, checkAvailability: isCyberInsuranceAvailable },
+    { tool: saseTool, executor: executeSase, checkAvailability: isSaseAvailable },
+    { tool: identityGovernanceTool, executor: executeIdentityGovernance, checkAvailability: isIdentityGovernanceAvailable },
+    { tool: dataSecurityTool, executor: executeDataSecurity, checkAvailability: isDataSecurityAvailable }
   );
 
   toolsInitialized = true;
