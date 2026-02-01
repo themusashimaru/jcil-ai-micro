@@ -18,6 +18,7 @@ import { useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
+import { TerminalOutput } from './TerminalOutput';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { logger } from '@/lib/logger';
 
@@ -431,6 +432,22 @@ export function MarkdownRenderer({
           >
             {children}
           </code>
+        );
+      }
+
+      // Check if this is terminal/shell output - render with TerminalOutput component
+      const isTerminalOutput = ['bash', 'sh', 'shell', 'console', 'terminal', 'output', 'log'].includes(language.toLowerCase());
+      if (isTerminalOutput) {
+        // Detect if it looks like an error or success
+        const hasError = codeContent.toLowerCase().includes('error') ||
+                        codeContent.toLowerCase().includes('failed') ||
+                        codeContent.toLowerCase().includes('exception');
+        return (
+          <TerminalOutput
+            output={codeContent}
+            success={!hasError}
+            title={language === 'output' ? 'Output' : language === 'log' ? 'Log' : 'Terminal'}
+          />
         );
       }
 
