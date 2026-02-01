@@ -771,6 +771,31 @@ export {
   isMusicTheoryAvailable,
 } from './music-theory-tool';
 
+// Bezier Curves - Mathematical bezier curve calculations
+export {
+  bezierCurvesTool,
+  executeBezierCurves,
+  isBezierCurvesAvailable,
+} from './bezier-curves-tool';
+
+// ============================================================================
+// TIER EDUCATION - Interactive Learning Tools
+// ============================================================================
+
+// Sorting Visualizer - Step-by-step sorting algorithm visualization
+export {
+  sortingVisualizerTool,
+  executeSortingVisualizer,
+  isSortingVisualizerAvailable,
+} from './sorting-visualizer-tool';
+
+// Data Structures - Interactive data structure demonstrations
+export {
+  dataStructuresTool,
+  executeDataStructures,
+  isDataStructuresAvailable,
+} from './data-structures-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1189,6 +1214,19 @@ async function initializeTools() {
   // TIER SOUND & MUSIC - Audio Tools
   const { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } = await import(
     './music-theory-tool'
+  );
+
+  // Additional VISUAL MADNESS
+  const { bezierCurvesTool, executeBezierCurves, isBezierCurvesAvailable } = await import(
+    './bezier-curves-tool'
+  );
+
+  // TIER EDUCATION - Interactive Learning Tools
+  const { sortingVisualizerTool, executeSortingVisualizer, isSortingVisualizerAvailable } = await import(
+    './sorting-visualizer-tool'
+  );
+  const { dataStructuresTool, executeDataStructures, isDataStructuresAvailable } = await import(
+    './data-structures-tool'
   );
 
   CHAT_TOOLS.push(
@@ -1639,6 +1677,23 @@ async function initializeTools() {
       tool: musicTheoryTool,
       executor: executeMusicTheory,
       checkAvailability: isMusicTheoryAvailable,
+    },
+    // Additional VISUAL MADNESS
+    {
+      tool: bezierCurvesTool,
+      executor: executeBezierCurves,
+      checkAvailability: isBezierCurvesAvailable,
+    },
+    // TIER EDUCATION - Interactive Learning Tools
+    {
+      tool: sortingVisualizerTool,
+      executor: executeSortingVisualizer,
+      checkAvailability: isSortingVisualizerAvailable,
+    },
+    {
+      tool: dataStructuresTool,
+      executor: executeDataStructures,
+      checkAvailability: isDataStructuresAvailable,
     }
   );
 
