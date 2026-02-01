@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (206 total):
+ * Tools available (215 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1449,6 +1449,17 @@ async function initializeTools() {
   const { elevatorTool, executeElevator, isElevatorAvailable } = await import('./elevator-tool');
   const { lightingTool, executeLighting, isLightingAvailable } = await import('./lighting-tool');
 
+  // TIER LIFE SCIENCES (9 more compact tools)
+  const { soilScienceTool, executeSoilScience, isSoilScienceAvailable } = await import('./soil-science-tool');
+  const { dendrologyTool, executeDendrology, isDendrologyAvailable } = await import('./dendrology-tool');
+  const { entomologyTool, executeEntomology, isEntomologyAvailable } = await import('./entomology-tool');
+  const { microbiologyTool, executeMicrobiology, isMicrobiologyAvailable } = await import('./microbiology-tool');
+  const { virologyTool, executeVirology, isVirologyAvailable } = await import('./virology-tool');
+  const { immunologyTool, executeImmunology, isImmunologyAvailable } = await import('./immunology-tool');
+  const { toxicologyTool, executeToxicology, isToxicologyAvailable } = await import('./toxicology-tool');
+  const { geneticsTool, executeGenetics, isGeneticsAvailable } = await import('./genetics-tool');
+  const { proteomicsTool, executeProteomics, isProteomicsAvailable } = await import('./proteomics-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2047,7 +2058,17 @@ async function initializeTools() {
     { tool: plumbingTool, executor: executePlumbing, checkAvailability: isPlumbingAvailable },
     { tool: fireProtectionTool, executor: executeFireProtection, checkAvailability: isFireProtectionAvailable },
     { tool: elevatorTool, executor: executeElevator, checkAvailability: isElevatorAvailable },
-    { tool: lightingTool, executor: executeLighting, checkAvailability: isLightingAvailable }
+    { tool: lightingTool, executor: executeLighting, checkAvailability: isLightingAvailable },
+    // TIER LIFE SCIENCES (9 more compact tools)
+    { tool: soilScienceTool, executor: executeSoilScience, checkAvailability: isSoilScienceAvailable },
+    { tool: dendrologyTool, executor: executeDendrology, checkAvailability: isDendrologyAvailable },
+    { tool: entomologyTool, executor: executeEntomology, checkAvailability: isEntomologyAvailable },
+    { tool: microbiologyTool, executor: executeMicrobiology, checkAvailability: isMicrobiologyAvailable },
+    { tool: virologyTool, executor: executeVirology, checkAvailability: isVirologyAvailable },
+    { tool: immunologyTool, executor: executeImmunology, checkAvailability: isImmunologyAvailable },
+    { tool: toxicologyTool, executor: executeToxicology, checkAvailability: isToxicologyAvailable },
+    { tool: geneticsTool, executor: executeGenetics, checkAvailability: isGeneticsAvailable },
+    { tool: proteomicsTool, executor: executeProteomics, checkAvailability: isProteomicsAvailable }
   );
 
   toolsInitialized = true;
