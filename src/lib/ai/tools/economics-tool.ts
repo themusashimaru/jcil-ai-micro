@@ -31,7 +31,7 @@ function priceElasticity(percentChangeQuantity: number, percentChangePrice: numb
   return { elasticity: Math.round(e * 100) / 100, type };
 }
 
-function crossElasticity(percentChangeQa: number, percentChangePb: number): { elasticity: number; relationship: string } {
+function _crossElasticity(percentChangeQa: number, percentChangePb: number): { elasticity: number; relationship: string } {
   const e = percentChangeQa / percentChangePb;
   let relationship = 'Independent';
   if (e > 0) relationship = 'Substitutes';
@@ -48,7 +48,7 @@ function nominalToRealGDP(nominalGDP: number, deflator: number): number {
   return (nominalGDP / deflator) * 100;
 }
 
-function gdpGrowthRate(gdpCurrent: number, gdpPrevious: number): number {
+function _gdpGrowthRate(gdpCurrent: number, gdpPrevious: number): number {
   return ((gdpCurrent - gdpPrevious) / gdpPrevious) * 100;
 }
 
@@ -105,7 +105,7 @@ function unemploymentRate(unemployed: number, laborForce: number): number {
   return (unemployed / laborForce) * 100;
 }
 
-function laborForceParticipation(laborForce: number, workingAgePopulation: number): number {
+function _laborForceParticipation(laborForce: number, workingAgePopulation: number): number {
   return (laborForce / workingAgePopulation) * 100;
 }
 

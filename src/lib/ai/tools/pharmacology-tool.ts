@@ -27,7 +27,7 @@ function eliminationConstant(halfLifeHours: number): number {
   return Math.log(2) / halfLifeHours;
 }
 
-function clearance(dose: number, auc: number): number {
+function _clearance(dose: number, auc: number): number {
   // CL = Dose / AUC
   return dose / auc;
 }
@@ -86,7 +86,7 @@ function renalDoseAdjustment(normalDose: number, crCl: number): { dose: number; 
 // BODY SURFACE AREA
 // ============================================================================
 
-function bodyWeight(heightCm: number, isMale: boolean): { ideal: number; adjusted: number } {
+function _bodyWeight(heightCm: number, isMale: boolean): { ideal: number; adjusted: number } {
   // Devine formula for IBW
   const heightInches = heightCm / 2.54;
   let ibw: number;
@@ -98,7 +98,7 @@ function bodyWeight(heightCm: number, isMale: boolean): { ideal: number; adjuste
   return { ideal: Math.max(ibw, 0), adjusted: ibw * 1.2 };
 }
 
-function bodySurfaceArea(weightKg: number, heightCm: number): number {
+function _bodySurfaceArea(weightKg: number, heightCm: number): number {
   // Mosteller formula
   return Math.sqrt((weightKg * heightCm) / 3600);
 }

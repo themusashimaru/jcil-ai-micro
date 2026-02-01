@@ -13,7 +13,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // WAVE DYNAMICS
 // ============================================================================
 
-function waveSpeed(depth: number, wavelength: number): { speed: number; type: string } {
+function waveSpeed(depth: number, _wavelength: number): { speed: number; type: string } {
   const g = 9.81;
 
   // Deep water: depth > wavelength/2
@@ -36,14 +36,14 @@ function waveSpeed(depth: number, wavelength: number): { speed: number; type: st
   }
 }
 
-function waveEnergy(height: number, wavelength: number): number {
+function waveEnergy(height: number, _wavelength: number): number {
   // E = (1/8) × ρ × g × H²
   const rho = 1025; // seawater density kg/m³
   const g = 9.81;
   return (1/8) * rho * g * height * height;
 }
 
-function significantWaveHeight(waves: number[]): number {
+function _significantWaveHeight(waves: number[]): number {
   // H_s = average of highest 1/3 of waves
   const sorted = [...waves].sort((a, b) => b - a);
   const top33 = sorted.slice(0, Math.ceil(sorted.length / 3));
@@ -118,7 +118,7 @@ function soundSpeedWater(temperature: number, salinity: number, depth: number): 
          - 1.025e-2 * T * (S - 35) - 7.139e-13 * T * D*D*D;
 }
 
-function sonarRange(sourceLevel: number, transmissionLoss: number, noiseLevel: number, detectionThreshold: number): number {
+function _sonarRange(sourceLevel: number, transmissionLoss: number, noiseLevel: number, detectionThreshold: number): number {
   // Sonar equation simplified
   const signalExcess = sourceLevel - 2 * transmissionLoss - noiseLevel - detectionThreshold;
   return signalExcess > 0 ? Math.pow(10, transmissionLoss / 20) : 0;

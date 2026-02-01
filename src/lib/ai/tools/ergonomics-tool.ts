@@ -9,14 +9,14 @@ function niosh(lc: number, hm: number, vm: number, dm: number, am: number, fm: n
 function metabolicRate(activity: number, weight: number): number { return activity * weight; }
 function reachEnvelope(armLength: number, angle: number): number { return armLength * Math.cos(angle * Math.PI / 180); }
 function illumination(lumens: number, area: number): number { return lumens / area; }
-function thermalComfort(ta: number, tr: number, v: number, rh: number): number { return 0.303 * Math.exp(-0.036 * (ta + tr) / 2) + 0.028; }
+function thermalComfort(ta: number, tr: number, _v: number, _rh: number): number { return 0.303 * Math.exp(-0.036 * (ta + tr) / 2) + 0.028; }
 function vdt(distance: number, charHeight: number): number { return 2 * Math.atan(charHeight / (2 * distance)) * 180 / Math.PI * 60; }
 function anthropometry(percentile: number, mean: number, sd: number): number { const z = percentile === 5 ? -1.645 : percentile === 50 ? 0 : percentile === 95 ? 1.645 : 0; return mean + z * sd; }
 
 export const ergonomicsTool: UnifiedTool = {
   name: 'ergonomics',
   description: 'Ergonomics: niosh_rwl, metabolic_rate, reach, illumination, pmv, visual_angle, anthropometry',
-  parameters: { type: 'object', properties: { operation: { type: 'string', enum: ['niosh_rwl', 'metabolic_rate', 'reach', 'illumination', 'pmv', 'visual_angle', 'anthropometry'] }, lc: { type: 'number' }, hm: { type: 'number' }, vm: { type: 'number' }, dm: { type: 'number' }, am: { type: 'number' }, fm: { type: 'number' }, cm: { type: 'number' }, activity: { type: 'number' }, weight: { type: 'number' }, armLength: { type: 'number' }, angle: { type: 'number' }, lumens: { type: 'number' }, area: { type: 'number' }, ta: { type: 'number' }, tr: { type: 'number' }, v: { type: 'number' }, rh: { type: 'number' }, distance: { type: 'number' }, charHeight: { type: 'number' }, percentile: { type: 'number' }, mean: { type: 'number' }, sd: { type: 'number' } }, required: ['operation'] },
+  parameters: { type: 'object', properties: { operation: { type: 'string', enum: ['niosh_rwl', 'metabolic_rate', 'reach', 'illumination', 'pmv', 'visual_angle', 'anthropometry'] }, lc: { type: 'number' }, hm: { type: 'number' }, vm: { type: 'number' }, dm: { type: 'number' }, am: { type: 'number' }, fm: { type: 'number' }, cm: { type: 'number' }, activity: { type: 'number' }, weight: { type: 'number' }, armLength: { type: 'number' }, angle: { type: 'number' }, lumens: { type: 'number' }, area: { type: 'number' }, ta: { type: 'number' }, tr: { type: 'number' }, _v: { type: 'number' }, _rh: { type: 'number' }, distance: { type: 'number' }, charHeight: { type: 'number' }, percentile: { type: 'number' }, mean: { type: 'number' }, sd: { type: 'number' } }, required: ['operation'] },
 };
 
 export async function executeErgonomics(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {

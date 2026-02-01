@@ -13,14 +13,14 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // MOLECULAR WEIGHT AVERAGES
 // ============================================================================
 
-function numberAverageMW(ni: number[], Mi: number[]): number {
+function _numberAverageMW(ni: number[], Mi: number[]): number {
   // Mn = Σ(ni × Mi) / Σ(ni)
   const sumNiMi = ni.reduce((acc, n, i) => acc + n * Mi[i], 0);
   const sumNi = ni.reduce((a, b) => a + b, 0);
   return sumNiMi / sumNi;
 }
 
-function weightAverageMW(wi: number[], Mi: number[]): number {
+function _weightAverageMW(wi: number[], Mi: number[]): number {
   // Mw = Σ(wi × Mi) / Σ(wi)
   const sumWiMi = wi.reduce((acc, w, i) => acc + w * Mi[i], 0);
   const sumWi = wi.reduce((a, b) => a + b, 0);
@@ -51,7 +51,7 @@ function stepGrowthDP(p: number): number {
   return 1 / (1 - p);
 }
 
-function carothersEquation(p: number, f: number = 2): number {
+function _carothersEquation(p: number, f: number = 2): number {
   // DPn = 2 / (2 - p×f) for functionality f
   return 2 / (2 - p * f);
 }
@@ -70,15 +70,15 @@ function intrinsicViscosity(K: number, a: number, M: number): number {
   return K * Math.pow(M, a);
 }
 
-function specificViscosity(eta: number, eta0: number): number {
+function _specificViscosity(eta: number, eta0: number): number {
   return (eta - eta0) / eta0;
 }
 
-function reducedViscosity(etasp: number, c: number): number {
+function _reducedViscosity(etasp: number, c: number): number {
   return etasp / c;
 }
 
-function inherentViscosity(eta: number, eta0: number, c: number): number {
+function _inherentViscosity(eta: number, eta0: number, c: number): number {
   return Math.log(eta / eta0) / c;
 }
 
@@ -86,7 +86,7 @@ function inherentViscosity(eta: number, eta0: number, c: number): number {
 // THERMAL PROPERTIES
 // ============================================================================
 
-function glassTrans(Tg1: number, w1: number, Tg2: number, w2: number): number {
+function _glassTrans(Tg1: number, w1: number, Tg2: number, w2: number): number {
   // Fox equation: 1/Tg = w1/Tg1 + w2/Tg2
   return 1 / (w1 / Tg1 + w2 / Tg2);
 }
@@ -112,7 +112,7 @@ function radiusOfGyration(n: number, l: number): number {
   return l * Math.sqrt(n / 6);
 }
 
-function persistenceLength(Lp: number, L: number): { type: string; ratio: number } {
+function _persistenceLength(Lp: number, L: number): { type: string; ratio: number } {
   const ratio = L / Lp;
   let type = 'Flexible coil';
   if (ratio < 1) type = 'Rigid rod';

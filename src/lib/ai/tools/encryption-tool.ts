@@ -68,7 +68,7 @@ function xorStrings(text: string, key: string): string {
   return result;
 }
 
-function xorHex(hexData: string, keyHex: string): string {
+function _xorHex(hexData: string, keyHex: string): string {
   const data = hexData.match(/.{2}/g) || [];
   const key = keyHex.match(/.{2}/g) || [];
 

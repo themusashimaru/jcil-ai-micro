@@ -41,7 +41,7 @@ function thermalVelocity(temperature: number, mass: number): number {
 
 function plasmaParameter(temperature: number, density: number): number {
   // Λ = (4π/3) n λD³
-  const lambda_D = debyeLength(temperature, density);
+  const _lambda_D = debyeLength(temperature, density);
   return (4 * Math.PI / 3) * density * Math.pow(lambda_D, 3);
 }
 
@@ -119,7 +119,7 @@ function classifyPlasma(temperature: number, density: number): {
   coupling: string;
   degeneracy: string;
 } {
-  const lambda_D = debyeLength(temperature, density);
+  const _lambda_D = debyeLength(temperature, density);
   const Lambda = plasmaParameter(temperature, density);
 
   // Coupling parameter Γ = (e²/4πε₀) / (kB T × a)
@@ -189,7 +189,7 @@ export async function executePlasmaPhysics(toolCall: UnifiedToolCall): Promise<U
     switch (operation) {
       case 'parameters': {
         const { temperature = 1e6, density = 1e19 } = args;
-        const lambda_D = debyeLength(temperature, density);
+        const _lambda_D = debyeLength(temperature, density);
         const omega_pe = plasmaFrequency(density);
         const v_th_e = thermalVelocity(temperature, M_ELECTRON);
         const Lambda = plasmaParameter(temperature, density);

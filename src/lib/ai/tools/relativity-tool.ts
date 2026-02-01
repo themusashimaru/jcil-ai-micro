@@ -63,13 +63,13 @@ function relativisticDoppler(f0: number, v: number, approaching: boolean): numbe
 
 // Schwarzschild radius
 function schwarzschildRadius(mass: number): number {
-  const G = 6.674e-11;
+  const _G = 6.674e-11;
   return (2 * G * mass) / (c * c);
 }
 
 // Gravitational time dilation
 function gravitationalTimeDilation(properTime: number, M: number, r: number): number {
-  const G = 6.674e-11;
+  const _G = 6.674e-11;
   const rs = schwarzschildRadius(M);
   return properTime / Math.sqrt(1 - rs / r);
 }

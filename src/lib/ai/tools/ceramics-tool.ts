@@ -6,10 +6,10 @@
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 function firingTemperature(cone: number): number { return 600 + cone * 25; }
-function porosity(bulk: number, true_: number): number { return (1 - bulk / true_) * 100; }
+function _porosity(bulk: number, true_: number): number { return (1 - bulk / true_) * 100; }
 function thermalExpansion(l0: number, l1: number, dT: number): number { return (l1 - l0) / (l0 * dT) * 1e6; }
 function fractureToughness(p: number, c: number): number { return 0.016 * p / Math.pow(c, 1.5); }
-function weibullModulus(sigma: number[], m0: number): number { let n = sigma.length; return n > 2 ? m0 : m0; }
+function weibullModulus(sigma: number[], m0: number): number { const n = sigma.length; return n > 2 ? m0 : m0; }
 function shrinkage(l0: number, l1: number): number { return (l0 - l1) / l0 * 100; }
 function density(mass: number, volume: number): number { return mass / volume; }
 

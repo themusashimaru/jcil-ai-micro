@@ -18,7 +18,7 @@ function growingDegreeDays(Tmax: number, Tmin: number, Tbase: number): number {
   return Math.max(0, Tavg - Tbase);
 }
 
-function accumulatedGDD(dailyTemps: Array<{ max: number; min: number }>, Tbase: number): number {
+function _accumulatedGDD(dailyTemps: Array<{ max: number; min: number }>, Tbase: number): number {
   return dailyTemps.reduce((sum, day) => sum + growingDegreeDays(day.max, day.min, Tbase), 0);
 }
 
@@ -59,7 +59,7 @@ function irrigationFrequency(netDepth: number, ETc: number): number {
   return netDepth / ETc;
 }
 
-function applicationEfficiency(waterApplied: number, waterStored: number): number {
+function _applicationEfficiency(waterApplied: number, waterStored: number): number {
   return (waterStored / waterApplied) * 100;
 }
 
@@ -72,7 +72,7 @@ function fertilizerAmount(targetNutrient: number, fertilizerContent: number, eff
   return targetNutrient / (fertilizerContent / 100) / efficiency;
 }
 
-function nutrientRemoval(yield_kg_ha: number, nutrientContent: number): number {
+function _nutrientRemoval(yield_kg_ha: number, nutrientContent: number): number {
   // kg nutrient removed per hectare
   return yield_kg_ha * nutrientContent / 100;
 }
@@ -112,11 +112,11 @@ function soilTexture(sand: number, silt: number, clay: number): string {
   return 'Loam';
 }
 
-function bulkDensity(ovenDryWeight: number, volume: number): number {
+function _bulkDensity(ovenDryWeight: number, volume: number): number {
   return ovenDryWeight / volume;
 }
 
-function porosity(bulkDensity: number, particleDensity: number = 2.65): number {
+function _porosity(bulkDensity: number, particleDensity: number = 2.65): number {
   return (1 - bulkDensity / particleDensity) * 100;
 }
 

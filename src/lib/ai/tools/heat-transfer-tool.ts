@@ -23,12 +23,12 @@ function thermalResistanceConduction(L: number, k: number, A: number): number {
   return L / (k * A);
 }
 
-function conductionCylinder(k: number, L: number, r1: number, r2: number, T1: number, T2: number): number {
+function _conductionCylinder(k: number, L: number, r1: number, r2: number, T1: number, T2: number): number {
   // Q = 2πkL(T1-T2) / ln(r2/r1)
   return (2 * Math.PI * k * L * (T1 - T2)) / Math.log(r2 / r1);
 }
 
-function conductionSphere(k: number, r1: number, r2: number, T1: number, T2: number): number {
+function _conductionSphere(k: number, r1: number, r2: number, T1: number, T2: number): number {
   // Q = 4πk(T1-T2) / (1/r1 - 1/r2)
   return (4 * Math.PI * k * (T1 - T2)) / (1 / r1 - 1 / r2);
 }
@@ -47,13 +47,13 @@ function thermalResistanceConvection(h: number, A: number): number {
   return 1 / (h * A);
 }
 
-function nusseltNumber(h: number, L: number, k: number): number {
+function _nusseltNumber(h: number, L: number, k: number): number {
   // Nu = h × L / k
   return h * L / k;
 }
 
 // Natural convection correlations
-function naturalConvectionVertical(Ra: number): number {
+function _naturalConvectionVertical(Ra: number): number {
   // Nu for vertical plate
   if (Ra < 1e9) {
     return 0.59 * Math.pow(Ra, 0.25);

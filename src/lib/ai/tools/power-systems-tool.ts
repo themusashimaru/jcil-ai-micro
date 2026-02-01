@@ -41,11 +41,11 @@ function acPower(V: number, I: number, pf: number): { P: number; Q: number; S: n
   return { P, Q, S };
 }
 
-function powerFactor(P: number, S: number): number {
+function _powerFactor(P: number, S: number): number {
   return P / S;
 }
 
-function powerFactorAngle(pf: number): number {
+function _powerFactorAngle(pf: number): number {
   return Math.acos(pf) * 180 / Math.PI;
 }
 
@@ -67,7 +67,7 @@ function threePhaseLineToPhase(Vline: number): number {
   return Vline / Math.sqrt(3);
 }
 
-function threePhasePhaseToLine(Vphase: number): number {
+function _threePhasePhaseToLine(Vphase: number): number {
   return Vphase * Math.sqrt(3);
 }
 
@@ -94,12 +94,12 @@ function transformerCurrent(Ip: number, ratio: number): number {
   return Ip * ratio;
 }
 
-function transformerEfficiency(Pout: number, Pcore: number, Pcopper: number): number {
+function _transformerEfficiency(Pout: number, Pcore: number, Pcopper: number): number {
   const Pin = Pout + Pcore + Pcopper;
   return Pout / Pin;
 }
 
-function transformerRegulation(Vnl: number, Vfl: number): number {
+function _transformerRegulation(Vnl: number, Vfl: number): number {
   // Voltage regulation
   return (Vnl - Vfl) / Vfl * 100;
 }

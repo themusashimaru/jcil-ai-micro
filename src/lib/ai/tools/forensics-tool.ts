@@ -103,7 +103,7 @@ function parseTimestamp(timestamp: number, format: string): Record<string, unkno
   };
 }
 
-function timelineDiff(timestamp1: number, timestamp2: number): Record<string, number> {
+function _timelineDiff(timestamp1: number, timestamp2: number): Record<string, number> {
   const diffMs = Math.abs(timestamp2 - timestamp1);
   const diffSec = Math.floor(diffMs / 1000);
 
@@ -348,7 +348,7 @@ export async function executeForensics(toolCall: UnifiedToolCall): Promise<Unifi
         const { data = 'SGVsbG8gV29ybGQh' } = args;
         const detectedEncodings = detectEncodings(data);
 
-        let decoded: Record<string, string | null> = {};
+        const decoded: Record<string, string | null> = {};
 
         // Try to decode
         if (/^[A-Za-z0-9+/]+=*$/.test(data)) {

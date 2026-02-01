@@ -83,7 +83,7 @@ function calculateSubnet(ip: string, cidr: number): {
   };
 }
 
-function ipInSubnet(ip: string, network: string, cidr: number): boolean {
+function _ipInSubnet(ip: string, network: string, cidr: number): boolean {
   const ipLong = ipToLong(ip);
   const netLong = ipToLong(network);
   const mask = cidr === 0 ? 0 : (0xFFFFFFFF << (32 - cidr)) >>> 0;
@@ -134,7 +134,7 @@ function transferTime(fileSize: number, bandwidth: number): number {
   return fileBits / bitsPerSecond;
 }
 
-function throughput(dataTransferred: number, time: number): number {
+function _throughput(dataTransferred: number, time: number): number {
   // Returns Mbps
   return (dataTransferred * 8) / (time * 1000000);
 }
@@ -142,7 +142,7 @@ function throughput(dataTransferred: number, time: number): number {
 function latencyImpact(bandwidth: number, latency: number, windowSize: number): number {
   // Effective throughput with TCP windowing
   // BDP = bandwidth * latency
-  const bdp = (bandwidth * 1000000 / 8) * (latency / 1000); // bytes
+  const _bdp = (bandwidth * 1000000 / 8) * (latency / 1000); // bytes
   const effectiveBandwidth = Math.min(bandwidth, (windowSize * 8) / (latency / 1000) / 1000000);
   return effectiveBandwidth;
 }

@@ -34,7 +34,7 @@ function interpretEffectSize(d: number): string {
   return 'Large';
 }
 
-function pearsonsR(x: number[], y: number[]): number {
+function _pearsonsR(x: number[], y: number[]): number {
   const n = x.length;
   const sumX = x.reduce((a, b) => a + b, 0);
   const sumY = y.reduce((a, b) => a + b, 0);
@@ -90,7 +90,7 @@ function independentTTest(mean1: number, mean2: number, sd1: number, sd2: number
   return { t, df: Math.floor(df), se };
 }
 
-function pairedTTest(diffs: number[]): { t: number; df: number; meanDiff: number; sdDiff: number } {
+function _pairedTTest(diffs: number[]): { t: number; df: number; meanDiff: number; sdDiff: number } {
   const n = diffs.length;
   const meanDiff = diffs.reduce((a, b) => a + b, 0) / n;
   const sdDiff = Math.sqrt(diffs.reduce((acc, d) => acc + Math.pow(d - meanDiff, 2), 0) / (n - 1));

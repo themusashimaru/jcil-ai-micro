@@ -15,7 +15,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 function celsiusToFahrenheit(c: number): number { return c * 9/5 + 32; }
 function fahrenheitToCelsius(f: number): number { return (f - 32) * 5/9; }
-function celsiusToKelvin(c: number): number { return c + 273.15; }
+function _celsiusToKelvin(c: number): number { return c + 273.15; }
 
 // ============================================================================
 // HEAT INDEX (Feels Like - Hot)
@@ -27,7 +27,7 @@ function heatIndex(T: number, RH: number): number {
 
   if (T_f < 80) return T;
 
-  let HI = -42.379 + 2.04901523 * T_f + 10.14333127 * RH
+  const HI = -42.379 + 2.04901523 * T_f + 10.14333127 * RH
            - 0.22475541 * T_f * RH - 0.00683783 * T_f * T_f
            - 0.05481717 * RH * RH + 0.00122874 * T_f * T_f * RH
            + 0.00085282 * T_f * RH * RH - 0.00000199 * T_f * T_f * RH * RH;
@@ -129,7 +129,7 @@ function visibilityFromRH(RH: number): string {
   return 'Good (>10 km)';
 }
 
-function precipitationType(T: number, wetBulb: number): string {
+function _precipitationType(T: number, wetBulb: number): string {
   if (T > 2) return 'Rain';
   if (T < -2 && wetBulb < -2) return 'Snow';
   if (T >= -2 && T <= 2) return 'Mix (Rain/Snow)';

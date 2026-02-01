@@ -10,8 +10,8 @@
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 const kB = 1.380649e-23; // Boltzmann constant (J/K)
-const h = 6.62607015e-34; // Planck constant
-const NA = 6.02214076e23; // Avogadro's number
+const _h = 6.62607015e-34; // Planck constant
+const _NA = 6.02214076e23; // Avogadro's number
 
 // Boltzmann factor
 function boltzmannFactor(E: number, T: number): number {

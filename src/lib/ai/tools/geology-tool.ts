@@ -96,7 +96,7 @@ function porosity(voidVolume: number, totalVolume: number): number {
   return (voidVolume / totalVolume) * 100;
 }
 
-function permeability(flowRate: number, viscosity: number, length: number, area: number, pressureDiff: number): number {
+function _permeability(flowRate: number, viscosity: number, length: number, area: number, pressureDiff: number): number {
   // Darcy's law: k = (Q × μ × L) / (A × ΔP)
   return (flowRate * viscosity * length) / (area * pressureDiff);
 }
