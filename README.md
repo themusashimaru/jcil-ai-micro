@@ -7,10 +7,11 @@
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
 [![Tests](https://img.shields.io/badge/Tests-1542%20Passing-brightgreen)]()
 [![Code Lab Tools](https://img.shields.io/badge/Code%20Lab%20Tools-55+-purple)]()
-[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-186%20Wired-green)]()
+[![Chat Tools](https://img.shields.io/badge/Chat%20Tools-344%20Wired-green)]()
 [![Security Tools](https://img.shields.io/badge/Security%20Tools-62-red)]()
+[![Engineering Tools](https://img.shields.io/badge/Engineering%20Tools-158-blue)]()
 [![MCP](https://img.shields.io/badge/MCP%20Servers-5-blue)]()
-[![Enhancements](https://img.shields.io/badge/Major%20Enhancements-10-orange)]()
+[![Enhancements](https://img.shields.io/badge/Major%20Enhancements-11-orange)]()
 
 ---
 
