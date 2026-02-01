@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (242 total):
+ * Tools available (246 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -1495,6 +1495,12 @@ async function initializeTools() {
   const { membraneTool, executeMembrane, isMembraneAvailable } = await import('./membrane-tool');
   const { adsorptionTool, executeAdsorption, isAdsorptionAvailable } = await import('./adsorption-tool');
 
+  // TIER PROCESS ENGINEERING (4 more compact tools)
+  const { reactorTool, executeReactor, isReactorAvailable } = await import('./reactor-tool');
+  const { fluidizationTool, executeFluidization, isFluidizationAvailable } = await import('./fluidization-tool');
+  const { dryingTool, executeDrying, isDryingAvailable } = await import('./drying-tool');
+  const { extractionTool, executeExtraction, isExtractionAvailable } = await import('./extraction-tool');
+
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
     { tool: fetchUrlTool, executor: executeFetchUrl, checkAvailability: isFetchUrlAvailable },
@@ -2134,7 +2140,12 @@ async function initializeTools() {
     { tool: chromatographyTool, executor: executeChromatography, checkAvailability: isChromatographyAvailable },
     { tool: distillationTool, executor: executeDistillation, checkAvailability: isDistillationAvailable },
     { tool: membraneTool, executor: executeMembrane, checkAvailability: isMembraneAvailable },
-    { tool: adsorptionTool, executor: executeAdsorption, checkAvailability: isAdsorptionAvailable }
+    { tool: adsorptionTool, executor: executeAdsorption, checkAvailability: isAdsorptionAvailable },
+    // TIER PROCESS ENGINEERING (4 more compact tools)
+    { tool: reactorTool, executor: executeReactor, checkAvailability: isReactorAvailable },
+    { tool: fluidizationTool, executor: executeFluidization, checkAvailability: isFluidizationAvailable },
+    { tool: dryingTool, executor: executeDrying, checkAvailability: isDryingAvailable },
+    { tool: extractionTool, executor: executeExtraction, checkAvailability: isExtractionAvailable }
   );
 
   toolsInitialized = true;
