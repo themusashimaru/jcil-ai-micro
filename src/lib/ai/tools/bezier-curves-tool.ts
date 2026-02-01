@@ -176,7 +176,7 @@ function visualizeBezier(points: Point[], width: number = 60, height: number = 2
 
 export const bezierCurvesTool: UnifiedTool = {
   name: 'bezier_curves',
-  description: \`Bezier curve mathematics and visualization.
+  description: `Bezier curve mathematics and visualization.
 
 Operations:
 - evaluate: Calculate point on curve at parameter t
@@ -187,7 +187,7 @@ Operations:
 - split: Split curve at parameter t
 - visualize: ASCII visualization of curve
 
-Supports quadratic, cubic, and arbitrary-order curves.\`,
+Supports quadratic, cubic, and arbitrary-order curves.`,
 
   parameters: {
     type: 'object',
@@ -265,12 +265,12 @@ export async function executeBezierCurves(toolCall: UnifiedToolCall): Promise<Un
         break;
       }
       default:
-        throw new Error(\`Unknown operation: \${operation}\`);
+        throw new Error(`Unknown operation: ${operation}`);
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: \`Bezier Error: \${error instanceof Error ? error.message : 'Unknown'}\`, isError: true };
+    return { toolCallId: id, content: `Bezier Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
   }
 }
 

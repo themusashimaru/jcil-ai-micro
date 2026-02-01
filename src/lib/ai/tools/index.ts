@@ -4,7 +4,7 @@
  * Unified exports for all chat-level tools.
  * These tools extend the main chat with capabilities from Deep Strategy agent.
  *
- * Tools available (112 total):
+ * Tools available (136 total):
  * - web_search: Search the web (Brave Search)
  * - fetch_url: Fetch and extract content from URLs
  * - run_code: Execute Python/JavaScript in E2B sandbox
@@ -796,6 +796,38 @@ export {
   isDataStructuresAvailable,
 } from './data-structures-tool';
 
+// ============================================================================
+// TIER ADVANCED SCIENCE - Cutting-Edge Scientific Tools
+// ============================================================================
+
+// Quantum Computing - Quantum circuits, gates, algorithms
+export {
+  quantumComputingTool,
+  executeQuantumComputing,
+  isQuantumComputingAvailable,
+} from './quantum-computing-tool';
+
+// Shader Generator - GLSL shader generation for visual effects
+export {
+  shaderGeneratorTool,
+  executeShaderGenerator,
+  isShaderGeneratorAvailable,
+} from './shader-generator-tool';
+
+// Signal Processing - FFT, filters, DSP
+export {
+  signalProcessingTool,
+  executeSignalProcessing,
+  isSignalProcessingAvailable,
+} from './signal-processing-tool';
+
+// Neural Network - Educational neural network demonstrations
+export {
+  neuralNetworkTool,
+  executeNeuralNetwork,
+  isNeuralNetworkAvailable,
+} from './neural-network-tool';
+
 // Workflow Tasks (Claude Code style todo lists)
 export {
   // Types
@@ -1227,6 +1259,20 @@ async function initializeTools() {
   );
   const { dataStructuresTool, executeDataStructures, isDataStructuresAvailable } = await import(
     './data-structures-tool'
+  );
+
+  // TIER ADVANCED SCIENCE - Cutting-Edge Scientific Tools
+  const { quantumComputingTool, executeQuantumComputing, isQuantumComputingAvailable } = await import(
+    './quantum-computing-tool'
+  );
+  const { shaderGeneratorTool, executeShaderGenerator, isShaderGeneratorAvailable } = await import(
+    './shader-generator-tool'
+  );
+  const { signalProcessingTool, executeSignalProcessing, isSignalProcessingAvailable } = await import(
+    './signal-processing-tool'
+  );
+  const { neuralNetworkTool, executeNeuralNetwork, isNeuralNetworkAvailable } = await import(
+    './neural-network-tool'
   );
 
   CHAT_TOOLS.push(
@@ -1694,6 +1740,27 @@ async function initializeTools() {
       tool: dataStructuresTool,
       executor: executeDataStructures,
       checkAvailability: isDataStructuresAvailable,
+    },
+    // TIER ADVANCED SCIENCE - Cutting-Edge Scientific Tools
+    {
+      tool: quantumComputingTool,
+      executor: executeQuantumComputing,
+      checkAvailability: isQuantumComputingAvailable,
+    },
+    {
+      tool: shaderGeneratorTool,
+      executor: executeShaderGenerator,
+      checkAvailability: isShaderGeneratorAvailable,
+    },
+    {
+      tool: signalProcessingTool,
+      executor: executeSignalProcessing,
+      checkAvailability: isSignalProcessingAvailable,
+    },
+    {
+      tool: neuralNetworkTool,
+      executor: executeNeuralNetwork,
+      checkAvailability: isNeuralNetworkAvailable,
     }
   );
 
