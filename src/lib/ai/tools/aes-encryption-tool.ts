@@ -20,7 +20,7 @@ export const aesencryptionTool: UnifiedTool = {
       plaintext: { type: 'string', description: 'Text to encrypt (hex or string)' },
       ciphertext: { type: 'string', description: 'Hex ciphertext to decrypt' },
       key: { type: 'string', description: 'Encryption key (hex string)' },
-      key_size: { type: 'number', enum: [128, 192, 256], description: 'Key size in bits' },
+      key_size: { type: 'number', enum: ['128', '192', '256'], description: 'Key size in bits' },
       mode: { type: 'string', enum: ['ECB', 'CBC', 'CTR'], description: 'Block cipher mode' },
       iv: { type: 'string', description: 'Initialization vector (hex) for CBC/CTR' },
       input_format: { type: 'string', enum: ['hex', 'string'], description: 'Input format' }

@@ -20,7 +20,7 @@ export const rsaencryptionTool: UnifiedTool = {
       },
       key_size: {
         type: 'number',
-        enum: [512, 1024, 2048, 3072, 4096],
+        enum: ['512', '1024', '2048', '3072', '4096'],
         description: 'Key size in bits (512/1024 for demo only)'
       },
       message: {
