@@ -742,8 +742,6 @@ export async function executealphabeta(toolCall: UnifiedToolCall): Promise<Unifi
         const timeAB = Date.now() - startAB;
 
         // Simple minimax (no pruning) - simulate by setting high exploration count
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _minimaxNodes = 0;
         const minimaxNodesEstimate = Math.pow(game.getValidMoves().length, depth);
 
         return {

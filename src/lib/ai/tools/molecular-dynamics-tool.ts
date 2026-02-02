@@ -632,8 +632,6 @@ function computeRDF(
   const histogram = new Array(nBins).fill(0);
   const { atoms, boxSize } = system;
 
-  let _nPairs = 0;
-
   for (let i = 0; i < atoms.length; i++) {
     if (atomType1 && atoms[i].type !== atomType1) continue;
 
@@ -648,8 +646,6 @@ function computeRDF(
         const bin = Math.floor(r / dr);
         if (bin < nBins) {
           histogram[bin]++;
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          _nPairs++;
         }
       }
     }

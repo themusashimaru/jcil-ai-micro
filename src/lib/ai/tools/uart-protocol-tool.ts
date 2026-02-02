@@ -706,10 +706,6 @@ class UARTSimulator {
     const effectiveDataBits = this.config.dataBits;
     const efficiency = (effectiveDataBits / bitsPerFrame) * 100;
 
-    // Max theoretical throughput
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _framesPerSecond = 1e6 / frameDuration;
-
     return {
       bitDuration,
       frameDuration,

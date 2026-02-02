@@ -435,8 +435,6 @@ function calculateInvestment(
   const downPayment = purchasePrice * downPaymentPercent;
   const closingCosts = purchasePrice * 0.03;
   const initialInvestment = downPayment + closingCosts;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _loanAmount = purchasePrice - downPayment;
 
   // Project cash flows
   const cashFlows: number[] = [-initialInvestment];

@@ -523,8 +523,6 @@ function accessHierarchy(hierarchy: CacheHierarchy, address: number, isWrite: bo
 }
 
 function getHierarchyStats(hierarchy: CacheHierarchy): HierarchyStats {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _l1Stats = getCacheStats(hierarchy.L1);
   const totalAccesses = hierarchy.L1.accessCount;
 
   let totalLatency = hierarchy.L1.totalLatency;
@@ -683,8 +681,6 @@ function generateAccessPattern(pattern: string, count: number, config: {
 
     case 'matrix_row': {
       // Row-major matrix traversal (good for cache)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _cols = Math.sqrt(arraySize);
       for (let i = 0; i < count && i < arraySize; i++) {
         addresses.push(baseAddr + i * 4);
       }

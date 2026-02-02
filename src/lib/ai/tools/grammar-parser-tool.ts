@@ -213,8 +213,6 @@ function analyzeGrammar(grammar: Grammar): GrammarAnalysis {
 
 function removeUselessSymbols(grammar: Grammar): Grammar {
   const generating = computeGenerating(grammar);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _reachable = computeReachable(grammar);
 
   // First pass: keep only generating productions
   let prods = grammar.productions.filter(p =>

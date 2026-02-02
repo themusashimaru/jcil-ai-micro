@@ -210,10 +210,6 @@ function calculateStepResponse(
   const time: number[] = [];
   const response: number[] = [];
 
-  // Find poles
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _poles = findRoots(denominator);
-
   // DC gain (steady state value for unit step)
   const dcGain = polyEval(numerator, 0) / polyEval(denominator, 0);
   const steadyState = isFinite(dcGain) ? dcGain : 0;

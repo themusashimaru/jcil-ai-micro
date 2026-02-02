@@ -235,14 +235,6 @@ class BinomialTree {
     const gamma = (priceUp - 2 * basePrice + priceDown) / (dS * dS);
 
     // Theta: -∂V/∂T (per day)
-    const dT = 1 / 365;
-    if (this.T > dT) {
-      const treeTheta = new BinomialTree(this.S, this.K, this.T - dT, this.r, this.sigma, this.q, this.n);
-      const priceTheta = isAmerican ? treeTheta.priceAmerican(isCall).price : treeTheta.priceEuropean(isCall);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _theta = (priceTheta - basePrice);
-    }
-
     // Vega: ∂V/∂σ (per 1% change)
     const dSigma = 0.01;
     const treeVegaUp = new BinomialTree(this.S, this.K, this.T, this.r, this.sigma + dSigma, this.q, this.n);

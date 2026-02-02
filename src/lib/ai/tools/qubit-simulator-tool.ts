@@ -788,10 +788,6 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
             outcome = result.outcome;
           } else {
             // Measure single qubit
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const _result = measureQubit >= 0 && measureQubit < numQubits
-              ? measureQubit
-              : 0;
             outcome = measureAll(state).outcome;
           }
 

@@ -926,8 +926,6 @@ export async function executefilterdesign(toolCall: UnifiedToolCall): Promise<Un
       }
 
       const iirFilter = filter as IIRFilter;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _response = computeFrequencyResponse(iirFilter.b, iirFilter.a, 64);
 
       const result = {
         operation: 'design',

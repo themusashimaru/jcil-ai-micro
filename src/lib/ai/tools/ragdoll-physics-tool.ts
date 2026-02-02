@@ -660,11 +660,6 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
         const normal = vec3Scale(error, 1 / errorMag);
 
         // Calculate effective mass
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _rA = vec3Sub(worldAnchorA, bodyA.position);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _rB = vec3Sub(worldAnchorB, bodyB.position);
-
         const invMass = bodyA.inverseMass + bodyB.inverseMass;
 
         // Impulse to correct position error

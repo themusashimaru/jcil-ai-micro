@@ -230,8 +230,6 @@ export async function executeQuantumMechanics(toolCall: UnifiedToolCall): Promis
       case 'angular_momentum': {
         const { l = 1 } = args;
         const L_mag = orbitalAngularMomentum(l);
-        const _S_mag = spinAngularMomentum(0.5);
-        void _S_mag; // computed but used inline below
         result = {
           operation: 'angular_momentum',
           l,

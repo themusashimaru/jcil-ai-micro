@@ -114,10 +114,6 @@ function generateProof(root: MerkleNode | null, leafIndex: number, totalLeaves: 
   if (!root) return [];
 
   const proof: ProofElement[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _currentIndex = leafIndex;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _levelSize = totalLeaves;
   let level = 0;
 
   // Traverse from root to find path to leaf

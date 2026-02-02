@@ -296,8 +296,6 @@ function viterbiTag(words: string[]): TaggedWord[] {
   if (words.length === 0) return [];
 
   const n = words.length;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _allTags = Object.keys(PENN_TAGS);
 
   // Viterbi tables
   const viterbi: Map<string, number>[] = [];

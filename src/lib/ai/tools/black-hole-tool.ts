@@ -149,8 +149,6 @@ function calculateKerr(massSolar: number, spinParam: number) {
  */
 function calculateHawking(massSolar: number) {
   const massKg = massSolar * M_sun;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _r_s = schwarzschildRadius(massSolar);
 
   // Hawking temperature: T = ħc³/(8πGMk_B)
   const T_hawking = (hbar * c * c * c) / (8 * Math.PI * G * massKg * k_B);

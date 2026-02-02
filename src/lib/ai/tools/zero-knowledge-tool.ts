@@ -439,8 +439,6 @@ function circuitToR1CS(circuit: ArithmeticCircuit): {
   C: bigint[][];
 } {
   const n = circuit.wires.length + 1; // +1 for constant wire
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _m = circuit.gates.length;
 
   const A: bigint[][] = [];
   const B: bigint[][] = [];
@@ -742,8 +740,6 @@ function verifyFRI(friProof: FRIProof): boolean {
     if (friProof.queries[r]) {
       const q = friProof.queries[r];
       if (q.length >= 2) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _expected = modAdd(q[0], modMul(alpha, q[1]));
         // Verify against next round
       }
     }

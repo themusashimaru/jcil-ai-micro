@@ -272,10 +272,6 @@ function simulateArbitrator(state: SimulationState, rng: SeededRandom): void {
   const n = state.philosophers.length;
   const maxEating = Math.floor(n / 2); // Waiter allows at most floor(n/2) to eat
 
-  // Count currently eating
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _currentlyEating = state.philosophers.filter(p => p.state === 'eating').length;
-
   for (const phil of state.philosophers) {
     const { left, right } = getForkIndices(phil.id, n);
     const leftFork = state.forks[left];

@@ -425,8 +425,6 @@ function baumWelch(
     }
 
     // Update parameters
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _numSeq = trainingSequences.length;
 
     // Update pi
     const piSum = pi_new.reduce((a, b) => a + b, 0);

@@ -669,10 +669,6 @@ function calculateIdealTrajectory(params: {
   // Max height: h_max = h0 + v0y² / (2g)
   const maxHeight = h0 + (v0y * v0y) / (2 * g);
 
-  // Time to max height: t_max = v0y / g
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _timeToMax = v0y / g;
-
   // Total time: solve h0 + v0y*t - 0.5*g*t² = 0
   // t = (v0y + sqrt(v0y² + 2*g*h0)) / g
   const totalTime = (v0y + Math.sqrt(v0y * v0y + 2 * g * h0)) / g;

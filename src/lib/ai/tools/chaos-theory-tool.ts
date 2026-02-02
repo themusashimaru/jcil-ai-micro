@@ -523,8 +523,6 @@ function computeContinuousLyapunov(
     t += dt;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _n = Math.floor((timesteps - transient) / reorthSteps);
   const totalTime = (timesteps - transient) * dt;
   const exponents = lyapunovSums.map(sum => sum / totalTime);
 

@@ -80,16 +80,6 @@ class StereoRectification {
     const e2 = this.normalize(this.cross([0, 0, 1], e1));
     const e3 = this.cross(e1, e2);
 
-    // Rectification rotation
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _R_rect = [e1, e2, e3];
-
-    // Compute homographies (simplified - assumes images already mostly aligned)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _K1 = this.intrinsicsToMatrix(calibration.leftIntrinsics);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _K2 = this.intrinsicsToMatrix(calibration.rightIntrinsics);
-
     // H1 = K1 * R_rect * inv(K1)
     // H2 = K2 * R_rect * R' * inv(K2)
 

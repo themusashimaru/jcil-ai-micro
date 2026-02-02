@@ -110,7 +110,6 @@ function detectEdges(image: Image, threshold: number = 0.1): EdgeInfo[][] {
   for (let y = 0; y < height; y++) {
     edges[y] = [];
     for (let x = 0; x < width; x++) {
-      const c = getPixel(image, x, y);
       const n = getPixel(image, x, y - 1);
       const s = getPixel(image, x, y + 1);
       const e = getPixel(image, x + 1, y);
@@ -120,8 +119,6 @@ function detectEdges(image: Image, threshold: number = 0.1): EdgeInfo[][] {
       const se = getPixel(image, x + 1, y + 1);
       const sw = getPixel(image, x - 1, y + 1);
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _lC = luminance(c.r, c.g, c.b) / 255;
       const lN = luminance(n.r, n.g, n.b) / 255;
       const lS = luminance(s.r, s.g, s.b) / 255;
       const lE = luminance(e.r, e.g, e.b) / 255;
@@ -231,13 +228,6 @@ class FXAAFilter {
     const gradient2 = Math.abs(luma2 - lC);
 
     const is1Steeper = gradient1 >= gradient2;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _stepLength = isHorizontal ? 1 / image.height : 1 / image.width;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _localAvg = (luma1 + luma2) * 0.5;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _gradient = (gradient1 + gradient2) * 0.5;
 
     // Subpixel AA
     const subpixelOffset = Math.abs(
@@ -982,12 +972,9 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
         const msaa = new MSAAFilter(4);
         const smaa = new SMAAFilter();
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _fxaaOut = fxaa.apply(image);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _msaaOut = msaa.apply(image);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _smaaOut = smaa.apply(image);
+        fxaa.apply(image);
+        msaa.apply(image);
+        smaa.apply(image);
 
         result = {
           operation: 'compare',

@@ -416,8 +416,6 @@ function lwrModel(
 
     for (let i = 0; i < numCells; i++) {
       const iMinus = (i - 1 + numCells) % numCells;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _iPlus = (i + 1) % numCells;
 
       // Numerical flux (upwind)
       const fluxIn = flowFromDensity(density[iMinus]);

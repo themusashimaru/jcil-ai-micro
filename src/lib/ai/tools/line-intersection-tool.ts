@@ -525,8 +525,6 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
         }
 
         // Check all pairs
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _allIntersections = findAllIntersectionsSimple(segments);
         const pairs: { s1: string; s2: string; intersects: boolean; point?: Point }[] = [];
 
         for (let i = 0; i < segments.length; i++) {

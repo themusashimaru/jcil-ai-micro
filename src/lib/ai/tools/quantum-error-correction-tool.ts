@@ -555,14 +555,11 @@ function measureSteaneSyndrome(state: StateVector): {
 
   // In ideal case, all codewords should have same phase
   // Phase errors cause sign flips
-  let _phaseError = false;
   for (let i = 0; i < STEANE_ZERO_CODEWORDS.length; i++) {
     const cw = STEANE_ZERO_CODEWORDS[i];
     if (Math.abs(state[cw].re) > 0.01 || Math.abs(state[cw].im) > 0.01) {
       // Check sign consistency
       if (state[cw].re < 0 && state[0].re > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _phaseError = true;
         // Determine which qubit has phase error based on Hamming weight difference
         const diff = cw ^ STEANE_ZERO_CODEWORDS[0];
         for (let bit = 0; bit < 7; bit++) {

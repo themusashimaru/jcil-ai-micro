@@ -365,8 +365,6 @@ export async function executeSignalProcessing(toolCall: UnifiedToolCall): Promis
 
         const spectrum = fft(signal.map(x => complex(x)));
         const magnitudes = spectrum.slice(0, N / 2).map(c => cAbs(c) / N * 2);
-        const _phases = spectrum.slice(0, N / 2).map(c => cPhase(c));
-        void _phases; // for future use
 
         result = {
           operation: 'fft',
@@ -408,8 +406,7 @@ export async function executeSignalProcessing(toolCall: UnifiedToolCall): Promis
         const signalStr = args.signal || JSON.stringify(generateSine(frequency, sample_rate, 0.1));
         const signal: number[] = JSON.parse(signalStr);
 
-        const { frequencies: _frequencies, magnitudes } = powerSpectrum(signal);
-        void _frequencies; // for future use
+        const { magnitudes } = powerSpectrum(signal);
         const peaks = findPeakFrequencies(magnitudes);
 
         result = {

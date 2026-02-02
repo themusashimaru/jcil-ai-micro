@@ -745,26 +745,6 @@ exit:
 }
 
 function analyzeDataflow(args: Record<string, unknown>): Record<string, unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _code = (args.ir_code as string) || `
-entry:
-  %a = load x
-  %b = load y
-  %c = add %a, %b
-  branch %cond, left, right
-left:
-  %d = mul %a, 2
-  %e = add %d, %b
-  jump exit
-right:
-  %f = sub %b, %a
-  %g = mul %f, %c
-  jump exit
-exit:
-  %result = phi [%e, left], [%g, right]
-  return %result
-`;
-
   // Simplified liveness analysis
   const liveness: Record<string, { liveIn: string[]; liveOut: string[]; def: string[]; use: string[] }> = {
     'entry': {

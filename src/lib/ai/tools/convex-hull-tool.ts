@@ -429,9 +429,6 @@ function computeHull(points: Point2D[], algorithm: string): {
   algorithm_used: string;
   comparisons: number;
 } {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _startTime = Date.now();
-
   let hull: Point2D[];
   let algoUsed = algorithm;
 

@@ -788,8 +788,6 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
 
       case 'decompose': {
         const gateName = args.gate || 'X';
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _showMatrix = args.show_matrix !== false;
 
         const gateDef = GATES[gateName.toUpperCase()];
         if (!gateDef && !['RX', 'RY', 'RZ', 'P'].includes(gateName.toUpperCase())) {
