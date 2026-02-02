@@ -9,7 +9,7 @@
 
 ## Overview
 
-Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level capabilities. It provides **55+ tools**, sandboxed cloud execution, **5 real MCP servers**, and multi-platform deployment.
+Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level capabilities. It provides **1000+ tools**, sandboxed cloud execution, **5 real MCP servers**, and multi-platform deployment.
 
 ### Key Features
 
@@ -18,7 +18,7 @@ Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level cap
 - **5 MCP Servers** - Real implementations (not stubs)
 - **Multi-Platform Deployment** - Vercel, Netlify, Railway, Cloudflare
 - **Persistent Workspaces** - Sessions and files stored in cloud
-- **55+ Agentic Tools** - Full Claude Code parity plus extras
+- **1000+ Agentic Tools** - Full Claude Code parity plus extensive domain-specific tools
 
 ### Beyond Claude Code
 
@@ -817,7 +817,7 @@ private async executeFilesystemTool(
 
 ## Complete Tool Reference
 
-Code Lab provides **55+ tools** organized by category:
+Code Lab provides **1000+ tools** organized by category:
 
 ### File Operations (7 tools)
 
@@ -1247,7 +1247,7 @@ DATABASE_URL=                # PostgreSQL MCP (if not using Supabase)
 src/lib/workspace/
 ├── container.ts           # E2B sandbox management
 ├── mcp.ts                 # MCP server implementation
-├── chat-integration.ts    # WorkspaceAgent with 55+ tools
+├── chat-integration.ts    # WorkspaceAgent with 1000+ tools
 ├── security.ts            # Execution security
 ├── planning.ts            # Planning mode tools
 ├── hooks.ts               # Hooks system

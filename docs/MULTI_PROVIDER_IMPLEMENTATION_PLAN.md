@@ -226,7 +226,7 @@ This document outlines the implementation plan for adding multi-provider AI supp
 │  │ Tool         │  │ E2B          │  │ Workspace    │  │ CRDT         │   │
 │  │ Executor     │  │ Sandbox      │  │ Agent        │  │ Collaboration│   │
 │  │              │  │              │  │              │  │              │   │
-│  │ 55+ tools    │  │ Isolated     │  │ File ops     │  │ Real-time    │   │
+│  │ 1000+ tools  │  │ Isolated     │  │ File ops     │  │ Real-time    │   │
 │  │ unchanged    │  │ execution    │  │ Git, LSP     │  │ sync         │   │
 │  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -629,7 +629,7 @@ If issues arise:
 - [ ] User can select model within provider
 - [ ] User can switch providers mid-conversation
 - [ ] Context preserved across provider switches
-- [ ] All 55+ tools work with all providers
+- [ ] All 1000+ tools work with all providers
 - [ ] Errors handled gracefully per provider
 - [ ] Retry logic works for all providers
 
