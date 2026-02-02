@@ -213,7 +213,7 @@ function analyzeGrammar(grammar: Grammar): GrammarAnalysis {
 
 function removeUselessSymbols(grammar: Grammar): Grammar {
   const generating = computeGenerating(grammar);
-  const reachable = computeReachable(grammar);
+  const _reachable = computeReachable(grammar);
 
   // First pass: keep only generating productions
   let prods = grammar.productions.filter(p =>
@@ -425,7 +425,7 @@ function toChomskyNormalForm(grammar: Grammar): Grammar {
 
 function toGreibachNormalForm(grammar: Grammar): Grammar {
   // First convert to CNF
-  let g = toChomskyNormalForm(grammar);
+  const g = toChomskyNormalForm(grammar);
 
   // Order non-terminals
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -459,8 +459,8 @@ function toGreibachNormalForm(grammar: Grammar): Grammar {
 // ============================================================================
 
 function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100): Derivation {
-  const steps: DerivationStep[] = [];
-  let current = [grammar.startSymbol];
+  const _steps: DerivationStep[] = [];
+  const current = [grammar.startSymbol];
 
   // BFS to find derivation
   const queue: { form: string[]; steps: DerivationStep[] }[] = [{ form: current, steps: [] }];

@@ -904,7 +904,7 @@ class ICPRegistration {
     const AtA = matmul3x3(transpose3x3(A), A);
 
     // Eigendecomposition of AtA
-    let V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    const V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
     const M = AtA.map(row => [...row]);
 
     for (let sweep = 0; sweep < 20; sweep++) {

@@ -123,6 +123,7 @@ function createFramebuffer(width: number, height: number): Framebuffer {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function clearFramebuffer(fb: Framebuffer, clearColor: Color = color(0, 0, 0, 255)): void {
   for (let i = 0; i < fb.colorBuffer.length; i++) {
     fb.colorBuffer[i] = { ...clearColor };
@@ -146,6 +147,7 @@ function setPixel(fb: Framebuffer, x: number, y: number, c: Color, depth: number
 // EDGE FUNCTIONS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function computeEdgeEquation(v0: Vec2, v1: Vec2): EdgeEquation {
   return {
     a: v0.y - v1.y,
@@ -154,6 +156,7 @@ function computeEdgeEquation(v0: Vec2, v1: Vec2): EdgeEquation {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function evaluateEdge(edge: EdgeEquation, x: number, y: number): number {
   return edge.a * x + edge.b * y + edge.c;
 }

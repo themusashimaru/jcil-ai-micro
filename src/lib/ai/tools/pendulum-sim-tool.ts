@@ -65,6 +65,7 @@ interface SimulationResult {
   trajectory: PhaseSpacePoint[];
   energy: PendulumEnergy[];
   analysis: PendulumAnalysis;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   finalState: any;
 }
 
@@ -269,7 +270,7 @@ function doublePendulumEnergy(
   const y1 = -length1 * Math.cos(theta1);
 
   // Position of mass 2
-  const x2 = x1 + length2 * Math.sin(theta2);
+  const _x2 = x1 + length2 * Math.sin(theta2);
   const y2 = y1 - length2 * Math.cos(theta2);
 
   // Velocity of mass 1
@@ -817,6 +818,7 @@ export async function executependulumsim(toolCall: UnifiedToolCall): Promise<Uni
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const { operation } = args;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

@@ -187,6 +187,7 @@ function hash(...inputs: bigint[]): bigint {
 // SCHNORR IDENTIFICATION PROTOCOL
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function schnorrSetup(): { g: bigint; p: bigint; q: bigint } {
   // Using pre-defined safe prime group
   return {
@@ -438,7 +439,7 @@ function circuitToR1CS(circuit: ArithmeticCircuit): {
   C: bigint[][];
 } {
   const n = circuit.wires.length + 1; // +1 for constant wire
-  const m = circuit.gates.length;
+  const _m = circuit.gates.length;
 
   const A: bigint[][] = [];
   const B: bigint[][] = [];
@@ -546,6 +547,7 @@ function modDiv(a: bigint, b: bigint, p: bigint = PRIME): bigint {
   return modMul(a, modInverse(b, p), p);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function snarkVerify(
   publicInputs: bigint[],
   proof: SNARKProof,
@@ -567,7 +569,7 @@ function snarkVerify(
 // ZK-STARK (Simplified)
 // ============================================================================
 
-function starkSetup(traceLength: number): {
+function starkSetup(_traceLength: number): {
   fieldSize: bigint;
   blowupFactor: number;
   numQueries: number;
@@ -703,9 +705,10 @@ function friProtocol(poly: bigint[]): FRIProof {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function starkVerify(
   proof: STARKProof,
-  publicInput: bigint[]
+  _publicInput: bigint[]
 ): boolean {
   // Verify Merkle proofs for queries
   for (const query of proof.queries) {
@@ -738,7 +741,7 @@ function verifyFRI(friProof: FRIProof): boolean {
     if (friProof.queries[r]) {
       const q = friProof.queries[r];
       if (q.length >= 2) {
-        const expected = modAdd(q[0], modMul(alpha, q[1]));
+        const _expected = modAdd(q[0], modMul(alpha, q[1]));
         // Verify against next round
       }
     }

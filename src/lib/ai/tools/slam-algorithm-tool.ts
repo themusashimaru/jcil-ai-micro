@@ -817,8 +817,8 @@ class ICPScanMatcher {
 
   private computeTransformation(source: Point2D[], target: Point2D[]): Pose2D {
     // Compute centroids
-    let sourceCentroid = { x: 0, y: 0 };
-    let targetCentroid = { x: 0, y: 0 };
+    const sourceCentroid = { x: 0, y: 0 };
+    const targetCentroid = { x: 0, y: 0 };
 
     for (let i = 0; i < source.length; i++) {
       sourceCentroid.x += source[i].x;

@@ -497,7 +497,7 @@ function createDeltaPatch(
   const targetData = targetImage.payload;
 
   // Simplified delta algorithm - in production use bsdiff or similar
-  let sourcePos = 0;
+  const sourcePos = 0;
   let targetPos = 0;
 
   while (targetPos < targetData.length) {
@@ -1317,7 +1317,7 @@ export async function executefirmwareupdate(toolCall: UnifiedToolCall): Promise<
 
       case 'simulate_transfer': {
         const chunkSize = args.chunk_size || 4096;
-        let transferId = `${args.device_id}_${args.image_id}`;
+        const transferId = `${args.device_id}_${args.image_id}`;
         let state = getTransferStatus(transferId);
 
         if (!state) {

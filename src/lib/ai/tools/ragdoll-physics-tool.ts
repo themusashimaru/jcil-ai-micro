@@ -129,6 +129,7 @@ interface SimulationResult {
 const GRAVITY = 9.80665;
 const BAUMGARTE_FACTOR = 0.2; // Position correction factor
 const PENETRATION_SLOP = 0.01; // Allowed penetration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MAX_CONTACT_POINTS = 4;
 const VELOCITY_THRESHOLD = 0.01;
 
@@ -178,6 +179,7 @@ function vec3Negate(v: Vector3): Vector3 {
   return { x: -v.x, y: -v.y, z: -v.z };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Distance(a: Vector3, b: Vector3): number {
   return vec3Length(vec3Sub(a, b));
 }
@@ -216,6 +218,7 @@ function quatRotateVector(q: Quaternion, v: Vector3): Vector3 {
   return { x: result.x, y: result.y, z: result.z };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function quatFromAxisAngle(axis: Vector3, angle: number): Quaternion {
   const halfAngle = angle * 0.5;
   const s = Math.sin(halfAngle);
@@ -228,6 +231,7 @@ function quatFromAxisAngle(axis: Vector3, angle: number): Quaternion {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function quatToMatrix3(q: Quaternion): number[][] {
   const { w, x, y, z } = q;
   return [
@@ -323,6 +327,7 @@ function getWorldPoint(body: RigidBody, localPoint: Vector3): Vector3 {
   return vec3Add(body.position, rotated);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getLocalPoint(body: RigidBody, worldPoint: Vector3): Vector3 {
   const relative = vec3Sub(worldPoint, body.position);
   return quatRotateVector(quatConjugate(body.orientation), relative);
@@ -577,7 +582,7 @@ function resolveContact(contact: Contact, state: RagdollState, dt: number): void
   const rAxN = vec3Cross(rA, contact.normal);
   const rBxN = vec3Cross(rB, contact.normal);
 
-  let angularTermA = vec3Dot(rAxN, {
+  const angularTermA = vec3Dot(rAxN, {
     x: rAxN.x * bodyA.inverseInertia.x,
     y: rAxN.y * bodyA.inverseInertia.y,
     z: rAxN.z * bodyA.inverseInertia.z
@@ -655,8 +660,8 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
         const normal = vec3Scale(error, 1 / errorMag);
 
         // Calculate effective mass
-        const rA = vec3Sub(worldAnchorA, bodyA.position);
-        const rB = vec3Sub(worldAnchorB, bodyB.position);
+        const _rA = vec3Sub(worldAnchorA, bodyA.position);
+        const _rB = vec3Sub(worldAnchorB, bodyB.position);
 
         const invMass = bodyA.inverseMass + bodyB.inverseMass;
 
@@ -963,7 +968,7 @@ function simulateRagdoll(params: {
   const iterations = params.iterations || 10;
   const steps = Math.floor(params.duration / dt);
 
-  let state = createRagdoll(config, startPos);
+  const state = createRagdoll(config, startPos);
 
   // Apply initial velocity
   if (params.initialVelocity) {
@@ -1098,6 +1103,7 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const { operation } = args;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

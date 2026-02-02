@@ -429,7 +429,7 @@ const ED25519_GX = (() => {
   const u = (y2 - 1n + ED25519_P) % ED25519_P;
   const v = ((ED25519_D * y2 + 1n) % ED25519_P + ED25519_P) % ED25519_P;
   const vInv = modInverse(v, ED25519_P);
-  const x2 = (u * vInv) % ED25519_P;
+  const _x2 = (u * vInv) % ED25519_P;
   // sqrt using Tonelli-Shanks would be needed for full impl
   // For demo, we use the known value
   return 15112221349535807912866137220509078935008241517919938459067222385657010292041n;
@@ -545,7 +545,7 @@ function ed25519Verify(message: number[], signature: number[], publicKey: number
 
   // Decode R
   const Renc = signature.slice(0, 32);
-  const Ry = bytesToBigInt(Renc.slice().reverse()) & ((1n << 255n) - 1n);
+  const _Ry = bytesToBigInt(Renc.slice().reverse()) & ((1n << 255n) - 1n);
 
   // Decode S
   const S = bytesToBigInt(signature.slice(32).reverse());
@@ -554,11 +554,11 @@ function ed25519Verify(message: number[], signature: number[], publicKey: number
   }
 
   // Decode A (public key)
-  const Ay = bytesToBigInt(publicKey.slice().reverse()) & ((1n << 255n) - 1n);
+  const _Ay = bytesToBigInt(publicKey.slice().reverse()) & ((1n << 255n) - 1n);
 
   // k = H(R || A || M) mod L
   const kHash = sha512([...Renc, ...publicKey, ...message]);
-  const k = bytesToBigInt(kHash.reverse()) % ED25519_L;
+  const _k = bytesToBigInt(kHash.reverse()) % ED25519_L;
 
   // Verify: [S]G = R + [k]A
   // Simplified verification (full impl would decode points and verify)
@@ -619,7 +619,7 @@ function rsaPssVerify(
   saltLength: number = 32
 ): boolean {
   const hash = sha256(message);
-  const keyBytes = Math.ceil(publicKey.n.toString(2).length / 8);
+  const _keyBytes = Math.ceil(publicKey.n.toString(2).length / 8);
   const emBits = publicKey.n.toString(2).length - 1;
   const emLen = Math.ceil(emBits / 8);
 

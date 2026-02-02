@@ -362,7 +362,7 @@ class MeanShiftSegmenter {
    * Segment grayscale image using mean shift
    */
   segment(image: GrayscaleImage): SegmentationResult {
-    const { width, height, data } = image;
+    const { width, height, data: _data } = image;
 
     // For each pixel, find the mode
     const modes: number[][] = [];

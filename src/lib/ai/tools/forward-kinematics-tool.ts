@@ -312,7 +312,7 @@ function sampleWorkspace(dhParams: DHParams[], samples: number = 100): Vec3[] {
   const n = dhParams.length;
 
   for (let i = 0; i < samples; i++) {
-    const jointValues = dhParams.map((dh, idx) => {
+    const jointValues = dhParams.map((dh, _idx) => {
       if (dh.jointType === 'revolute') {
         return (Math.random() - 0.5) * 2 * Math.PI;
       } else {

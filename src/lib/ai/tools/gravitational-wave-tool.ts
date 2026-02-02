@@ -100,6 +100,7 @@ function reducedMass(m1: number, m2: number): number {
 /**
  * Total mass in geometric units (seconds)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function totalMassSeconds(m1_msun: number, m2_msun: number): number {
   const M_kg = (m1_msun + m2_msun) * CONSTANTS.M_sun;
   return (CONSTANTS.G * M_kg) / (CONSTANTS.c * CONSTANTS.c * CONSTANTS.c);

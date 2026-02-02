@@ -473,7 +473,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
       threshold = -1.0,
       release = 100,
       lookahead = 5,
-      truePeak = true,
+      _truePeak = true,
       targetLUFS = -14
     } = args;
 

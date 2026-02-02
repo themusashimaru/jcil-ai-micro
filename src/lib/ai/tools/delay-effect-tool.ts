@@ -227,13 +227,13 @@ function multitapDelay(
   for (let i = 0; i < signal.length; i++) {
     // Read all taps and sum
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let tapSum = 0;
+    let _tapSum = 0;
     let leftSum = 0;
     let rightSum = 0;
 
     for (const tap of tapSamples) {
       const delayed = delayLine.read(tap.delaySamples) * tap.level;
-      tapSum += delayed;
+      _tapSum += delayed;
       leftSum += delayed * tap.panLeft;
       rightSum += delayed * tap.panRight;
     }

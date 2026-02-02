@@ -37,6 +37,7 @@ interface Functor {
   morphismMap: Record<string, string>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface NaturalTransformation {
   name: string;
   sourceFunctor: string;

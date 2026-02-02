@@ -344,7 +344,7 @@ class Skeletonization {
     const width = image[0].length;
 
     // Create working copy
-    let current: BinaryImage = image.map(row => [...row]);
+    const current: BinaryImage = image.map(row => [...row]);
 
     // Neighbors in clockwise order starting from top
     const neighbors = [
@@ -1046,7 +1046,7 @@ class AdvancedMorphOps {
     const height = image.length;
     const width = image[0].length;
 
-    let current = image.map(row => [...row]);
+    const current = image.map(row => [...row]);
     let changed = true;
     let iteration = 0;
     const maxIterations = Math.max(width, height);

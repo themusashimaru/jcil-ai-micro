@@ -530,7 +530,7 @@ class LUTProcessor {
     // Build 3D array
     const data: number[][][] = [];
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let idx = 0;
+    let _idx = 0;
 
     for (let r = 0; r < size; r++) {
       data[r] = [];
@@ -540,7 +540,7 @@ class LUTProcessor {
           // .cube format is B-major, so we need to reorder
           const cubeIdx = b * size * size + g * size + r;
           data[r][g][b] = colorData[cubeIdx] || [r/(size-1), g/(size-1), b/(size-1)];
-          idx++;
+          _idx++;
         }
       }
     }
@@ -806,7 +806,7 @@ class FilmEmulation {
           // Portra characteristics: lifted shadows, warm highlights, reduced contrast
           let newR = origR * 0.9 + 0.05;
           let newG = origG * 0.92 + 0.04;
-          let newB = origB * 0.85 + 0.08;
+          const newB = origB * 0.85 + 0.08;
 
           // Slight orange shift in shadows
           const luma = 0.2126 * origR + 0.7152 * origG + 0.0722 * origB;

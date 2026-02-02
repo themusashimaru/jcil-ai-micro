@@ -73,6 +73,7 @@ function vec3Zero(): Vector3 { return { x: 0, y: 0, z: 0 }; }
 function vec3Add(a: Vector3, b: Vector3): Vector3 { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
 function vec3Sub(a: Vector3, b: Vector3): Vector3 { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
 function vec3Scale(v: Vector3, s: number): Vector3 { return { x: v.x * s, y: v.y * s, z: v.z * s }; }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Dot(a: Vector3, b: Vector3): number { return a.x * b.x + a.y * b.y + a.z * b.z; }
 function vec3Length(v: Vector3): number { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
 function vec3LengthSq(v: Vector3): number { return v.x * v.x + v.y * v.y + v.z * v.z; }
@@ -483,6 +484,7 @@ export async function executesphfluid(toolCall: UnifiedToolCall): Promise<Unifie
     const fluidMax = args.fluidMax || { x: 0.5, y: 0.5, z: 0.5 };
     const domainMin = args.domainMin || { x: 0, y: 0, z: 0 };
     const domainMax = args.domainMax || { x: 1, y: 1, z: 1 };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

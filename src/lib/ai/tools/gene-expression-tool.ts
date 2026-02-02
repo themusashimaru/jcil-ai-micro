@@ -596,7 +596,7 @@ function gseaAnalysis(
     // Calculate running sum
     let runningSum = 0;
     let maxES = 0;
-    let maxPos = 0;
+    let _maxPos = 0;
     const leadingEdge: string[] = [];
 
     const pathwayHits = sortedGenes.filter(g => pathwayGenes.has(g.gene.toUpperCase()));
@@ -613,7 +613,7 @@ function gseaAnalysis(
         runningSum += hit;
         if (Math.abs(runningSum) > Math.abs(maxES)) {
           maxES = runningSum;
-          maxPos = i;
+          _maxPos = i;
           leadingEdge.push(gene.gene);
         }
       } else {

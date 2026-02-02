@@ -165,6 +165,7 @@ function seismicMomentFromMw(Mw: number): number {
 /**
  * Calculate moment magnitude from seismic moment
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function mwFromSeismicMoment(M0: number): number {
   // Mw = (log10(M0) - 9.1) / 1.5
   return (Math.log10(M0) - 9.1) / 1.5;

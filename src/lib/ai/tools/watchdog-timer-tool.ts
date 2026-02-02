@@ -664,7 +664,7 @@ class WatchdogTimerSystem {
           timestamp: Date.now(),
           details: { action: instance.config.resetAction }
         });
-      } catch (e) {
+      } catch (_e) {
         // Ignore callback errors
       }
     }
@@ -709,7 +709,7 @@ class WatchdogTimerSystem {
           timestamp: Date.now(),
           details: { timeRemaining: instance.config.preTimeoutMs }
         });
-      } catch (e) {
+      } catch (_e) {
         // Ignore callback errors
       }
     }

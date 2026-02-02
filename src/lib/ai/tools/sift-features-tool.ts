@@ -337,7 +337,7 @@ class KeypointDetector {
     above: GrayscaleImage
   ): boolean {
     const isMax = value > 0;
-    const threshold = isMax ? value : -value;
+    const _threshold = isMax ? value : -value;
 
     // Check all 26 neighbors
     for (let dy = -1; dy <= 1; dy++) {
@@ -379,7 +379,7 @@ class KeypointDetector {
     // Iterative refinement
     let xi = x;
     let yi = y;
-    let si = s;
+    const si = s;
 
     for (let iter = 0; iter < 5; iter++) {
       if (xi < 1 || xi >= width - 1 || yi < 1 || yi >= height - 1) {

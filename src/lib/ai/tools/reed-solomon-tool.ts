@@ -173,7 +173,7 @@ class GFPolynomial {
     }
 
     const quotient = new Array(Math.max(this.coefficients.length - divisor.coefficients.length + 1, 1)).fill(0);
-    let remainder = [...this.coefficients];
+    const remainder = [...this.coefficients];
 
     const divisorLeadingCoeff = divisor.coefficients[0];
     const divisorDegree = divisor.coefficients.length;

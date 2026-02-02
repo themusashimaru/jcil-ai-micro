@@ -113,7 +113,7 @@ function rosslerDerivatives(state: number[], a: number, b: number, c: number): n
 }
 
 function rosslerJacobian(state: number[], a: number, b: number, c: number): number[][] {
-  const [x, y, z] = state;
+  const [x, _y, z] = state;
   return [
     [0, -1, -1],
     [1, a, 0],
@@ -443,7 +443,7 @@ function computeContinuousLyapunov(
     }
   };
 
-  const getDerivatives = (s: number[], time: number): number[] => {
+  const getDerivatives = (s: number[], _time: number): number[] => {
     switch (system) {
       case 'lorenz':
         return lorenzDerivatives(s, params.sigma || 10, params.rho || 28, params.beta || 8/3);
@@ -455,7 +455,7 @@ function computeContinuousLyapunov(
   };
 
   // Initialize orthonormal tangent vectors
-  let Q: number[][] = [];
+  const Q: number[][] = [];
   for (let i = 0; i < dim; i++) {
     Q.push(new Array(dim).fill(0));
     Q[i][i] = 1;
@@ -522,7 +522,7 @@ function computeContinuousLyapunov(
     t += dt;
   }
 
-  const n = Math.floor((timesteps - transient) / reorthSteps);
+  const _n = Math.floor((timesteps - transient) / reorthSteps);
   const totalTime = (timesteps - transient) * dt;
   const exponents = lyapunovSums.map(sum => sum / totalTime);
 

@@ -224,6 +224,7 @@ function tokenize(text: string): { token: string; start: number; end: number }[]
 function extractPatternEntities(text: string): Entity[] {
   const entities: Entity[] = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const { type, pattern, priority: _priority = 5 } of ENTITY_PATTERNS) {
     const regex = new RegExp(pattern.source, pattern.flags);
     let match;

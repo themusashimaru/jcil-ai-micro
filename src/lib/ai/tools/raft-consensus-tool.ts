@@ -170,6 +170,7 @@ class RaftNode {
   }
 
   // Handle election timeout
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tick(): { action: 'none' | 'start_election' | 'send_heartbeats'; messages?: any[] } {
     if (this.state.state === 'leader') {
       this.ticksSinceHeartbeat++;
@@ -442,6 +443,7 @@ class RaftClusterSimulator {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   simulate(ticks: number, commands: { tick: number; command: any }[] = []): SimulationResult {
     const commandQueue = [...commands];
 
@@ -812,6 +814,7 @@ export async function executeraftconsensus(toolCall: UnifiedToolCall): Promise<U
         } = parameters;
 
         // Schedule commands at different ticks
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const scheduledCommands = commands.map((cmd: any, i: number) => ({
           tick: 500 + i * 100,
           command: cmd

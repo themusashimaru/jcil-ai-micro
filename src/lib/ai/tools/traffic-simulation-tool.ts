@@ -416,7 +416,7 @@ function lwrModel(
 
     for (let i = 0; i < numCells; i++) {
       const iMinus = (i - 1 + numCells) % numCells;
-      const iPlus = (i + 1) % numCells;
+      const _iPlus = (i + 1) % numCells;
 
       // Numerical flux (upwind)
       const fluxIn = flowFromDensity(density[iMinus]);
@@ -516,7 +516,7 @@ interface SignalTiming {
 function optimizeSignalTiming(
   approachVolume: number,      // vehicles/hour
   saturationFlow: number,      // vehicles/hour green
-  cycleLength: number          // seconds
+  _cycleLength: number          // seconds
 ): SignalTiming {
   // Webster's optimal cycle length approximation
   const lostTime = 4;  // seconds per phase

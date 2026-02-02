@@ -267,7 +267,7 @@ function jacobiEigen(A: number[][]): { eigenvalues: number[]; eigenvectors: numb
 
   // Copy A
   const M: number[][] = A.map(row => [...row]);
-  let V = eye(n);
+  const V = eye(n);
 
   for (let iter = 0; iter < maxIter; iter++) {
     // Find largest off-diagonal element

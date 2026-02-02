@@ -155,6 +155,7 @@ function getNextWordProbabilities(
   let totalCount = 0;
 
   if (contextCounts) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_word, count] of contextCounts) {
       totalCount += count;
     }
@@ -374,7 +375,7 @@ function generateText(
   const seenTokens = new Map<string, number>();
 
   for (let i = 0; i < config.maxLength; i++) {
-    let probs = getNextWordProbabilities(model, tokens);
+    const probs = getNextWordProbabilities(model, tokens);
 
     // Apply repetition penalty
     if (config.repetitionPenalty > 1) {
@@ -799,6 +800,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
         const contextStats: Array<{ context: string; uniqueNext: number; totalCount: number }> = [];
         for (const [context, nextWords] of model.counts) {
           let total = 0;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for (const [_word, count] of nextWords) {
             total += count;
           }

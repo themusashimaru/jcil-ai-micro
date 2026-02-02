@@ -277,7 +277,7 @@ function runRIP(topology: NetworkTopology, maxHops: number = 15): RoutingResult 
   }
 
   for (const link of topology.links) {
-    const cost = Math.min(link.cost, 1); // RIP uses hop count, so normalize to 1
+    const _cost = Math.min(link.cost, 1); // RIP uses hop count, so normalize to 1
     adjacency.get(link.from)?.push({ neighbor: link.to, cost: 1 });
     adjacency.get(link.to)?.push({ neighbor: link.from, cost: 1 });
   }

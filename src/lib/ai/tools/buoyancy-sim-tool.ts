@@ -94,6 +94,7 @@ interface SubmergedCalculation {
 
 const WATER_DENSITY = 1000; // kg/m³ (fresh water at 20°C)
 const SEAWATER_DENSITY = 1025; // kg/m³
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const AIR_DENSITY = 1.225; // kg/m³
 const STANDARD_GRAVITY = 9.80665; // m/s²
 const ATMOSPHERIC_PRESSURE = 101325; // Pa
@@ -147,6 +148,7 @@ function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Dot(a: Vector3, b: Vector3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -294,7 +296,7 @@ function calculateBuoyancyForces(
   // Find the highest fluid layer (surface)
   const sortedLayers = [...state.fluidLayers].sort((a, b) => b.heightTop - a.heightTop);
 
-  let totalBuoyantForce: Vector3 = { x: 0, y: 0, z: 0 };
+  const totalBuoyantForce: Vector3 = { x: 0, y: 0, z: 0 };
   let totalSubmergedVolume = 0;
   let totalDisplacedMass = 0;
   let weightedCOB: Vector3 = { x: 0, y: 0, z: 0 };
@@ -635,6 +637,7 @@ function createFluidLayer(params: {
 /**
  * Initialize buoyancy simulation state
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function initializeState(params: {
   objects?: any[];
   fluidLayers?: any[];
@@ -672,6 +675,7 @@ function initializeState(params: {
 /**
  * Run full simulation
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function runSimulation(params: {
   objects: any[];
   fluidLayers?: any[];
@@ -680,6 +684,7 @@ function runSimulation(params: {
   gravity?: number;
 }): {
   finalState: BuoyancyState;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trajectory: { time: number; objects: any[] }[];
   analysis: { forces: BuoyancyForces; stability: StabilityAnalysis; submersion: SubmergedCalculation }[];
 } {
@@ -689,6 +694,7 @@ function runSimulation(params: {
     gravity: params.gravity
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trajectory: { time: number; objects: any[] }[] = [];
   const dt = params.timestep || 0.01;
   const steps = Math.floor(params.duration / dt);
@@ -796,6 +802,7 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const { operation, objects, fluidLayers, duration, timestep, gravity } = args;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

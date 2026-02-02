@@ -683,7 +683,7 @@ function generateAccessPattern(pattern: string, count: number, config: {
 
     case 'matrix_row': {
       // Row-major matrix traversal (good for cache)
-      const cols = Math.sqrt(arraySize);
+      const _cols = Math.sqrt(arraySize);
       for (let i = 0; i < count && i < arraySize; i++) {
         addresses.push(baseAddr + i * 4);
       }

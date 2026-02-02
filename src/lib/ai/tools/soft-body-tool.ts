@@ -135,6 +135,7 @@ function vec3LengthSq(v: Vector3): number {
   return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Normalize(v: Vector3): Vector3 {
   const len = vec3Length(v);
   if (len < 1e-10) return { x: 0, y: 0, z: 0 };
@@ -145,6 +146,7 @@ function vec3Distance(a: Vector3, b: Vector3): number {
   return vec3Length(vec3Sub(a, b));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Lerp(a: Vector3, b: Vector3, t: number): Vector3 {
   return {
     x: a.x + (b.x - a.x) * t,
@@ -920,6 +922,7 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
       restitution: args.config?.restitution || 0.3
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

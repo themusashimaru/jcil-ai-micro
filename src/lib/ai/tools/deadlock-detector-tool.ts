@@ -251,7 +251,7 @@ function detectCycleRAG(edges: RAGEdge[], processes: string[], resources: string
 }
 
 // Build Wait-For Graph from RAG
-function buildWaitForGraph(edges: RAGEdge[], processes: string[], resources: string[]): WaitForGraph {
+function buildWaitForGraph(edges: RAGEdge[], processes: string[], _resources: string[]): WaitForGraph {
   const wfgEdges: { from: string; to: string }[] = [];
 
   // Find which process holds each resource

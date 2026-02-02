@@ -517,7 +517,7 @@ function pbkdf2(
     // U1 = PRF(Password, Salt || INT_32_BE(i))
     const blockNum = [(i >> 24) & 0xff, (i >> 16) & 0xff, (i >> 8) & 0xff, i & 0xff];
     let u = hmac(algorithm, password, [...salt, ...blockNum]);
-    let result = [...u];
+    const result = [...u];
 
     // U2 ... Uc
     for (let j = 1; j < iterations; j++) {

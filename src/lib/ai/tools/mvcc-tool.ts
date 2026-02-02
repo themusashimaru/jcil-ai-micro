@@ -605,6 +605,7 @@ class MVCCEngine {
     }
 
     // Process each key
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_key, version] of this.data) {
       keysProcessed++;
 

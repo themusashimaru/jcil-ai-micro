@@ -435,7 +435,7 @@ function calculateInvestment(
   const downPayment = purchasePrice * downPaymentPercent;
   const closingCosts = purchasePrice * 0.03;
   const initialInvestment = downPayment + closingCosts;
-  const loanAmount = purchasePrice - downPayment;
+  const _loanAmount = purchasePrice - downPayment;
 
   // Project cash flows
   const cashFlows: number[] = [-initialInvestment];

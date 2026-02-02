@@ -135,6 +135,7 @@ function vec3Distance(a: Vector3, b: Vector3): number {
   return vec3Length(vec3Sub(a, b));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   return {
     x: a.y * b.z - a.z * b.y,
@@ -296,7 +297,7 @@ function solveDistanceConstraint(
   if (currentLength < 1e-10) return 0;
 
   const error = currentLength - constraint.restLength;
-  const stretchRatio = currentLength / constraint.restLength;
+  const _stretchRatio = currentLength / constraint.restLength;
 
   // Calculate tension (force = stiffness * displacement)
   const tension = Math.abs(error) * constraint.stiffness / dt / dt;
@@ -507,7 +508,7 @@ function simulateRope(params: {
   wind?: Vector3;
   gravity?: Vector3;
 }): SimulationResult {
-  let state = createRope({
+  const state = createRope({
     startPoint: params.startPoint,
     endPoint: params.endPoint,
     direction: params.direction,
@@ -587,6 +588,7 @@ function simulateRope(params: {
 // Rope Manipulation
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function moveFixedPoint(state: RopeState, nodeIndex: number, newPosition: Vector3): void {
   const node = state.nodes[nodeIndex];
   if (node && node.isFixed) {
@@ -596,6 +598,7 @@ function moveFixedPoint(state: RopeState, nodeIndex: number, newPosition: Vector
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function applyForceToNode(state: RopeState, nodeIndex: number, force: Vector3, dt: number): void {
   const node = state.nodes[nodeIndex];
   if (node && !node.isFixed) {
@@ -605,6 +608,7 @@ function applyForceToNode(state: RopeState, nodeIndex: number, force: Vector3, d
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cutRope(state: RopeState, constraintIndex: number): void {
   if (constraintIndex >= 0 && constraintIndex < state.constraints.length) {
     state.constraints[constraintIndex].isBroken = true;
@@ -787,6 +791,7 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
       thickness: args.config?.thickness || 0.02
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

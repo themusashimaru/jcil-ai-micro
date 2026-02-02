@@ -262,7 +262,7 @@ async function prepare(transactionId: string, options?: {
       }
 
       participant.lastHeartbeat = Date.now();
-    } catch (e) {
+    } catch (_e) {
       participant.vote = 'timeout';
       timedOut.push(pId);
       canCommit = false;

@@ -269,6 +269,7 @@ function variableElimination(
 
   const factors: Factor[] = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const [_nodeName, node] of network.nodes) {
     const factor: Factor = {
       variables: [node.name, ...node.parents],
@@ -742,7 +743,7 @@ function learnCPT(
 ): number[][] {
   const numStates = node.states.length;
   const numParentConfigs = node.parents.length === 0 ? 1 :
-    node.parents.reduce((acc, p) => acc * 2, 1); // Assuming binary
+    node.parents.reduce((acc, _p) => acc * 2, 1); // Assuming binary
 
   // Initialize counts with Laplace smoothing
   const counts: number[][] = [];
@@ -812,6 +813,7 @@ function analyzeNetworkStructure(network: BayesianNetwork): Record<string, unkno
   const nodes = Array.from(network.nodes.keys());
   const rootNodes = nodes.filter(n => network.nodes.get(n)!.parents.length === 0);
   const leafNodes = nodes.filter(n => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_nodeName, node] of network.nodes) {
       if (node.parents.includes(n)) return false;
     }

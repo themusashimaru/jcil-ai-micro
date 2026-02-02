@@ -512,7 +512,7 @@ function getDistribution(ringId: string, options?: {
     throw new Error(`Ring ${ringId} not found`);
   }
 
-  const hash = getHashFunction(ring.hashFunction);
+  const _hash = getHashFunction(ring.hashFunction);
   const assignments = keyAssignments.get(ringId)!;
 
   // Generate sample keys if requested
@@ -620,7 +620,7 @@ function addVirtualNodes(ringId: string, nodeId: string, count: number): {
   };
 }
 
-function rebalance(ringId: string, targetDistribution?: Map<string, number>): RebalanceResult {
+function rebalance(ringId: string, _targetDistribution?: Map<string, number>): RebalanceResult {
   const ring = hashRings.get(ringId);
   if (!ring) {
     throw new Error(`Ring ${ringId} not found`);

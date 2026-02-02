@@ -285,7 +285,7 @@ function stream(grid: LatticeGrid): void {
 
           // Source position
           let xSrc = x - cx;
-          let ySrc = y - cy;
+          const ySrc = y - cy;
 
           // Periodic boundary in x
           if (xSrc < 0) xSrc = nx - 1;

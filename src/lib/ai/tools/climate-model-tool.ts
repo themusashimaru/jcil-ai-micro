@@ -570,7 +570,7 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
 
         // Create forcing function from scenario
         const forcingFunction = (t: number): number => {
-          const year = base_year + t;
+          const _year = base_year + t;
           const progress = Math.min(1, t / years);
           const targetForcing = scenarioData.forcing_2100;
           return co2Forcing(co2_ppm) + progress * (targetForcing - co2Forcing(co2_ppm));

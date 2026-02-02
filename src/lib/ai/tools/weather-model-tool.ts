@@ -105,7 +105,7 @@ function saturationVaporPressure(tempK: number): number {
  */
 function dewPoint(tempK: number, relativeHumidity: number): number {
   const e = relativeHumidity * saturationVaporPressure(tempK);
-  const tempC = tempK - 273.15;
+  const _tempC = tempK - 273.15;
   const gamma = Math.log(e / 611.2);
   return 273.15 + (243.5 * gamma) / (17.67 - gamma);
 }
@@ -246,7 +246,7 @@ function calculateStabilityIndices(state: AtmosphericState, location: Location):
 
   // Estimate temperatures at different levels
   const temp850 = surfaceTemp - CONSTANTS.gamma_d * (1500 - location.elevation);
-  const temp700 = surfaceTemp - CONSTANTS.gamma_d * (3000 - location.elevation);
+  const _temp700 = surfaceTemp - CONSTANTS.gamma_d * (3000 - location.elevation);
   const temp500 = surfaceTemp - CONSTANTS.gamma_d * (5500 - location.elevation);
 
   const dewPoint850 = surfaceDewPoint - 2;

@@ -159,6 +159,7 @@ function runSimulation(
   }
 
   // Initialize stocks
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const [_name, stock] of model.stocks) {
     stock.value = stock.initialValue;
   }

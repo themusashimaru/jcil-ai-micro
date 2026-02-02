@@ -271,7 +271,7 @@ function estimatePropensityScore(
   }
 
   // Initialize coefficients
-  let beta = Array(X[0].length).fill(0);
+  const beta = Array(X[0].length).fill(0);
 
   // Sigmoid function
   const sigmoid = (z: number): number => 1 / (1 + Math.exp(-Math.max(-500, Math.min(500, z))));

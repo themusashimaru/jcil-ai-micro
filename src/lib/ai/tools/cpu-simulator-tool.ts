@@ -53,6 +53,7 @@ interface PipelineStage {
   stall: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface PerformanceStats {
   totalCycles: number;
   instructionCount: number;
@@ -394,6 +395,7 @@ function decodeMIPS(word: number): Instruction {
 
 function disassembleMIPS(instr: Instruction): string {
   const reg = (r: number) => MIPS_REGISTER_NAMES[r];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { opcode, rd, rs1, rs2, imm, funct3, funct7, raw: _raw } = instr;
 
   if (opcode === 'R-type') {
@@ -516,7 +518,7 @@ function assembleRISCV(assembly: string): number[] {
       case 'jal':
         if (parts.length === 2) {
           // jal label (rd=ra)
-          let target = labels[parts[1]] !== undefined ? labels[parts[1]] - addr : parseInt(parts[1]);
+          const target = labels[parts[1]] !== undefined ? labels[parts[1]] - addr : parseInt(parts[1]);
           word = 0x6F | (1 << 7) |
             (((target >> 12) & 0xFF) << 12) |
             (((target >> 11) & 1) << 20) |

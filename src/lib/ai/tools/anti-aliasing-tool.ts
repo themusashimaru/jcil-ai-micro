@@ -37,6 +37,7 @@ interface EdgeInfo {
   strength: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface AAParams {
   threshold?: number;
   searchSteps?: number;
@@ -120,7 +121,7 @@ function detectEdges(image: Image, threshold: number = 0.1): EdgeInfo[][] {
       const se = getPixel(image, x + 1, y + 1);
       const sw = getPixel(image, x - 1, y + 1);
 
-      const lC = luminance(c.r, c.g, c.b) / 255;
+      const _lC = luminance(c.r, c.g, c.b) / 255;
       const lN = luminance(n.r, n.g, n.b) / 255;
       const lS = luminance(s.r, s.g, s.b) / 255;
       const lE = luminance(e.r, e.g, e.b) / 255;
@@ -978,9 +979,9 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
         const msaa = new MSAAFilter(4);
         const smaa = new SMAAFilter();
 
-        const fxaaOut = fxaa.apply(image);
-        const msaaOut = msaa.apply(image);
-        const smaaOut = smaa.apply(image);
+        const _fxaaOut = fxaa.apply(image);
+        const _msaaOut = msaa.apply(image);
+        const _smaaOut = smaa.apply(image);
 
         result = {
           operation: 'compare',

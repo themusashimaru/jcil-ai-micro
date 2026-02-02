@@ -406,7 +406,7 @@ function computeSmithSet(candidates: string[], matrix: number[][]): string[] {
   const beats = (i: number, j: number) => matrix[i][j] > matrix[j][i];
 
   // Start with all candidates
-  let smithSet = new Set(candidates.map((_, i) => i));
+  const smithSet = new Set(candidates.map((_, i) => i));
 
   // Iteratively remove dominated candidates
   let changed = true;

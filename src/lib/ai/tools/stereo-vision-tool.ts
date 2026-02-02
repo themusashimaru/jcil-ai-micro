@@ -69,7 +69,7 @@ class StereoRectification {
     // Simplified rectification for nearly parallel cameras
     // H1 and H2 are identity-like transformations with small corrections
 
-    const { rotation, translation } = calibration;
+    const { rotation: _rotation, translation } = calibration;
 
     // Compute new rotation matrix that aligns with baseline
     const baselineDir = this.normalize(translation);
@@ -80,11 +80,11 @@ class StereoRectification {
     const e3 = this.cross(e1, e2);
 
     // Rectification rotation
-    const R_rect = [e1, e2, e3];
+    const _R_rect = [e1, e2, e3];
 
     // Compute homographies (simplified - assumes images already mostly aligned)
-    const K1 = this.intrinsicsToMatrix(calibration.leftIntrinsics);
-    const K2 = this.intrinsicsToMatrix(calibration.rightIntrinsics);
+    const _K1 = this.intrinsicsToMatrix(calibration.leftIntrinsics);
+    const _K2 = this.intrinsicsToMatrix(calibration.rightIntrinsics);
 
     // H1 = K1 * R_rect * inv(K1)
     // H2 = K2 * R_rect * R' * inv(K2)

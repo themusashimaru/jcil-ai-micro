@@ -551,6 +551,7 @@ class AccumulationBuffer {
 // TILE-BASED OPTIMIZATION
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class TileBasedBlur {
   /**
    * Compute maximum velocity per tile for optimization

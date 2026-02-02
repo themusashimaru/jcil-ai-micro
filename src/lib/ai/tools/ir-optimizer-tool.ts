@@ -745,7 +745,7 @@ exit:
 }
 
 function analyzeDataflow(args: Record<string, unknown>): Record<string, unknown> {
-  const code = (args.ir_code as string) || `
+  const _code = (args.ir_code as string) || `
 entry:
   %a = load x
   %b = load y

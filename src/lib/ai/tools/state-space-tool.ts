@@ -380,7 +380,7 @@ interface StateSpaceSystem {
 // Build controllability matrix [B, AB, A²B, ..., A^(n-1)B]
 function controllabilityMatrix(sys: StateSpaceSystem): Matrix {
   const { A, B, n, m } = sys;
-  let cols: Matrix[] = [];
+  const cols: Matrix[] = [];
 
   // Start with B
   let Ai_B = B;
@@ -405,7 +405,7 @@ function controllabilityMatrix(sys: StateSpaceSystem): Matrix {
 // Build observability matrix [C; CA; CA²; ...; CA^(n-1)]
 function observabilityMatrix(sys: StateSpaceSystem): Matrix {
   const { A, C, n, p } = sys;
-  let rows: Matrix[] = [];
+  const rows: Matrix[] = [];
 
   // Start with C
   let C_Ai = C;

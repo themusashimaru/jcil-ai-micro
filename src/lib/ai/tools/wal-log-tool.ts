@@ -354,7 +354,7 @@ class WriteAheadLog {
   } {
     // Start from last checkpoint or beginning
     const lastCheckpoint = this.checkpoints[this.checkpoints.length - 1];
-    let scanStartLsn = startLsn ?? lastCheckpoint?.lsn ?? 1;
+    const scanStartLsn = startLsn ?? lastCheckpoint?.lsn ?? 1;
 
     // Initialize from checkpoint
     const txnTable = new Map<string, TransactionEntry>();

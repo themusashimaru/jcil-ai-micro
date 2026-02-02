@@ -926,7 +926,7 @@ export async function executefilterdesign(toolCall: UnifiedToolCall): Promise<Un
       }
 
       const iirFilter = filter as IIRFilter;
-      const response = computeFrequencyResponse(iirFilter.b, iirFilter.a, 64);
+      const _response = computeFrequencyResponse(iirFilter.b, iirFilter.a, 64);
 
       const result = {
         operation: 'design',

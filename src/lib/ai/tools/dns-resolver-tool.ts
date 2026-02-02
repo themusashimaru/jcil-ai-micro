@@ -254,7 +254,7 @@ function simulateCache(args: Record<string, unknown>): Record<string, unknown> {
   const now = Date.now();
 
   // Generate simulated cache from zones
-  for (const [zone, records] of Object.entries(DNS_ZONES)) {
+  for (const [_zone, records] of Object.entries(DNS_ZONES)) {
     for (const record of records) {
       if (Math.random() > 0.3) { // 70% chance of being cached
         const timeInCache = Math.floor(Math.random() * record.ttl * 1000);

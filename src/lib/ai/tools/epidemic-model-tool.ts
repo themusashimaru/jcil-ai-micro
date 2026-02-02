@@ -712,7 +712,7 @@ export async function executeepidemicmodel(toolCall: UnifiedToolCall): Promise<U
         ];
 
         const comparisons = scenarios.map(scenario => {
-          const interventionFn = (t: number, _state: CompartmentState) => ({
+          const interventionFn = (_t: number, _state: CompartmentState) => ({
             beta_eff: beta * (1 - scenario.contact_reduction),
             vaccination: scenario.vaccination_rate * vaccine_efficacy
           });

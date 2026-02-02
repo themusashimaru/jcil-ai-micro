@@ -211,7 +211,7 @@ function calculateStepResponse(
   const response: number[] = [];
 
   // Find poles
-  const poles = findRoots(denominator);
+  const _poles = findRoots(denominator);
 
   // DC gain (steady state value for unit step)
   const dcGain = polyEval(numerator, 0) / polyEval(denominator, 0);

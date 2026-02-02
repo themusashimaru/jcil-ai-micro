@@ -37,6 +37,7 @@ function vecNorm(v: Vector): number {
   return Math.sqrt(vecDot(v, v));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function matVecMul(A: Matrix, x: Vector): Vector {
   return A.map(row => vecDot(row, x));
 }

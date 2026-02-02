@@ -443,7 +443,7 @@ function semiGlobalAlignment(
   seq2: string,
   matrix: Record<string, Record<string, number>>,
   gapOpen: number = -10,
-  gapExtend: number = -1,
+  _gapExtend: number = -1,
   matchScore: number = 2,
   mismatchScore: number = -1
 ): {

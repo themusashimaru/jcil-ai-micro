@@ -264,7 +264,7 @@ function applyFilter(
   const sinw0 = Math.sin(w0);
   const alpha = sinw0 / (2 * 0.707); // Q = 0.707 for Butterworth
 
-  let b0: number, b1: number, b2: number, a0: number, a1: number, a2: number;
+  let b0: number, b1: number, b2: number, a1: number, a2: number;
 
   if (type === 'lowpass') {
     b0 = (1 - cosw0) / 2;
@@ -275,7 +275,7 @@ function applyFilter(
     b1 = -(1 + cosw0);
     b2 = (1 + cosw0) / 2;
   }
-  a0 = 1 + alpha;
+  const a0 = 1 + alpha;
   a1 = -2 * cosw0;
   a2 = 1 - alpha;
 

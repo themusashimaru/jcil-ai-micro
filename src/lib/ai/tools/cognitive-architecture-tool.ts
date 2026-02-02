@@ -335,10 +335,12 @@ function selectSOAROperator(state: SOARState): SOAROperator | null {
 }
 
 function simulateSOAR(state: SOARState, maxSteps: number): {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trace: Array<{ step: number; operator: string | null; impasse: string | null; wm: Record<string, any> }>;
   finalState: SOARState;
   learnedChunks: string[];
 } {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trace: Array<{ step: number; operator: string | null; impasse: string | null; wm: Record<string, any> }> = [];
 
   for (let step = 0; step < maxSteps; step++) {
@@ -428,6 +430,7 @@ function competitionForAccess(workspace: GlobalWorkspace): GWTModule | null {
   let winner: GWTModule | null = null;
   let maxPriority = workspace.competitionThreshold;
 
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   for (const module of workspace.modules.values()) {
     const priority = module.activation * module.broadcastPriority;
     if (priority > maxPriority) {
@@ -461,16 +464,20 @@ function broadcast(workspace: GlobalWorkspace, module: GWTModule): void {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string; content: any; activation: number }>, steps: number): {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   broadcasts: Array<{ step: number; winner: string; content: any; conscious: boolean }>;
   finalWorkspace: GlobalWorkspace;
   consciousEvents: number;
 } {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const broadcasts: Array<{ step: number; winner: string; content: any; conscious: boolean }> = [];
 
   for (let step = 0; step < steps; step++) {
     // Apply stimuli
     for (const stimulus of stimuli) {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
       const module = workspace.modules.get(stimulus.module);
       if (module) {
         module.activation += stimulus.activation;
@@ -493,6 +500,7 @@ function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string
     }
 
     // Decay activations
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     for (const module of workspace.modules.values()) {
       module.activation *= 0.9;
       module.broadcastPriority *= 0.95;
@@ -1250,7 +1258,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let analysis: any = {
+        const analysis: any = {
           architecture: archInfo.name,
           fullName: archInfo.name
         };

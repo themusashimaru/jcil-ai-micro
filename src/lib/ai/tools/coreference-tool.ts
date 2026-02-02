@@ -330,8 +330,8 @@ function detectMentions(text: string, sentences: string[]): Mention[] {
         const nounInfo = COMMON_NOUNS[wordLower];
         if (nounInfo) {
           // Look for noun phrase (det + adj* + noun)
-          let nounPhrase = tokens[i - 1].word + ' ' + token.word;
-          let startToken = i - 1;
+          const nounPhrase = tokens[i - 1].word + ' ' + token.word;
+          const startToken = i - 1;
 
           mentions.push({
             id: mentionId++,

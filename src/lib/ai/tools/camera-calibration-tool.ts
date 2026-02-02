@@ -334,7 +334,7 @@ class CameraCalibrator {
   private estimateFocalLength(homographies: Matrix[]): { fx: number; fy: number } {
     // Zhang's closed-form solution for focal length
     let sumFx = 0;
-    let sumFy = 0;
+    const _sumFy = 0;
     let count = 0;
 
     for (const H of homographies) {
@@ -436,7 +436,7 @@ class CameraCalibrator {
   ): { intrinsics: CameraIntrinsics; distortion: DistortionCoefficients } {
     // Simplified refinement - estimate distortion from reprojection residuals
     let totalK1 = 0;
-    let totalK2 = 0;
+    const _totalK2 = 0;
     let count = 0;
 
     for (let i = 0; i < this.imagePoints.length; i++) {

@@ -443,7 +443,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
 
     case 'decreasing': {
       const halvingPeriod = (args.halving_period as number) || 4;
-      let initialReward = (args.initial_reward as number) || 50_000_000;
+      const initialReward = (args.initial_reward as number) || 50_000_000;
 
       for (let year = 0; year <= years; year++) {
         const halvings = Math.floor(year / halvingPeriod);

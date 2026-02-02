@@ -23,6 +23,7 @@ interface Production {
   index: number;      // Production number
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface FirstFollowSets {
   first: Map<string, Set<string>>;
   follow: Map<string, Set<string>>;
@@ -85,7 +86,7 @@ function parseGrammar(grammarText: string): Grammar {
   const allSymbols = new Set<string>();
   let startSymbol = '';
 
-  lines.forEach((line, idx) => {
+  lines.forEach((line, _idx) => {
     const match = line.match(/^\s*(\w+)\s*->\s*(.+)\s*$/);
     if (!match) return;
 

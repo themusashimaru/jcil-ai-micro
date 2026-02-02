@@ -228,7 +228,7 @@ function jacobianIK(
   tolerance: number
 ): { success: boolean; angles: number[]; iterations: number; error: number; analysis: object } {
   const n = linkLengths.length;
-  let angles = [...initialAngles];
+  const angles = [...initialAngles];
 
   // Ensure we have enough initial angles
   while (angles.length < n) {
@@ -237,7 +237,7 @@ function jacobianIK(
 
   // Forward kinematics for current position
   function forwardKinematics(theta: number[]): Vector3 {
-    let pos: Vector3 = { x: 0, y: 0, z: 0 };
+    const pos: Vector3 = { x: 0, y: 0, z: 0 };
     let cumAngle = 0;
 
     for (let i = 0; i < n; i++) {

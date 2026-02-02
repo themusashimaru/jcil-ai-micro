@@ -132,7 +132,7 @@ class MeanShiftTracker {
    * Update tracker on new frame
    */
   update(image: GrayscaleImage): BoundingBox {
-    let window = { ...this.currentWindow };
+    const window = { ...this.currentWindow };
 
     for (let iter = 0; iter < this.maxIterations; iter++) {
       // Compute weights based on histogram back-projection
@@ -242,7 +242,7 @@ class CAMShiftTracker extends MeanShiftTracker {
    */
   updateAdaptive(image: GrayscaleImage): BoundingBox {
     // First, run mean shift
-    let window = super.update(image);
+    const window = super.update(image);
 
     // Compute moments to adapt window size
     const moments = this.computeMoments(image, window);

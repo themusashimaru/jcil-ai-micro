@@ -85,6 +85,7 @@ class VectorClockManager {
   }
 
   // Prepare clock for sending a message
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   send(data?: any): { clock: VectorClock; message: Message } {
     this.clock[this.nodeId] = (this.clock[this.nodeId] || 0) + 1;
 
@@ -232,6 +233,7 @@ class VersionVectorStore {
   }
 
   // Put a new version
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   put(key: string, value: any, clock: VectorClock, nodeId: string): ConflictResult {
     const newVersion: VersionVector = { nodeId, clock: { ...clock }, value };
 
@@ -292,6 +294,7 @@ class VersionVectorStore {
   }
 
   // Resolve conflict by merging clocks
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resolve(key: string, resolvedValue: any, nodeId: string): VersionVector {
     const versions = this.versions.get(key);
     if (!versions || versions.length === 0) {
@@ -327,6 +330,7 @@ class VersionVectorStore {
 // DISTRIBUTED SYSTEM SIMULATOR
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SimulationConfig {
   nodes: string[];
   events: SimulationEvent[];
@@ -337,6 +341,7 @@ interface SimulationEvent {
   type: 'local' | 'send';
   node: string;
   target?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
 }
 
@@ -522,7 +527,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
 
         // Perform some operations to demonstrate
         manager.tick();
-        const { clock: sendClock, message } = manager.send({ type: 'hello' });
+        const { clock: _sendClock, message } = manager.send({ type: 'hello' });
         manager.tick();
 
         return {

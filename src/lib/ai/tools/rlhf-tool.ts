@@ -300,7 +300,7 @@ function computeGAE(
   const returns = Array(T).fill(0);
 
   let lastGaeLam = 0;
-  let lastValue = 0;
+  const lastValue = 0;
 
   for (let t = T - 1; t >= 0; t--) {
     const nextNonTerminal = dones[t] ? 0 : 1;
@@ -320,7 +320,7 @@ function ppoUpdate(
   epochs: number
 ): { policyLoss: number; valueLoss: number; entropy: number; kl: number } {
   const { states, actions, rewards, logProbs: oldLogProbs, values, dones } = trajectory;
-  const { clipEpsilon, valueCoef, entropyCoef, gamma, lambda, learningRate } = policy.config;
+  const { clipEpsilon, valueCoef: _valueCoef, entropyCoef: _entropyCoef, gamma, lambda, learningRate } = policy.config;
 
   // Compute advantages
   const { advantages, returns } = computeGAE(rewards, values, dones, gamma, lambda);

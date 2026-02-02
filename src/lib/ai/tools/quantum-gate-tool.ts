@@ -788,7 +788,7 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
 
       case 'decompose': {
         const gateName = args.gate || 'X';
-        const showMatrix = args.show_matrix !== false;
+        const _showMatrix = args.show_matrix !== false;
 
         const gateDef = GATES[gateName.toUpperCase()];
         if (!gateDef && !['RX', 'RY', 'RZ', 'P'].includes(gateName.toUpperCase())) {

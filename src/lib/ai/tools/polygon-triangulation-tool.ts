@@ -128,7 +128,9 @@ function isDiagonalValid(vertices: Point[], i: number, j: number): boolean {
   const n = vertices.length;
 
   // Check if diagonal lies inside polygon
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _prev = (i - 1 + n) % n;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _next = (i + 1) % n;
 
   // Check if j is in the cone formed by edges at i

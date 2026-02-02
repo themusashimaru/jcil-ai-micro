@@ -79,6 +79,7 @@ function preprocess(
     minLength?: number;
   } = {}
 ): string[] {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     lowercase: _lowercase = true,
     removeStopwords = true,
@@ -110,6 +111,7 @@ function preprocess(
 // TF-IDF VECTORIZER
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface TFIDFModel {
   vocabulary: Map<string, number>;
   idf: Map<string, number>;
@@ -522,7 +524,7 @@ export async function executetextclassification(toolCall: UnifiedToolCall): Prom
       texts,
       labels,
       model_name,
-      classifier = 'naive_bayes',
+      classifier: _classifier = 'naive_bayes',
       smoothing = 1.0,
       max_features = 5000,
       remove_stopwords = true,

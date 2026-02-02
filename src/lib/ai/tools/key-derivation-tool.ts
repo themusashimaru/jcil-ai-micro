@@ -355,6 +355,7 @@ function argon2id(
   const segmentLength = Math.floor(numBlocks / (parallelism * 4));
 
   // Initialize memory with simplified Blake2b-like mixing
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function blake2bCompress(state: Uint8Array, block: Uint8Array): void {
     // Simplified mixing (not full Blake2b for brevity)
     for (let i = 0; i < 64; i++) {

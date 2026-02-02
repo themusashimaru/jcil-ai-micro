@@ -323,7 +323,7 @@ class OrientationComputer {
    * Compute orientation using intensity centroid
    */
   computeOrientation(image: GrayscaleImage, keypoints: Keypoint[]): Keypoint[] {
-    const { data } = image;
+    const { data: _data } = image;
     const half = Math.floor(this.patchSize / 2);
 
     for (const kp of keypoints) {

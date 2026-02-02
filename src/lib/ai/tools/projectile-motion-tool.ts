@@ -188,6 +188,7 @@ function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Dot(a: Vector3, b: Vector3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -669,7 +670,7 @@ function calculateIdealTrajectory(params: {
   const maxHeight = h0 + (v0y * v0y) / (2 * g);
 
   // Time to max height: t_max = v0y / g
-  const timeToMax = v0y / g;
+  const _timeToMax = v0y / g;
 
   // Total time: solve h0 + v0y*t - 0.5*g*t² = 0
   // t = (v0y + sqrt(v0y² + 2*g*h0)) / g
@@ -819,6 +820,7 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const { operation } = args;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

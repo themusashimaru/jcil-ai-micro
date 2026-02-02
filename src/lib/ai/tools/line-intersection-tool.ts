@@ -525,7 +525,7 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
         }
 
         // Check all pairs
-        const allIntersections = findAllIntersectionsSimple(segments);
+        const _allIntersections = findAllIntersectionsSimple(segments);
         const pairs: { s1: string; s2: string; intersects: boolean; point?: Point }[] = [];
 
         for (let i = 0; i < segments.length; i++) {
