@@ -2573,6 +2573,22 @@ async function initializeTools() {
   const { telecom5gTool, executetelecom5g, istelecom5gAvailable } = await import('./telecom-5g-tool');
   const { realestateTool, executerealestate, isrealestateAvailable } = await import('./real-estate-tool');
   const { sportsanalyticsTool, executesportsanalytics, issportsanalyticsAvailable } = await import('./sports-analytics-tool');
+  // MEGA BATCH #7: Music, Linguistics, Physics, Anthropology, Industry
+  const { counterpointTool, executecounterpoint, iscounterpointAvailable } = await import('./counterpoint-tool');
+  const { typographyTool, executetypography, istypographyAvailable } = await import('./typography-tool');
+  const { phoneticsTool, executephonetics, isphoneticsAvailable } = await import('./phonetics-tool');
+  const { morphologyTool, executemorphology, ismorphologyAvailable } = await import('./morphology-tool');
+  const { nuclearreactorTool, executenuclearreactor, isnuclearreactorAvailable } = await import('./nuclear-reactor-tool');
+  const { radioactivedecayTool, executeradioactivedecay, isradioactivedecayAvailable } = await import('./radioactive-decay-tool');
+  const { gravitationalwaveTool, executegravitationalwave, isgravitationalwaveAvailable } = await import('./gravitational-wave-tool');
+  const { blackholeTool, executeblackhole, isblackholeAvailable } = await import('./black-hole-tool');
+  const { stringtheoryTool, executestringtheory, isstringtheoryAvailable } = await import('./string-theory-tool');
+  const { kinshipsystemTool, executekinshipsystem, iskinshipsystemAvailable } = await import('./kinship-system-tool');
+  const { militarystrategyTool, executemilitarystrategy, ismilitarystrategyAvailable } = await import('./military-strategy-tool');
+  const { fashionanalysisTool, executefashionanalysis, isfashionanalysisAvailable } = await import('./fashion-analysis-tool');
+  const { buildingdesignTool, executebuildingdesign, isbuildingdesignAvailable } = await import('./building-design-tool');
+  const { urbanplanningTool, executeurbanplanning, isurbanplanningAvailable } = await import('./urban-planning-tool');
+  const { carbonfootprintTool, executecarbonfootprint, iscarbonfootprintAvailable } = await import('./carbon-footprint-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -3885,7 +3901,23 @@ async function initializeTools() {
     { tool: economicssimulatorTool, executor: executeeconomicssimulator, checkAvailability: iseconomicssimulatorAvailable },
     { tool: telecom5gTool, executor: executetelecom5g, checkAvailability: istelecom5gAvailable },
     { tool: realestateTool, executor: executerealestate, checkAvailability: isrealestateAvailable },
-    { tool: sportsanalyticsTool, executor: executesportsanalytics, checkAvailability: issportsanalyticsAvailable }
+    { tool: sportsanalyticsTool, executor: executesportsanalytics, checkAvailability: issportsanalyticsAvailable },
+    // MEGA BATCH #7: Music, Linguistics, Physics, Anthropology, Industry
+    { tool: counterpointTool, executor: executecounterpoint, checkAvailability: iscounterpointAvailable },
+    { tool: typographyTool, executor: executetypography, checkAvailability: istypographyAvailable },
+    { tool: phoneticsTool, executor: executephonetics, checkAvailability: isphoneticsAvailable },
+    { tool: morphologyTool, executor: executemorphology, checkAvailability: ismorphologyAvailable },
+    { tool: nuclearreactorTool, executor: executenuclearreactor, checkAvailability: isnuclearreactorAvailable },
+    { tool: radioactivedecayTool, executor: executeradioactivedecay, checkAvailability: isradioactivedecayAvailable },
+    { tool: gravitationalwaveTool, executor: executegravitationalwave, checkAvailability: isgravitationalwaveAvailable },
+    { tool: blackholeTool, executor: executeblackhole, checkAvailability: isblackholeAvailable },
+    { tool: stringtheoryTool, executor: executestringtheory, checkAvailability: isstringtheoryAvailable },
+    { tool: kinshipsystemTool, executor: executekinshipsystem, checkAvailability: iskinshipsystemAvailable },
+    { tool: militarystrategyTool, executor: executemilitarystrategy, checkAvailability: ismilitarystrategyAvailable },
+    { tool: fashionanalysisTool, executor: executefashionanalysis, checkAvailability: isfashionanalysisAvailable },
+    { tool: buildingdesignTool, executor: executebuildingdesign, checkAvailability: isbuildingdesignAvailable },
+    { tool: urbanplanningTool, executor: executeurbanplanning, checkAvailability: isurbanplanningAvailable },
+    { tool: carbonfootprintTool, executor: executecarbonfootprint, checkAvailability: iscarbonfootprintAvailable }
   );
 
   toolsInitialized = true;
