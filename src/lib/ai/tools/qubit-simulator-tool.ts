@@ -145,6 +145,7 @@ function getProbabilities(state: QuantumState): number[] {
 type Gate = Complex[][];
 
 // Pauli matrices
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const IDENTITY: Gate = [
   [complex(1), complex(0)],
   [complex(0), complex(1)]
@@ -322,6 +323,7 @@ function measureAll(state: QuantumState): { outcome: number; probability: number
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function measureQubit(state: QuantumState, qubit: number): { outcome: number; probability: number; newState: QuantumState } {
   const dim = 1 << state.numQubits;
 
@@ -786,7 +788,7 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
             outcome = result.outcome;
           } else {
             // Measure single qubit
-            const result = measureQubit >= 0 && measureQubit < numQubits
+            const _result = measureQubit >= 0 && measureQubit < numQubits
               ? measureQubit
               : 0;
             outcome = measureAll(state).outcome;
