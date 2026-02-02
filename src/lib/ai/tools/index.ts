@@ -2589,6 +2589,22 @@ async function initializeTools() {
   const { buildingdesignTool, executebuildingdesign, isbuildingdesignAvailable } = await import('./building-design-tool');
   const { urbanplanningTool, executeurbanplanning, isurbanplanningAvailable } = await import('./urban-planning-tool');
   const { carbonfootprintTool, executecarbonfootprint, iscarbonfootprintAvailable } = await import('./carbon-footprint-tool');
+  // MEGA BATCH #8: Meta-Cognition, Cutting-Edge AI/ML, Security, Developer Tools
+  const { uncertaintyquantifierTool, executeuncertaintyquantifier, isuncertaintyquantifierAvailable } = await import('./uncertainty-quantifier-tool');
+  const { causalinferenceTool, executecausalinference, iscausalinferenceAvailable } = await import('./causal-inference-tool');
+  const { analogicalreasoningTool, executeanalogicalreasoning, isanalogicalreasoningAvailable } = await import('./analogical-reasoning-tool');
+  const { problemdecomposerTool, executeproblemdecomposer, isproblemdecomposerAvailable } = await import('./problem-decomposer-tool');
+  const { transformerarchitectureTool, executetransformerarchitecture, istransformerarchitectureAvailable } = await import('./transformer-architecture-tool');
+  const { diffusionmodelTool, executediffusionmodel, isdiffusionmodelAvailable } = await import('./diffusion-model-tool');
+  const { neuromorphiccomputingTool, executeneuromorphiccomputing, isneuromorphiccomputingAvailable } = await import('./neuromorphic-computing-tool');
+  const { rlhfTool, executerlhf, isrlhfAvailable } = await import('./rlhf-tool');
+  const { cognitivearchitectureTool, executecognitivearchitecture, iscognitivearchitectureAvailable } = await import('./cognitive-architecture-tool');
+  const { worldmodelTool, executeworldmodel, isworldmodelAvailable } = await import('./world-model-tool');
+  const { adversarialattackTool, executeadversarialattack, isadversarialattackAvailable } = await import('./adversarial-attack-tool');
+  const { promptinjectiondefenseTool, executepromptinjectiondefense, ispromptinjectiondefenseAvailable } = await import('./prompt-injection-defense-tool');
+  const { bottleneckprofilerTool, executebottleneckprofiler, isbottleneckprofilerAvailable } = await import('./bottleneck-profiler-tool');
+  const { schemaevolutionTool, executeschemaevolution, isschemaevolutionAvailable } = await import('./schema-evolution-tool');
+  const { apiversioningTool, executeapiversioning, isapiversioningAvailable } = await import('./api-versioning-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -3917,7 +3933,23 @@ async function initializeTools() {
     { tool: fashionanalysisTool, executor: executefashionanalysis, checkAvailability: isfashionanalysisAvailable },
     { tool: buildingdesignTool, executor: executebuildingdesign, checkAvailability: isbuildingdesignAvailable },
     { tool: urbanplanningTool, executor: executeurbanplanning, checkAvailability: isurbanplanningAvailable },
-    { tool: carbonfootprintTool, executor: executecarbonfootprint, checkAvailability: iscarbonfootprintAvailable }
+    { tool: carbonfootprintTool, executor: executecarbonfootprint, checkAvailability: iscarbonfootprintAvailable },
+    // MEGA BATCH #8: Meta-Cognition, Cutting-Edge AI/ML, Security, Developer Tools
+    { tool: uncertaintyquantifierTool, executor: executeuncertaintyquantifier, checkAvailability: isuncertaintyquantifierAvailable },
+    { tool: causalinferenceTool, executor: executecausalinference, checkAvailability: iscausalinferenceAvailable },
+    { tool: analogicalreasoningTool, executor: executeanalogicalreasoning, checkAvailability: isanalogicalreasoningAvailable },
+    { tool: problemdecomposerTool, executor: executeproblemdecomposer, checkAvailability: isproblemdecomposerAvailable },
+    { tool: transformerarchitectureTool, executor: executetransformerarchitecture, checkAvailability: istransformerarchitectureAvailable },
+    { tool: diffusionmodelTool, executor: executediffusionmodel, checkAvailability: isdiffusionmodelAvailable },
+    { tool: neuromorphiccomputingTool, executor: executeneuromorphiccomputing, checkAvailability: isneuromorphiccomputingAvailable },
+    { tool: rlhfTool, executor: executerlhf, checkAvailability: isrlhfAvailable },
+    { tool: cognitivearchitectureTool, executor: executecognitivearchitecture, checkAvailability: iscognitivearchitectureAvailable },
+    { tool: worldmodelTool, executor: executeworldmodel, checkAvailability: isworldmodelAvailable },
+    { tool: adversarialattackTool, executor: executeadversarialattack, checkAvailability: isadversarialattackAvailable },
+    { tool: promptinjectiondefenseTool, executor: executepromptinjectiondefense, checkAvailability: ispromptinjectiondefenseAvailable },
+    { tool: bottleneckprofilerTool, executor: executebottleneckprofiler, checkAvailability: isbottleneckprofilerAvailable },
+    { tool: schemaevolutionTool, executor: executeschemaevolution, checkAvailability: isschemaevolutionAvailable },
+    { tool: apiversioningTool, executor: executeapiversioning, checkAvailability: isapiversioningAvailable }
   );
 
   toolsInitialized = true;
