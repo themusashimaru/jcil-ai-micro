@@ -79,9 +79,10 @@ function preprocess(
     minLength?: number;
   } = {}
 ): string[] {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
     lowercase: _lowercase = true,
+    /* eslint-enable @typescript-eslint/no-unused-vars */
     removeStopwords = true,
     stemWords = false,
     minLength = 2
