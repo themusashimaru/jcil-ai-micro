@@ -570,6 +570,7 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
 
         // Create forcing function from scenario
         const forcingFunction = (t: number): number => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const _year = base_year + t;
           const progress = Math.min(1, t / years);
           const targetForcing = scenarioData.forcing_2100;

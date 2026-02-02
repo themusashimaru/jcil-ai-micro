@@ -524,6 +524,7 @@ export async function executetextclassification(toolCall: UnifiedToolCall): Prom
       texts,
       labels,
       model_name,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       classifier: _classifier = 'naive_bayes',
       smoothing = 1.0,
       max_features = 5000,

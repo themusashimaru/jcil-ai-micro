@@ -430,7 +430,7 @@ function competitionForAccess(workspace: GlobalWorkspace): GWTModule | null {
   let winner: GWTModule | null = null;
   let maxPriority = workspace.competitionThreshold;
 
-  // eslint-disable-next-line @typescript-eslint/no-shadow
+  // eslint-disable-next-line @typescript-eslint/no-shadow, @next/next/no-assign-module-variable
   for (const module of workspace.modules.values()) {
     const priority = module.activation * module.broadcastPriority;
     if (priority > maxPriority) {
@@ -477,7 +477,7 @@ function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string
   for (let step = 0; step < steps; step++) {
     // Apply stimuli
     for (const stimulus of stimuli) {
-      // eslint-disable-next-line @typescript-eslint/no-shadow
+      // eslint-disable-next-line @typescript-eslint/no-shadow, @next/next/no-assign-module-variable
       const module = workspace.modules.get(stimulus.module);
       if (module) {
         module.activation += stimulus.activation;
@@ -500,7 +500,7 @@ function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string
     }
 
     // Decay activations
-    // eslint-disable-next-line @typescript-eslint/no-shadow
+    // eslint-disable-next-line @typescript-eslint/no-shadow, @next/next/no-assign-module-variable
     for (const module of workspace.modules.values()) {
       module.activation *= 0.9;
       module.broadcastPriority *= 0.95;

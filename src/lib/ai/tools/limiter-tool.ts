@@ -473,6 +473,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
       threshold = -1.0,
       release = 100,
       lookahead = 5,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _truePeak = true,
       targetLUFS = -14
     } = args;

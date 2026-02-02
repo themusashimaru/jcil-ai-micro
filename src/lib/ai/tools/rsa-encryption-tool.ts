@@ -460,6 +460,7 @@ function oaepUnpad(padded: number[], keyBytes: number, label: number[] = []): nu
 
 // MGF1 mask generation function
 function mgf1(seed: number[], length: number): number[] {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _hLen = 32;
   const mask: number[] = [];
   let counter = 0;

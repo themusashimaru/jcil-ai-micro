@@ -683,6 +683,7 @@ function generateAccessPattern(pattern: string, count: number, config: {
 
     case 'matrix_row': {
       // Row-major matrix traversal (good for cache)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const _cols = Math.sqrt(arraySize);
       for (let i = 0; i < count && i < arraySize; i++) {
         addresses.push(baseAddr + i * 4);

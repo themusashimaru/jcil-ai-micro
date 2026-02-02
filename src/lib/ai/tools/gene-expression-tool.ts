@@ -613,6 +613,7 @@ function gseaAnalysis(
         runningSum += hit;
         if (Math.abs(runningSum) > Math.abs(maxES)) {
           maxES = runningSum;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           _maxPos = i;
           leadingEdge.push(gene.gene);
         }

@@ -262,6 +262,7 @@ async function prepare(transactionId: string, options?: {
       }
 
       participant.lastHeartbeat = Date.now();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_e) {
       participant.vote = 'timeout';
       timedOut.push(pId);

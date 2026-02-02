@@ -527,6 +527,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
 
         // Perform some operations to demonstrate
         manager.tick();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { clock: _sendClock, message } = manager.send({ type: 'hello' });
         manager.tick();
 

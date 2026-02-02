@@ -512,6 +512,7 @@ function getDistribution(ringId: string, options?: {
     throw new Error(`Ring ${ringId} not found`);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _hash = getHashFunction(ring.hashFunction);
   const assignments = keyAssignments.get(ringId)!;
 

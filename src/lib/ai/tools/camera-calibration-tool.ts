@@ -334,6 +334,7 @@ class CameraCalibrator {
   private estimateFocalLength(homographies: Matrix[]): { fx: number; fy: number } {
     // Zhang's closed-form solution for focal length
     let sumFx = 0;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _sumFy = 0;
     let count = 0;
 
@@ -436,6 +437,7 @@ class CameraCalibrator {
   ): { intrinsics: CameraIntrinsics; distortion: DistortionCoefficients } {
     // Simplified refinement - estimate distortion from reprojection residuals
     let totalK1 = 0;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _totalK2 = 0;
     let count = 0;
 

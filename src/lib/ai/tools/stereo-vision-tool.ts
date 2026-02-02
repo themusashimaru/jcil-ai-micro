@@ -69,6 +69,7 @@ class StereoRectification {
     // Simplified rectification for nearly parallel cameras
     // H1 and H2 are identity-like transformations with small corrections
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { rotation: _rotation, translation } = calibration;
 
     // Compute new rotation matrix that aligns with baseline
@@ -80,10 +81,13 @@ class StereoRectification {
     const e3 = this.cross(e1, e2);
 
     // Rectification rotation
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _R_rect = [e1, e2, e3];
 
     // Compute homographies (simplified - assumes images already mostly aligned)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _K1 = this.intrinsicsToMatrix(calibration.leftIntrinsics);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _K2 = this.intrinsicsToMatrix(calibration.rightIntrinsics);
 
     // H1 = K1 * R_rect * inv(K1)

@@ -540,6 +540,7 @@ class LUTProcessor {
           // .cube format is B-major, so we need to reorder
           const cubeIdx = b * size * size + g * size + r;
           data[r][g][b] = colorData[cubeIdx] || [r/(size-1), g/(size-1), b/(size-1)];
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           _idx++;
         }
       }

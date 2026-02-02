@@ -320,6 +320,7 @@ function ppoUpdate(
   epochs: number
 ): { policyLoss: number; valueLoss: number; entropy: number; kl: number } {
   const { states, actions, rewards, logProbs: oldLogProbs, values, dones } = trajectory;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { clipEpsilon, valueCoef: _valueCoef, entropyCoef: _entropyCoef, gamma, lambda, learningRate } = policy.config;
 
   // Compute advantages

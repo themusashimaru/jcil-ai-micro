@@ -362,6 +362,7 @@ class MeanShiftSegmenter {
    * Segment grayscale image using mean shift
    */
   segment(image: GrayscaleImage): SegmentationResult {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { width, height, data: _data } = image;
 
     // For each pixel, find the mode

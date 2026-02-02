@@ -558,6 +558,7 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
         return node.value ? evaluate(node.value) : undefined;
 
       case 'Block': {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const _blockEnv: Environment = { variables: new Map(), functions: new Map(), parent: env };
         let blockResult: unknown;
         for (const stmt of node.body || []) {

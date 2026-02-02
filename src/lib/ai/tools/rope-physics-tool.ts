@@ -297,6 +297,7 @@ function solveDistanceConstraint(
   if (currentLength < 1e-10) return 0;
 
   const error = currentLength - constraint.restLength;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _stretchRatio = currentLength / constraint.restLength;
 
   // Calculate tension (force = stiffness * displacement)

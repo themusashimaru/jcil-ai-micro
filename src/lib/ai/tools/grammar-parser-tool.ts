@@ -213,6 +213,7 @@ function analyzeGrammar(grammar: Grammar): GrammarAnalysis {
 
 function removeUselessSymbols(grammar: Grammar): Grammar {
   const generating = computeGenerating(grammar);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _reachable = computeReachable(grammar);
 
   // First pass: keep only generating productions
@@ -459,6 +460,7 @@ function toGreibachNormalForm(grammar: Grammar): Grammar {
 // ============================================================================
 
 function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100): Derivation {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _steps: DerivationStep[] = [];
   const current = [grammar.startSymbol];
 

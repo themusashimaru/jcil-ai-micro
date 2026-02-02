@@ -233,6 +233,7 @@ function multitapDelay(
 
     for (const tap of tapSamples) {
       const delayed = delayLine.read(tap.delaySamples) * tap.level;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _tapSum += delayed;
       leftSum += delayed * tap.panLeft;
       rightSum += delayed * tap.panRight;

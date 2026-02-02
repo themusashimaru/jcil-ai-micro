@@ -270,6 +270,7 @@ function doublePendulumEnergy(
   const y1 = -length1 * Math.cos(theta1);
 
   // Position of mass 2
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _x2 = x1 + length2 * Math.sin(theta2);
   const y2 = y1 - length2 * Math.cos(theta2);
 

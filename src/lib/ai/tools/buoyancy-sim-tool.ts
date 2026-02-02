@@ -637,10 +637,11 @@ function createFluidLayer(params: {
 /**
  * Initialize buoyancy simulation state
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function initializeState(params: {
   objects?: any[];
   fluidLayers?: any[];
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   gravity?: number;
 }): BuoyancyState {
   const fluidLayers = params.fluidLayers?.map((layer, i) =>
@@ -675,10 +676,11 @@ function initializeState(params: {
 /**
  * Run full simulation
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function runSimulation(params: {
   objects: any[];
   fluidLayers?: any[];
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   duration: number;
   timestep: number;
   gravity?: number;

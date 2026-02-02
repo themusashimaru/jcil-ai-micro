@@ -664,6 +664,7 @@ class WatchdogTimerSystem {
           timestamp: Date.now(),
           details: { action: instance.config.resetAction }
         });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_e) {
         // Ignore callback errors
       }
@@ -709,6 +710,7 @@ class WatchdogTimerSystem {
           timestamp: Date.now(),
           details: { timeRemaining: instance.config.preTimeoutMs }
         });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_e) {
         // Ignore callback errors
       }

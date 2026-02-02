@@ -512,6 +512,7 @@ function runAntiEntropy(clusterId: string, targetNodeId?: string): {
   const differences: Array<{ key: string; action: 'added' | 'updated' | 'removed' }> = [];
 
   // Compare membership state
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const [nodeId, _node] of cluster.nodes) {
     // Simulate detecting differences
     if (Math.random() < 0.1) { // 10% chance of difference

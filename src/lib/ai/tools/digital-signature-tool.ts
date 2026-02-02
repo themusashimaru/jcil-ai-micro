@@ -429,6 +429,7 @@ const ED25519_GX = (() => {
   const u = (y2 - 1n + ED25519_P) % ED25519_P;
   const v = ((ED25519_D * y2 + 1n) % ED25519_P + ED25519_P) % ED25519_P;
   const vInv = modInverse(v, ED25519_P);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _x2 = (u * vInv) % ED25519_P;
   // sqrt using Tonelli-Shanks would be needed for full impl
   // For demo, we use the known value
@@ -545,6 +546,7 @@ function ed25519Verify(message: number[], signature: number[], publicKey: number
 
   // Decode R
   const Renc = signature.slice(0, 32);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _Ry = bytesToBigInt(Renc.slice().reverse()) & ((1n << 255n) - 1n);
 
   // Decode S
@@ -554,10 +556,12 @@ function ed25519Verify(message: number[], signature: number[], publicKey: number
   }
 
   // Decode A (public key)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _Ay = bytesToBigInt(publicKey.slice().reverse()) & ((1n << 255n) - 1n);
 
   // k = H(R || A || M) mod L
   const kHash = sha512([...Renc, ...publicKey, ...message]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _k = bytesToBigInt(kHash.reverse()) % ED25519_L;
 
   // Verify: [S]G = R + [k]A
@@ -619,6 +623,7 @@ function rsaPssVerify(
   saltLength: number = 32
 ): boolean {
   const hash = sha256(message);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _keyBytes = Math.ceil(publicKey.n.toString(2).length / 8);
   const emBits = publicKey.n.toString(2).length - 1;
   const emLen = Math.ceil(emBits / 8);

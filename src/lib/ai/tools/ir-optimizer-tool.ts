@@ -745,6 +745,7 @@ exit:
 }
 
 function analyzeDataflow(args: Record<string, unknown>): Record<string, unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _code = (args.ir_code as string) || `
 entry:
   %a = load x

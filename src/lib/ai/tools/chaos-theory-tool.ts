@@ -113,6 +113,7 @@ function rosslerDerivatives(state: number[], a: number, b: number, c: number): n
 }
 
 function rosslerJacobian(state: number[], a: number, b: number, c: number): number[][] {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [x, _y, z] = state;
   return [
     [0, -1, -1],
@@ -522,6 +523,7 @@ function computeContinuousLyapunov(
     t += dt;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _n = Math.floor((timesteps - transient) / reorthSteps);
   const totalTime = (timesteps - transient) * dt;
   const exponents = lyapunovSums.map(sum => sum / totalTime);

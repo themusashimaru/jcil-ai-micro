@@ -323,6 +323,7 @@ class OrientationComputer {
    * Compute orientation using intensity centroid
    */
   computeOrientation(image: GrayscaleImage, keypoints: Keypoint[]): Keypoint[] {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: _data } = image;
     const half = Math.floor(this.patchSize / 2);
 

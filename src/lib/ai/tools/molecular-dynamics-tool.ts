@@ -648,6 +648,7 @@ function computeRDF(
         const bin = Math.floor(r / dr);
         if (bin < nBins) {
           histogram[bin]++;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           _nPairs++;
         }
       }

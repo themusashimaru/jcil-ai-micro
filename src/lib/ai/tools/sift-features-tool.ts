@@ -337,6 +337,7 @@ class KeypointDetector {
     above: GrayscaleImage
   ): boolean {
     const isMax = value > 0;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _threshold = isMax ? value : -value;
 
     // Check all 26 neighbors
