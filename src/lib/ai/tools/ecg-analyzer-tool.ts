@@ -166,16 +166,16 @@ class PanTompkinsDetector {
     threshold: number;
   } {
     // Step 1: Bandpass filter (5-15 Hz for QRS)
-    let filtered = SignalProcessor.bandpassFilter(signal, 5, 15, this.sampleRate);
+    const filtered = SignalProcessor.bandpassFilter(signal, 5, 15, this.sampleRate);
 
     // Step 2: Derivative
-    let derivative = SignalProcessor.derivative(filtered);
+    const derivative = SignalProcessor.derivative(filtered);
 
     // Step 3: Square
-    let squared = SignalProcessor.square(derivative);
+    const squared = SignalProcessor.square(derivative);
 
     // Step 4: Moving window integration
-    let integrated = SignalProcessor.movingAverage(squared, this.windowSize);
+    const integrated = SignalProcessor.movingAverage(squared, this.windowSize);
 
     // Step 5: Adaptive thresholding
     const rPeaks = this.findPeaks(integrated);
@@ -275,7 +275,7 @@ class WaveMorphologyAnalyzer {
     return { wavePoints, amplitudes, intervals };
   }
 
-  private findWavePoints(signal: number[], rPeak: number, prevRPeak: number | null, nextRPeak: number | null): WavePoints {
+  private findWavePoints(signal: number[], rPeak: number, _prevRPeak: number | null, _nextRPeak: number | null): WavePoints {
     const result: WavePoints = {
       pOnset: null,
       pPeak: null,
@@ -399,7 +399,6 @@ class WaveMorphologyAnalyzer {
     const toMs = (samples: number) => (samples / this.sampleRate) * 1000;
 
     const rrInterval = prevRPeak !== null ? toMs(wavePoints.rPeak - prevRPeak) : null;
-    const heartRate = rrInterval !== null ? 60000 / rrInterval : null;
 
     const prInterval = (wavePoints.pOnset !== null && wavePoints.qOnset !== null)
       ? toMs(wavePoints.qOnset - wavePoints.pOnset)
@@ -948,6 +947,7 @@ interface AxisAnalysis {
 
 class AxisCalculator {
   // Calculate frontal plane axis from lead I and aVF amplitudes
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   calculate(leadI_amplitude: number, aVF_amplitude: number): AxisAnalysis {
     // Calculate axis using atan2
     const axisRadians = Math.atan2(aVF_amplitude, leadI_amplitude);

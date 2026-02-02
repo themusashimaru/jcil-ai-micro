@@ -900,7 +900,7 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const concentration = args.concentration;
         const targetDose = args.target_dose;
 
-        const result: Record<string, any> = {
+        const result: Record<string, string | number | Record<string, string | number>> = {
           operation: 'iv_rate'
         };
 
@@ -941,7 +941,7 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
       }
 
       case 'pharmacokinetics': {
-        const result: Record<string, any> = {
+        const result: Record<string, string | Record<string, string>> = {
           operation: 'pharmacokinetics',
           calculations: {}
         };
@@ -1050,7 +1050,7 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const bsaDubois = BodyMetrics.calculateBSA(weight, height, 'dubois');
         const bmi = BodyMetrics.calculateBMI(weight, height);
 
-        const result: Record<string, any> = {
+        const result: Record<string, string | Record<string, string>> = {
           operation: 'body_metrics',
           input: {
             weight: weight + ' kg',
