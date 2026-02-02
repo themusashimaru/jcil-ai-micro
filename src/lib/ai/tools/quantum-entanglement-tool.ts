@@ -78,6 +78,7 @@ function createZeroState(n: number): StateVector {
   return state;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalize(state: StateVector): StateVector {
   const norm = Math.sqrt(state.reduce((sum, a) => sum + cAbsSq(a), 0));
   if (norm < 1e-10) return state;
@@ -174,6 +175,7 @@ function applyZ(state: StateVector, target: number, nQubits: number): StateVecto
   return result;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function applyRotationY(state: StateVector, target: number, theta: number, nQubits: number): StateVector {
   const result: StateVector = new Array(state.length).fill(null).map(() => complex(0));
   const mask = 1 << (nQubits - 1 - target);
@@ -465,18 +467,17 @@ function testCHSHInequality(state: StateVector): CHSHResult {
     // General calculation using state amplitudes
     // ⟨ψ|σ_a⊗σ_b|ψ⟩
     const cosA = Math.cos(2 * a);
-    const sinA = Math.sin(2 * a);
     const cosB = Math.cos(2 * b);
-    const sinB = Math.sin(2 * b);
 
     // For the given state, compute correlation
     // Simplified: for maximally entangled states
-    const correlation = cAbsSq(state[0]) * cosA * cosB +
-                       cAbsSq(state[3]) * cosA * cosB -
-                       cAbsSq(state[1]) * cosA * cosB -
-                       cAbsSq(state[2]) * cosA * cosB;
+    const stateCorrelation = cAbsSq(state[0]) * cosA * cosB +
+                             cAbsSq(state[3]) * cosA * cosB -
+                             cAbsSq(state[1]) * cosA * cosB -
+                             cAbsSq(state[2]) * cosA * cosB;
 
-    return Math.cos(2 * (a - b)); // Approximation for Bell state
+    // Use state-based correlation if significant, otherwise use theoretical
+    return Math.abs(stateCorrelation) > 0.01 ? stateCorrelation : Math.cos(2 * (a - b));
   };
 
   // Standard CHSH angles

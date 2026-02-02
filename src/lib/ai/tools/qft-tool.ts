@@ -80,11 +80,13 @@ function createBasisState(n: number, value: number): StateVector {
   return state;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalize(state: StateVector): StateVector {
   const norm = Math.sqrt(state.reduce((sum, a) => sum + cAbs(a) ** 2, 0));
   return state.map(a => cScale(a, 1 / norm));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function innerProduct(a: StateVector, b: StateVector): Complex {
   let result = complex(0);
   for (let i = 0; i < a.length; i++) {
@@ -124,6 +126,7 @@ function applyHadamard(state: StateVector, target: number, nQubits: number): Sta
   return result;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function applyPhaseRotation(state: StateVector, target: number, theta: number, nQubits: number): StateVector {
   const result: StateVector = state.map(c => ({ ...c }));
   const mask = 1 << (nQubits - 1 - target);
@@ -177,6 +180,7 @@ function applySwap(state: StateVector, qubit1: number, qubit2: number, nQubits: 
 // QUANTUM FOURIER TRANSFORM
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface QFTResult {
   inputState: string[];
   outputState: string[];
