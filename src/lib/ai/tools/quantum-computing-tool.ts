@@ -20,17 +20,15 @@ interface Complex {
 
 const complex = (re: number, im: number = 0): Complex => ({ re, im });
 const cAdd = (a: Complex, b: Complex): Complex => ({ re: a.re + b.re, im: a.im + b.im });
-const _cSub = (a: Complex, b: Complex): Complex => ({ re: a.re - b.re, im: a.im - b.im });
+export const cSub = (a: Complex, b: Complex): Complex => ({ re: a.re - b.re, im: a.im - b.im });
 const cMul = (a: Complex, b: Complex): Complex => ({
   re: a.re * b.re - a.im * b.im,
   im: a.re * b.im + a.im * b.re,
 });
 const cScale = (a: Complex, s: number): Complex => ({ re: a.re * s, im: a.im * s });
-const _cConj = (a: Complex): Complex => ({ re: a.re, im: -a.im });
-const _cAbs = (a: Complex): number => Math.sqrt(a.re * a.re + a.im * a.im);
+export const cConj = (a: Complex): Complex => ({ re: a.re, im: -a.im });
+export const cAbs = (a: Complex): number => Math.sqrt(a.re * a.re + a.im * a.im);
 const cNorm = (a: Complex): number => a.re * a.re + a.im * a.im;
-// Suppress unused lint: _cSub, _cConj, _cAbs are for future use
-void _cSub; void _cConj; void _cAbs;
 
 // ============================================================================
 // QUANTUM STATE VECTOR
@@ -45,7 +43,7 @@ function createQubitState(numQubits: number): StateVector {
   return state;
 }
 
-function _tensorProduct(a: StateVector, b: StateVector): StateVector {
+export function tensorProduct(a: StateVector, b: StateVector): StateVector {
   const result: StateVector = [];
   for (const ai of a) {
     for (const bi of b) {
@@ -55,12 +53,10 @@ function _tensorProduct(a: StateVector, b: StateVector): StateVector {
   return result;
 }
 
-function _normalize(state: StateVector): StateVector {
+export function normalize(state: StateVector): StateVector {
   const norm = Math.sqrt(state.reduce((sum, c) => sum + cNorm(c), 0));
   return state.map(c => cScale(c, 1 / norm));
 }
-// Suppress unused lint: _tensorProduct, _normalize are for future use
-void _tensorProduct; void _normalize;
 
 // ============================================================================
 // QUANTUM GATES

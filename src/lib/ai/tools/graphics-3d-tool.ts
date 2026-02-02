@@ -81,7 +81,7 @@ function subVec3(a: Vector3, b: Vector3): Vector3 {
   return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
 
-function _scaleVec3(v: Vector3, s: number): Vector3 {
+export function scaleVec3(v: Vector3, s: number): Vector3 {
   return { x: v.x * s, y: v.y * s, z: v.z * s };
 }
 
@@ -99,7 +99,7 @@ function crossVec3(a: Vector3, b: Vector3): Vector3 {
   };
 }
 
-function _dotVec3(a: Vector3, b: Vector3): number {
+export function dotVec3(a: Vector3, b: Vector3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
@@ -419,7 +419,7 @@ function transformMesh(mesh: Mesh, position: Vector3, rotation: Vector3, scale: 
   return { ...mesh, vertices: transformedVertices };
 }
 
-function _mergeMeshes(meshes: Mesh[]): Mesh {
+export function mergeMeshes(meshes: Mesh[]): Mesh {
   const vertices: Vector3[] = [];
   const faces: Face[] = [];
   let vertexOffset = 0;
@@ -506,7 +506,7 @@ function meshToSTL(mesh: Mesh, name: string = 'mesh'): string {
   return lines.join('\n');
 }
 
-function _sceneToGLTF(scene: Scene): object {
+export function sceneToGLTF(scene: Scene): object {
   // Generate glTF 2.0 JSON structure
   const gltf: Record<string, unknown> = {
     asset: {
@@ -965,4 +965,3 @@ export async function executeGraphics3D(toolCall: UnifiedToolCall): Promise<Unif
 export function isGraphics3DAvailable(): boolean {
   return true;
 }
-void _scaleVec3; void _dotVec3; void _mergeMeshes; void _sceneToGLTF; // reserved

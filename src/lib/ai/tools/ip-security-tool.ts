@@ -2,7 +2,6 @@
  * IP SECURITY TOOL
  * IP address security analysis
  */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
@@ -19,7 +18,7 @@ function longToIp(num: number): string { return [(num >>> 24) & 255, (num >>> 16
 function isPrivate(ip: string): boolean { const n = ipToLong(ip); return PRIVATE_RANGES.some(r => n >= ipToLong(r.start) && n <= ipToLong(r.end)); }
 function isValidIp(ip: string): boolean { const parts = ip.split('.'); return parts.length === 4 && parts.every(p => { const n = parseInt(p); return n >= 0 && n <= 255 && p === n.toString(); }); }
 function ipRange(cidr: string): { start: string; end: string; count: number } { const [ip, mask] = cidr.split('/'); const m = parseInt(mask); const n = ipToLong(ip); const hostBits = 32 - m; const netMask = (0xFFFFFFFF << hostBits) >>> 0; const network = n & netMask; const broadcast = network | ((1 << hostBits) - 1); return { start: longToIp(network + 1), end: longToIp(broadcast - 1), count: (1 << hostBits) - 2 }; }
-function _ipInRange(ip: string, cidr: string): boolean { const [base, mask] = cidr.split('/'); const m = parseInt(mask); return (ipToLong(ip) >>> (32 - m)) === (ipToLong(base) >>> (32 - m)); }
+export function ipInRange(ip: string, cidr: string): boolean { const [base, mask] = cidr.split('/'); const m = parseInt(mask); return (ipToLong(ip) >>> (32 - m)) === (ipToLong(base) >>> (32 - m)); }
 
 export const ipSecurityTool: UnifiedTool = {
   name: 'ip_security',
@@ -45,5 +44,3 @@ export async function executeIpSecurity(toolCall: UnifiedToolCall): Promise<Unif
   } catch (e) { return { toolCallId: id, content: `Error: ${e instanceof Error ? e.message : 'Unknown'}`, isError: true }; }
 }
 export function isIpSecurityAvailable(): boolean { return true; }
-
-void _ipInRange;

@@ -167,10 +167,9 @@ function optimalCompressionBits(text: string): number {
   return text.length * textEntropy(text);
 }
 
-function _compressionRatio(original: number, compressed: number): number {
+export function compressionRatio(original: number, compressed: number): number {
   return original / compressed;
 }
-void _compressionRatio; // for future use
 
 // ============================================================================
 // VISUALIZATION

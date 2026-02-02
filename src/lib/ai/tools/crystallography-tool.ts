@@ -99,7 +99,7 @@ function millerIndices(intercepts: [number, number, number]): [number, number, n
   return scaled as [number, number, number];
 }
 
-function _planeSpacing(params: LatticeParams, h: number, k: number, l: number): number {
+export function planeSpacing(params: LatticeParams, h: number, k: number, l: number): number {
   // General formula for d-spacing
   const { a, b, c, alpha, beta, gamma } = params;
 

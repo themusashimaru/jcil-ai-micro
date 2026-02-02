@@ -64,15 +64,13 @@ function fft(signal: Complex[]): Complex[] {
   return result;
 }
 
-function _ifft(spectrum: Complex[]): Complex[] {
+export function ifft(spectrum: Complex[]): Complex[] {
   const N = spectrum.length;
   // Conjugate, FFT, conjugate, scale
   const conjugated = spectrum.map(c => complex(c.re, -c.im));
   const transformed = fft(conjugated);
   return transformed.map(c => complex(c.re / N, -c.im / N));
 }
-// Suppress unused lint: _ifft is for future use
-void _ifft;
 
 // ============================================================================
 // SIGNAL GENERATION
@@ -182,11 +180,9 @@ function convolve(signal: number[], kernel: number[]): number[] {
   return output;
 }
 
-function _crossCorrelate(a: number[], b: number[]): number[] {
+export function crossCorrelate(a: number[], b: number[]): number[] {
   return convolve(a, [...b].reverse());
 }
-// Suppress unused lint: _crossCorrelate is for future use
-void _crossCorrelate;
 
 // ============================================================================
 // SPECTRAL ANALYSIS

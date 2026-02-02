@@ -10,8 +10,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface _GameState {
+export interface GameState {
   board: number[][];
   currentPlayer: number;
   gameOver: boolean;

@@ -41,7 +41,7 @@ function acPower(V: number, I: number, pf: number): { P: number; Q: number; S: n
   return { P, Q, S };
 }
 
-function _powerFactor(P: number, S: number): number {
+export function powerFactor(P: number, S: number): number {
   return P / S;
 }
 
@@ -67,7 +67,7 @@ function threePhaseLineToPhase(Vline: number): number {
   return Vline / Math.sqrt(3);
 }
 
-function _threePhasePhaseToLine(Vphase: number): number {
+export function threePhasePhaseToLine(Vphase: number): number {
   return Vphase * Math.sqrt(3);
 }
 
@@ -94,12 +94,12 @@ function transformerCurrent(Ip: number, ratio: number): number {
   return Ip * ratio;
 }
 
-function _transformerEfficiency(Pout: number, Pcore: number, Pcopper: number): number {
+export function transformerEfficiency(Pout: number, Pcore: number, Pcopper: number): number {
   const Pin = Pout + Pcore + Pcopper;
   return Pout / Pin;
 }
 
-function _transformerRegulation(Vnl: number, Vfl: number): number {
+export function transformerRegulation(Vnl: number, Vfl: number): number {
   // Voltage regulation
   return (Vnl - Vfl) / Vfl * 100;
 }
@@ -386,5 +386,3 @@ export async function executePowerSystems(toolCall: UnifiedToolCall): Promise<Un
 
 export function isPowerSystemsAvailable(): boolean { return true; }
 
-// ESLint unused function references
-void _powerFactor;  void _threePhasePhaseToLine; void _transformerEfficiency; void _transformerRegulation;

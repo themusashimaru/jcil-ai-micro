@@ -103,7 +103,7 @@ function parseTimestamp(timestamp: number, format: string): Record<string, unkno
   };
 }
 
-function _timelineDiff(timestamp1: number, timestamp2: number): Record<string, number> {
+export function timelineDiff(timestamp1: number, timestamp2: number): Record<string, number> {
   const diffMs = Math.abs(timestamp2 - timestamp1);
   const diffSec = Math.floor(diffMs / 1000);
 

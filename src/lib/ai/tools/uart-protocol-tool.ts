@@ -11,8 +11,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 /** Standard baud rates (used for type documentation) */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _StandardBaudRate = 300 | 600 | 1200 | 2400 | 4800 | 9600 | 14400 | 19200 | 28800 | 38400 |
+export type StandardBaudRate = 300 | 600 | 1200 | 2400 | 4800 | 9600 | 14400 | 19200 | 28800 | 38400 |
   57600 | 76800 | 115200 | 230400 | 460800 | 921600 | 1000000 | 2000000 | 4000000;
 
 /** Data bits options */

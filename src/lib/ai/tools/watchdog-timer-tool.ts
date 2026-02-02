@@ -95,8 +95,7 @@ const CLOCK_FREQUENCIES: Record<ClockSource, number> = {
   pclk: 72000000    // Peripheral clock (example: 72 MHz)
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _PRESCALER_VALUES = [1, 2, 4, 8, 16, 32, 64, 128, 256];
+export const PRESCALER_VALUES = [1, 2, 4, 8, 16, 32, 64, 128, 256];
 
 // ============================================================================
 // WATCHDOG TIMER SYSTEM

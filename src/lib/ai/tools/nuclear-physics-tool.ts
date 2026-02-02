@@ -45,7 +45,7 @@ function decayedNuclei(N0: number, halfLife: number, time: number): number {
   return N0 - remainingNuclei(N0, halfLife, time);
 }
 
-function _timeToDecay(N0: number, Nf: number, halfLife: number): number {
+export function timeToDecay(N0: number, Nf: number, halfLife: number): number {
   // t = -ln(Nf/N0) / λ
   const lambda = decayConstant(halfLife);
   return -Math.log(Nf / N0) / lambda;
@@ -122,7 +122,7 @@ function qValue(massReactants: number, massProducts: number): number {
   return (massReactants - massProducts) * 931.5; // MeV
 }
 
-function _thresholdEnergy(Q: number, massProjectile: number, massTarget: number): number {
+export function thresholdEnergy(Q: number, massProjectile: number, massTarget: number): number {
   // E_th = -Q × (1 + m_p/m_t) for Q < 0
   if (Q >= 0) return 0;
   return -Q * (1 + massProjectile / massTarget);
@@ -132,13 +132,13 @@ function _thresholdEnergy(Q: number, massProjectile: number, massTarget: number)
 // FISSION & FUSION
 // ============================================================================
 
-function _fissionEnergy(initialMass: number, productMass: number): number {
+export function fissionEnergy(initialMass: number, productMass: number): number {
   // Energy from U-235 fission ~200 MeV
   const massDefect = initialMass - productMass;
   return massDefect * 931.5;
 }
 
-function _fusionEnergy(reactantMasses: number[], productMasses: number[]): number {
+export function fusionEnergy(reactantMasses: number[], productMasses: number[]): number {
   const totalReactants = reactantMasses.reduce((a, b) => a + b, 0);
   const totalProducts = productMasses.reduce((a, b) => a + b, 0);
   return (totalReactants - totalProducts) * 931.5;

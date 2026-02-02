@@ -84,7 +84,7 @@ function calculateSubnet(ip: string, cidr: number): {
   };
 }
 
-function _ipInSubnet(ip: string, network: string, cidr: number): boolean {
+export function ipInSubnet(ip: string, network: string, cidr: number): boolean {
   const ipLong = ipToLong(ip);
   const netLong = ipToLong(network);
   const mask = cidr === 0 ? 0 : (0xFFFFFFFF << (32 - cidr)) >>> 0;
@@ -135,7 +135,7 @@ function transferTime(fileSize: number, bandwidth: number): number {
   return fileBits / bitsPerSecond;
 }
 
-function _throughput(dataTransferred: number, time: number): number {
+export function throughput(dataTransferred: number, time: number): number {
   // Returns Mbps
   return (dataTransferred * 8) / (time * 1000000);
 }

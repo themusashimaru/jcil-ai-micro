@@ -37,8 +37,7 @@ interface EdgeInfo {
   strength: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface AAParams {
+export interface AAParams {
   threshold?: number;
   searchSteps?: number;
   subpixelQuality?: number;

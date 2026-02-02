@@ -330,8 +330,7 @@ function transform(
   return transformNode(cloneNode(ast));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _applyRules(ast: ASTNode, rules: TransformRule[]): ASTNode {
+export function applyRules(ast: ASTNode, rules: TransformRule[]): ASTNode {
   return transform(ast, (node) => {
     for (const rule of rules) {
       if (matchesPattern(node, rule.pattern)) {
@@ -617,8 +616,7 @@ function visualizeAST(ast: ASTNode): string {
   return lines.join('\n');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _toJSON(ast: ASTNode): string {
+export function toJSON(ast: ASTNode): string {
   return JSON.stringify(ast, null, 2);
 }
 

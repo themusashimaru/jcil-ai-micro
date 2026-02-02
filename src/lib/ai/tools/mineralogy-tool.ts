@@ -15,7 +15,7 @@ const MINERALS = {
 };
 
 function refractiveIndex(density: number): number { return 1 + 0.2 * density; }
-function _birefringence(noOrdinary: number, neExtraordinary: number): number { return Math.abs(neExtraordinary - noOrdinary); }
+export function birefringence(noOrdinary: number, neExtraordinary: number): number { return Math.abs(neExtraordinary - noOrdinary); }
 function crystalSystem(a: number, b: number, c: number, alpha: number, beta: number, gamma: number): string { if (a === b && b === c && alpha === 90 && beta === 90 && gamma === 90) return 'cubic'; if (a === b && alpha === 90 && beta === 90 && gamma === 120) return 'hexagonal'; return 'triclinic'; }
 function specificGravity(weightAir: number, weightWater: number): number { return weightAir / (weightAir - weightWater); }
 function cleavageAngle(h: number, k: number, l: number): number { return Math.acos(h / Math.sqrt(h*h + k*k + l*l)) * 180 / Math.PI; }

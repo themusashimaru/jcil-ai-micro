@@ -13,14 +13,14 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // RADIOMETRIC DATING
 // ============================================================================
 
-interface _Isotope {
+export interface Isotope {
   name: string;
   halfLife: number; // years
   parent: string;
   daughter: string;
 }
 
-const ISOTOPES: Record<string, _Isotope> = {
+const ISOTOPES: Record<string, Isotope> = {
   c14: { name: 'Carbon-14', halfLife: 5730, parent: '¹⁴C', daughter: '¹⁴N' },
   k40: { name: 'Potassium-40', halfLife: 1.25e9, parent: '⁴⁰K', daughter: '⁴⁰Ar' },
   u238: { name: 'Uranium-238', halfLife: 4.47e9, parent: '²³⁸U', daughter: '²⁰⁶Pb' },
@@ -95,7 +95,7 @@ function porosity(voidVolume: number, totalVolume: number): number {
   return (voidVolume / totalVolume) * 100;
 }
 
-function _permeability(flowRate: number, viscosity: number, length: number, area: number, pressureDiff: number): number {
+export function permeability(flowRate: number, viscosity: number, length: number, area: number, pressureDiff: number): number {
   // Darcy's law: k = (Q × μ × L) / (A × ΔP)
   return (flowRate * viscosity * length) / (area * pressureDiff);
 }
@@ -368,6 +368,3 @@ export async function executeGeology(toolCall: UnifiedToolCall): Promise<Unified
 }
 
 export function isGeologyAvailable(): boolean { return true; }
-
-// ESLint unused function references
-void _permeability;

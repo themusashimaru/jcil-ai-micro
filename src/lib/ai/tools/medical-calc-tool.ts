@@ -327,7 +327,7 @@ function calculateGlasgowComaScale(
   };
 }
 
-function _calculateAPACHEII(
+export function calculateAPACHEII(
   temperature: number, // °C
   meanArterialPressure: number,
   heartRate: number,

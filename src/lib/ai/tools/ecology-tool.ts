@@ -28,7 +28,7 @@ function doublingTime(r: number): number {
   return Math.log(2) / r;
 }
 
-function _carryingCapacity(birthRate: number, deathRate: number, maxPop: number): number {
+export function carryingCapacity(birthRate: number, deathRate: number, maxPop: number): number {
   const r = birthRate - deathRate;
   if (r <= 0) return 0;
   return maxPop;
@@ -128,7 +128,7 @@ function ecologicalFootprint(
 // FOOD WEB METRICS
 // ============================================================================
 
-function _trophicEfficiency(energyIn: number, energyOut: number): number {
+export function trophicEfficiency(energyIn: number, energyOut: number): number {
   return (energyOut / energyIn) * 100;
 }
 

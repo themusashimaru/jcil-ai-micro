@@ -77,11 +77,10 @@ function electrolysis(I: number, t: number, n: number, M: number): { moles: numb
   return { moles, mass, charge: Q };
 }
 
-function _currentForDeposition(mass: number, M: number, n: number, t: number): number {
+export function currentForDeposition(mass: number, M: number, n: number, t: number): number {
   // I = nFm/(Mt)
   return n * F * mass / (M * t);
 }
-void _currentForDeposition; // reserved for future use
 
 // ============================================================================
 // BATTERIES

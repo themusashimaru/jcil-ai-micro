@@ -43,7 +43,7 @@ function waveEnergy(height: number, _wavelength: number): number {
   return (1/8) * rho * g * height * height;
 }
 
-function _significantWaveHeight(waves: number[]): number {
+export function significantWaveHeight(waves: number[]): number {
   // H_s = average of highest 1/3 of waves
   const sorted = [...waves].sort((a, b) => b - a);
   const top33 = sorted.slice(0, Math.ceil(sorted.length / 3));
@@ -118,7 +118,7 @@ function soundSpeedWater(temperature: number, salinity: number, depth: number): 
          - 1.025e-2 * T * (S - 35) - 7.139e-13 * T * D*D*D;
 }
 
-function _sonarRange(sourceLevel: number, transmissionLoss: number, noiseLevel: number, detectionThreshold: number): number {
+export function sonarRange(sourceLevel: number, transmissionLoss: number, noiseLevel: number, detectionThreshold: number): number {
   // Sonar equation simplified
   const signalExcess = sourceLevel - 2 * transmissionLoss - noiseLevel - detectionThreshold;
   return signalExcess > 0 ? Math.pow(10, transmissionLoss / 20) : 0;
