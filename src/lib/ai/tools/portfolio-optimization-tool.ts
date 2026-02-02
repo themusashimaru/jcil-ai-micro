@@ -98,6 +98,7 @@ function vectorScale(v: number[], s: number): number[] {
   return v.map(val => val * s);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vectorSubtract(a: number[], b: number[]): number[] {
   return a.map((val, i) => val - b[i]);
 }

@@ -114,8 +114,8 @@ function generateProof(root: MerkleNode | null, leafIndex: number, totalLeaves: 
   if (!root) return [];
 
   const proof: ProofElement[] = [];
-  let currentIndex = leafIndex;
-  let levelSize = totalLeaves;
+  const _currentIndex = leafIndex;
+  const _levelSize = totalLeaves;
   let level = 0;
 
   // Traverse from root to find path to leaf
@@ -318,6 +318,7 @@ class SparseMerkleTree {
 }
 
 // Multi-proof for batch verification
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateMultiProof(
   root: MerkleNode | null,
   leafIndices: number[],

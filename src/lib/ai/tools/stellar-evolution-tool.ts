@@ -4,6 +4,8 @@
  * Complete implementation with mass-luminosity relations, evolutionary tracks, and stellar endpoints
  */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // ============================================================================

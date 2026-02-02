@@ -190,7 +190,7 @@ function resolveDomain(args: Record<string, unknown>): Record<string, unknown> {
   // Handle CNAME chains
   const cnameRecords = records.filter(r => r.name === domain && r.type === 'CNAME');
   let resolvedRecords = [...matchingRecords];
-  let cnameChain: string[] = [];
+  const cnameChain: string[] = [];
 
   if (cnameRecords.length > 0 && recordType !== 'CNAME') {
     const cname = cnameRecords[0];

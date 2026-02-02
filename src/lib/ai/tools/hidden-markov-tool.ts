@@ -372,9 +372,9 @@ function baumWelch(
   const M = hmm.numObs;
 
   // Copy HMM parameters
-  let A = hmm.A.map(row => [...row]);
-  let B = hmm.B.map(row => [...row]);
-  let pi = [...hmm.pi];
+  const A = hmm.A.map(row => [...row]);
+  const B = hmm.B.map(row => [...row]);
+  const pi = [...hmm.pi];
 
   const logLikelihood: number[] = [];
   let prevLL = -Infinity;
@@ -425,7 +425,8 @@ function baumWelch(
     }
 
     // Update parameters
-    const numSeq = trainingSequences.length;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _numSeq = trainingSequences.length;
 
     // Update pi
     const piSum = pi_new.reduce((a, b) => a + b, 0);
@@ -563,6 +564,7 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
       training_sequences
     } = args;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     // Create HMM (use provided or default)

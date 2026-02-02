@@ -258,7 +258,7 @@ function randomBigInt(max: bigint): bigint {
 // Generate key pair
 function generateKeyPair(curve: CurveParams): { privateKey: bigint; publicKey: Point } {
   // Private key: random integer in [1, n-1]
-  let privateKey = randomBigInt(curve.n - 1n) + 1n;
+  const privateKey = randomBigInt(curve.n - 1n) + 1n;
 
   // Public key: Q = d * G
   const G: Point = { x: curve.Gx, y: curve.Gy, infinity: false };

@@ -267,6 +267,7 @@ function checkAndAddIntersection(
 }
 
 // Check if a point is to the left of a line
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function isLeftOf(p: Point, lineStart: Point, lineEnd: Point): boolean {
   return crossProduct(lineStart, lineEnd, p) > 0;
 }

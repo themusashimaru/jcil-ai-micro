@@ -298,7 +298,7 @@ function parametricEQ(
     analysis: {
       type: 'Parametric EQ',
       bandCount: bands.length,
-      bands: bands.map((band, i) => ({
+      bands: bands.map((band, _i) => ({
         frequency: band.frequency + ' Hz',
         gain: band.gain + ' dB',
         q: band.q,

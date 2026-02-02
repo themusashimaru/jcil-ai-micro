@@ -22,26 +22,10 @@ function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
 }
 
-function softmax(logits: number[]): number[] {
-  const maxLogit = Math.max(...logits);
-  const expValues = logits.map(l => Math.exp(l - maxLogit));
-  const sum = expValues.reduce((a, b) => a + b, 0);
-  return expValues.map(e => e / sum);
-}
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 function logSumExp(values: number[]): number {
   const maxVal = Math.max(...values);
   return maxVal + Math.log(values.reduce((sum, v) => sum + Math.exp(v - maxVal), 0));
-}
-
-function klDivergence(p: number[], q: number[]): number {
-  let kl = 0;
-  for (let i = 0; i < p.length; i++) {
-    if (p[i] > 1e-10 && q[i] > 1e-10) {
-      kl += p[i] * Math.log(p[i] / q[i]);
-    }
-  }
-  return kl;
 }
 
 function dotProduct(a: number[], b: number[]): number {
@@ -54,6 +38,24 @@ function vectorAdd(a: number[], b: number[]): number[] {
 
 function vectorScale(a: number[], s: number): number[] {
   return a.map(ai => ai * s);
+}
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
+function softmax(logits: number[]): number[] {
+  const maxLogit = Math.max(...logits);
+  const expValues = logits.map(l => Math.exp(l - maxLogit));
+  const sum = expValues.reduce((a, b) => a + b, 0);
+  return expValues.map(e => e / sum);
+}
+
+function klDivergence(p: number[], q: number[]): number {
+  let kl = 0;
+  for (let i = 0; i < p.length; i++) {
+    if (p[i] > 1e-10 && q[i] > 1e-10) {
+      kl += p[i] * Math.log(p[i] / q[i]);
+    }
+  }
+  return kl;
 }
 
 function gaussianSample(mean: number, std: number): number {
@@ -884,8 +886,7 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
         const policy = initializePolicy(config);
 
         // Generate or use provided trajectories
-        let trajectories = args.trajectories;
-        if (!trajectories || trajectories.length === 0) {
+        const trajectories = args.trajectories && args.trajectories.length > 0 ? args.trajectories : (() => {
           // Generate example trajectory
           const T = 32;
           const states: number[][] = [];
@@ -911,8 +912,8 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
             state = state.map(s => s + (Math.random() - 0.5) * 0.1);
           }
 
-          trajectories = [{ states, actions, rewards, logProbs, values, dones }];
-        }
+          return [{ states, actions, rewards, logProbs, values, dones }];
+        })();
 
         // Flatten trajectories
         const flatTrajectory: Trajectory = {
@@ -972,10 +973,9 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
       case 'preference': {
         const items = args.items || ['model_A', 'model_B', 'model_C', 'model_D'];
-        let comparisons = args.comparisons || [];
         const iterations = args.epochs || 100;
-
-        if (comparisons.length === 0) {
+        const comparisons = args.comparisons && args.comparisons.length > 0 ? args.comparisons : (() => {
+          const generated: Array<{ winner: string; loser: string }> = [];
           // Generate example comparisons
           for (let i = 0; i < 20; i++) {
             const idx1 = Math.floor(Math.random() * items.length);
@@ -986,9 +986,10 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
             // Higher index wins more often (simulating quality ordering)
             const winner = Math.random() < 0.6 + 0.1 * (idx1 - idx2) ? items[idx1] : items[idx2];
             const loser = winner === items[idx1] ? items[idx2] : items[idx1];
-            comparisons.push({ winner, loser });
+            generated.push({ winner, loser });
           }
-        }
+          return generated;
+        })();
 
         const model = trainBradleyTerry(items, comparisons, iterations);
         const rankings = getRankings(model);
@@ -1026,20 +1027,20 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
       case 'dpo': {
         const beta = args.beta || 0.1;
         const epochs = args.epochs || 10;
-        let preferences = args.preferences || [];
         const inputDim = args.inputDim || 32;
-
-        if (preferences.length === 0) {
+        const preferences = args.preferences && args.preferences.length > 0 ? args.preferences : (() => {
+          const generated: Array<{ chosen: number[]; rejected: number[]; chosenLogProb: number; rejectedLogProb: number }> = [];
           // Generate example preferences with log probs
           for (let i = 0; i < 30; i++) {
-            preferences.push({
+            generated.push({
               chosen: Array(inputDim).fill(0).map(() => Math.random()),
               rejected: Array(inputDim).fill(0).map(() => Math.random()),
               chosenLogProb: -Math.random() * 2,
               rejectedLogProb: -Math.random() * 3
             });
           }
-        }
+          return generated;
+        })();
 
         // Initialize reference model
         const refConfig: RewardModelConfig = {

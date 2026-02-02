@@ -59,6 +59,7 @@ interface BacktestResult {
 // ============================================================================
 
 // Standard normal CDF approximation (Abramowitz and Stegun)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalCDF(x: number): number {
   const a1 = 0.254829592;
   const a2 = -0.284496736;
@@ -149,6 +150,7 @@ function percentile(values: number[], p: number): number {
 }
 
 // Calculate covariance
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function covariance(x: number[], y: number[]): number {
   if (x.length !== y.length || x.length < 2) return 0;
   const mx = mean(x);
@@ -161,6 +163,7 @@ function covariance(x: number[], y: number[]): number {
 }
 
 // Calculate correlation
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function correlation(x: number[], y: number[]): number {
   const cov = covariance(x, y);
   const sx = stdDev(x);
@@ -170,6 +173,7 @@ function correlation(x: number[], y: number[]): number {
 }
 
 // Cholesky decomposition for correlation matrix
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function choleskyDecomposition(matrix: number[][]): number[][] {
   const n = matrix.length;
   const L: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));

@@ -15,6 +15,7 @@ interface Point2D {
   y: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Pose2D extends Point2D {
   theta?: number;  // Optional orientation
 }

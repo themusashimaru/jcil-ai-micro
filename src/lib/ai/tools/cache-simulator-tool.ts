@@ -14,6 +14,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 type ReplacementPolicy = 'LRU' | 'FIFO' | 'Random' | 'LFU' | 'PLRU';
 type WritePolicy = 'write_back' | 'write_through';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type CacheLevel = 'L1' | 'L2' | 'L3';
 
 interface CacheConfig {
@@ -522,7 +523,8 @@ function accessHierarchy(hierarchy: CacheHierarchy, address: number, isWrite: bo
 }
 
 function getHierarchyStats(hierarchy: CacheHierarchy): HierarchyStats {
-  const l1Stats = getCacheStats(hierarchy.L1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _l1Stats = getCacheStats(hierarchy.L1);
   const totalAccesses = hierarchy.L1.accessCount;
 
   let totalLatency = hierarchy.L1.totalLatency;

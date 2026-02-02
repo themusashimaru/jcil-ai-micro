@@ -15,6 +15,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 type Vec3 = [number, number, number];
 type Vec2 = [number, number];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function add3(a: Vec3, b: Vec3): Vec3 {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
@@ -52,14 +53,17 @@ function normalize3(v: Vec3): Vec3 {
 // Numerical differentiation
 const h = 1e-6;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function derivative(f: (t: number) => number, t: number): number {
   return (f(t + h) - f(t - h)) / (2 * h);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function derivative2(f: (t: number) => number, t: number): number {
   return (f(t + h) - 2 * f(t) + f(t - h)) / (h * h);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function derivative3(f: (t: number) => number, t: number): number {
   return (f(t + 2 * h) - 2 * f(t + h) + 2 * f(t - h) - f(t - 2 * h)) / (2 * h * h * h);
 }

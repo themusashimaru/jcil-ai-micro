@@ -19,6 +19,7 @@ interface Event {
   nodeId: string;
   clock: VectorClock;
   type: 'local' | 'send' | 'receive';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
   timestamp?: number;
 }
@@ -28,6 +29,7 @@ interface Message {
   from: string;
   to: string;
   clock: VectorClock;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
 }
 
@@ -36,6 +38,7 @@ type CausalRelation = 'happens_before' | 'happens_after' | 'concurrent';
 interface VersionVector {
   nodeId: string;
   clock: VectorClock;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any;
 }
 
@@ -207,6 +210,7 @@ function merge(a: VectorClock, b: VectorClock): VectorClock {
 }
 
 // Check if a clock dominates another (>=)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function dominates(a: VectorClock, b: VectorClock): boolean {
   for (const [key, value] of Object.entries(b)) {
     if ((a[key] || 0) < value) {
@@ -527,6 +531,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
             operation: 'create',
             nodeId,
             peers,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             initialClock: { [nodeId]: 0, ...peers.reduce((acc: any, p: string) => ({ ...acc, [p]: 0 }), {}) },
             afterOperations: {
               finalClock: manager.getClock(),
@@ -647,6 +652,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
         } = parameters;
 
         const store = new VersionVectorStore();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const results: any[] = [];
 
         for (const op of operations) {
@@ -727,6 +733,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
           clocks.set(node, new LamportClock(node));
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const eventLog: any[] = [];
 
         for (const event of events) {

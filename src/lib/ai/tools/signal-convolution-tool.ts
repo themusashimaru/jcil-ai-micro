@@ -18,6 +18,8 @@
  * - Template matching
  */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // ============================================================================

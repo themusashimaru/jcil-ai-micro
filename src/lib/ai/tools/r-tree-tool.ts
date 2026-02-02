@@ -69,6 +69,7 @@ function bboxIntersects(a: BBox, b: BBox): boolean {
 }
 
 // Check if bbox a contains bbox b
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function bboxContains(a: BBox, b: BBox): boolean {
   return a.minX <= b.minX && a.maxX >= b.maxX &&
          a.minY <= b.minY && a.maxY >= b.maxY;

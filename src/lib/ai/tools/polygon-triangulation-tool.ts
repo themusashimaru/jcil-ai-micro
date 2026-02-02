@@ -41,6 +41,7 @@ interface TriangulationResult {
   executionSteps?: string[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface MonotoneChain {
   vertices: Point[];
   isLeftChain: boolean;
@@ -122,12 +123,13 @@ function pointInTriangle(p: Point, t0: Point, t1: Point, t2: Point): boolean {
 /**
  * Check if diagonal from vertex i to vertex j is valid
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function isDiagonalValid(vertices: Point[], i: number, j: number): boolean {
   const n = vertices.length;
 
   // Check if diagonal lies inside polygon
-  const prev = (i - 1 + n) % n;
-  const next = (i + 1) % n;
+  const _prev = (i - 1 + n) % n;
+  const _next = (i + 1) % n;
 
   // Check if j is in the cone formed by edges at i
   if (!inCone(vertices, i, j)) {

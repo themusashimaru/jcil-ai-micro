@@ -37,12 +37,14 @@ interface SegmentationResult {
   segmentColors?: number[][]; // Representative color for each segment
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Pixel {
   x: number;
   y: number;
   value: number | number[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Region {
   id: number;
   pixels: Pixel[];
@@ -103,6 +105,7 @@ function colorDistance(c1: number[], c2: number[]): number {
 /**
  * Create grayscale image from color
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function toGrayscale(color: ColorImage): GrayscaleImage {
   const data: number[][] = [];
   for (let y = 0; y < color.height; y++) {

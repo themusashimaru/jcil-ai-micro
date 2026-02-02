@@ -366,7 +366,7 @@ function decryptCBC(ciphertext: number[], roundKeys: number[][], iv: number[]): 
 // CTR mode encryption/decryption (same operation)
 function cryptCTR(data: number[], roundKeys: number[][], nonce: number[]): number[] {
   const result: number[] = [];
-  let counter = [...nonce];
+  const counter = [...nonce];
 
   for (let i = 0; i < data.length; i += 16) {
     const keystream = encryptBlock(counter, roundKeys);

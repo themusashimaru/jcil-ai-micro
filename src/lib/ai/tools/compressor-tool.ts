@@ -395,7 +395,7 @@ function generateTransferCurve(
 }
 
 // Analyze dynamics of a signal
-function analyzeDynamics(signal: number[], sampleRate: number): object {
+function analyzeDynamics(signal: number[], _sampleRate: number): object {
   // Calculate levels
   const absSignal = signal.map(Math.abs);
   const maxLevel = Math.max(...absSignal);

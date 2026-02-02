@@ -964,7 +964,7 @@ const MORPHOLOGICAL_TYPOLOGY: Record<string, LanguageTypology> = {
 function segmentWord(word: string): MorphologicalAnalysis {
   const lowerWord = word.toLowerCase();
   const morphemes: Morpheme[] = [];
-  let remaining = lowerWord;
+  const remaining = lowerWord;
   let wordClass = 'unknown';
   const derivationHistory: string[] = [];
 

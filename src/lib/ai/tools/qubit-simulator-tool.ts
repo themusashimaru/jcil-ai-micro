@@ -29,6 +29,7 @@ function cAdd(a: Complex, b: Complex): Complex {
   return { re: a.re + b.re, im: a.im + b.im };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cSub(a: Complex, b: Complex): Complex {
   return { re: a.re - b.re, im: a.im - b.im };
 }
@@ -40,6 +41,7 @@ function cMul(a: Complex, b: Complex): Complex {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cDiv(a: Complex, b: Complex): Complex {
   const denom = b.re * b.re + b.im * b.im;
   return {
@@ -52,6 +54,7 @@ function cConj(a: Complex): Complex {
   return { re: a.re, im: -a.im };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cAbs(a: Complex): number {
   return Math.sqrt(a.re * a.re + a.im * a.im);
 }
@@ -96,6 +99,7 @@ function createBasisState(numQubits: number, basisIndex: number): QuantumState {
   return { numQubits, amplitudes };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalize(state: QuantumState): QuantumState {
   const norm = Math.sqrt(state.amplitudes.reduce((sum, a) => sum + cAbsSq(a), 0));
   if (norm < 1e-10) return state;
@@ -204,6 +208,7 @@ function rotationZ(theta: number): Gate {
   ];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function phaseGate(phi: number): Gate {
   return [
     [complex(1), complex(0)],
@@ -491,6 +496,7 @@ function traceDensityMatrix(rho: Complex[][]): Complex {
   return trace;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function fidelity(state1: QuantumState, state2: QuantumState): number {
   if (state1.numQubits !== state2.numQubits) return 0;
 

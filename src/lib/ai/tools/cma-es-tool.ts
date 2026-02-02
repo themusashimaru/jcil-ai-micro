@@ -107,6 +107,7 @@ const benchmarkFunctions: Record<string, {
 // LINEAR ALGEBRA UTILITIES
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function matrixMultiply(A: number[][], B: number[][]): number[][] {
   const m = A.length;
   const n = B[0].length;
@@ -127,6 +128,7 @@ function matrixVectorMultiply(A: number[][], v: number[]): number[] {
   return A.map(row => row.reduce((sum, a, j) => sum + a * v[j], 0));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function transpose(A: number[][]): number[][] {
   const m = A.length;
   const n = A[0].length;
@@ -146,7 +148,7 @@ function identityMatrix(n: number): number[][] {
 }
 
 // Simple power iteration for eigendecomposition (for small matrices)
-function eigenDecomposition(C: number[][], maxIter: number = 100): { B: number[][]; D: number[] } {
+function eigenDecomposition(C: number[][], _maxIter: number = 100): { B: number[][]; D: number[] } {
   const n = C.length;
   const D: number[] = [];
   const B: number[][] = identityMatrix(n);

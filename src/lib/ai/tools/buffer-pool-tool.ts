@@ -38,6 +38,7 @@ interface BufferPoolStats {
 }
 
 // Page table entry
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface PageTableEntry {
   pageId: number;
   frameId: number;

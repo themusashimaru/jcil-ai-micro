@@ -80,7 +80,7 @@ function preprocess(
   } = {}
 ): string[] {
   const {
-    lowercase = true,
+    lowercase: _lowercase = true,
     removeStopwords = true,
     stemWords = false,
     minLength = 2
@@ -368,7 +368,7 @@ const SPAM_DATA = {
 
 function createPretrainedModel(
   data: Record<string, string[]>,
-  name: string
+  _name: string
 ): NaiveBayesModel {
   const texts: string[] = [];
   const labels: string[] = [];
@@ -427,7 +427,7 @@ function evaluateClassifier(
   const f1Score = new Map<string, number>();
 
   for (const cls of classes) {
-    let tp = confusionMatrix.get(cls)!.get(cls) || 0;
+    const tp = confusionMatrix.get(cls)!.get(cls) || 0;
     let fp = 0, fn = 0;
 
     for (const other of classes) {

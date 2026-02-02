@@ -164,6 +164,7 @@ function verifyCategoryAxioms(category: Category): {
   associativityAxiom: { valid: boolean; details: string };
   compositionClosed: { valid: boolean; details: string };
 } {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const objectNames = new Set(category.objects.map(o => o.name));
 
   // Check identity axiom
@@ -188,7 +189,7 @@ function verifyCategoryAxioms(category: Category): {
   const associativityDetails = 'Associativity assumed for well-formed morphisms';
 
   // Check composition closure
-  let compositionValid = true;
+  const compositionValid = true;
   const compositionDetails: string[] = [];
 
   for (const f of category.morphisms) {

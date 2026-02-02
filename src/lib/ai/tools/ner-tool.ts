@@ -224,7 +224,7 @@ function tokenize(text: string): { token: string; start: number; end: number }[]
 function extractPatternEntities(text: string): Entity[] {
   const entities: Entity[] = [];
 
-  for (const { type, pattern, priority = 5 } of ENTITY_PATTERNS) {
+  for (const { type, pattern, priority: _priority = 5 } of ENTITY_PATTERNS) {
     const regex = new RegExp(pattern.source, pattern.flags);
     let match;
 
@@ -242,7 +242,7 @@ function extractPatternEntities(text: string): Entity[] {
   return entities;
 }
 
-function extractGazetteerEntities(text: string, tokens: { token: string; start: number; end: number }[]): Entity[] {
+function extractGazetteerEntities(text: string, _tokens: { token: string; start: number; end: number }[]): Entity[] {
   const entities: Entity[] = [];
   const lowerText = text.toLowerCase();
 

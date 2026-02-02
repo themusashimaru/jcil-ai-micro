@@ -40,6 +40,7 @@ function cScale(a: Complex, s: number): Complex {
   return { re: a.re * s, im: a.im * s };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cAbs(a: Complex): number {
   return Math.sqrt(a.re * a.re + a.im * a.im);
 }

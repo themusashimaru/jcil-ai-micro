@@ -710,7 +710,7 @@ function formatParseTree(tree: ParseTree, indent: string = ''): string {
     lines.push(`${prefix}${child.symbol}${childValue}`);
 
     if (child.children.length > 0) {
-      child.children.forEach((grandchild, j) => {
+      child.children.forEach((grandchild, _j) => {
         lines.push(formatParseTree(grandchild, childIndent));
       });
     }

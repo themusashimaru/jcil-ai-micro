@@ -266,7 +266,8 @@ class AntColonyOptimizer {
 // MAX-MIN ANT SYSTEM (MMAS)
 // ============================================================================
 
-class MaxMinAntSystem extends AntColonyOptimizer {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class _MaxMinAntSystem extends AntColonyOptimizer {
   private pheromoneMin: number;
   private pheromoneMax: number;
 

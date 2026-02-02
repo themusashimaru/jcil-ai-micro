@@ -21,11 +21,13 @@ interface NormalFormGame {
   payoffs: number[][][][]; // payoffs[p1_strategy][p2_strategy][player]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface StrategyProfile {
   strategies: number[];
   payoffs: number[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface MixedStrategy {
   player: number;
   probabilities: number[];
@@ -252,7 +254,7 @@ function findMixedNashEquilibrium2x2(game: NormalFormGame): NashEquilibrium | nu
 
   const a = p[0][0][1] - p[1][0][1];  // coefficient of q for P2's strategy 0
   const b = p[0][1][1] - p[1][1][1];  // coefficient of q for P2's strategy 1
-  const c = p[1][0][1] - p[1][1][1];  // constant difference
+  const _c = p[1][0][1] - p[1][1][1];  // constant difference
 
   // a*q + p[1][0][1] = b*q + p[1][1][1]
   // (a - b)*q = p[1][1][1] - p[1][0][1]
@@ -334,6 +336,7 @@ function findDominatedStrategies(game: NormalFormGame): { player: number; strate
 }
 
 // Compute support enumeration for mixed Nash (simplified for small games)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function supportEnumeration(game: NormalFormGame): NashEquilibrium[] {
   const equilibria: NashEquilibrium[] = [];
 

@@ -97,7 +97,7 @@ function decodeRISCV(word: number): Instruction {
   const funct7 = (word >> 25) & 0x7F;
 
   let imm = 0;
-  let opcodeStr = RISCV_OPCODES[opcode] || 'Unknown';
+  const opcodeStr = RISCV_OPCODES[opcode] || 'Unknown';
 
   switch (opcode) {
     case 0b0010011: // I-type
@@ -394,7 +394,7 @@ function decodeMIPS(word: number): Instruction {
 
 function disassembleMIPS(instr: Instruction): string {
   const reg = (r: number) => MIPS_REGISTER_NAMES[r];
-  const { opcode, rd, rs1, rs2, imm, funct3, funct7, raw } = instr;
+  const { opcode, rd, rs1, rs2, imm, funct3, funct7, raw: _raw } = instr;
 
   if (opcode === 'R-type') {
     const functs: Record<number, string> = {

@@ -243,7 +243,7 @@ function sentencePieceTokenize(text: string, vocab: Vocabulary): string[] {
 
 function encode(text: string, config: TokenizerConfig, vocab: Vocabulary): TokenizedOutput {
   // Preprocess
-  let processedText = config.doLowercase ? text.toLowerCase() : text;
+  const processedText = config.doLowercase ? text.toLowerCase() : text;
 
   // Tokenize based on model type
   let tokens: string[];
@@ -351,8 +351,8 @@ function decode(inputIds: number[], vocab: Vocabulary, skipSpecialTokens: boolea
 }
 
 function encodePair(text1: string, text2: string, config: TokenizerConfig, vocab: Vocabulary): TokenizedOutput {
-  let processedText1 = config.doLowercase ? text1.toLowerCase() : text1;
-  let processedText2 = config.doLowercase ? text2.toLowerCase() : text2;
+  const processedText1 = config.doLowercase ? text1.toLowerCase() : text1;
+  const processedText2 = config.doLowercase ? text2.toLowerCase() : text2;
 
   const tokens1 = wordPieceTokenize(processedText1, vocab);
   const tokens2 = wordPieceTokenize(processedText2, vocab);

@@ -41,6 +41,7 @@ function matVecMul(A: Matrix, x: Vector): Vector {
   return A.map(row => vecDot(row, x));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function matMul(A: Matrix, B: Matrix): Matrix {
   const n = A.length;
   const m = B[0].length;
@@ -56,10 +57,12 @@ function matMul(A: Matrix, B: Matrix): Matrix {
   return result;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function transpose(A: Matrix): Matrix {
   return A[0].map((_, i) => A.map(row => row[i]));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function identity(n: number): Matrix {
   return Array(n).fill(0).map((_, i) => Array(n).fill(0).map((__, j) => i === j ? 1 : 0));
 }

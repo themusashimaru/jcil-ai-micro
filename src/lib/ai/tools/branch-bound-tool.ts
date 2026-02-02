@@ -10,7 +10,8 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES
 // ============================================================================
 
-interface BBNode {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _BBNode {
   level: number;
   bound: number;
   cost: number;

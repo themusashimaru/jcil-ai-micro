@@ -155,7 +155,7 @@ function getNextWordProbabilities(
   let totalCount = 0;
 
   if (contextCounts) {
-    for (const [_, count] of contextCounts) {
+    for (const [_word, count] of contextCounts) {
       totalCount += count;
     }
   }
@@ -198,7 +198,7 @@ function sampleTopK(probabilities: Map<string, number>, k: number): string {
   const topK = sorted.slice(0, k);
 
   // Normalize probabilities
-  const totalProb = topK.reduce((sum, [_, p]) => sum + p, 0);
+  const totalProb = topK.reduce((sum, [_w, p]) => sum + p, 0);
   const normalized = topK.map(([w, p]) => [w, p / totalProb] as [string, number]);
 
   // Sample
@@ -232,7 +232,7 @@ function sampleTopP(probabilities: Map<string, number>, p: number): string {
   }
 
   // Normalize and sample
-  const totalProb = nucleus.reduce((sum, [_, pr]) => sum + pr, 0);
+  const totalProb = nucleus.reduce((sum, [_w, pr]) => sum + pr, 0);
   const normalized = nucleus.map(([w, pr]) => [w, pr / totalProb] as [string, number]);
 
   const rand = Math.random();
@@ -799,7 +799,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
         const contextStats: Array<{ context: string; uniqueNext: number; totalCount: number }> = [];
         for (const [context, nextWords] of model.counts) {
           let total = 0;
-          for (const [_, count] of nextWords) {
+          for (const [_word, count] of nextWords) {
             total += count;
           }
           contextStats.push({

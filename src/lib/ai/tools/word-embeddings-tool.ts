@@ -192,6 +192,7 @@ function vectorSub(a: number[], b: number[]): number[] {
   return a.map((x, i) => x - b[i]);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vectorScale(v: number[], s: number): number[] {
   return v.map(x => x * s);
 }

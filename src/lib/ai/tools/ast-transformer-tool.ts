@@ -127,7 +127,7 @@ function parseExpression(input: string): ParseResult {
   }
 
   function parsePower(): ASTNode {
-    let left = parseUnary();
+    const left = parseUnary();
 
     if (peek()?.value === '^') {
       const op = consume();
@@ -330,7 +330,8 @@ function transform(
   return transformNode(cloneNode(ast));
 }
 
-function applyRules(ast: ASTNode, rules: TransformRule[]): ASTNode {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _applyRules(ast: ASTNode, rules: TransformRule[]): ASTNode {
   return transform(ast, (node) => {
     for (const rule of rules) {
       if (matchesPattern(node, rule.pattern)) {
@@ -531,7 +532,7 @@ function generateCode(ast: ASTNode, language: 'javascript' | 'python' | 'c' = 'j
         const [left, right] = node.children || [];
         const leftCode = generate(left);
         const rightCode = generate(right);
-        let op = node.value;
+        const op = node.value;
 
         if (op === '^') {
           if (language === 'javascript') return `Math.pow(${leftCode}, ${rightCode})`;
@@ -616,7 +617,8 @@ function visualizeAST(ast: ASTNode): string {
   return lines.join('\n');
 }
 
-function toJSON(ast: ASTNode): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _toJSON(ast: ASTNode): string {
   return JSON.stringify(ast, null, 2);
 }
 

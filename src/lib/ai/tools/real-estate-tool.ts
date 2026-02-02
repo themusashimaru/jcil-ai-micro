@@ -858,6 +858,7 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
         const noi = grossRent * (1 - vacancyRate) - opex;
 
         const downPayment = (args.purchase_price || 500000) * (args.down_payment_percent || 0.25);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const loanAmount = (args.purchase_price || 500000) - downPayment;
         const monthlyRate = (args.interest_rate || 0.07) / 12;
         const numPayments = (args.loan_term_years || 30) * 12;

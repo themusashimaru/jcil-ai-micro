@@ -45,10 +45,12 @@ interface CameraMotion {
   center: Vector2;          // Center of rotation/zoom
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ObjectMotion {
   velocityMap: Vector2[][]; // Per-pixel velocity vectors
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface BlurKernel {
   offsets: Vector2[];
   weights: number[];

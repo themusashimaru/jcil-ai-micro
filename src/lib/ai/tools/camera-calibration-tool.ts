@@ -342,6 +342,7 @@ class CameraCalibrator {
       const h2 = [H.get(0, 1), H.get(1, 1), H.get(2, 1)];
 
       // v12 constraint
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v12 = h1[0] * h2[0] + h1[1] * h2[1];
 
       // v11 - v22 constraint
@@ -548,8 +549,8 @@ function undistortPoint(
   iterations: number = 10
 ): Point2D {
   // Normalize
-  let xn = (point.x - intrinsics.cx) / intrinsics.fx;
-  let yn = (point.y - intrinsics.cy) / intrinsics.fy;
+  const xn = (point.x - intrinsics.cx) / intrinsics.fx;
+  const yn = (point.y - intrinsics.cy) / intrinsics.fy;
 
   // Initial guess
   let xu = xn;

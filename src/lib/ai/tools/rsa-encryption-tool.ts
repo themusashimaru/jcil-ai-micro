@@ -489,6 +489,7 @@ function rsaDecrypt(c: bigint, d: bigint, n: bigint): bigint {
 }
 
 // CRT decryption (faster)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function rsaDecryptCRT(c: bigint, privateKey: RSAKeyPair['privateKey']): bigint {
   if (!privateKey.p || !privateKey.q || !privateKey.dp || !privateKey.dq || !privateKey.qinv) {
     return rsaDecrypt(c, privateKey.d, privateKey.n);

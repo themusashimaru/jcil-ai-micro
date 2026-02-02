@@ -181,7 +181,7 @@ function analyzeSupplyDemand(
   supplyIntercept: number,
   supplySlope: number,
   price?: number,
-  quantity?: number
+  _quantity?: number
 ): {
   demand_curve: { intercept: number; slope: number; equation: string };
   supply_curve: { intercept: number; slope: number; equation: string };

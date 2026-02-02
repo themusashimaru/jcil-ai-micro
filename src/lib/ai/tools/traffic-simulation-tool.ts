@@ -20,6 +20,7 @@ interface Vehicle {
   type: 'car' | 'truck' | 'motorcycle' | 'bus';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RoadSegment {
   id: string;
   length: number;          // meters
@@ -29,6 +30,7 @@ interface RoadSegment {
   vehicles: Vehicle[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface TrafficSignal {
   id: string;
   position: number;
@@ -38,6 +40,7 @@ interface TrafficSignal {
   phaseTime: number;       // time in current phase
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SimulationConfig {
   duration: number;        // seconds
   timeStep: number;        // seconds

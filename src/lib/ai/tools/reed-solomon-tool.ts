@@ -229,6 +229,7 @@ class ReedSolomonCodec {
     // Systematic encoding: message + parity
     // Parity = -(data * x^nsym) mod generator
     const dataWithParity = [...data, ...new Array(this.nsym).fill(0)];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const dataPoly = new GFPolynomial(data, this.gf);
 
     // Multiply by x^nsym
@@ -542,16 +543,16 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
       const encoded = codec.encode(data);
 
       // Optionally introduce errors for testing
-      let withErrors = encoded;
-      if (error_positions && error_values) {
-        withErrors = [...encoded];
+      const withErrors = error_positions && error_values ? (() => {
+        const errored = [...encoded];
         for (let i = 0; i < Math.min(error_positions.length, error_values.length); i++) {
           const pos = error_positions[i];
-          if (pos >= 0 && pos < withErrors.length) {
-            withErrors[pos] ^= error_values[i];
+          if (pos >= 0 && pos < errored.length) {
+            errored[pos] ^= error_values[i];
           }
         }
-      }
+        return errored;
+      })() : encoded;
 
       const result = {
         operation: 'encode',

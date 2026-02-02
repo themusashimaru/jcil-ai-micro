@@ -10,7 +10,8 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES
 // ============================================================================
 
-interface GameState {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _GameState {
   board: number[][];
   currentPlayer: number;
   gameOver: boolean;
@@ -742,7 +743,8 @@ export async function executealphabeta(toolCall: UnifiedToolCall): Promise<Unifi
         const timeAB = Date.now() - startAB;
 
         // Simple minimax (no pruning) - simulate by setting high exploration count
-        let minimaxNodes = 0;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _minimaxNodes = 0;
         const minimaxNodesEstimate = Math.pow(game.getValidMoves().length, depth);
 
         return {

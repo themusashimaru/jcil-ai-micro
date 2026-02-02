@@ -15,6 +15,7 @@ type NodeState = 'follower' | 'candidate' | 'leader';
 interface LogEntry {
   term: number;
   index: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   command: any;
 }
 
@@ -49,6 +50,7 @@ interface RaftMessage {
   type: 'append_entries' | 'append_entries_response' | 'request_vote' | 'request_vote_response';
   from: string;
   to: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any;
   timestamp: number;
 }
@@ -90,6 +92,7 @@ interface SimulationEvent {
   tick: number;
   event: string;
   nodeId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   details: any;
 }
 
@@ -388,6 +391,7 @@ class RaftNode {
     this.ticksUntilElection = this.randomTimeout(150, 300);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   appendCommand(command: any): LogEntry | null {
     if (this.state.state !== 'leader') {
       return null;
@@ -601,6 +605,7 @@ class RaftClusterSimulator {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private submitCommand(command: any): boolean {
     // Find leader and submit command
     for (const [nodeId, node] of this.nodes) {
@@ -620,6 +625,7 @@ class RaftClusterSimulator {
     return Math.random() < reliability;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private logEvent(nodeId: string, event: string, details: any): void {
     this.events.push({
       tick: this.tick,

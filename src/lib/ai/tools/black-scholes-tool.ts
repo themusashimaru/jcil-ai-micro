@@ -232,7 +232,8 @@ function putCallParity(S: number, K: number, T: number, r: number, sigma: number
  */
 function calculateMoneyness(S: number, K: number, T: number, r: number, sigma: number, q: number = 0) {
   const forward = S * Math.exp((r - q) * T);
-  const { d1, d2 } = calculateD1D2(S, K, T, r, sigma, q);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { d1: _d1, d2 } = calculateD1D2(S, K, T, r, sigma, q);
 
   return {
     spot_moneyness: S / K,

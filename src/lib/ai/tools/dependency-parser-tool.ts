@@ -696,7 +696,8 @@ function initializeParseState(n: number): ParseState {
 
 function parse(tagged: Array<{ form: string; lemma: string; pos: string; features?: Record<string, string> }>): Token[] {
   const n = tagged.length;
-  const state = initializeParseState(n);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _state = initializeParseState(n);
   const tokens: Token[] = tagged.map((t, i) => ({
     id: i + 1,
     form: t.form,

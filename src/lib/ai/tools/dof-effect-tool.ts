@@ -24,6 +24,7 @@ interface RGBPixel {
   b: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface DepthPixel extends RGBPixel {
   depth: number;  // 0 = near, 1 = far
 }

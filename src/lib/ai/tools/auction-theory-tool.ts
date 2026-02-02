@@ -100,7 +100,7 @@ function generateValuations(numBidders: number, distribution: string, maxValue: 
 }
 
 // Optimal bid for first-price sealed-bid auction (risk-neutral)
-function optimalFirstPriceBid(valuation: number, numBidders: number, maxValue: number): number {
+function optimalFirstPriceBid(valuation: number, numBidders: number, _maxValue: number): number {
   // For uniform [0, maxValue] with n bidders: bid = (n-1)/n * valuation
   return ((numBidders - 1) / numBidders) * valuation;
 }
@@ -174,7 +174,7 @@ function simulateEnglish(valuations: number[], increment: number = 1): AuctionRe
   }));
 
   let currentPrice = 0;
-  let activeBidders = new Set(bidders.map(b => b.id));
+  const activeBidders = new Set(bidders.map(b => b.id));
   let lastBidder = -1;
 
   while (activeBidders.size > 1) {

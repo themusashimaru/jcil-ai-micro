@@ -69,7 +69,7 @@ function sha256(message: Uint8Array): Uint8Array {
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
   ]);
 
-  let H = new Uint32Array([
+  const H = new Uint32Array([
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
   ]);
@@ -172,7 +172,7 @@ function sha512(message: Uint8Array): Uint8Array {
     0x4cc5d4becb3e42b6n, 0x597f299cfc657e2an, 0x5fcb6fab3ad6faecn, 0x6c44198c4a475817n
   ];
 
-  let H = [
+  const H = [
     0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn,
     0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
     0x510e527fade682d1n, 0x9b05688c2b3e6c1fn,
@@ -289,7 +289,7 @@ function sha512WithIV(message: Uint8Array, iv: bigint[]): Uint8Array {
     0x4cc5d4becb3e42b6n, 0x597f299cfc657e2an, 0x5fcb6fab3ad6faecn, 0x6c44198c4a475817n
   ];
 
-  let H = [...iv];
+  const H = [...iv];
   const mask64 = 0xffffffffffffffffn;
 
   const msgLen = message.length;
@@ -359,7 +359,7 @@ function sha512WithIV(message: Uint8Array, iv: bigint[]): Uint8Array {
 
 // SHA-1 (legacy, not recommended for security)
 function sha1(message: Uint8Array): Uint8Array {
-  let H = new Uint32Array([
+  const H = new Uint32Array([
     0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0
   ]);
 

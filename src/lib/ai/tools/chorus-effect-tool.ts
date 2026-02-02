@@ -586,7 +586,8 @@ export async function executechoruseffect(toolCall: UnifiedToolCall): Promise<Un
       case 'analyze':
         // Calculate modulation characteristics
         const cycleDurationMs = 1000 / rate;
-        const modulationHz = rate;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _modulationHz = rate;
         const pitchDeviation = depth * rate / 10; // Approximate
 
         result = {

@@ -4,6 +4,8 @@
  * Supports Basic Paxos and Multi-Paxos for distributed consensus
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // ============================================================================

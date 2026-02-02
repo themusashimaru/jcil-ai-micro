@@ -335,7 +335,7 @@ function truePeakLimiter(
 
   // Apply gain
   const output = signal.map((s, i) => {
-    let out = s * gainEnvelope[i];
+    const out = s * gainEnvelope[i];
     return Math.max(-ceilingLin, Math.min(ceilingLin, out));
   });
 
@@ -361,7 +361,7 @@ function truePeakLimiter(
 }
 
 // Calculate loudness (simplified LUFS approximation)
-function calculateLoudness(signal: number[], sampleRate: number): number {
+function calculateLoudness(signal: number[], _sampleRate: number): number {
   // K-weighting filter approximation (simplified)
   // High shelf at 1681 Hz, +4dB
   // High pass at 38 Hz

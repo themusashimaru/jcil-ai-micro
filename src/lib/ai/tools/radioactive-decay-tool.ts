@@ -14,6 +14,7 @@ const AVOGADRO = 6.02214076e23; // mol^-1
 const SECONDS_PER_YEAR = 3.156e7;
 const SECONDS_PER_DAY = 86400;
 const SECONDS_PER_HOUR = 3600;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SECONDS_PER_MINUTE = 60;
 
 // Decay types with their characteristics
@@ -306,6 +307,7 @@ function remainingAmount(N0: number, lambda: number, time: number): number {
 /**
  * Calculate time for amount to decay to fraction
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function timeToDecay(fraction: number, lambda: number): number {
   return -Math.log(fraction) / lambda;
 }
@@ -547,6 +549,7 @@ function simulateDecayChain(
  * Bateman equation for nth member of decay chain
  * Exact solution for chain: A -> B -> C -> ...
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function batemanNth(
   lambdas: number[],
   N0: number,

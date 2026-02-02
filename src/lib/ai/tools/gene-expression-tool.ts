@@ -379,7 +379,7 @@ function normalCDF(x: number): number {
 
 function clusterGenes(
   geneList: string[],
-  expressionData?: NormalizedData[]
+  _expressionData?: NormalizedData[]
 ): {
   genes: string[];
   distance_matrix: number[][];
@@ -666,7 +666,7 @@ function gseaAnalysis(
 
 function getVisualizationData(
   type: string,
-  data?: DEResult[] | NormalizedData[]
+  _data?: DEResult[] | NormalizedData[]
 ): object {
   switch (type) {
     case 'volcano':

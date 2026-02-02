@@ -19,6 +19,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 interface MemoryChunk {
   id: string;
   type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: Record<string, any>;
   activation: number;
   createdAt: number;
@@ -121,7 +122,9 @@ function storeChunk(
 
 interface ACTRProduction {
   name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   conditions: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actions: Array<{ type: string; params: Record<string, any> }>;
   utility: number;
   successCount: number;
@@ -168,6 +171,7 @@ function matchProduction(production: ACTRProduction, buffers: Map<string, ACTRBu
     const buffer = buffers.get(bufferName);
     if (!buffer || !buffer.chunk) return false;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const [slot, value] of Object.entries(condition as Record<string, any>)) {
       if (buffer.chunk.content[slot] !== value) return false;
     }
@@ -267,6 +271,7 @@ function simulateACTR(state: ACTRState, maxCycles: number): {
 // ============================================================================
 
 interface SOARState {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   workingMemory: Map<string, any>;
   operators: SOAROperator[];
   currentOperator: SOAROperator | null;
@@ -381,6 +386,7 @@ interface GWTModule {
   name: string;
   type: 'perception' | 'memory' | 'attention' | 'motor' | 'language' | 'executive';
   activation: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
   broadcastPriority: number;
 }
@@ -388,6 +394,7 @@ interface GWTModule {
 interface GlobalWorkspace {
   modules: Map<string, GWTModule>;
   currentBroadcast: GWTModule | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   broadcastHistory: Array<{ time: number; module: string; content: any }>;
   competitionThreshold: number;
   consciousnessThreshold: number;
@@ -849,7 +856,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const operation = args.operation;
+    const { operation } = args;
     const architecture = args.architecture || 'Global_Workspace';
 
     switch (operation) {
@@ -889,6 +896,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
       }
 
       case 'design': {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let design: any = {};
 
         switch (architecture) {
@@ -1078,6 +1086,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
 
       case 'simulate': {
         const maxSteps = args.maxSteps || 10;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let simulation: any = {};
 
         switch (architecture) {
@@ -1240,6 +1249,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
           };
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let analysis: any = {
           architecture: archInfo.name,
           fullName: archInfo.name

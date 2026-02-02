@@ -23,6 +23,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // GRAMMAR TYPES
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface GrammarRule {
   lhs: string;  // Left-hand side (non-terminal)
   rhs: string[][];  // Right-hand side alternatives (each is array of symbols)

@@ -131,11 +131,13 @@ function exponential(rate: number): number {
 }
 
 // Generate uniform random variable
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function uniform(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
 // Generate normal random variable (Box-Muller)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normal(mean: number, stdDev: number): number {
   const u1 = Math.random();
   const u2 = Math.random();

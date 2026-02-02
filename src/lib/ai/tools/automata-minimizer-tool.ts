@@ -76,16 +76,17 @@ interface NFA {
 }
 
 // Parse DFA from input
-function parseDFA(input: any): DFA {
+function parseDFA(input: unknown): DFA {
+  const dfaInput = input as { states: string[]; alphabet: string[]; transitions: Record<string, Record<string, string>>; start: string; accept: string[] };
   const dfa: DFA = {
-    states: new Set(input.states),
-    alphabet: new Set(input.alphabet),
+    states: new Set(dfaInput.states),
+    alphabet: new Set(dfaInput.alphabet),
     transitions: new Map(),
-    start: input.start,
-    accept: new Set(input.accept)
+    start: dfaInput.start,
+    accept: new Set(dfaInput.accept)
   };
 
-  for (const [state, trans] of Object.entries(input.transitions)) {
+  for (const [state, trans] of Object.entries(dfaInput.transitions)) {
     const stateTransitions = new Map<string, string>();
     for (const [symbol, next] of Object.entries(trans as Record<string, string>)) {
       stateTransitions.set(symbol, next);
@@ -97,16 +98,17 @@ function parseDFA(input: any): DFA {
 }
 
 // Parse NFA from input
-function parseNFA(input: any): NFA {
+function parseNFA(input: unknown): NFA {
+  const nfaInput = input as { states: string[]; alphabet: string[]; transitions: Record<string, Record<string, string[]>>; start: string; accept: string[] };
   const nfa: NFA = {
-    states: new Set(input.states),
-    alphabet: new Set(input.alphabet),
+    states: new Set(nfaInput.states),
+    alphabet: new Set(nfaInput.alphabet),
     transitions: new Map(),
-    start: input.start,
-    accept: new Set(input.accept)
+    start: nfaInput.start,
+    accept: new Set(nfaInput.accept)
   };
 
-  for (const [state, trans] of Object.entries(input.transitions)) {
+  for (const [state, trans] of Object.entries(nfaInput.transitions)) {
     const stateTransitions = new Map<string, Set<string>>();
     for (const [symbol, nexts] of Object.entries(trans as Record<string, string[]>)) {
       stateTransitions.set(symbol, new Set(nexts));
@@ -851,8 +853,8 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
             operation: 'test',
             automaton_type: automatonType,
             results,
-            accepted_count: results.filter((r: any) => r.accepted).length,
-            rejected_count: results.filter((r: any) => !r.accepted).length
+            accepted_count: results.filter((r: { accepted: boolean }) => r.accepted).length,
+            rejected_count: results.filter((r: { accepted: boolean }) => !r.accepted).length
           }, null, 2)
         };
       }

@@ -90,6 +90,7 @@ function complexPhase(c: Complex): number {
   return Math.atan2(c.im, c.re);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function complexFromPolar(mag: number, phase: number): Complex {
   return { re: mag * Math.cos(phase), im: mag * Math.sin(phase) };
 }

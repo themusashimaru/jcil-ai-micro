@@ -958,7 +958,9 @@ function analyzeStakingEconomics(args: Record<string, unknown>): Record<string, 
   const realYieldForStakers = (stakingApy * 100) - (effectiveInflation * (1 - stakingRatio));
 
   // Lock period economics
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lockPeriodMonths = lockPeriodDays / 30;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const opportunityCost = lockPeriodDays * 0.0001; // Simplified opportunity cost
 
   // Staking equilibrium analysis

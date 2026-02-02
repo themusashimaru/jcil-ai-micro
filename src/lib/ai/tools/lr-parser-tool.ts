@@ -239,10 +239,12 @@ function lr1ItemToString(item: LR1Item): string {
   return `[${item.production.lhs} -> ${rhs.join(' ') || '•'}, ${item.lookahead}]`;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function itemsEqual(a: LR0Item, b: LR0Item): boolean {
   return a.production.index === b.production.index && a.dotPosition === b.dotPosition;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function lr1ItemsEqual(a: LR1Item, b: LR1Item): boolean {
   return itemsEqual(a, b) && a.lookahead === b.lookahead;
 }
@@ -341,12 +343,14 @@ function lr1Goto(items: LR1Item[], symbol: string, grammar: Grammar, first: Map<
   return lr1Closure(moved, grammar, first);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function statesEqual(a: LR0Item[], b: LR0Item[]): boolean {
   if (a.length !== b.length) return false;
   const bStrings = new Set(b.map(itemToString));
   return a.every(item => bStrings.has(itemToString(item)));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function lr1StatesEqual(a: LR1Item[], b: LR1Item[]): boolean {
   if (a.length !== b.length) return false;
   const bStrings = new Set(b.map(lr1ItemToString));

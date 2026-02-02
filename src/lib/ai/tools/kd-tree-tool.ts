@@ -118,6 +118,7 @@ function distanceSquared(a: number[], b: number[]): number {
 }
 
 // Manhattan distance
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function manhattanDistance(a: number[], b: number[]): number {
   let sum = 0;
   for (let i = 0; i < a.length; i++) {
@@ -300,6 +301,7 @@ function balanceFactor(node: KDNode | null): number {
 }
 
 // Get all points from tree (in-order traversal)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getAllPoints(node: KDNode | null, points: { point: number[]; index: number }[]): void {
   if (node === null) return;
   getAllPoints(node.left, points);
@@ -338,6 +340,7 @@ function visualizeTree(node: KDNode | null, prefix: string = '', isLast: boolean
   lines.push(`${prefix}${connector}[d${node.splitDimension}] (${node.point.map(v => v.toFixed(2)).join(', ')})`);
 
   const children: (KDNode | null)[] = [node.left, node.right];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const childLabels = ['L', 'R'];
 
   for (let i = 0; i < children.length; i++) {

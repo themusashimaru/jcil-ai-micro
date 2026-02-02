@@ -106,6 +106,7 @@ function matIdentity(n: number): Matrix {
   return I;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function tensorProduct(A: Matrix, B: Matrix): Matrix {
   const m1 = A.length, n1 = A[0].length;
   const m2 = B.length, n2 = B[0].length;
@@ -636,7 +637,8 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
           };
         }
 
-        const result: any = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: Record<string, any> = {
           operation: 'matrix',
           gate: {
             name: gateDef.name,
@@ -702,7 +704,8 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
 
         const composed = composeGates(gateDefs);
 
-        const result: any = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: Record<string, any> = {
           operation: 'compose',
           gates: gateNames,
           compositionOrder: 'Right-to-left (matrix multiplication)',
@@ -758,7 +761,8 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
         const inverse = gateInverse(gateDef);
         const isSelfInverse = gateDef.properties.includes('Self-inverse');
 
-        const result: any = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: Record<string, any> = {
           operation: 'inverse',
           originalGate: gateDef.name,
           inverseGate: inverse.name,
@@ -797,7 +801,8 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
 
         const decomposition = decomposeToUniversalSet(gateName.toUpperCase());
 
-        const result: any = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: Record<string, any> = {
           operation: 'decompose',
           ...decomposition,
           universalSet: '{H, T, CNOT}',
@@ -859,7 +864,8 @@ export async function executequantumgate(toolCall: UnifiedToolCall): Promise<Uni
 
         const controlled = controlGate(gateDef);
 
-        const result: any = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: Record<string, any> = {
           operation: 'controlled',
           originalGate: gateDef.name,
           controlledGate: controlled.name,

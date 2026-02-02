@@ -203,11 +203,13 @@ function rasterizeTriangle(buffer: ZBuffer, triangle: Triangle, stats: DepthStat
 // DEPTH OPERATIONS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function linearizeDepth(depth: number, near: number, far: number): number {
   // Convert from [0,1] NDC depth to linear view space depth
   return (2.0 * near * far) / (far + near - depth * (far - near));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalizeDepth(z: number, near: number, far: number): number {
   // Convert linear z to [0,1] range
   return (z - near) / (far - near);
@@ -359,6 +361,7 @@ function buildHierarchicalZBuffer(buffer: ZBuffer): HierarchicalZBuffer {
   return { levels, levelWidths, levelHeights };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function hierarchicalOcclusionTest(
   hzb: HierarchicalZBuffer,
   minX: number, minY: number, maxX: number, maxY: number,
@@ -517,6 +520,7 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
           fragmentsWritten: 0, fragmentsRejected: 0, overdraw: 0
         };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const inputTriangles: Triangle[] = (triangles || []).map((t: any, i: number) => ({
           v0: t.v0, v1: t.v1, v2: t.v2,
           color: t.color || { r: 255, g: 255, b: 255 },

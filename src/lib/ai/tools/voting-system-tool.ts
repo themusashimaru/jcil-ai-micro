@@ -680,7 +680,7 @@ function starVoting(election: Election, maxScore: number = 5): ElectionResult {
   }
 
   // Runoff: head-to-head between top 2
-  let votes = { [top2[0]]: 0, [top2[1]]: 0 };
+  const votes = { [top2[0]]: 0, [top2[1]]: 0 };
 
   for (const ballot of election.ballots) {
     let score0: number, score1: number;

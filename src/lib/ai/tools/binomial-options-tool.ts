@@ -239,7 +239,8 @@ class BinomialTree {
     if (this.T > dT) {
       const treeTheta = new BinomialTree(this.S, this.K, this.T - dT, this.r, this.sigma, this.q, this.n);
       const priceTheta = isAmerican ? treeTheta.priceAmerican(isCall).price : treeTheta.priceEuropean(isCall);
-      const theta = (priceTheta - basePrice);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _theta = (priceTheta - basePrice);
     }
 
     // Vega: ∂V/∂σ (per 1% change)

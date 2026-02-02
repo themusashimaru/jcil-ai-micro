@@ -55,6 +55,7 @@ interface Point2D {
 }
 
 // 3D Point type
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Point3D {
   x: number;
   y: number;
@@ -428,7 +429,8 @@ function computeHull(points: Point2D[], algorithm: string): {
   algorithm_used: string;
   comparisons: number;
 } {
-  const startTime = Date.now();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _startTime = Date.now();
 
   let hull: Point2D[];
   let algoUsed = algorithm;

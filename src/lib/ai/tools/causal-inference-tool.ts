@@ -421,6 +421,7 @@ function estimateATEipw(
  * Doubly Robust Estimation (AIPW)
  * Combines outcome modeling and propensity score weighting
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function estimateATEDoublyRobust(
   treatment: number[],
   outcome: number[],

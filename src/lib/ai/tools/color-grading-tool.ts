@@ -529,6 +529,7 @@ class LUTProcessor {
 
     // Build 3D array
     const data: number[][][] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let idx = 0;
 
     for (let r = 0; r < size; r++) {
@@ -668,6 +669,7 @@ class CurveProcessor {
    * Create S-curve for contrast
    */
   static createSCurve(intensity: number): CurvePoint[] {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const mid = 0.5;
     const offset = intensity * 0.2;
 

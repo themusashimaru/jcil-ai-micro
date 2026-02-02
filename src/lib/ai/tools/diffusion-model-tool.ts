@@ -429,6 +429,7 @@ function computeTrainingLoss(
 /**
  * Sample random timesteps for training
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function sampleTimesteps(batch_size: number, max_t: number): number[] {
   return Array(batch_size).fill(0).map(() => Math.floor(Math.random() * max_t));
 }
@@ -440,13 +441,14 @@ function sampleTimesteps(batch_size: number, max_t: number): number[] {
 /**
  * Generate samples using full reverse diffusion
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateSamples(
   dimensions: number,
   num_samples: number,
   schedule: NoiseSchedule,
-  scheduler: string,
   num_inference_steps: number,
   predictNoise: (x: number[], t: number) => number[],
+  scheduler: string,
   guidance_scale?: number,
   predictNoiseUncond?: (x: number[], t: number) => number[]
 ): number[][] {
@@ -524,6 +526,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
       num_inference_steps = 50
     } = args;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

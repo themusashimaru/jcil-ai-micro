@@ -481,12 +481,9 @@ function hmac(algorithm: string, key: number[], message: number[]): number[] {
   const blockSize = algorithm.startsWith('SHA-384') || algorithm.startsWith('SHA-512') ? 128 : 64;
 
   // Key preprocessing
-  let keyBytes: number[];
-  if (key.length > blockSize) {
-    keyBytes = computeHash(algorithm, key);
-  } else {
-    keyBytes = [...key];
-  }
+  const keyBytes: number[] = key.length > blockSize
+    ? computeHash(algorithm, key)
+    : [...key];
 
   // Pad key to block size
   while (keyBytes.length < blockSize) {

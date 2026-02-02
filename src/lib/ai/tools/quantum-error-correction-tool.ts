@@ -148,6 +148,7 @@ function applyH(state: StateVector, qubit: number, numQubits: number): StateVect
 }
 
 // Two qubit gates
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function applyCNOT(state: StateVector, control: number, target: number, numQubits: number): StateVector {
   const newState = copyState(state);
   const size = 1 << numQubits;
@@ -242,7 +243,7 @@ function encodeRepetition(logicalState: StateVector): { state: StateVector; numQ
   // |0⟩ → |000⟩, |1⟩ → |111⟩
   // Input is 1 qubit, output is 3 qubits
   const numQubits = 3;
-  let state = createZeroState(numQubits);
+  const state = createZeroState(numQubits);
 
   // Apply encoding based on logical state
   // Assumes logicalState is a superposition of |0⟩ and |1⟩
@@ -554,13 +555,13 @@ function measureSteaneSyndrome(state: StateVector): {
 
   // In ideal case, all codewords should have same phase
   // Phase errors cause sign flips
-  let phaseError = false;
+  let _phaseError = false;
   for (let i = 0; i < STEANE_ZERO_CODEWORDS.length; i++) {
     const cw = STEANE_ZERO_CODEWORDS[i];
     if (Math.abs(state[cw].re) > 0.01 || Math.abs(state[cw].im) > 0.01) {
       // Check sign consistency
       if (state[cw].re < 0 && state[0].re > 0) {
-        phaseError = true;
+        _phaseError = true;
         // Determine which qubit has phase error based on Hamming weight difference
         const diff = cw ^ STEANE_ZERO_CODEWORDS[0];
         for (let bit = 0; bit < 7; bit++) {

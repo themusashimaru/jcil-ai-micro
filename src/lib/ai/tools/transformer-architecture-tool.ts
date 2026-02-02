@@ -290,6 +290,7 @@ function gelu(x: number): number {
 /**
  * SwiGLU activation (used in LLaMA)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function swiglu(x: number, gate: number): number {
   return x * (gate / (1 + Math.exp(-gate)));
 }

@@ -18,7 +18,8 @@ interface BloomFilterStats {
   falsePositiveRate: number;  // Current estimated FPR
 }
 
-interface BloomFilterConfig {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _BloomFilterConfig {
   expectedElements: number;
   falsePositiveRate: number;
   size?: number;

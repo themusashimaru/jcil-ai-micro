@@ -10,7 +10,9 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // CONSTANTS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SPEED_OF_LIGHT = 299792458; // m/s
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const HBAR = 1.054571817e-34; // J·s
 const ALPHA_EM = 1 / 137.036; // Fine structure constant
 const ALPHA_S = 0.118; // Strong coupling (at M_Z)

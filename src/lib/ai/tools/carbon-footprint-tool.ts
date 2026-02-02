@@ -230,6 +230,7 @@ const OFFSET_PROJECTS: OffsetProject[] = [
 // LIFECYCLE ASSESSMENT DATA
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface LifecycleStage {
   name: string;
   percentageRange: [number, number];

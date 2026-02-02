@@ -47,6 +47,7 @@ export const chaostheoryTool: UnifiedTool = {
 // TYPE DEFINITIONS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SystemState {
   state: number[];
   time: number;
@@ -225,6 +226,7 @@ function rk4Step(
 function simulateSystem(
   system: string,
   initialState: number[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any,
   timesteps: number,
   dt: number
@@ -317,6 +319,7 @@ function simulateSystem(
 function computeLyapunovExponent(
   system: string,
   initialState: number[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any,
   timesteps: number,
   dt: number
@@ -363,6 +366,7 @@ function computeLogisticLyapunov(x0: number, r: number, iterations: number): Lya
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function computeHenonLyapunov(initialState: number[], params: any, iterations: number): LyapunovResult {
   const a = params.a || 1.4;
   const b = params.b || 0.3;
@@ -418,6 +422,7 @@ function computeHenonLyapunov(initialState: number[], params: any, iterations: n
 function computeContinuousLyapunov(
   system: string,
   initialState: number[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any,
   timesteps: number,
   dt: number
@@ -540,6 +545,7 @@ function computeBifurcationDiagram(
   paramName: string,
   paramRange: [number, number],
   paramSteps: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any,
   initialState: number[]
 ): { paramValues: number[]; attractorPoints: number[][] } {
@@ -593,6 +599,7 @@ function computeBifurcationDiagram(
 function sensitivityAnalysis(
   system: string,
   initialState: number[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: any,
   perturbation: number,
   timesteps: number,
@@ -728,6 +735,7 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
 
     const initialState = initial_state || defaultStates[system] || [1, 1, 1];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

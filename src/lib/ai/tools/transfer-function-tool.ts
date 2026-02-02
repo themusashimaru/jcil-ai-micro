@@ -87,6 +87,7 @@ function complexFromPolar(r: number, theta: number): Complex {
   return { real: r * Math.cos(theta), imag: r * Math.sin(theta) };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function complexSqrt(c: Complex): Complex {
   const r = complexAbs(c);
   const theta = complexArg(c);
@@ -112,6 +113,7 @@ function polyEval(coeffs: number[], x: number): number {
 }
 
 // Polynomial derivative
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function polyDerivative(coeffs: number[]): number[] {
   if (coeffs.length <= 1) return [0];
   const deriv: number[] = [];

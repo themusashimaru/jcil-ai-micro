@@ -269,7 +269,7 @@ function variableElimination(
 
   const factors: Factor[] = [];
 
-  for (const [, node] of network.nodes) {
+  for (const [_nodeName, node] of network.nodes) {
     const factor: Factor = {
       variables: [node.name, ...node.parents],
       values: new Map()
@@ -328,7 +328,7 @@ function variableElimination(
   }
 
   // Multiply remaining factors
-  let result = multiplyFactors(factors);
+  const result = multiplyFactors(factors);
 
   // Normalize
   let sum = 0;
@@ -812,7 +812,7 @@ function analyzeNetworkStructure(network: BayesianNetwork): Record<string, unkno
   const nodes = Array.from(network.nodes.keys());
   const rootNodes = nodes.filter(n => network.nodes.get(n)!.parents.length === 0);
   const leafNodes = nodes.filter(n => {
-    for (const [, node] of network.nodes) {
+    for (const [_nodeName, node] of network.nodes) {
       if (node.parents.includes(n)) return false;
     }
     return true;

@@ -590,7 +590,7 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
       tolerance = 0.001
     } = args;
 
-    let result: object;
+    let result: object = {};
 
     switch (operation) {
       case 'info':

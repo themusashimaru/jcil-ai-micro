@@ -149,7 +149,7 @@ function dijkstra(
     // Check all neighbors
     for (const link of topology.links) {
       let neighbor: string | null = null;
-      let cost = link.cost;
+      const cost = link.cost;
 
       if (link.from === current && !visited.has(link.to)) {
         neighbor = link.to;

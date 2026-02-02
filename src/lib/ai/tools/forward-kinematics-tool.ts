@@ -84,6 +84,7 @@ function dhTransform(dh: DHParams, jointValue: number): Matrix4 {
 }
 
 // Create rotation matrix about X axis
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function rotX(angle: number): Matrix4 {
   const c = Math.cos(angle);
   const s = Math.sin(angle);
@@ -96,6 +97,7 @@ function rotX(angle: number): Matrix4 {
 }
 
 // Create rotation matrix about Y axis
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function rotY(angle: number): Matrix4 {
   const c = Math.cos(angle);
   const s = Math.sin(angle);
@@ -108,6 +110,7 @@ function rotY(angle: number): Matrix4 {
 }
 
 // Create rotation matrix about Z axis
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function rotZ(angle: number): Matrix4 {
   const c = Math.cos(angle);
   const s = Math.sin(angle);
@@ -120,6 +123,7 @@ function rotZ(angle: number): Matrix4 {
 }
 
 // Create translation matrix
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function translate(x: number, y: number, z: number): Matrix4 {
   return [
     [1, 0, 0, x],
@@ -304,6 +308,7 @@ const robots: Record<string, RobotConfig> = {
 // Generate workspace samples
 function sampleWorkspace(dhParams: DHParams[], samples: number = 100): Vec3[] {
   const points: Vec3[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const n = dhParams.length;
 
   for (let i = 0; i < samples; i++) {

@@ -936,7 +936,7 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const sceneCenter = { x: 0, y: 1.5, z: 0 };
         const sceneRadius = 15;
 
-        const { view, projection, viewProjection } = LightSpaceCalculator.calculateLVP(
+        const { view: _view, projection: _projection, viewProjection } = LightSpaceCalculator.calculateLVP(
           defaultLight,
           sceneCenter,
           sceneRadius,
@@ -988,7 +988,7 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const sceneCenter = { x: 0, y: 1.5, z: 0 };
         const sceneRadius = 15;
 
-        const { view, projection, viewProjection } = LightSpaceCalculator.calculateLVP(
+        const { view: _view, projection: _projection, viewProjection } = LightSpaceCalculator.calculateLVP(
           defaultLight,
           sceneCenter,
           sceneRadius,

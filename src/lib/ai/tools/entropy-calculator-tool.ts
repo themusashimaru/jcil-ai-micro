@@ -243,7 +243,7 @@ function estimateEntropyFromData(data: string, base: '2' | 'e' | '10' = '2'): {
 }
 
 // Compression bound based on entropy
-function compressionBound(data: string, base: '2' | 'e' | '10' = '2'): {
+function compressionBound(data: string, _base: '2' | 'e' | '10' = '2'): {
   originalBits: number;
   entropyBits: number;
   compressionRatio: number;

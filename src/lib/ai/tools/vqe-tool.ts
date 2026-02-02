@@ -478,7 +478,7 @@ function applyAnsatz(
   numElectrons: number = 2
 ): StateVector {
   // Start with Hartree-Fock state
-  let currentState = applyHartreeFockState(state, config.numQubits, numElectrons);
+  const currentState = applyHartreeFockState(state, config.numQubits, numElectrons);
 
   switch (config.type) {
     case 'UCCSD':
@@ -597,7 +597,7 @@ function gradientDescent(
   tolerance: number = 1e-6,
   numElectrons: number = 2
 ): OptimizationResult {
-  let parameters = [...initialParams];
+  const parameters = [...initialParams];
   const convergenceHistory: number[] = [];
   let prevEnergy = Infinity;
   const epsilon = 0.01; // For numerical gradient
@@ -685,7 +685,7 @@ function cobyla(
     return computeEnergy(state, hamiltonian);
   };
 
-  let values = simplex.map(evaluateEnergy);
+  const values = simplex.map(evaluateEnergy);
   const convergenceHistory: number[] = [Math.min(...values)];
 
   for (let iter = 0; iter < maxIterations; iter++) {

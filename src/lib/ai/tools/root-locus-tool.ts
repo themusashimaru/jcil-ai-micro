@@ -42,6 +42,7 @@ function complexMagnitude(c: Complex): number {
   return Math.sqrt(c.real * c.real + c.imag * c.imag);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function complexPhase(c: Complex): number {
   return Math.atan2(c.imag, c.real);
 }
@@ -50,6 +51,7 @@ function complexFromPolar(mag: number, phase: number): Complex {
   return { real: mag * Math.cos(phase), imag: mag * Math.sin(phase) };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function complexScale(c: Complex, s: number): Complex {
   return { real: c.real * s, imag: c.imag * s };
 }

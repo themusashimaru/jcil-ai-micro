@@ -85,6 +85,7 @@ function add(a: Vec3, b: Vec3): Vec3 {
   return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function sub(a: Vec3, b: Vec3): Vec3 {
   return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
@@ -139,14 +140,17 @@ function vec3ToColor(v: Vec3): Color {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function addColor(a: Color, b: Color): Color {
   return { r: a.r + b.r, g: a.g + b.g, b: a.b + b.b };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function scaleColor(c: Color, s: number): Color {
   return { r: c.r * s, g: c.g * s, b: c.b * s };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function clampColor(c: Color): Color {
   return {
     r: Math.max(0, Math.min(255, Math.round(c.r))),

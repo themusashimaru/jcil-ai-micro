@@ -158,6 +158,7 @@ function potentialTemperature(tempK: number, pressure: number): number {
 /**
  * Calculate Coriolis parameter
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function coriolisParameter(latitude: number): number {
   return 2 * CONSTANTS.omega * Math.sin(latitude * Math.PI / 180);
 }

@@ -29,6 +29,7 @@ function cAdd(a: Complex, b: Complex): Complex {
   return { re: a.re + b.re, im: a.im + b.im };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
@@ -476,6 +477,7 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
         const finalProbs = getProbabilities(result.finalState);
         const markedProbability = markedStates.reduce((sum: number, idx: number) => sum + finalProbs[idx], 0);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response: any = {
           operation: 'simulate',
           configuration: {

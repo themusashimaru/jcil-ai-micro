@@ -172,6 +172,7 @@ for (const b1 of DNA_BASES) {
 }
 
 // Handle ambiguous bases
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const AMBIGUOUS_DNA: Record<string, string[]> = {
   'N': ['A', 'C', 'G', 'T'],
   'R': ['A', 'G'],

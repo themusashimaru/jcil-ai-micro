@@ -211,7 +211,8 @@ function detectCycleRAG(edges: RAGEdge[], processes: string[], resources: string
   // DFS for cycle detection
   const WHITE = 0, GRAY = 1, BLACK = 2;
   const color = new Map<string, number>();
-  const parent = new Map<string, string>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _parent = new Map<string, string>();
 
   for (const node of graph.keys()) {
     color.set(node, WHITE);

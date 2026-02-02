@@ -78,6 +78,7 @@ interface EdgeEquation {
 // VECTOR OPERATIONS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3(x: number, y: number, z: number): Vec3 {
   return { x, y, z };
 }
@@ -180,6 +181,7 @@ function isInsideTriangle(bary: Vec3): boolean {
   return bary.x >= 0 && bary.y >= 0 && bary.z >= 0;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function interpolateAttribute<T extends { [K in keyof T]: number }>(
   bary: Vec3,
   a0: T,
@@ -188,6 +190,7 @@ function interpolateAttribute<T extends { [K in keyof T]: number }>(
 ): T {
   const result = {} as T;
   for (const key of Object.keys(a0) as (keyof T)[]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (result as any)[key] = (a0[key] as number) * bary.x +
                           (a1[key] as number) * bary.y +
                           (a2[key] as number) * bary.z;
@@ -325,6 +328,7 @@ function rasterizeTriangleBarycentric(
 // SCANLINE RASTERIZATION
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Edge {
   yMin: number;
   yMax: number;
@@ -344,7 +348,7 @@ function rasterizeTriangleScanline(
   const fragments: Fragment[] = [];
 
   // Sort vertices by y coordinate
-  let vertices = [v0, v1, v2].sort((a, b) => a.position.y - b.position.y);
+  const vertices = [v0, v1, v2].sort((a, b) => a.position.y - b.position.y);
 
   const [top, mid, bot] = vertices;
   const yStart = Math.max(0, Math.ceil(top.position.y));

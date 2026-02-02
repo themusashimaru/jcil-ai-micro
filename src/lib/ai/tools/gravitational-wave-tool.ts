@@ -92,6 +92,7 @@ function symmetricMassRatio(m1: number, m2: number): number {
 /**
  * Reduced mass: μ = m1*m2/(m1+m2)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function reducedMass(m1: number, m2: number): number {
   return (m1 * m2) / (m1 + m2);
 }
@@ -377,6 +378,7 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
     const f_isco = iscoFrequencyKerr(M_total, (spin1 + spin2) / 2);
     const f_end_actual = f_end || f_isco;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

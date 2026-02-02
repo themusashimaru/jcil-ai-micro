@@ -16,7 +16,9 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 // Physical constants
 const KB = 1.380649e-23;  // Boltzmann constant (J/K)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const NA = 6.02214076e23; // Avogadro's number
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const KCAL_TO_JOULE = 4184;
 
 // Force field parameters (simplified AMBER-like)
@@ -148,6 +150,7 @@ function vecNormalize(v: [number, number, number]): [number, number, number] {
   return n > 0 ? vecScale(v, 1/n) : [0, 0, 0];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vecCross(a: [number, number, number], b: [number, number, number]): [number, number, number] {
   return [
     a[1] * b[2] - a[2] * b[1],

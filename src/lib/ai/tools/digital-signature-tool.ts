@@ -804,7 +804,7 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
         // Simple prime generation for demo
         const genPrime = (): bigint => {
           for (let i = 0; i < 1000; i++) {
-            let n = randomBigInt(bits / 2) | 1n;
+            const n = randomBigInt(bits / 2) | 1n;
             // Simple primality test
             let isPrime = true;
             for (let d = 3n; d * d <= n && d < 1000n; d += 2n) {

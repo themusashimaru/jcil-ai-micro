@@ -15,7 +15,9 @@ const BARN_TO_M2 = 1e-28; // 1 barn = 10^-28 m²
 const MEV_TO_JOULES = 1.60218e-13;
 
 // Neutron energy groups (simplified two-group)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const THERMAL_ENERGY = 0.025; // eV (at room temperature)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const FAST_ENERGY = 2e6; // eV (2 MeV typical fission neutron)
 
 // ============================================================================
@@ -248,7 +250,7 @@ interface FourFactors {
 function calculateFourFactors(
   enrichment: number, // fraction of U-235
   moderatorRatio: number, // moderator atoms per fuel atom
-  temperature: number = 600 // Kelvin
+  _temperature: number = 600 // Kelvin
 ): FourFactors {
   const u235 = NUCLIDES['U-235'];
   const u238 = NUCLIDES['U-238'];

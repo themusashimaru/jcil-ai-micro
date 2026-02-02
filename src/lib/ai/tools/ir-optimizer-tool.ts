@@ -33,6 +33,7 @@ interface BasicBlock {
   liveOut?: Set<string>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface CFG {
   entry: string;
   exit: string;

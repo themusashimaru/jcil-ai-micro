@@ -225,6 +225,7 @@ function co2Forcing(co2_ppm: number): number {
  * Calculate radiative forcing from CH4 concentration
  * Simplified: ΔF ≈ 0.036 * (√M - √M₀) W/m²
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ch4Forcing(ch4_ppb: number, ch4_preindustrial: number = 722): number {
   return 0.036 * (Math.sqrt(ch4_ppb) - Math.sqrt(ch4_preindustrial));
 }
@@ -233,6 +234,7 @@ function ch4Forcing(ch4_ppb: number, ch4_preindustrial: number = 722): number {
  * Calculate radiative forcing from N2O concentration
  * Simplified: ΔF ≈ 0.12 * (√N - √N₀) W/m²
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function n2oForcing(n2o_ppb: number, n2o_preindustrial: number = 270): number {
   return 0.12 * (Math.sqrt(n2o_ppb) - Math.sqrt(n2o_preindustrial));
 }
@@ -407,7 +409,7 @@ interface SeaLevelState {
 function projectSeaLevel(
   tempAnomalyTimeseries: number[],
   years: number[],
-  baseYear: number = 2020
+  _baseYear: number = 2020
 ): SeaLevelState[] {
   const states: SeaLevelState[] = [];
 
@@ -545,12 +547,14 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
       emissions_gtc = 10,
       initial_temp_anomaly = CONSTANTS.CURRENT_ANOMALY,
       climate_sensitivity = 3.0,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       ocean_heat_capacity
     } = args;
 
     const scenarioData = SCENARIOS[scenario] || SCENARIOS['SSP2-4.5'];
     const years = end_year - base_year;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
 
     switch (operation) {

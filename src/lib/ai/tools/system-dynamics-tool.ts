@@ -159,7 +159,7 @@ function runSimulation(
   }
 
   // Initialize stocks
-  for (const [name, stock] of model.stocks) {
+  for (const [_name, stock] of model.stocks) {
     stock.value = stock.initialValue;
   }
 

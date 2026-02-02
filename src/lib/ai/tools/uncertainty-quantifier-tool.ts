@@ -45,6 +45,7 @@ function quantile(arr: number[], q: number): number {
 }
 
 // Normal distribution functions
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function normalCDF(x: number, mu: number = 0, sigma: number = 1): number {
   const z = (x - mu) / sigma;
   // Approximation using error function
@@ -128,6 +129,7 @@ function tPPF(p: number, df: number): number {
 }
 
 // Chi-squared distribution (for df calculation)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function chiSquaredPPF(p: number, df: number): number {
   // Simple approximation using Wilson-Hilferty transformation
   const z = normalPPF(p);
@@ -136,6 +138,7 @@ function chiSquaredPPF(p: number, df: number): number {
 }
 
 // Beta distribution functions (for Bayesian)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function betaPDF(x: number, alpha: number, beta: number): number {
   if (x <= 0 || x >= 1) return 0;
   const B = (gamma(alpha) * gamma(beta)) / gamma(alpha + beta);

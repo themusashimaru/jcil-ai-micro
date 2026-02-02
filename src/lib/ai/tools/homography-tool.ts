@@ -17,6 +17,11 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPE DEFINITIONS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface HomographyMatrix {
+  data: number[][]; // 3x3 matrix
+}
+
 interface Point2D {
   x: number;
   y: number;
@@ -25,10 +30,6 @@ interface Point2D {
 interface PointCorrespondence {
   src: Point2D;
   dst: Point2D;
-}
-
-interface HomographyMatrix {
-  data: number[][]; // 3x3 matrix
 }
 
 interface HomographyResult {
@@ -139,6 +140,7 @@ function transpose(A: number[][]): number[][] {
 /**
  * Frobenius norm
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function frobeniusNorm(A: number[][]): number {
   let sum = 0;
   for (let i = 0; i < A.length; i++) {
@@ -183,6 +185,7 @@ function cross(a: number[], b: number[]): number[] {
 /**
  * Dot product
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function dot(a: number[], b: number[]): number {
   let sum = 0;
   for (let i = 0; i < a.length; i++) {
@@ -866,6 +869,7 @@ function transformLine(H: number[][], line: number[]): number[] | null {
 /**
  * Compute line from two points
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function lineFromPoints(p1: Point2D, p2: Point2D): number[] {
   // Cross product of homogeneous points
   const h1 = [p1.x, p1.y, 1];
@@ -876,6 +880,7 @@ function lineFromPoints(p1: Point2D, p2: Point2D): number[] {
 /**
  * Compute intersection of two lines
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function lineIntersection(l1: number[], l2: number[]): Point2D | null {
   const h = cross(l1, l2);
   if (Math.abs(h[2]) < 1e-10) return null; // Parallel lines

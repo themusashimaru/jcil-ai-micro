@@ -491,12 +491,13 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
 
   function evaluate(node: ASTNode): unknown {
     switch (node.type) {
-      case 'Program':
+      case 'Program': {
         let result: unknown;
         for (const stmt of node.body || []) {
           result = evaluate(stmt);
         }
         return result;
+      }
 
       case 'Literal':
         return node.value;
@@ -514,10 +515,11 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
         env.variables.set(node.name!, evaluate(node.value!));
         return undefined;
 
-      case 'Assignment':
+      case 'Assignment': {
         const value = evaluate(node.value!);
         setVar(env, node.name!, value);
         return value;
+      }
 
       case 'FunctionDecl':
         env.functions.set(node.name!, { params: node.params!, body: node.body! });
@@ -555,18 +557,20 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
       case 'Return':
         return node.value ? evaluate(node.value) : undefined;
 
-      case 'Block':
+      case 'Block': {
         const blockEnv: Environment = { variables: new Map(), functions: new Map(), parent: env };
         let blockResult: unknown;
         for (const stmt of node.body || []) {
           blockResult = evaluate(stmt);
         }
         return blockResult;
+      }
 
-      case 'Print':
+      case 'Print': {
         const printVal = evaluate(node.value!);
         output.push(String(printVal));
         return printVal;
+      }
 
       default:
         throw new Error(`Unknown node type: ${node.type}`);
@@ -864,10 +868,11 @@ function runBytecode(instructions: Instruction[]): { value: unknown; output: str
         }
         break;
 
-      case 'PRINT':
+      case 'PRINT': {
         const val = vm.stack.pop();
         output.push(String(val));
         break;
+      }
 
       case 'POP':
         vm.stack.pop();
@@ -1029,7 +1034,7 @@ function evaluateExpression(args: Record<string, unknown>): Record<string, unkno
   };
 }
 
-function simulateREPL(args: Record<string, unknown>): Record<string, unknown> {
+function simulateREPL(_args: Record<string, unknown>): Record<string, unknown> {
   const commands = [
     'var x = 10',
     'var y = 20',

@@ -86,6 +86,7 @@ function vec3Scale(v: Point3D, s: number): Point3D {
   return { x: v.x * s, y: v.y * s, z: v.z * s };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function vec3Dot(a: Point3D, b: Point3D): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }

@@ -230,10 +230,10 @@ class FXAAFilter {
     const gradient2 = Math.abs(luma2 - lC);
 
     const is1Steeper = gradient1 >= gradient2;
-    const stepLength = isHorizontal ? 1 / image.height : 1 / image.width;
+    const _stepLength = isHorizontal ? 1 / image.height : 1 / image.width;
 
-    let localAvg = (luma1 + luma2) * 0.5;
-    let gradient = (gradient1 + gradient2) * 0.5;
+    const _localAvg = (luma1 + luma2) * 0.5;
+    const _gradient = (gradient1 + gradient2) * 0.5;
 
     // Subpixel AA
     const subpixelOffset = Math.abs(
@@ -242,7 +242,7 @@ class FXAAFilter {
     const subpixelOffsetFinal = Math.pow(subpixelOffset * 2, 2) * this.subpixelQuality;
 
     // Compute final blend
-    let blendFactor = Math.min(subpixelOffsetFinal, 0.75);
+    const blendFactor = Math.min(subpixelOffsetFinal, 0.75);
 
     // Blend with neighbors
     let blendPixel: Pixel;
@@ -634,12 +634,14 @@ function applyEdgeSmoothing(image: Image, threshold: number = 0.1, strength: num
 // TEMPORAL AA CONCEPTS
 // ============================================================================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface TemporalAAState {
   previousFrame?: Image;
   jitterIndex: number;
   jitterPattern: { x: number; y: number }[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function createTemporalAAState(): TemporalAAState {
   return {
     jitterIndex: 0,
@@ -656,6 +658,7 @@ function createTemporalAAState(): TemporalAAState {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function applyTemporalAA(
   currentFrame: Image,
   state: TemporalAAState,

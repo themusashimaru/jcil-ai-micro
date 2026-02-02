@@ -14,10 +14,12 @@ const G = 6.67430e-11; // Gravitational constant (m³/kg/s²)
 const EARTH_MASS = 5.972e24; // kg
 const EARTH_RADIUS = 6.371e6; // m
 const EARTH_GRAVITY = 9.80665; // m/s² (standard gravity)
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const MOON_MASS = 7.342e22; // kg
 const MOON_RADIUS = 1.737e6; // m
 const SUN_MASS = 1.989e30; // kg
 const AU = 1.496e11; // m (astronomical unit)
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 // ============================================================================
 // PROPELLANT DATABASE
@@ -181,6 +183,7 @@ function rocketEquation(
  * mf = m0 × e^(-Δv/ve)
  * mp = m0 - mf
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function propellantMass(
   deltaV: number,
   exhaustVelocity: number,
@@ -201,6 +204,7 @@ function massRatio(deltaV: number, exhaustVelocity: number): number {
 /**
  * Calculate required initial mass for given payload and delta-v
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function requiredInitialMass(
   payloadMass: number,
   deltaV: number,
@@ -432,6 +436,7 @@ function getOrbitalDeltaV(): OrbitalManeuver[] {
 /**
  * Calculate vis-viva orbital velocity
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function orbitalVelocity(
   centralMass: number,
   semiMajorAxis: number,

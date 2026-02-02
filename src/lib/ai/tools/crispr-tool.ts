@@ -209,7 +209,7 @@ function createGuideRNA(
   pam: string,
   position: number,
   strand: '+' | '-',
-  system: CRISPRSystem
+  _system: CRISPRSystem
 ): GuideRNA {
   return {
     sequence: sequence.toUpperCase(),

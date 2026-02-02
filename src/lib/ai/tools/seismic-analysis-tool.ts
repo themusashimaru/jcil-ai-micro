@@ -123,7 +123,7 @@ function backAzimuth(lat1: number, lon1: number, lat2: number, lon2: number): nu
   const x = Math.sin(dLon) * Math.cos(lat2Rad);
   const y = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
 
-  let azimuth = Math.atan2(x, y) * 180 / Math.PI;
+  const azimuth = Math.atan2(x, y) * 180 / Math.PI;
   return (azimuth + 360) % 360;
 }
 
@@ -181,6 +181,7 @@ function energyFromMagnitude(Mw: number): number {
 /**
  * Calculate local magnitude from amplitude
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function localMagnitude(amplitude: number, distance: number): number {
   // Richter's original formula (simplified)
   // ML = log10(A) + 2.76*log10(d) - 2.48

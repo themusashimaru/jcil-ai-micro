@@ -120,6 +120,7 @@ class Xorshift128Plus {
 }
 
 // Mersenne Twister (MT19937)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class MersenneTwister {
   private mt: number[] = new Array(624);
   private mti: number = 625;

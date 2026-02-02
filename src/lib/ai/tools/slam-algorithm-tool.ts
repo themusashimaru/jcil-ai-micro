@@ -967,10 +967,10 @@ class OccupancyGridMapper {
     const gx1 = Math.floor((x1 - this.grid.origin.x) / this.grid.resolution);
     const gy1 = Math.floor((y1 - this.grid.origin.y) / this.grid.resolution);
 
-    let dx = Math.abs(gx1 - gx0);
-    let dy = Math.abs(gy1 - gy0);
-    let sx = gx0 < gx1 ? 1 : -1;
-    let sy = gy0 < gy1 ? 1 : -1;
+    const dx = Math.abs(gx1 - gx0);
+    const dy = Math.abs(gy1 - gy0);
+    const sx = gx0 < gx1 ? 1 : -1;
+    const sy = gy0 < gy1 ? 1 : -1;
     let err = dx - dy;
 
     let gx = gx0;

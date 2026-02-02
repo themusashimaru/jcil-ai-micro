@@ -418,6 +418,7 @@ function analyzeTrends(args: Record<string, unknown>): Record<string, unknown> {
 function analyzeBodyType(args: Record<string, unknown>): Record<string, unknown> {
   const bodyType = (args.body_type as string) || 'hourglass';
   const occasion = (args.occasion as string) || 'casual';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const style = args.style as string;
 
   const bodyInfo = BODY_TYPES[bodyType] || BODY_TYPES.hourglass;
@@ -657,6 +658,7 @@ function buildCapsuleWardrobe(args: Record<string, unknown>): Record<string, unk
   };
 
   const totalPieces = Object.values(capsule).flat().reduce((sum, item) => sum + item.quantity, 0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const possibleOutfits = Math.pow(2, totalPieces) - 1; // Rough estimate
 
   return {

@@ -139,6 +139,7 @@ function computeSobelGradients(image: number[][]): GradientImage {
 /**
  * Compute Scharr gradients (more accurate than Sobel)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function computeScharrGradients(image: number[][]): GradientImage {
   const scharrX = [
     [-3, 0, 3],

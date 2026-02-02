@@ -147,29 +147,7 @@ initializeCliffWalk();
 // EXPLORATION STRATEGIES
 // ============================================================================
 
-function epsilonGreedy(
-  qValues: { [action: string]: number },
-  actions: string[],
-  epsilon: number
-): string {
-  if (Math.random() < epsilon) {
-    return actions[Math.floor(Math.random() * actions.length)];
-  }
-
-  let bestAction = actions[0];
-  let bestValue = qValues[bestAction] || 0;
-
-  for (const action of actions) {
-    const value = qValues[action] || 0;
-    if (value > bestValue) {
-      bestValue = value;
-      bestAction = action;
-    }
-  }
-
-  return bestAction;
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function softmax(
   qValues: { [action: string]: number },
   actions: string[],
@@ -195,6 +173,29 @@ function softmax(
   }
 
   return actions[actions.length - 1];
+}
+
+function epsilonGreedy(
+  qValues: { [action: string]: number },
+  actions: string[],
+  epsilon: number
+): string {
+  if (Math.random() < epsilon) {
+    return actions[Math.floor(Math.random() * actions.length)];
+  }
+
+  let bestAction = actions[0];
+  let bestValue = qValues[bestAction] || 0;
+
+  for (const action of actions) {
+    const value = qValues[action] || 0;
+    if (value > bestValue) {
+      bestValue = value;
+      bestAction = action;
+    }
+  }
+
+  return bestAction;
 }
 
 // ============================================================================

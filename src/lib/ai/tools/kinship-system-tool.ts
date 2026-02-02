@@ -12,6 +12,7 @@ type KinshipSystem = 'Eskimo' | 'Hawaiian' | 'Sudanese' | 'Omaha' | 'Crow' | 'Ir
 type DescentType = 'patrilineal' | 'matrilineal' | 'bilateral' | 'ambilineal' | 'double';
 
 // Marriage rules
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type MarriageRule = 'monogamy' | 'polygyny' | 'polyandry' | 'polygynandry' | 'group';
 
 interface KinshipTerminology {
@@ -23,6 +24,7 @@ interface KinshipTerminology {
   diagram: string[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RelationshipInfo {
   relationship: string;
   term: string;

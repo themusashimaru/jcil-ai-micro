@@ -428,6 +428,7 @@ function toGreibachNormalForm(grammar: Grammar): Grammar {
   let g = toChomskyNormalForm(grammar);
 
   // Order non-terminals
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const ntOrder = new Map<string, number>();
   g.nonTerminals.forEach((nt, i) => ntOrder.set(nt, i));
 

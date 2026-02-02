@@ -299,6 +299,7 @@ function squareTrace(image: number[][], startX: number, startY: number, visited:
   let y = startY;
   let dir = 0; // Start facing East
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const startKey = `${x},${y}`;
   let firstMove = true;
 
@@ -799,6 +800,7 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
             circularity: analysis.circularity,
             extent: analysis.extent,
             detected_as: analysis.shape_estimate,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             hu1: (moments as any).hu_moments.h1
           };
         });

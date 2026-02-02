@@ -86,6 +86,7 @@ function distance(a: Point, b: Point): number {
 }
 
 // Cross product for orientation test
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function cross(o: Point, a: Point, b: Point): number {
   return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 }

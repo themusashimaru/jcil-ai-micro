@@ -28,10 +28,12 @@ interface Complex {
   im: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function complexAdd(a: Complex, b: Complex): Complex {
   return { re: a.re + b.re, im: a.im + b.im };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function complexSub(a: Complex, b: Complex): Complex {
   return { re: a.re - b.re, im: a.im - b.im };
 }
@@ -259,6 +261,7 @@ function butterworthAnalogPrototype(order: number): { zeros: Complex[]; poles: C
 /**
  * Bilinear transform: s-domain to z-domain
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function bilinearTransform(
   analogPoles: Complex[],
   analogZeros: Complex[],
@@ -308,6 +311,7 @@ function bilinearTransform(
 /**
  * Convert zeros/poles to polynomial coefficients
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function zerosToCoeffs(zeros: Complex[]): number[] {
   let coeffs = [1];
 
@@ -334,6 +338,7 @@ function zerosToCoeffs(zeros: Complex[]): number[] {
  * Design Butterworth IIR lowpass filter
  */
 function designButterworthLowpass(order: number, cutoff: number): IIRFilter {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { zeros, poles, gain } = butterworthAnalogPrototype(order);
 
   // Pre-warp cutoff frequency
@@ -511,6 +516,7 @@ function designChebyshev1Lowpass(
 
     if (order % 2 === 1 && k === Math.floor(order / 2)) {
       // Real pole
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const denom = 1 - p.re;
       a = convolve(a, [1, (1 + p.re) / (1 - p.re)]);
     } else {
