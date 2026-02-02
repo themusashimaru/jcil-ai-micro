@@ -381,8 +381,7 @@ class IntegerModRing {
 }
 
 // Polynomial over Z_p (coefficients in index order: [a0, a1, a2...] = a0 + a1*x + a2*x^2 + ...)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-class _PolynomialRing {
+export class PolynomialRing {
   constructor(public p: number) {}
 
   normalize(poly: number[]): number[] {
