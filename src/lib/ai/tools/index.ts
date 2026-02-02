@@ -2536,6 +2536,43 @@ async function initializeTools() {
   const { seismicanalysisTool, executeseismicanalysis, isseismicanalysisAvailable } = await import('./seismic-analysis-tool');
   const { rocketequationTool, executerocketequation, isrocketequationAvailable } = await import('./rocket-equation-tool');
   const { stellarevolutionTool, executestellarevolution, isstellarevolutionAvailable } = await import('./stellar-evolution-tool');
+  // MEGA BATCH #6-8: Blockchain, Compiler, Computer Architecture
+  const { defiprotocolTool, executedefiprotocol, isdefiprotocolAvailable } = await import('./defi-protocol-tool');
+  const { nftgeneratorTool, executenftgenerator, isnftgeneratorAvailable } = await import('./nft-generator-tool');
+  const { merkletreeTool, executemerkletree, ismerkletreeAvailable } = await import('./merkle-tree-tool');
+  const { zeroknowledgeTool, executezeroknowledge, iszeroknowledgeAvailable } = await import('./zero-knowledge-tool');
+  const { daogovernanceTool, executedaogovernance, isdaogovernanceAvailable } = await import('./dao-governance-tool');
+  const { tokeneconomicsTool, executetokeneconomics, istokeneconomicsAvailable } = await import('./token-economics-tool');
+  const { lexergeneratorTool, executelexergenerator, islexergeneratorAvailable } = await import('./lexer-generator-tool');
+  const { parsergeneratorTool, executeparsergenerator, isparsergeneratorAvailable } = await import('./parser-generator-tool');
+  const { asttransformerTool, executeasttransformer, isasttransformerAvailable } = await import('./ast-transformer-tool');
+  const { iroptimizerTool, executeiroptimizer, isiroptimizerAvailable } = await import('./ir-optimizer-tool');
+  const { codegeneratorTool, executecodegenerator, iscodegeneratorAvailable } = await import('./code-generator-tool');
+  const { interpreterTool, executeinterpreter, isinterpreterAvailable } = await import('./interpreter-tool');
+  const { transpilerTool, executetranspiler, istranspilerAvailable } = await import('./transpiler-tool');
+  const { cpusimulatorTool, executecpusimulator, iscpusimulatorAvailable } = await import('./cpu-simulator-tool');
+  const { cachesimulatorTool, executecachesimulator, iscachesimulatorAvailable } = await import('./cache-simulator-tool');
+  const { pipelineanalyzerTool, executepipelineanalyzer, ispipelineanalyzerAvailable } = await import('./pipeline-analyzer-tool');
+  const { branchpredictorTool, executebranchpredictor, isbranchpredictorAvailable } = await import('./branch-predictor-tool');
+  // MEGA BATCH #9-10: Networking, Information Theory
+  const { tcpstackTool, executetcpstack, istcpstackAvailable } = await import('./tcp-stack-tool');
+  const { routingalgorithmTool, executeroutingalgorithm, isroutingalgorithmAvailable } = await import('./routing-algorithm-tool');
+  const { dnsresolverTool, executednsresolver, isdnsresolverAvailable } = await import('./dns-resolver-tool');
+  const { huffmancodingTool, executehuffmancoding, ishuffmancodingAvailable } = await import('./huffman-coding-tool');
+  const { lzcompressionTool, exebutellzcompression, islzcompressionAvailable } = await import('./lz-compression-tool');
+  const { entropycalculatorTool, executeentropycalculator, isentropycalculatorAvailable } = await import('./entropy-calculator-tool');
+  const { reedsolomonTool, executereedsolomon, isreedsolomonAvailable } = await import('./reed-solomon-tool');
+  // MEGA BATCH #11-13: Sciences, Social Sciences, Industry
+  const { particlephysicsTool, executeparticlephysics, isparticlephysicsAvailable } = await import('./particle-physics-tool');
+  const { neuroscienceTool, executeneuroscience, isneuroscienceAvailable } = await import('./neuroscience-tool');
+  const { crisprTool, executecrispr, iscrisprAvailable } = await import('./crispr-tool');
+  const { votingsystemTool, executevotingsystem, isvotingsystemAvailable } = await import('./voting-system-tool');
+  const { socialnetworkTool, executesocialnetwork, issocialnetworkAvailable } = await import('./social-network-tool');
+  const { modallogicTool, executemodallogic, ismodallogicAvailable } = await import('./modal-logic-tool');
+  const { economicssimulatorTool, executeeconomicssimulator, iseconomicssimulatorAvailable } = await import('./economics-simulator-tool');
+  const { telecom5gTool, executetelecom5g, istelecom5gAvailable } = await import('./telecom-5g-tool');
+  const { realestateTool, executerealestate, isrealestateAvailable } = await import('./real-estate-tool');
+  const { sportsanalyticsTool, executesportsanalytics, issportsanalyticsAvailable } = await import('./sports-analytics-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -3811,7 +3848,44 @@ async function initializeTools() {
     { tool: oceanmodelTool, executor: executeoceanmodel, checkAvailability: isoceanmodelAvailable },
     { tool: seismicanalysisTool, executor: executeseismicanalysis, checkAvailability: isseismicanalysisAvailable },
     { tool: rocketequationTool, executor: executerocketequation, checkAvailability: isrocketequationAvailable },
-    { tool: stellarevolutionTool, executor: executestellarevolution, checkAvailability: isstellarevolutionAvailable }
+    { tool: stellarevolutionTool, executor: executestellarevolution, checkAvailability: isstellarevolutionAvailable },
+    // MEGA BATCH #6-8: Blockchain, Compiler, Computer Architecture
+    { tool: defiprotocolTool, executor: executedefiprotocol, checkAvailability: isdefiprotocolAvailable },
+    { tool: nftgeneratorTool, executor: executenftgenerator, checkAvailability: isnftgeneratorAvailable },
+    { tool: merkletreeTool, executor: executemerkletree, checkAvailability: ismerkletreeAvailable },
+    { tool: zeroknowledgeTool, executor: executezeroknowledge, checkAvailability: iszeroknowledgeAvailable },
+    { tool: daogovernanceTool, executor: executedaogovernance, checkAvailability: isdaogovernanceAvailable },
+    { tool: tokeneconomicsTool, executor: executetokeneconomics, checkAvailability: istokeneconomicsAvailable },
+    { tool: lexergeneratorTool, executor: executelexergenerator, checkAvailability: islexergeneratorAvailable },
+    { tool: parsergeneratorTool, executor: executeparsergenerator, checkAvailability: isparsergeneratorAvailable },
+    { tool: asttransformerTool, executor: executeasttransformer, checkAvailability: isasttransformerAvailable },
+    { tool: iroptimizerTool, executor: executeiroptimizer, checkAvailability: isiroptimizerAvailable },
+    { tool: codegeneratorTool, executor: executecodegenerator, checkAvailability: iscodegeneratorAvailable },
+    { tool: interpreterTool, executor: executeinterpreter, checkAvailability: isinterpreterAvailable },
+    { tool: transpilerTool, executor: executetranspiler, checkAvailability: istranspilerAvailable },
+    { tool: cpusimulatorTool, executor: executecpusimulator, checkAvailability: iscpusimulatorAvailable },
+    { tool: cachesimulatorTool, executor: executecachesimulator, checkAvailability: iscachesimulatorAvailable },
+    { tool: pipelineanalyzerTool, executor: executepipelineanalyzer, checkAvailability: ispipelineanalyzerAvailable },
+    { tool: branchpredictorTool, executor: executebranchpredictor, checkAvailability: isbranchpredictorAvailable },
+    // MEGA BATCH #9-10: Networking, Information Theory
+    { tool: tcpstackTool, executor: executetcpstack, checkAvailability: istcpstackAvailable },
+    { tool: routingalgorithmTool, executor: executeroutingalgorithm, checkAvailability: isroutingalgorithmAvailable },
+    { tool: dnsresolverTool, executor: executednsresolver, checkAvailability: isdnsresolverAvailable },
+    { tool: huffmancodingTool, executor: executehuffmancoding, checkAvailability: ishuffmancodingAvailable },
+    { tool: lzcompressionTool, executor: exebutellzcompression, checkAvailability: islzcompressionAvailable },
+    { tool: entropycalculatorTool, executor: executeentropycalculator, checkAvailability: isentropycalculatorAvailable },
+    { tool: reedsolomonTool, executor: executereedsolomon, checkAvailability: isreedsolomonAvailable },
+    // MEGA BATCH #11-13: Sciences, Social Sciences, Industry
+    { tool: particlephysicsTool, executor: executeparticlephysics, checkAvailability: isparticlephysicsAvailable },
+    { tool: neuroscienceTool, executor: executeneuroscience, checkAvailability: isneuroscienceAvailable },
+    { tool: crisprTool, executor: executecrispr, checkAvailability: iscrisprAvailable },
+    { tool: votingsystemTool, executor: executevotingsystem, checkAvailability: isvotingsystemAvailable },
+    { tool: socialnetworkTool, executor: executesocialnetwork, checkAvailability: issocialnetworkAvailable },
+    { tool: modallogicTool, executor: executemodallogic, checkAvailability: ismodallogicAvailable },
+    { tool: economicssimulatorTool, executor: executeeconomicssimulator, checkAvailability: iseconomicssimulatorAvailable },
+    { tool: telecom5gTool, executor: executetelecom5g, checkAvailability: istelecom5gAvailable },
+    { tool: realestateTool, executor: executerealestate, checkAvailability: isrealestateAvailable },
+    { tool: sportsanalyticsTool, executor: executesportsanalytics, checkAvailability: issportsanalyticsAvailable }
   );
 
   toolsInitialized = true;
