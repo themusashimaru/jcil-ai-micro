@@ -533,8 +533,8 @@ class DiagnosisEngine {
   generateDifferential(
     symptoms: string[],
     riskFactors: string[] = [],
-    age?: number,
-    gender?: 'male' | 'female'
+    _age?: number,
+    _gender?: 'male' | 'female'
   ): {
     differential: DiagnosisCandidate[];
     redFlagSymptoms: Symptom[];

@@ -945,9 +945,9 @@ interface AxisAnalysis {
   deviation: 'normal' | 'left' | 'right' | 'extreme';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class AxisCalculator {
   // Calculate frontal plane axis from lead I and aVF amplitudes
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   calculate(leadI_amplitude: number, aVF_amplitude: number): AxisAnalysis {
     // Calculate axis using atan2
     const axisRadians = Math.atan2(aVF_amplitude, leadI_amplitude);
