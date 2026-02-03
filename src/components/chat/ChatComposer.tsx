@@ -934,10 +934,7 @@ export function ChatComposer({
                 </svg>
               </button>
 
-              {/* MCP Servers button */}
-              <ChatMCPButton disabled={isStreaming || disabled} />
-
-              {/* AI Provider selector */}
+              {/* AI Provider selector - positioned after paperclip, before MCP */}
               {onProviderChange && (
                 <div className="relative flex items-center">
                   <button
@@ -1037,6 +1034,9 @@ export function ChatComposer({
                   )}
                 </div>
               )}
+
+              {/* MCP Servers button */}
+              <ChatMCPButton disabled={isStreaming || disabled} />
 
               {/* Active tool mode indicator - excludes research since it shows inline */}
               {toolMode !== 'none' && toolMode !== 'research' && getToolModeInfo() && (
