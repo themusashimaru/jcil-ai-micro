@@ -26,7 +26,6 @@ function carveRoom(map: DungeonMap, room: Room): void {
 function carveCorridor(map: DungeonMap, x1: number, y1: number, x2: number, y2: number): void {
   // L-shaped corridor
   const midX = Math.random() < 0.5 ? x1 : x2;
-  const _midY = Math.random() < 0.5 ? y1 : y2;
 
   // Horizontal then vertical or vertical then horizontal
   for (let x = Math.min(x1, midX); x <= Math.max(x1, midX); x++) {

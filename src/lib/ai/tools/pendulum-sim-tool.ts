@@ -265,9 +265,7 @@ function doublePendulumEnergy(
 ): PendulumEnergy {
   const { theta1, theta2, omega1, omega2, length1, length2, mass1, mass2 } = state;
 
-  // Position of mass 1
-  const _x1 = length1 * Math.sin(theta1);
-  void _x1; // Used for visualization
+  // Position of mass 1 (x1 = length1 * sin(theta1) for visualization)
   const y1 = -length1 * Math.cos(theta1);
 
   // Position of mass 2

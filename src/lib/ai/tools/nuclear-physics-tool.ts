@@ -327,9 +327,7 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
 
         const fusionQ = qValue(dMass + tMass, heMass + nMass);
 
-        // U-235 fission example (reference values)
-        const _u235 = 235.04393;
-        const _fissionProducts = 234.0; // approximate
+        // U-235 fission reference: mass=235.04393, products≈234.0, Q≈200 MeV
 
         result = {
           operation: 'reaction',

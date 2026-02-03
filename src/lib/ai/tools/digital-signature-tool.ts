@@ -424,14 +424,8 @@ const ED25519_D = -121665n * modInverse(121666n, ED25519_P);
 // Ed25519 base point
 const ED25519_GY = 4n * modInverse(5n, ED25519_P) % ED25519_P;
 const ED25519_GX = (() => {
-  // Compute x from y using curve equation
-  const y2 = (ED25519_GY * ED25519_GY) % ED25519_P;
-  const _u = (y2 - 1n + ED25519_P) % ED25519_P;
-  const v = ((ED25519_D * y2 + 1n) % ED25519_P + ED25519_P) % ED25519_P;
-  const _vInv = modInverse(v, ED25519_P);
-  void _u; void _vInv; // Referenced for curve validation
-  // sqrt using Tonelli-Shanks would be needed for full impl
-  // For demo, we use the known value
+  // Full calculation would use: u = y^2 - 1, v = d*y^2 + 1, x = sqrt(u/v)
+  // Using known base point x-coordinate for Ed25519
   return 15112221349535807912866137220509078935008241517919938459067222385657010292041n;
 })();
 
