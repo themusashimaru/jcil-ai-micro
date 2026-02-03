@@ -351,7 +351,7 @@ function generateMappings(source: Domain, target: Domain): Mapping[] {
 
 function inferMissingRelations(
   source: Domain,
-  target: Domain,
+  _target: Domain,
   mapping: Mapping
 ): AnalogySuggestion[] {
   const suggestions: AnalogySuggestion[] = [];
