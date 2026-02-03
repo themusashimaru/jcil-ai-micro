@@ -132,8 +132,7 @@ class QuadTree {
   toAscii(charWidth: number, charHeight: number): string {
     const grid: string[][] = Array(charHeight).fill(null).map(() => Array(charWidth).fill(' '));
 
-    const drawRect = (rect: Rect, char: string = '+') => {
-      void char; // Reserved for future customization
+    const drawRect = (rect: Rect, _char: string = '+') => {
       const x1 = Math.floor((rect.x / this.boundary.width) * charWidth);
       const y1 = Math.floor((rect.y / this.boundary.height) * charHeight);
       const x2 = Math.floor(((rect.x + rect.width) / this.boundary.width) * charWidth);

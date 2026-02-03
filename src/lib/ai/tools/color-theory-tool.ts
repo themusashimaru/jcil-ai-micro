@@ -168,7 +168,7 @@ function rgbToHSV(rgb: RGB): HSV {
   return { h: h * 360, s: s * 100, v: v * 100 };
 }
 
-function _hsvToRGB(hsv: HSV): RGB {
+export function hsvToRGB(hsv: HSV): RGB {
   const h = hsv.h / 360;
   const s = hsv.s / 100;
   const v = hsv.v / 100;
@@ -215,7 +215,7 @@ function rgbToCMYK(rgb: RGB): CMYK {
   };
 }
 
-function _cmykToRGB(cmyk: CMYK): RGB {
+export function cmykToRGB(cmyk: CMYK): RGB {
   const c = cmyk.c / 100;
   const m = cmyk.m / 100;
   const y = cmyk.y / 100;
@@ -701,4 +701,3 @@ export async function executeColorTheory(toolCall: UnifiedToolCall): Promise<Uni
 export function isColorTheoryAvailable(): boolean {
   return true;
 }
-void _hsvToRGB; void _cmykToRGB; // reserved for conversions

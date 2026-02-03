@@ -22,7 +22,7 @@ const cMul = (a: Complex, b: Complex): Complex => ({
   im: a.re * b.im + a.im * b.re,
 });
 const cAbs = (a: Complex): number => Math.sqrt(a.re * a.re + a.im * a.im);
-const cPhase = (a: Complex): number => Math.atan2(a.im, a.re);
+export const cPhase = (a: Complex): number => Math.atan2(a.im, a.re);
 
 // ============================================================================
 // FFT (Fast Fourier Transform)
@@ -64,15 +64,13 @@ function fft(signal: Complex[]): Complex[] {
   return result;
 }
 
-function _ifft(spectrum: Complex[]): Complex[] {
+export function ifft(spectrum: Complex[]): Complex[] {
   const N = spectrum.length;
   // Conjugate, FFT, conjugate, scale
   const conjugated = spectrum.map(c => complex(c.re, -c.im));
   const transformed = fft(conjugated);
   return transformed.map(c => complex(c.re / N, -c.im / N));
 }
-// Suppress unused lint: _ifft is for future use
-void _ifft;
 
 // ============================================================================
 // SIGNAL GENERATION
@@ -182,11 +180,9 @@ function convolve(signal: number[], kernel: number[]): number[] {
   return output;
 }
 
-function _crossCorrelate(a: number[], b: number[]): number[] {
+export function crossCorrelate(a: number[], b: number[]): number[] {
   return convolve(a, [...b].reverse());
 }
-// Suppress unused lint: _crossCorrelate is for future use
-void _crossCorrelate;
 
 // ============================================================================
 // SPECTRAL ANALYSIS
@@ -369,8 +365,6 @@ export async function executeSignalProcessing(toolCall: UnifiedToolCall): Promis
 
         const spectrum = fft(signal.map(x => complex(x)));
         const magnitudes = spectrum.slice(0, N / 2).map(c => cAbs(c) / N * 2);
-        const _phases = spectrum.slice(0, N / 2).map(c => cPhase(c));
-        void _phases; // for future use
 
         result = {
           operation: 'fft',
@@ -412,8 +406,7 @@ export async function executeSignalProcessing(toolCall: UnifiedToolCall): Promis
         const signalStr = args.signal || JSON.stringify(generateSine(frequency, sample_rate, 0.1));
         const signal: number[] = JSON.parse(signalStr);
 
-        const { frequencies: _frequencies, magnitudes } = powerSpectrum(signal);
-        void _frequencies; // for future use
+        const { magnitudes } = powerSpectrum(signal);
         const peaks = findPeakFrequencies(magnitudes);
 
         result = {

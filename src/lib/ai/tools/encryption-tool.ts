@@ -15,29 +15,35 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 function caesarCipher(text: string, shift: number, decrypt: boolean = false): string {
   const actualShift = decrypt ? -shift : shift;
-  return text.split('').map(char => {
-    if (char.match(/[a-z]/i)) {
-      const base = char === char.toUpperCase() ? 65 : 97;
-      return String.fromCharCode(((char.charCodeAt(0) - base + actualShift + 26) % 26) + base);
-    }
-    return char;
-  }).join('');
+  return text
+    .split('')
+    .map((char) => {
+      if (char.match(/[a-z]/i)) {
+        const base = char === char.toUpperCase() ? 65 : 97;
+        return String.fromCharCode(((char.charCodeAt(0) - base + actualShift + 26) % 26) + base);
+      }
+      return char;
+    })
+    .join('');
 }
 
 function vigenereCipher(text: string, key: string, decrypt: boolean = false): string {
   const keyUpper = key.toUpperCase();
   let keyIndex = 0;
 
-  return text.split('').map(char => {
-    if (char.match(/[a-z]/i)) {
-      const base = char === char.toUpperCase() ? 65 : 97;
-      const shift = keyUpper.charCodeAt(keyIndex % keyUpper.length) - 65;
-      const actualShift = decrypt ? -shift : shift;
-      keyIndex++;
-      return String.fromCharCode(((char.charCodeAt(0) - base + actualShift + 26) % 26) + base);
-    }
-    return char;
-  }).join('');
+  return text
+    .split('')
+    .map((char) => {
+      if (char.match(/[a-z]/i)) {
+        const base = char === char.toUpperCase() ? 65 : 97;
+        const shift = keyUpper.charCodeAt(keyIndex % keyUpper.length) - 65;
+        const actualShift = decrypt ? -shift : shift;
+        keyIndex++;
+        return String.fromCharCode(((char.charCodeAt(0) - base + actualShift + 26) % 26) + base);
+      }
+      return char;
+    })
+    .join('');
 }
 
 function rot13(text: string): string {
@@ -45,15 +51,18 @@ function rot13(text: string): string {
 }
 
 function atbashCipher(text: string): string {
-  return text.split('').map(char => {
-    if (char.match(/[a-z]/)) {
-      return String.fromCharCode(122 - (char.charCodeAt(0) - 97));
-    }
-    if (char.match(/[A-Z]/)) {
-      return String.fromCharCode(90 - (char.charCodeAt(0) - 65));
-    }
-    return char;
-  }).join('');
+  return text
+    .split('')
+    .map((char) => {
+      if (char.match(/[a-z]/)) {
+        return String.fromCharCode(122 - (char.charCodeAt(0) - 97));
+      }
+      if (char.match(/[A-Z]/)) {
+        return String.fromCharCode(90 - (char.charCodeAt(0) - 65));
+      }
+      return char;
+    })
+    .join('');
 }
 
 // ============================================================================
@@ -68,14 +77,16 @@ function xorStrings(text: string, key: string): string {
   return result;
 }
 
-function _xorHex(hexData: string, keyHex: string): string {
+export function xorHex(hexData: string, keyHex: string): string {
   const data = hexData.match(/.{2}/g) || [];
   const key = keyHex.match(/.{2}/g) || [];
 
-  return data.map((byte, i) => {
-    const xored = parseInt(byte, 16) ^ parseInt(key[i % key.length], 16);
-    return xored.toString(16).padStart(2, '0');
-  }).join('');
+  return data
+    .map((byte, i) => {
+      const xored = parseInt(byte, 16) ^ parseInt(key[i % key.length], 16);
+      return xored.toString(16).padStart(2, '0');
+    })
+    .join('');
 }
 
 // ============================================================================
@@ -97,12 +108,15 @@ function base64Decode(encoded: string): string {
 }
 
 function hexEncode(text: string): string {
-  return text.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+  return text
+    .split('')
+    .map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function hexDecode(hex: string): string {
   const bytes = hex.match(/.{2}/g) || [];
-  return bytes.map(b => String.fromCharCode(parseInt(b, 16))).join('');
+  return bytes.map((b) => String.fromCharCode(parseInt(b, 16))).join('');
 }
 
 function urlEncode(text: string): string {
@@ -123,7 +137,7 @@ function simpleKDF(password: string, salt: string, iterations: number): string {
   for (let i = 0; i < iterations; i++) {
     let hash = 0;
     for (let j = 0; j < key.length; j++) {
-      hash = ((hash << 5) - hash) + key.charCodeAt(j);
+      hash = (hash << 5) - hash + key.charCodeAt(j);
       hash = hash & hash;
     }
     key = Math.abs(hash).toString(16) + key.substring(0, 16);
@@ -199,7 +213,18 @@ Operations:
     properties: {
       operation: {
         type: 'string',
-        enum: ['caesar', 'vigenere', 'rot13', 'atbash', 'xor', 'base64', 'hex', 'url', 'password', 'kdf'],
+        enum: [
+          'caesar',
+          'vigenere',
+          'rot13',
+          'atbash',
+          'xor',
+          'base64',
+          'hex',
+          'url',
+          'password',
+          'kdf',
+        ],
         description: 'Encryption operation',
       },
       text: { type: 'string', description: 'Text to process' },
@@ -237,10 +262,12 @@ export async function executeEncryption(toolCall: UnifiedToolCall): Promise<Unif
           input: text,
           shift: shift,
           output: output,
-          all_shifts: decrypt ? undefined : Array.from({ length: 26 }, (_, i) => ({
-            shift: i,
-            result: caesarCipher(text, i),
-          })),
+          all_shifts: decrypt
+            ? undefined
+            : Array.from({ length: 26 }, (_, i) => ({
+                shift: i,
+                result: caesarCipher(text, i),
+              })),
         };
         break;
       }
@@ -379,9 +406,14 @@ export async function executeEncryption(toolCall: UnifiedToolCall): Promise<Unif
             !analysis.hasDigit ? 'Add numbers' : null,
             !analysis.hasSpecial ? 'Add special characters' : null,
           ].filter(Boolean),
-          time_to_crack: analysis.entropy < 28 ? 'Minutes to hours' :
-                         analysis.entropy < 40 ? 'Days to weeks' :
-                         analysis.entropy < 60 ? 'Years' : 'Centuries+',
+          time_to_crack:
+            analysis.entropy < 28
+              ? 'Minutes to hours'
+              : analysis.entropy < 40
+                ? 'Days to weeks'
+                : analysis.entropy < 60
+                  ? 'Years'
+                  : 'Centuries+',
         };
         break;
       }
@@ -407,11 +439,14 @@ export async function executeEncryption(toolCall: UnifiedToolCall): Promise<Unif
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Encryption Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Encryption Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isEncryptionAvailable(): boolean { return true; }
-
-// ESLint unused function reference
-void _xorHex;
+export function isEncryptionAvailable(): boolean {
+  return true;
+}

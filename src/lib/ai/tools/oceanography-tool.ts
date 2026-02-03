@@ -40,10 +40,10 @@ function waveEnergy(height: number, _wavelength: number): number {
   // E = (1/8) × ρ × g × H²
   const rho = 1025; // seawater density kg/m³
   const g = 9.81;
-  return (1/8) * rho * g * height * height;
+  return (1 / 8) * rho * g * height * height;
 }
 
-function _significantWaveHeight(waves: number[]): number {
+export function significantWaveHeight(waves: number[]): number {
   // H_s = average of highest 1/3 of waves
   const sorted = [...waves].sort((a, b) => b - a);
   const top33 = sorted.slice(0, Math.ceil(sorted.length / 3));
@@ -84,11 +84,15 @@ function seawaterDensity(temperature: number, salinity: number, pressure: number
   const P = pressure / 10; // dbar to bar approximation
 
   // Reference density at T, S=0, P=0
-  const rho_0 = 999.842594 + 6.793952e-2 * T - 9.095290e-3 * T*T
-                + 1.001685e-4 * T*T*T - 1.120083e-6 * T*T*T*T;
+  const rho_0 =
+    999.842594 +
+    6.793952e-2 * T -
+    9.09529e-3 * T * T +
+    1.001685e-4 * T * T * T -
+    1.120083e-6 * T * T * T * T;
 
   // Salinity correction
-  const A = 8.24493e-1 - 4.0899e-3 * T + 7.6438e-5 * T*T;
+  const A = 8.24493e-1 - 4.0899e-3 * T + 7.6438e-5 * T * T;
   const B = -5.72466e-3 + 1.0227e-4 * T;
 
   const rho = rho_0 + A * S + B * S * Math.sqrt(S) + P * 0.046; // simplified pressure term
@@ -100,7 +104,7 @@ function salinityFromConductivity(conductivity: number, temperature: number): nu
   // Simplified PSS-78 (Practical Salinity Scale)
   const R = conductivity / 42.914; // ratio to standard
   const rT = 0.6766097 + 2.00564e-2 * temperature;
-  return 0.008 - 0.1692 * Math.sqrt(R / rT) + 25.3851 * R / rT;
+  return 0.008 - 0.1692 * Math.sqrt(R / rT) + (25.3851 * R) / rT;
 }
 
 // ============================================================================
@@ -113,12 +117,25 @@ function soundSpeedWater(temperature: number, salinity: number, depth: number): 
   const S = salinity;
   const D = depth;
 
-  return 1448.96 + 4.591 * T - 5.304e-2 * T*T + 2.374e-4 * T*T*T
-         + 1.340 * (S - 35) + 1.630e-2 * D + 1.675e-7 * D*D
-         - 1.025e-2 * T * (S - 35) - 7.139e-13 * T * D*D*D;
+  return (
+    1448.96 +
+    4.591 * T -
+    5.304e-2 * T * T +
+    2.374e-4 * T * T * T +
+    1.34 * (S - 35) +
+    1.63e-2 * D +
+    1.675e-7 * D * D -
+    1.025e-2 * T * (S - 35) -
+    7.139e-13 * T * D * D * D
+  );
 }
 
-function _sonarRange(sourceLevel: number, transmissionLoss: number, noiseLevel: number, detectionThreshold: number): number {
+export function sonarRange(
+  sourceLevel: number,
+  transmissionLoss: number,
+  noiseLevel: number,
+  detectionThreshold: number
+): number {
   // Sonar equation simplified
   const signalExcess = sourceLevel - 2 * transmissionLoss - noiseLevel - detectionThreshold;
   return signalExcess > 0 ? Math.pow(10, transmissionLoss / 20) : 0;
@@ -131,7 +148,7 @@ function _sonarRange(sourceLevel: number, transmissionLoss: number, noiseLevel: 
 function coriolisParameter(latitude: number): number {
   // f = 2Ω sin(φ)
   const omega = 7.2921e-5; // Earth's rotation rate rad/s
-  return 2 * omega * Math.sin(latitude * Math.PI / 180);
+  return 2 * omega * Math.sin((latitude * Math.PI) / 180);
 }
 
 function geostrophicVelocity(pressureGradient: number, density: number, latitude: number): number {
@@ -147,7 +164,7 @@ function ekmanDepth(_windSpeed: number, latitude: number): number {
   if (f < 1e-10) return 0;
 
   const Az = 0.1; // eddy viscosity m²/s (typical)
-  return Math.PI * Math.sqrt(2 * Az / f);
+  return Math.PI * Math.sqrt((2 * Az) / f);
 }
 
 // ============================================================================
@@ -219,7 +236,7 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
           wave_period_s: Math.round(period * 100) / 100,
           wave_energy_J_m2: Math.round(energy),
           breaking_depth_m: Math.round(breakDepth * 100) / 100,
-          depth_wavelength_ratio: Math.round(depth / wavelength * 100) / 100,
+          depth_wavelength_ratio: Math.round((depth / wavelength) * 100) / 100,
         };
         break;
       }
@@ -234,14 +251,14 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
           low_tide_m: low_tide,
           tidal_range_m: Math.round(range * 100) / 100,
           tide_classification: type,
-          mean_tide_level_m: Math.round((high_tide + low_tide) / 2 * 100) / 100,
+          mean_tide_level_m: Math.round(((high_tide + low_tide) / 2) * 100) / 100,
         };
 
         if (area !== undefined) {
           const prism = tidalPrism(area, range);
           tideResult.basin_area_m2 = area;
           tideResult.tidal_prism_m3 = Math.round(prism);
-          tideResult.tidal_prism_million_m3 = Math.round(prism / 1e6 * 100) / 100;
+          tideResult.tidal_prism_million_m3 = Math.round((prism / 1e6) * 100) / 100;
         }
 
         result = tideResult;
@@ -275,7 +292,14 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
             depth_m: depth,
             density_kg_m3: Math.round(rho * 100) / 100,
             sigma_t: Math.round(sigma_t * 100) / 100,
-            water_type: salinity < 0.5 ? 'Fresh' : salinity < 30 ? 'Brackish' : salinity < 40 ? 'Normal seawater' : 'Hypersaline',
+            water_type:
+              salinity < 0.5
+                ? 'Fresh'
+                : salinity < 30
+                  ? 'Brackish'
+                  : salinity < 40
+                    ? 'Normal seawater'
+                    : 'Hypersaline',
           };
         }
         break;
@@ -292,7 +316,7 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
           depth_m: depth,
           sound_speed_m_s: Math.round(soundSpeed * 10) / 10,
           comparison_air_speed_m_s: 343,
-          ratio_to_air: Math.round(soundSpeed / 343 * 100) / 100,
+          ratio_to_air: Math.round((soundSpeed / 343) * 100) / 100,
           factors: {
             temperature_effect: 'Sound speed increases ~4 m/s per °C',
             salinity_effect: 'Sound speed increases ~1.3 m/s per PSU',
@@ -312,7 +336,12 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
           operation: 'currents',
           latitude_degrees: latitude,
           coriolis_parameter_s_1: f.toExponential(4),
-          coriolis_effect: Math.abs(latitude) < 5 ? 'Negligible (near equator)' : Math.abs(latitude) < 30 ? 'Moderate' : 'Strong',
+          coriolis_effect:
+            Math.abs(latitude) < 5
+              ? 'Negligible (near equator)'
+              : Math.abs(latitude) < 30
+                ? 'Moderate'
+                : 'Strong',
           ekman_depth_m: Math.round(ekman * 10) / 10,
           ekman_transport_direction: latitude > 0 ? '90° right of wind' : '90° left of wind',
           geostrophic_velocity_m_s: Math.abs(geoV) < 100 ? Math.round(geoV * 1000) / 1000 : 'N/A',
@@ -327,12 +356,14 @@ export async function executeOceanography(toolCall: UnifiedToolCall): Promise<Un
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Oceanography Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Oceanography Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isOceanographyAvailable(): boolean { return true; }
-
-// ESLint unused function references
-void _significantWaveHeight;
-void _sonarRange;
+export function isOceanographyAvailable(): boolean {
+  return true;
+}

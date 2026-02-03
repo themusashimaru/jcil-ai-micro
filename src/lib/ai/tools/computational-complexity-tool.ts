@@ -235,8 +235,6 @@ const DATA_STRUCTURE_OPS: { structure: string; operation: string; average: strin
 
 function visualizeGrowth(complexities: string[], maxN: number = 16): string {
   const lines: string[] = ['Growth Comparison:', ''];
-  const _width = 50; // reserved for future bar chart expansion
-  void _width;
 
   for (const c of complexities) {
     const values: number[] = [];

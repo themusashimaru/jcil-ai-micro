@@ -44,7 +44,7 @@ function modInverse(a: bigint, m: bigint): bigint {
   return oldS < 0n ? oldS + m : oldS;
 }
 
-function _gcd(a: bigint, b: bigint): bigint {
+export function gcd(a: bigint, b: bigint): bigint {
   while (b !== 0n) {
     [a, b] = [b, a % b];
   }
@@ -737,4 +737,3 @@ export async function executeCryptographyAdvanced(
 export function isCryptographyAdvancedAvailable(): boolean {
   return true;
 }
-void _gcd; // reserved for modular arithmetic

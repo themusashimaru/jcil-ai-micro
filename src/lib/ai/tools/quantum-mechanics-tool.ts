@@ -14,8 +14,7 @@ const h = 6.62607015e-34; // Planck's constant (J·s)
 const hbar = h / (2 * Math.PI); // Reduced Planck's constant
 const me = 9.10938e-31; // Electron mass (kg)
 const e = 1.602176634e-19; // Elementary charge (C)
-const _epsilon0 = 8.854187817e-12; // Vacuum permittivity
-void _epsilon0; // reserved for atomic calculations
+export const epsilon0 = 8.854187817e-12; // Vacuum permittivity
 const a0 = 5.29177210903e-11; // Bohr radius (m)
 const Ry = 13.605693122994; // Rydberg energy (eV)
 
@@ -63,7 +62,7 @@ function orbitalAngularMomentum(l: number): number {
 }
 
 // Spin angular momentum
-function spinAngularMomentum(s: number = 0.5): number {
+export function spinAngularMomentum(s: number = 0.5): number {
   return hbar * Math.sqrt(s * (s + 1));
 }
 
@@ -231,8 +230,6 @@ export async function executeQuantumMechanics(toolCall: UnifiedToolCall): Promis
       case 'angular_momentum': {
         const { l = 1 } = args;
         const L_mag = orbitalAngularMomentum(l);
-        const _S_mag = spinAngularMomentum(0.5);
-        void _S_mag; // computed but used inline below
         result = {
           operation: 'angular_momentum',
           l,

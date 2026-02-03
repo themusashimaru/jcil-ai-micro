@@ -46,7 +46,11 @@ function calculateBMI(weightKg: number, heightCm: number): CalculationResult {
   };
 }
 
-function calculateBSA(weightKg: number, heightCm: number, formula: string = 'mosteller'): CalculationResult {
+function calculateBSA(
+  weightKg: number,
+  heightCm: number,
+  formula: string = 'mosteller'
+): CalculationResult {
   let bsa: number;
   let formulaUsed: string;
 
@@ -85,9 +89,10 @@ function calculateIdealBodyWeight(heightCm: number, sex: 'male' | 'female'): Cal
   return {
     value: Math.round(ibw * 10) / 10,
     unit: 'kg',
-    formula: sex === 'male'
-      ? 'IBW = 50 + 2.3 × (height in inches - 60)'
-      : 'IBW = 45.5 + 2.3 × (height in inches - 60)',
+    formula:
+      sex === 'male'
+        ? 'IBW = 50 + 2.3 × (height in inches - 60)'
+        : 'IBW = 45.5 + 2.3 × (height in inches - 60)',
     reference: 'Devine Formula (1974)',
   };
 }
@@ -103,7 +108,11 @@ function calculateAdjustedBodyWeight(actualWeight: number, idealWeight: number):
   };
 }
 
-function calculateLeanBodyMass(weightKg: number, heightCm: number, sex: 'male' | 'female'): CalculationResult {
+function calculateLeanBodyMass(
+  weightKg: number,
+  heightCm: number,
+  sex: 'male' | 'female'
+): CalculationResult {
   // Boer formula
   let lbm: number;
   if (sex === 'male') {
@@ -115,9 +124,7 @@ function calculateLeanBodyMass(weightKg: number, heightCm: number, sex: 'male' |
   return {
     value: Math.round(lbm * 10) / 10,
     unit: 'kg',
-    formula: sex === 'male'
-      ? 'LBM = 0.407W + 0.267H - 19.2'
-      : 'LBM = 0.252W + 0.473H - 48.3',
+    formula: sex === 'male' ? 'LBM = 0.407W + 0.267H - 19.2' : 'LBM = 0.252W + 0.473H - 48.3',
     reference: 'Boer Formula',
   };
 }
@@ -169,8 +176,12 @@ function calculateEGFR(
   const minScr = Math.min(scrOverKappa, 1);
   const maxScr = Math.max(scrOverKappa, 1);
 
-  const egfr = 142 * Math.pow(minScr, alpha) * Math.pow(maxScr, -1.2) *
-    Math.pow(0.9938, ageYears) * sexMultiplier;
+  const egfr =
+    142 *
+    Math.pow(minScr, alpha) *
+    Math.pow(maxScr, -1.2) *
+    Math.pow(0.9938, ageYears) *
+    sexMultiplier;
 
   let stage: string;
   if (egfr >= 90) stage = 'G1 - Normal or high';
@@ -259,7 +270,8 @@ function calculateCHA2DS2VASc(
     value: score,
     unit: 'points',
     interpretation: recommendation,
-    formula: 'CHF(1) + HTN(1) + Age≥75(2) + Age 65-74(1) + DM(1) + Stroke(2) + Vascular(1) + Female(1)',
+    formula:
+      'CHF(1) + HTN(1) + Age≥75(2) + Age 65-74(1) + DM(1) + Stroke(2) + Vascular(1) + Female(1)',
     reference: 'CHA₂DS₂-VASc Score',
   };
 }
@@ -327,7 +339,7 @@ function calculateGlasgowComaScale(
   };
 }
 
-function _calculateAPACHEII(
+export function calculateAPACHEII(
   temperature: number, // °C
   meanArterialPressure: number,
   heartRate: number,
@@ -442,7 +454,7 @@ function _calculateAPACHEII(
 function convertGlucose(value: number, from: 'mg/dL' | 'mmol/L'): CalculationResult {
   if (from === 'mg/dL') {
     return {
-      value: Math.round(value / 18.0182 * 100) / 100,
+      value: Math.round((value / 18.0182) * 100) / 100,
       unit: 'mmol/L',
       formula: 'mmol/L = mg/dL ÷ 18.0182',
     };
@@ -464,7 +476,7 @@ function convertCreatinine(value: number, from: 'mg/dL' | 'μmol/L'): Calculatio
     };
   } else {
     return {
-      value: Math.round(value / 88.42 * 100) / 100,
+      value: Math.round((value / 88.42) * 100) / 100,
       unit: 'mg/dL',
       formula: 'mg/dL = μmol/L ÷ 88.42',
     };
@@ -474,13 +486,13 @@ function convertCreatinine(value: number, from: 'mg/dL' | 'μmol/L'): Calculatio
 function convertTemperature(value: number, from: 'F' | 'C'): CalculationResult {
   if (from === 'F') {
     return {
-      value: Math.round((value - 32) * 5 / 9 * 10) / 10,
+      value: Math.round((((value - 32) * 5) / 9) * 10) / 10,
       unit: '°C',
       formula: '°C = (°F - 32) × 5/9',
     };
   } else {
     return {
-      value: Math.round((value * 9 / 5 + 32) * 10) / 10,
+      value: Math.round(((value * 9) / 5 + 32) * 10) / 10,
       unit: '°F',
       formula: '°F = °C × 9/5 + 32',
     };
@@ -498,7 +510,7 @@ function calculateVancomycinDose(
 ): Record<string, unknown> {
   // Standard dosing 15-20 mg/kg every 8-12h based on renal function
   const dosePerKg = targetTrough > 15 ? 20 : 15;
-  const dose = Math.round(weightKg * dosePerKg / 250) * 250; // Round to nearest 250mg
+  const dose = Math.round((weightKg * dosePerKg) / 250) * 250; // Round to nearest 250mg
 
   let interval: number;
   if (crCl > 50) interval = 12;
@@ -521,9 +533,8 @@ function calculateAminoglycosideDose(
   drug: 'gentamicin' | 'tobramycin' | 'amikacin'
 ): Record<string, unknown> {
   // Use adjusted body weight if actual > 120% ideal
-  const dosingWeight = weightKg > idealWeight * 1.2
-    ? idealWeight + 0.4 * (weightKg - idealWeight)
-    : weightKg;
+  const dosingWeight =
+    weightKg > idealWeight * 1.2 ? idealWeight + 0.4 * (weightKg - idealWeight) : weightKg;
 
   let dosePerKg: number;
   let targetPeak: string;
@@ -603,11 +614,23 @@ Drug Dosing:
       operation: {
         type: 'string',
         enum: [
-          'bmi', 'bsa', 'ibw', 'abw', 'lbm',
-          'crcl', 'egfr',
-          'chads2', 'cha2ds2vasc', 'wells_dvt', 'gcs', 'apache2',
-          'convert_glucose', 'convert_creatinine', 'convert_temp',
-          'vancomycin', 'aminoglycoside',
+          'bmi',
+          'bsa',
+          'ibw',
+          'abw',
+          'lbm',
+          'crcl',
+          'egfr',
+          'chads2',
+          'cha2ds2vasc',
+          'wells_dvt',
+          'gcs',
+          'apache2',
+          'convert_glucose',
+          'convert_creatinine',
+          'convert_temp',
+          'vancomycin',
+          'aminoglycoside',
         ],
         description: 'Calculation to perform',
       },
@@ -716,7 +739,10 @@ export async function executeMedicalCalc(toolCall: UnifiedToolCall): Promise<Uni
           throw new Error('age, weight_kg, serum_creatinine, and sex required');
         }
         const calc = calculateCreatinineClearance(
-          args.age, args.weight_kg, args.serum_creatinine, args.sex
+          args.age,
+          args.weight_kg,
+          args.serum_creatinine,
+          args.sex
         );
         result = { operation, ...calc };
         break;
@@ -800,10 +826,7 @@ export async function executeMedicalCalc(toolCall: UnifiedToolCall): Promise<Uni
         if (args.value === undefined || !args.from_unit) {
           throw new Error('value and from_unit required');
         }
-        const calc = convertGlucose(
-          args.value,
-          args.from_unit as 'mg/dL' | 'mmol/L'
-        );
+        const calc = convertGlucose(args.value, args.from_unit as 'mg/dL' | 'mmol/L');
         result = {
           operation,
           input: { value: args.value, unit: args.from_unit },
@@ -816,10 +839,7 @@ export async function executeMedicalCalc(toolCall: UnifiedToolCall): Promise<Uni
         if (args.value === undefined || !args.from_unit) {
           throw new Error('value and from_unit required');
         }
-        const calc = convertCreatinine(
-          args.value,
-          args.from_unit as 'mg/dL' | 'μmol/L'
-        );
+        const calc = convertCreatinine(args.value, args.from_unit as 'mg/dL' | 'μmol/L');
         result = {
           operation,
           input: { value: args.value, unit: args.from_unit },
@@ -891,4 +911,3 @@ export async function executeMedicalCalc(toolCall: UnifiedToolCall): Promise<Uni
 export function isMedicalCalcAvailable(): boolean {
   return true;
 }
-void _calculateAPACHEII; // reserved for ICU scoring

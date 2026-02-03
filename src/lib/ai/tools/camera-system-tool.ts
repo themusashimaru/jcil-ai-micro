@@ -115,12 +115,9 @@ function dot(a: Vec3, b: Vec3): number {
 }
 
 function frustumPlanes(camera: Camera3D): Array<{ normal: Vec3; distance: number }> {
-  const fovRad = camera.fov * Math.PI / 180;
-  const nearH = 2 * Math.tan(fovRad / 2) * camera.near;
-  const nearW = nearH * camera.aspect;
-  const farH = 2 * Math.tan(fovRad / 2) * camera.far;
-  const farW = farH * camera.aspect;
-  void nearH; void nearW; void farH; void farW;
+  // Frustum dimensions can be calculated from FOV and aspect ratio if needed
+  // const nearH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * camera.near;
+  // const nearW = nearH * camera.aspect;
   return [
     { normal: { x: 0, y: 0, z: -1 }, distance: camera.near },
     { normal: { x: 0, y: 0, z: 1 }, distance: camera.far },

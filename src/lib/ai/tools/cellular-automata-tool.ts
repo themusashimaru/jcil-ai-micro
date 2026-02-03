@@ -495,7 +495,7 @@ function gridToAscii(grid: Grid, alive: string = '█', dead: string = '·'): st
   return grid.map((row) => row.map((c) => (c ? alive : dead)).join('')).join('\n');
 }
 
-function __gridToCompact(grid: Grid): string {
+export function gridToCompact(grid: Grid): string {
   return grid.map((row) => row.map((c) => (c ? '1' : '0')).join('')).join('\n');
 }
 
@@ -860,4 +860,3 @@ export async function executeCellularAutomata(
 export function isCellularAutomataAvailable(): boolean {
   return true;
 }
-void __gridToCompact; // reserved for compact output

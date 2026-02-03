@@ -83,23 +83,17 @@ function addSPLs(spls: number[]): number {
 
 // Speaker box volume (sealed): Vas / Vb = (fc/fs)² - 1, Qtc
 function sealedBoxVolume(vas: number, _fs: number, qts: number, targetQtc: number = 0.707): number {
-  // _fs is available for extended calculations
-  void _fs;
   const ratio = Math.pow(targetQtc / qts, 2) - 1;
   return vas / ratio;
 }
 
 // Speaker cutoff frequency in sealed box
-function sealedCutoff(fs: number, qts: number, vas: number, vb: number): number {
-  // qts available for Qtc calculation
-  void qts;
+function sealedCutoff(fs: number, _qts: number, vas: number, vb: number): number {
   return fs * Math.sqrt((vas + vb) / vb);
 }
 
 // Ported box tuning frequency
-function portedTuning(fs: number, qts: number): number {
-  // qts available for extended calculations
-  void qts;
+function portedTuning(fs: number, _qts: number): number {
   return fs * 0.9;
 }
 

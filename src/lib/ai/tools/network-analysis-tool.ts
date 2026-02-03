@@ -20,18 +20,13 @@ function ipToLong(ip: string): number {
 }
 
 function longToIp(long: number): string {
-  return [
-    (long >>> 24) & 255,
-    (long >>> 16) & 255,
-    (long >>> 8) & 255,
-    long & 255,
-  ].join('.');
+  return [(long >>> 24) & 255, (long >>> 16) & 255, (long >>> 8) & 255, long & 255].join('.');
 }
 
 function isValidIPv4(ip: string): boolean {
   const parts = ip.split('.');
   if (parts.length !== 4) return false;
-  return parts.every(part => {
+  return parts.every((part) => {
     const num = parseInt(part, 10);
     return !isNaN(num) && num >= 0 && num <= 255 && part === num.toString();
   });
@@ -42,7 +37,7 @@ function isValidIPv4(ip: string): boolean {
 // ============================================================================
 
 function cidrToSubnetMask(cidr: number): string {
-  const mask = cidr === 0 ? 0 : (0xFFFFFFFF << (32 - cidr)) >>> 0;
+  const mask = cidr === 0 ? 0 : (0xffffffff << (32 - cidr)) >>> 0;
   return longToIp(mask);
 }
 
@@ -57,7 +52,10 @@ function subnetMaskToCidr(mask: string): number {
   return cidr;
 }
 
-function calculateSubnet(ip: string, cidr: number): {
+function calculateSubnet(
+  ip: string,
+  cidr: number
+): {
   network: string;
   broadcast: string;
   firstHost: string;
@@ -67,7 +65,7 @@ function calculateSubnet(ip: string, cidr: number): {
   subnetMask: string;
 } {
   const ipLong = ipToLong(ip);
-  const mask = cidr === 0 ? 0 : (0xFFFFFFFF << (32 - cidr)) >>> 0;
+  const mask = cidr === 0 ? 0 : (0xffffffff << (32 - cidr)) >>> 0;
   const network = ipLong & mask;
   const broadcast = network | (~mask >>> 0);
   const totalHosts = Math.pow(2, 32 - cidr);
@@ -84,10 +82,10 @@ function calculateSubnet(ip: string, cidr: number): {
   };
 }
 
-function _ipInSubnet(ip: string, network: string, cidr: number): boolean {
+export function ipInSubnet(ip: string, network: string, cidr: number): boolean {
   const ipLong = ipToLong(ip);
   const netLong = ipToLong(network);
-  const mask = cidr === 0 ? 0 : (0xFFFFFFFF << (32 - cidr)) >>> 0;
+  const mask = cidr === 0 ? 0 : (0xffffffff << (32 - cidr)) >>> 0;
   return (ipLong & mask) === (netLong & mask);
 }
 
@@ -135,7 +133,7 @@ function transferTime(fileSize: number, bandwidth: number): number {
   return fileBits / bitsPerSecond;
 }
 
-function _throughput(dataTransferred: number, time: number): number {
+export function throughput(dataTransferred: number, time: number): number {
   // Returns Mbps
   return (dataTransferred * 8) / (time * 1000000);
 }
@@ -226,7 +224,9 @@ Operations:
 // EXECUTOR
 // ============================================================================
 
-export async function executeNetworkAnalysis(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeNetworkAnalysis(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -313,10 +313,11 @@ export async function executeNetworkAnalysis(toolCall: UnifiedToolCall): Promise
           bandwidth_mbps: bandwidth,
           theoretical_transfer_time: formatTime(transferSec),
           latency_ms: latency,
-          bandwidth_delay_product_bytes: Math.round((bandwidth * 1000000 / 8) * (latency / 1000)),
+          bandwidth_delay_product_bytes: Math.round(((bandwidth * 1000000) / 8) * (latency / 1000)),
           effective_bandwidth_with_latency_mbps: Math.round(effectiveBw * 100) / 100,
           tcp_window_size_bytes: windowSize,
-          recommendation: latency > 100 ? 'High latency - consider TCP window scaling' : 'Normal latency',
+          recommendation:
+            latency > 100 ? 'High latency - consider TCP window scaling' : 'Normal latency',
         };
         break;
       }
@@ -336,11 +337,18 @@ export async function executeNetworkAnalysis(toolCall: UnifiedToolCall): Promise
           service: portInfo.service,
           protocol: portInfo.protocol,
           category: portInfo.category,
-          port_range: port < 1024 ? 'Well-known (0-1023)' : port < 49152 ? 'Registered (1024-49151)' : 'Dynamic/Private (49152-65535)',
-          common_ports: Object.entries(COMMON_PORTS).slice(0, 10).map(([p, info]) => ({
-            port: Number(p),
-            service: info.service,
-          })),
+          port_range:
+            port < 1024
+              ? 'Well-known (0-1023)'
+              : port < 49152
+                ? 'Registered (1024-49151)'
+                : 'Dynamic/Private (49152-65535)',
+          common_ports: Object.entries(COMMON_PORTS)
+            .slice(0, 10)
+            .map(([p, info]) => ({
+              port: Number(p),
+              service: info.service,
+            })),
         };
         break;
       }
@@ -382,11 +390,14 @@ export async function executeNetworkAnalysis(toolCall: UnifiedToolCall): Promise
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Network Analysis Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Network Analysis Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isNetworkAnalysisAvailable(): boolean { return true; }
-
-// ESLint unused function references
-void _ipInSubnet; void _throughput;
+export function isNetworkAnalysisAvailable(): boolean {
+  return true;
+}

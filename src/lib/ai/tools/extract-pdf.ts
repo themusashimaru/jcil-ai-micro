@@ -131,7 +131,7 @@ async function fetchPdf(
 
 async function extractPdfText(
   buffer: Buffer,
-  pageOption: string
+  _pageOption: string
 ): Promise<{ success: boolean; text?: string; numPages?: number; error?: string }> {
   if (!unpdfModule) {
     return { success: false, error: 'PDF parser not initialized' };
@@ -149,7 +149,6 @@ async function extractPdfText(
     // It extracts all text. Page-specific extraction would require
     // processing each page individually with getPageText.
     // For most use cases, extracting all text is sufficient.
-    void pageOption; // Acknowledge parameter (page filtering not yet implemented)
 
     // Extract text from all pages
     const { text } = await extractText(new Uint8Array(buffer), {

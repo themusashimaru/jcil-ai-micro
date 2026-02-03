@@ -54,17 +54,16 @@ function activationEnergy(k1: number, k2: number, T1: number, T2: number): numbe
   return R * Math.log(k2 / k1) / (1 / T1 - 1 / T2);
 }
 
-function _arrhenius2Temps(k1: number, T1: number, Ea: number, T2: number): number {
+export function arrhenius2Temps(k1: number, T1: number, Ea: number, T2: number): number {
   // k2 = k1 * exp(-Ea/R * (1/T2 - 1/T1))
   return k1 * Math.exp(-Ea / R * (1 / T2 - 1 / T1));
 }
-void _arrhenius2Temps; // reserved for temperature extrapolation
 
 // ============================================================================
 // EQUILIBRIUM
 // ============================================================================
 
-function _equilibriumConstant(products: number[], reactants: number[], coeffProducts: number[], coeffReactants: number[]): number {
+export function equilibriumConstant(products: number[], reactants: number[], coeffProducts: number[], coeffReactants: number[]): number {
   let K = 1;
   for (let i = 0; i < products.length; i++) {
     K *= Math.pow(products[i], coeffProducts[i]);
@@ -74,7 +73,6 @@ function _equilibriumConstant(products: number[], reactants: number[], coeffProd
   }
   return K;
 }
-void _equilibriumConstant; // reserved for multi-species equilibrium
 
 function gibbsFromK(K: number, T: number): number {
   // ΔG = -RT ln(K)
@@ -97,7 +95,7 @@ interface ElementaryStep {
   order: number;
 }
 
-function _steadyStateApprox(steps: ElementaryStep[], intermediate: string): string {
+export function steadyStateApprox(steps: ElementaryStep[], intermediate: string): string {
   // Returns the rate expression for steady-state approximation
   const forming: string[] = [];
   const consuming: string[] = [];
@@ -113,7 +111,6 @@ function _steadyStateApprox(steps: ElementaryStep[], intermediate: string): stri
 
   return `d[${intermediate}]/dt = ${forming.join(' + ')} - ${consuming.join(' - ')} ≈ 0`;
 }
-void _steadyStateApprox; // reserved for mechanism analysis
 
 // ============================================================================
 // VISUALIZATION
