@@ -595,14 +595,12 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         onClick={() => setShowModal(true)}
         disabled={disabled}
         title="MCP Servers"
-        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80 px-2 py-1 rounded-lg"
+        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
         style={{
           color: runningCount > 0 ? '#22c55e' : 'var(--text-primary)',
-          backgroundColor: 'transparent',
         }}
       >
-        <ServerIcon />
-        <span className="hidden sm:inline">MCP</span>
+        <span>MCP</span>
         {runningCount > 0 && (
           <span
             style={{
@@ -613,6 +611,9 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
             }}
           />
         )}
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
 
       {isMounted && createPortal(modal, document.body)}
