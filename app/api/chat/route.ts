@@ -5823,7 +5823,12 @@ SECURITY:
       log.warn('Selected provider not available, falling back to Claude', { provider });
     }
 
+    // CRITICAL: Pass the providerId to ensure the correct adapter is used
+    // Without this, the router defaults to Claude even when a non-Claude model is selected
+    const selectedProviderId = provider && isProviderAvailable(provider) ? provider : 'claude';
+
     const routeOptions: ChatRouteOptions = {
+      providerId: selectedProviderId,
       model: selectedModel,
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
