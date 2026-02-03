@@ -267,8 +267,9 @@ class AntColonyOptimizer {
 // ============================================================================
 
 export class MaxMinAntSystem extends AntColonyOptimizer {
-  private pheromoneMin: number;
-  private pheromoneMax: number;
+  // MMAS pheromone bounds - used in full implementation
+  private _pheromoneMin: number;
+  private _pheromoneMax: number;
 
   constructor(cities: City[], config: Partial<ACOConfig> = {}) {
     super(cities, config);
@@ -276,8 +277,8 @@ export class MaxMinAntSystem extends AntColonyOptimizer {
     // MMAS specific bounds
     const n = cities.length;
     const tau0 = 1.0 / (n * this.calculateNearestNeighborTour());
-    this.pheromoneMax = tau0;
-    this.pheromoneMin = this.pheromoneMax / (2 * n);
+    this._pheromoneMax = tau0;
+    this._pheromoneMin = this._pheromoneMax / (2 * n);
   }
 
   private calculateNearestNeighborTour(): number {

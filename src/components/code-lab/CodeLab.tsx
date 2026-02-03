@@ -137,8 +137,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   >([]);
 
   // Background agent management functions (Claude Code parity)
-  // Underscore prefix indicates these are exposed via context/API for tools to spawn parallel agents
-  const _spawnBackgroundAgent = useCallback((name: string) => {
+  // Exposed via window API for tools to spawn parallel agents
+  const spawnBackgroundAgent = useCallback((name: string) => {
     const id = `agent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setBackgroundAgents((prev) => [
       ...prev,
@@ -147,7 +147,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     return id;
   }, []);
 
-  const _updateBackgroundAgent = useCallback(
+  const updateBackgroundAgent = useCallback(
     (
       id: string,
       update: Partial<{ status: 'running' | 'completed' | 'failed'; output: string }>
@@ -163,8 +163,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // This enables spawning background agents from AI tools
   if (typeof window !== 'undefined') {
     (window as unknown as Record<string, unknown>).__codeLabAgentAPI = {
-      spawn: _spawnBackgroundAgent,
-      update: _updateBackgroundAgent,
+      spawn: spawnBackgroundAgent,
+      update: updateBackgroundAgent,
     };
   }
 
