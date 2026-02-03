@@ -595,23 +595,14 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         onClick={() => setShowModal(true)}
         disabled={disabled}
         title="MCP Servers"
+        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80 px-2 py-1 rounded-lg"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '6px 12px',
+          color: runningCount > 0 ? '#22c55e' : 'var(--text-primary)',
           backgroundColor: 'transparent',
-          border: '1px solid var(--border-color, #333)',
-          borderRadius: '6px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          color: runningCount > 0 ? '#22c55e' : 'var(--text-secondary, #888)',
-          fontSize: '13px',
-          opacity: disabled ? 0.5 : 1,
-          transition: 'all 0.2s',
         }}
       >
         <ServerIcon />
-        <span>MCP</span>
+        <span className="hidden sm:inline">MCP</span>
         {runningCount > 0 && (
           <span
             style={{

@@ -273,12 +273,31 @@ export function getAllProviders(): ProviderConfig[] {
 }
 
 /**
+ * Check if an API key is configured for a provider
+ * Supports both single key (e.g., DEEPSEEK_API_KEY) and numbered keys (e.g., DEEPSEEK_API_KEY_1)
+ */
+function hasApiKeyConfigured(apiKeyEnv: string): boolean {
+  // Check for single key
+  const singleKey = process.env[apiKeyEnv];
+  if (singleKey !== undefined && singleKey !== '') {
+    return true;
+  }
+
+  // Check for numbered keys (e.g., DEEPSEEK_API_KEY_1)
+  const numberedKey = process.env[`${apiKeyEnv}_1`];
+  if (numberedKey !== undefined && numberedKey !== '') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Get providers that have API keys configured
  */
 export function getAvailableProviders(): ProviderConfig[] {
   return Object.values(PROVIDERS).filter((provider) => {
-    const apiKey = process.env[provider.apiKeyEnv];
-    return apiKey !== undefined && apiKey !== '';
+    return hasApiKeyConfigured(provider.apiKeyEnv);
   });
 }
 
@@ -295,8 +314,7 @@ export function getAvailableProviderIds(): ProviderId[] {
 export function isProviderAvailable(id: ProviderId): boolean {
   const provider = PROVIDERS[id];
   if (!provider) return false;
-  const apiKey = process.env[provider.apiKeyEnv];
-  return apiKey !== undefined && apiKey !== '';
+  return hasApiKeyConfigured(provider.apiKeyEnv);
 }
 
 // ============================================================================
