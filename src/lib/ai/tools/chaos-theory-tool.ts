@@ -16,39 +16,63 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const chaostheoryTool: UnifiedTool = {
   name: 'chaos_theory',
-  description: 'Chaos theory analysis - Lyapunov exponents, strange attractors, bifurcation diagrams. Supports Lorenz, Rössler, logistic map, Hénon map systems.',
+  description:
+    'Chaos theory analysis - Lyapunov exponents, strange attractors, bifurcation diagrams. Supports Lorenz, Rössler, logistic map, Hénon map systems.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['simulate', 'lyapunov', 'bifurcation', 'attractor', 'sensitivity', 'poincare', 'correlation_dim', 'info'],
-        description: 'Operation: simulate (evolve system), lyapunov (compute exponent), bifurcation (parameter sweep), attractor (characterize), sensitivity (compare trajectories), poincare (section), correlation_dim (fractal dimension)'
+        enum: [
+          'simulate',
+          'lyapunov',
+          'bifurcation',
+          'attractor',
+          'sensitivity',
+          'poincare',
+          'correlation_dim',
+          'info',
+        ],
+        description:
+          'Operation: simulate (evolve system), lyapunov (compute exponent), bifurcation (parameter sweep), attractor (characterize), sensitivity (compare trajectories), poincare (section), correlation_dim (fractal dimension)',
       },
       system: {
         type: 'string',
         enum: ['lorenz', 'rossler', 'logistic_map', 'henon', 'duffing', 'double_pendulum'],
-        description: 'Chaotic system to analyze'
+        description: 'Chaotic system to analyze',
       },
-      initial_state: { type: 'array', items: { type: 'number' }, description: 'Initial conditions [x, y, z] or [x, y]' },
-      parameters: { type: 'object', description: 'System parameters (sigma, rho, beta for Lorenz, etc.)' },
+      initial_state: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Initial conditions [x, y, z] or [x, y]',
+      },
+      parameters: {
+        type: 'object',
+        description: 'System parameters (sigma, rho, beta for Lorenz, etc.)',
+      },
       timesteps: { type: 'integer', description: 'Number of timesteps to simulate' },
       dt: { type: 'number', description: 'Time step size (default 0.01)' },
       parameter_name: { type: 'string', description: 'Parameter to vary for bifurcation diagram' },
-      param_range: { type: 'array', items: { type: 'number' }, description: 'Parameter range [min, max] for bifurcation' },
+      param_range: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Parameter range [min, max] for bifurcation',
+      },
       param_steps: { type: 'integer', description: 'Number of parameter values to test' },
-      perturbation: { type: 'number', description: 'Initial perturbation size for sensitivity analysis' }
+      perturbation: {
+        type: 'number',
+        description: 'Initial perturbation size for sensitivity analysis',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface SystemState {
+export interface SystemState {
   state: number[];
   time: number;
 }
@@ -80,11 +104,7 @@ interface LyapunovResult {
 
 function lorenzDerivatives(state: number[], sigma: number, rho: number, beta: number): number[] {
   const [x, y, z] = state;
-  return [
-    sigma * (y - x),
-    x * (rho - z) - y,
-    x * y - beta * z
-  ];
+  return [sigma * (y - x), x * (rho - z) - y, x * y - beta * z];
 }
 
 function lorenzJacobian(state: number[], sigma: number, rho: number, beta: number): number[][] {
@@ -92,7 +112,7 @@ function lorenzJacobian(state: number[], sigma: number, rho: number, beta: numbe
   return [
     [-sigma, sigma, 0],
     [rho - z, -1, -x],
-    [y, x, -beta]
+    [y, x, -beta],
   ];
 }
 
@@ -105,20 +125,15 @@ function lorenzJacobian(state: number[], sigma: number, rho: number, beta: numbe
 
 function rosslerDerivatives(state: number[], a: number, b: number, c: number): number[] {
   const [x, y, z] = state;
-  return [
-    -y - z,
-    x + a * y,
-    b + z * (x - c)
-  ];
+  return [-y - z, x + a * y, b + z * (x - c)];
 }
 
-function rosslerJacobian(state: number[], a: number, b: number, c: number): number[][] {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+function rosslerJacobian(state: number[], a: number, _b: number, c: number): number[][] {
   const [x, _y, z] = state;
   return [
     [0, -1, -1],
     [1, a, 0],
-    [z, 0, x - c]
+    [z, 0, x - c],
   ];
 }
 
@@ -143,17 +158,14 @@ function logisticMapDerivative(x: number, r: number): number {
 
 function henonMap(state: number[], a: number, b: number): number[] {
   const [x, y] = state;
-  return [
-    1 - a * x * x + y,
-    b * x
-  ];
+  return [1 - a * x * x + y, b * x];
 }
 
 function henonJacobian(state: number[], a: number, b: number): number[][] {
   const [x] = state;
   return [
     [-2 * a * x, 1],
-    [b, 0]
+    [b, 0],
   ];
 }
 
@@ -163,12 +175,15 @@ function henonJacobian(state: number[], a: number, b: number): number[][] {
 // dy/dt = x - x³ - δy + γcos(ωt)
 // ============================================================================
 
-function duffingDerivatives(state: number[], t: number, delta: number, gamma: number, omega: number): number[] {
+function duffingDerivatives(
+  state: number[],
+  t: number,
+  delta: number,
+  gamma: number,
+  omega: number
+): number[] {
   const [x, y] = state;
-  return [
-    y,
-    x - x * x * x - delta * y + gamma * Math.cos(omega * t)
-  ];
+  return [y, x - x * x * x - delta * y + gamma * Math.cos(omega * t)];
 }
 
 // ============================================================================
@@ -177,8 +192,10 @@ function duffingDerivatives(state: number[], t: number, delta: number, gamma: nu
 
 function doublePendulumDerivatives(
   state: number[],
-  m1: number, m2: number,
-  l1: number, l2: number,
+  m1: number,
+  m2: number,
+  l1: number,
+  l2: number,
   g: number
 ): number[] {
   const [theta1, omega1, theta2, omega2] = state;
@@ -189,15 +206,19 @@ function doublePendulumDerivatives(
   const dtheta1 = omega1;
   const dtheta2 = omega2;
 
-  const domega1 = (m2 * l1 * omega1 * omega1 * Math.sin(delta) * Math.cos(delta)
-    + m2 * g * Math.sin(theta2) * Math.cos(delta)
-    + m2 * l2 * omega2 * omega2 * Math.sin(delta)
-    - (m1 + m2) * g * Math.sin(theta1)) / denom1;
+  const domega1 =
+    (m2 * l1 * omega1 * omega1 * Math.sin(delta) * Math.cos(delta) +
+      m2 * g * Math.sin(theta2) * Math.cos(delta) +
+      m2 * l2 * omega2 * omega2 * Math.sin(delta) -
+      (m1 + m2) * g * Math.sin(theta1)) /
+    denom1;
 
-  const domega2 = (-m2 * l2 * omega2 * omega2 * Math.sin(delta) * Math.cos(delta)
-    + (m1 + m2) * g * Math.sin(theta1) * Math.cos(delta)
-    - (m1 + m2) * l1 * omega1 * omega1 * Math.sin(delta)
-    - (m1 + m2) * g * Math.sin(theta2)) / denom2;
+  const domega2 =
+    (-m2 * l2 * omega2 * omega2 * Math.sin(delta) * Math.cos(delta) +
+      (m1 + m2) * g * Math.sin(theta1) * Math.cos(delta) -
+      (m1 + m2) * l1 * omega1 * omega1 * Math.sin(delta) -
+      (m1 + m2) * g * Math.sin(theta2)) /
+    denom2;
 
   return [dtheta1, domega1, dtheta2, domega2];
 }
@@ -213,9 +234,18 @@ function rk4Step(
   derivatives: (state: number[], t: number) => number[]
 ): number[] {
   const k1 = derivatives(state, t);
-  const k2 = derivatives(state.map((s, i) => s + 0.5 * dt * k1[i]), t + 0.5 * dt);
-  const k3 = derivatives(state.map((s, i) => s + 0.5 * dt * k2[i]), t + 0.5 * dt);
-  const k4 = derivatives(state.map((s, i) => s + dt * k3[i]), t + dt);
+  const k2 = derivatives(
+    state.map((s, i) => s + 0.5 * dt * k1[i]),
+    t + 0.5 * dt
+  );
+  const k3 = derivatives(
+    state.map((s, i) => s + 0.5 * dt * k2[i]),
+    t + 0.5 * dt
+  );
+  const k4 = derivatives(
+    state.map((s, i) => s + dt * k3[i]),
+    t + dt
+  );
 
   return state.map((s, i) => s + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
 }
@@ -241,15 +271,28 @@ function simulateSystem(
   const getDerivatives = (s: number[], time: number): number[] => {
     switch (system) {
       case 'lorenz':
-        return lorenzDerivatives(s, params.sigma || 10, params.rho || 28, params.beta || 8/3);
+        return lorenzDerivatives(s, params.sigma || 10, params.rho || 28, params.beta || 8 / 3);
       case 'rossler':
         return rosslerDerivatives(s, params.a || 0.2, params.b || 0.2, params.c || 5.7);
       case 'duffing':
-        return duffingDerivatives(s, time, params.delta || 0.3, params.gamma || 0.5, params.omega || 1.2);
+        return duffingDerivatives(
+          s,
+          time,
+          params.delta || 0.3,
+          params.gamma || 0.5,
+          params.omega || 1.2
+        );
       case 'double_pendulum':
-        return doublePendulumDerivatives(s, params.m1 || 1, params.m2 || 1, params.l1 || 1, params.l2 || 1, params.g || 9.81);
+        return doublePendulumDerivatives(
+          s,
+          params.m1 || 1,
+          params.m2 || 1,
+          params.l1 || 1,
+          params.l2 || 1,
+          params.g || 9.81
+        );
       default:
-        return lorenzDerivatives(s, 10, 28, 8/3);
+        return lorenzDerivatives(s, 10, 28, 8 / 3);
     }
   };
 
@@ -309,7 +352,7 @@ function simulateSystem(
   return {
     trajectory,
     times,
-    statistics: { mean, std, min, max }
+    statistics: { mean, std, min, max },
   };
 }
 
@@ -363,12 +406,16 @@ function computeLogisticLyapunov(x0: number, r: number, iterations: number): Lya
     exponents: [lambda],
     chaos_indicator: lambda > 0.001 ? 'chaotic' : lambda < -0.001 ? 'stable' : 'edge_of_chaos',
     divergence_rate: Math.exp(lambda),
-    predictability_horizon: lambda > 0 ? 1 / lambda : Infinity
+    predictability_horizon: lambda > 0 ? 1 / lambda : Infinity,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function computeHenonLyapunov(initialState: number[], params: any, iterations: number): LyapunovResult {
+function computeHenonLyapunov(
+  initialState: number[],
+  params: any,
+  iterations: number
+): LyapunovResult {
   const a = params.a || 1.4;
   const b = params.b || 0.3;
   let state = initialState.length >= 2 ? [...initialState] : [0.1, 0.1];
@@ -416,7 +463,7 @@ function computeHenonLyapunov(initialState: number[], params: any, iterations: n
     exponents: [lambda1, lambda2],
     chaos_indicator: lambda1 > 0.001 ? 'chaotic' : 'stable',
     divergence_rate: Math.exp(lambda1),
-    predictability_horizon: lambda1 > 0 ? 1 / lambda1 : Infinity
+    predictability_horizon: lambda1 > 0 ? 1 / lambda1 : Infinity,
   };
 }
 
@@ -436,22 +483,22 @@ function computeContinuousLyapunov(
   const getJacobian = (s: number[]): number[][] => {
     switch (system) {
       case 'lorenz':
-        return lorenzJacobian(s, params.sigma || 10, params.rho || 28, params.beta || 8/3);
+        return lorenzJacobian(s, params.sigma || 10, params.rho || 28, params.beta || 8 / 3);
       case 'rossler':
         return rosslerJacobian(s, params.a || 0.2, params.b || 0.2, params.c || 5.7);
       default:
-        return lorenzJacobian(s, 10, 28, 8/3);
+        return lorenzJacobian(s, 10, 28, 8 / 3);
     }
   };
 
   const getDerivatives = (s: number[], _time: number): number[] => {
     switch (system) {
       case 'lorenz':
-        return lorenzDerivatives(s, params.sigma || 10, params.rho || 28, params.beta || 8/3);
+        return lorenzDerivatives(s, params.sigma || 10, params.rho || 28, params.beta || 8 / 3);
       case 'rossler':
         return rosslerDerivatives(s, params.a || 0.2, params.b || 0.2, params.c || 5.7);
       default:
-        return lorenzDerivatives(s, 10, 28, 8/3);
+        return lorenzDerivatives(s, 10, 28, 8 / 3);
     }
   };
 
@@ -524,15 +571,16 @@ function computeContinuousLyapunov(
   }
 
   const totalTime = (timesteps - transient) * dt;
-  const exponents = lyapunovSums.map(sum => sum / totalTime);
+  const exponents = lyapunovSums.map((sum) => sum / totalTime);
 
   const maxExponent = Math.max(...exponents);
 
   return {
     exponents,
-    chaos_indicator: maxExponent > 0.001 ? 'chaotic' : maxExponent < -0.001 ? 'stable' : 'edge_of_chaos',
+    chaos_indicator:
+      maxExponent > 0.001 ? 'chaotic' : maxExponent < -0.001 ? 'stable' : 'edge_of_chaos',
     divergence_rate: Math.exp(maxExponent),
-    predictability_horizon: maxExponent > 0 ? 1 / maxExponent : Infinity
+    predictability_horizon: maxExponent > 0 ? 1 / maxExponent : Infinity,
   };
 }
 
@@ -584,7 +632,7 @@ function computeBifurcationDiagram(
 
       // Sample last portion of trajectory
       const lastN = Math.min(200, result.trajectory.length);
-      const points = result.trajectory.slice(-lastN).map(s => s[0]);
+      const points = result.trajectory.slice(-lastN).map((s) => s[0]);
       attractorPoints.push(points);
     }
   }
@@ -605,7 +653,7 @@ function sensitivityAnalysis(
   timesteps: number,
   dt: number
 ): { original: number[][]; perturbed: number[][]; divergence: number[]; times: number[] } {
-  const perturbedState = initialState.map((x, i) => i === 0 ? x + perturbation : x);
+  const perturbedState = initialState.map((x, i) => (i === 0 ? x + perturbation : x));
 
   const original = simulateSystem(system, initialState, params, timesteps, dt);
   const perturbed = simulateSystem(system, perturbedState, params, timesteps, dt);
@@ -626,7 +674,7 @@ function sensitivityAnalysis(
     original: original.trajectory,
     perturbed: perturbed.trajectory,
     divergence,
-    times: original.times.slice(0, minLen)
+    times: original.times.slice(0, minLen),
   };
 }
 
@@ -642,7 +690,7 @@ function computeCorrelationDimension(
   const dim = trajectory[0].length;
 
   // Sample pairs to avoid O(n²) for large datasets
-  const maxPairs = Math.min(10000, n * (n - 1) / 2);
+  const maxPairs = Math.min(10000, (n * (n - 1)) / 2);
   const pairs: [number, number][] = [];
 
   for (let i = 0; i < n && pairs.length < maxPairs; i++) {
@@ -674,12 +722,15 @@ function computeCorrelationDimension(
     radii.push(r);
 
     // Count pairs within radius r
-    const count = distances.filter(d => d < r).length;
+    const count = distances.filter((d) => d < r).length;
     correlationIntegral.push(count / distances.length);
   }
 
   // Estimate dimension from log-log slope (exclude endpoints)
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumX2 = 0;
   let validPoints = 0;
 
   for (let i = 3; i < numRadii - 3; i++) {
@@ -694,9 +745,10 @@ function computeCorrelationDimension(
     }
   }
 
-  const dimension = validPoints > 1
-    ? (validPoints * sumXY - sumX * sumY) / (validPoints * sumX2 - sumX * sumX)
-    : NaN;
+  const dimension =
+    validPoints > 1
+      ? (validPoints * sumXY - sumX * sumY) / (validPoints * sumX2 - sumX * sumX)
+      : NaN;
 
   return { dimension, radii, correlationIntegral };
 }
@@ -720,7 +772,7 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
       parameter_name = 'r',
       param_range = [2.5, 4.0],
       param_steps = 200,
-      perturbation = 1e-8
+      perturbation = 1e-8,
     } = args;
 
     // Default initial states for each system
@@ -730,7 +782,7 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
       logistic_map: [0.5],
       henon: [0.1, 0.1],
       duffing: [0.5, 0.5],
-      double_pendulum: [Math.PI/2, 0, Math.PI/2, 0]
+      double_pendulum: [Math.PI / 2, 0, Math.PI / 2, 0],
     };
 
     const initialState = initial_state || defaultStates[system] || [1, 1, 1];
@@ -756,8 +808,9 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
           statistics: simResult.statistics,
           trajectory_sample: sampledTrajectory.slice(0, 50),
           total_points: simResult.trajectory.length,
-          description: `Simulated ${system} system for ${timesteps} steps. ` +
-            `Attractor bounds: x∈[${simResult.statistics.min[0].toFixed(2)}, ${simResult.statistics.max[0].toFixed(2)}]`
+          description:
+            `Simulated ${system} system for ${timesteps} steps. ` +
+            `Attractor bounds: x∈[${simResult.statistics.min[0].toFixed(2)}, ${simResult.statistics.max[0].toFixed(2)}]`,
         };
         break;
       }
@@ -776,11 +829,12 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
           interpretation: {
             positive: 'λ > 0: Chaotic - nearby trajectories diverge exponentially',
             zero: 'λ ≈ 0: Edge of chaos - marginal stability',
-            negative: 'λ < 0: Stable - trajectories converge'
+            negative: 'λ < 0: Stable - trajectories converge',
           },
-          description: `Lyapunov exponents for ${system}: ${lyapResult.exponents.map(e => e.toFixed(4)).join(', ')}. ` +
+          description:
+            `Lyapunov exponents for ${system}: ${lyapResult.exponents.map((e) => e.toFixed(4)).join(', ')}. ` +
             `System is ${lyapResult.chaos_indicator}. ` +
-            `Predictability horizon: ${lyapResult.predictability_horizon.toFixed(2)} time units.`
+            `Predictability horizon: ${lyapResult.predictability_horizon.toFixed(2)} time units.`,
         };
         break;
       }
@@ -807,19 +861,26 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
           param_range,
           param_steps,
           sample_parameters: sampledParams,
-          sample_attractor_points: sampledPoints.map(pts => pts.slice(0, 10)),
+          sample_attractor_points: sampledPoints.map((pts) => pts.slice(0, 10)),
           observations: {
             period_doubling: 'As parameter increases, period doubles (1→2→4→8→...→chaos)',
             windows: 'Periodic windows exist within chaotic regime',
-            universality: 'Feigenbaum constants δ≈4.669 and α≈2.503 are universal'
+            universality: 'Feigenbaum constants δ≈4.669 and α≈2.503 are universal',
           },
-          description: `Bifurcation diagram for ${system} varying ${parameter_name} from ${param_range[0]} to ${param_range[1]}`
+          description: `Bifurcation diagram for ${system} varying ${parameter_name} from ${param_range[0]} to ${param_range[1]}`,
         };
         break;
       }
 
       case 'sensitivity': {
-        const sensResult = sensitivityAnalysis(system, initialState, parameters, perturbation, timesteps, dt);
+        const sensResult = sensitivityAnalysis(
+          system,
+          initialState,
+          parameters,
+          perturbation,
+          timesteps,
+          dt
+        );
 
         // Sample for output
         const sampleInterval = Math.max(1, Math.floor(sensResult.times.length / 50));
@@ -827,8 +888,10 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
         const sampledTimes = sensResult.times.filter((_, i) => i % sampleInterval === 0);
 
         // Find when divergence exceeds significant threshold
-        const threshold = Math.sqrt(initialState.reduce((s, x) => s + x*x, 0)) * 0.1;
-        const crossingTime = sensResult.times[sensResult.divergence.findIndex(d => d > threshold)] || Infinity;
+        const threshold =
+          Math.sqrt(initialState.reduce((s: number, x: number) => s + x * x, 0)) * 0.1;
+        const crossingTime =
+          sensResult.times[sensResult.divergence.findIndex((d) => d > threshold)] || Infinity;
 
         result = {
           operation: 'sensitivity',
@@ -838,10 +901,12 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
           times: sampledTimes.slice(0, 30),
           final_divergence: sensResult.divergence[sensResult.divergence.length - 1],
           crossing_time: crossingTime,
-          amplification_factor: sensResult.divergence[sensResult.divergence.length - 1] / perturbation,
+          amplification_factor:
+            sensResult.divergence[sensResult.divergence.length - 1] / perturbation,
           butterfly_effect: `Initial perturbation of ${perturbation.toExponential(2)} amplified to ${sensResult.divergence[sensResult.divergence.length - 1].toFixed(4)}`,
-          description: `Sensitivity analysis: perturbation of ${perturbation.toExponential(2)} in ${system}. ` +
-            `Crossed significance threshold at t=${crossingTime.toFixed(2)}.`
+          description:
+            `Sensitivity analysis: perturbation of ${perturbation.toExponential(2)} in ${system}. ` +
+            `Crossed significance threshold at t=${crossingTime.toFixed(2)}.`,
         };
         break;
       }
@@ -850,7 +915,8 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
         const simResult = simulateSystem(system, initialState, parameters, timesteps, dt);
         // Skip transient
         const trajectory = simResult.trajectory.slice(Math.floor(simResult.trajectory.length / 2));
-        const maxRadius = Math.max(...simResult.statistics.max) - Math.min(...simResult.statistics.min);
+        const maxRadius =
+          Math.max(...simResult.statistics.max) - Math.min(...simResult.statistics.min);
 
         const dimResult = computeCorrelationDimension(trajectory, maxRadius);
 
@@ -863,41 +929,59 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
           interpretation: {
             lorenz: 'Expected D ≈ 2.06 for Lorenz attractor',
             henon: 'Expected D ≈ 1.26 for Hénon attractor',
-            logistic_map: 'D ≈ 0.5 at chaos onset, increases with r'
+            logistic_map: 'D ≈ 0.5 at chaos onset, increases with r',
           },
-          description: `Correlation dimension for ${system}: D ≈ ${dimResult.dimension.toFixed(3)}. ` +
-            `This fractal dimension characterizes the strange attractor.`
+          description:
+            `Correlation dimension for ${system}: D ≈ ${dimResult.dimension.toFixed(3)}. ` +
+            `This fractal dimension characterizes the strange attractor.`,
         };
         break;
       }
 
       case 'attractor': {
-        const simResult = simulateSystem(system, initialState, parameters, Math.max(timesteps, 10000), dt);
+        const simResult = simulateSystem(
+          system,
+          initialState,
+          parameters,
+          Math.max(timesteps, 10000),
+          dt
+        );
         // Skip transient
         const attractor = simResult.trajectory.slice(Math.floor(simResult.trajectory.length / 2));
 
         // Compute attractor characteristics
         const maxRadius = Math.max(
           simResult.statistics.max[0] - simResult.statistics.min[0],
-          simResult.statistics.max.length > 1 ? simResult.statistics.max[1] - simResult.statistics.min[1] : 0
+          simResult.statistics.max.length > 1
+            ? simResult.statistics.max[1] - simResult.statistics.min[1]
+            : 0
         );
-        const dimResult = computeCorrelationDimension(attractor.slice(0, Math.min(5000, attractor.length)), maxRadius);
+        const dimResult = computeCorrelationDimension(
+          attractor.slice(0, Math.min(5000, attractor.length)),
+          maxRadius
+        );
 
         result = {
           operation: 'attractor',
           system,
-          attractor_type: dimResult.dimension > 0 && !isNaN(dimResult.dimension) ? 'strange_attractor' : 'limit_cycle',
+          attractor_type:
+            dimResult.dimension > 0 && !isNaN(dimResult.dimension)
+              ? 'strange_attractor'
+              : 'limit_cycle',
           bounding_box: {
             min: simResult.statistics.min,
-            max: simResult.statistics.max
+            max: simResult.statistics.max,
           },
           center: simResult.statistics.mean,
           extent: simResult.statistics.max.map((max, i) => max - simResult.statistics.min[i]),
           correlation_dimension: dimResult.dimension,
-          sample_points: attractor.filter((_, i) => i % Math.floor(attractor.length / 20) === 0).slice(0, 20),
-          description: `${system} attractor: ` +
+          sample_points: attractor
+            .filter((_, i) => i % Math.floor(attractor.length / 20) === 0)
+            .slice(0, 20),
+          description:
+            `${system} attractor: ` +
             `D ≈ ${dimResult.dimension.toFixed(3)}, ` +
-            `bounded in ${simResult.statistics.min.map((m, i) => `[${m.toFixed(2)}, ${simResult.statistics.max[i].toFixed(2)}]`).join(' × ')}`
+            `bounded in ${simResult.statistics.min.map((m, i) => `[${m.toFixed(2)}, ${simResult.statistics.max[i].toFixed(2)}]`).join(' × ')}`,
         };
         break;
       }
@@ -907,38 +991,40 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
         result = {
           operation: 'info',
           tool: 'chaos_theory',
-          description: 'Chaos theory and nonlinear dynamics analysis - study deterministic systems with sensitive dependence on initial conditions',
+          description:
+            'Chaos theory and nonlinear dynamics analysis - study deterministic systems with sensitive dependence on initial conditions',
           systems: {
             lorenz: {
               description: 'Lorenz attractor - butterfly-shaped strange attractor',
               equations: ['dx/dt = σ(y - x)', 'dy/dt = x(ρ - z) - y', 'dz/dt = xy - βz'],
-              default_params: { sigma: 10, rho: 28, beta: 8/3 },
-              lyapunov: 'λ₁ ≈ 0.906 (chaotic)'
+              default_params: { sigma: 10, rho: 28, beta: 8 / 3 },
+              lyapunov: 'λ₁ ≈ 0.906 (chaotic)',
             },
             rossler: {
               description: 'Rössler attractor - folded band structure',
               equations: ['dx/dt = -y - z', 'dy/dt = x + ay', 'dz/dt = b + z(x - c)'],
               default_params: { a: 0.2, b: 0.2, c: 5.7 },
-              lyapunov: 'λ₁ ≈ 0.07 (weakly chaotic)'
+              lyapunov: 'λ₁ ≈ 0.07 (weakly chaotic)',
             },
             logistic_map: {
               description: 'Logistic map - simplest chaotic system',
               equation: 'x_{n+1} = r·x_n·(1 - x_n)',
               default_params: { r: 3.9 },
-              chaos_onset: 'r ≈ 3.57 (period-doubling cascade)'
+              chaos_onset: 'r ≈ 3.57 (period-doubling cascade)',
             },
             henon: {
               description: 'Hénon map - 2D discrete strange attractor',
               equations: ['x_{n+1} = 1 - ax_n² + y_n', 'y_{n+1} = bx_n'],
               default_params: { a: 1.4, b: 0.3 },
-              dimension: 'D ≈ 1.26'
-            }
+              dimension: 'D ≈ 1.26',
+            },
           },
           key_concepts: {
-            lyapunov_exponent: 'Measures rate of divergence of nearby trajectories. λ > 0 indicates chaos.',
+            lyapunov_exponent:
+              'Measures rate of divergence of nearby trajectories. λ > 0 indicates chaos.',
             strange_attractor: 'Fractal set that trajectories approach but never repeat exactly.',
             bifurcation: 'Qualitative change in dynamics as parameter varies.',
-            sensitivity: 'Butterfly effect - tiny changes grow exponentially.'
+            sensitivity: 'Butterfly effect - tiny changes grow exponentially.',
           },
           operations: {
             simulate: 'Evolve system forward in time',
@@ -946,24 +1032,27 @@ export async function executechaostheory(toolCall: UnifiedToolCall): Promise<Uni
             bifurcation: 'Generate bifurcation diagram',
             sensitivity: 'Compare diverging trajectories',
             correlation_dim: 'Estimate fractal dimension',
-            attractor: 'Characterize the attractor'
-          }
+            attractor: 'Characterize the attractor',
+          },
         };
       }
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: errorMessage,
-        tool: 'chaos_theory',
-        hint: 'Use operation="info" for documentation'
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: errorMessage,
+          tool: 'chaos_theory',
+          hint: 'Use operation="info" for documentation',
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
   }
 }

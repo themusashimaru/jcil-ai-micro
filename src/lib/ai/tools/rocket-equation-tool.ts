@@ -10,16 +10,10 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // CONSTANTS
 // ============================================================================
 
-const G = 6.67430e-11; // Gravitational constant (m³/kg/s²)
+const G = 6.6743e-11; // Gravitational constant (m³/kg/s²)
 const EARTH_MASS = 5.972e24; // kg
 const EARTH_RADIUS = 6.371e6; // m
 const EARTH_GRAVITY = 9.80665; // m/s² (standard gravity)
-/* eslint-disable @typescript-eslint/no-unused-vars */
-const MOON_MASS = 7.342e22; // kg
-const MOON_RADIUS = 1.737e6; // m
-const SUN_MASS = 1.989e30; // kg
-const AU = 1.496e11; // m (astronomical unit)
-/* eslint-enable @typescript-eslint/no-unused-vars */
 
 // ============================================================================
 // PROPELLANT DATABASE
@@ -38,7 +32,7 @@ interface Propellant {
 
 const PROPELLANTS: Record<string, Propellant> = {
   // Chemical propellants
-  'solid': {
+  solid: {
     name: 'Solid Propellant',
     type: 'chemical',
     specificImpulse: 250,
@@ -46,7 +40,7 @@ const PROPELLANTS: Record<string, Propellant> = {
     exhaustVelocity: 2746,
     density: 1800,
     description: 'Simple, storable, high thrust',
-    examples: ['Space Shuttle SRBs', 'Minuteman missiles']
+    examples: ['Space Shuttle SRBs', 'Minuteman missiles'],
   },
   'lox-rp1': {
     name: 'LOX/RP-1 (Kerosene)',
@@ -56,7 +50,7 @@ const PROPELLANTS: Record<string, Propellant> = {
     exhaustVelocity: 3050,
     density: 1030,
     description: 'Dense, storable oxidizer with kerosene fuel',
-    examples: ['Falcon 9', 'Saturn V first stage', 'Soyuz']
+    examples: ['Falcon 9', 'Saturn V first stage', 'Soyuz'],
   },
   'lox-lh2': {
     name: 'LOX/LH2 (Hydrogen)',
@@ -66,7 +60,7 @@ const PROPELLANTS: Record<string, Propellant> = {
     exhaustVelocity: 4436,
     density: 320,
     description: 'Highest performance chemical propellant',
-    examples: ['Space Shuttle main engines', 'Centaur', 'Delta IV']
+    examples: ['Space Shuttle main engines', 'Centaur', 'Delta IV'],
   },
   'lox-methane': {
     name: 'LOX/Methane',
@@ -76,7 +70,7 @@ const PROPELLANTS: Record<string, Propellant> = {
     exhaustVelocity: 3560,
     density: 800,
     description: 'Emerging propellant, good for reusability',
-    examples: ['SpaceX Raptor', 'Blue Origin BE-4']
+    examples: ['SpaceX Raptor', 'Blue Origin BE-4'],
   },
   'n2o4-mmh': {
     name: 'N2O4/MMH (Hypergolic)',
@@ -86,47 +80,47 @@ const PROPELLANTS: Record<string, Propellant> = {
     exhaustVelocity: 3050,
     density: 1200,
     description: 'Storable, ignites on contact, toxic',
-    examples: ['Apollo Service Module', 'Shuttle OMS']
+    examples: ['Apollo Service Module', 'Shuttle OMS'],
   },
 
   // Electric propulsion
-  'ion': {
+  ion: {
     name: 'Ion (Xenon)',
     type: 'electric',
     specificImpulse: 3000,
     specificImpulseVacuum: 3000,
     exhaustVelocity: 29420,
     description: 'Very high Isp, very low thrust',
-    examples: ['Dawn mission', 'Starlink satellites']
+    examples: ['Dawn mission', 'Starlink satellites'],
   },
-  'hall': {
+  hall: {
     name: 'Hall Effect Thruster',
     type: 'electric',
     specificImpulse: 1500,
     specificImpulseVacuum: 1500,
     exhaustVelocity: 14710,
     description: 'Moderate Isp, higher thrust than ion',
-    examples: ['Starlink', 'Geostationary satellites']
+    examples: ['Starlink', 'Geostationary satellites'],
   },
-  'vasimr': {
+  vasimr: {
     name: 'VASIMR',
     type: 'electric',
     specificImpulse: 5000,
     specificImpulseVacuum: 5000,
     exhaustVelocity: 49033,
     description: 'Variable specific impulse, experimental',
-    examples: ['ISS testing']
+    examples: ['ISS testing'],
   },
 
   // Nuclear
-  'nerva': {
+  nerva: {
     name: 'Nuclear Thermal (NERVA-class)',
     type: 'nuclear',
     specificImpulse: 850,
     specificImpulseVacuum: 900,
     exhaustVelocity: 8829,
     description: 'Nuclear reactor heats hydrogen propellant',
-    examples: ['NERVA (tested 1960s)']
+    examples: ['NERVA (tested 1960s)'],
   },
   'nuclear-electric': {
     name: 'Nuclear Electric',
@@ -135,28 +129,28 @@ const PROPELLANTS: Record<string, Propellant> = {
     specificImpulseVacuum: 6000,
     exhaustVelocity: 58840,
     description: 'Nuclear reactor powers electric thrusters',
-    examples: ['Proposed Mars missions']
+    examples: ['Proposed Mars missions'],
   },
 
   // Theoretical
-  'antimatter': {
+  antimatter: {
     name: 'Antimatter',
     type: 'theoretical',
     specificImpulse: 100000,
     specificImpulseVacuum: 100000,
     exhaustVelocity: 981000,
     description: 'Theoretical maximum energy density',
-    examples: ['Conceptual only']
+    examples: ['Conceptual only'],
   },
-  'fusion': {
+  fusion: {
     name: 'Fusion',
     type: 'theoretical',
     specificImpulse: 20000,
     specificImpulseVacuum: 20000,
     exhaustVelocity: 196133,
     description: 'Nuclear fusion propulsion',
-    examples: ['Project Daedalus concept']
-  }
+    examples: ['Project Daedalus concept'],
+  },
 };
 
 // ============================================================================
@@ -167,11 +161,7 @@ const PROPELLANTS: Record<string, Propellant> = {
  * Tsiolkovsky rocket equation
  * Δv = ve × ln(m0/mf) = Isp × g0 × ln(m0/mf)
  */
-function rocketEquation(
-  exhaustVelocity: number,
-  initialMass: number,
-  finalMass: number
-): number {
+function rocketEquation(exhaustVelocity: number, initialMass: number, finalMass: number): number {
   if (finalMass <= 0 || initialMass <= finalMass) {
     throw new Error('Invalid mass values');
   }
@@ -183,8 +173,7 @@ function rocketEquation(
  * mf = m0 × e^(-Δv/ve)
  * mp = m0 - mf
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function propellantMass(
+export function propellantMass(
   deltaV: number,
   exhaustVelocity: number,
   initialMass: number
@@ -204,8 +193,7 @@ function massRatio(deltaV: number, exhaustVelocity: number): number {
 /**
  * Calculate required initial mass for given payload and delta-v
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function requiredInitialMass(
+export function requiredInitialMass(
   payloadMass: number,
   deltaV: number,
   exhaustVelocity: number,
@@ -240,7 +228,7 @@ function requiredInitialMass(
   return {
     initialMass: totalInitialMass,
     propellantMass: propMass,
-    structuralMass: structMass
+    structuralMass: structMass,
   };
 }
 
@@ -298,7 +286,7 @@ function calculateStaging(
       propellantMass: propMass,
       structuralMass: structMass,
       deltaV: deltaVPerStage,
-      massRatio: MR
+      massRatio: MR,
     });
 
     currentPayload = initialMass;
@@ -314,7 +302,7 @@ function calculateStaging(
     totalPropellantMass: totalPropellant,
     totalStructuralMass: totalStructure,
     payloadFraction: payloadMass / grossMass,
-    grossLiftoffMass: grossMass
+    grossLiftoffMass: grossMass,
   };
 }
 
@@ -337,7 +325,7 @@ function compareStagingOptions(
       results.push({
         stages: n,
         result: null,
-        error: e instanceof Error ? e.message : 'Calculation failed'
+        error: e instanceof Error ? e.message : 'Calculation failed',
       });
     }
   }
@@ -363,81 +351,80 @@ function getOrbitalDeltaV(): OrbitalManeuver[] {
     {
       name: 'Earth surface to LEO',
       deltaV: 9400,
-      description: 'Low Earth Orbit (400km), includes gravity and drag losses'
+      description: 'Low Earth Orbit (400km), includes gravity and drag losses',
     },
     {
       name: 'LEO to GTO',
       deltaV: 2440,
-      description: 'Geostationary Transfer Orbit from 400km LEO'
+      description: 'Geostationary Transfer Orbit from 400km LEO',
     },
     {
       name: 'GTO to GEO',
       deltaV: 1470,
-      description: 'Circularize at geostationary altitude'
+      description: 'Circularize at geostationary altitude',
     },
     {
       name: 'LEO to Moon transfer',
       deltaV: 3100,
-      description: 'Trans-lunar injection from LEO'
+      description: 'Trans-lunar injection from LEO',
     },
     {
       name: 'Moon orbit insertion',
       deltaV: 800,
-      description: 'Capture into low lunar orbit'
+      description: 'Capture into low lunar orbit',
     },
     {
       name: 'Moon landing',
       deltaV: 1700,
-      description: 'Descent from low lunar orbit'
+      description: 'Descent from low lunar orbit',
     },
     {
       name: 'Moon surface to orbit',
       deltaV: 1700,
-      description: 'Ascent to low lunar orbit'
+      description: 'Ascent to low lunar orbit',
     },
     {
       name: 'LEO to Mars transfer',
       deltaV: 3600,
-      description: 'Hohmann transfer to Mars'
+      description: 'Hohmann transfer to Mars',
     },
     {
       name: 'Mars orbit insertion',
       deltaV: 900,
-      description: 'Capture into Mars orbit (with aerobraking assist)'
+      description: 'Capture into Mars orbit (with aerobraking assist)',
     },
     {
       name: 'Mars landing',
       deltaV: 1000,
-      description: 'Descent with parachute + propulsive'
+      description: 'Descent with parachute + propulsive',
     },
     {
       name: 'Mars surface to orbit',
       deltaV: 4100,
-      description: 'Ascent to low Mars orbit'
+      description: 'Ascent to low Mars orbit',
     },
     {
       name: 'Earth escape velocity',
       deltaV: 3200,
-      description: 'From LEO to escape (C3 = 0)'
+      description: 'From LEO to escape (C3 = 0)',
     },
     {
       name: 'LEO orbital change (100km)',
       deltaV: 50,
-      description: 'Raise/lower orbit by 100km'
+      description: 'Raise/lower orbit by 100km',
     },
     {
       name: 'LEO plane change (1°)',
       deltaV: 135,
-      description: 'Per degree of inclination change at 7.8 km/s'
-    }
+      description: 'Per degree of inclination change at 7.8 km/s',
+    },
   ];
 }
 
 /**
  * Calculate vis-viva orbital velocity
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function orbitalVelocity(
+export function orbitalVelocity(
   centralMass: number,
   semiMajorAxis: number,
   currentRadius: number
@@ -453,8 +440,8 @@ function hohmannTransfer(
   r1: number,
   r2: number
 ): { deltaV1: number; deltaV2: number; totalDeltaV: number; transferTime: number } {
-  const v1 = Math.sqrt(G * centralMass / r1);
-  const v2 = Math.sqrt(G * centralMass / r2);
+  const v1 = Math.sqrt((G * centralMass) / r1);
+  const v2 = Math.sqrt((G * centralMass) / r2);
 
   const aTransfer = (r1 + r2) / 2;
   const vPeriapsis = Math.sqrt(G * centralMass * (2 / r1 - 1 / aTransfer));
@@ -469,7 +456,7 @@ function hohmannTransfer(
     deltaV1,
     deltaV2,
     totalDeltaV: deltaV1 + deltaV2,
-    transferTime
+    transferTime,
   };
 }
 
@@ -479,62 +466,73 @@ function hohmannTransfer(
 
 export const rocketequationTool: UnifiedTool = {
   name: 'rocket_equation',
-  description: 'Tsiolkovsky rocket equation and spacecraft propulsion - delta-v, mass ratios, staging optimization, and orbital mechanics',
+  description:
+    'Tsiolkovsky rocket equation and spacecraft propulsion - delta-v, mass ratios, staging optimization, and orbital mechanics',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['delta_v', 'mass_ratio', 'staging', 'propellant', 'orbital', 'hohmann', 'compare', 'info'],
-        description: 'Operation: delta_v (calculate Δv), mass_ratio (calculate ratios), staging (optimize stages), propellant (list propellants), orbital (common maneuvers), hohmann (transfer orbit), compare (compare staging options), info (documentation)'
+        enum: [
+          'delta_v',
+          'mass_ratio',
+          'staging',
+          'propellant',
+          'orbital',
+          'hohmann',
+          'compare',
+          'info',
+        ],
+        description:
+          'Operation: delta_v (calculate Δv), mass_ratio (calculate ratios), staging (optimize stages), propellant (list propellants), orbital (common maneuvers), hohmann (transfer orbit), compare (compare staging options), info (documentation)',
       },
       exhaust_velocity: {
         type: 'number',
-        description: 'Exhaust velocity in m/s (or use isp with g0=9.81)'
+        description: 'Exhaust velocity in m/s (or use isp with g0=9.81)',
       },
       specific_impulse: {
         type: 'number',
-        description: 'Specific impulse in seconds'
+        description: 'Specific impulse in seconds',
       },
       initial_mass: {
         type: 'number',
-        description: 'Initial mass in kg'
+        description: 'Initial mass in kg',
       },
       final_mass: {
         type: 'number',
-        description: 'Final mass in kg (after propellant burn)'
+        description: 'Final mass in kg (after propellant burn)',
       },
       payload_mass: {
         type: 'number',
-        description: 'Payload mass in kg'
+        description: 'Payload mass in kg',
       },
       delta_v: {
         type: 'number',
-        description: 'Required delta-v in m/s'
+        description: 'Required delta-v in m/s',
       },
       num_stages: {
         type: 'number',
-        description: 'Number of rocket stages'
+        description: 'Number of rocket stages',
       },
       structural_fraction: {
         type: 'number',
-        description: 'Structural mass as fraction of propellant (default 0.1)'
+        description: 'Structural mass as fraction of propellant (default 0.1)',
       },
       propellant_type: {
         type: 'string',
-        description: 'Propellant type (solid, lox-rp1, lox-lh2, etc.)'
+        description: 'Propellant type (solid, lox-rp1, lox-lh2, etc.)',
       },
       orbit_radius_1: {
         type: 'number',
-        description: 'Initial orbit radius in meters'
+        description: 'Initial orbit radius in meters',
       },
       orbit_radius_2: {
         type: 'number',
-        description: 'Final orbit radius in meters'
-      }
+        description: 'Final orbit radius in meters',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executerocketequation(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -563,12 +561,16 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
         if (!m0 || !mf) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Both initial_mass and final_mass are required',
-              formula: 'Δv = ve × ln(m0/mf)',
-              example: { initial_mass: 1000, final_mass: 200, exhaust_velocity: 3000 }
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Both initial_mass and final_mass are required',
+                formula: 'Δv = ve × ln(m0/mf)',
+                example: { initial_mass: 1000, final_mass: 200, exhaust_velocity: 3000 },
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -578,23 +580,27 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'delta_v',
-            inputs: {
-              initialMass: m0 + ' kg',
-              finalMass: mf + ' kg',
-              exhaustVelocity: ve + ' m/s',
-              specificImpulse: (ve / EARTH_GRAVITY).toFixed(1) + ' s'
+          content: JSON.stringify(
+            {
+              operation: 'delta_v',
+              inputs: {
+                initialMass: m0 + ' kg',
+                finalMass: mf + ' kg',
+                exhaustVelocity: ve + ' m/s',
+                specificImpulse: (ve / EARTH_GRAVITY).toFixed(1) + ' s',
+              },
+              results: {
+                deltaV: deltaV.toFixed(1) + ' m/s',
+                deltaVKmS: (deltaV / 1000).toFixed(3) + ' km/s',
+                massRatio: MR.toFixed(3),
+                propellantMass: propMass.toFixed(1) + ' kg',
+                propellantFraction: ((propMass / m0) * 100).toFixed(1) + '%',
+              },
+              formula: 'Δv = ve × ln(m0/mf)',
             },
-            results: {
-              deltaV: deltaV.toFixed(1) + ' m/s',
-              deltaVKmS: (deltaV / 1000).toFixed(3) + ' km/s',
-              massRatio: MR.toFixed(3),
-              propellantMass: propMass.toFixed(1) + ' kg',
-              propellantFraction: ((propMass / m0) * 100).toFixed(1) + '%'
-            },
-            formula: 'Δv = ve × ln(m0/mf)'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -605,12 +611,16 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
         if (!deltaV) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'delta_v is required',
-              formula: 'MR = e^(Δv/ve)',
-              example: { delta_v: 9400, exhaust_velocity: 3000 }
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'delta_v is required',
+                formula: 'MR = e^(Δv/ve)',
+                example: { delta_v: 9400, exhaust_velocity: 3000 },
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -619,21 +629,25 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'mass_ratio',
-            inputs: {
-              deltaV: deltaV + ' m/s',
-              exhaustVelocity: ve + ' m/s',
-              specificImpulse: (ve / EARTH_GRAVITY).toFixed(1) + ' s'
+          content: JSON.stringify(
+            {
+              operation: 'mass_ratio',
+              inputs: {
+                deltaV: deltaV + ' m/s',
+                exhaustVelocity: ve + ' m/s',
+                specificImpulse: (ve / EARTH_GRAVITY).toFixed(1) + ' s',
+              },
+              results: {
+                massRatio: MR.toFixed(4),
+                propellantFraction: (propellantFraction * 100).toFixed(2) + '%',
+                payloadFraction: ((1 / MR) * 100).toFixed(4) + '%',
+                interpretation: `For every 1 kg of final mass, need ${MR.toFixed(2)} kg initial mass`,
+              },
+              formula: 'MR = e^(Δv/ve)',
             },
-            results: {
-              massRatio: MR.toFixed(4),
-              propellantFraction: (propellantFraction * 100).toFixed(2) + '%',
-              payloadFraction: ((1 / MR) * 100).toFixed(4) + '%',
-              interpretation: `For every 1 kg of final mass, need ${MR.toFixed(2)} kg initial mass`
-            },
-            formula: 'MR = e^(Δv/ve)'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -649,38 +663,46 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'staging',
-              inputs: {
-                payloadMass: payload + ' kg',
-                totalDeltaV: deltaV + ' m/s',
-                exhaustVelocity: ve + ' m/s',
-                numStages: stages,
-                structuralFraction: sf
+            content: JSON.stringify(
+              {
+                operation: 'staging',
+                inputs: {
+                  payloadMass: payload + ' kg',
+                  totalDeltaV: deltaV + ' m/s',
+                  exhaustVelocity: ve + ' m/s',
+                  numStages: stages,
+                  structuralFraction: sf,
+                },
+                results: {
+                  grossLiftoffMass: result.grossLiftoffMass.toFixed(1) + ' kg',
+                  totalPropellantMass: result.totalPropellantMass.toFixed(1) + ' kg',
+                  totalStructuralMass: result.totalStructuralMass.toFixed(1) + ' kg',
+                  payloadFraction: (result.payloadFraction * 100).toFixed(4) + '%',
+                  stages: result.stages.map((s, i) => ({
+                    stage: i + 1,
+                    propellantMass: s.propellantMass.toFixed(1) + ' kg',
+                    structuralMass: s.structuralMass.toFixed(1) + ' kg',
+                    deltaV: s.deltaV.toFixed(1) + ' m/s',
+                    massRatio: s.massRatio.toFixed(3),
+                  })),
+                },
               },
-              results: {
-                grossLiftoffMass: result.grossLiftoffMass.toFixed(1) + ' kg',
-                totalPropellantMass: result.totalPropellantMass.toFixed(1) + ' kg',
-                totalStructuralMass: result.totalStructuralMass.toFixed(1) + ' kg',
-                payloadFraction: (result.payloadFraction * 100).toFixed(4) + '%',
-                stages: result.stages.map((s, i) => ({
-                  stage: i + 1,
-                  propellantMass: s.propellantMass.toFixed(1) + ' kg',
-                  structuralMass: s.structuralMass.toFixed(1) + ' kg',
-                  deltaV: s.deltaV.toFixed(1) + ' m/s',
-                  massRatio: s.massRatio.toFixed(3)
-                }))
-              }
-            }, null, 2)
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: e instanceof Error ? e.message : 'Staging calculation failed',
-              suggestion: 'Try more stages or higher Isp propellant'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: e instanceof Error ? e.message : 'Staging calculation failed',
+                suggestion: 'Try more stages or higher Isp propellant',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
       }
@@ -691,25 +713,33 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
         if (propType && PROPELLANTS[propType]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'propellant',
-              data: PROPELLANTS[propType]
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'propellant',
+                data: PROPELLANTS[propType],
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'propellant',
-            propellants: Object.entries(PROPELLANTS).map(([key, p]) => ({
-              id: key,
-              name: p.name,
-              type: p.type,
-              specificImpulseVacuum: p.specificImpulseVacuum + ' s',
-              exhaustVelocity: p.exhaustVelocity + ' m/s'
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'propellant',
+              propellants: Object.entries(PROPELLANTS).map(([key, p]) => ({
+                id: key,
+                name: p.name,
+                type: p.type,
+                specificImpulseVacuum: p.specificImpulseVacuum + ' s',
+                exhaustVelocity: p.exhaustVelocity + ' m/s',
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -718,47 +748,56 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'orbital',
-            maneuvers: maneuvers.map(m => ({
-              ...m,
-              deltaV: m.deltaV + ' m/s',
-              deltaVKmS: (m.deltaV / 1000).toFixed(2) + ' km/s'
-            })),
-            missionTotals: {
-              earthToLEO: '9,400 m/s',
-              earthToMoon: '~15,000 m/s round trip',
-              earthToMars: '~18,000 m/s one way'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'orbital',
+              maneuvers: maneuvers.map((m) => ({
+                ...m,
+                deltaV: m.deltaV + ' m/s',
+                deltaVKmS: (m.deltaV / 1000).toFixed(2) + ' km/s',
+              })),
+              missionTotals: {
+                earthToLEO: '9,400 m/s',
+                earthToMoon: '~15,000 m/s round trip',
+                earthToMars: '~18,000 m/s one way',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'hohmann': {
-        const r1 = args.orbit_radius_1 || (EARTH_RADIUS + 400000);
-        const r2 = args.orbit_radius_2 || (EARTH_RADIUS + 35786000);
+        const r1 = args.orbit_radius_1 || EARTH_RADIUS + 400000;
+        const r2 = args.orbit_radius_2 || EARTH_RADIUS + 35786000;
 
         const transfer = hohmannTransfer(EARTH_MASS, r1, r2);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'hohmann',
-            inputs: {
-              initialOrbitRadius: (r1 / 1000).toFixed(0) + ' km',
-              finalOrbitRadius: (r2 / 1000).toFixed(0) + ' km',
-              initialAltitude: ((r1 - EARTH_RADIUS) / 1000).toFixed(0) + ' km',
-              finalAltitude: ((r2 - EARTH_RADIUS) / 1000).toFixed(0) + ' km'
+          content: JSON.stringify(
+            {
+              operation: 'hohmann',
+              inputs: {
+                initialOrbitRadius: (r1 / 1000).toFixed(0) + ' km',
+                finalOrbitRadius: (r2 / 1000).toFixed(0) + ' km',
+                initialAltitude: ((r1 - EARTH_RADIUS) / 1000).toFixed(0) + ' km',
+                finalAltitude: ((r2 - EARTH_RADIUS) / 1000).toFixed(0) + ' km',
+              },
+              results: {
+                deltaV1: transfer.deltaV1.toFixed(1) + ' m/s (at periapsis)',
+                deltaV2: transfer.deltaV2.toFixed(1) + ' m/s (at apoapsis)',
+                totalDeltaV: transfer.totalDeltaV.toFixed(1) + ' m/s',
+                transferTime: (transfer.transferTime / 3600).toFixed(2) + ' hours',
+                transferTimeDays: (transfer.transferTime / 86400).toFixed(3) + ' days',
+              },
+              description:
+                'Hohmann transfer is the most fuel-efficient two-impulse transfer between circular orbits',
             },
-            results: {
-              deltaV1: transfer.deltaV1.toFixed(1) + ' m/s (at periapsis)',
-              deltaV2: transfer.deltaV2.toFixed(1) + ' m/s (at apoapsis)',
-              totalDeltaV: transfer.totalDeltaV.toFixed(1) + ' m/s',
-              transferTime: (transfer.transferTime / 3600).toFixed(2) + ' hours',
-              transferTimeDays: (transfer.transferTime / 86400).toFixed(3) + ' days'
-            },
-            description: 'Hohmann transfer is the most fuel-efficient two-impulse transfer between circular orbits'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -772,88 +811,120 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            inputs: {
-              payloadMass: payload + ' kg',
-              deltaV: deltaV + ' m/s',
-              exhaustVelocity: ve + ' m/s',
-              structuralFraction: sf
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              inputs: {
+                payloadMass: payload + ' kg',
+                deltaV: deltaV + ' m/s',
+                exhaustVelocity: ve + ' m/s',
+                structuralFraction: sf,
+              },
+              comparison: comparison.map((c) => {
+                if (c.error) {
+                  return { stages: c.stages, error: c.error };
+                }
+                const r = c.result!;
+                return {
+                  stages: c.stages,
+                  grossMass: r.grossLiftoffMass.toFixed(0) + ' kg',
+                  propellantMass: r.totalPropellantMass.toFixed(0) + ' kg',
+                  payloadFraction: (r.payloadFraction * 100).toFixed(4) + '%',
+                };
+              }),
+              recommendation: comparison.find((c) => c.result)
+                ? 'More stages generally improve payload fraction but add complexity'
+                : 'Delta-v too high for given propellant - use higher Isp or more stages',
             },
-            comparison: comparison.map(c => {
-              if (c.error) {
-                return { stages: c.stages, error: c.error };
-              }
-              const r = c.result!;
-              return {
-                stages: c.stages,
-                grossMass: r.grossLiftoffMass.toFixed(0) + ' kg',
-                propellantMass: r.totalPropellantMass.toFixed(0) + ' kg',
-                payloadFraction: (r.payloadFraction * 100).toFixed(4) + '%'
-              };
-            }),
-            recommendation: comparison.find(c => c.result)
-              ? 'More stages generally improve payload fraction but add complexity'
-              : 'Delta-v too high for given propellant - use higher Isp or more stages'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Rocket Equation',
-            description: 'Tsiolkovsky rocket equation and spacecraft propulsion calculations',
+          content: JSON.stringify(
+            {
+              tool: 'Rocket Equation',
+              description: 'Tsiolkovsky rocket equation and spacecraft propulsion calculations',
 
-            equation: {
-              form1: 'Δv = ve × ln(m0/mf)',
-              form2: 'Δv = Isp × g0 × ln(m0/mf)',
-              variables: {
-                'Δv': 'Change in velocity (m/s)',
-                've': 'Exhaust velocity (m/s)',
-                'Isp': 'Specific impulse (seconds)',
-                'g0': 'Standard gravity (9.81 m/s²)',
-                'm0': 'Initial mass (kg)',
-                'mf': 'Final mass (kg)'
-              }
+              equation: {
+                form1: 'Δv = ve × ln(m0/mf)',
+                form2: 'Δv = Isp × g0 × ln(m0/mf)',
+                variables: {
+                  Δv: 'Change in velocity (m/s)',
+                  ve: 'Exhaust velocity (m/s)',
+                  Isp: 'Specific impulse (seconds)',
+                  g0: 'Standard gravity (9.81 m/s²)',
+                  m0: 'Initial mass (kg)',
+                  mf: 'Final mass (kg)',
+                },
+              },
+
+              operations: [
+                'delta_v: Calculate Δv from masses',
+                'mass_ratio: Calculate mass ratio from Δv',
+                'staging: Optimize multi-stage rocket',
+                'propellant: Propellant database',
+                'orbital: Common orbital maneuver Δv',
+                'hohmann: Calculate Hohmann transfer',
+                'compare: Compare staging options',
+                'info: This documentation',
+              ],
+
+              keyInsights: [
+                'Mass ratio grows exponentially with Δv',
+                'Higher Isp = less propellant needed',
+                'Staging overcomes tyranny of rocket equation',
+                'Chemical rockets limited to ~4.5 km/s exhaust',
+              ],
+
+              examples: [
+                {
+                  operation: 'delta_v',
+                  initial_mass: 1000,
+                  final_mass: 200,
+                  exhaust_velocity: 3000,
+                },
+                {
+                  operation: 'staging',
+                  payload_mass: 5000,
+                  delta_v: 9400,
+                  num_stages: 2,
+                  propellant_type: 'lox-rp1',
+                },
+                { operation: 'hohmann', orbit_radius_1: 6771000, orbit_radius_2: 42164000 },
+              ],
             },
-
-            operations: [
-              'delta_v: Calculate Δv from masses',
-              'mass_ratio: Calculate mass ratio from Δv',
-              'staging: Optimize multi-stage rocket',
-              'propellant: Propellant database',
-              'orbital: Common orbital maneuver Δv',
-              'hohmann: Calculate Hohmann transfer',
-              'compare: Compare staging options',
-              'info: This documentation'
-            ],
-
-            keyInsights: [
-              'Mass ratio grows exponentially with Δv',
-              'Higher Isp = less propellant needed',
-              'Staging overcomes tyranny of rocket equation',
-              'Chemical rockets limited to ~4.5 km/s exhaust'
-            ],
-
-            examples: [
-              { operation: 'delta_v', initial_mass: 1000, final_mass: 200, exhaust_velocity: 3000 },
-              { operation: 'staging', payload_mass: 5000, delta_v: 9400, num_stages: 2, propellant_type: 'lox-rp1' },
-              { operation: 'hohmann', orbit_radius_1: 6771000, orbit_radius_2: 42164000 }
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            validOperations: ['delta_v', 'mass_ratio', 'staging', 'propellant', 'orbital', 'hohmann', 'compare', 'info']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              validOperations: [
+                'delta_v',
+                'mass_ratio',
+                'staging',
+                'propellant',
+                'orbital',
+                'hohmann',
+                'compare',
+                'info',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -861,7 +932,7 @@ export async function executerocketequation(toolCall: UnifiedToolCall): Promise<
     return {
       toolCallId: id,
       content: `Error in rocket equation: ${errorMessage}`,
-      isError: true
+      isError: true,
     };
   }
 }

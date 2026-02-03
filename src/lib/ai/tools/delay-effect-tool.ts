@@ -14,75 +14,79 @@ export const delayeffectTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['info', 'examples', 'demo', 'simple', 'multitap', 'pingpong', 'modulated', 'tempo_sync', 'analyze'],
-        description: 'Operation to perform'
+        enum: [
+          'info',
+          'examples',
+          'demo',
+          'simple',
+          'multitap',
+          'pingpong',
+          'modulated',
+          'tempo_sync',
+          'analyze',
+        ],
+        description: 'Operation to perform',
       },
       signal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Input audio signal samples'
+        description: 'Input audio signal samples',
       },
       sampleRate: {
         type: 'number',
-        description: 'Sample rate in Hz (default: 44100)'
+        description: 'Sample rate in Hz (default: 44100)',
       },
       delayTime: {
         type: 'number',
-        description: 'Delay time in milliseconds (default: 250)'
+        description: 'Delay time in milliseconds (default: 250)',
       },
       feedback: {
         type: 'number',
-        description: 'Feedback amount 0.0-0.95 (default: 0.5)'
+        description: 'Feedback amount 0.0-0.95 (default: 0.5)',
       },
       wetLevel: {
         type: 'number',
-        description: 'Wet signal level 0.0-1.0 (default: 0.5)'
+        description: 'Wet signal level 0.0-1.0 (default: 0.5)',
       },
       dryLevel: {
         type: 'number',
-        description: 'Dry signal level 0.0-1.0 (default: 1.0)'
+        description: 'Dry signal level 0.0-1.0 (default: 1.0)',
       },
       taps: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            time: { type: 'number' },
-            level: { type: 'number' },
-            pan: { type: 'number' }
-          }
-        },
-        description: 'Multitap delay taps'
+        items: { type: 'object' },
+        description:
+          'Multitap delay taps. Each tap has: time (number), level (number), pan (number)',
       },
       modRate: {
         type: 'number',
-        description: 'Modulation rate in Hz (default: 0.5)'
+        description: 'Modulation rate in Hz (default: 0.5)',
       },
       modDepth: {
         type: 'number',
-        description: 'Modulation depth in ms (default: 5)'
+        description: 'Modulation depth in ms (default: 5)',
       },
       tempo: {
         type: 'number',
-        description: 'Tempo in BPM for sync (default: 120)'
+        description: 'Tempo in BPM for sync (default: 120)',
       },
       noteValue: {
         type: 'string',
         enum: ['1/1', '1/2', '1/4', '1/8', '1/16', '1/32', '1/4T', '1/8T', '1/16T', '1/4D', '1/8D'],
-        description: 'Note value for tempo sync'
+        description: 'Note value for tempo sync',
       },
       filterFreq: {
         type: 'number',
-        description: 'Feedback filter frequency in Hz'
+        description: 'Feedback filter frequency in Hz',
       },
       filterType: {
         type: 'string',
         enum: ['lowpass', 'highpass'],
-        description: 'Feedback filter type'
-      }
+        description: 'Feedback filter type',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Circular buffer delay line
@@ -120,8 +124,12 @@ class DelayLine {
 }
 
 // Simple one-pole filter for feedback path
-function createOnePoleFilter(cutoff: number, sampleRate: number, type: 'lowpass' | 'highpass'): (sample: number) => number {
-  const w0 = 2 * Math.PI * cutoff / sampleRate;
+function createOnePoleFilter(
+  cutoff: number,
+  sampleRate: number,
+  type: 'lowpass' | 'highpass'
+): (sample: number) => number {
+  const w0 = (2 * Math.PI * cutoff) / sampleRate;
   const coeff = Math.exp(-w0);
   let state = 0;
 
@@ -149,7 +157,7 @@ function simpleDelay(
   filterFreq?: number,
   filterType?: 'lowpass' | 'highpass'
 ): { output: number[]; analysis: object } {
-  const delaySamples = Math.floor(delayTimeMs * sampleRate / 1000);
+  const delaySamples = Math.floor((delayTimeMs * sampleRate) / 1000);
   const maxDelay = delaySamples + 1000;
 
   const delayLine = new DelayLine(maxDelay);
@@ -188,8 +196,8 @@ function simpleDelay(
       feedback: (feedback * 100).toFixed(0) + '%',
       wetLevel: (wetLevel * 100).toFixed(0) + '%',
       dryLevel: (dryLevel * 100).toFixed(0) + '%',
-      filter: filter ? { type: filterType, frequency: filterFreq + ' Hz' } : 'None'
-    }
+      filter: filter ? { type: filterType, frequency: filterFreq + ' Hz' } : 'None',
+    },
   };
 }
 
@@ -203,8 +211,8 @@ function multitapDelay(
   dryLevel: number
 ): { outputLeft: number[]; outputRight: number[]; analysis: object } {
   // Find max delay for buffer sizing
-  const maxDelayMs = Math.max(...taps.map(t => t.time));
-  const maxDelaySamples = Math.floor(maxDelayMs * sampleRate / 1000) + 1000;
+  const maxDelayMs = Math.max(...taps.map((t) => t.time));
+  const maxDelaySamples = Math.floor((maxDelayMs * sampleRate) / 1000) + 1000;
 
   const delayLine = new DelayLine(maxDelaySamples);
 
@@ -214,11 +222,11 @@ function multitapDelay(
   const clampedFeedback = Math.min(0.95, Math.max(0, feedback));
 
   // Convert taps to samples
-  const tapSamples = taps.map(tap => ({
-    delaySamples: Math.floor(tap.time * sampleRate / 1000),
+  const tapSamples = taps.map((tap) => ({
+    delaySamples: Math.floor((tap.time * sampleRate) / 1000),
     level: tap.level,
-    panLeft: tap.pan !== undefined ? Math.cos((tap.pan + 1) * Math.PI / 4) : 0.707,
-    panRight: tap.pan !== undefined ? Math.sin((tap.pan + 1) * Math.PI / 4) : 0.707
+    panLeft: tap.pan !== undefined ? Math.cos(((tap.pan + 1) * Math.PI) / 4) : 0.707,
+    panRight: tap.pan !== undefined ? Math.sin(((tap.pan + 1) * Math.PI) / 4) : 0.707,
   }));
 
   // Use last tap for feedback
@@ -252,13 +260,13 @@ function multitapDelay(
     analysis: {
       type: 'Multitap Delay',
       tapCount: taps.length,
-      taps: taps.map(t => ({
+      taps: taps.map((t) => ({
         time: t.time + ' ms',
         level: (t.level * 100).toFixed(0) + '%',
-        pan: t.pan !== undefined ? t.pan.toFixed(2) : 'center'
+        pan: t.pan !== undefined ? t.pan.toFixed(2) : 'center',
       })),
-      feedback: (feedback * 100).toFixed(0) + '%'
-    }
+      feedback: (feedback * 100).toFixed(0) + '%',
+    },
   };
 }
 
@@ -271,7 +279,7 @@ function pingPongDelay(
   wetLevel: number,
   dryLevel: number
 ): { outputLeft: number[]; outputRight: number[]; analysis: object } {
-  const delaySamples = Math.floor(delayTimeMs * sampleRate / 1000);
+  const delaySamples = Math.floor((delayTimeMs * sampleRate) / 1000);
   const maxDelay = delaySamples * 2 + 1000;
 
   const delayLineLeft = new DelayLine(maxDelay);
@@ -303,8 +311,8 @@ function pingPongDelay(
       delayTime: delayTimeMs + ' ms',
       delaySamples,
       feedback: (feedback * 100).toFixed(0) + '%',
-      stereoPattern: 'L -> R -> L -> R...'
-    }
+      stereoPattern: 'L -> R -> L -> R...',
+    },
   };
 }
 
@@ -319,8 +327,8 @@ function modulatedDelay(
   wetLevel: number,
   dryLevel: number
 ): { output: number[]; analysis: object } {
-  const baseDelaySamples = delayTimeMs * sampleRate / 1000;
-  const modDepthSamples = modDepthMs * sampleRate / 1000;
+  const baseDelaySamples = (delayTimeMs * sampleRate) / 1000;
+  const modDepthSamples = (modDepthMs * sampleRate) / 1000;
   const maxDelay = Math.floor(baseDelaySamples + modDepthSamples) + 1000;
 
   const delayLine = new DelayLine(maxDelay);
@@ -329,7 +337,7 @@ function modulatedDelay(
   const clampedFeedback = Math.min(0.95, Math.max(0, feedback));
 
   // LFO phase
-  const lfoIncrement = 2 * Math.PI * modRateHz / sampleRate;
+  const lfoIncrement = (2 * Math.PI * modRateHz) / sampleRate;
   let lfoPhase = 0;
 
   for (let i = 0; i < signal.length; i++) {
@@ -358,11 +366,11 @@ function modulatedDelay(
       baseDelay: delayTimeMs + ' ms',
       modulation: {
         rate: modRateHz + ' Hz',
-        depth: modDepthMs + ' ms'
+        depth: modDepthMs + ' ms',
       },
       delayRange: `${(delayTimeMs - modDepthMs).toFixed(1)} - ${(delayTimeMs + modDepthMs).toFixed(1)} ms`,
-      feedback: (feedback * 100).toFixed(0) + '%'
-    }
+      feedback: (feedback * 100).toFixed(0) + '%',
+    },
   };
 }
 
@@ -377,10 +385,10 @@ function tempoSyncDelay(tempo: number, noteValue: string): number {
     '1/8': 0.5,
     '1/16': 0.25,
     '1/32': 0.125,
-    '1/4T': 2/3,      // Triplet
-    '1/8T': 1/3,
-    '1/16T': 1/6,
-    '1/4D': 1.5,      // Dotted
+    '1/4T': 2 / 3, // Triplet
+    '1/8T': 1 / 3,
+    '1/16T': 1 / 6,
+    '1/4D': 1.5, // Dotted
     '1/8D': 0.75,
   };
 
@@ -412,17 +420,17 @@ function analyzeDelayCharacteristics(
     timing: {
       delayTime: delayTimeMs + ' ms',
       delayFrequency: delayFreqHz.toFixed(2) + ' Hz',
-      equivalentBPM: bpm.toFixed(1)
+      equivalentBPM: bpm.toFixed(1),
     },
     decay: {
       feedbackGain: feedbackDb.toFixed(1) + ' dB per repeat',
       repeatsTo60dB,
-      totalDecayTime: (decayTimeMs / 1000).toFixed(2) + ' s'
+      totalDecayTime: (decayTimeMs / 1000).toFixed(2) + ' s',
     },
     density: {
-      echosPerSecond: echosPerSecond.toFixed(1)
+      echosPerSecond: echosPerSecond.toFixed(1),
     },
-    memoryRequired: Math.ceil(delayTimeMs * sampleRate / 1000 * 4) + ' bytes (32-bit float)'
+    memoryRequired: Math.ceil(((delayTimeMs * sampleRate) / 1000) * 4) + ' bytes (32-bit float)',
   };
 }
 
@@ -445,7 +453,7 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
       tempo = 120,
       noteValue = '1/8',
       filterFreq,
-      filterType
+      filterType,
     } = args;
 
     let result: object;
@@ -459,7 +467,7 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
             simple: 'Basic feedback delay',
             multitap: 'Multiple independent delay taps with panning',
             pingpong: 'Stereo bouncing delay',
-            modulated: 'Delay with LFO modulation (chorus-like)'
+            modulated: 'Delay with LFO modulation (chorus-like)',
           },
           parameters: {
             delayTime: 'Delay time in milliseconds',
@@ -467,7 +475,7 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
             wetLevel: 'Delayed signal level',
             dryLevel: 'Original signal level',
             modRate: 'LFO rate for modulated delay',
-            modDepth: 'LFO depth in milliseconds'
+            modDepth: 'LFO depth in milliseconds',
           },
           operations: [
             'simple - Basic delay',
@@ -475,8 +483,8 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
             'pingpong - Stereo ping-pong',
             'modulated - LFO modulated delay',
             'tempo_sync - Calculate tempo-synced delay time',
-            'analyze - Analyze delay characteristics'
-          ]
+            'analyze - Analyze delay characteristics',
+          ],
         };
         break;
 
@@ -488,8 +496,8 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
               operation: 'simple',
               signal: [0.5, 0.3, 0.1, 0],
               delayTime: 500,
-              feedback: 0.4
-            }
+              feedback: 0.4,
+            },
           },
           multitap: {
             description: 'Three-tap rhythmic delay',
@@ -499,18 +507,18 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
               taps: [
                 { time: 125, level: 0.7, pan: -0.5 },
                 { time: 250, level: 0.5, pan: 0.5 },
-                { time: 375, level: 0.3, pan: 0 }
-              ]
-            }
+                { time: 375, level: 0.3, pan: 0 },
+              ],
+            },
           },
           tempoSync: {
             description: 'Calculate delay for 1/8 note at 140 BPM',
             parameters: {
               operation: 'tempo_sync',
               tempo: 140,
-              noteValue: '1/8'
-            }
-          }
+              noteValue: '1/8',
+            },
+          },
         };
         break;
 
@@ -519,28 +527,21 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
         const demoSignal = new Array(sampleRate).fill(0);
         demoSignal[0] = 1.0;
 
-        const demoResult = simpleDelay(
-          demoSignal.slice(0, 4410),
-          sampleRate,
-          200,
-          0.5,
-          0.7,
-          1.0
-        );
+        const demoResult = simpleDelay(demoSignal.slice(0, 4410), sampleRate, 200, 0.5, 0.7, 1.0);
 
         result = {
           demo: 'Simple delay on impulse signal',
           inputSignal: {
             type: 'Impulse',
-            length: 4410
+            length: 4410,
           },
           settings: {
             delayTime: '200 ms',
             feedback: '50%',
-            wetLevel: '70%'
+            wetLevel: '70%',
           },
-          outputPreview: demoResult.output.slice(0, 100).map(v => v.toFixed(4)),
-          analysis: demoResult.analysis
+          outputPreview: demoResult.output.slice(0, 100).map((v) => v.toFixed(4)),
+          analysis: demoResult.analysis,
         };
         break;
 
@@ -564,7 +565,7 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'simple',
           inputLength: signal.length,
           output: simpleResult.output.slice(0, 100),
-          analysis: simpleResult.analysis
+          analysis: simpleResult.analysis,
         };
         break;
 
@@ -573,12 +574,15 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
           throw new Error('Signal array is required');
         }
 
-        const defaultTaps = taps.length > 0 ? taps : [
-          { time: 100, level: 0.8, pan: -0.7 },
-          { time: 200, level: 0.6, pan: 0.7 },
-          { time: 300, level: 0.4, pan: -0.3 },
-          { time: 400, level: 0.2, pan: 0.3 }
-        ];
+        const defaultTaps =
+          taps.length > 0
+            ? taps
+            : [
+                { time: 100, level: 0.8, pan: -0.7 },
+                { time: 200, level: 0.6, pan: 0.7 },
+                { time: 300, level: 0.4, pan: -0.3 },
+                { time: 400, level: 0.2, pan: 0.3 },
+              ];
 
         const mtResult = multitapDelay(
           signal,
@@ -594,7 +598,7 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
           inputLength: signal.length,
           outputLeft: mtResult.outputLeft.slice(0, 100),
           outputRight: mtResult.outputRight.slice(0, 100),
-          analysis: mtResult.analysis
+          analysis: mtResult.analysis,
         };
         break;
 
@@ -603,21 +607,14 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
           throw new Error('Signal array is required');
         }
 
-        const ppResult = pingPongDelay(
-          signal,
-          sampleRate,
-          delayTime,
-          feedback,
-          wetLevel,
-          dryLevel
-        );
+        const ppResult = pingPongDelay(signal, sampleRate, delayTime, feedback, wetLevel, dryLevel);
 
         result = {
           operation: 'pingpong',
           inputLength: signal.length,
           outputLeft: ppResult.outputLeft.slice(0, 100),
           outputRight: ppResult.outputRight.slice(0, 100),
-          analysis: ppResult.analysis
+          analysis: ppResult.analysis,
         };
         break;
 
@@ -641,7 +638,7 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'modulated',
           inputLength: signal.length,
           output: modResult.output.slice(0, 100),
-          analysis: modResult.analysis
+          analysis: modResult.analysis,
         };
         break;
 
@@ -661,36 +658,45 @@ export async function executedelayeffect(toolCall: UnifiedToolCall): Promise<Uni
             '1/16': tempoSyncDelay(tempo, '1/16').toFixed(2) + ' ms',
             '1/4T': tempoSyncDelay(tempo, '1/4T').toFixed(2) + ' ms (triplet)',
             '1/8T': tempoSyncDelay(tempo, '1/8T').toFixed(2) + ' ms (triplet)',
-            '1/8D': tempoSyncDelay(tempo, '1/8D').toFixed(2) + ' ms (dotted)'
-          }
+            '1/8D': tempoSyncDelay(tempo, '1/8D').toFixed(2) + ' ms (dotted)',
+          },
         };
         break;
 
       case 'analyze':
         result = {
           operation: 'analyze',
-          analysis: analyzeDelayCharacteristics(delayTime, feedback, sampleRate)
+          analysis: analyzeDelayCharacteristics(delayTime, feedback, sampleRate),
         };
         break;
 
       default:
         result = {
           error: `Unknown operation: ${operation}`,
-          availableOperations: ['info', 'examples', 'demo', 'simple', 'multitap', 'pingpong', 'modulated', 'tempo_sync', 'analyze']
+          availableOperations: [
+            'info',
+            'examples',
+            'demo',
+            'simple',
+            'multitap',
+            'pingpong',
+            'modulated',
+            'tempo_sync',
+            'analyze',
+          ],
         };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

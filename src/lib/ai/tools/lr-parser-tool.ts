@@ -84,7 +84,10 @@ const AUGMENTED_START = "S'";
 // ============================================================================
 
 function parseGrammar(grammarText: string): Grammar {
-  const lines = grammarText.trim().split('\n').filter(l => l.trim() && !l.trim().startsWith('//'));
+  const lines = grammarText
+    .trim()
+    .split('\n')
+    .filter((l) => l.trim() && !l.trim().startsWith('//'));
   const productions: Production[] = [];
   const nonTerminals = new Set<string>();
   const allSymbols = new Set<string>();
@@ -95,31 +98,31 @@ function parseGrammar(grammarText: string): Grammar {
     if (!match) return;
 
     const lhs = match[1];
-    const rhsAlternatives = match[2].split('|').map(s => s.trim());
+    const rhsAlternatives = match[2].split('|').map((s) => s.trim());
 
     if (!startSymbol) startSymbol = lhs;
     nonTerminals.add(lhs);
 
-    rhsAlternatives.forEach(alt => {
-      const rhs = alt === EPSILON ? [] : alt.split(/\s+/).filter(s => s);
+    rhsAlternatives.forEach((alt) => {
+      const rhs = alt === EPSILON ? [] : alt.split(/\s+/).filter((s) => s);
       productions.push({ lhs, rhs, index: productions.length });
-      rhs.forEach(s => allSymbols.add(s));
+      rhs.forEach((s) => allSymbols.add(s));
     });
   });
 
-  const terminals = [...allSymbols].filter(s => !nonTerminals.has(s) && s !== EPSILON);
+  const terminals = [...allSymbols].filter((s) => !nonTerminals.has(s) && s !== EPSILON);
 
   return {
     terminals,
     nonTerminals: [...nonTerminals],
     startSymbol,
-    productions
+    productions,
   };
 }
 
 function augmentGrammar(grammar: Grammar): Grammar {
   const augmentedProductions: Production[] = [
-    { lhs: AUGMENTED_START, rhs: [grammar.startSymbol], index: 0 }
+    { lhs: AUGMENTED_START, rhs: [grammar.startSymbol], index: 0 },
   ];
 
   grammar.productions.forEach((p, i) => {
@@ -130,15 +133,15 @@ function augmentGrammar(grammar: Grammar): Grammar {
     terminals: grammar.terminals,
     nonTerminals: [AUGMENTED_START, ...grammar.nonTerminals],
     startSymbol: AUGMENTED_START,
-    productions: augmentedProductions
+    productions: augmentedProductions,
   };
 }
 
 function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
   const first = new Map<string, Set<string>>();
 
-  grammar.terminals.forEach(t => first.set(t, new Set([t])));
-  grammar.nonTerminals.forEach(nt => first.set(nt, new Set()));
+  grammar.terminals.forEach((t) => first.set(t, new Set([t])));
+  grammar.nonTerminals.forEach((nt) => first.set(nt, new Set()));
 
   let changed = true;
   while (changed) {
@@ -154,8 +157,13 @@ function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
         for (const symbol of prod.rhs) {
           const symbolFirst = first.get(symbol);
           if (symbolFirst) {
-            symbolFirst.forEach(s => { if (s !== EPSILON) lhsFirst.add(s); });
-            if (!symbolFirst.has(EPSILON)) { allNullable = false; break; }
+            symbolFirst.forEach((s) => {
+              if (s !== EPSILON) lhsFirst.add(s);
+            });
+            if (!symbolFirst.has(EPSILON)) {
+              allNullable = false;
+              break;
+            }
           } else {
             lhsFirst.add(symbol);
             allNullable = false;
@@ -170,9 +178,12 @@ function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
   return first;
 }
 
-function computeFollowSets(grammar: Grammar, first: Map<string, Set<string>>): Map<string, Set<string>> {
+function computeFollowSets(
+  grammar: Grammar,
+  first: Map<string, Set<string>>
+): Map<string, Set<string>> {
   const follow = new Map<string, Set<string>>();
-  grammar.nonTerminals.forEach(nt => follow.set(nt, new Set()));
+  grammar.nonTerminals.forEach((nt) => follow.set(nt, new Set()));
   follow.get(grammar.startSymbol)!.add(END_MARKER);
 
   let changed = true;
@@ -188,12 +199,14 @@ function computeFollowSets(grammar: Grammar, first: Map<string, Set<string>>): M
         const beta = prod.rhs.slice(i + 1);
 
         if (beta.length === 0) {
-          follow.get(prod.lhs)!.forEach(s => symbolFollow.add(s));
+          follow.get(prod.lhs)!.forEach((s) => symbolFollow.add(s));
         } else {
           const betaFirst = computeFirstOfString(beta, first);
-          betaFirst.forEach(s => { if (s !== EPSILON) symbolFollow.add(s); });
+          betaFirst.forEach((s) => {
+            if (s !== EPSILON) symbolFollow.add(s);
+          });
           if (betaFirst.has(EPSILON)) {
-            follow.get(prod.lhs)!.forEach(s => symbolFollow.add(s));
+            follow.get(prod.lhs)!.forEach((s) => symbolFollow.add(s));
           }
         }
         if (symbolFollow.size > oldSize) changed = true;
@@ -205,14 +218,22 @@ function computeFollowSets(grammar: Grammar, first: Map<string, Set<string>>): M
 
 function computeFirstOfString(symbols: string[], first: Map<string, Set<string>>): Set<string> {
   const result = new Set<string>();
-  if (symbols.length === 0) { result.add(EPSILON); return result; }
+  if (symbols.length === 0) {
+    result.add(EPSILON);
+    return result;
+  }
 
   let allNullable = true;
   for (const symbol of symbols) {
     const symbolFirst = first.get(symbol);
     if (symbolFirst) {
-      symbolFirst.forEach(s => { if (s !== EPSILON) result.add(s); });
-      if (!symbolFirst.has(EPSILON)) { allNullable = false; break; }
+      symbolFirst.forEach((s) => {
+        if (s !== EPSILON) result.add(s);
+      });
+      if (!symbolFirst.has(EPSILON)) {
+        allNullable = false;
+        break;
+      }
     } else {
       result.add(symbol);
       allNullable = false;
@@ -239,13 +260,11 @@ function lr1ItemToString(item: LR1Item): string {
   return `[${item.production.lhs} -> ${rhs.join(' ') || '•'}, ${item.lookahead}]`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function itemsEqual(a: LR0Item, b: LR0Item): boolean {
+export function itemsEqual(a: LR0Item, b: LR0Item): boolean {
   return a.production.index === b.production.index && a.dotPosition === b.dotPosition;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function lr1ItemsEqual(a: LR1Item, b: LR1Item): boolean {
+export function lr1ItemsEqual(a: LR1Item, b: LR1Item): boolean {
   return itemsEqual(a, b) && a.lookahead === b.lookahead;
 }
 
@@ -257,7 +276,7 @@ function getSymbolAfterDot(item: LR0Item): string | null {
 function closure(items: LR0Item[], grammar: Grammar): LR0Item[] {
   const result = [...items];
   const added = new Set<string>();
-  items.forEach(i => added.add(itemToString(i)));
+  items.forEach((i) => added.add(itemToString(i)));
 
   let changed = true;
   while (changed) {
@@ -281,10 +300,14 @@ function closure(items: LR0Item[], grammar: Grammar): LR0Item[] {
   return result;
 }
 
-function lr1Closure(items: LR1Item[], grammar: Grammar, first: Map<string, Set<string>>): LR1Item[] {
+function lr1Closure(
+  items: LR1Item[],
+  grammar: Grammar,
+  first: Map<string, Set<string>>
+): LR1Item[] {
   const result = [...items];
   const added = new Set<string>();
-  items.forEach(i => added.add(lr1ItemToString(i)));
+  items.forEach((i) => added.add(lr1ItemToString(i)));
 
   let changed = true;
   while (changed) {
@@ -322,39 +345,42 @@ function goto(items: LR0Item[], symbol: string, grammar: Grammar): LR0Item[] {
     if (getSymbolAfterDot(item) === symbol) {
       moved.push({
         production: item.production,
-        dotPosition: item.dotPosition + 1
+        dotPosition: item.dotPosition + 1,
       });
     }
   }
   return closure(moved, grammar);
 }
 
-function lr1Goto(items: LR1Item[], symbol: string, grammar: Grammar, first: Map<string, Set<string>>): LR1Item[] {
+function lr1Goto(
+  items: LR1Item[],
+  symbol: string,
+  grammar: Grammar,
+  first: Map<string, Set<string>>
+): LR1Item[] {
   const moved: LR1Item[] = [];
   for (const item of items) {
     if (getSymbolAfterDot(item) === symbol) {
       moved.push({
         production: item.production,
         dotPosition: item.dotPosition + 1,
-        lookahead: item.lookahead
+        lookahead: item.lookahead,
       });
     }
   }
   return lr1Closure(moved, grammar, first);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function statesEqual(a: LR0Item[], b: LR0Item[]): boolean {
+export function statesEqual(a: LR0Item[], b: LR0Item[]): boolean {
   if (a.length !== b.length) return false;
   const bStrings = new Set(b.map(itemToString));
-  return a.every(item => bStrings.has(itemToString(item)));
+  return a.every((item) => bStrings.has(itemToString(item)));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function lr1StatesEqual(a: LR1Item[], b: LR1Item[]): boolean {
+export function lr1StatesEqual(a: LR1Item[], b: LR1Item[]): boolean {
   if (a.length !== b.length) return false;
   const bStrings = new Set(b.map(lr1ItemToString));
-  return a.every(item => bStrings.has(lr1ItemToString(item)));
+  return a.every((item) => bStrings.has(lr1ItemToString(item)));
 }
 
 function buildLR0Automaton(grammar: Grammar): LRState[] {
@@ -395,7 +421,11 @@ function buildLR0Automaton(grammar: Grammar): LRState[] {
 function buildLR1Automaton(grammar: Grammar): LRState[] {
   const augmented = augmentGrammar(grammar);
   const first = computeFirstSets(augmented);
-  const startItem: LR1Item = { production: augmented.productions[0], dotPosition: 0, lookahead: END_MARKER };
+  const startItem: LR1Item = {
+    production: augmented.productions[0],
+    dotPosition: 0,
+    lookahead: END_MARKER,
+  };
   const startState = lr1Closure([startItem], augmented, first);
 
   const states: LRState[] = [{ id: 0, items: startState, transitions: new Map() }];
@@ -442,7 +472,7 @@ function buildSLRTable(grammar: Grammar): ParseTable {
   const conflicts: ParseConflict[] = [];
 
   // Initialize tables
-  states.forEach(state => {
+  states.forEach((state) => {
     action.set(state.id, new Map());
     gotoTable.set(state.id, new Map());
   });
@@ -472,7 +502,10 @@ function buildSLRTable(grammar: Grammar): ParseTable {
         } else {
           const followSet = follow.get(item.production.lhs)!;
           for (const terminal of followSet) {
-            addAction(action, conflicts, state.id, terminal, { type: 'reduce', production: item.production.index });
+            addAction(action, conflicts, state.id, terminal, {
+              type: 'reduce',
+              production: item.production.index,
+            });
           }
         }
       }
@@ -490,7 +523,7 @@ function buildLR1Table(grammar: Grammar): ParseTable {
   const gotoTable = new Map<number, Map<string, number>>();
   const conflicts: ParseConflict[] = [];
 
-  states.forEach(state => {
+  states.forEach((state) => {
     action.set(state.id, new Map());
     gotoTable.set(state.id, new Map());
   });
@@ -514,7 +547,10 @@ function buildLR1Table(grammar: Grammar): ParseTable {
         if (item.production.lhs === AUGMENTED_START) {
           addAction(action, conflicts, state.id, END_MARKER, { type: 'accept' });
         } else {
-          addAction(action, conflicts, state.id, item.lookahead, { type: 'reduce', production: item.production.index });
+          addAction(action, conflicts, state.id, item.lookahead, {
+            type: 'reduce',
+            production: item.production.index,
+          });
         }
       }
     }
@@ -534,13 +570,12 @@ function addAction(
   const existing = stateActions.get(symbol);
 
   if (existing) {
-    const conflictType = existing.type === 'shift' || newAction.type === 'shift'
-      ? 'shift-reduce'
-      : 'reduce-reduce';
+    const conflictType =
+      existing.type === 'shift' || newAction.type === 'shift' ? 'shift-reduce' : 'reduce-reduce';
 
-    const existingConflict = conflicts.find(c => c.state === state && c.symbol === symbol);
+    const existingConflict = conflicts.find((c) => c.state === state && c.symbol === symbol);
     if (existingConflict) {
-      if (!existingConflict.actions.some(a => JSON.stringify(a) === JSON.stringify(newAction))) {
+      if (!existingConflict.actions.some((a) => JSON.stringify(a) === JSON.stringify(newAction))) {
         existingConflict.actions.push(newAction);
       }
     } else {
@@ -574,17 +609,19 @@ function parse(input: string[], parseTable: ParseTable, grammar: Grammar): Parse
 
     const act = actionMap.get(token);
 
-    const stackStr = stack.map((s, i) => i % 2 === 0 ? `s${s}` : s).join(' ');
+    const stackStr = stack.map((s, i) => (i % 2 === 0 ? `s${s}` : s)).join(' ');
     const inputStr = tokens.slice(tokenIndex).join(' ');
 
     if (!act || act.type === 'error') {
       steps.push({ stack: stackStr, input: inputStr, action: 'ERROR' });
-      const expected = [...actionMap.entries()].filter(([_, a]) => a && a.type !== 'error').map(([t, _]) => t);
+      const expected = [...actionMap.entries()]
+        .filter(([_, a]) => a && a.type !== 'error')
+        .map(([t, _]) => t);
       return {
         success: false,
         steps,
         reductions,
-        error: `Syntax error at '${token}'. Expected: ${expected.join(', ')}`
+        error: `Syntax error at '${token}'. Expected: ${expected.join(', ')}`,
       };
     }
 
@@ -594,7 +631,11 @@ function parse(input: string[], parseTable: ParseTable, grammar: Grammar): Parse
     }
 
     if (act.type === 'shift') {
-      steps.push({ stack: stackStr, input: inputStr, action: `Shift ${token}, goto state ${act.state}` });
+      steps.push({
+        stack: stackStr,
+        input: inputStr,
+        action: `Shift ${token}, goto state ${act.state}`,
+      });
       stack.push(token);
       stack.push(act.state);
       tokenIndex++;
@@ -612,7 +653,12 @@ function parse(input: string[], parseTable: ParseTable, grammar: Grammar): Parse
 
       const gotoState = parseTable.goto.get(topState)?.get(prod.lhs);
       if (gotoState === undefined) {
-        return { success: false, steps, reductions, error: `No GOTO for state ${topState} on ${prod.lhs}` };
+        return {
+          success: false,
+          steps,
+          reductions,
+          error: `No GOTO for state ${topState} on ${prod.lhs}`,
+        };
       }
 
       stack.push(gotoState);
@@ -630,13 +676,13 @@ function parse(input: string[], parseTable: ParseTable, grammar: Grammar): Parse
 function formatParseTable(parseTable: ParseTable, grammar: Grammar): string {
   const augmented = augmentGrammar(grammar);
   const terminals = [...augmented.terminals, END_MARKER];
-  const nonTerminals = augmented.nonTerminals.filter(nt => nt !== AUGMENTED_START);
+  const nonTerminals = augmented.nonTerminals.filter((nt) => nt !== AUGMENTED_START);
 
   const lines: string[] = [];
   lines.push('ACTION/GOTO Table:');
 
   // Header
-  const header = ['State', ...terminals.map(t => `${t}`), '|', ...nonTerminals];
+  const header = ['State', ...terminals.map((t) => `${t}`), '|', ...nonTerminals];
   lines.push(header.join('\t'));
   lines.push('-'.repeat(80));
 
@@ -695,32 +741,33 @@ function formatAutomaton(states: LRState[], isLR1: boolean): string {
 
 export const lrparserTool: UnifiedTool = {
   name: 'lr_parser',
-  description: 'Comprehensive LR parser generator supporting LR(0), SLR(1), LR(1), and LALR(1) with automaton construction and shift-reduce parsing',
+  description:
+    'Comprehensive LR parser generator supporting LR(0), SLR(1), LR(1), and LALR(1) with automaton construction and shift-reduce parsing',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['analyze', 'parse', 'automaton', 'table', 'compare', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       grammar: {
         type: 'string',
-        description: 'Grammar in BNF notation'
+        description: 'Grammar in BNF notation',
       },
       input: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Input tokens to parse'
+        description: 'Input tokens to parse',
       },
       parserType: {
         type: 'string',
         enum: ['lr0', 'slr', 'lr1', 'lalr'],
-        description: 'Type of LR parser (default: slr)'
-      }
+        description: 'Type of LR parser (default: slr)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -738,65 +785,73 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'LR Parser Generator',
-            description: 'Bottom-up shift-reduce parser generator',
-            capabilities: [
-              'LR(0) automaton construction',
-              'SLR(1) parse table generation',
-              'LR(1) canonical items and tables',
-              'LALR(1) table construction',
-              'Shift-reduce conflict detection',
-              'Reduce-reduce conflict detection',
-              'Step-by-step parsing trace'
-            ],
-            parserTypes: {
-              'LR(0)': 'Items without lookahead, most restrictive',
-              'SLR(1)': 'Simple LR - uses FOLLOW sets for reductions',
-              'LR(1)': 'Canonical LR - full lookahead in items',
-              'LALR(1)': 'Lookahead LR - merged LR(1) states'
+          content: JSON.stringify(
+            {
+              tool: 'LR Parser Generator',
+              description: 'Bottom-up shift-reduce parser generator',
+              capabilities: [
+                'LR(0) automaton construction',
+                'SLR(1) parse table generation',
+                'LR(1) canonical items and tables',
+                'LALR(1) table construction',
+                'Shift-reduce conflict detection',
+                'Reduce-reduce conflict detection',
+                'Step-by-step parsing trace',
+              ],
+              parserTypes: {
+                'LR(0)': 'Items without lookahead, most restrictive',
+                'SLR(1)': 'Simple LR - uses FOLLOW sets for reductions',
+                'LR(1)': 'Canonical LR - full lookahead in items',
+                'LALR(1)': 'Lookahead LR - merged LR(1) states',
+              },
+              concepts: {
+                shiftReduce: 'Shift pushes token, reduce applies production',
+                handles: 'Rightmost derivation in reverse',
+                viablePrefix: 'Stack contents that can lead to valid parse',
+              },
+              operations: ['analyze', 'parse', 'automaton', 'table', 'compare', 'demo', 'examples'],
             },
-            concepts: {
-              shiftReduce: 'Shift pushes token, reduce applies production',
-              handles: 'Rightmost derivation in reverse',
-              viablePrefix: 'Stack contents that can lead to valid parse'
-            },
-            operations: ['analyze', 'parse', 'automaton', 'table', 'compare', 'demo', 'examples']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Build SLR Table',
-                params: {
-                  operation: 'table',
-                  grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
-                  parserType: 'slr'
-                }
-              },
-              {
-                name: 'Parse Expression',
-                params: {
-                  operation: 'parse',
-                  grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
-                  input: ['id', '+', 'id', '*', 'id']
-                }
-              },
-              {
-                name: 'View LR(0) Automaton',
-                params: {
-                  operation: 'automaton',
-                  grammar: 'S -> a A | b B\nA -> c | d\nB -> c | d',
-                  parserType: 'lr0'
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Build SLR Table',
+                  params: {
+                    operation: 'table',
+                    grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
+                    parserType: 'slr',
+                  },
+                },
+                {
+                  name: 'Parse Expression',
+                  params: {
+                    operation: 'parse',
+                    grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
+                    input: ['id', '+', 'id', '*', 'id'],
+                  },
+                },
+                {
+                  name: 'View LR(0) Automaton',
+                  params: {
+                    operation: 'automaton',
+                    grammar: 'S -> a A | b B\nA -> c | d\nB -> c | d',
+                    parserType: 'lr0',
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -813,40 +868,47 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            grammar: {
-              terminals: grammar.terminals,
-              nonTerminals: grammar.nonTerminals,
-              startSymbol: grammar.startSymbol,
-              productions: augmented.productions.map((p, i) =>
-                `${i}: ${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`
-              )
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              grammar: {
+                terminals: grammar.terminals,
+                nonTerminals: grammar.nonTerminals,
+                startSymbol: grammar.startSymbol,
+                productions: augmented.productions.map(
+                  (p, i) => `${i}: ${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`
+                ),
+              },
+              analysis: {
+                lr0States: slrTable.states.length,
+                lr1States: lr1Table.states.length,
+                slr1: {
+                  conflicts: slrTable.conflicts.length,
+                  conflictDetails: slrTable.conflicts.map((c) => ({
+                    state: c.state,
+                    symbol: c.symbol,
+                    type: c.type,
+                  })),
+                },
+                lr1: {
+                  conflicts: lr1Table.conflicts.length,
+                  conflictDetails: lr1Table.conflicts.map((c) => ({
+                    state: c.state,
+                    symbol: c.symbol,
+                    type: c.type,
+                  })),
+                },
+                recommendation:
+                  slrTable.conflicts.length === 0
+                    ? 'SLR(1)'
+                    : lr1Table.conflicts.length === 0
+                      ? 'LR(1)'
+                      : 'Grammar has conflicts in all LR variants',
+              },
             },
-            analysis: {
-              lr0States: slrTable.states.length,
-              lr1States: lr1Table.states.length,
-              slr1: {
-                conflicts: slrTable.conflicts.length,
-                conflictDetails: slrTable.conflicts.map(c => ({
-                  state: c.state,
-                  symbol: c.symbol,
-                  type: c.type
-                }))
-              },
-              lr1: {
-                conflicts: lr1Table.conflicts.length,
-                conflictDetails: lr1Table.conflicts.map(c => ({
-                  state: c.state,
-                  symbol: c.symbol,
-                  type: c.type
-                }))
-              },
-              recommendation: slrTable.conflicts.length === 0 ? 'SLR(1)' :
-                              lr1Table.conflicts.length === 0 ? 'LR(1)' :
-                              'Grammar has conflicts in all LR variants'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -868,15 +930,19 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'automaton',
-            parserType: parserType === 'lr1' ? 'LR(1)' : 'LR(0)',
-            stateCount: states.length,
-            automaton: formatAutomaton(states, isLR1),
-            explanation: isLR1
-              ? 'LR(1) items include lookahead symbol for precise reduce decisions'
-              : 'LR(0) items show position of parser in production'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'automaton',
+              parserType: parserType === 'lr1' ? 'LR(1)' : 'LR(0)',
+              stateCount: states.length,
+              automaton: formatAutomaton(states, isLR1),
+              explanation: isLR1
+                ? 'LR(1) items include lookahead symbol for precise reduce decisions'
+                : 'LR(0) items show position of parser in production',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -886,29 +952,31 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
         }
 
         const grammar = parseGrammar(grammarText);
-        const parseTable = parserType === 'lr1'
-          ? buildLR1Table(grammar)
-          : buildSLRTable(grammar);
+        const parseTable = parserType === 'lr1' ? buildLR1Table(grammar) : buildSLRTable(grammar);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'table',
-            parserType: parserType === 'lr1' ? 'LR(1)' : 'SLR(1)',
-            stateCount: parseTable.states.length,
-            conflictCount: parseTable.conflicts.length,
-            conflicts: parseTable.conflicts.map(c => ({
-              state: c.state,
-              symbol: c.symbol,
-              type: c.type,
-              actions: c.actions.map(a => {
-                if (a.type === 'shift') return `shift ${a.state}`;
-                if (a.type === 'reduce') return `reduce ${a.production}`;
-                return a.type;
-              })
-            })),
-            table: formatParseTable(parseTable, grammar)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'table',
+              parserType: parserType === 'lr1' ? 'LR(1)' : 'SLR(1)',
+              stateCount: parseTable.states.length,
+              conflictCount: parseTable.conflicts.length,
+              conflicts: parseTable.conflicts.map((c) => ({
+                state: c.state,
+                symbol: c.symbol,
+                type: c.type,
+                actions: c.actions.map((a) => {
+                  if (a.type === 'shift') return `shift ${a.state}`;
+                  if (a.type === 'reduce') return `reduce ${a.production}`;
+                  return a.type;
+                }),
+              })),
+              table: formatParseTable(parseTable, grammar),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -921,25 +989,28 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
         }
 
         const grammar = parseGrammar(grammarText);
-        const parseTable = parserType === 'lr1'
-          ? buildLR1Table(grammar)
-          : buildSLRTable(grammar);
+        const parseTable = parserType === 'lr1' ? buildLR1Table(grammar) : buildSLRTable(grammar);
 
         if (parseTable.conflicts.length > 0) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'parse',
-              error: `Grammar has ${parseTable.conflicts.length} conflict(s)`,
-              conflicts: parseTable.conflicts.map(c => ({
-                state: c.state,
-                symbol: c.symbol,
-                type: c.type
-              })),
-              suggestion: parserType !== 'lr1'
-                ? 'Try using LR(1) parser type'
-                : 'Grammar is ambiguous or not LR parseable'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'parse',
+                error: `Grammar has ${parseTable.conflicts.length} conflict(s)`,
+                conflicts: parseTable.conflicts.map((c) => ({
+                  state: c.state,
+                  symbol: c.symbol,
+                  type: c.type,
+                })),
+                suggestion:
+                  parserType !== 'lr1'
+                    ? 'Try using LR(1) parser type'
+                    : 'Grammar is ambiguous or not LR parseable',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -947,20 +1018,26 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'parse',
-            parserType: parserType === 'lr1' ? 'LR(1)' : 'SLR(1)',
-            input: input.join(' '),
-            success: result.success,
-            ...(result.success ? {
-              steps: result.steps,
-              reductions: result.reductions,
-              rightmostDerivation: [...result.reductions].reverse()
-            } : {
-              error: result.error,
-              partialSteps: result.steps
-            })
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'parse',
+              parserType: parserType === 'lr1' ? 'LR(1)' : 'SLR(1)',
+              input: input.join(' '),
+              success: result.success,
+              ...(result.success
+                ? {
+                    steps: result.steps,
+                    reductions: result.reductions,
+                    rightmostDerivation: [...result.reductions].reverse(),
+                  }
+                : {
+                    error: result.error,
+                    partialSteps: result.steps,
+                  }),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -977,30 +1054,35 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            comparison: {
-              'LR(0)/SLR(1)': {
-                states: lr0States.length,
-                conflicts: slrTable.conflicts.length,
-                isParseable: slrTable.conflicts.length === 0
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              comparison: {
+                'LR(0)/SLR(1)': {
+                  states: lr0States.length,
+                  conflicts: slrTable.conflicts.length,
+                  isParseable: slrTable.conflicts.length === 0,
+                },
+                'LR(1)': {
+                  states: lr1States.length,
+                  conflicts: lr1Table.conflicts.length,
+                  isParseable: lr1Table.conflicts.length === 0,
+                },
               },
-              'LR(1)': {
-                states: lr1States.length,
-                conflicts: lr1Table.conflicts.length,
-                isParseable: lr1Table.conflicts.length === 0
-              }
+              analysis: {
+                stateDifference: lr1States.length - lr0States.length,
+                conflictReduction: slrTable.conflicts.length - lr1Table.conflicts.length,
+                recommendation:
+                  slrTable.conflicts.length === 0
+                    ? 'Use SLR(1) - simpler and sufficient'
+                    : lr1Table.conflicts.length === 0
+                      ? 'Use LR(1) - handles this grammar'
+                      : 'Grammar may need refactoring',
+              },
             },
-            analysis: {
-              stateDifference: lr1States.length - lr0States.length,
-              conflictReduction: slrTable.conflicts.length - lr1Table.conflicts.length,
-              recommendation: slrTable.conflicts.length === 0
-                ? 'Use SLR(1) - simpler and sufficient'
-                : lr1Table.conflicts.length === 0
-                  ? 'Use LR(1) - handles this grammar'
-                  : 'Grammar may need refactoring'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1016,35 +1098,39 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            title: 'LR Parser Demo - Expression Grammar',
-            grammar: {
-              productions: augmented.productions.map((p, i) =>
-                `${i}: ${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`
-              )
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              title: 'LR Parser Demo - Expression Grammar',
+              grammar: {
+                productions: augmented.productions.map(
+                  (p, i) => `${i}: ${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`
+                ),
+              },
+              automaton: {
+                stateCount: slrTable.states.length,
+                firstState: {
+                  id: 0,
+                  items: (slrTable.states[0].items as LR0Item[]).map(itemToString),
+                },
+              },
+              parsing: {
+                input: 'id + id * id',
+                success: parseResult.success,
+                steps: parseResult.steps.slice(0, 8),
+                note: 'First 8 parsing steps shown',
+                reductions: parseResult.reductions,
+              },
+              concepts: [
+                'LR parsers build rightmost derivation in reverse',
+                'Shift moves input to stack',
+                'Reduce applies production backward',
+                'Handle is the RHS being reduced',
+              ],
             },
-            automaton: {
-              stateCount: slrTable.states.length,
-              firstState: {
-                id: 0,
-                items: (slrTable.states[0].items as LR0Item[]).map(itemToString)
-              }
-            },
-            parsing: {
-              input: 'id + id * id',
-              success: parseResult.success,
-              steps: parseResult.steps.slice(0, 8),
-              note: 'First 8 parsing steps shown',
-              reductions: parseResult.reductions
-            },
-            concepts: [
-              'LR parsers build rightmost derivation in reverse',
-              'Shift moves input to stack',
-              'Reduce applies production backward',
-              'Handle is the RHS being reduced'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1052,7 +1138,7 @@ export async function executelrparser(toolCall: UnifiedToolCall): Promise<Unifie
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

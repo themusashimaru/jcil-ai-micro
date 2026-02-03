@@ -15,8 +15,12 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 interface LatticeParams {
-  a: number; b: number; c: number;
-  alpha: number; beta: number; gamma: number;
+  a: number;
+  b: number;
+  c: number;
+  alpha: number;
+  beta: number;
+  gamma: number;
 }
 
 function cubicLattice(a: number): LatticeParams {
@@ -46,9 +50,17 @@ function unitCellVolume(params: LatticeParams): number {
   const cosBeta = Math.cos(beta * toRad);
   const cosGamma = Math.cos(gamma * toRad);
 
-  return a * b * c * Math.sqrt(
-    1 - cosAlpha * cosAlpha - cosBeta * cosBeta - cosGamma * cosGamma
-    + 2 * cosAlpha * cosBeta * cosGamma
+  return (
+    a *
+    b *
+    c *
+    Math.sqrt(
+      1 -
+        cosAlpha * cosAlpha -
+        cosBeta * cosBeta -
+        cosGamma * cosGamma +
+        2 * cosAlpha * cosBeta * cosGamma
+    )
   );
 }
 
@@ -60,11 +72,11 @@ function braggAngle(wavelength: number, dSpacing: number, n: number = 1): number
   // nλ = 2d sin(θ)
   const sinTheta = (n * wavelength) / (2 * dSpacing);
   if (Math.abs(sinTheta) > 1) return NaN;
-  return Math.asin(sinTheta) * 180 / Math.PI;
+  return (Math.asin(sinTheta) * 180) / Math.PI;
 }
 
 function dSpacingFromAngle(wavelength: number, theta: number, n: number = 1): number {
-  const thetaRad = theta * Math.PI / 180;
+  const thetaRad = (theta * Math.PI) / 180;
   return (n * wavelength) / (2 * Math.sin(thetaRad));
 }
 
@@ -81,7 +93,7 @@ function dSpacingTetragonal(a: number, c: number, h: number, k: number, l: numbe
 }
 
 function dSpacingHexagonal(a: number, c: number, h: number, k: number, l: number): number {
-  return 1 / Math.sqrt((4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c));
+  return 1 / Math.sqrt(((4 / 3) * (h * h + h * k + k * k)) / (a * a) + (l * l) / (c * c));
 }
 
 // ============================================================================
@@ -90,12 +102,12 @@ function dSpacingHexagonal(a: number, c: number, h: number, k: number, l: number
 
 function millerIndices(intercepts: [number, number, number]): [number, number, number] {
   // Convert intercepts to Miller indices
-  const reciprocals = intercepts.map(i => i === 0 ? Infinity : 1 / i);
-  const minNonInf = Math.min(...reciprocals.filter(r => isFinite(r)).map(Math.abs));
+  const reciprocals = intercepts.map((i) => (i === 0 ? Infinity : 1 / i));
+  const minNonInf = Math.min(...reciprocals.filter((r) => isFinite(r)).map(Math.abs));
 
   if (minNonInf === 0) return [0, 0, 0];
 
-  const scaled = reciprocals.map(r => isFinite(r) ? Math.round(r / minNonInf) : 0);
+  const scaled = reciprocals.map((r) => (isFinite(r) ? Math.round(r / minNonInf) : 0));
   return scaled as [number, number, number];
 }
 
@@ -128,22 +140,22 @@ export function planeSpacing(params: LatticeParams, h: number, k: number, l: num
 
 function packingFraction(structure: string): number {
   const fractions: Record<string, number> = {
-    'sc': Math.PI / 6,                           // Simple cubic: 0.524
-    'bcc': Math.PI * Math.sqrt(3) / 8,           // Body-centered: 0.680
-    'fcc': Math.PI * Math.sqrt(2) / 6,           // Face-centered: 0.740
-    'hcp': Math.PI * Math.sqrt(2) / 6,           // Hexagonal close-packed: 0.740
-    'diamond': Math.PI * Math.sqrt(3) / 16,      // Diamond: 0.340
+    sc: Math.PI / 6, // Simple cubic: 0.524
+    bcc: (Math.PI * Math.sqrt(3)) / 8, // Body-centered: 0.680
+    fcc: (Math.PI * Math.sqrt(2)) / 6, // Face-centered: 0.740
+    hcp: (Math.PI * Math.sqrt(2)) / 6, // Hexagonal close-packed: 0.740
+    diamond: (Math.PI * Math.sqrt(3)) / 16, // Diamond: 0.340
   };
   return fractions[structure] || 0;
 }
 
 function coordNumber(structure: string): number {
   const numbers: Record<string, number> = {
-    'sc': 6,
-    'bcc': 8,
-    'fcc': 12,
-    'hcp': 12,
-    'diamond': 4,
+    sc: 6,
+    bcc: 8,
+    fcc: 12,
+    hcp: 12,
+    diamond: 4,
   };
   return numbers[structure] || 0;
 }
@@ -171,7 +183,11 @@ Operations:
         enum: ['lattice', 'bragg', 'd_spacing', 'miller', 'packing'],
         description: 'Crystallography operation',
       },
-      system: { type: 'string', enum: ['cubic', 'tetragonal', 'hexagonal', 'orthorhombic'], description: 'Crystal system' },
+      system: {
+        type: 'string',
+        enum: ['cubic', 'tetragonal', 'hexagonal', 'orthorhombic'],
+        description: 'Crystal system',
+      },
       a: { type: 'number', description: 'Lattice parameter a (Å)' },
       b: { type: 'number', description: 'Lattice parameter b (Å)' },
       c: { type: 'number', description: 'Lattice parameter c (Å)' },
@@ -180,7 +196,11 @@ Operations:
       l: { type: 'number', description: 'Miller index l' },
       wavelength: { type: 'number', description: 'X-ray wavelength (Å)' },
       theta: { type: 'number', description: 'Bragg angle (degrees)' },
-      structure: { type: 'string', enum: ['sc', 'bcc', 'fcc', 'hcp', 'diamond'], description: 'Crystal structure' },
+      structure: {
+        type: 'string',
+        enum: ['sc', 'bcc', 'fcc', 'hcp', 'diamond'],
+        description: 'Crystal structure',
+      },
     },
     required: ['operation'],
   },
@@ -190,7 +210,9 @@ Operations:
 // EXECUTOR
 // ============================================================================
 
-export async function executeCrystallography(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeCrystallography(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -232,7 +254,7 @@ export async function executeCrystallography(toolCall: UnifiedToolCall): Promise
             gamma_degrees: params.gamma,
           },
           volume_angstrom3: Math.round(volume * 1000) / 1000,
-          volume_nm3: Math.round(volume / 1000 * 1000) / 1000,
+          volume_nm3: Math.round((volume / 1000) * 1000) / 1000,
         };
         break;
       }
@@ -328,10 +350,10 @@ export async function executeCrystallography(toolCall: UnifiedToolCall): Promise
           coordination_number: cn,
           all_structures: {
             SC: { packing: 0.524, coordination: 6 },
-            BCC: { packing: 0.680, coordination: 8 },
-            FCC: { packing: 0.740, coordination: 12 },
-            HCP: { packing: 0.740, coordination: 12 },
-            Diamond: { packing: 0.340, coordination: 4 },
+            BCC: { packing: 0.68, coordination: 8 },
+            FCC: { packing: 0.74, coordination: 12 },
+            HCP: { packing: 0.74, coordination: 12 },
+            Diamond: { packing: 0.34, coordination: 4 },
           },
         };
         break;
@@ -343,9 +365,14 @@ export async function executeCrystallography(toolCall: UnifiedToolCall): Promise
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Crystallography Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Crystallography Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isCrystallographyAvailable(): boolean { return true; }
-void _planeSpacing;
+export function isCrystallographyAvailable(): boolean {
+  return true;
+}

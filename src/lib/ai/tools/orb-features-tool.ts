@@ -120,7 +120,8 @@ function downsample(img: GrayscaleImage, factor: number = 2): GrayscaleImage {
 
   for (let y = 0; y < newHeight; y++) {
     for (let x = 0; x < newWidth; x++) {
-      let sum = 0, count = 0;
+      let sum = 0,
+        count = 0;
       for (let dy = 0; dy < factor; dy++) {
         for (let dx = 0; dx < factor; dx++) {
           sum += getPixel(img, x * factor + dx, y * factor + dy);
@@ -144,10 +145,22 @@ class FASTDetector {
 
   // Circle of 16 pixels at radius 3
   private static readonly CIRCLE_OFFSETS: [number, number][] = [
-    [0, -3], [1, -3], [2, -2], [3, -1],
-    [3, 0], [3, 1], [2, 2], [1, 3],
-    [0, 3], [-1, 3], [-2, 2], [-3, 1],
-    [-3, 0], [-3, -1], [-2, -2], [-1, -3]
+    [0, -3],
+    [1, -3],
+    [2, -2],
+    [3, -1],
+    [3, 0],
+    [3, 1],
+    [2, 2],
+    [1, 3],
+    [0, 3],
+    [-1, 3],
+    [-2, 2],
+    [-3, 1],
+    [-3, 0],
+    [-3, -1],
+    [-2, -2],
+    [-1, -3],
   ];
 
   constructor(threshold: number = 20, n: number = 9) {
@@ -172,7 +185,7 @@ class FASTDetector {
             scale: 1,
             angle: 0,
             response,
-            octave: 0
+            octave: 0,
           });
         }
       }
@@ -218,7 +231,8 @@ class FASTDetector {
     let maxDarker = 0;
 
     // Check all 16 pixels on the circle
-    for (let i = 0; i < 32; i++) { // Go around twice for wraparound
+    for (let i = 0; i < 32; i++) {
+      // Go around twice for wraparound
       const idx = i % 16;
       const [dx, dy] = FASTDetector.CIRCLE_OFFSETS[idx];
       const p = data[y + dy][x + dx];
@@ -285,7 +299,9 @@ class HarrisCornerMeasure {
     const half = Math.floor(windowSize / 2);
 
     for (const kp of keypoints) {
-      let Sxx = 0, Syy = 0, Sxy = 0;
+      let Sxx = 0,
+        Syy = 0,
+        Sxy = 0;
 
       for (let dy = -half; dy <= half; dy++) {
         for (let dx = -half; dx <= half; dx++) {
@@ -323,12 +339,12 @@ class OrientationComputer {
    * Compute orientation using intensity centroid
    */
   computeOrientation(image: GrayscaleImage, keypoints: Keypoint[]): Keypoint[] {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: _data } = image;
     const half = Math.floor(this.patchSize / 2);
 
     for (const kp of keypoints) {
-      let m01 = 0, m10 = 0;
+      let m01 = 0,
+        m10 = 0;
 
       for (let dy = -half; dy <= half; dy++) {
         for (let dx = -half; dx <= half; dx++) {
@@ -410,7 +426,7 @@ class BRIEFDescriptor {
         if (p1 < p2) {
           const byteIdx = Math.floor(i / 8);
           const bitIdx = i % 8;
-          descriptor[byteIdx] |= (1 << bitIdx);
+          descriptor[byteIdx] |= 1 << bitIdx;
         }
       }
 
@@ -447,7 +463,7 @@ class BRIEFDescriptor {
         if (p1 < p2) {
           const byteIdx = Math.floor(i / 8);
           const bitIdx = i % 8;
-          descriptor[byteIdx] |= (1 << bitIdx);
+          descriptor[byteIdx] |= 1 << bitIdx;
         }
       }
 
@@ -627,8 +643,10 @@ class FeatureMatcher {
     const matches: FeatureMatch[] = [];
 
     for (let i = 0; i < query.length; i++) {
-      let best1Idx = -1, best2Idx = -1;
-      let best1Dist = Infinity, best2Dist = Infinity;
+      let best1Idx = -1,
+        best2Idx = -1;
+      let best1Dist = Infinity,
+        best2Dist = Infinity;
 
       for (let j = 0; j < train.length; j++) {
         const dist = this.hammingDistance(query[i].descriptor, train[j].descriptor);
@@ -661,12 +679,13 @@ class HomographyEstimator {
   /**
    * Compute homography using Direct Linear Transform
    */
-  static computeDLT(
-    srcPoints: [number, number][],
-    dstPoints: [number, number][]
-  ): number[][] {
+  static computeDLT(srcPoints: [number, number][], dstPoints: [number, number][]): number[][] {
     if (srcPoints.length < 4) {
-      return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      return [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+      ];
     }
 
     // Build matrix A for Ah = 0
@@ -686,7 +705,7 @@ class HomographyEstimator {
     return [
       [h[0], h[1], h[2]],
       [h[3], h[4], h[5]],
-      [h[6], h[7], h[8]]
+      [h[6], h[7], h[8]],
     ];
   }
 
@@ -719,7 +738,7 @@ class HomographyEstimator {
 
       // Normalize
       const norm = Math.sqrt(y.reduce((s, v) => s + v * v, 0));
-      x = y.map(v => v / norm);
+      x = y.map((v) => v / norm);
     }
 
     return x;
@@ -782,22 +801,30 @@ class HomographyEstimator {
     const n = srcPoints.length;
     if (n < 4) {
       return {
-        H: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        H: [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1],
+        ],
         inliers: [],
         numInliers: 0,
-        reprojectionError: Infinity
+        reprojectionError: Infinity,
       };
     }
 
-    let bestH: number[][] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    let bestH: number[][] = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ];
     let bestInliers: number[] = [];
     let bestError = Infinity;
 
     for (let iter = 0; iter < iterations; iter++) {
       // Random sample of 4 points
       const indices = this.randomSample(n, 4);
-      const srcSample = indices.map(i => srcPoints[i]);
-      const dstSample = indices.map(i => dstPoints[i]);
+      const srcSample = indices.map((i) => srcPoints[i]);
+      const dstSample = indices.map((i) => dstPoints[i]);
 
       // Compute homography
       const H = this.computeDLT(srcSample, dstSample);
@@ -814,8 +841,10 @@ class HomographyEstimator {
         }
       }
 
-      if (inliers.length > bestInliers.length ||
-          (inliers.length === bestInliers.length && totalError < bestError)) {
+      if (
+        inliers.length > bestInliers.length ||
+        (inliers.length === bestInliers.length && totalError < bestError)
+      ) {
         bestH = H;
         bestInliers = inliers;
         bestError = totalError;
@@ -824,8 +853,8 @@ class HomographyEstimator {
 
     // Refit with all inliers
     if (bestInliers.length >= 4) {
-      const srcInliers = bestInliers.map(i => srcPoints[i]);
-      const dstInliers = bestInliers.map(i => dstPoints[i]);
+      const srcInliers = bestInliers.map((i) => srcPoints[i]);
+      const dstInliers = bestInliers.map((i) => dstPoints[i]);
       bestH = this.computeDLT(srcInliers, dstInliers);
     }
 
@@ -833,18 +862,14 @@ class HomographyEstimator {
       H: bestH,
       inliers: bestInliers,
       numInliers: bestInliers.length,
-      reprojectionError: bestError / Math.max(1, bestInliers.length)
+      reprojectionError: bestError / Math.max(1, bestInliers.length),
     };
   }
 
   /**
    * Compute reprojection error
    */
-  static reprojectionError(
-    H: number[][],
-    src: [number, number],
-    dst: [number, number]
-  ): number {
+  static reprojectionError(H: number[][], src: [number, number], dst: [number, number]): number {
     const [x, y] = src;
     const w = H[2][0] * x + H[2][1] * y + H[2][2];
 
@@ -978,7 +1003,7 @@ function generateTestImage(
         for (let x = 0; x < width; x++) {
           const cx = Math.floor(x / size);
           const cy = Math.floor(y / size);
-          image.data[y][x] = ((cx + cy) % 2 === 0) ? 50 : 200;
+          image.data[y][x] = (cx + cy) % 2 === 0 ? 50 : 200;
         }
       }
       break;
@@ -1021,35 +1046,41 @@ export const orbfeaturesTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: [
-          'detect_keypoints', 'compute_descriptors', 'match_features',
-          'find_homography', 'visualize_features', 'demo', 'info', 'examples'
+          'detect_keypoints',
+          'compute_descriptors',
+          'match_features',
+          'find_homography',
+          'visualize_features',
+          'demo',
+          'info',
+          'examples',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       image: {
         type: 'object',
-        description: 'Image { width, height, data: number[][] }'
+        description: 'Image { width, height, data: number[][] }',
       },
       image1: {
         type: 'object',
-        description: 'First image for matching'
+        description: 'First image for matching',
       },
       image2: {
         type: 'object',
-        description: 'Second image for matching'
+        description: 'Second image for matching',
       },
       params: {
         type: 'object',
-        description: 'Detection parameters'
+        description: 'Detection parameters',
       },
       pattern: {
         type: 'string',
         enum: ['corners', 'checkerboard', 'features'],
-        description: 'Test pattern type'
-      }
+        description: 'Test pattern type',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -1085,16 +1116,16 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'detect_keypoints',
           imageSize: { width: testImage.width, height: testImage.height },
           numKeypoints: keypoints.length,
-          keypoints: keypoints.slice(0, 20).map(kp => ({
+          keypoints: keypoints.slice(0, 20).map((kp) => ({
             x: Math.round(kp.x),
             y: Math.round(kp.y),
             response: Math.round(kp.response),
-            angle: (kp.angle * 180 / Math.PI).toFixed(1) + ' deg'
+            angle: ((kp.angle * 180) / Math.PI).toFixed(1) + ' deg',
           })),
           parameters: {
             threshold: params?.threshold ?? 20,
-            nmsRadius: params?.nmsRadius ?? 5
-          }
+            nmsRadius: params?.nmsRadius ?? 5,
+          },
         };
         break;
       }
@@ -1121,15 +1152,17 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
               x: Math.round(d.keypoint.x),
               y: Math.round(d.keypoint.y),
               scale: d.keypoint.scale.toFixed(2),
-              angle: (d.keypoint.angle * 180 / Math.PI).toFixed(1) + ' deg'
+              angle: ((d.keypoint.angle * 180) / Math.PI).toFixed(1) + ' deg',
             },
-            descriptorPreview: Array.from(d.descriptor.slice(0, 4)).map(b => b.toString(16).padStart(2, '0')).join('')
+            descriptorPreview: Array.from(d.descriptor.slice(0, 4))
+              .map((b) => b.toString(16).padStart(2, '0'))
+              .join(''),
           })),
           parameters: {
             numFeatures: params?.numFeatures ?? 100,
             scaleFactor: params?.scaleFactor ?? 1.2,
-            numLevels: params?.numLevels ?? 4
-          }
+            numLevels: params?.numLevels ?? 4,
+          },
         };
         break;
       }
@@ -1152,26 +1185,27 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           image1Features: desc1.length,
           image2Features: desc2.length,
           numMatches: matches.length,
-          matches: matches.slice(0, 15).map(m => ({
+          matches: matches.slice(0, 15).map((m) => ({
             queryIdx: m.queryIdx,
             trainIdx: m.trainIdx,
             distance: m.distance,
             queryPoint: {
               x: Math.round(desc1[m.queryIdx].keypoint.x),
-              y: Math.round(desc1[m.queryIdx].keypoint.y)
+              y: Math.round(desc1[m.queryIdx].keypoint.y),
             },
             trainPoint: {
               x: Math.round(desc2[m.trainIdx].keypoint.x),
-              y: Math.round(desc2[m.trainIdx].keypoint.y)
-            }
+              y: Math.round(desc2[m.trainIdx].keypoint.y),
+            },
           })),
           matchStatistics: {
-            minDistance: matches.length > 0 ? Math.min(...matches.map(m => m.distance)) : 0,
-            maxDistance: matches.length > 0 ? Math.max(...matches.map(m => m.distance)) : 0,
-            avgDistance: matches.length > 0
-              ? (matches.reduce((s, m) => s + m.distance, 0) / matches.length).toFixed(1)
-              : 0
-          }
+            minDistance: matches.length > 0 ? Math.min(...matches.map((m) => m.distance)) : 0,
+            maxDistance: matches.length > 0 ? Math.max(...matches.map((m) => m.distance)) : 0,
+            avgDistance:
+              matches.length > 0
+                ? (matches.reduce((s, m) => s + m.distance, 0) / matches.length).toFixed(1)
+                : 0,
+          },
         };
         break;
       }
@@ -1191,17 +1225,19 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           result = {
             operation: 'find_homography',
             error: 'Not enough matches for homography',
-            numMatches: matches.length
+            numMatches: matches.length,
           };
           break;
         }
 
-        const srcPoints: [number, number][] = matches.map(m =>
-          [desc1[m.queryIdx].keypoint.x, desc1[m.queryIdx].keypoint.y]
-        );
-        const dstPoints: [number, number][] = matches.map(m =>
-          [desc2[m.trainIdx].keypoint.x, desc2[m.trainIdx].keypoint.y]
-        );
+        const srcPoints: [number, number][] = matches.map((m) => [
+          desc1[m.queryIdx].keypoint.x,
+          desc1[m.queryIdx].keypoint.y,
+        ]);
+        const dstPoints: [number, number][] = matches.map((m) => [
+          desc2[m.trainIdx].keypoint.x,
+          desc2[m.trainIdx].keypoint.y,
+        ]);
 
         const homography = HomographyEstimator.ransac(
           srcPoints,
@@ -1214,13 +1250,13 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'find_homography',
           numMatches: matches.length,
           numInliers: homography.numInliers,
-          inlierRatio: (homography.numInliers / matches.length * 100).toFixed(1) + '%',
+          inlierRatio: ((homography.numInliers / matches.length) * 100).toFixed(1) + '%',
           reprojectionError: homography.reprojectionError.toFixed(2) + ' px',
-          homographyMatrix: homography.H.map(row => row.map(v => v.toFixed(4))),
+          homographyMatrix: homography.H.map((row) => row.map((v) => v.toFixed(4))),
           parameters: {
             ransacIterations: params?.iterations ?? 1000,
-            ransacThreshold: params?.threshold ?? 3.0
-          }
+            ransacThreshold: params?.threshold ?? 3.0,
+          },
         };
         break;
       }
@@ -1239,8 +1275,8 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           let line = '';
           for (let x = 0; x < testImage.width; x += step) {
             // Check if any keypoint is near this position
-            const hasKeypoint = descriptors.some(d =>
-              Math.abs(d.keypoint.x - x) < step && Math.abs(d.keypoint.y - y) < step
+            const hasKeypoint = descriptors.some(
+              (d) => Math.abs(d.keypoint.x - x) < step && Math.abs(d.keypoint.y - y) < step
             );
 
             if (hasKeypoint) {
@@ -1261,7 +1297,7 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           imageSize: { width: testImage.width, height: testImage.height },
           numFeatures: descriptors.length,
           visualization: visualization.join('\n'),
-          legend: '* = keypoint, O/o/. = pixel intensity'
+          legend: '* = keypoint, O/o/. = pixel intensity',
         };
         break;
       }
@@ -1272,7 +1308,8 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
 
         // Create img2 with some transformation
         const img2 = createImage(120, 100, 128);
-        const offsetX = 5, offsetY = 3;
+        const offsetX = 5,
+          offsetY = 3;
         for (let y = 0; y < 100; y++) {
           for (let x = 0; x < 120; x++) {
             const srcX = x - offsetX;
@@ -1292,21 +1329,21 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           description: 'ORB feature detection and matching demo',
           image1: {
             size: { width: img1.width, height: img1.height },
-            numFeatures: desc1.length
+            numFeatures: desc1.length,
           },
           image2: {
             size: { width: img2.width, height: img2.height },
             numFeatures: desc2.length,
-            transformation: `Translation (${offsetX}, ${offsetY})`
+            transformation: `Translation (${offsetX}, ${offsetY})`,
           },
           matching: {
             numMatches: matches.length,
-            topMatches: matches.slice(0, 5).map(m => ({
+            topMatches: matches.slice(0, 5).map((m) => ({
               distance: m.distance,
               query: `(${Math.round(desc1[m.queryIdx].keypoint.x)}, ${Math.round(desc1[m.queryIdx].keypoint.y)})`,
-              train: `(${Math.round(desc2[m.trainIdx].keypoint.x)}, ${Math.round(desc2[m.trainIdx].keypoint.y)})`
-            }))
-          }
+              train: `(${Math.round(desc2[m.trainIdx].keypoint.x)}, ${Math.round(desc2[m.trainIdx].keypoint.y)})`,
+            })),
+          },
         };
         break;
       }
@@ -1317,25 +1354,25 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
           examples: [
             {
               name: 'Detect keypoints',
-              code: `{ "operation": "detect_keypoints", "params": { "threshold": 20, "maxKeypoints": 100 } }`
+              code: `{ "operation": "detect_keypoints", "params": { "threshold": 20, "maxKeypoints": 100 } }`,
             },
             {
               name: 'Compute ORB descriptors',
-              code: `{ "operation": "compute_descriptors", "params": { "numFeatures": 200, "numLevels": 4 } }`
+              code: `{ "operation": "compute_descriptors", "params": { "numFeatures": 200, "numLevels": 4 } }`,
             },
             {
               name: 'Match features',
-              code: `{ "operation": "match_features", "params": { "crossCheck": true } }`
+              code: `{ "operation": "match_features", "params": { "crossCheck": true } }`,
             },
             {
               name: 'Find homography with RANSAC',
-              code: `{ "operation": "find_homography", "params": { "iterations": 1000, "threshold": 3.0 } }`
+              code: `{ "operation": "find_homography", "params": { "iterations": 1000, "threshold": 3.0 } }`,
             },
             {
               name: 'Visualize features',
-              code: `{ "operation": "visualize_features", "pattern": "checkerboard" }`
-            }
-          ]
+              code: `{ "operation": "visualize_features", "pattern": "checkerboard" }`,
+            },
+          ],
         };
         break;
       }
@@ -1351,7 +1388,7 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
             Harris: 'Harris corner measure for keypoint ranking',
             Orientation: 'Intensity centroid for rotation invariance',
             BRIEF: 'Binary descriptor using pairwise intensity comparisons',
-            Steered: 'Rotation-invariant BRIEF using keypoint orientation'
+            Steered: 'Rotation-invariant BRIEF using keypoint orientation',
           },
           features: {
             scalePyramid: 'Multi-scale detection for scale invariance',
@@ -1359,32 +1396,37 @@ export async function executeorbfeatures(toolCall: UnifiedToolCall): Promise<Uni
             hammingDistance: 'Fast binary descriptor matching',
             crossCheck: 'Bidirectional matching for reliability',
             ratioTest: "Lowe's ratio test for match filtering",
-            ransac: 'RANSAC homography estimation with outlier rejection'
+            ransac: 'RANSAC homography estimation with outlier rejection',
           },
           performance: {
             descriptorSize: '256 bits (32 bytes)',
             matchingComplexity: 'O(n*m) for brute force, uses fast Hamming distance',
-            advantages: 'Fast, rotation invariant, suitable for real-time'
+            advantages: 'Fast, rotation invariant, suitable for real-time',
           },
           operations: [
-            'detect_keypoints', 'compute_descriptors', 'match_features',
-            'find_homography', 'visualize_features', 'demo', 'info', 'examples'
-          ]
+            'detect_keypoints',
+            'compute_descriptors',
+            'match_features',
+            'find_homography',
+            'visualize_features',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
       }
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error in orb_features: ${error}`,
-      isError: true
+      isError: true,
     };
   }
 }

@@ -101,57 +101,57 @@ const PROJECTILE_PRESETS: { [key: string]: ProjectileType } = {
     mass: 0.145,
     diameter: 0.074,
     dragCoefficient: 0.35,
-    spinDecay: 0.1
+    spinDecay: 0.1,
   },
   golfBall: {
     name: 'Golf Ball',
     mass: 0.0459,
     diameter: 0.0427,
     dragCoefficient: 0.25, // dimpled surface
-    spinDecay: 0.05
+    spinDecay: 0.05,
   },
   cannonball: {
     name: 'Cannonball',
     mass: 4.0,
     diameter: 0.1,
     dragCoefficient: 0.47, // smooth sphere
-    spinDecay: 0.01
+    spinDecay: 0.01,
   },
   bullet9mm: {
     name: '9mm Bullet',
     mass: 0.008,
     diameter: 0.009,
     dragCoefficient: 0.295,
-    spinDecay: 0.001
+    spinDecay: 0.001,
   },
   arrow: {
     name: 'Arrow',
     mass: 0.025,
     diameter: 0.008,
     dragCoefficient: 0.05, // streamlined
-    spinDecay: 0.2
+    spinDecay: 0.2,
   },
   football: {
     name: 'Football',
     mass: 0.425,
     diameter: 0.11, // short axis
     dragCoefficient: 0.1, // spinning stabilized
-    spinDecay: 0.15
+    spinDecay: 0.15,
   },
   tennisball: {
     name: 'Tennis Ball',
     mass: 0.058,
     diameter: 0.067,
     dragCoefficient: 0.55, // fuzzy surface
-    spinDecay: 0.2
+    spinDecay: 0.2,
   },
   soccerball: {
     name: 'Soccer Ball',
     mass: 0.43,
     diameter: 0.22,
     dragCoefficient: 0.25,
-    spinDecay: 0.1
-  }
+    spinDecay: 0.1,
+  },
 };
 
 // ============================================================================
@@ -184,12 +184,11 @@ function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   return {
     x: a.y * b.z - a.z * b.y,
     y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x
+    z: a.x * b.y - a.y * b.x,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Dot(a: Vector3, b: Vector3): number {
+export function vec3Dot(a: Vector3, b: Vector3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
@@ -221,7 +220,7 @@ function calculateAirDensity(
   const R_d = 287.058; // Gas constant for dry air
   const R_v = 461.495; // Gas constant for water vapor
 
-  return (dryAirPressure / (R_d * temperature)) + (vaporPressure / (R_v * temperature));
+  return dryAirPressure / (R_d * temperature) + vaporPressure / (R_v * temperature);
 }
 
 /**
@@ -268,10 +267,7 @@ function calculateGravityForce(mass: number, gravity: number): Vector3 {
  * Calculate drag force
  * F_d = 0.5 * ρ * v² * C_d * A
  */
-function calculateDragForce(
-  state: ProjectileState,
-  env: EnvironmentConfig
-): Vector3 {
+function calculateDragForce(state: ProjectileState, env: EnvironmentConfig): Vector3 {
   // Velocity relative to air (accounting for wind)
   const relativeVelocity = vec3Sub(state.velocity, env.wind);
   const speed = vec3Magnitude(relativeVelocity);
@@ -297,20 +293,17 @@ function calculateDragForce(
  * F_c = -2m(Ω × v)
  * where Ω is Earth's rotation vector
  */
-function calculateCoriolisForce(
-  state: ProjectileState,
-  env: EnvironmentConfig
-): Vector3 {
+function calculateCoriolisForce(state: ProjectileState, env: EnvironmentConfig): Vector3 {
   if (!env.enableCoriolis) return { x: 0, y: 0, z: 0 };
 
-  const latRad = env.latitude * Math.PI / 180;
+  const latRad = (env.latitude * Math.PI) / 180;
 
   // Earth's rotation vector in local coordinates
   // Ω = ω * (0, cos(lat), sin(lat)) in local East-North-Up frame
   const omega: Vector3 = {
     x: 0,
     y: EARTH_ROTATION_RATE * Math.cos(latRad),
-    z: EARTH_ROTATION_RATE * Math.sin(latRad)
+    z: EARTH_ROTATION_RATE * Math.sin(latRad),
   };
 
   // Coriolis acceleration: -2(Ω × v)
@@ -322,10 +315,7 @@ function calculateCoriolisForce(
  * Calculate Magnus force (due to spin)
  * F_m = 0.5 * ρ * A * C_L * |v|² * (ω̂ × v̂)
  */
-function calculateMagnusForce(
-  state: ProjectileState,
-  env: EnvironmentConfig
-): Vector3 {
+function calculateMagnusForce(state: ProjectileState, env: EnvironmentConfig): Vector3 {
   if (!env.enableMagnusEffect || vec3Magnitude(env.spinRate) < 0.001) {
     return { x: 0, y: 0, z: 0 };
   }
@@ -338,7 +328,7 @@ function calculateMagnusForce(
   // Lift coefficient depends on spin parameter S = rω/v
   const radius = Math.sqrt(state.crossSectionalArea / Math.PI);
   const spinMagnitude = vec3Magnitude(env.spinRate);
-  const spinParameter = radius * spinMagnitude / speed;
+  const spinParameter = (radius * spinMagnitude) / speed;
 
   // Empirical lift coefficient (simplified)
   const liftCoefficient = 0.5 * spinParameter;
@@ -348,8 +338,8 @@ function calculateMagnusForce(
   const velocityDirection = vec3Normalize(relativeVelocity);
   const magnusDirection = vec3Cross(spinDirection, velocityDirection);
 
-  const magnusMagnitude = 0.5 * env.airDensity * state.crossSectionalArea *
-                         liftCoefficient * speed * speed;
+  const magnusMagnitude =
+    0.5 * env.airDensity * state.crossSectionalArea * liftCoefficient * speed * speed;
 
   return vec3Scale(magnusDirection, magnusMagnitude);
 }
@@ -357,19 +347,13 @@ function calculateMagnusForce(
 /**
  * Calculate total acceleration
  */
-function calculateTotalAcceleration(
-  state: ProjectileState,
-  env: EnvironmentConfig
-): Vector3 {
+function calculateTotalAcceleration(state: ProjectileState, env: EnvironmentConfig): Vector3 {
   const gravityForce = calculateGravityForce(state.mass, env.gravity);
   const dragForce = calculateDragForce(state, env);
   const coriolisForce = calculateCoriolisForce(state, env);
   const magnusForce = calculateMagnusForce(state, env);
 
-  const totalForce = vec3Add(
-    vec3Add(gravityForce, dragForce),
-    vec3Add(coriolisForce, magnusForce)
-  );
+  const totalForce = vec3Add(vec3Add(gravityForce, dragForce), vec3Add(coriolisForce, magnusForce));
 
   return vec3Scale(totalForce, 1 / state.mass);
 }
@@ -381,11 +365,7 @@ function calculateTotalAcceleration(
 /**
  * Runge-Kutta 4th order integration
  */
-function rk4Step(
-  state: ProjectileState,
-  env: EnvironmentConfig,
-  dt: number
-): ProjectileState {
+function rk4Step(state: ProjectileState, env: EnvironmentConfig, dt: number): ProjectileState {
   // k1
   const a1 = calculateTotalAcceleration(state, env);
   const k1_v = a1;
@@ -395,7 +375,7 @@ function rk4Step(
   const state2: ProjectileState = {
     ...state,
     position: vec3Add(state.position, vec3Scale(k1_p, 0.5 * dt)),
-    velocity: vec3Add(state.velocity, vec3Scale(k1_v, 0.5 * dt))
+    velocity: vec3Add(state.velocity, vec3Scale(k1_v, 0.5 * dt)),
   };
   const a2 = calculateTotalAcceleration(state2, env);
   const k2_v = a2;
@@ -405,7 +385,7 @@ function rk4Step(
   const state3: ProjectileState = {
     ...state,
     position: vec3Add(state.position, vec3Scale(k2_p, 0.5 * dt)),
-    velocity: vec3Add(state.velocity, vec3Scale(k2_v, 0.5 * dt))
+    velocity: vec3Add(state.velocity, vec3Scale(k2_v, 0.5 * dt)),
   };
   const a3 = calculateTotalAcceleration(state3, env);
   const k3_v = a3;
@@ -415,7 +395,7 @@ function rk4Step(
   const state4: ProjectileState = {
     ...state,
     position: vec3Add(state.position, vec3Scale(k3_p, dt)),
-    velocity: vec3Add(state.velocity, vec3Scale(k3_v, dt))
+    velocity: vec3Add(state.velocity, vec3Scale(k3_v, dt)),
   };
   const a4 = calculateTotalAcceleration(state4, env);
   const k4_v = a4;
@@ -436,7 +416,7 @@ function rk4Step(
     ...state,
     position: newPosition,
     velocity: newVelocity,
-    time: state.time + dt
+    time: state.time + dt,
   };
 }
 
@@ -463,7 +443,8 @@ function simulateTrajectory(params: {
   // Setup environment
   const env: EnvironmentConfig = {
     gravity: params.environment?.gravity ?? STANDARD_GRAVITY,
-    airDensity: params.environment?.airDensity ??
+    airDensity:
+      params.environment?.airDensity ??
       calculateAirDensity(
         params.environment?.temperature ?? STANDARD_TEMPERATURE,
         params.environment?.pressure ?? STANDARD_PRESSURE,
@@ -476,7 +457,7 @@ function simulateTrajectory(params: {
     latitude: params.environment?.latitude ?? 45,
     enableCoriolis: params.environment?.enableCoriolis ?? false,
     enableMagnusEffect: params.environment?.enableMagnusEffect ?? false,
-    spinRate: params.environment?.spinRate ?? { x: 0, y: 0, z: 0 }
+    spinRate: params.environment?.spinRate ?? { x: 0, y: 0, z: 0 },
   };
 
   // Setup projectile
@@ -489,7 +470,7 @@ function simulateTrajectory(params: {
       mass: params.mass || 1,
       diameter: params.diameter || 0.1,
       dragCoefficient: params.dragCoefficient || 0.47,
-      spinDecay: 0.1
+      spinDecay: 0.1,
     };
   }
 
@@ -500,14 +481,14 @@ function simulateTrajectory(params: {
   const crossSectionalArea = Math.PI * (diameter / 2) * (diameter / 2);
 
   // Calculate initial velocity components
-  const angleRad = params.launchAngle * Math.PI / 180;
-  const azimuthRad = (params.launchAzimuth ?? 0) * Math.PI / 180;
+  const angleRad = (params.launchAngle * Math.PI) / 180;
+  const azimuthRad = ((params.launchAzimuth ?? 0) * Math.PI) / 180;
 
   const horizontalSpeed = params.initialSpeed * Math.cos(angleRad);
   const initialVelocity: Vector3 = {
     x: horizontalSpeed * Math.sin(azimuthRad),
     y: params.initialSpeed * Math.sin(angleRad),
-    z: horizontalSpeed * Math.cos(azimuthRad)
+    z: horizontalSpeed * Math.cos(azimuthRad),
   };
 
   // Initial state
@@ -517,7 +498,7 @@ function simulateTrajectory(params: {
     mass,
     crossSectionalArea,
     dragCoefficient,
-    time: 0
+    time: 0,
   };
 
   // Simulation parameters
@@ -555,7 +536,7 @@ function simulateTrajectory(params: {
         speed,
         acceleration: { ...acceleration },
         dragForce,
-        machNumber
+        machNumber,
       });
     }
 
@@ -588,12 +569,12 @@ function simulateTrajectory(params: {
       const impactPos: Vector3 = {
         x: prev.position.x + t * (last.position.x - prev.position.x),
         y: 0,
-        z: prev.position.z + t * (last.position.z - prev.position.z)
+        z: prev.position.z + t * (last.position.z - prev.position.z),
       };
       const impactVel: Vector3 = {
         x: prev.velocity.x + t * (last.velocity.x - prev.velocity.x),
         y: prev.velocity.y + t * (last.velocity.y - prev.velocity.y),
-        z: prev.velocity.z + t * (last.velocity.z - prev.velocity.z)
+        z: prev.velocity.z + t * (last.velocity.z - prev.velocity.z),
       };
       const impactTime = prev.time + t * (last.time - prev.time);
 
@@ -604,20 +585,25 @@ function simulateTrajectory(params: {
         speed: vec3Magnitude(impactVel),
         acceleration: last.acceleration,
         dragForce: last.dragForce,
-        machNumber: last.machNumber
+        machNumber: last.machNumber,
       };
     }
   }
 
   // Calculate final analysis
   const finalPoint = trajectory[trajectory.length - 1];
-  const range = Math.sqrt(
-    Math.pow(finalPoint.position.x, 2) + Math.pow(finalPoint.position.z, 2)
-  );
+  const range = Math.sqrt(Math.pow(finalPoint.position.x, 2) + Math.pow(finalPoint.position.z, 2));
   const impactVelocity = finalPoint.speed;
-  const impactAngle = Math.atan2(-finalPoint.velocity.y,
-    Math.sqrt(finalPoint.velocity.x * finalPoint.velocity.x +
-              finalPoint.velocity.z * finalPoint.velocity.z)) * 180 / Math.PI;
+  const impactAngle =
+    (Math.atan2(
+      -finalPoint.velocity.y,
+      Math.sqrt(
+        finalPoint.velocity.x * finalPoint.velocity.x +
+          finalPoint.velocity.z * finalPoint.velocity.z
+      )
+    ) *
+      180) /
+    Math.PI;
   const finalKE = 0.5 * mass * impactVelocity * impactVelocity;
   const lateralDrift = finalPoint.position.x; // Drift perpendicular to initial direction
 
@@ -633,14 +619,14 @@ function simulateTrajectory(params: {
     initialKineticEnergy: initialKE,
     finalKineticEnergy: finalKE,
     energyLostToDrag: initialKE - finalKE,
-    lateralDrift
+    lateralDrift,
   };
 
   return {
     trajectory,
     analysis,
     finalState: state,
-    environment: env
+    environment: env,
   };
 }
 
@@ -660,7 +646,7 @@ function calculateIdealTrajectory(params: {
 } {
   const g = params.gravity ?? STANDARD_GRAVITY;
   const v0 = params.initialSpeed;
-  const theta = params.launchAngle * Math.PI / 180;
+  const theta = (params.launchAngle * Math.PI) / 180;
   const h0 = params.initialHeight ?? 0;
 
   const v0x = v0 * Math.cos(theta);
@@ -680,7 +666,7 @@ function calculateIdealTrajectory(params: {
     maxHeight,
     range,
     totalTime,
-    trajectoryEquation: `y = ${h0.toFixed(2)} + ${v0y.toFixed(2)}t - ${(0.5*g).toFixed(2)}t²`
+    trajectoryEquation: `y = ${h0.toFixed(2)} + ${v0y.toFixed(2)}t - ${(0.5 * g).toFixed(2)}t²`,
   };
 }
 
@@ -697,12 +683,12 @@ function findOptimalAngle(params: {
     // Without air resistance, optimal angle is 45 degrees
     const idealResult = calculateIdealTrajectory({
       initialSpeed: params.initialSpeed,
-      launchAngle: 45
+      launchAngle: 45,
     });
     return {
       optimalAngle: 45,
       maxRange: idealResult.range,
-      idealAngle: 45
+      idealAngle: 45,
     };
   }
 
@@ -715,7 +701,7 @@ function findOptimalAngle(params: {
       initialSpeed: params.initialSpeed,
       launchAngle: angle,
       projectileType: params.projectileType,
-      environment: params.environment
+      environment: params.environment,
     });
 
     if (result.analysis.range > maxRange) {
@@ -730,7 +716,7 @@ function findOptimalAngle(params: {
       initialSpeed: params.initialSpeed,
       launchAngle: angle,
       projectileType: params.projectileType,
-      environment: params.environment
+      environment: params.environment,
     });
 
     if (result.analysis.range > maxRange) {
@@ -742,7 +728,7 @@ function findOptimalAngle(params: {
   return {
     optimalAngle: Math.round(optimalAngle * 10) / 10,
     maxRange,
-    idealAngle: 45
+    idealAngle: 45,
   };
 }
 
@@ -752,65 +738,59 @@ function findOptimalAngle(params: {
 
 export const projectilemotionTool: UnifiedTool = {
   name: 'projectile_motion',
-  description: 'Comprehensive projectile motion simulation with realistic physics. Supports air resistance, drag coefficients, wind effects, Coriolis effect, Magnus effect (spin), and multiple projectile types.',
+  description:
+    'Comprehensive projectile motion simulation with realistic physics. Supports air resistance, drag coefficients, wind effects, Coriolis effect, Magnus effect (spin), and multiple projectile types.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['simulate', 'ideal', 'optimal_angle', 'compare', 'info'],
-        description: 'Operation type'
+        description: 'Operation type',
       },
       initialSpeed: { type: 'number', description: 'Initial speed in m/s' },
       launchAngle: { type: 'number', description: 'Launch angle in degrees from horizontal' },
       launchAzimuth: { type: 'number', description: 'Launch direction in degrees from north' },
       projectileType: {
         type: 'string',
-        enum: ['baseball', 'golfBall', 'cannonball', 'bullet9mm', 'arrow', 'football', 'tennisball', 'soccerball'],
-        description: 'Preset projectile type'
+        enum: [
+          'baseball',
+          'golfBall',
+          'cannonball',
+          'bullet9mm',
+          'arrow',
+          'football',
+          'tennisball',
+          'soccerball',
+        ],
+        description: 'Preset projectile type',
       },
       mass: { type: 'number', description: 'Projectile mass in kg' },
       diameter: { type: 'number', description: 'Projectile diameter in meters' },
       dragCoefficient: { type: 'number', description: 'Drag coefficient' },
       initialPosition: {
         type: 'object',
-        properties: {
-          x: { type: 'number' },
-          y: { type: 'number' },
-          z: { type: 'number' }
-        },
-        description: 'Initial position'
+        description: 'Initial position: { x: number, y: number, z: number }',
       },
       environment: {
         type: 'object',
-        properties: {
-          gravity: { type: 'number' },
-          airDensity: { type: 'number' },
-          wind: {
-            type: 'object',
-            properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
-          },
-          temperature: { type: 'number', description: 'Temperature in Kelvin' },
-          pressure: { type: 'number', description: 'Pressure in Pa' },
-          humidity: { type: 'number', description: 'Relative humidity (0-1)' },
-          latitude: { type: 'number', description: 'Latitude for Coriolis calculation' },
-          enableCoriolis: { type: 'boolean' },
-          enableMagnusEffect: { type: 'boolean' },
-          spinRate: {
-            type: 'object',
-            properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
-          }
-        }
+        description:
+          'Environment settings: gravity (m/s²), airDensity (kg/m³), wind ({x,y,z}), temperature (K), pressure (Pa), humidity (0-1), latitude, enableCoriolis, enableMagnusEffect, spinRate ({x,y,z})',
       },
       maxTime: { type: 'number', description: 'Maximum simulation time in seconds' },
       timestep: { type: 'number', description: 'Simulation timestep in seconds' },
-      includeAirResistance: { type: 'boolean', description: 'Include air resistance in calculation' }
+      includeAirResistance: {
+        type: 'boolean',
+        description: 'Include air resistance in calculation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeprojectilemotion(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -836,7 +816,7 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
           dragCoefficient: args.dragCoefficient,
           environment: args.environment,
           maxTime: args.maxTime,
-          timestep: args.timestep
+          timestep: args.timestep,
         });
         break;
       }
@@ -849,7 +829,7 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
           initialSpeed: args.initialSpeed,
           launchAngle: args.launchAngle,
           gravity: args.environment?.gravity,
-          initialHeight: args.initialPosition?.y
+          initialHeight: args.initialPosition?.y,
         });
         break;
       }
@@ -862,7 +842,7 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
           initialSpeed: args.initialSpeed,
           projectileType: args.projectileType,
           environment: args.environment,
-          includeAirResistance: args.includeAirResistance ?? true
+          includeAirResistance: args.includeAirResistance ?? true,
         });
         break;
       }
@@ -875,19 +855,23 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
           initialSpeed: args.initialSpeed,
           launchAngle: args.launchAngle,
           projectileType: args.projectileType,
-          environment: args.environment
+          environment: args.environment,
         });
         const noDrag = calculateIdealTrajectory({
           initialSpeed: args.initialSpeed,
           launchAngle: args.launchAngle,
           gravity: args.environment?.gravity,
-          initialHeight: args.initialPosition?.y
+          initialHeight: args.initialPosition?.y,
         });
         result = {
           withAirResistance: withDrag.analysis,
           withoutAirResistance: noDrag,
-          rangeReduction: ((noDrag.range - withDrag.analysis.range) / noDrag.range * 100).toFixed(1) + '%',
-          timeReduction: ((noDrag.totalTime - withDrag.analysis.totalTime) / noDrag.totalTime * 100).toFixed(1) + '%'
+          rangeReduction:
+            (((noDrag.range - withDrag.analysis.range) / noDrag.range) * 100).toFixed(1) + '%',
+          timeReduction:
+            (((noDrag.totalTime - withDrag.analysis.totalTime) / noDrag.totalTime) * 100).toFixed(
+              1
+            ) + '%',
         };
         break;
       }
@@ -904,19 +888,19 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
             'Magnus effect (spin)',
             'Multiple projectile presets',
             'Humidity/temperature/pressure effects on air density',
-            'RK4 integration'
+            'RK4 integration',
           ],
-          projectilePresets: Object.keys(PROJECTILE_PRESETS).map(key => ({
+          projectilePresets: Object.keys(PROJECTILE_PRESETS).map((key) => ({
             type: key,
-            ...PROJECTILE_PRESETS[key]
+            ...PROJECTILE_PRESETS[key],
           })),
           constants: {
             STANDARD_GRAVITY,
             STANDARD_AIR_DENSITY,
             SPEED_OF_SOUND,
-            EARTH_ROTATION_RATE
+            EARTH_ROTATION_RATE,
           },
-          operations: ['simulate', 'ideal', 'optimal_angle', 'compare', 'info']
+          operations: ['simulate', 'ideal', 'optimal_angle', 'compare', 'info'],
         };
       }
     }
@@ -928,4 +912,6 @@ export async function executeprojectilemotion(toolCall: UnifiedToolCall): Promis
   }
 }
 
-export function isprojectilemotionAvailable(): boolean { return true; }
+export function isprojectilemotionAvailable(): boolean {
+  return true;
+}

@@ -102,8 +102,8 @@ function murmur3Hash(str: string, seed: number = 0): number {
   const nblocks = Math.floor(len / 4);
 
   for (let i = 0; i < nblocks; i++) {
-    let k1 = bytes[i * 4] | (bytes[i * 4 + 1] << 8) |
-             (bytes[i * 4 + 2] << 16) | (bytes[i * 4 + 3] << 24);
+    let k1 =
+      bytes[i * 4] | (bytes[i * 4 + 1] << 8) | (bytes[i * 4 + 2] << 16) | (bytes[i * 4 + 3] << 24);
 
     k1 = Math.imul(k1, c1);
     k1 = (k1 << 15) | (k1 >>> 17);
@@ -158,33 +158,49 @@ function xxHash(str: string, seed: number = 0): number {
 
     const limit = len - 16;
     while (index <= limit) {
-      const val1 = bytes[index] | (bytes[index + 1] << 8) |
-                   (bytes[index + 2] << 16) | (bytes[index + 3] << 24);
+      const val1 =
+        bytes[index] |
+        (bytes[index + 1] << 8) |
+        (bytes[index + 2] << 16) |
+        (bytes[index + 3] << 24);
       v1 = Math.imul((v1 + Math.imul(val1, PRIME2)) >>> 0, PRIME1);
       v1 = ((v1 << 13) | (v1 >>> 19)) >>> 0;
       index += 4;
 
-      const val2 = bytes[index] | (bytes[index + 1] << 8) |
-                   (bytes[index + 2] << 16) | (bytes[index + 3] << 24);
+      const val2 =
+        bytes[index] |
+        (bytes[index + 1] << 8) |
+        (bytes[index + 2] << 16) |
+        (bytes[index + 3] << 24);
       v2 = Math.imul((v2 + Math.imul(val2, PRIME2)) >>> 0, PRIME1);
       v2 = ((v2 << 13) | (v2 >>> 19)) >>> 0;
       index += 4;
 
-      const val3 = bytes[index] | (bytes[index + 1] << 8) |
-                   (bytes[index + 2] << 16) | (bytes[index + 3] << 24);
+      const val3 =
+        bytes[index] |
+        (bytes[index + 1] << 8) |
+        (bytes[index + 2] << 16) |
+        (bytes[index + 3] << 24);
       v3 = Math.imul((v3 + Math.imul(val3, PRIME2)) >>> 0, PRIME1);
       v3 = ((v3 << 13) | (v3 >>> 19)) >>> 0;
       index += 4;
 
-      const val4 = bytes[index] | (bytes[index + 1] << 8) |
-                   (bytes[index + 2] << 16) | (bytes[index + 3] << 24);
+      const val4 =
+        bytes[index] |
+        (bytes[index + 1] << 8) |
+        (bytes[index + 2] << 16) |
+        (bytes[index + 3] << 24);
       v4 = Math.imul((v4 + Math.imul(val4, PRIME2)) >>> 0, PRIME1);
       v4 = ((v4 << 13) | (v4 >>> 19)) >>> 0;
       index += 4;
     }
 
-    h32 = (((v1 << 1) | (v1 >>> 31)) + ((v2 << 7) | (v2 >>> 25)) +
-           ((v3 << 12) | (v3 >>> 20)) + ((v4 << 18) | (v4 >>> 14))) >>> 0;
+    h32 =
+      (((v1 << 1) | (v1 >>> 31)) +
+        ((v2 << 7) | (v2 >>> 25)) +
+        ((v3 << 12) | (v3 >>> 20)) +
+        ((v4 << 18) | (v4 >>> 14))) >>>
+      0;
   } else {
     h32 = (seed + PRIME5) >>> 0;
   }
@@ -192,8 +208,8 @@ function xxHash(str: string, seed: number = 0): number {
   h32 = (h32 + len) >>> 0;
 
   while (index <= len - 4) {
-    const val = bytes[index] | (bytes[index + 1] << 8) |
-                (bytes[index + 2] << 16) | (bytes[index + 3] << 24);
+    const val =
+      bytes[index] | (bytes[index + 1] << 8) | (bytes[index + 2] << 16) | (bytes[index + 3] << 24);
     h32 = Math.imul((h32 + Math.imul(val, PRIME3)) >>> 0, PRIME4);
     h32 = ((h32 << 17) | (h32 >>> 15)) >>> 0;
     index += 4;
@@ -216,9 +232,12 @@ function xxHash(str: string, seed: number = 0): number {
 
 function getHashFunction(name: string): (str: string) => number {
   switch (name) {
-    case 'murmur3': return (s) => murmur3Hash(s);
-    case 'xxhash': return (s) => xxHash(s);
-    default: return fnv1aHash;
+    case 'murmur3':
+      return (s) => murmur3Hash(s);
+    case 'xxhash':
+      return (s) => xxHash(s);
+    default:
+      return fnv1aHash;
   }
 }
 
@@ -228,7 +247,12 @@ function getHashFunction(name: string): (str: string) => number {
 
 function createRing(config: {
   ringId: string;
-  nodes?: Array<{ id: string; address: string; weight?: number; metadata?: Record<string, unknown> }>;
+  nodes?: Array<{
+    id: string;
+    address: string;
+    weight?: number;
+    metadata?: Record<string, unknown>;
+  }>;
   virtualNodesPerNode?: number;
   replicationFactor?: number;
   hashFunction?: 'fnv1a' | 'murmur3' | 'xxhash';
@@ -245,7 +269,7 @@ function createRing(config: {
     replicationFactor,
     totalVirtualNodes: 0,
     hashFunction: hashFn,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   };
 
   const hash = getHashFunction(hashFn);
@@ -265,7 +289,7 @@ function createRing(config: {
         ring.virtualNodes.push({
           hash: nodeHash,
           physicalNodeId: nodeConfig.id,
-          index: i
+          index: i,
         });
       }
 
@@ -274,7 +298,7 @@ function createRing(config: {
         address: nodeConfig.address,
         weight,
         metadata: nodeConfig.metadata || {},
-        virtualNodes: virtualNodeHashes
+        virtualNodes: virtualNodeHashes,
       });
     }
   }
@@ -289,13 +313,16 @@ function createRing(config: {
   return { ring, initialDistribution: ring.virtualNodes };
 }
 
-function addNode(ringId: string, node: {
-  id: string;
-  address: string;
-  weight?: number;
-  virtualNodes?: number;
-  metadata?: Record<string, unknown>;
-}): { success: boolean; addedVirtualNodes: number; rebalanceInfo: RebalanceResult } {
+function addNode(
+  ringId: string,
+  node: {
+    id: string;
+    address: string;
+    weight?: number;
+    virtualNodes?: number;
+    metadata?: Record<string, unknown>;
+  }
+): { success: boolean; addedVirtualNodes: number; rebalanceInfo: RebalanceResult } {
   const ring = hashRings.get(ringId);
   if (!ring) {
     throw new Error(`Ring ${ringId} not found`);
@@ -326,7 +353,7 @@ function addNode(ringId: string, node: {
     const vn: VirtualNode = {
       hash: nodeHash,
       physicalNodeId: node.id,
-      index: i
+      index: i,
     };
     newVirtualNodes.push(vn);
 
@@ -342,15 +369,16 @@ function addNode(ringId: string, node: {
       for (const [key, mapping] of assignments) {
         if (mapping.primaryNode !== node.id) {
           const keyHash = mapping.hash;
-          const shouldMove = nodeHash >= prevHash
-            ? keyHash > prevHash && keyHash <= nodeHash
-            : keyHash > prevHash || keyHash <= nodeHash;
+          const shouldMove =
+            nodeHash >= prevHash
+              ? keyHash > prevHash && keyHash <= nodeHash
+              : keyHash > prevHash || keyHash <= nodeHash;
 
           if (shouldMove && mapping.primaryNode !== node.id) {
             keyMigrations.push({
               key,
               from: mapping.primaryNode,
-              to: node.id
+              to: node.id,
             });
             affectedNodes.add(mapping.primaryNode);
           }
@@ -370,7 +398,7 @@ function addNode(ringId: string, node: {
     address: node.address,
     weight,
     metadata: node.metadata || {},
-    virtualNodes: virtualNodeHashes
+    virtualNodes: virtualNodeHashes,
   });
 
   // Update key assignments
@@ -390,19 +418,21 @@ function addNode(ringId: string, node: {
     rebalanceInfo: {
       movedKeys: keyMigrations.length,
       totalKeys: assignments.size,
-      movementPercentage: assignments.size > 0
-        ? (keyMigrations.length / assignments.size) * 100
-        : 0,
+      movementPercentage:
+        assignments.size > 0 ? (keyMigrations.length / assignments.size) * 100 : 0,
       affectedNodes: Array.from(affectedNodes),
-      keyMigrations
-    }
+      keyMigrations,
+    },
   };
 }
 
-function removeNode(ringId: string, nodeId: string): {
+function removeNode(
+  ringId: string,
+  nodeId: string
+): {
   success: boolean;
   removedVirtualNodes: number;
-  rebalanceInfo: RebalanceResult
+  rebalanceInfo: RebalanceResult;
 } {
   const ring = hashRings.get(ringId);
   if (!ring) {
@@ -430,7 +460,7 @@ function removeNode(ringId: string, nodeId: string): {
         keyMigrations.push({
           key,
           from: nodeId,
-          to: newPrimary
+          to: newPrimary,
         });
         affectedNodes.add(newPrimary);
       }
@@ -439,7 +469,7 @@ function removeNode(ringId: string, nodeId: string): {
 
   // Remove virtual nodes
   const removedCount = node.virtualNodes.length;
-  ring.virtualNodes = ring.virtualNodes.filter(vn => vn.physicalNodeId !== nodeId);
+  ring.virtualNodes = ring.virtualNodes.filter((vn) => vn.physicalNodeId !== nodeId);
   ring.totalVirtualNodes = ring.virtualNodes.length;
 
   // Remove physical node
@@ -460,12 +490,11 @@ function removeNode(ringId: string, nodeId: string): {
     rebalanceInfo: {
       movedKeys: keyMigrations.length,
       totalKeys: assignments.size,
-      movementPercentage: assignments.size > 0
-        ? (keyMigrations.length / assignments.size) * 100
-        : 0,
+      movementPercentage:
+        assignments.size > 0 ? (keyMigrations.length / assignments.size) * 100 : 0,
       affectedNodes: Array.from(affectedNodes),
-      keyMigrations
-    }
+      keyMigrations,
+    },
   };
 }
 
@@ -493,8 +522,8 @@ function lookupKey(ringId: string, key: string): KeyMapping {
     key,
     hash: keyHash,
     primaryNode: primaryVN.physicalNodeId,
-    replicaNodes: replicaNodes.filter(n => n !== primaryVN.physicalNodeId),
-    virtualNodeIndex: index
+    replicaNodes: replicaNodes.filter((n) => n !== primaryVN.physicalNodeId),
+    virtualNodeIndex: index,
   };
 
   // Store the assignment
@@ -503,10 +532,13 @@ function lookupKey(ringId: string, key: string): KeyMapping {
   return mapping;
 }
 
-function getDistribution(ringId: string, options?: {
-  sampleKeys?: string[];
-  generateRandomKeys?: number;
-}): { distribution: LoadDistribution[]; hotSpots: string[]; standardDeviation: number } {
+function getDistribution(
+  ringId: string,
+  options?: {
+    sampleKeys?: string[];
+    generateRandomKeys?: number;
+  }
+): { distribution: LoadDistribution[]; hotSpots: string[]; standardDeviation: number } {
   const ring = hashRings.get(ringId);
   if (!ring) {
     throw new Error(`Ring ${ringId} not found`);
@@ -560,24 +592,24 @@ function getDistribution(ringId: string, options?: {
       percentage,
       virtualNodeCount: node.virtualNodes.length,
       loadFactor,
-      isHotSpot
+      isHotSpot,
     });
 
     sumSquaredDiff += Math.pow(keyCount - expectedKeysPerNode, 2);
   }
 
-  const standardDeviation = nodeCount > 0
-    ? Math.sqrt(sumSquaredDiff / nodeCount)
-    : 0;
+  const standardDeviation = nodeCount > 0 ? Math.sqrt(sumSquaredDiff / nodeCount) : 0;
 
-  const hotSpots = distribution
-    .filter(d => d.isHotSpot)
-    .map(d => d.nodeId);
+  const hotSpots = distribution.filter((d) => d.isHotSpot).map((d) => d.nodeId);
 
   return { distribution, hotSpots, standardDeviation };
 }
 
-function addVirtualNodes(ringId: string, nodeId: string, count: number): {
+function addVirtualNodes(
+  ringId: string,
+  nodeId: string,
+  count: number
+): {
   success: boolean;
   totalVirtualNodes: number;
   newHashes: number[];
@@ -605,7 +637,7 @@ function addVirtualNodes(ringId: string, nodeId: string, count: number): {
     ring.virtualNodes.push({
       hash: nodeHash,
       physicalNodeId: nodeId,
-      index: startIndex + i
+      index: startIndex + i,
     });
   }
 
@@ -615,7 +647,7 @@ function addVirtualNodes(ringId: string, nodeId: string, count: number): {
   return {
     success: true,
     totalVirtualNodes: node.virtualNodes.length,
-    newHashes
+    newHashes,
   };
 }
 
@@ -637,7 +669,7 @@ function rebalance(ringId: string, _targetDistribution?: Map<string, number>): R
       keyMigrations.push({
         key,
         from: oldMapping.primaryNode,
-        to: newMapping.primaryNode
+        to: newMapping.primaryNode,
       });
       affectedNodes.add(oldMapping.primaryNode);
       affectedNodes.add(newMapping.primaryNode);
@@ -647,11 +679,9 @@ function rebalance(ringId: string, _targetDistribution?: Map<string, number>): R
   return {
     movedKeys: keyMigrations.length,
     totalKeys: assignments.size,
-    movementPercentage: assignments.size > 0
-      ? (keyMigrations.length / assignments.size) * 100
-      : 0,
+    movementPercentage: assignments.size > 0 ? (keyMigrations.length / assignments.size) * 100 : 0,
     affectedNodes: Array.from(affectedNodes),
-    keyMigrations
+    keyMigrations,
   };
 }
 
@@ -699,17 +729,23 @@ function analyzeLoad(ringId: string): {
 
   const avgVirtualNodesPerNode = totalVirtualNodes / totalNodes;
   if (avgVirtualNodesPerNode < 100) {
-    recommendations.push(`Low virtual node count (${avgVirtualNodesPerNode.toFixed(0)}). Recommend at least 150 per node.`);
+    recommendations.push(
+      `Low virtual node count (${avgVirtualNodesPerNode.toFixed(0)}). Recommend at least 150 per node.`
+    );
   }
 
   for (const d of distribution) {
     if (d.isHotSpot) {
-      recommendations.push(`Node ${d.nodeId} is a hot spot with ${d.loadFactor.toFixed(2)}x average load.`);
+      recommendations.push(
+        `Node ${d.nodeId} is a hot spot with ${d.loadFactor.toFixed(2)}x average load.`
+      );
     }
   }
 
   if (ring.replicationFactor > totalNodes) {
-    recommendations.push(`Replication factor (${ring.replicationFactor}) exceeds node count (${totalNodes}).`);
+    recommendations.push(
+      `Replication factor (${ring.replicationFactor}) exceeds node count (${totalNodes}).`
+    );
   }
 
   return {
@@ -720,7 +756,7 @@ function analyzeLoad(ringId: string): {
     minKeysNode,
     maxKeysNode,
     loadImbalance,
-    recommendations
+    recommendations,
   };
 }
 
@@ -734,20 +770,20 @@ function jumpConsistentHash(key: string, numBuckets: number): JumpHashResult {
   }
 
   // Google's Jump Consistent Hash algorithm
-  let keyHash = fnv1aHash(key);
+  let keyHash = BigInt(fnv1aHash(key));
   let b = -1;
   let j = 0;
 
   while (j < numBuckets) {
     b = j;
-    keyHash = ((keyHash * 2862933555777941757n) + 1n) & 0xFFFFFFFFFFFFFFFFn;
+    keyHash = (keyHash * 2862933555777941757n + 1n) & 0xffffffffffffffffn;
     j = Math.floor((b + 1) * (Number(1n << 31n) / Number((keyHash >> 33n) + 1n)));
   }
 
   return {
     key,
     bucket: b,
-    nodeId: `node_${b}`
+    nodeId: `node_${b}`,
   };
 }
 
@@ -755,7 +791,11 @@ function jumpConsistentHash(key: string, numBuckets: number): JumpHashResult {
 // RENDEZVOUS (HRW) HASHING
 // ============================================================================
 
-function rendezvousHash(key: string, nodes: string[], replicationFactor: number = 1): RendezvousResult {
+function rendezvousHash(
+  key: string,
+  nodes: string[],
+  replicationFactor: number = 1
+): RendezvousResult {
   if (nodes.length === 0) {
     throw new Error('No nodes provided');
   }
@@ -773,15 +813,13 @@ function rendezvousHash(key: string, nodes: string[], replicationFactor: number 
   rankings.sort((a, b) => b.score - a.score);
 
   const selectedNode = rankings[0].nodeId;
-  const replicaNodes = rankings
-    .slice(1, replicationFactor)
-    .map(r => r.nodeId);
+  const replicaNodes = rankings.slice(1, replicationFactor).map((r) => r.nodeId);
 
   return {
     key,
     rankings,
     selectedNode,
-    replicaNodes
+    replicaNodes,
   };
 }
 
@@ -851,18 +889,27 @@ function getReplicaNodes(ring: HashRing, hash: number, count: number): string[] 
 
 export const consistenthashingTool: UnifiedTool = {
   name: 'consistent_hashing',
-  description: 'Consistent hashing for distributed systems with virtual nodes, jump hashing, and rendezvous hashing',
+  description:
+    'Consistent hashing for distributed systems with virtual nodes, jump hashing, and rendezvous hashing',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'create_ring', 'add_node', 'remove_node', 'lookup_key',
-          'get_distribution', 'rebalance', 'add_virtual_nodes', 'analyze_load',
-          'jump_hash', 'rendezvous_hash', 'get_ring_info'
+          'create_ring',
+          'add_node',
+          'remove_node',
+          'lookup_key',
+          'get_distribution',
+          'rebalance',
+          'add_virtual_nodes',
+          'analyze_load',
+          'jump_hash',
+          'rendezvous_hash',
+          'get_ring_info',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       ringId: { type: 'string', description: 'Hash ring identifier' },
       nodeId: { type: 'string', description: 'Node identifier' },
@@ -870,42 +917,37 @@ export const consistenthashingTool: UnifiedTool = {
       keys: { type: 'array', items: { type: 'string' }, description: 'Multiple keys' },
       nodes: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            address: { type: 'string' },
-            weight: { type: 'number' }
-          }
-        },
-        description: 'Node configurations'
+        items: { type: 'object' },
+        description:
+          'Node configurations. Each node has: id (string), address (string), weight (number)',
       },
       node: {
         type: 'object',
-        properties: {
-          id: { type: 'string' },
-          address: { type: 'string' },
-          weight: { type: 'number' },
-          virtualNodes: { type: 'number' }
-        },
-        description: 'Single node configuration'
+        description:
+          'Single node configuration with properties: id (string), address (string), weight (number), virtualNodes (number)',
       },
       virtualNodesPerNode: { type: 'number', description: 'Virtual nodes per physical node' },
       replicationFactor: { type: 'number', description: 'Replication factor' },
-      hashFunction: { type: 'string', enum: ['fnv1a', 'murmur3', 'xxhash'], description: 'Hash function' },
+      hashFunction: {
+        type: 'string',
+        enum: ['fnv1a', 'murmur3', 'xxhash'],
+        description: 'Hash function',
+      },
       count: { type: 'number', description: 'Count for various operations' },
       numBuckets: { type: 'number', description: 'Number of buckets for jump hash' },
-      generateRandomKeys: { type: 'number', description: 'Generate random sample keys' }
+      generateRandomKeys: { type: 'number', description: 'Generate random sample keys' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
 // EXECUTOR
 // ============================================================================
 
-export async function executeconsistenthashing(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeconsistenthashing(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -921,7 +963,7 @@ export async function executeconsistenthashing(toolCall: UnifiedToolCall): Promi
           nodes: args.nodes,
           virtualNodesPerNode: args.virtualNodesPerNode,
           replicationFactor: args.replicationFactor,
-          hashFunction: args.hashFunction
+          hashFunction: args.hashFunction,
         });
         break;
       }
@@ -934,7 +976,7 @@ export async function executeconsistenthashing(toolCall: UnifiedToolCall): Promi
           id: args.nodeId,
           address: args.address || `${args.nodeId}.local`,
           weight: args.weight,
-          virtualNodes: args.virtualNodes
+          virtualNodes: args.virtualNodes,
         };
 
         result = addNode(args.ringId, nodeConfig);
@@ -964,7 +1006,7 @@ export async function executeconsistenthashing(toolCall: UnifiedToolCall): Promi
         if (!args.ringId) throw new Error('ringId required');
         result = getDistribution(args.ringId, {
           sampleKeys: args.keys,
-          generateRandomKeys: args.generateRandomKeys
+          generateRandomKeys: args.generateRandomKeys,
         });
         break;
       }
@@ -1017,13 +1059,13 @@ export async function executeconsistenthashing(toolCall: UnifiedToolCall): Promi
           totalVirtualNodes: ring.totalVirtualNodes,
           replicationFactor: ring.replicationFactor,
           hashFunction: ring.hashFunction,
-          nodes: Array.from(ring.nodes.values()).map(n => ({
+          nodes: Array.from(ring.nodes.values()).map((n) => ({
             id: n.id,
             address: n.address,
             weight: n.weight,
-            virtualNodeCount: n.virtualNodes.length
+            virtualNodeCount: n.virtualNodes.length,
           })),
-          keyCount: keyAssignments.get(args.ringId)?.size || 0
+          keyCount: keyAssignments.get(args.ringId)?.size || 0,
         };
         break;
       }
@@ -1034,9 +1076,8 @@ export async function executeconsistenthashing(toolCall: UnifiedToolCall): Promi
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

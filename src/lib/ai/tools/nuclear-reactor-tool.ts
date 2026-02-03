@@ -15,10 +15,8 @@ const BARN_TO_M2 = 1e-28; // 1 barn = 10^-28 m²
 const MEV_TO_JOULES = 1.60218e-13;
 
 // Neutron energy groups (simplified two-group)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const THERMAL_ENERGY = 0.025; // eV (at room temperature)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const FAST_ENERGY = 2e6; // eV (2 MeV typical fission neutron)
+export const THERMAL_ENERGY = 0.025; // eV (at room temperature)
+export const FAST_ENERGY = 2e6; // eV (2 MeV typical fission neutron)
 
 // ============================================================================
 // REACTOR TYPES DATABASE
@@ -52,7 +50,11 @@ const REACTOR_TYPES: Record<string, ReactorType> = {
     description: 'Most common reactor type worldwide (~65%)',
     thermalEfficiency: 0.33,
     advantages: ['Proven technology', 'High power density', 'Negative void coefficient'],
-    disadvantages: ['High pressure system', 'Requires enriched uranium', 'Complex steam generators']
+    disadvantages: [
+      'High pressure system',
+      'Requires enriched uranium',
+      'Complex steam generators',
+    ],
   },
   BWR: {
     name: 'BWR',
@@ -66,7 +68,7 @@ const REACTOR_TYPES: Record<string, ReactorType> = {
     description: 'Second most common type (~20%)',
     thermalEfficiency: 0.33,
     advantages: ['Simpler design (no steam generators)', 'Lower pressure', 'Direct cycle'],
-    disadvantages: ['Radioactive steam in turbine', 'Lower power density than PWR']
+    disadvantages: ['Radioactive steam in turbine', 'Lower power density than PWR'],
   },
   CANDU: {
     name: 'CANDU',
@@ -80,7 +82,7 @@ const REACTOR_TYPES: Record<string, ReactorType> = {
     description: 'Canadian design using natural uranium',
     thermalEfficiency: 0.29,
     advantages: ['Uses natural uranium', 'Online refueling', 'Good neutron economy'],
-    disadvantages: ['Expensive heavy water', 'Large size', 'Positive void coefficient']
+    disadvantages: ['Expensive heavy water', 'Large size', 'Positive void coefficient'],
   },
   MSR: {
     name: 'MSR',
@@ -94,7 +96,7 @@ const REACTOR_TYPES: Record<string, ReactorType> = {
     description: 'Advanced design with liquid fuel',
     thermalEfficiency: 0.45,
     advantages: ['No fuel fabrication', 'High temperature', 'Passive safety', 'Can breed Th-232'],
-    disadvantages: ['Corrosive salts', 'Limited operational experience', 'Regulatory challenges']
+    disadvantages: ['Corrosive salts', 'Limited operational experience', 'Regulatory challenges'],
   },
   HTGR: {
     name: 'HTGR',
@@ -108,7 +110,7 @@ const REACTOR_TYPES: Record<string, ReactorType> = {
     description: 'High efficiency, inherently safe design',
     thermalEfficiency: 0.48,
     advantages: ['Very high temperature', 'Inherent safety', 'Process heat applications'],
-    disadvantages: ['Low power density', 'High enrichment', 'Graphite dust issues']
+    disadvantages: ['Low power density', 'High enrichment', 'Graphite dust issues'],
   },
   SFR: {
     name: 'SFR',
@@ -122,8 +124,8 @@ const REACTOR_TYPES: Record<string, ReactorType> = {
     description: 'Breeder reactor using fast neutrons',
     thermalEfficiency: 0.42,
     advantages: ['Breeds fuel', 'Burns actinides', 'High efficiency'],
-    disadvantages: ['Sodium fires', 'Positive void coefficient', 'Complex']
-  }
+    disadvantages: ['Sodium fires', 'Positive void coefficient', 'Complex'],
+  },
 };
 
 // ============================================================================
@@ -147,7 +149,8 @@ interface Nuclide {
 const NUCLIDES: Record<string, Nuclide> = {
   'U-235': {
     name: 'Uranium-235',
-    Z: 92, A: 235,
+    Z: 92,
+    A: 235,
     halfLife: 7.04e8 * 3.156e7, // 704 million years in seconds
     sigmaFission: 585,
     sigmaCapture: 99,
@@ -155,11 +158,12 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.43,
     fissionEnergy: 202.5,
     isFissile: true,
-    isFertile: false
+    isFertile: false,
   },
   'U-238': {
     name: 'Uranium-238',
-    Z: 92, A: 238,
+    Z: 92,
+    A: 238,
     halfLife: 4.47e9 * 3.156e7,
     sigmaFission: 0.00003, // threshold fission only
     sigmaCapture: 2.68,
@@ -167,11 +171,12 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.6,
     fissionEnergy: 198,
     isFissile: false,
-    isFertile: true
+    isFertile: true,
   },
   'Pu-239': {
     name: 'Plutonium-239',
-    Z: 94, A: 239,
+    Z: 94,
+    A: 239,
     halfLife: 24110 * 3.156e7,
     sigmaFission: 748,
     sigmaCapture: 271,
@@ -179,11 +184,12 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.88,
     fissionEnergy: 207.1,
     isFissile: true,
-    isFertile: false
+    isFertile: false,
   },
   'Pu-240': {
     name: 'Plutonium-240',
-    Z: 94, A: 240,
+    Z: 94,
+    A: 240,
     halfLife: 6563 * 3.156e7,
     sigmaFission: 0.059,
     sigmaCapture: 290,
@@ -191,11 +197,12 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.8,
     fissionEnergy: 200,
     isFissile: false,
-    isFertile: true
+    isFertile: true,
   },
   'Pu-241': {
     name: 'Plutonium-241',
-    Z: 94, A: 241,
+    Z: 94,
+    A: 241,
     halfLife: 14.3 * 3.156e7,
     sigmaFission: 1012,
     sigmaCapture: 361,
@@ -203,11 +210,12 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.95,
     fissionEnergy: 210,
     isFissile: true,
-    isFertile: false
+    isFertile: false,
   },
   'Th-232': {
     name: 'Thorium-232',
-    Z: 90, A: 232,
+    Z: 90,
+    A: 232,
     halfLife: 1.41e10 * 3.156e7,
     sigmaFission: 0.00001,
     sigmaCapture: 7.4,
@@ -215,11 +223,12 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.14,
     fissionEnergy: 190,
     isFissile: false,
-    isFertile: true
+    isFertile: true,
   },
   'U-233': {
     name: 'Uranium-233',
-    Z: 92, A: 233,
+    Z: 92,
+    A: 233,
     halfLife: 1.59e5 * 3.156e7,
     sigmaFission: 531,
     sigmaCapture: 46,
@@ -227,8 +236,8 @@ const NUCLIDES: Record<string, Nuclide> = {
     nubar: 2.49,
     fissionEnergy: 200,
     isFissile: true,
-    isFertile: false
-  }
+    isFertile: false,
+  },
 };
 
 // ============================================================================
@@ -240,11 +249,11 @@ const NUCLIDES: Record<string, Nuclide> = {
  * k∞ = η × ε × p × f
  */
 interface FourFactors {
-  eta: number;      // Reproduction factor
-  epsilon: number;  // Fast fission factor
-  p: number;        // Resonance escape probability
-  f: number;        // Thermal utilization
-  kInf: number;     // Infinite multiplication factor
+  eta: number; // Reproduction factor
+  epsilon: number; // Fast fission factor
+  p: number; // Resonance escape probability
+  f: number; // Thermal utilization
+  kInf: number; // Infinite multiplication factor
 }
 
 function calculateFourFactors(
@@ -260,7 +269,7 @@ function calculateFourFactors(
   // η = ν × σf / (σf + σc) for the fissile isotope
   const sigmaF235 = u235.sigmaFission;
   const sigmaC235 = u235.sigmaCapture;
-  const eta = u235.nubar * sigmaF235 / (sigmaF235 + sigmaC235);
+  const eta = (u235.nubar * sigmaF235) / (sigmaF235 + sigmaC235);
 
   // ε - fast fission factor (slight increase due to U-238 fast fission)
   const epsilon = 1.0 + 0.02 * (1 - enrichment); // ~1.02-1.03 for LEU
@@ -358,9 +367,8 @@ function estimateCriticalMass(
   return {
     mass: baseMass,
     radius: baseRadius,
-    note: moderator === 'none'
-      ? 'Bare sphere critical mass'
-      : `With ${moderator} moderator/reflector`
+    note:
+      moderator === 'none' ? 'Bare sphere critical mass' : `With ${moderator} moderator/reflector`,
   };
 }
 
@@ -411,7 +419,7 @@ function simulateBurnup(
       u235,
       pu239,
       fissionProducts,
-      keff: factors.kInf * 0.97 // Account for some leakage
+      keff: factors.kInf * 0.97, // Account for some leakage
     });
 
     // Update isotopics
@@ -475,7 +483,7 @@ function decayHeatProfile(
     results.push({
       time: timeHours,
       power,
-      fraction
+      fraction,
     });
   }
 
@@ -519,56 +527,67 @@ function thermalFluxFromPower(
 
 export const nuclearreactorTool: UnifiedTool = {
   name: 'nuclear_reactor',
-  description: 'Nuclear reactor physics - criticality, neutron diffusion, fuel burnup, decay heat, and reactor types',
+  description:
+    'Nuclear reactor physics - criticality, neutron diffusion, fuel burnup, decay heat, and reactor types',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['criticality', 'neutron_flux', 'burnup', 'decay_heat', 'four_factor', 'critical_mass', 'reactor_type', 'nuclide', 'info'],
-        description: 'Operation type'
+        enum: [
+          'criticality',
+          'neutron_flux',
+          'burnup',
+          'decay_heat',
+          'four_factor',
+          'critical_mass',
+          'reactor_type',
+          'nuclide',
+          'info',
+        ],
+        description: 'Operation type',
       },
       reactor_type: {
         type: 'string',
         enum: ['PWR', 'BWR', 'CANDU', 'MSR', 'HTGR', 'SFR'],
-        description: 'Reactor type'
+        description: 'Reactor type',
       },
       enrichment: {
         type: 'number',
-        description: 'U-235 enrichment as decimal (e.g., 0.04 for 4%)'
+        description: 'U-235 enrichment as decimal (e.g., 0.04 for 4%)',
       },
       moderator_ratio: {
         type: 'number',
-        description: 'Moderator atoms per fuel atom'
+        description: 'Moderator atoms per fuel atom',
       },
       power: {
         type: 'number',
-        description: 'Thermal power in MW'
+        description: 'Thermal power in MW',
       },
       operating_time: {
         type: 'number',
-        description: 'Operating time in hours'
+        description: 'Operating time in hours',
       },
       fuel_mass: {
         type: 'number',
-        description: 'Fuel mass in kg'
+        description: 'Fuel mass in kg',
       },
       nuclide: {
         type: 'string',
-        description: 'Nuclide identifier (e.g., "U-235", "Pu-239")'
+        description: 'Nuclide identifier (e.g., "U-235", "Pu-239")',
       },
       geometry: {
         type: 'string',
         enum: ['sphere', 'cylinder', 'slab'],
-        description: 'Reactor geometry'
+        description: 'Reactor geometry',
       },
       dimensions: {
         type: 'object',
-        description: 'Geometry dimensions (radius, height, thickness in meters)'
-      }
+        description: 'Geometry dimensions (radius, height, thickness in meters)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -592,32 +611,40 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'criticality',
-            inputs: {
-              enrichment: (enrichment * 100).toFixed(2) + '% U-235',
-              moderatorRatio: modRatio,
-              geometry,
-              dimensions
+          content: JSON.stringify(
+            {
+              operation: 'criticality',
+              inputs: {
+                enrichment: (enrichment * 100).toFixed(2) + '% U-235',
+                moderatorRatio: modRatio,
+                geometry,
+                dimensions,
+              },
+              fourFactors: {
+                eta: factors.eta.toFixed(4) + ' (reproduction factor)',
+                epsilon: factors.epsilon.toFixed(4) + ' (fast fission)',
+                p: factors.p.toFixed(4) + ' (resonance escape)',
+                f: factors.f.toFixed(4) + ' (thermal utilization)',
+                kInf: factors.kInf.toFixed(5),
+              },
+              effectiveMultiplication: {
+                geometricBuckling: buckling.toFixed(4) + ' m⁻²',
+                migrationArea: migrationArea.toExponential(2) + ' m²',
+                nonLeakageProbability: keffResult.pnl.toFixed(4),
+                keff: keffResult.keff.toFixed(5),
+                reactivity: (keffResult.reactivity * 1e5).toFixed(1) + ' pcm',
+              },
+              criticalityStatus:
+                keffResult.keff > 1.0005
+                  ? 'SUPERCRITICAL'
+                  : keffResult.keff < 0.9995
+                    ? 'SUBCRITICAL'
+                    : 'CRITICAL',
+              note: 'Simplified calculation - real reactor analysis requires transport codes',
             },
-            fourFactors: {
-              eta: factors.eta.toFixed(4) + ' (reproduction factor)',
-              epsilon: factors.epsilon.toFixed(4) + ' (fast fission)',
-              p: factors.p.toFixed(4) + ' (resonance escape)',
-              f: factors.f.toFixed(4) + ' (thermal utilization)',
-              kInf: factors.kInf.toFixed(5)
-            },
-            effectiveMultiplication: {
-              geometricBuckling: buckling.toFixed(4) + ' m⁻²',
-              migrationArea: migrationArea.toExponential(2) + ' m²',
-              nonLeakageProbability: keffResult.pnl.toFixed(4),
-              keff: keffResult.keff.toFixed(5),
-              reactivity: (keffResult.reactivity * 1e5).toFixed(1) + ' pcm'
-            },
-            criticalityStatus: keffResult.keff > 1.0005 ? 'SUPERCRITICAL' :
-                              keffResult.keff < 0.9995 ? 'SUBCRITICAL' : 'CRITICAL',
-            note: 'Simplified calculation - real reactor analysis requires transport codes'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -629,22 +656,26 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'neutron_flux',
-            inputs: {
-              thermalPower: power + ' MWth',
-              fuelMass: fuelMass + ' kg'
+          content: JSON.stringify(
+            {
+              operation: 'neutron_flux',
+              inputs: {
+                thermalPower: power + ' MWth',
+                fuelMass: fuelMass + ' kg',
+              },
+              results: {
+                thermalNeutronFlux: flux.toExponential(3) + ' n/(cm²·s)',
+                fluxLevel: flux > 1e14 ? 'High flux' : flux > 1e13 ? 'Moderate flux' : 'Low flux',
+              },
+              typicalValues: {
+                PWR: '~3×10¹³ n/(cm²·s)',
+                researchReactor: '~10¹⁴ n/(cm²·s)',
+                materialTestReactor: '~10¹⁵ n/(cm²·s)',
+              },
             },
-            results: {
-              thermalNeutronFlux: flux.toExponential(3) + ' n/(cm²·s)',
-              fluxLevel: flux > 1e14 ? 'High flux' : flux > 1e13 ? 'Moderate flux' : 'Low flux'
-            },
-            typicalValues: {
-              PWR: '~3×10¹³ n/(cm²·s)',
-              researchReactor: '~10¹⁴ n/(cm²·s)',
-              materialTestReactor: '~10¹⁵ n/(cm²·s)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -660,34 +691,40 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
           profile[0],
           profile[Math.floor(profile.length / 4)],
           profile[Math.floor(profile.length / 2)],
-          profile[Math.floor(3 * profile.length / 4)],
-          profile[profile.length - 1]
-        ].map(s => ({
+          profile[Math.floor((3 * profile.length) / 4)],
+          profile[profile.length - 1],
+        ].map((s) => ({
           day: s.time.toFixed(0),
           burnup: s.burnup.toFixed(1) + ' MWd/kg',
           u235: (s.u235 * 100).toFixed(2) + '%',
           pu239: (s.pu239 * 100).toFixed(3) + '%',
-          keff: s.keff.toFixed(4)
+          keff: s.keff.toFixed(4),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'burnup',
-            inputs: {
-              initialEnrichment: (enrichment * 100).toFixed(2) + '% U-235',
-              powerDensity: (powerDensity * 1000).toFixed(1) + ' kW/kg',
-              totalTime: days.toFixed(0) + ' days'
+          content: JSON.stringify(
+            {
+              operation: 'burnup',
+              inputs: {
+                initialEnrichment: (enrichment * 100).toFixed(2) + '% U-235',
+                powerDensity: (powerDensity * 1000).toFixed(1) + ' kW/kg',
+                totalTime: days.toFixed(0) + ' days',
+              },
+              evolutionSummary: summary,
+              finalState: {
+                burnup: profile[profile.length - 1].burnup.toFixed(1) + ' MWd/kg',
+                u235Remaining:
+                  ((profile[profile.length - 1].u235 / enrichment) * 100).toFixed(1) +
+                  '% of initial',
+                pu239Buildup: (profile[profile.length - 1].pu239 * 100).toFixed(3) + '%',
+                estimatedKeff: profile[profile.length - 1].keff.toFixed(4),
+              },
+              note: 'Simplified depletion model - real calculations use ORIGEN or similar codes',
             },
-            evolutionSummary: summary,
-            finalState: {
-              burnup: profile[profile.length - 1].burnup.toFixed(1) + ' MWd/kg',
-              u235Remaining: (profile[profile.length - 1].u235 / enrichment * 100).toFixed(1) + '% of initial',
-              pu239Buildup: (profile[profile.length - 1].pu239 * 100).toFixed(3) + '%',
-              estimatedKeff: profile[profile.length - 1].keff.toFixed(4)
-            },
-            note: 'Simplified depletion model - real calculations use ORIGEN or similar codes'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -700,25 +737,30 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'decay_heat',
-            inputs: {
-              operatingPower: power + ' MWth',
-              operatingTime: opTime + ' hours (' + (opTime / 8760).toFixed(2) + ' years)'
+          content: JSON.stringify(
+            {
+              operation: 'decay_heat',
+              inputs: {
+                operatingPower: power + ' MWth',
+                operatingTime: opTime + ' hours (' + (opTime / 8760).toFixed(2) + ' years)',
+              },
+              decayHeatProfile: profile.map((p) => ({
+                timeAfterShutdown: p.time.toFixed(2) + ' hours',
+                decayPower: p.power.toFixed(2) + ' MW',
+                fractionOfOperatingPower: (p.fraction * 100).toFixed(3) + '%',
+              })),
+              keyPoints: {
+                at1Second: (decayHeatFraction(1, opTime * 3600) * 100).toFixed(2) + '%',
+                at1Minute: (decayHeatFraction(60, opTime * 3600) * 100).toFixed(2) + '%',
+                at1Hour: (decayHeatFraction(3600, opTime * 3600) * 100).toFixed(2) + '%',
+                at1Day: (decayHeatFraction(86400, opTime * 3600) * 100).toFixed(2) + '%',
+              },
+              safetyNote:
+                'Decay heat must be removed even after shutdown - failure leads to meltdown',
             },
-            decayHeatProfile: profile.map(p => ({
-              timeAfterShutdown: p.time.toFixed(2) + ' hours',
-              decayPower: p.power.toFixed(2) + ' MW',
-              fractionOfOperatingPower: (p.fraction * 100).toFixed(3) + '%'
-            })),
-            keyPoints: {
-              at1Second: (decayHeatFraction(1, opTime * 3600) * 100).toFixed(2) + '%',
-              at1Minute: (decayHeatFraction(60, opTime * 3600) * 100).toFixed(2) + '%',
-              at1Hour: (decayHeatFraction(3600, opTime * 3600) * 100).toFixed(2) + '%',
-              at1Day: (decayHeatFraction(86400, opTime * 3600) * 100).toFixed(2) + '%'
-            },
-            safetyNote: 'Decay heat must be removed even after shutdown - failure leads to meltdown'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -730,40 +772,45 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'four_factor',
-            formula: 'k∞ = η × ε × p × f',
-            inputs: {
-              enrichment: (enrichment * 100).toFixed(2) + '% U-235',
-              moderatorRatio: modRatio
+          content: JSON.stringify(
+            {
+              operation: 'four_factor',
+              formula: 'k∞ = η × ε × p × f',
+              inputs: {
+                enrichment: (enrichment * 100).toFixed(2) + '% U-235',
+                moderatorRatio: modRatio,
+              },
+              factors: {
+                eta: {
+                  value: factors.eta.toFixed(4),
+                  name: 'Reproduction factor',
+                  description: 'Neutrons produced per absorption in fuel',
+                },
+                epsilon: {
+                  value: factors.epsilon.toFixed(4),
+                  name: 'Fast fission factor',
+                  description: 'Ratio of total fissions to thermal fissions',
+                },
+                p: {
+                  value: factors.p.toFixed(4),
+                  name: 'Resonance escape probability',
+                  description: 'Probability of avoiding resonance capture',
+                },
+                f: {
+                  value: factors.f.toFixed(4),
+                  name: 'Thermal utilization',
+                  description: 'Fraction of absorptions in fuel',
+                },
+              },
+              result: {
+                kInfinite: factors.kInf.toFixed(5),
+                interpretation:
+                  factors.kInf > 1 ? 'Can achieve criticality' : 'Cannot achieve criticality',
+              },
             },
-            factors: {
-              eta: {
-                value: factors.eta.toFixed(4),
-                name: 'Reproduction factor',
-                description: 'Neutrons produced per absorption in fuel'
-              },
-              epsilon: {
-                value: factors.epsilon.toFixed(4),
-                name: 'Fast fission factor',
-                description: 'Ratio of total fissions to thermal fissions'
-              },
-              p: {
-                value: factors.p.toFixed(4),
-                name: 'Resonance escape probability',
-                description: 'Probability of avoiding resonance capture'
-              },
-              f: {
-                value: factors.f.toFixed(4),
-                name: 'Thermal utilization',
-                description: 'Fraction of absorptions in fuel'
-              }
-            },
-            result: {
-              kInfinite: factors.kInf.toFixed(5),
-              interpretation: factors.kInf > 1 ? 'Can achieve criticality' : 'Cannot achieve criticality'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -771,7 +818,7 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
         const nuclide = args.nuclide || 'U-235';
         const moderators: Array<'none' | 'water' | 'graphite' | 'heavy_water'> = ['none', 'water'];
 
-        const results = moderators.map(mod => {
+        const results = moderators.map((mod) => {
           try {
             return { moderator: mod, ...estimateCriticalMass(nuclide, mod) };
           } catch (e) {
@@ -781,25 +828,29 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'critical_mass',
-            nuclide,
-            results: results.map(r => {
-              if ('error' in r) return r;
-              return {
-                configuration: r.note,
-                criticalMass: r.mass + ' kg',
-                criticalRadius: r.radius + ' cm'
-              };
-            }),
-            factors: [
-              'Reflector reduces critical mass significantly',
-              'Moderator thermalizes neutrons for better absorption',
-              'Shape matters: sphere is most efficient',
-              'Density compression reduces critical mass'
-            ],
-            note: 'Values are approximate - actual critical mass depends on many factors'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'critical_mass',
+              nuclide,
+              results: results.map((r) => {
+                if ('error' in r) return r;
+                return {
+                  configuration: r.note,
+                  criticalMass: r.mass + ' kg',
+                  criticalRadius: r.radius + ' cm',
+                };
+              }),
+              factors: [
+                'Reflector reduces critical mass significantly',
+                'Moderator thermalizes neutrons for better absorption',
+                'Shape matters: sphere is most efficient',
+                'Density compression reduces critical mass',
+              ],
+              note: 'Values are approximate - actual critical mass depends on many factors',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -809,24 +860,32 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
         if (type && REACTOR_TYPES[type]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'reactor_type',
-              data: REACTOR_TYPES[type]
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'reactor_type',
+                data: REACTOR_TYPES[type],
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'reactor_type',
-            availableTypes: Object.entries(REACTOR_TYPES).map(([k, v]) => ({
-              id: k,
-              name: v.fullName,
-              spectrum: v.neutronSpectrum,
-              efficiency: (v.thermalEfficiency * 100).toFixed(0) + '%'
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'reactor_type',
+              availableTypes: Object.entries(REACTOR_TYPES).map(([k, v]) => ({
+                id: k,
+                name: v.fullName,
+                spectrum: v.neutronSpectrum,
+                efficiency: (v.thermalEfficiency * 100).toFixed(0) + '%',
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -837,82 +896,108 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
           const data = NUCLIDES[nuc];
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'nuclide',
-              data: {
-                ...data,
-                sigmaFission: data.sigmaFission + ' barns',
-                sigmaCapture: data.sigmaCapture + ' barns',
-                fissionEnergy: data.fissionEnergy + ' MeV',
-                halfLife: data.halfLife
-                  ? (data.halfLife / 3.156e7).toExponential(2) + ' years'
-                  : 'Stable'
-              }
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'nuclide',
+                data: {
+                  ...data,
+                  sigmaFission: data.sigmaFission + ' barns',
+                  sigmaCapture: data.sigmaCapture + ' barns',
+                  fissionEnergy: data.fissionEnergy + ' MeV',
+                  halfLife: data.halfLife
+                    ? (data.halfLife / 3.156e7).toExponential(2) + ' years'
+                    : 'Stable',
+                },
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'nuclide',
-            availableNuclides: Object.entries(NUCLIDES).map(([k, v]) => ({
-              id: k,
-              name: v.name,
-              fissile: v.isFissile,
-              fertile: v.isFertile
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'nuclide',
+              availableNuclides: Object.entries(NUCLIDES).map(([k, v]) => ({
+                id: k,
+                name: v.name,
+                fissile: v.isFissile,
+                fertile: v.isFertile,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Nuclear Reactor',
-            description: 'Nuclear reactor physics calculations',
+          content: JSON.stringify(
+            {
+              tool: 'Nuclear Reactor',
+              description: 'Nuclear reactor physics calculations',
 
-            operations: [
-              'criticality: Calculate keff and four factors',
-              'neutron_flux: Calculate flux from power',
-              'burnup: Simulate fuel depletion',
-              'decay_heat: Calculate post-shutdown heat',
-              'four_factor: Detailed four-factor analysis',
-              'critical_mass: Estimate critical mass',
-              'reactor_type: Reactor type information',
-              'nuclide: Nuclear data lookup',
-              'info: This documentation'
-            ],
+              operations: [
+                'criticality: Calculate keff and four factors',
+                'neutron_flux: Calculate flux from power',
+                'burnup: Simulate fuel depletion',
+                'decay_heat: Calculate post-shutdown heat',
+                'four_factor: Detailed four-factor analysis',
+                'critical_mass: Estimate critical mass',
+                'reactor_type: Reactor type information',
+                'nuclide: Nuclear data lookup',
+                'info: This documentation',
+              ],
 
-            keyEquations: {
-              fourFactorFormula: 'k∞ = η × ε × p × f',
-              effectiveMultiplication: 'keff = k∞ × PNL',
-              criticality: 'keff = 1 for steady state',
-              reactivity: 'ρ = (keff - 1) / keff'
+              keyEquations: {
+                fourFactorFormula: 'k∞ = η × ε × p × f',
+                effectiveMultiplication: 'keff = k∞ × PNL',
+                criticality: 'keff = 1 for steady state',
+                reactivity: 'ρ = (keff - 1) / keff',
+              },
+
+              reactorTypes: Object.keys(REACTOR_TYPES),
+              fissileNuclides: ['U-235', 'Pu-239', 'Pu-241', 'U-233'],
+              fertileNuclides: ['U-238', 'Th-232', 'Pu-240'],
+
+              examples: [
+                { operation: 'criticality', enrichment: 0.04, moderator_ratio: 100 },
+                { operation: 'burnup', enrichment: 0.04, operating_time: 24000 },
+                { operation: 'decay_heat', power: 3000, operating_time: 8760 },
+              ],
             },
-
-            reactorTypes: Object.keys(REACTOR_TYPES),
-            fissileNuclides: ['U-235', 'Pu-239', 'Pu-241', 'U-233'],
-            fertileNuclides: ['U-238', 'Th-232', 'Pu-240'],
-
-            examples: [
-              { operation: 'criticality', enrichment: 0.04, moderator_ratio: 100 },
-              { operation: 'burnup', enrichment: 0.04, operating_time: 24000 },
-              { operation: 'decay_heat', power: 3000, operating_time: 8760 }
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            validOperations: ['criticality', 'neutron_flux', 'burnup', 'decay_heat', 'four_factor', 'critical_mass', 'reactor_type', 'nuclide', 'info']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              validOperations: [
+                'criticality',
+                'neutron_flux',
+                'burnup',
+                'decay_heat',
+                'four_factor',
+                'critical_mass',
+                'reactor_type',
+                'nuclide',
+                'info',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -920,7 +1005,7 @@ export async function executenuclearreactor(toolCall: UnifiedToolCall): Promise<
     return {
       toolCallId: id,
       content: `Error in nuclear reactor: ${errorMessage}`,
-      isError: true
+      isError: true,
     };
   }
 }

@@ -14,47 +14,48 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const discreteeventsimTool: UnifiedTool = {
   name: 'discrete_event_sim',
-  description: 'Discrete event simulation for queuing theory, Petri nets, and state machine modeling',
+  description:
+    'Discrete event simulation for queuing theory, Petri nets, and state machine modeling',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['simulate', 'queue_model', 'petri_net', 'state_machine', 'analyze', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       model: {
         type: 'string',
         enum: ['mm1', 'mmc', 'mg1', 'gg1', 'custom'],
-        description: 'Queuing model type'
+        description: 'Queuing model type',
       },
       arrival_rate: {
         type: 'number',
-        description: 'Arrival rate (lambda) for queuing models'
+        description: 'Arrival rate (lambda) for queuing models',
       },
       service_rate: {
         type: 'number',
-        description: 'Service rate (mu) for queuing models'
+        description: 'Service rate (mu) for queuing models',
       },
       num_servers: {
         type: 'number',
-        description: 'Number of servers for M/M/c model'
+        description: 'Number of servers for M/M/c model',
       },
       simulation_time: {
         type: 'number',
-        description: 'Total simulation time'
+        description: 'Total simulation time',
       },
       petri_net: {
         type: 'object',
-        description: 'Petri net definition'
+        description: 'Petri net definition',
       },
       state_machine: {
         type: 'object',
-        description: 'State machine definition'
-      }
+        description: 'State machine definition',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Event types
@@ -131,14 +132,12 @@ function exponential(rate: number): number {
 }
 
 // Generate uniform random variable
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function uniform(min: number, max: number): number {
+export function uniform(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
 // Generate normal random variable (Box-Muller)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normal(mean: number, stdDev: number): number {
+export function normal(mean: number, stdDev: number): number {
   const u1 = Math.random();
   const u2 = Math.random();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
@@ -169,7 +168,7 @@ class Statistics {
 
   variance(): number {
     if (this.count < 2) return 0;
-    return (this.sumSquares - this.sum * this.sum / this.count) / (this.count - 1);
+    return (this.sumSquares - (this.sum * this.sum) / this.count) / (this.count - 1);
   }
 
   stdDev(): number {
@@ -179,7 +178,7 @@ class Statistics {
   percentile(p: number): number {
     if (this.values.length === 0) return 0;
     const sorted = [...this.values].sort((a, b) => a - b);
-    const index = Math.ceil(p / 100 * sorted.length) - 1;
+    const index = Math.ceil((p / 100) * sorted.length) - 1;
     return sorted[Math.max(0, Math.min(index, sorted.length - 1))];
   }
 
@@ -192,7 +191,7 @@ class Statistics {
       max: this.max === -Infinity ? 0 : this.max,
       p50: this.percentile(50),
       p90: this.percentile(90),
-      p99: this.percentile(99)
+      p99: this.percentile(99),
     };
   }
 }
@@ -241,7 +240,7 @@ function simulateMM1(
         events.push({
           time: currentTime + serviceTime,
           type: 'departure',
-          data: { customerId }
+          data: { customerId },
         });
         customers.get(customerId)!.serviceStartTime = currentTime;
         waitTimes.record(0);
@@ -285,7 +284,7 @@ function simulateMM1(
           events.push({
             time: currentTime + serviceTime,
             type: 'departure',
-            data: { customerId: oldestCustomerId }
+            data: { customerId: oldestCustomerId },
           });
         }
       } else {
@@ -297,11 +296,11 @@ function simulateMM1(
   }
 
   // Theoretical values for M/M/1
-  const rho = arrivalRate / serviceRate;  // Utilization
-  const theoreticalL = rho / (1 - rho);   // Average number in system
-  const theoreticalLq = rho * rho / (1 - rho);  // Average queue length
-  const theoreticalW = 1 / (serviceRate - arrivalRate);  // Average time in system
-  const theoreticalWq = rho / (serviceRate - arrivalRate);  // Average wait time
+  const rho = arrivalRate / serviceRate; // Utilization
+  const theoreticalL = rho / (1 - rho); // Average number in system
+  const theoreticalLq = (rho * rho) / (1 - rho); // Average queue length
+  const theoreticalW = 1 / (serviceRate - arrivalRate); // Average time in system
+  const theoreticalWq = rho / (serviceRate - arrivalRate); // Average wait time
 
   return {
     model: 'M/M/1',
@@ -309,7 +308,7 @@ function simulateMM1(
       arrival_rate: arrivalRate,
       service_rate: serviceRate,
       utilization: rho,
-      stability: rho < 1 ? 'stable' : 'unstable'
+      stability: rho < 1 ? 'stable' : 'unstable',
     },
     simulation_results: {
       simulation_time: simTime,
@@ -317,18 +316,25 @@ function simulateMM1(
       throughput: customersServed / simTime,
       avg_queue_length: totalQueueLength / currentTime,
       wait_time_stats: waitTimes.getSummary(),
-      system_time_stats: systemTimes.getSummary()
+      system_time_stats: systemTimes.getSummary(),
     },
-    theoretical_values: rho < 1 ? {
-      avg_customers_in_system: theoreticalL,
-      avg_queue_length: theoreticalLq,
-      avg_time_in_system: theoreticalW,
-      avg_wait_time: theoreticalWq
-    } : 'System unstable (ρ >= 1)',
-    comparison: rho < 1 ? {
-      queue_length_error: Math.abs(totalQueueLength / currentTime - theoreticalLq) / theoreticalLq * 100,
-      wait_time_error: Math.abs(waitTimes.mean() - theoreticalWq) / theoreticalWq * 100
-    } : null
+    theoretical_values:
+      rho < 1
+        ? {
+            avg_customers_in_system: theoreticalL,
+            avg_queue_length: theoreticalLq,
+            avg_time_in_system: theoreticalW,
+            avg_wait_time: theoreticalWq,
+          }
+        : 'System unstable (ρ >= 1)',
+    comparison:
+      rho < 1
+        ? {
+            queue_length_error:
+              (Math.abs(totalQueueLength / currentTime - theoreticalLq) / theoreticalLq) * 100,
+            wait_time_error: (Math.abs(waitTimes.mean() - theoreticalWq) / theoreticalWq) * 100,
+          }
+        : null,
   };
 }
 
@@ -372,7 +378,7 @@ function simulateMMc(
         events.push({
           time: currentTime + serviceTime,
           type: 'departure',
-          data: { customerId }
+          data: { customerId },
         });
         customers.get(customerId)!.serviceStartTime = currentTime;
         waitTimes.record(0);
@@ -411,7 +417,7 @@ function simulateMMc(
           events.push({
             time: currentTime + serviceTime,
             type: 'departure',
-            data: { customerId: oldestCustomerId }
+            data: { customerId: oldestCustomerId },
           });
         }
       } else {
@@ -435,7 +441,8 @@ function simulateMMc(
   for (let n = 0; n < numServers; n++) {
     sumTerm += Math.pow(a, n) / factorial(n);
   }
-  const lastTerm = Math.pow(a, numServers) / factorial(numServers) * numServers / (numServers - a);
+  const lastTerm =
+    ((Math.pow(a, numServers) / factorial(numServers)) * numServers) / (numServers - a);
   const erlangC = lastTerm / (sumTerm + lastTerm);
 
   const theoreticalWq = erlangC / (numServers * serviceRate - arrivalRate);
@@ -448,7 +455,7 @@ function simulateMMc(
       service_rate: serviceRate,
       num_servers: numServers,
       utilization: rho,
-      stability: rho < 1 ? 'stable' : 'unstable'
+      stability: rho < 1 ? 'stable' : 'unstable',
     },
     simulation_results: {
       simulation_time: simTime,
@@ -456,13 +463,16 @@ function simulateMMc(
       throughput: customersServed / simTime,
       avg_queue_length: totalQueueLength / currentTime,
       wait_time_stats: waitTimes.getSummary(),
-      system_time_stats: systemTimes.getSummary()
+      system_time_stats: systemTimes.getSummary(),
     },
-    theoretical_values: rho < 1 ? {
-      erlang_c: erlangC,
-      avg_wait_time: theoreticalWq,
-      avg_queue_length: theoreticalLq
-    } : 'System unstable'
+    theoretical_values:
+      rho < 1
+        ? {
+            erlang_c: erlangC,
+            avg_wait_time: theoreticalWq,
+            avg_queue_length: theoreticalLq,
+          }
+        : 'System unstable',
   };
 }
 
@@ -476,7 +486,7 @@ interface PetriTransition {
   name: string;
   inputs: { place: string; weight: number }[];
   outputs: { place: string; weight: number }[];
-  rate?: number;  // For timed transitions
+  rate?: number; // For timed transitions
 }
 
 interface PetriNet {
@@ -501,7 +511,7 @@ function simulatePetriNet(
 
   // Find enabled transitions
   function getEnabledTransitions(): PetriTransition[] {
-    return net.transitions.filter(t => {
+    return net.transitions.filter((t) => {
       for (const input of t.inputs) {
         if ((places.get(input.place) || 0) < input.weight) {
           return false;
@@ -537,7 +547,7 @@ function simulatePetriNet(
     }
 
     // Select random enabled transition (or use timed semantics)
-    const timedTransitions = enabledNow.filter(t => t.rate !== undefined);
+    const timedTransitions = enabledNow.filter((t) => t.rate !== undefined);
 
     let selected: PetriTransition;
     let delay: number;
@@ -573,7 +583,7 @@ function simulatePetriNet(
     firingHistory.push({
       time: currentTime,
       transition: selected.name,
-      marking
+      marking,
     });
 
     steps++;
@@ -598,12 +608,12 @@ function simulatePetriNet(
       final_marking: finalMarking,
       transition_counts: Object.fromEntries(transitionCounts),
       deadlock_reached: getEnabledTransitions().length === 0,
-      firing_history_sample: firingHistory.slice(-20)
+      firing_history_sample: firingHistory.slice(-20),
     },
     analysis: {
       avg_firings_per_unit_time: steps / currentTime,
-      most_fired: [...transitionCounts.entries()].sort((a, b) => b[1] - a[1])[0]
-    }
+      most_fired: [...transitionCounts.entries()].sort((a, b) => b[1] - a[1])[0],
+    },
   };
 }
 
@@ -645,8 +655,8 @@ function simulateStateMachine(
     const event = events[step];
 
     // Find applicable transitions
-    const applicable = machine.transitions.filter(t =>
-      t.from === currentState && t.event === event
+    const applicable = machine.transitions.filter(
+      (t) => t.from === currentState && t.event === event
     );
 
     if (applicable.length === 0) {
@@ -656,7 +666,7 @@ function simulateStateMachine(
 
     // Select transition (by probability or random)
     let selected: Transition;
-    if (applicable.some(t => t.probability !== undefined)) {
+    if (applicable.some((t) => t.probability !== undefined)) {
       const r = Math.random();
       let cumProb = 0;
       selected = applicable[applicable.length - 1];
@@ -697,12 +707,12 @@ function simulateStateMachine(
       state_durations: Object.fromEntries(stateDurations),
       state_probabilities: stateProbabilities,
       transition_counts: Object.fromEntries(transitionCounts),
-      history_sample: stateHistory.slice(-20)
+      history_sample: stateHistory.slice(-20),
     },
     analysis: {
       most_visited_state: [...stateDurations.entries()].sort((a, b) => b[1] - a[1])[0]?.[0],
-      most_common_transition: [...transitionCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-    }
+      most_common_transition: [...transitionCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0],
+    },
   };
 }
 
@@ -741,7 +751,7 @@ function getExampleMM1(): Record<string, unknown> {
     model: 'mm1',
     arrival_rate: 0.8,
     service_rate: 1.0,
-    description: 'Single server queue with 80% utilization'
+    description: 'Single server queue with 80% utilization',
   };
 }
 
@@ -750,45 +760,42 @@ function getExamplePetriNet(): PetriNet {
     places: [
       { name: 'ready', tokens: 3 },
       { name: 'processing', tokens: 0 },
-      { name: 'done', tokens: 0 }
+      { name: 'done', tokens: 0 },
     ],
     transitions: [
       {
         name: 'start',
         inputs: [{ place: 'ready', weight: 1 }],
         outputs: [{ place: 'processing', weight: 1 }],
-        rate: 1.0
+        rate: 1.0,
       },
       {
         name: 'finish',
         inputs: [{ place: 'processing', weight: 1 }],
         outputs: [{ place: 'done', weight: 1 }],
-        rate: 0.5
-      }
-    ]
+        rate: 0.5,
+      },
+    ],
   };
 }
 
 function getExampleStateMachine(): StateMachine {
   return {
-    states: [
-      { name: 'idle' },
-      { name: 'working' },
-      { name: 'error' },
-      { name: 'recovering' }
-    ],
+    states: [{ name: 'idle' }, { name: 'working' }, { name: 'error' }, { name: 'recovering' }],
     transitions: [
       { from: 'idle', to: 'working', event: 'start', probability: 1.0 },
       { from: 'working', to: 'idle', event: 'complete', probability: 0.9 },
       { from: 'working', to: 'error', event: 'fail', probability: 0.1 },
       { from: 'error', to: 'recovering', event: 'repair', probability: 1.0 },
-      { from: 'recovering', to: 'idle', event: 'ready', probability: 1.0 }
+      { from: 'recovering', to: 'idle', event: 'ready', probability: 1.0 },
     ],
-    initial: 'idle'
+    initial: 'idle',
   };
 }
 
-export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executediscreteeventsim(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -798,44 +805,48 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'discrete_event_sim',
-          description: 'Discrete event simulation for queuing and process modeling',
-          operations: {
-            simulate: 'Run general discrete event simulation',
-            queue_model: 'Simulate queuing systems (M/M/1, M/M/c, etc.)',
-            petri_net: 'Simulate Petri net models',
-            state_machine: 'Simulate finite state machines',
-            analyze: 'Analyze simulation results and compare with theory'
+        content: JSON.stringify(
+          {
+            tool: 'discrete_event_sim',
+            description: 'Discrete event simulation for queuing and process modeling',
+            operations: {
+              simulate: 'Run general discrete event simulation',
+              queue_model: 'Simulate queuing systems (M/M/1, M/M/c, etc.)',
+              petri_net: 'Simulate Petri net models',
+              state_machine: 'Simulate finite state machines',
+              analyze: 'Analyze simulation results and compare with theory',
+            },
+            queuing_models: {
+              mm1: 'Single server, Poisson arrivals, exponential service',
+              mmc: 'Multiple servers, Poisson arrivals, exponential service',
+              mg1: 'Single server, Poisson arrivals, general service',
+              gg1: 'Single server, general arrivals, general service',
+            },
+            features: [
+              'Event-driven simulation engine',
+              'Priority queue event scheduling',
+              'Statistical analysis of results',
+              'Comparison with theoretical values',
+              'Petri net execution (timed/immediate)',
+              'State machine simulation with probabilities',
+            ],
+            applications: [
+              'Performance analysis',
+              'Capacity planning',
+              'Process optimization',
+              'Reliability modeling',
+              'Manufacturing systems',
+              'Network traffic analysis',
+            ],
+            examples: {
+              mm1_queue: getExampleMM1(),
+              petri_net: getExamplePetriNet(),
+              state_machine: getExampleStateMachine(),
+            },
           },
-          queuing_models: {
-            mm1: 'Single server, Poisson arrivals, exponential service',
-            mmc: 'Multiple servers, Poisson arrivals, exponential service',
-            mg1: 'Single server, Poisson arrivals, general service',
-            gg1: 'Single server, general arrivals, general service'
-          },
-          features: [
-            'Event-driven simulation engine',
-            'Priority queue event scheduling',
-            'Statistical analysis of results',
-            'Comparison with theoretical values',
-            'Petri net execution (timed/immediate)',
-            'State machine simulation with probabilities'
-          ],
-          applications: [
-            'Performance analysis',
-            'Capacity planning',
-            'Process optimization',
-            'Reliability modeling',
-            'Manufacturing systems',
-            'Network traffic analysis'
-          ],
-          examples: {
-            mm1_queue: getExampleMM1(),
-            petri_net: getExamplePetriNet(),
-            state_machine: getExampleStateMachine()
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -884,7 +895,7 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
                 events.push({
                   time: currentTime + fixedServiceTime,
                   type: 'departure',
-                  data: { customerId: nextCustomerId - 1 }
+                  data: { customerId: nextCustomerId - 1 },
                 });
                 waitTimes.record(0);
               } else {
@@ -912,7 +923,7 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
                   events.push({
                     time: currentTime + fixedServiceTime,
                     type: 'departure',
-                    data: { customerId: oldestId }
+                    data: { customerId: oldestId },
                   });
                 }
               } else {
@@ -931,15 +942,15 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
               arrival_rate: arrivalRate,
               service_rate: serviceRate,
               service_time: fixedServiceTime,
-              utilization: rho
+              utilization: rho,
             },
             simulation_results: {
               customers_served: customersServed,
-              wait_time_stats: waitTimes.getSummary()
+              wait_time_stats: waitTimes.getSummary(),
             },
             theoretical_values: {
-              avg_wait_time: theoreticalWq
-            }
+              avg_wait_time: theoreticalWq,
+            },
           };
           break;
         }
@@ -950,7 +961,7 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
 
       return {
         toolCallId: id,
-        content: JSON.stringify(result, null, 2)
+        content: JSON.stringify(result, null, 2),
       };
     }
 
@@ -965,34 +976,34 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
             { name: 'empty', tokens: 5 },
             { name: 'full', tokens: 0 },
             { name: 'producer_ready', tokens: 1 },
-            { name: 'consumer_ready', tokens: 1 }
+            { name: 'consumer_ready', tokens: 1 },
           ],
           transitions: [
             {
               name: 'produce',
               inputs: [
                 { place: 'empty', weight: 1 },
-                { place: 'producer_ready', weight: 1 }
+                { place: 'producer_ready', weight: 1 },
               ],
               outputs: [
                 { place: 'full', weight: 1 },
-                { place: 'producer_ready', weight: 1 }
+                { place: 'producer_ready', weight: 1 },
               ],
-              rate: 2.0
+              rate: 2.0,
             },
             {
               name: 'consume',
               inputs: [
                 { place: 'full', weight: 1 },
-                { place: 'consumer_ready', weight: 1 }
+                { place: 'consumer_ready', weight: 1 },
               ],
               outputs: [
                 { place: 'empty', weight: 1 },
-                { place: 'consumer_ready', weight: 1 }
+                { place: 'consumer_ready', weight: 1 },
               ],
-              rate: 1.5
-            }
-          ]
+              rate: 1.5,
+            },
+          ],
         };
       } else if (args.preset === 'mutex') {
         net = {
@@ -1001,34 +1012,46 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
             { name: 'p1_critical', tokens: 0 },
             { name: 'p2_ready', tokens: 1 },
             { name: 'p2_critical', tokens: 0 },
-            { name: 'mutex', tokens: 1 }
+            { name: 'mutex', tokens: 1 },
           ],
           transitions: [
             {
               name: 'p1_enter',
-              inputs: [{ place: 'p1_ready', weight: 1 }, { place: 'mutex', weight: 1 }],
+              inputs: [
+                { place: 'p1_ready', weight: 1 },
+                { place: 'mutex', weight: 1 },
+              ],
               outputs: [{ place: 'p1_critical', weight: 1 }],
-              rate: 1.0
+              rate: 1.0,
             },
             {
               name: 'p1_exit',
               inputs: [{ place: 'p1_critical', weight: 1 }],
-              outputs: [{ place: 'p1_ready', weight: 1 }, { place: 'mutex', weight: 1 }],
-              rate: 2.0
+              outputs: [
+                { place: 'p1_ready', weight: 1 },
+                { place: 'mutex', weight: 1 },
+              ],
+              rate: 2.0,
             },
             {
               name: 'p2_enter',
-              inputs: [{ place: 'p2_ready', weight: 1 }, { place: 'mutex', weight: 1 }],
+              inputs: [
+                { place: 'p2_ready', weight: 1 },
+                { place: 'mutex', weight: 1 },
+              ],
               outputs: [{ place: 'p2_critical', weight: 1 }],
-              rate: 1.0
+              rate: 1.0,
             },
             {
               name: 'p2_exit',
               inputs: [{ place: 'p2_critical', weight: 1 }],
-              outputs: [{ place: 'p2_ready', weight: 1 }, { place: 'mutex', weight: 1 }],
-              rate: 2.0
-            }
-          ]
+              outputs: [
+                { place: 'p2_ready', weight: 1 },
+                { place: 'mutex', weight: 1 },
+              ],
+              rate: 2.0,
+            },
+          ],
         };
       } else {
         net = getExamplePetriNet();
@@ -1041,10 +1064,14 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          input_model: net,
-          ...result
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            input_model: net,
+            ...result,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -1055,17 +1082,13 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
         machine = args.state_machine as StateMachine;
       } else if (args.preset === 'traffic_light') {
         machine = {
-          states: [
-            { name: 'green' },
-            { name: 'yellow' },
-            { name: 'red' }
-          ],
+          states: [{ name: 'green' }, { name: 'yellow' }, { name: 'red' }],
           transitions: [
             { from: 'green', to: 'yellow', event: 'timer' },
             { from: 'yellow', to: 'red', event: 'timer' },
-            { from: 'red', to: 'green', event: 'timer' }
+            { from: 'red', to: 'green', event: 'timer' },
           ],
-          initial: 'green'
+          initial: 'green',
         };
       } else if (args.preset === 'connection') {
         machine = {
@@ -1073,7 +1096,7 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
             { name: 'disconnected' },
             { name: 'connecting' },
             { name: 'connected' },
-            { name: 'error' }
+            { name: 'error' },
           ],
           transitions: [
             { from: 'disconnected', to: 'connecting', event: 'connect' },
@@ -1081,9 +1104,9 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
             { from: 'connecting', to: 'error', event: 'fail', probability: 0.1 },
             { from: 'connected', to: 'disconnected', event: 'disconnect' },
             { from: 'connected', to: 'error', event: 'fail' },
-            { from: 'error', to: 'disconnected', event: 'reset' }
+            { from: 'error', to: 'disconnected', event: 'reset' },
           ],
-          initial: 'disconnected'
+          initial: 'disconnected',
         };
       } else {
         machine = getExampleStateMachine();
@@ -1094,7 +1117,7 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
       if (args.events) {
         events = args.events;
       } else {
-        const eventTypes = [...new Set(machine.transitions.map(t => t.event))];
+        const eventTypes = [...new Set(machine.transitions.map((t) => t.event))];
         const numEvents = args.num_events || 500;
         events = generateEvents(eventTypes, numEvents);
       }
@@ -1103,11 +1126,15 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          input_model: machine,
-          events_processed: events.length,
-          ...result
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            input_model: machine,
+            events_processed: events.length,
+            ...result,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -1120,17 +1147,20 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
         model_comparison: {
           mm1: simulateMM1(arrivalRate, serviceRate, 5000),
           mm2: simulateMMc(arrivalRate, serviceRate, 2, 5000),
-          mm4: simulateMMc(arrivalRate, serviceRate, 4, 5000)
+          mm4: simulateMMc(arrivalRate, serviceRate, 4, 5000),
         },
         analysis: {
           description: 'Comparison of wait times across different server configurations',
-          conclusions: [] as string[]
-        }
+          conclusions: [] as string[],
+        },
       };
 
-      const mm1Wait = (results.model_comparison.mm1.simulation_results as Record<string, unknown>).wait_time_stats as Record<string, number>;
-      const mm2Wait = (results.model_comparison.mm2.simulation_results as Record<string, unknown>).wait_time_stats as Record<string, number>;
-      const mm4Wait = (results.model_comparison.mm4.simulation_results as Record<string, unknown>).wait_time_stats as Record<string, number>;
+      const mm1Wait = (results.model_comparison.mm1.simulation_results as Record<string, unknown>)
+        .wait_time_stats as Record<string, number>;
+      const mm2Wait = (results.model_comparison.mm2.simulation_results as Record<string, unknown>)
+        .wait_time_stats as Record<string, number>;
+      const mm4Wait = (results.model_comparison.mm4.simulation_results as Record<string, unknown>)
+        .wait_time_stats as Record<string, number>;
 
       if (mm1Wait.mean > mm2Wait.mean) {
         results.analysis.conclusions.push(
@@ -1145,25 +1175,35 @@ export async function executediscreteeventsim(toolCall: UnifiedToolCall): Promis
       }
 
       results.analysis.conclusions.push(
-        `At ${(arrivalRate / serviceRate * 100).toFixed(0)}% utilization, 99th percentile wait times: ` +
-        `M/M/1=${mm1Wait.p99.toFixed(2)}, M/M/2=${mm2Wait.p99.toFixed(2)}, M/M/4=${mm4Wait.p99.toFixed(2)}`
+        `At ${((arrivalRate / serviceRate) * 100).toFixed(0)}% utilization, 99th percentile wait times: ` +
+          `M/M/1=${mm1Wait.p99.toFixed(2)}, M/M/2=${mm2Wait.p99.toFixed(2)}, M/M/4=${mm4Wait.p99.toFixed(2)}`
       );
 
       return {
         toolCallId: id,
-        content: JSON.stringify(results, null, 2)
+        content: JSON.stringify(results, null, 2),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: `Unknown operation: ${operation}`,
-        available_operations: ['simulate', 'queue_model', 'petri_net', 'state_machine', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: `Unknown operation: ${operation}`,
+          available_operations: [
+            'simulate',
+            'queue_model',
+            'petri_net',
+            'state_machine',
+            'analyze',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

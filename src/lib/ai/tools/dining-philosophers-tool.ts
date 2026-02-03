@@ -17,22 +17,34 @@ export const diningphilosophersTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['simulate', 'resource_hierarchy', 'arbitrator', 'chandy_misra', 'analyze', 'deadlock_demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'simulate',
+          'resource_hierarchy',
+          'arbitrator',
+          'chandy_misra',
+          'analyze',
+          'deadlock_demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
-      num_philosophers: { type: 'integer', minimum: 2, maximum: 20, description: 'Number of philosophers (default: 5)' },
-      steps: { type: 'integer', minimum: 1, maximum: 1000, description: 'Number of simulation steps' },
+      num_philosophers: {
+        type: 'integer',
+        description: 'Number of philosophers (2-20, default: 5)',
+      },
+      steps: { type: 'integer', description: 'Number of simulation steps (1-1000)' },
       think_time: { type: 'integer', description: 'Average thinking time in ticks' },
       eat_time: { type: 'integer', description: 'Average eating time in ticks' },
       solution: {
         type: 'string',
         enum: ['naive', 'resource_hierarchy', 'arbitrator', 'chandy_misra', 'odd_even'],
-        description: 'Solution strategy to use'
+        description: 'Solution strategy to use',
       },
-      random_seed: { type: 'integer', description: 'Random seed for reproducibility' }
+      random_seed: { type: 'integer', description: 'Random seed for reproducibility' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Philosopher states
@@ -87,10 +99,28 @@ class SeededRandom {
 
 // Initialize simulation state
 function initSimulation(n: number, thinkTime: number, eatTime: number): SimulationState {
-  const names = ['Aristotle', 'Plato', 'Socrates', 'Confucius', 'Descartes',
-                 'Kant', 'Nietzsche', 'Hume', 'Locke', 'Spinoza',
-                 'Leibniz', 'Hegel', 'Marx', 'Russell', 'Wittgenstein',
-                 'Sartre', 'Camus', 'Kierkegaard', 'Aquinas', 'Augustine'];
+  const names = [
+    'Aristotle',
+    'Plato',
+    'Socrates',
+    'Confucius',
+    'Descartes',
+    'Kant',
+    'Nietzsche',
+    'Hume',
+    'Locke',
+    'Spinoza',
+    'Leibniz',
+    'Hegel',
+    'Marx',
+    'Russell',
+    'Wittgenstein',
+    'Sartre',
+    'Camus',
+    'Kierkegaard',
+    'Aquinas',
+    'Augustine',
+  ];
 
   const philosophers: Philosopher[] = [];
   const forks: Fork[] = [];
@@ -106,14 +136,14 @@ function initSimulation(n: number, thinkTime: number, eatTime: number): Simulati
       totalWaitTime: 0,
       hasLeftFork: false,
       hasRightFork: false,
-      currentAction: thinkTime
+      currentAction: thinkTime,
     });
 
     forks.push({
       id: i,
       heldBy: null,
       dirty: true,
-      requestedBy: null
+      requestedBy: null,
     });
   }
 
@@ -123,7 +153,7 @@ function initSimulation(n: number, thinkTime: number, eatTime: number): Simulati
     time: 0,
     events: [],
     deadlockDetected: false,
-    livelockDetected: false
+    livelockDetected: false,
   };
 }
 
@@ -131,7 +161,7 @@ function initSimulation(n: number, thinkTime: number, eatTime: number): Simulati
 function getForkIndices(philosopherId: number, n: number): { left: number; right: number } {
   return {
     left: philosopherId,
-    right: (philosopherId + 1) % n
+    right: (philosopherId + 1) % n,
   };
 }
 
@@ -191,7 +221,9 @@ function simulateNaive(state: SimulationState, rng: SeededRandom): void {
 
   // Check for deadlock: all philosophers hungry with one fork
   const hungryWithOneFork = state.philosophers.filter(
-    p => p.state === 'hungry' && ((p.hasLeftFork && !p.hasRightFork) || (!p.hasLeftFork && p.hasRightFork))
+    (p) =>
+      p.state === 'hungry' &&
+      ((p.hasLeftFork && !p.hasRightFork) || (!p.hasLeftFork && p.hasRightFork))
   );
   if (hungryWithOneFork.length === n) {
     state.deadlockDetected = true;
@@ -220,8 +252,8 @@ function simulateResourceHierarchy(state: SimulationState, rng: SeededRandom): v
       }
     } else if (phil.state === 'hungry') {
       // Always pick up lower-numbered fork first
-      const hasLower = (lowerFork === left) ? phil.hasLeftFork : phil.hasRightFork;
-      const hasHigher = (higherFork === left) ? phil.hasLeftFork : phil.hasRightFork;
+      const hasLower = lowerFork === left ? phil.hasLeftFork : phil.hasRightFork;
+      const hasHigher = higherFork === left ? phil.hasLeftFork : phil.hasRightFork;
 
       if (!hasLower && lowerForkObj.heldBy === null) {
         lowerForkObj.heldBy = phil.id;
@@ -233,7 +265,7 @@ function simulateResourceHierarchy(state: SimulationState, rng: SeededRandom): v
         state.events.push(`[${state.time}] ${phil.name} picks up fork ${lowerFork} (lower)`);
       }
 
-      const hasLowerNow = (lowerFork === left) ? phil.hasLeftFork : phil.hasRightFork;
+      const hasLowerNow = lowerFork === left ? phil.hasLeftFork : phil.hasRightFork;
       if (hasLowerNow && !hasHigher && higherForkObj.heldBy === null) {
         higherForkObj.heldBy = phil.id;
         if (higherFork === left) {
@@ -285,7 +317,7 @@ function simulateArbitrator(state: SimulationState, rng: SeededRandom): void {
       }
     } else if (phil.state === 'hungry') {
       // Waiter grants permission only if below max eating limit and both forks free
-      const eatingNow = state.philosophers.filter(p => p.state === 'eating').length;
+      const eatingNow = state.philosophers.filter((p) => p.state === 'eating').length;
       if (eatingNow < maxEating && leftFork.heldBy === null && rightFork.heldBy === null) {
         leftFork.heldBy = phil.id;
         rightFork.heldBy = phil.id;
@@ -444,7 +476,9 @@ function simulateOddEven(state: SimulationState, rng: SeededRandom): void {
         } else {
           phil.hasRightFork = true;
         }
-        state.events.push(`[${state.time}] ${phil.name} picks up ${firstIsLeft ? 'left' : 'right'} fork first`);
+        state.events.push(
+          `[${state.time}] ${phil.name} picks up ${firstIsLeft ? 'left' : 'right'} fork first`
+        );
       }
 
       const hasFirstNow = firstIsLeft ? phil.hasLeftFork : phil.hasRightFork;
@@ -455,7 +489,9 @@ function simulateOddEven(state: SimulationState, rng: SeededRandom): void {
         } else {
           phil.hasLeftFork = true;
         }
-        state.events.push(`[${state.time}] ${phil.name} picks up ${firstIsLeft ? 'right' : 'left'} fork`);
+        state.events.push(
+          `[${state.time}] ${phil.name} picks up ${firstIsLeft ? 'right' : 'left'} fork`
+        );
       }
 
       if (phil.hasLeftFork && phil.hasRightFork) {
@@ -498,7 +534,7 @@ function runSimulation(
     resource_hierarchy: simulateResourceHierarchy,
     arbitrator: simulateArbitrator,
     chandy_misra: simulateChandyMisra,
-    odd_even: simulateOddEven
+    odd_even: simulateOddEven,
   };
 
   const simulate = simulators[solution] || simulateNaive;
@@ -521,8 +557,9 @@ function analyzeSolution(solution: string): object {
       deadlock_free: false,
       starvation_free: false,
       fairness: 'none',
-      description: 'Each philosopher picks up left fork, then right. Circular wait leads to deadlock.',
-      issue: 'All philosophers may hold their left fork, waiting for right fork forever.'
+      description:
+        'Each philosopher picks up left fork, then right. Circular wait leads to deadlock.',
+      issue: 'All philosophers may hold their left fork, waiting for right fork forever.',
     },
     resource_hierarchy: {
       name: 'Resource Hierarchy',
@@ -531,7 +568,7 @@ function analyzeSolution(solution: string): object {
       fairness: 'weak',
       description: 'Forks are numbered; philosophers always pick up lower-numbered fork first.',
       prevents: 'Circular wait (one of four Coffman conditions)',
-      note: 'Simple and efficient, but philosopher n-1 may starve under high contention.'
+      note: 'Simple and efficient, but philosopher n-1 may starve under high contention.',
     },
     arbitrator: {
       name: 'Arbitrator (Waiter)',
@@ -540,7 +577,7 @@ function analyzeSolution(solution: string): object {
       fairness: 'strong (with FIFO queue)',
       description: 'Central waiter grants permission to eat. Max n/2 can eat simultaneously.',
       prevents: 'Hold and wait condition',
-      note: 'Centralized bottleneck, but guarantees fairness.'
+      note: 'Centralized bottleneck, but guarantees fairness.',
     },
     chandy_misra: {
       name: 'Chandy/Misra',
@@ -549,7 +586,7 @@ function analyzeSolution(solution: string): object {
       fairness: 'strong',
       description: 'Forks have dirty/clean state. Dirty forks must be given to requesters.',
       prevents: 'Circular wait through acyclic precedence graph',
-      note: 'Fully distributed, no central coordinator.'
+      note: 'Fully distributed, no central coordinator.',
     },
     odd_even: {
       name: 'Odd-Even',
@@ -558,14 +595,16 @@ function analyzeSolution(solution: string): object {
       fairness: 'weak',
       description: 'Odd philosophers pick right first; even pick left first.',
       prevents: 'Circular wait by breaking symmetry',
-      note: 'Simple modification of naive approach.'
-    }
+      note: 'Simple modification of naive approach.',
+    },
   };
 
   return properties[solution] || properties['naive'];
 }
 
-export async function executediningphilosophers(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executediningphilosophers(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -588,34 +627,38 @@ export async function executediningphilosophers(toolCall: UnifiedToolCall): Prom
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            solution,
-            num_philosophers: n,
-            steps_run: state.time + 1,
-            deadlock_detected: state.deadlockDetected,
-            statistics: {
-              total_meals: totalMeals,
-              average_meals_per_philosopher: (totalMeals / n).toFixed(2),
-              average_wait_time: avgWait.toFixed(2),
-              meals_per_step: (totalMeals / (state.time + 1)).toFixed(4)
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              solution,
+              num_philosophers: n,
+              steps_run: state.time + 1,
+              deadlock_detected: state.deadlockDetected,
+              statistics: {
+                total_meals: totalMeals,
+                average_meals_per_philosopher: (totalMeals / n).toFixed(2),
+                average_wait_time: avgWait.toFixed(2),
+                meals_per_step: (totalMeals / (state.time + 1)).toFixed(4),
+              },
+              philosophers: state.philosophers.map((p) => ({
+                id: p.id,
+                name: p.name,
+                state: p.state,
+                times_eaten: p.timesEaten,
+                total_wait_time: p.totalWaitTime,
+                has_forks: `L:${p.hasLeftFork} R:${p.hasRightFork}`,
+              })),
+              forks: state.forks.map((f) => ({
+                id: f.id,
+                held_by: f.heldBy !== null ? state.philosophers[f.heldBy].name : 'table',
+                dirty: f.dirty,
+              })),
+              recent_events: state.events.slice(-20),
+              all_events: state.events,
             },
-            philosophers: state.philosophers.map(p => ({
-              id: p.id,
-              name: p.name,
-              state: p.state,
-              times_eaten: p.timesEaten,
-              total_wait_time: p.totalWaitTime,
-              has_forks: `L:${p.hasLeftFork} R:${p.hasRightFork}`
-            })),
-            forks: state.forks.map(f => ({
-              id: f.id,
-              held_by: f.heldBy !== null ? state.philosophers[f.heldBy].name : 'table',
-              dirty: f.dirty
-            })),
-            recent_events: state.events.slice(-20),
-            all_events: state.events
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -626,19 +669,23 @@ export async function executediningphilosophers(toolCall: UnifiedToolCall): Prom
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'resource_hierarchy',
-            explanation: 'Philosophers always pick up the lower-numbered fork first',
-            principle: 'Prevents circular wait by imposing total ordering on resources',
-            example: `Philosopher ${n-1} picks up fork 0 before fork ${n-1} (unlike others who pick left first)`,
-            simulation_result: {
-              steps: steps,
-              deadlock: state.deadlockDetected,
-              total_meals: state.philosophers.reduce((sum, p) => sum + p.timesEaten, 0)
+          content: JSON.stringify(
+            {
+              operation: 'resource_hierarchy',
+              explanation: 'Philosophers always pick up the lower-numbered fork first',
+              principle: 'Prevents circular wait by imposing total ordering on resources',
+              example: `Philosopher ${n - 1} picks up fork 0 before fork ${n - 1} (unlike others who pick left first)`,
+              simulation_result: {
+                steps: steps,
+                deadlock: state.deadlockDetected,
+                total_meals: state.philosophers.reduce((sum, p) => sum + p.timesEaten, 0),
+              },
+              coffman_conditions_prevented: ['Circular Wait'],
+              events_sample: state.events.slice(0, 15),
             },
-            coffman_conditions_prevented: ['Circular Wait'],
-            events_sample: state.events.slice(0, 15)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -649,24 +696,28 @@ export async function executediningphilosophers(toolCall: UnifiedToolCall): Prom
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'arbitrator',
-            explanation: 'A central waiter controls access to forks',
-            rules: [
-              'Philosophers must ask waiter for permission to eat',
-              `Maximum ${Math.floor(n/2)} philosophers can eat simultaneously`,
-              'Waiter ensures no deadlock by atomic fork acquisition',
-              'Can implement FIFO queue for fairness'
-            ],
-            simulation_result: {
-              steps: steps,
-              deadlock: state.deadlockDetected,
-              max_concurrent_eating: Math.floor(n/2),
-              total_meals: state.philosophers.reduce((sum, p) => sum + p.timesEaten, 0)
+          content: JSON.stringify(
+            {
+              operation: 'arbitrator',
+              explanation: 'A central waiter controls access to forks',
+              rules: [
+                'Philosophers must ask waiter for permission to eat',
+                `Maximum ${Math.floor(n / 2)} philosophers can eat simultaneously`,
+                'Waiter ensures no deadlock by atomic fork acquisition',
+                'Can implement FIFO queue for fairness',
+              ],
+              simulation_result: {
+                steps: steps,
+                deadlock: state.deadlockDetected,
+                max_concurrent_eating: Math.floor(n / 2),
+                total_meals: state.philosophers.reduce((sum, p) => sum + p.timesEaten, 0),
+              },
+              coffman_conditions_prevented: ['Hold and Wait'],
+              events_sample: state.events.slice(0, 15),
             },
-            coffman_conditions_prevented: ['Hold and Wait'],
-            events_sample: state.events.slice(0, 15)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -677,34 +728,38 @@ export async function executediningphilosophers(toolCall: UnifiedToolCall): Prom
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'chandy_misra',
-            explanation: 'Fully distributed solution using dirty/clean fork protocol',
-            rules: [
-              'Forks start dirty; initially given to lower-numbered philosopher',
-              'When a philosopher finishes eating, forks become dirty',
-              'A dirty fork must be given to any requester',
-              'A clean fork may be kept until used',
-              'This creates an acyclic precedence graph'
-            ],
-            simulation_result: {
-              steps: steps,
-              deadlock: state.deadlockDetected,
-              total_meals: state.philosophers.reduce((sum, p) => sum + p.timesEaten, 0)
+          content: JSON.stringify(
+            {
+              operation: 'chandy_misra',
+              explanation: 'Fully distributed solution using dirty/clean fork protocol',
+              rules: [
+                'Forks start dirty; initially given to lower-numbered philosopher',
+                'When a philosopher finishes eating, forks become dirty',
+                'A dirty fork must be given to any requester',
+                'A clean fork may be kept until used',
+                'This creates an acyclic precedence graph',
+              ],
+              simulation_result: {
+                steps: steps,
+                deadlock: state.deadlockDetected,
+                total_meals: state.philosophers.reduce((sum, p) => sum + p.timesEaten, 0),
+              },
+              properties: {
+                deadlock_free: true,
+                starvation_free: true,
+                distributed: true,
+                no_central_coordinator: true,
+              },
+              fork_states: state.forks.map((f) => ({
+                fork: f.id,
+                holder: f.heldBy,
+                dirty: f.dirty,
+              })),
+              events_sample: state.events.slice(0, 15),
             },
-            properties: {
-              deadlock_free: true,
-              starvation_free: true,
-              distributed: true,
-              no_central_coordinator: true
-            },
-            fork_states: state.forks.map(f => ({
-              fork: f.id,
-              holder: f.heldBy,
-              dirty: f.dirty
-            })),
-            events_sample: state.events.slice(0, 15)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -712,35 +767,51 @@ export async function executediningphilosophers(toolCall: UnifiedToolCall): Prom
         const solution = args.solution || 'all';
 
         if (solution === 'all') {
-          const solutions = ['naive', 'resource_hierarchy', 'arbitrator', 'chandy_misra', 'odd_even'];
-          const analysis = solutions.map(s => ({
+          const solutions = [
+            'naive',
+            'resource_hierarchy',
+            'arbitrator',
+            'chandy_misra',
+            'odd_even',
+          ];
+          const analysis = solutions.map((s) => ({
             solution: s,
-            ...analyzeSolution(s) as object
+            ...(analyzeSolution(s) as object),
           }));
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'analyze',
-              problem_description: 'Five philosophers sit at a round table with a fork between each pair. To eat, a philosopher needs both adjacent forks.',
-              coffman_conditions: [
-                'Mutual Exclusion: Forks cannot be shared',
-                'Hold and Wait: Holding one fork while waiting for another',
-                'No Preemption: Cannot forcibly take a fork',
-                'Circular Wait: Each waits for the next'
-              ],
-              solutions: analysis,
-              recommendation: 'Use Chandy/Misra for distributed systems, Arbitrator for guaranteed fairness, Resource Hierarchy for simplicity'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'analyze',
+                problem_description:
+                  'Five philosophers sit at a round table with a fork between each pair. To eat, a philosopher needs both adjacent forks.',
+                coffman_conditions: [
+                  'Mutual Exclusion: Forks cannot be shared',
+                  'Hold and Wait: Holding one fork while waiting for another',
+                  'No Preemption: Cannot forcibly take a fork',
+                  'Circular Wait: Each waits for the next',
+                ],
+                solutions: analysis,
+                recommendation:
+                  'Use Chandy/Misra for distributed systems, Arbitrator for guaranteed fairness, Resource Hierarchy for simplicity',
+              },
+              null,
+              2
+            ),
           };
         } else {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'analyze',
-              solution,
-              ...analyzeSolution(solution)
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'analyze',
+                solution,
+                ...analyzeSolution(solution),
+              },
+              null,
+              2
+            ),
           };
         }
       }
@@ -751,103 +822,117 @@ export async function executediningphilosophers(toolCall: UnifiedToolCall): Prom
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'deadlock_demo',
-            description: 'Demonstration of deadlock with naive solution',
-            num_philosophers: n,
-            steps_until_deadlock: state.deadlockDetected ? state.time : 'No deadlock in 200 steps',
-            deadlock_detected: state.deadlockDetected,
-            final_state: state.philosophers.map(p => ({
-              name: p.name,
-              state: p.state,
-              left_fork: p.hasLeftFork,
-              right_fork: p.hasRightFork
-            })),
-            explanation: state.deadlockDetected
-              ? 'All philosophers holding left fork, waiting for right fork - classic circular wait!'
-              : 'Deadlock did not occur in this run (try different seed)',
-            events: state.events.slice(-30)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'deadlock_demo',
+              description: 'Demonstration of deadlock with naive solution',
+              num_philosophers: n,
+              steps_until_deadlock: state.deadlockDetected
+                ? state.time
+                : 'No deadlock in 200 steps',
+              deadlock_detected: state.deadlockDetected,
+              final_state: state.philosophers.map((p) => ({
+                name: p.name,
+                state: p.state,
+                left_fork: p.hasLeftFork,
+                right_fork: p.hasRightFork,
+              })),
+              explanation: state.deadlockDetected
+                ? 'All philosophers holding left fork, waiting for right fork - classic circular wait!'
+                : 'Deadlock did not occur in this run (try different seed)',
+              events: state.events.slice(-30),
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'dining_philosophers',
-            description: 'Classic concurrency problem demonstrating deadlock and synchronization',
-            problem: {
-              setup: 'N philosophers sit at round table with N forks (one between each pair)',
-              goal: 'Each philosopher alternates between thinking and eating',
-              constraint: 'Eating requires both adjacent forks',
-              challenge: 'Prevent deadlock while maximizing concurrency'
+          content: JSON.stringify(
+            {
+              tool: 'dining_philosophers',
+              description: 'Classic concurrency problem demonstrating deadlock and synchronization',
+              problem: {
+                setup: 'N philosophers sit at round table with N forks (one between each pair)',
+                goal: 'Each philosopher alternates between thinking and eating',
+                constraint: 'Eating requires both adjacent forks',
+                challenge: 'Prevent deadlock while maximizing concurrency',
+              },
+              solutions_implemented: [
+                'naive: Unsafe - picks up left then right (can deadlock)',
+                'resource_hierarchy: Always pick lower-numbered fork first',
+                'arbitrator: Central waiter controls access',
+                'chandy_misra: Distributed dirty/clean fork protocol',
+                'odd_even: Odd philosophers pick right first',
+              ],
+              operations: {
+                simulate: 'Run simulation with chosen solution',
+                resource_hierarchy: 'Demo resource hierarchy solution',
+                arbitrator: 'Demo arbitrator solution',
+                chandy_misra: 'Demo Chandy/Misra solution',
+                analyze: 'Analyze solution properties',
+                deadlock_demo: 'Demonstrate deadlock with naive solution',
+              },
+              historical_note: 'Problem formulated by Edsger Dijkstra in 1965',
+              applications: [
+                'Database transaction locking',
+                'Operating system resource allocation',
+                'Network protocol design',
+                'Distributed systems consensus',
+              ],
             },
-            solutions_implemented: [
-              'naive: Unsafe - picks up left then right (can deadlock)',
-              'resource_hierarchy: Always pick lower-numbered fork first',
-              'arbitrator: Central waiter controls access',
-              'chandy_misra: Distributed dirty/clean fork protocol',
-              'odd_even: Odd philosophers pick right first'
-            ],
-            operations: {
-              simulate: 'Run simulation with chosen solution',
-              resource_hierarchy: 'Demo resource hierarchy solution',
-              arbitrator: 'Demo arbitrator solution',
-              chandy_misra: 'Demo Chandy/Misra solution',
-              analyze: 'Analyze solution properties',
-              deadlock_demo: 'Demonstrate deadlock with naive solution'
-            },
-            historical_note: 'Problem formulated by Edsger Dijkstra in 1965',
-            applications: [
-              'Database transaction locking',
-              'Operating system resource allocation',
-              'Network protocol design',
-              'Distributed systems consensus'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                description: 'Simulate 5 philosophers with resource hierarchy',
-                call: {
-                  operation: 'simulate',
-                  num_philosophers: 5,
-                  steps: 100,
-                  solution: 'resource_hierarchy'
-                }
-              },
-              {
-                description: 'Demonstrate deadlock with naive solution',
-                call: {
-                  operation: 'deadlock_demo',
-                  num_philosophers: 5,
-                  random_seed: 12345
-                }
-              },
-              {
-                description: 'Compare Chandy/Misra solution',
-                call: {
-                  operation: 'chandy_misra',
-                  num_philosophers: 5,
-                  steps: 100
-                }
-              },
-              {
-                description: 'Analyze all solutions',
-                call: {
-                  operation: 'analyze',
-                  solution: 'all'
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  description: 'Simulate 5 philosophers with resource hierarchy',
+                  call: {
+                    operation: 'simulate',
+                    num_philosophers: 5,
+                    steps: 100,
+                    solution: 'resource_hierarchy',
+                  },
+                },
+                {
+                  description: 'Demonstrate deadlock with naive solution',
+                  call: {
+                    operation: 'deadlock_demo',
+                    num_philosophers: 5,
+                    random_seed: 12345,
+                  },
+                },
+                {
+                  description: 'Compare Chandy/Misra solution',
+                  call: {
+                    operation: 'chandy_misra',
+                    num_philosophers: 5,
+                    steps: 100,
+                  },
+                },
+                {
+                  description: 'Analyze all solutions',
+                  call: {
+                    operation: 'analyze',
+                    solution: 'all',
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 

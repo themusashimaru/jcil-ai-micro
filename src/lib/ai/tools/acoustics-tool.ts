@@ -83,8 +83,6 @@ function addSPLs(spls: number[]): number {
 
 // Speaker box volume (sealed): Vas / Vb = (fc/fs)² - 1, Qtc
 function sealedBoxVolume(vas: number, _fs: number, qts: number, targetQtc: number = 0.707): number {
-  // _fs is available for extended calculations
-  void _fs;
   const ratio = Math.pow(targetQtc / qts, 2) - 1;
   return vas / ratio;
 }

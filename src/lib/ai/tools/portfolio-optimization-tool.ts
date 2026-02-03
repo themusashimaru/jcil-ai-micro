@@ -8,60 +8,69 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const portfoliooptimizationTool: UnifiedTool = {
   name: 'portfolio_optimization',
-  description: 'Portfolio optimization - Markowitz mean-variance, Black-Litterman, risk parity, efficient frontier',
+  description:
+    'Portfolio optimization - Markowitz mean-variance, Black-Litterman, risk parity, efficient frontier',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['optimize', 'efficient_frontier', 'risk_parity', 'black_litterman', 'sharpe_ratio', 'analyze', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'optimize',
+          'efficient_frontier',
+          'risk_parity',
+          'black_litterman',
+          'sharpe_ratio',
+          'analyze',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       returns: {
         type: 'array',
-        description: 'Expected returns for each asset'
+        description: 'Expected returns for each asset',
       },
       covariance: {
         type: 'array',
-        description: 'Covariance matrix (2D array)'
+        description: 'Covariance matrix (2D array)',
       },
       historical_returns: {
         type: 'array',
-        description: 'Historical returns matrix (time x assets)'
+        description: 'Historical returns matrix (time x assets)',
       },
       target_return: {
         type: 'number',
-        description: 'Target portfolio return'
+        description: 'Target portfolio return',
       },
       target_risk: {
         type: 'number',
-        description: 'Target portfolio risk (std dev)'
+        description: 'Target portfolio risk (std dev)',
       },
       risk_free_rate: {
         type: 'number',
-        description: 'Risk-free rate (annual)'
+        description: 'Risk-free rate (annual)',
       },
       constraints: {
         type: 'object',
-        description: 'Constraints: min_weight, max_weight, sum_to_one'
+        description: 'Constraints: min_weight, max_weight, sum_to_one',
       },
       views: {
         type: 'array',
-        description: 'Black-Litterman views [{asset, view, confidence}]'
+        description: 'Black-Litterman views [{asset, view, confidence}]',
       },
       num_points: {
         type: 'number',
-        description: 'Number of points on efficient frontier'
-      }
+        description: 'Number of points on efficient frontier',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Matrix utilities
 function transpose(matrix: number[][]): number[][] {
   if (matrix.length === 0) return [];
-  return matrix[0].map((_, i) => matrix.map(row => row[i]));
+  return matrix[0].map((_, i) => matrix.map((row) => row[i]));
 }
 
 function matrixMultiply(A: number[][], B: number[][]): number[][] {
@@ -69,7 +78,9 @@ function matrixMultiply(A: number[][], B: number[][]): number[][] {
   const colsA = A[0].length;
   const colsB = B[0].length;
 
-  const result: number[][] = Array(rowsA).fill(null).map(() => Array(colsB).fill(0));
+  const result: number[][] = Array(rowsA)
+    .fill(null)
+    .map(() => Array(colsB).fill(0));
 
   for (let i = 0; i < rowsA; i++) {
     for (let j = 0; j < colsB; j++) {
@@ -87,7 +98,7 @@ function vectorDot(a: number[], b: number[]): number {
 }
 
 function matrixVectorMultiply(M: number[][], v: number[]): number[] {
-  return M.map(row => vectorDot(row, v));
+  return M.map((row) => vectorDot(row, v));
 }
 
 function vectorAdd(a: number[], b: number[]): number[] {
@@ -95,11 +106,10 @@ function vectorAdd(a: number[], b: number[]): number[] {
 }
 
 function vectorScale(v: number[], s: number): number[] {
-  return v.map(val => val * s);
+  return v.map((val) => val * s);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vectorSubtract(a: number[], b: number[]): number[] {
+export function vectorSubtract(a: number[], b: number[]): number[] {
   return a.map((val, i) => val - b[i]);
 }
 
@@ -148,7 +158,7 @@ function matrixInverse(matrix: number[][]): number[][] {
   }
 
   // Extract inverse
-  return augmented.map(row => row.slice(n));
+  return augmented.map((row) => row.slice(n));
 }
 
 // Calculate covariance matrix from historical returns
@@ -166,14 +176,16 @@ function calculateCovariance(returns: number[][]): number[][] {
   }
 
   // Calculate covariance
-  const cov: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+  const cov: number[][] = Array(n)
+    .fill(null)
+    .map(() => Array(n).fill(0));
 
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       for (let t = 0; t < T; t++) {
         cov[i][j] += (returns[t][i] - means[i]) * (returns[t][j] - means[j]);
       }
-      cov[i][j] /= (T - 1);
+      cov[i][j] /= T - 1;
     }
   }
 
@@ -228,7 +240,9 @@ function markowitzOptimize(
     // [1'  0  0] [λ2]   [1]
 
     const augSize = n + 2;
-    const A: number[][] = Array(augSize).fill(null).map(() => Array(augSize).fill(0));
+    const A: number[][] = Array(augSize)
+      .fill(null)
+      .map(() => Array(augSize).fill(0));
     const b: number[] = Array(augSize).fill(0);
 
     // Fill 2Σ
@@ -259,11 +273,11 @@ function markowitzOptimize(
     let weights = solution.slice(0, n);
 
     // Apply constraints
-    weights = weights.map(w => Math.max(minWeight, Math.min(maxWeight, w)));
+    weights = weights.map((w) => Math.max(minWeight, Math.min(maxWeight, w)));
 
     // Normalize
     const sum = weights.reduce((a, b) => a + b, 0);
-    weights = weights.map(w => w / sum);
+    weights = weights.map((w) => w / sum);
 
     const ret = portfolioReturn(weights, expectedReturns);
     const risk = Math.sqrt(portfolioVariance(weights, cov));
@@ -277,12 +291,12 @@ function markowitzOptimize(
   const covInvOnes = matrixVectorMultiply(covInv, ones);
   const denom = vectorDot(ones, covInvOnes);
 
-  let weights = covInvOnes.map(w => w / denom);
+  let weights = covInvOnes.map((w) => w / denom);
 
   // Apply constraints
-  weights = weights.map(w => Math.max(minWeight, Math.min(maxWeight, w)));
+  weights = weights.map((w) => Math.max(minWeight, Math.min(maxWeight, w)));
   const sum = weights.reduce((a, b) => a + b, 0);
-  weights = weights.map(w => w / sum);
+  weights = weights.map((w) => w / sum);
 
   const ret = portfolioReturn(weights, expectedReturns);
   const risk = Math.sqrt(portfolioVariance(weights, cov));
@@ -299,7 +313,7 @@ function maxSharpeRatio(
   const n = expectedReturns.length;
 
   // Excess returns
-  const excessReturns = expectedReturns.map(r => r - riskFreeRate);
+  const excessReturns = expectedReturns.map((r) => r - riskFreeRate);
 
   // Tangency portfolio: w ∝ Σ^(-1)(μ - r_f)
   const covInv = matrixInverse(cov);
@@ -318,13 +332,13 @@ function maxSharpeRatio(
     return { weights, return: ret, risk, sharpe };
   }
 
-  let weights = rawWeights.map(w => w / sum);
+  let weights = rawWeights.map((w) => w / sum);
 
   // Handle negative weights (short selling not allowed)
-  if (weights.some(w => w < 0)) {
-    weights = weights.map(w => Math.max(0, w));
+  if (weights.some((w) => w < 0)) {
+    weights = weights.map((w) => Math.max(0, w));
     const newSum = weights.reduce((a, b) => a + b, 0);
-    weights = weights.map(w => w / newSum);
+    weights = weights.map((w) => w / newSum);
   }
 
   const ret = portfolioReturn(weights, expectedReturns);
@@ -360,7 +374,11 @@ function efficientFrontier(
 }
 
 // Risk parity portfolio
-function riskParity(cov: number[][]): { weights: number[]; risk: number; risk_contributions: number[] } {
+function riskParity(cov: number[][]): {
+  weights: number[];
+  risk: number;
+  risk_contributions: number[];
+} {
   const n = cov.length;
 
   // Start with equal weights
@@ -375,7 +393,7 @@ function riskParity(cov: number[][]): { weights: number[]; risk: number; risk_co
     const portfolioVol = Math.sqrt(vectorDot(weights, Sw));
 
     // Marginal risk contributions
-    const marginalRisk = Sw.map(s => s / portfolioVol);
+    const marginalRisk = Sw.map((s) => s / portfolioVol);
 
     // Risk contributions
     const riskContrib = weights.map((w, i) => w * marginalRisk[i]);
@@ -391,21 +409,21 @@ function riskParity(cov: number[][]): { weights: number[]; risk: number; risk_co
 
     // Normalize
     const sum = newWeights.reduce((a, b) => a + b, 0);
-    weights = newWeights.map(w => w / sum);
+    weights = newWeights.map((w) => w / sum);
 
     // Check convergence
-    const maxDiff = Math.max(...riskContrib.map(rc => Math.abs(rc - targetRisk)));
+    const maxDiff = Math.max(...riskContrib.map((rc) => Math.abs(rc - targetRisk)));
     if (maxDiff < tolerance) break;
   }
 
   const Sw = matrixVectorMultiply(cov, weights);
   const portfolioVol = Math.sqrt(vectorDot(weights, Sw));
-  const riskContributions = weights.map((w, i) => w * Sw[i] / portfolioVol);
+  const riskContributions = weights.map((w, i) => (w * Sw[i]) / portfolioVol);
 
   return {
     weights,
     risk: portfolioVol,
-    risk_contributions: riskContributions
+    risk_contributions: riskContributions,
   };
 }
 
@@ -425,7 +443,7 @@ function blackLitterman(
   if (views.length === 0) {
     return {
       weights: marketWeights,
-      expectedReturns: impliedReturns
+      expectedReturns: impliedReturns,
     };
   }
 
@@ -449,12 +467,16 @@ function blackLitterman(
 
   // Simplified: assuming diagonal Omega
   const k = views.length;
-  const OmegaMatrix: number[][] = Array(k).fill(null).map((_, i) =>
-    Array(k).fill(0).map((_, j) => i === j ? Omega[i][0] : 0)
-  );
+  const OmegaMatrix: number[][] = Array(k)
+    .fill(null)
+    .map((_, i) =>
+      Array(k)
+        .fill(0)
+        .map((_, j) => (i === j ? Omega[i][0] : 0))
+    );
 
   // τΣ
-  const tauCov = cov.map(row => row.map(val => val * tau));
+  const tauCov = cov.map((row) => row.map((val) => val * tau));
 
   // Master formula: E[R] = [(τΣ)^(-1) + P'Ω^(-1)P]^(-1) [(τΣ)^(-1)π + P'Ω^(-1)Q]
 
@@ -467,9 +489,7 @@ function blackLitterman(
   const PtOmegaInvP = matrixMultiply(PtOmegaInv, P);
 
   // (τΣ)^(-1) + P'Ω^(-1)P
-  const sumMatrix = tauCovInv.map((row, i) =>
-    row.map((val, j) => val + PtOmegaInvP[i][j])
-  );
+  const sumMatrix = tauCovInv.map((row, i) => row.map((val, j) => val + PtOmegaInvP[i][j]));
   const sumMatrixInv = matrixInverse(sumMatrix);
 
   // (τΣ)^(-1)π
@@ -490,11 +510,11 @@ function blackLitterman(
 
   // Normalize
   const sum = rawWeights.reduce((a, b) => a + b, 0);
-  const weights = rawWeights.map(w => w / sum);
+  const weights = rawWeights.map((w) => w / sum);
 
   return {
     weights,
-    expectedReturns: posteriorReturns
+    expectedReturns: posteriorReturns,
   };
 }
 
@@ -535,11 +555,13 @@ function analyzePortfolio(
     sharpe,
     diversification_ratio: diversificationRatio,
     concentration,
-    max_drawdown_estimate: maxDrawdownEstimate
+    max_drawdown_estimate: maxDrawdownEstimate,
   };
 }
 
-export async function executeportfoliooptimization(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeportfoliooptimization(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -549,58 +571,66 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'portfolio_optimization',
-          description: 'Portfolio optimization using modern portfolio theory',
-          methods: {
-            mean_variance: {
-              name: 'Markowitz Mean-Variance',
-              description: 'Classic optimization minimizing variance for target return',
-              inputs: 'expected_returns, covariance_matrix, target_return',
-              output: 'optimal weights'
+        content: JSON.stringify(
+          {
+            tool: 'portfolio_optimization',
+            description: 'Portfolio optimization using modern portfolio theory',
+            methods: {
+              mean_variance: {
+                name: 'Markowitz Mean-Variance',
+                description: 'Classic optimization minimizing variance for target return',
+                inputs: 'expected_returns, covariance_matrix, target_return',
+                output: 'optimal weights',
+              },
+              efficient_frontier: {
+                name: 'Efficient Frontier',
+                description: 'Set of optimal portfolios for different risk levels',
+                inputs: 'expected_returns, covariance_matrix, num_points',
+                output: 'frontier points (return, risk, weights)',
+              },
+              sharpe_ratio: {
+                name: 'Maximum Sharpe Ratio',
+                description: 'Tangency portfolio maximizing risk-adjusted return',
+                inputs: 'expected_returns, covariance_matrix, risk_free_rate',
+                output: 'optimal weights, sharpe ratio',
+              },
+              risk_parity: {
+                name: 'Risk Parity',
+                description: 'Equal risk contribution from each asset',
+                inputs: 'covariance_matrix',
+                output: 'weights, risk contributions',
+              },
+              black_litterman: {
+                name: 'Black-Litterman',
+                description: 'Bayesian approach combining market equilibrium with investor views',
+                inputs: 'market_weights, covariance, views',
+                output: 'adjusted expected returns, optimal weights',
+              },
             },
-            efficient_frontier: {
-              name: 'Efficient Frontier',
-              description: 'Set of optimal portfolios for different risk levels',
-              inputs: 'expected_returns, covariance_matrix, num_points',
-              output: 'frontier points (return, risk, weights)'
+            inputs: {
+              returns: 'Array of expected returns for each asset',
+              covariance: '2D array covariance matrix',
+              historical_returns: '2D array of historical returns (auto-computes cov)',
+              risk_free_rate: 'Risk-free rate (default 0)',
+              target_return: 'Target portfolio return for optimization',
+              constraints: '{ min_weight, max_weight } for bounds',
             },
-            sharpe_ratio: {
-              name: 'Maximum Sharpe Ratio',
-              description: 'Tangency portfolio maximizing risk-adjusted return',
-              inputs: 'expected_returns, covariance_matrix, risk_free_rate',
-              output: 'optimal weights, sharpe ratio'
+            example_usage: {
+              optimize: {
+                operation: 'optimize',
+                returns: [0.12, 0.1, 0.08],
+                covariance: [
+                  [0.04, 0.01, 0.005],
+                  [0.01, 0.03, 0.008],
+                  [0.005, 0.008, 0.02],
+                ],
+                target_return: 0.1,
+              },
             },
-            risk_parity: {
-              name: 'Risk Parity',
-              description: 'Equal risk contribution from each asset',
-              inputs: 'covariance_matrix',
-              output: 'weights, risk contributions'
-            },
-            black_litterman: {
-              name: 'Black-Litterman',
-              description: 'Bayesian approach combining market equilibrium with investor views',
-              inputs: 'market_weights, covariance, views',
-              output: 'adjusted expected returns, optimal weights'
-            }
           },
-          inputs: {
-            returns: 'Array of expected returns for each asset',
-            covariance: '2D array covariance matrix',
-            historical_returns: '2D array of historical returns (auto-computes cov)',
-            risk_free_rate: 'Risk-free rate (default 0)',
-            target_return: 'Target portfolio return for optimization',
-            constraints: '{ min_weight, max_weight } for bounds'
-          },
-          example_usage: {
-            optimize: {
-              operation: 'optimize',
-              returns: [0.12, 0.10, 0.08],
-              covariance: [[0.04, 0.01, 0.005], [0.01, 0.03, 0.008], [0.005, 0.008, 0.02]],
-              target_return: 0.10
-            }
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -621,9 +651,9 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
       cov = [
         [0.04, 0.01, 0.005],
         [0.01, 0.03, 0.008],
-        [0.005, 0.008, 0.02]
+        [0.005, 0.008, 0.02],
       ];
-      expectedReturns = expectedReturns || [0.12, 0.10, 0.08];
+      expectedReturns = expectedReturns || [0.12, 0.1, 0.08];
     }
 
     if (!expectedReturns) {
@@ -640,22 +670,26 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'optimize',
-          method: 'mean_variance',
-          target_return: args.target_return,
-          results: {
-            weights: result.weights.map(w => Math.round(w * 10000) / 10000),
-            expected_return: (result.return * 100).toFixed(2) + '%',
-            expected_risk: (result.risk * 100).toFixed(2) + '%',
-            sharpe_ratio: analysis.sharpe.toFixed(3),
-            diversification_ratio: analysis.diversification_ratio.toFixed(3),
-            concentration_hhi: analysis.concentration.toFixed(4)
+        content: JSON.stringify(
+          {
+            operation: 'optimize',
+            method: 'mean_variance',
+            target_return: args.target_return,
+            results: {
+              weights: result.weights.map((w) => Math.round(w * 10000) / 10000),
+              expected_return: (result.return * 100).toFixed(2) + '%',
+              expected_risk: (result.risk * 100).toFixed(2) + '%',
+              sharpe_ratio: analysis.sharpe.toFixed(3),
+              diversification_ratio: analysis.diversification_ratio.toFixed(3),
+              concentration_hhi: analysis.concentration.toFixed(4),
+            },
+            allocation_summary: result.weights.map(
+              (w, i) => `Asset ${i + 1}: ${(w * 100).toFixed(1)}%`
+            ),
           },
-          allocation_summary: result.weights.map((w, i) =>
-            `Asset ${i + 1}: ${(w * 100).toFixed(1)}%`
-          )
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -664,18 +698,22 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'sharpe_ratio',
-          method: 'tangency_portfolio',
-          risk_free_rate: (riskFreeRate * 100).toFixed(2) + '%',
-          results: {
-            weights: result.weights.map(w => Math.round(w * 10000) / 10000),
-            expected_return: (result.return * 100).toFixed(2) + '%',
-            expected_risk: (result.risk * 100).toFixed(2) + '%',
-            sharpe_ratio: result.sharpe.toFixed(3)
+        content: JSON.stringify(
+          {
+            operation: 'sharpe_ratio',
+            method: 'tangency_portfolio',
+            risk_free_rate: (riskFreeRate * 100).toFixed(2) + '%',
+            results: {
+              weights: result.weights.map((w) => Math.round(w * 10000) / 10000),
+              expected_return: (result.return * 100).toFixed(2) + '%',
+              expected_risk: (result.risk * 100).toFixed(2) + '%',
+              sharpe_ratio: result.sharpe.toFixed(3),
+            },
+            note: 'Maximum Sharpe ratio portfolio (tangency portfolio)',
           },
-          note: 'Maximum Sharpe ratio portfolio (tangency portfolio)'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -696,22 +734,26 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'efficient_frontier',
-          num_points: frontier.length,
-          frontier: frontier.map((p, i) => ({
-            point: i + 1,
-            return: (p.return * 100).toFixed(2) + '%',
-            risk: (p.risk * 100).toFixed(2) + '%',
-            sharpe: ((p.return - riskFreeRate) / p.risk).toFixed(3),
-            is_tangency: i === maxSharpeIdx
-          })),
-          tangency_portfolio: {
-            index: maxSharpeIdx + 1,
-            weights: frontier[maxSharpeIdx].weights.map(w => Math.round(w * 10000) / 10000),
-            sharpe: maxSharpe.toFixed(3)
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'efficient_frontier',
+            num_points: frontier.length,
+            frontier: frontier.map((p, i) => ({
+              point: i + 1,
+              return: (p.return * 100).toFixed(2) + '%',
+              risk: (p.risk * 100).toFixed(2) + '%',
+              sharpe: ((p.return - riskFreeRate) / p.risk).toFixed(3),
+              is_tangency: i === maxSharpeIdx,
+            })),
+            tangency_portfolio: {
+              index: maxSharpeIdx + 1,
+              weights: frontier[maxSharpeIdx].weights.map((w) => Math.round(w * 10000) / 10000),
+              sharpe: maxSharpe.toFixed(3),
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -720,23 +762,27 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'risk_parity',
-          description: 'Equal risk contribution portfolio',
-          results: {
-            weights: result.weights.map(w => Math.round(w * 10000) / 10000),
-            portfolio_risk: (result.risk * 100).toFixed(2) + '%',
-            risk_contributions: result.risk_contributions.map(rc =>
-              (rc * 100).toFixed(2) + '%'
-            )
+        content: JSON.stringify(
+          {
+            operation: 'risk_parity',
+            description: 'Equal risk contribution portfolio',
+            results: {
+              weights: result.weights.map((w) => Math.round(w * 10000) / 10000),
+              portfolio_risk: (result.risk * 100).toFixed(2) + '%',
+              risk_contributions: result.risk_contributions.map(
+                (rc) => (rc * 100).toFixed(2) + '%'
+              ),
+            },
+            verification: {
+              target_contribution: (100 / cov.length).toFixed(2) + '%',
+              actual_contributions: result.risk_contributions.map(
+                (rc) => ((rc / result.risk) * 100).toFixed(2) + '%'
+              ),
+            },
           },
-          verification: {
-            target_contribution: (100 / cov.length).toFixed(2) + '%',
-            actual_contributions: result.risk_contributions.map(rc =>
-              (rc / result.risk * 100).toFixed(2) + '%'
-            )
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -748,19 +794,23 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'black_litterman',
-          description: 'Black-Litterman model combining equilibrium with views',
-          inputs: {
-            market_weights: marketWeights,
-            num_views: views.length
+        content: JSON.stringify(
+          {
+            operation: 'black_litterman',
+            description: 'Black-Litterman model combining equilibrium with views',
+            inputs: {
+              market_weights: marketWeights,
+              num_views: views.length,
+            },
+            results: {
+              posterior_returns: result.expectedReturns.map((r) => (r * 100).toFixed(2) + '%'),
+              optimal_weights: result.weights.map((w) => Math.round(w * 10000) / 10000),
+            },
+            analysis: analyzePortfolio(result.weights, result.expectedReturns, cov, riskFreeRate),
           },
-          results: {
-            posterior_returns: result.expectedReturns.map(r => (r * 100).toFixed(2) + '%'),
-            optimal_weights: result.weights.map(w => Math.round(w * 10000) / 10000)
-          },
-          analysis: analyzePortfolio(result.weights, result.expectedReturns, cov, riskFreeRate)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -770,30 +820,45 @@ export async function executeportfoliooptimization(toolCall: UnifiedToolCall): P
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          input_weights: weights,
-          analysis: {
-            expected_return: (analysis.return * 100).toFixed(2) + '%',
-            expected_risk: (analysis.risk * 100).toFixed(2) + '%',
-            sharpe_ratio: analysis.sharpe.toFixed(3),
-            diversification_ratio: analysis.diversification_ratio.toFixed(3),
-            concentration_hhi: analysis.concentration.toFixed(4),
-            estimated_max_drawdown: (analysis.max_drawdown_estimate * 100).toFixed(1) + '%'
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            input_weights: weights,
+            analysis: {
+              expected_return: (analysis.return * 100).toFixed(2) + '%',
+              expected_risk: (analysis.risk * 100).toFixed(2) + '%',
+              sharpe_ratio: analysis.sharpe.toFixed(3),
+              diversification_ratio: analysis.diversification_ratio.toFixed(3),
+              concentration_hhi: analysis.concentration.toFixed(4),
+              estimated_max_drawdown: (analysis.max_drawdown_estimate * 100).toFixed(1) + '%',
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: 'Unknown operation',
-        available: ['optimize', 'efficient_frontier', 'risk_parity', 'black_litterman', 'sharpe_ratio', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: 'Unknown operation',
+          available: [
+            'optimize',
+            'efficient_frontier',
+            'risk_parity',
+            'black_litterman',
+            'sharpe_ratio',
+            'analyze',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

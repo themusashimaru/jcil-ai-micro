@@ -8,44 +8,45 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const digitalsignatureTool: UnifiedTool = {
   name: 'digital_signature',
-  description: 'Digital signatures - RSA-PSS, ECDSA, EdDSA with key generation, signing, and verification',
+  description:
+    'Digital signatures - RSA-PSS, ECDSA, EdDSA with key generation, signing, and verification',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['sign', 'verify', 'generate_keypair', 'analyze', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       algorithm: {
         type: 'string',
         enum: ['RSA-PSS', 'ECDSA-P256', 'ECDSA-P384', 'Ed25519', 'Ed448'],
-        description: 'Signature algorithm'
+        description: 'Signature algorithm',
       },
       message: {
         type: 'string',
-        description: 'Message to sign or verify'
+        description: 'Message to sign or verify',
       },
       signature: {
         type: 'string',
-        description: 'Signature in hex for verification'
+        description: 'Signature in hex for verification',
       },
       public_key: {
         type: 'object',
-        description: 'Public key for verification'
+        description: 'Public key for verification',
       },
       private_key: {
         type: 'object',
-        description: 'Private key for signing'
+        description: 'Private key for signing',
       },
       hash_algorithm: {
         type: 'string',
         enum: ['SHA-256', 'SHA-384', 'SHA-512'],
-        description: 'Hash algorithm for signing'
-      }
+        description: 'Hash algorithm for signing',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Utility functions
@@ -58,7 +59,7 @@ function stringToBytes(str: string): number[] {
 }
 
 function bytesToHex(bytes: number[]): string {
-  return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function hexToBytes(hex: string): number[] {
@@ -79,7 +80,7 @@ function sha256(message: number[]): number[] {
     0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
     0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
   ];
 
   const rotr = (x: number, n: number) => ((x >>> n) | (x << (32 - n))) >>> 0;
@@ -87,24 +88,26 @@ function sha256(message: number[]): number[] {
   const msg = [...message];
   const ml = BigInt(message.length * 8);
   msg.push(0x80);
-  while ((msg.length % 64) !== 56) msg.push(0);
+  while (msg.length % 64 !== 56) msg.push(0);
   for (let i = 56; i >= 0; i -= 8) msg.push(Number((ml >> BigInt(i)) & 0xffn));
 
   let [h0, h1, h2, h3, h4, h5, h6, h7] = [
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ];
 
   for (let i = 0; i < msg.length; i += 64) {
     const w: number[] = [];
     for (let j = 0; j < 16; j++) {
-      w[j] = (msg[i + j * 4] << 24) | (msg[i + j * 4 + 1] << 16) |
-             (msg[i + j * 4 + 2] << 8) | msg[i + j * 4 + 3];
+      w[j] =
+        (msg[i + j * 4] << 24) |
+        (msg[i + j * 4 + 1] << 16) |
+        (msg[i + j * 4 + 2] << 8) |
+        msg[i + j * 4 + 3];
     }
     for (let j = 16; j < 64; j++) {
-      const s0 = rotr(w[j-15], 7) ^ rotr(w[j-15], 18) ^ (w[j-15] >>> 3);
-      const s1 = rotr(w[j-2], 17) ^ rotr(w[j-2], 19) ^ (w[j-2] >>> 10);
-      w[j] = (w[j-16] + s0 + w[j-7] + s1) >>> 0;
+      const s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+      const s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+      w[j] = (w[j - 16] + s0 + w[j - 7] + s1) >>> 0;
     }
 
     let [a, b, c, d, e, f, g, h] = [h0, h1, h2, h3, h4, h5, h6, h7];
@@ -115,14 +118,24 @@ function sha256(message: number[]): number[] {
       const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
       const maj = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (S0 + maj) >>> 0;
-      h = g; g = f; f = e; e = (d + temp1) >>> 0;
-      d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) >>> 0;
     }
 
-    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0;
-    h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0;
-    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0;
-    h6 = (h6 + g) >>> 0; h7 = (h7 + h) >>> 0;
+    h0 = (h0 + a) >>> 0;
+    h1 = (h1 + b) >>> 0;
+    h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0;
+    h5 = (h5 + f) >>> 0;
+    h6 = (h6 + g) >>> 0;
+    h7 = (h7 + h) >>> 0;
   }
 
   const hash: number[] = [];
@@ -135,26 +148,86 @@ function sha256(message: number[]): number[] {
 // SHA-512 for Ed25519/Ed448
 function sha512(message: number[]): number[] {
   const K: bigint[] = [
-    0x428a2f98d728ae22n, 0x7137449123ef65cdn, 0xb5c0fbcfec4d3b2fn, 0xe9b5dba58189dbbcn,
-    0x3956c25bf348b538n, 0x59f111f1b605d019n, 0x923f82a4af194f9bn, 0xab1c5ed5da6d8118n,
-    0xd807aa98a3030242n, 0x12835b0145706fben, 0x243185be4ee4b28cn, 0x550c7dc3d5ffb4e2n,
-    0x72be5d74f27b896fn, 0x80deb1fe3b1696b1n, 0x9bdc06a725c71235n, 0xc19bf174cf692694n,
-    0xe49b69c19ef14ad2n, 0xefbe4786384f25e3n, 0x0fc19dc68b8cd5b5n, 0x240ca1cc77ac9c65n,
-    0x2de92c6f592b0275n, 0x4a7484aa6ea6e483n, 0x5cb0a9dcbd41fbd4n, 0x76f988da831153b5n,
-    0x983e5152ee66dfabn, 0xa831c66d2db43210n, 0xb00327c898fb213fn, 0xbf597fc7beef0ee4n,
-    0xc6e00bf33da88fc2n, 0xd5a79147930aa725n, 0x06ca6351e003826fn, 0x142929670a0e6e70n,
-    0x27b70a8546d22ffcn, 0x2e1b21385c26c926n, 0x4d2c6dfc5ac42aedn, 0x53380d139d95b3dfn,
-    0x650a73548baf63den, 0x766a0abb3c77b2a8n, 0x81c2c92e47edaee6n, 0x92722c851482353bn,
-    0xa2bfe8a14cf10364n, 0xa81a664bbc423001n, 0xc24b8b70d0f89791n, 0xc76c51a30654be30n,
-    0xd192e819d6ef5218n, 0xd69906245565a910n, 0xf40e35855771202an, 0x106aa07032bbd1b8n,
-    0x19a4c116b8d2d0c8n, 0x1e376c085141ab53n, 0x2748774cdf8eeb99n, 0x34b0bcb5e19b48a8n,
-    0x391c0cb3c5c95a63n, 0x4ed8aa4ae3418acbn, 0x5b9cca4f7763e373n, 0x682e6ff3d6b2b8a3n,
-    0x748f82ee5defb2fcn, 0x78a5636f43172f60n, 0x84c87814a1f0ab72n, 0x8cc702081a6439ecn,
-    0x90befffa23631e28n, 0xa4506cebde82bde9n, 0xbef9a3f7b2c67915n, 0xc67178f2e372532bn,
-    0xca273eceea26619cn, 0xd186b8c721c0c207n, 0xeada7dd6cde0eb1en, 0xf57d4f7fee6ed178n,
-    0x06f067aa72176fban, 0x0a637dc5a2c898a6n, 0x113f9804bef90daen, 0x1b710b35131c471bn,
-    0x28db77f523047d84n, 0x32caab7b40c72493n, 0x3c9ebe0a15c9bebcn, 0x431d67c49c100d4cn,
-    0x4cc5d4becb3e42b6n, 0x597f299cfc657e2an, 0x5fcb6fab3ad6faecn, 0x6c44198c4a475817n
+    0x428a2f98d728ae22n,
+    0x7137449123ef65cdn,
+    0xb5c0fbcfec4d3b2fn,
+    0xe9b5dba58189dbbcn,
+    0x3956c25bf348b538n,
+    0x59f111f1b605d019n,
+    0x923f82a4af194f9bn,
+    0xab1c5ed5da6d8118n,
+    0xd807aa98a3030242n,
+    0x12835b0145706fben,
+    0x243185be4ee4b28cn,
+    0x550c7dc3d5ffb4e2n,
+    0x72be5d74f27b896fn,
+    0x80deb1fe3b1696b1n,
+    0x9bdc06a725c71235n,
+    0xc19bf174cf692694n,
+    0xe49b69c19ef14ad2n,
+    0xefbe4786384f25e3n,
+    0x0fc19dc68b8cd5b5n,
+    0x240ca1cc77ac9c65n,
+    0x2de92c6f592b0275n,
+    0x4a7484aa6ea6e483n,
+    0x5cb0a9dcbd41fbd4n,
+    0x76f988da831153b5n,
+    0x983e5152ee66dfabn,
+    0xa831c66d2db43210n,
+    0xb00327c898fb213fn,
+    0xbf597fc7beef0ee4n,
+    0xc6e00bf33da88fc2n,
+    0xd5a79147930aa725n,
+    0x06ca6351e003826fn,
+    0x142929670a0e6e70n,
+    0x27b70a8546d22ffcn,
+    0x2e1b21385c26c926n,
+    0x4d2c6dfc5ac42aedn,
+    0x53380d139d95b3dfn,
+    0x650a73548baf63den,
+    0x766a0abb3c77b2a8n,
+    0x81c2c92e47edaee6n,
+    0x92722c851482353bn,
+    0xa2bfe8a14cf10364n,
+    0xa81a664bbc423001n,
+    0xc24b8b70d0f89791n,
+    0xc76c51a30654be30n,
+    0xd192e819d6ef5218n,
+    0xd69906245565a910n,
+    0xf40e35855771202an,
+    0x106aa07032bbd1b8n,
+    0x19a4c116b8d2d0c8n,
+    0x1e376c085141ab53n,
+    0x2748774cdf8eeb99n,
+    0x34b0bcb5e19b48a8n,
+    0x391c0cb3c5c95a63n,
+    0x4ed8aa4ae3418acbn,
+    0x5b9cca4f7763e373n,
+    0x682e6ff3d6b2b8a3n,
+    0x748f82ee5defb2fcn,
+    0x78a5636f43172f60n,
+    0x84c87814a1f0ab72n,
+    0x8cc702081a6439ecn,
+    0x90befffa23631e28n,
+    0xa4506cebde82bde9n,
+    0xbef9a3f7b2c67915n,
+    0xc67178f2e372532bn,
+    0xca273eceea26619cn,
+    0xd186b8c721c0c207n,
+    0xeada7dd6cde0eb1en,
+    0xf57d4f7fee6ed178n,
+    0x06f067aa72176fban,
+    0x0a637dc5a2c898a6n,
+    0x113f9804bef90daen,
+    0x1b710b35131c471bn,
+    0x28db77f523047d84n,
+    0x32caab7b40c72493n,
+    0x3c9ebe0a15c9bebcn,
+    0x431d67c49c100d4cn,
+    0x4cc5d4becb3e42b6n,
+    0x597f299cfc657e2an,
+    0x5fcb6fab3ad6faecn,
+    0x6c44198c4a475817n,
   ];
 
   const rotr64 = (x: bigint, n: bigint) => ((x >> n) | (x << (64n - n))) & 0xffffffffffffffffn;
@@ -162,12 +235,18 @@ function sha512(message: number[]): number[] {
   const msg = [...message];
   const ml = BigInt(message.length * 8);
   msg.push(0x80);
-  while ((msg.length % 128) !== 112) msg.push(0);
+  while (msg.length % 128 !== 112) msg.push(0);
   for (let i = 120; i >= 0; i -= 8) msg.push(Number((ml >> BigInt(i)) & 0xffn));
 
   let [h0, h1, h2, h3, h4, h5, h6, h7] = [
-    0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
-    0x510e527fade682d1n, 0x9b05688c2b3e6c1fn, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n
+    0x6a09e667f3bcc908n,
+    0xbb67ae8584caa73bn,
+    0x3c6ef372fe94f82bn,
+    0xa54ff53a5f1d36f1n,
+    0x510e527fade682d1n,
+    0x9b05688c2b3e6c1fn,
+    0x1f83d9abfb41bd6bn,
+    0x5be0cd19137e2179n,
   ];
 
   for (let i = 0; i < msg.length; i += 128) {
@@ -181,23 +260,29 @@ function sha512(message: number[]): number[] {
     }
 
     for (let j = 16; j < 80; j++) {
-      const s0 = rotr64(w[j-15], 1n) ^ rotr64(w[j-15], 8n) ^ (w[j-15] >> 7n);
-      const s1 = rotr64(w[j-2], 19n) ^ rotr64(w[j-2], 61n) ^ (w[j-2] >> 6n);
-      w[j] = (w[j-16] + s0 + w[j-7] + s1) & 0xffffffffffffffffn;
+      const s0 = rotr64(w[j - 15], 1n) ^ rotr64(w[j - 15], 8n) ^ (w[j - 15] >> 7n);
+      const s1 = rotr64(w[j - 2], 19n) ^ rotr64(w[j - 2], 61n) ^ (w[j - 2] >> 6n);
+      w[j] = (w[j - 16] + s0 + w[j - 7] + s1) & 0xffffffffffffffffn;
     }
 
     let [a, b, c, d, e, f, g, h] = [h0, h1, h2, h3, h4, h5, h6, h7];
 
     for (let j = 0; j < 80; j++) {
       const S1 = rotr64(e, 14n) ^ rotr64(e, 18n) ^ rotr64(e, 41n);
-      const ch = (e & f) ^ ((~e & 0xffffffffffffffffn) & g);
+      const ch = (e & f) ^ (~e & 0xffffffffffffffffn & g);
       const temp1 = (h + S1 + ch + K[j] + w[j]) & 0xffffffffffffffffn;
       const S0 = rotr64(a, 28n) ^ rotr64(a, 34n) ^ rotr64(a, 39n);
       const maj = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (S0 + maj) & 0xffffffffffffffffn;
 
-      h = g; g = f; f = e; e = (d + temp1) & 0xffffffffffffffffn;
-      d = c; c = b; b = a; a = (temp1 + temp2) & 0xffffffffffffffffn;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) & 0xffffffffffffffffn;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) & 0xffffffffffffffffn;
     }
 
     h0 = (h0 + a) & 0xffffffffffffffffn;
@@ -253,7 +338,7 @@ const P256 = {
   b: 0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604bn,
   n: 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n,
   Gx: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,
-  Gy: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n
+  Gy: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,
 };
 
 // ECDSA over P-384
@@ -263,7 +348,7 @@ const P384 = {
   b: 0xb3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875ac656398d8a2ed19d2a85c8edd3ec2aefn,
   n: 0xffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973n,
   Gx: 0xaa87ca22be8b05378eb1c71ef320ad746e1d3b628ba79b9859f741e082542a385502f25dbf55296c3a545e3872760ab7n,
-  Gy: 0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c00a60b1ce1d7e819d7a431d7c90ea0e5fn
+  Gy: 0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c00a60b1ce1d7e819d7a431d7c90ea0e5fn,
 };
 
 interface Point {
@@ -287,20 +372,20 @@ function pointAdd(P: Point, Q: Point, curve: typeof P256): Point {
     const den = modInverse(2n * P.y, p);
     const λ = (num * den) % p;
 
-    const x = ((λ * λ - 2n * P.x) % p + p) % p;
-    const y = ((λ * (P.x - x) - P.y) % p + p) % p;
+    const x = (((λ * λ - 2n * P.x) % p) + p) % p;
+    const y = (((λ * (P.x - x) - P.y) % p) + p) % p;
 
     return { x, y };
   }
 
   if (P.x === Q.x) return POINT_AT_INFINITY;
 
-  const num = ((Q.y - P.y) % p + p) % p;
-  const den = modInverse(((Q.x - P.x) % p + p) % p, p);
+  const num = (((Q.y - P.y) % p) + p) % p;
+  const den = modInverse((((Q.x - P.x) % p) + p) % p, p);
   const λ = (num * den) % p;
 
-  const x = ((λ * λ - P.x - Q.x) % p + p) % p;
-  const y = ((λ * (P.x - x) - P.y) % p + p) % p;
+  const x = (((λ * λ - P.x - Q.x) % p) + p) % p;
+  const y = (((λ * (P.x - x) - P.y) % p) + p) % p;
 
   return { x, y };
 }
@@ -370,7 +455,8 @@ function ecdsaSign(
   const z = bytesToBigInt(hash) % curve.n;
   const G = { x: curve.Gx, y: curve.Gy };
 
-  let r: bigint, s: bigint;
+  let r: bigint = 0n,
+    s: bigint = 0n;
 
   do {
     const k = (randomBigInt(256) % (curve.n - 1n)) + 1n;
@@ -422,7 +508,7 @@ const ED25519_L = 2n ** 252n + 27742317777372353535851937790883648493n;
 const ED25519_D = -121665n * modInverse(121666n, ED25519_P);
 
 // Ed25519 base point
-const ED25519_GY = 4n * modInverse(5n, ED25519_P) % ED25519_P;
+const ED25519_GY = (4n * modInverse(5n, ED25519_P)) % ED25519_P;
 const ED25519_GX = (() => {
   // Full calculation would use: u = y^2 - 1, v = d*y^2 + 1, x = sqrt(u/v)
   // Using known base point x-coordinate for Ed25519
@@ -436,18 +522,18 @@ interface EdPoint {
 
 function edPointAdd(P: EdPoint, Q: EdPoint): EdPoint {
   const p = ED25519_P;
-  const d = (ED25519_D % p + p) % p;
+  const d = ((ED25519_D % p) + p) % p;
 
   const x1y2 = (P.x * Q.y) % p;
   const y1x2 = (P.y * Q.x) % p;
   const y1y2 = (P.y * Q.y) % p;
   const x1x2 = (P.x * Q.x) % p;
-  const dx1x2y1y2 = (d * x1x2 % p * y1y2) % p;
+  const dx1x2y1y2 = (((d * x1x2) % p) * y1y2) % p;
 
   const xNum = (x1y2 + y1x2) % p;
   const xDen = (1n + dx1x2y1y2) % p;
   const yNum = (y1y2 + x1x2) % p; // a = -1
-  const yDen = ((1n - dx1x2y1y2) % p + p) % p;
+  const yDen = (((1n - dx1x2y1y2) % p) + p) % p;
 
   const x = (xNum * modInverse(xDen, p)) % p;
   const y = (yNum * modInverse(yDen, p)) % p;
@@ -583,7 +669,7 @@ function rsaPssSign(
 
   // Clear leftmost bits
   const zeroBits = 8 * emLen - emBits;
-  maskedDB[0] &= (0xff >> zeroBits);
+  maskedDB[0] &= 0xff >> zeroBits;
 
   // EM = maskedDB || H || 0xbc
   const EM = [...maskedDB, ...H, 0xbc];
@@ -627,7 +713,7 @@ function rsaPssVerify(
 
   // Clear leftmost bits
   const zeroBits = 8 * emLen - emBits;
-  DB[0] &= (0xff >> zeroBits);
+  DB[0] &= 0xff >> zeroBits;
 
   // Check DB format
   const psLen = emLen - hash.length - saltLength - 2;
@@ -655,7 +741,7 @@ function mgf1Sha256(seed: number[], length: number): number[] {
       (counter >> 24) & 0xff,
       (counter >> 16) & 0xff,
       (counter >> 8) & 0xff,
-      counter & 0xff
+      counter & 0xff,
     ];
     const hash = sha256([...seed, ...C]);
     mask.push(...hash);
@@ -665,7 +751,9 @@ function mgf1Sha256(seed: number[], length: number): number[] {
   return mask.slice(0, length);
 }
 
-export async function executedigitalsignature(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executedigitalsignature(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -676,60 +764,64 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'digital_signature',
-          description: 'Digital signature creation and verification',
-          algorithms: {
-            'RSA-PSS': {
-              type: 'RSA with Probabilistic Signature Scheme',
-              key_sizes: [2048, 3072, 4096],
-              security: 'Industry standard, widely deployed',
-              pros: ['Proven security', 'Wide support'],
-              cons: ['Large signatures', 'Slower than EC']
+        content: JSON.stringify(
+          {
+            tool: 'digital_signature',
+            description: 'Digital signature creation and verification',
+            algorithms: {
+              'RSA-PSS': {
+                type: 'RSA with Probabilistic Signature Scheme',
+                key_sizes: [2048, 3072, 4096],
+                security: 'Industry standard, widely deployed',
+                pros: ['Proven security', 'Wide support'],
+                cons: ['Large signatures', 'Slower than EC'],
+              },
+              'ECDSA-P256': {
+                type: 'Elliptic Curve DSA on NIST P-256',
+                key_size: 256,
+                security: '128-bit security level',
+                pros: ['Small signatures', 'Fast'],
+                cons: ['Requires secure random k', 'Complex implementation'],
+              },
+              'ECDSA-P384': {
+                type: 'Elliptic Curve DSA on NIST P-384',
+                key_size: 384,
+                security: '192-bit security level',
+                pros: ['Higher security', 'Small signatures'],
+                cons: ['Slower than P-256'],
+              },
+              Ed25519: {
+                type: 'Edwards-curve Digital Signature Algorithm',
+                key_size: 256,
+                security: '128-bit security level',
+                pros: ['Very fast', 'Deterministic', 'Resistant to side-channels'],
+                cons: ['Less widely deployed than ECDSA'],
+              },
+              Ed448: {
+                type: 'Edwards-curve DSA on Curve448',
+                key_size: 448,
+                security: '224-bit security level',
+                pros: ['High security', 'Deterministic'],
+                cons: ['Slower than Ed25519'],
+              },
             },
-            'ECDSA-P256': {
-              type: 'Elliptic Curve DSA on NIST P-256',
-              key_size: 256,
-              security: '128-bit security level',
-              pros: ['Small signatures', 'Fast'],
-              cons: ['Requires secure random k', 'Complex implementation']
+            operations: {
+              generate_keypair: 'Generate signing key pair',
+              sign: 'Create digital signature',
+              verify: 'Verify digital signature',
+              analyze: 'Analyze signature properties',
             },
-            'ECDSA-P384': {
-              type: 'Elliptic Curve DSA on NIST P-384',
-              key_size: 384,
-              security: '192-bit security level',
-              pros: ['Higher security', 'Small signatures'],
-              cons: ['Slower than P-256']
-            },
-            'Ed25519': {
-              type: 'Edwards-curve Digital Signature Algorithm',
-              key_size: 256,
-              security: '128-bit security level',
-              pros: ['Very fast', 'Deterministic', 'Resistant to side-channels'],
-              cons: ['Less widely deployed than ECDSA']
-            },
-            'Ed448': {
-              type: 'Edwards-curve DSA on Curve448',
-              key_size: 448,
-              security: '224-bit security level',
-              pros: ['High security', 'Deterministic'],
-              cons: ['Slower than Ed25519']
-            }
+            security_best_practices: [
+              'Use Ed25519 for new applications',
+              'ECDSA requires cryptographically secure random k',
+              'RSA-PSS keys should be at least 2048 bits',
+              'Never reuse k values in ECDSA (catastrophic)',
+              'Verify signatures before processing data',
+            ],
           },
-          operations: {
-            generate_keypair: 'Generate signing key pair',
-            sign: 'Create digital signature',
-            verify: 'Verify digital signature',
-            analyze: 'Analyze signature properties'
-          },
-          security_best_practices: [
-            'Use Ed25519 for new applications',
-            'ECDSA requires cryptographically secure random k',
-            'RSA-PSS keys should be at least 2048 bits',
-            'Never reuse k values in ECDSA (catastrophic)',
-            'Verify signatures before processing data'
-          ]
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -741,21 +833,26 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate_keypair',
-            algorithm,
-            curve: algorithm === 'ECDSA-P256' ? 'P-256 (secp256r1)' : 'P-384 (secp384r1)',
-            private_key: {
-              d: keyPair.privateKey.toString(16).padStart(keySize * 2, '0')
+          content: JSON.stringify(
+            {
+              operation: 'generate_keypair',
+              algorithm,
+              curve: algorithm === 'ECDSA-P256' ? 'P-256 (secp256r1)' : 'P-384 (secp384r1)',
+              private_key: {
+                d: keyPair.privateKey.toString(16).padStart(keySize * 2, '0'),
+              },
+              public_key: {
+                x: keyPair.publicKey.x.toString(16).padStart(keySize * 2, '0'),
+                y: keyPair.publicKey.y.toString(16).padStart(keySize * 2, '0'),
+                uncompressed:
+                  '04' +
+                  keyPair.publicKey.x.toString(16).padStart(keySize * 2, '0') +
+                  keyPair.publicKey.y.toString(16).padStart(keySize * 2, '0'),
+              },
             },
-            public_key: {
-              x: keyPair.publicKey.x.toString(16).padStart(keySize * 2, '0'),
-              y: keyPair.publicKey.y.toString(16).padStart(keySize * 2, '0'),
-              uncompressed: '04' +
-                keyPair.publicKey.x.toString(16).padStart(keySize * 2, '0') +
-                keyPair.publicKey.y.toString(16).padStart(keySize * 2, '0')
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -764,18 +861,22 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate_keypair',
-            algorithm: 'Ed25519',
-            curve: 'Curve25519',
-            private_key: {
-              seed: bytesToHex(keyPair.privateKey)
+          content: JSON.stringify(
+            {
+              operation: 'generate_keypair',
+              algorithm: 'Ed25519',
+              curve: 'Curve25519',
+              private_key: {
+                seed: bytesToHex(keyPair.privateKey),
+              },
+              public_key: {
+                encoded: bytesToHex(keyPair.publicKey),
+              },
+              key_format: 'RFC 8032',
             },
-            public_key: {
-              encoded: bytesToHex(keyPair.publicKey)
-            },
-            key_format: 'RFC 8032'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -809,30 +910,38 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate_keypair',
-            algorithm: 'RSA-PSS',
-            key_size_bits: bits,
-            warning: 'Demo key - use 2048+ bits for production',
-            public_key: {
-              n: n.toString(16),
-              e: e.toString(16)
+          content: JSON.stringify(
+            {
+              operation: 'generate_keypair',
+              algorithm: 'RSA-PSS',
+              key_size_bits: bits,
+              warning: 'Demo key - use 2048+ bits for production',
+              public_key: {
+                n: n.toString(16),
+                e: e.toString(16),
+              },
+              private_key: {
+                n: n.toString(16),
+                d: d.toString(16),
+              },
             },
-            private_key: {
-              n: n.toString(16),
-              d: d.toString(16)
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          error: 'Unsupported algorithm',
-          supported: ['RSA-PSS', 'ECDSA-P256', 'ECDSA-P384', 'Ed25519']
-        }, null, 2),
-        isError: true
+        content: JSON.stringify(
+          {
+            error: 'Unsupported algorithm',
+            supported: ['RSA-PSS', 'ECDSA-P256', 'ECDSA-P384', 'Ed25519'],
+          },
+          null,
+          2
+        ),
+        isError: true,
       };
     }
 
@@ -844,10 +953,14 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
       if (!privateKey) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Private key required for signing'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Private key required for signing',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -859,17 +972,21 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'sign',
-            algorithm,
-            message_hash: bytesToHex(sha256(messageBytes)),
-            signature: {
-              r: sig.r.toString(16).padStart(keySize * 2, '0'),
-              s: sig.s.toString(16).padStart(keySize * 2, '0'),
-              der: 'DER encoding would go here'
+          content: JSON.stringify(
+            {
+              operation: 'sign',
+              algorithm,
+              message_hash: bytesToHex(sha256(messageBytes)),
+              signature: {
+                r: sig.r.toString(16).padStart(keySize * 2, '0'),
+                s: sig.s.toString(16).padStart(keySize * 2, '0'),
+                der: 'DER encoding would go here',
+              },
+              signature_length_bits: keySize * 16,
             },
-            signature_length_bits: keySize * 16
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -879,12 +996,16 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'sign',
-            algorithm: 'Ed25519',
-            signature: bytesToHex(sig),
-            signature_length_bits: 512
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'sign',
+              algorithm: 'Ed25519',
+              signature: bytesToHex(sig),
+              signature_length_bits: 512,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -895,20 +1016,24 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'sign',
-            algorithm: 'RSA-PSS',
-            hash: 'SHA-256',
-            signature: bytesToHex(sig),
-            signature_length_bits: sig.length * 8
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'sign',
+              algorithm: 'RSA-PSS',
+              hash: 'SHA-256',
+              signature: bytesToHex(sig),
+              signature_length_bits: sig.length * 8,
+            },
+            null,
+            2
+          ),
         };
       }
 
       return {
         toolCallId: id,
         content: JSON.stringify({ error: 'Unsupported algorithm' }, null, 2),
-        isError: true
+        isError: true,
       };
     }
 
@@ -921,10 +1046,14 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
       if (!signature || !publicKey) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Signature and public key required for verification'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Signature and public key required for verification',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -933,25 +1062,29 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         const sig = {
           r: BigInt('0x' + (signature.r || signature)),
-          s: BigInt('0x' + (signature.s || '0'))
+          s: BigInt('0x' + (signature.s || '0')),
         };
 
         const pubKey: Point = {
           x: BigInt('0x' + publicKey.x),
-          y: BigInt('0x' + publicKey.y)
+          y: BigInt('0x' + publicKey.y),
         };
 
         const valid = ecdsaVerify(messageBytes, sig, pubKey, curve);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'verify',
-            algorithm,
-            valid,
-            message_hash: bytesToHex(sha256(messageBytes)),
-            note: valid ? 'Signature is valid' : 'Signature verification failed'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'verify',
+              algorithm,
+              valid,
+              message_hash: bytesToHex(sha256(messageBytes)),
+              note: valid ? 'Signature is valid' : 'Signature verification failed',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -963,12 +1096,16 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'verify',
-            algorithm: 'Ed25519',
-            valid,
-            note: valid ? 'Signature is valid' : 'Signature verification failed'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'verify',
+              algorithm: 'Ed25519',
+              valid,
+              note: valid ? 'Signature is valid' : 'Signature verification failed',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -981,19 +1118,23 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'verify',
-            algorithm: 'RSA-PSS',
-            valid,
-            note: valid ? 'Signature is valid' : 'Signature verification failed'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'verify',
+              algorithm: 'RSA-PSS',
+              valid,
+              note: valid ? 'Signature is valid' : 'Signature verification failed',
+            },
+            null,
+            2
+          ),
         };
       }
 
       return {
         toolCallId: id,
         content: JSON.stringify({ error: 'Unsupported algorithm' }, null, 2),
-        isError: true
+        isError: true,
       };
     }
 
@@ -1003,10 +1144,14 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
       if (!signature) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Signature required for analysis'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Signature required for analysis',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -1015,36 +1160,48 @@ export async function executedigitalsignature(toolCall: UnifiedToolCall): Promis
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          algorithm,
-          signature_length_bytes: sigBytes.length || sigHex.length / 2,
-          signature_length_bits: (sigBytes.length || sigHex.length / 2) * 8,
-          format_detected: sigBytes.length === 64 ? 'Likely Ed25519 or ECDSA P-256' :
-                          sigBytes.length === 96 ? 'Likely ECDSA P-384' :
-                          sigBytes.length >= 128 ? 'Likely RSA' : 'Unknown',
-          security_analysis: {
-            quantum_safe: false,
-            recommended: algorithm === 'Ed25519' || algorithm.startsWith('ECDSA'),
-            notes: [
-              'Digital signatures provide authenticity and non-repudiation',
-              'Always verify before trusting signed data',
-              'Consider post-quantum alternatives for long-term security'
-            ]
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            algorithm,
+            signature_length_bytes: sigBytes.length || sigHex.length / 2,
+            signature_length_bits: (sigBytes.length || sigHex.length / 2) * 8,
+            format_detected:
+              sigBytes.length === 64
+                ? 'Likely Ed25519 or ECDSA P-256'
+                : sigBytes.length === 96
+                  ? 'Likely ECDSA P-384'
+                  : sigBytes.length >= 128
+                    ? 'Likely RSA'
+                    : 'Unknown',
+            security_analysis: {
+              quantum_safe: false,
+              recommended: algorithm === 'Ed25519' || algorithm.startsWith('ECDSA'),
+              notes: [
+                'Digital signatures provide authenticity and non-repudiation',
+                'Always verify before trusting signed data',
+                'Consider post-quantum alternatives for long-term security',
+              ],
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: 'Unknown operation',
-        available: ['sign', 'verify', 'generate_keypair', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: 'Unknown operation',
+          available: ['sign', 'verify', 'generate_keypair', 'analyze', 'info'],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

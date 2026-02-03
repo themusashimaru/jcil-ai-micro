@@ -15,8 +15,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 type Vec3 = [number, number, number];
 type Vec2 = [number, number];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function add3(a: Vec3, b: Vec3): Vec3 {
+export function add3(a: Vec3, b: Vec3): Vec3 {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
@@ -33,11 +32,7 @@ function dot3(a: Vec3, b: Vec3): number {
 }
 
 function cross3(a: Vec3, b: Vec3): Vec3 {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0]
-  ];
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 
 function norm3(v: Vec3): number {
@@ -53,18 +48,15 @@ function normalize3(v: Vec3): Vec3 {
 // Numerical differentiation
 const h = 1e-6;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function derivative(f: (t: number) => number, t: number): number {
+export function derivative(f: (t: number) => number, t: number): number {
   return (f(t + h) - f(t - h)) / (2 * h);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function derivative2(f: (t: number) => number, t: number): number {
+export function derivative2(f: (t: number) => number, t: number): number {
   return (f(t + h) - 2 * f(t) + f(t - h)) / (h * h);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function derivative3(f: (t: number) => number, t: number): number {
+export function derivative3(f: (t: number) => number, t: number): number {
   return (f(t + 2 * h) - 2 * f(t + h) + 2 * f(t - h) - f(t - 2 * h)) / (2 * h * h * h);
 }
 
@@ -82,7 +74,7 @@ function curveDerivative2(curve: (t: number) => Vec3, t: number): Vec3 {
   return [
     (c1[0] - 2 * c0[0] + c2[0]) / (h * h),
     (c1[1] - 2 * c0[1] + c2[1]) / (h * h),
-    (c1[2] - 2 * c0[2] + c2[2]) / (h * h)
+    (c1[2] - 2 * c0[2] + c2[2]) / (h * h),
   ];
 }
 
@@ -94,15 +86,15 @@ function curveDerivative3(curve: (t: number) => Vec3, t: number): Vec3 {
   return [
     (c1[0] - 2 * c2[0] + 2 * c3[0] - c4[0]) / (2 * h * h * h),
     (c1[1] - 2 * c2[1] + 2 * c3[1] - c4[1]) / (2 * h * h * h),
-    (c1[2] - 2 * c2[2] + 2 * c3[2] - c4[2]) / (2 * h * h * h)
+    (c1[2] - 2 * c2[2] + 2 * c3[2] - c4[2]) / (2 * h * h * h),
   ];
 }
 
 // Parametric curve analysis
 interface FrenetFrame {
-  T: Vec3;  // Tangent
-  N: Vec3;  // Normal
-  B: Vec3;  // Binormal
+  T: Vec3; // Tangent
+  N: Vec3; // Normal
+  B: Vec3; // Binormal
 }
 
 interface CurveAnalysis {
@@ -162,56 +154,60 @@ function analyzeCurve(curve: (t: number) => Vec3, t: number, t0: number = 0): Cu
     frenetFrame: { T, N, B },
     radiusOfCurvature,
     speed,
-    arcLength: Math.abs(arcLength)
+    arcLength: Math.abs(arcLength),
   };
 }
 
 // Predefined curves
-const curves: Record<string, { fn: (t: number) => Vec3; range: [number, number]; description: string }> = {
+const curves: Record<
+  string,
+  { fn: (t: number) => Vec3; range: [number, number]; description: string }
+> = {
   helix: {
     fn: (t) => [Math.cos(t), Math.sin(t), t / (2 * Math.PI)],
     range: [0, 4 * Math.PI],
-    description: 'Circular helix: (cos(t), sin(t), t/2pi)'
+    description: 'Circular helix: (cos(t), sin(t), t/2pi)',
   },
   circle: {
     fn: (t) => [Math.cos(t), Math.sin(t), 0],
     range: [0, 2 * Math.PI],
-    description: 'Unit circle in xy-plane'
+    description: 'Unit circle in xy-plane',
   },
   parabola: {
     fn: (t) => [t, t * t, 0],
     range: [-2, 2],
-    description: 'Parabola: (t, t^2, 0)'
+    description: 'Parabola: (t, t^2, 0)',
   },
   twistedCubic: {
     fn: (t) => [t, t * t, t * t * t],
     range: [-1, 1],
-    description: 'Twisted cubic: (t, t^2, t^3)'
+    description: 'Twisted cubic: (t, t^2, t^3)',
   },
   viviani: {
     fn: (t) => [1 + Math.cos(t), Math.sin(t), 2 * Math.sin(t / 2)],
     range: [0, 4 * Math.PI],
-    description: "Viviani's curve on sphere"
+    description: "Viviani's curve on sphere",
   },
   torusKnot: {
     fn: (t) => {
-      const p = 2, q = 3;
+      const p = 2,
+        q = 3;
       const r = Math.cos(q * t) + 2;
       return [r * Math.cos(p * t), r * Math.sin(p * t), -Math.sin(q * t)];
     },
     range: [0, 2 * Math.PI],
-    description: '(2,3) torus knot'
+    description: '(2,3) torus knot',
   },
   catenary: {
     fn: (t) => [t, Math.cosh(t), 0],
     range: [-2, 2],
-    description: 'Catenary: (t, cosh(t), 0)'
+    description: 'Catenary: (t, cosh(t), 0)',
   },
   cycloid: {
     fn: (t) => [t - Math.sin(t), 1 - Math.cos(t), 0],
     range: [0, 4 * Math.PI],
-    description: 'Cycloid curve'
-  }
+    description: 'Cycloid curve',
+  },
 };
 
 // Surface analysis
@@ -259,7 +255,7 @@ function surfacePartialUU(surface: Surface, u: number, v: number): Vec3 {
   return [
     (s1[0] - 2 * s0[0] + s2[0]) / (h * h),
     (s1[1] - 2 * s0[1] + s2[1]) / (h * h),
-    (s1[2] - 2 * s0[2] + s2[2]) / (h * h)
+    (s1[2] - 2 * s0[2] + s2[2]) / (h * h),
   ];
 }
 
@@ -270,7 +266,7 @@ function surfacePartialVV(surface: Surface, u: number, v: number): Vec3 {
   return [
     (s1[0] - 2 * s0[0] + s2[0]) / (h * h),
     (s1[1] - 2 * s0[1] + s2[1]) / (h * h),
-    (s1[2] - 2 * s0[2] + s2[2]) / (h * h)
+    (s1[2] - 2 * s0[2] + s2[2]) / (h * h),
   ];
 }
 
@@ -282,7 +278,7 @@ function surfacePartialUV(surface: Surface, u: number, v: number): Vec3 {
   return [
     (s1[0] - s2[0] - s3[0] + s4[0]) / (4 * h * h),
     (s1[1] - s2[1] - s3[1] + s4[1]) / (4 * h * h),
-    (s1[2] - s2[2] - s3[2] + s4[2]) / (4 * h * h)
+    (s1[2] - s2[2] - s3[2] + s4[2]) / (4 * h * h),
   ];
 }
 
@@ -343,85 +339,89 @@ function analyzeSurface(surface: Surface, u: number, v: number): SurfaceAnalysis
     gaussianCurvature,
     meanCurvature,
     principalCurvatures: [k1, k2],
-    surfaceType
+    surfaceType,
   };
 }
 
 // Predefined surfaces
-const surfaces: Record<string, { fn: Surface; uRange: [number, number]; vRange: [number, number]; description: string }> = {
+const surfaces: Record<
+  string,
+  { fn: Surface; uRange: [number, number]; vRange: [number, number]; description: string }
+> = {
   sphere: {
     fn: (u, v) => [Math.sin(u) * Math.cos(v), Math.sin(u) * Math.sin(v), Math.cos(u)],
     uRange: [0, Math.PI],
     vRange: [0, 2 * Math.PI],
-    description: 'Unit sphere'
+    description: 'Unit sphere',
   },
   torus: {
     fn: (u, v) => {
-      const R = 2, r = 0.5;
-      return [(R + r * Math.cos(v)) * Math.cos(u), (R + r * Math.cos(v)) * Math.sin(u), r * Math.sin(v)];
+      const R = 2,
+        r = 0.5;
+      return [
+        (R + r * Math.cos(v)) * Math.cos(u),
+        (R + r * Math.cos(v)) * Math.sin(u),
+        r * Math.sin(v),
+      ];
     },
     uRange: [0, 2 * Math.PI],
     vRange: [0, 2 * Math.PI],
-    description: 'Torus with R=2, r=0.5'
+    description: 'Torus with R=2, r=0.5',
   },
   plane: {
     fn: (u, v) => [u, v, 0],
     uRange: [-1, 1],
     vRange: [-1, 1],
-    description: 'Flat plane z=0'
+    description: 'Flat plane z=0',
   },
   paraboloid: {
     fn: (u, v) => [u, v, u * u + v * v],
     uRange: [-1, 1],
     vRange: [-1, 1],
-    description: 'Paraboloid z = x^2 + y^2'
+    description: 'Paraboloid z = x^2 + y^2',
   },
   hyperbolicParaboloid: {
     fn: (u, v) => [u, v, u * u - v * v],
     uRange: [-1, 1],
     vRange: [-1, 1],
-    description: 'Saddle surface z = x^2 - y^2'
+    description: 'Saddle surface z = x^2 - y^2',
   },
   cone: {
     fn: (u, v) => [v * Math.cos(u), v * Math.sin(u), v],
     uRange: [0, 2 * Math.PI],
     vRange: [0, 2],
-    description: 'Cone'
+    description: 'Cone',
   },
   cylinder: {
     fn: (u, v) => [Math.cos(u), Math.sin(u), v],
     uRange: [0, 2 * Math.PI],
     vRange: [-1, 1],
-    description: 'Circular cylinder'
+    description: 'Circular cylinder',
   },
   helicoid: {
     fn: (u, v) => [v * Math.cos(u), v * Math.sin(u), u],
     uRange: [0, 4 * Math.PI],
     vRange: [-1, 1],
-    description: 'Helicoid (minimal surface)'
+    description: 'Helicoid (minimal surface)',
   },
   catenoid: {
     fn: (u, v) => [Math.cosh(v) * Math.cos(u), Math.cosh(v) * Math.sin(u), v],
     uRange: [0, 2 * Math.PI],
     vRange: [-1, 1],
-    description: 'Catenoid (minimal surface)'
+    description: 'Catenoid (minimal surface)',
   },
   enneperSurface: {
-    fn: (u, v) => [
-      u - u * u * u / 3 + u * v * v,
-      v - v * v * v / 3 + v * u * u,
-      u * u - v * v
-    ],
+    fn: (u, v) => [u - (u * u * u) / 3 + u * v * v, v - (v * v * v) / 3 + v * u * u, u * u - v * v],
     uRange: [-1, 1],
     vRange: [-1, 1],
-    description: 'Enneper surface (minimal)'
+    description: 'Enneper surface (minimal)',
   },
   monkeySaddle: {
     fn: (u, v) => [u, v, u * u * u - 3 * u * v * v],
     uRange: [-1, 1],
     vRange: [-1, 1],
-    description: 'Monkey saddle z = x^3 - 3xy^2'
-  }
+    description: 'Monkey saddle z = x^3 - 3xy^2',
+  },
 };
 
 // Christoffel symbols computation
@@ -444,7 +444,7 @@ function computeChristoffel(surface: Surface, u: number, v: number): Christoffel
     return {
       E: dot3(ru, ru),
       F: dot3(ru, rv),
-      G: dot3(rv, rv)
+      G: dot3(rv, rv),
     };
   };
 
@@ -467,9 +467,12 @@ function computeChristoffel(surface: Surface, u: number, v: number): Christoffel
 
   if (Math.abs(det) < 1e-10) {
     return {
-      Gamma_uu_u: 0, Gamma_uu_v: 0,
-      Gamma_uv_u: 0, Gamma_uv_v: 0,
-      Gamma_vv_u: 0, Gamma_vv_v: 0
+      Gamma_uu_u: 0,
+      Gamma_uu_v: 0,
+      Gamma_uv_u: 0,
+      Gamma_uv_v: 0,
+      Gamma_vv_u: 0,
+      Gamma_vv_v: 0,
     };
   }
 
@@ -482,9 +485,12 @@ function computeChristoffel(surface: Surface, u: number, v: number): Christoffel
   const Gamma_vv_v = (E * G_v - 2 * F * F_v + F * G_u) / (2 * det);
 
   return {
-    Gamma_uu_u, Gamma_uu_v,
-    Gamma_uv_u, Gamma_uv_v,
-    Gamma_vv_u, Gamma_vv_v
+    Gamma_uu_u,
+    Gamma_uu_v,
+    Gamma_uv_u,
+    Gamma_uv_v,
+    Gamma_vv_u,
+    Gamma_vv_v,
   };
 }
 
@@ -501,8 +507,10 @@ function computeGeodesic(
   const path: Vec3[] = [];
   const params: Vec2[] = [];
 
-  let u = u0, v = v0;
-  let du = du0, dv = dv0;
+  let u = u0,
+    v = v0;
+  let du = du0,
+    dv = dv0;
 
   for (let i = 0; i < steps; i++) {
     path.push(surface(u, v));
@@ -511,8 +519,16 @@ function computeGeodesic(
     const chris = computeChristoffel(surface, u, v);
 
     // Geodesic equations: u'' + Gamma^u_ij u'^i u'^j = 0
-    const ddu = -(chris.Gamma_uu_u * du * du + 2 * chris.Gamma_uv_u * du * dv + chris.Gamma_vv_u * dv * dv);
-    const ddv = -(chris.Gamma_uu_v * du * du + 2 * chris.Gamma_uv_v * du * dv + chris.Gamma_vv_v * dv * dv);
+    const ddu = -(
+      chris.Gamma_uu_u * du * du +
+      2 * chris.Gamma_uv_u * du * dv +
+      chris.Gamma_vv_u * dv * dv
+    );
+    const ddv = -(
+      chris.Gamma_uu_v * du * du +
+      2 * chris.Gamma_uv_v * du * dv +
+      chris.Gamma_vv_v * dv * dv
+    );
 
     // Euler integration
     du += ddu * dt;
@@ -526,14 +542,24 @@ function computeGeodesic(
 
 export const differentialgeometryTool: UnifiedTool = {
   name: 'differential_geometry',
-  description: 'Differential geometry for curves and surfaces - curvature, torsion, Frenet frames, Gaussian curvature, geodesics',
+  description:
+    'Differential geometry for curves and surfaces - curvature, torsion, Frenet frames, Gaussian curvature, geodesics',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['curve', 'surface', 'geodesic', 'christoffel', 'list_curves', 'list_surfaces', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'curve',
+          'surface',
+          'geodesic',
+          'christoffel',
+          'list_curves',
+          'list_surfaces',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       curve: { type: 'string', description: 'Curve name (helix, circle, parabola, etc.)' },
       surface: { type: 'string', description: 'Surface name (sphere, torus, plane, etc.)' },
@@ -542,13 +568,15 @@ export const differentialgeometryTool: UnifiedTool = {
       v: { type: 'number', description: 'Parameter v for surface' },
       du: { type: 'number', description: 'Initial velocity du/dt for geodesic' },
       dv: { type: 'number', description: 'Initial velocity dv/dt for geodesic' },
-      steps: { type: 'number', description: 'Steps for geodesic computation' }
+      steps: { type: 'number', description: 'Steps for geodesic computation' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executedifferentialgeometry(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -558,54 +586,79 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'differential-geometry',
-          description: 'Differential geometry for curves and surfaces',
-          concepts: {
-            curves: {
-              curvature: 'Measures how fast curve deviates from tangent line',
-              torsion: 'Measures how curve twists out of osculating plane',
-              frenetFrame: 'Moving orthonormal basis (T, N, B) along curve',
-              arcLength: 'Length of curve between two parameter values'
+        content: JSON.stringify(
+          {
+            tool: 'differential-geometry',
+            description: 'Differential geometry for curves and surfaces',
+            concepts: {
+              curves: {
+                curvature: 'Measures how fast curve deviates from tangent line',
+                torsion: 'Measures how curve twists out of osculating plane',
+                frenetFrame: 'Moving orthonormal basis (T, N, B) along curve',
+                arcLength: 'Length of curve between two parameter values',
+              },
+              surfaces: {
+                firstForm: 'Intrinsic metric (E, F, G) measuring lengths',
+                secondForm: 'Extrinsic curvature (L, M, N)',
+                gaussianCurvature: 'K = k1 * k2, intrinsic curvature',
+                meanCurvature: 'H = (k1 + k2)/2, extrinsic curvature',
+                principalCurvatures: 'Eigenvalues of shape operator',
+              },
+              geodesics: 'Shortest paths on surfaces',
+              christoffel: 'Connection coefficients for covariant derivative',
             },
-            surfaces: {
-              firstForm: 'Intrinsic metric (E, F, G) measuring lengths',
-              secondForm: 'Extrinsic curvature (L, M, N)',
-              gaussianCurvature: 'K = k1 * k2, intrinsic curvature',
-              meanCurvature: 'H = (k1 + k2)/2, extrinsic curvature',
-              principalCurvatures: 'Eigenvalues of shape operator'
-            },
-            geodesics: 'Shortest paths on surfaces',
-            christoffel: 'Connection coefficients for covariant derivative'
+            operations: [
+              'curve',
+              'surface',
+              'geodesic',
+              'christoffel',
+              'list_curves',
+              'list_surfaces',
+              'info',
+              'examples',
+            ],
           },
-          operations: ['curve', 'surface', 'geodesic', 'christoffel', 'list_curves', 'list_surfaces', 'info', 'examples']
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'examples') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          examples: [
-            {
-              description: 'Analyze helix curve at t = pi',
-              call: { operation: 'curve', curve: 'helix', t: Math.PI }
-            },
-            {
-              description: 'Analyze sphere surface at point',
-              call: { operation: 'surface', surface: 'sphere', u: Math.PI / 4, v: Math.PI / 4 }
-            },
-            {
-              description: 'Compute geodesic on torus',
-              call: { operation: 'geodesic', surface: 'torus', u: 0, v: 0, du: 1, dv: 0.5, steps: 50 }
-            },
-            {
-              description: 'Compute Christoffel symbols',
-              call: { operation: 'christoffel', surface: 'sphere', u: Math.PI / 2, v: 0 }
-            }
-          ]
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            examples: [
+              {
+                description: 'Analyze helix curve at t = pi',
+                call: { operation: 'curve', curve: 'helix', t: Math.PI },
+              },
+              {
+                description: 'Analyze sphere surface at point',
+                call: { operation: 'surface', surface: 'sphere', u: Math.PI / 4, v: Math.PI / 4 },
+              },
+              {
+                description: 'Compute geodesic on torus',
+                call: {
+                  operation: 'geodesic',
+                  surface: 'torus',
+                  u: 0,
+                  v: 0,
+                  du: 1,
+                  dv: 0.5,
+                  steps: 50,
+                },
+              },
+              {
+                description: 'Compute Christoffel symbols',
+                call: { operation: 'christoffel', surface: 'sphere', u: Math.PI / 2, v: 0 },
+              },
+            ],
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -613,7 +666,7 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
       const curveList = Object.entries(curves).map(([name, data]) => ({
         name,
         description: data.description,
-        parameterRange: data.range
+        parameterRange: data.range,
       }));
       return { toolCallId: id, content: JSON.stringify({ curves: curveList }, null, 2) };
     }
@@ -623,7 +676,7 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
         name,
         description: data.description,
         uRange: data.uRange,
-        vRange: data.vRange
+        vRange: data.vRange,
       }));
       return { toolCallId: id, content: JSON.stringify({ surfaces: surfaceList }, null, 2) };
     }
@@ -637,9 +690,9 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown curve: ${curveName}`,
-            available: Object.keys(curves)
+            available: Object.keys(curves),
           }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -650,32 +703,37 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
       const samples: Vec3[] = [];
       const numSamples = 20;
       for (let i = 0; i <= numSamples; i++) {
-        const ti = curveData.range[0] + (curveData.range[1] - curveData.range[0]) * i / numSamples;
+        const ti =
+          curveData.range[0] + ((curveData.range[1] - curveData.range[0]) * i) / numSamples;
         samples.push(curveData.fn(ti));
       }
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          curve: curveName,
-          description: curveData.description,
-          parameterT: t,
-          analysis: {
-            point: analysis.point.map(x => x.toFixed(6)),
-            tangent: analysis.tangent.map(x => x.toFixed(6)),
-            speed: analysis.speed.toFixed(6),
-            curvature: analysis.curvature.toFixed(6),
-            radiusOfCurvature: analysis.radiusOfCurvature.toFixed(6),
-            torsion: analysis.torsion.toFixed(6),
-            arcLengthFromStart: analysis.arcLength.toFixed(6)
+        content: JSON.stringify(
+          {
+            curve: curveName,
+            description: curveData.description,
+            parameterT: t,
+            analysis: {
+              point: analysis.point.map((x) => x.toFixed(6)),
+              tangent: analysis.tangent.map((x) => x.toFixed(6)),
+              speed: analysis.speed.toFixed(6),
+              curvature: analysis.curvature.toFixed(6),
+              radiusOfCurvature: analysis.radiusOfCurvature.toFixed(6),
+              torsion: analysis.torsion.toFixed(6),
+              arcLengthFromStart: analysis.arcLength.toFixed(6),
+            },
+            frenetFrame: {
+              T: analysis.frenetFrame.T.map((x) => x.toFixed(6)),
+              N: analysis.frenetFrame.N.map((x) => x.toFixed(6)),
+              B: analysis.frenetFrame.B.map((x) => x.toFixed(6)),
+            },
+            curveSamples: samples.slice(0, 5).map((s) => s.map((x) => x.toFixed(4))),
           },
-          frenetFrame: {
-            T: analysis.frenetFrame.T.map(x => x.toFixed(6)),
-            N: analysis.frenetFrame.N.map(x => x.toFixed(6)),
-            B: analysis.frenetFrame.B.map(x => x.toFixed(6))
-          },
-          curveSamples: samples.slice(0, 5).map(s => s.map(x => x.toFixed(4)))
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -689,9 +747,9 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown surface: ${surfaceName}`,
-            available: Object.keys(surfaces)
+            available: Object.keys(surfaces),
           }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -700,33 +758,40 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          surface: surfaceName,
-          description: surfaceData.description,
-          parameters: { u, v },
-          analysis: {
-            point: analysis.point.map(x => x.toFixed(6)),
-            normal: analysis.normal.map(x => x.toFixed(6)),
-            surfaceType: analysis.surfaceType
+        content: JSON.stringify(
+          {
+            surface: surfaceName,
+            description: surfaceData.description,
+            parameters: { u, v },
+            analysis: {
+              point: analysis.point.map((x) => x.toFixed(6)),
+              normal: analysis.normal.map((x) => x.toFixed(6)),
+              surfaceType: analysis.surfaceType,
+            },
+            firstFundamentalForm: {
+              E: analysis.firstForm.E.toFixed(6),
+              F: analysis.firstForm.F.toFixed(6),
+              G: analysis.firstForm.G.toFixed(6),
+              areaElement: Math.sqrt(
+                analysis.firstForm.E * analysis.firstForm.G -
+                  analysis.firstForm.F * analysis.firstForm.F
+              ).toFixed(6),
+            },
+            secondFundamentalForm: {
+              L: analysis.secondForm.L.toFixed(6),
+              M: analysis.secondForm.M.toFixed(6),
+              N: analysis.secondForm.N.toFixed(6),
+            },
+            curvatures: {
+              gaussian: analysis.gaussianCurvature.toFixed(6),
+              mean: analysis.meanCurvature.toFixed(6),
+              principal: analysis.principalCurvatures.map((k) => k.toFixed(6)),
+            },
+            isMinimalSurface: Math.abs(analysis.meanCurvature) < 1e-4,
           },
-          firstFundamentalForm: {
-            E: analysis.firstForm.E.toFixed(6),
-            F: analysis.firstForm.F.toFixed(6),
-            G: analysis.firstForm.G.toFixed(6),
-            areaElement: Math.sqrt(analysis.firstForm.E * analysis.firstForm.G - analysis.firstForm.F * analysis.firstForm.F).toFixed(6)
-          },
-          secondFundamentalForm: {
-            L: analysis.secondForm.L.toFixed(6),
-            M: analysis.secondForm.M.toFixed(6),
-            N: analysis.secondForm.N.toFixed(6)
-          },
-          curvatures: {
-            gaussian: analysis.gaussianCurvature.toFixed(6),
-            mean: analysis.meanCurvature.toFixed(6),
-            principal: analysis.principalCurvatures.map(k => k.toFixed(6))
-          },
-          isMinimalSurface: Math.abs(analysis.meanCurvature) < 1e-4
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -740,9 +805,9 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown surface: ${surfaceName}`,
-            available: Object.keys(surfaces)
+            available: Object.keys(surfaces),
           }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -752,24 +817,28 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          surface: surfaceName,
-          parameters: { u, v },
-          metric: {
-            E: firstForm.E.toFixed(6),
-            F: firstForm.F.toFixed(6),
-            G: firstForm.G.toFixed(6)
+        content: JSON.stringify(
+          {
+            surface: surfaceName,
+            parameters: { u, v },
+            metric: {
+              E: firstForm.E.toFixed(6),
+              F: firstForm.F.toFixed(6),
+              G: firstForm.G.toFixed(6),
+            },
+            christoffelSymbols: {
+              'Gamma^u_uu': chris.Gamma_uu_u.toFixed(6),
+              'Gamma^v_uu': chris.Gamma_uu_v.toFixed(6),
+              'Gamma^u_uv': chris.Gamma_uv_u.toFixed(6),
+              'Gamma^v_uv': chris.Gamma_uv_v.toFixed(6),
+              'Gamma^u_vv': chris.Gamma_vv_u.toFixed(6),
+              'Gamma^v_vv': chris.Gamma_vv_v.toFixed(6),
+            },
+            note: 'Christoffel symbols are connection coefficients for the Levi-Civita connection',
           },
-          christoffelSymbols: {
-            'Gamma^u_uu': chris.Gamma_uu_u.toFixed(6),
-            'Gamma^v_uu': chris.Gamma_uu_v.toFixed(6),
-            'Gamma^u_uv': chris.Gamma_uv_u.toFixed(6),
-            'Gamma^v_uv': chris.Gamma_uv_v.toFixed(6),
-            'Gamma^u_vv': chris.Gamma_vv_u.toFixed(6),
-            'Gamma^v_vv': chris.Gamma_vv_v.toFixed(6)
-          },
-          note: 'Christoffel symbols are connection coefficients for the Levi-Civita connection'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -786,9 +855,9 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown surface: ${surfaceName}`,
-            available: Object.keys(surfaces)
+            available: Object.keys(surfaces),
           }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -796,12 +865,20 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
       const { path, params } = computeGeodesic(surfaceData.fn, u0, v0, du0, dv0, steps);
 
       // Sample points for output
-      const sampleIndices = [0, Math.floor(steps / 4), Math.floor(steps / 2), Math.floor(3 * steps / 4), steps - 1];
-      const sampledPath = sampleIndices.filter(i => i < path.length).map(i => ({
-        step: i,
-        params: { u: params[i][0].toFixed(4), v: params[i][1].toFixed(4) },
-        point: path[i].map(x => x.toFixed(4))
-      }));
+      const sampleIndices = [
+        0,
+        Math.floor(steps / 4),
+        Math.floor(steps / 2),
+        Math.floor((3 * steps) / 4),
+        steps - 1,
+      ];
+      const sampledPath = sampleIndices
+        .filter((i) => i < path.length)
+        .map((i) => ({
+          step: i,
+          params: { u: params[i][0].toFixed(4), v: params[i][1].toFixed(4) },
+          point: path[i].map((x) => x.toFixed(4)),
+        }));
 
       // Compute total arc length
       let arcLength = 0;
@@ -811,34 +888,40 @@ export async function executedifferentialgeometry(toolCall: UnifiedToolCall): Pr
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          surface: surfaceName,
-          initialConditions: {
-            u0, v0,
-            velocity: { du: du0, dv: dv0 }
+        content: JSON.stringify(
+          {
+            surface: surfaceName,
+            initialConditions: {
+              u0,
+              v0,
+              velocity: { du: du0, dv: dv0 },
+            },
+            steps,
+            geodesicProperties: {
+              startPoint: path[0].map((x) => x.toFixed(4)),
+              endPoint: path[path.length - 1].map((x) => x.toFixed(4)),
+              totalArcLength: arcLength.toFixed(4),
+            },
+            sampledPath,
+            note: 'Geodesics satisfy the geodesic equation using Christoffel symbols',
           },
-          steps,
-          geodesicProperties: {
-            startPoint: path[0].map(x => x.toFixed(4)),
-            endPoint: path[path.length - 1].map(x => x.toFixed(4)),
-            totalArcLength: arcLength.toFixed(4)
-          },
-          sampledPath,
-          note: 'Geodesics satisfy the geodesic equation using Christoffel symbols'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
       content: JSON.stringify({ error: `Unknown operation: ${operation}` }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function isdifferentialgeometryAvailable(): boolean { return true; }
+export function isdifferentialgeometryAvailable(): boolean {
+  return true;
+}

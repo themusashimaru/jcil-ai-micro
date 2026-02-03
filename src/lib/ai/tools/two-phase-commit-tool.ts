@@ -10,7 +10,14 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES AND INTERFACES
 // ============================================================================
 
-type TransactionPhase = 'init' | 'preparing' | 'prepared' | 'committing' | 'committed' | 'aborting' | 'aborted';
+type TransactionPhase =
+  | 'init'
+  | 'preparing'
+  | 'prepared'
+  | 'committing'
+  | 'committed'
+  | 'aborting'
+  | 'aborted';
 type ParticipantVote = 'yes' | 'no' | 'pending' | 'timeout';
 type ParticipantState = 'initial' | 'working' | 'prepared' | 'committed' | 'aborted' | 'uncertain';
 type CoordinatorState = 'initial' | 'waiting' | 'committing' | 'committed' | 'aborting' | 'aborted';
@@ -142,7 +149,7 @@ function initTransaction(config: {
     id: config.coordinatorId,
     state: 'initial',
     logEntries: [],
-    failureSimulated: false
+    failureSimulated: false,
   };
 
   const participants = new Map<string, Participant>();
@@ -155,7 +162,7 @@ function initTransaction(config: {
       lastHeartbeat: Date.now(),
       logEntries: [],
       failureSimulated: false,
-      responseDelay: 0
+      responseDelay: 0,
     });
   }
 
@@ -167,14 +174,14 @@ function initTransaction(config: {
     phase: 'init',
     startTime: Date.now(),
     timeoutMs: config.timeoutMs || 30000,
-    presumedAbort: config.presumedAbort ?? true
+    presumedAbort: config.presumedAbort ?? true,
   };
 
   if (config.protocol === '3pc') {
     transaction.threePhaseState = {
       preCommitAcks: new Set(),
       preCommitPhase: false,
-      canCommit: false
+      canCommit: false,
     };
   }
 
@@ -186,7 +193,7 @@ function initTransaction(config: {
     timestamp: Date.now(),
     type: 'prepare',
     transactionId: txId,
-    data: { coordinatorId: config.coordinatorId, participants: config.participantIds }
+    data: { coordinatorId: config.coordinatorId, participants: config.participantIds },
   });
 
   transactions.set(txId, transaction);
@@ -197,10 +204,13 @@ function initTransaction(config: {
 // PHASE 1: PREPARE
 // ============================================================================
 
-async function prepare(transactionId: string, options?: {
-  simulateVoteNo?: string;
-  simulateTimeout?: string;
-}): Promise<PrepareResult> {
+async function prepare(
+  transactionId: string,
+  options?: {
+    simulateVoteNo?: string;
+    simulateTimeout?: string;
+  }
+): Promise<PrepareResult> {
   const tx = transactions.get(transactionId);
   if (!tx) throw new Error(`Transaction ${transactionId} not found`);
   if (tx.phase !== 'init') throw new Error(`Transaction in ${tx.phase} phase, expected init`);
@@ -213,7 +223,7 @@ async function prepare(transactionId: string, options?: {
     timestamp: Date.now(),
     type: 'prepare',
     transactionId,
-    data: { phase: 'start' }
+    data: { phase: 'start' },
   });
 
   const votes: Record<string, ParticipantVote> = {};
@@ -245,7 +255,7 @@ async function prepare(transactionId: string, options?: {
           timestamp: Date.now(),
           type: 'vote_no',
           transactionId,
-          participantId: pId
+          participantId: pId,
         });
         canCommit = false;
       } else {
@@ -257,12 +267,11 @@ async function prepare(transactionId: string, options?: {
           timestamp: Date.now(),
           type: 'vote_yes',
           transactionId,
-          participantId: pId
+          participantId: pId,
         });
       }
 
       participant.lastHeartbeat = Date.now();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_e) {
       participant.vote = 'timeout';
       timedOut.push(pId);
@@ -279,7 +288,7 @@ async function prepare(transactionId: string, options?: {
     timestamp: Date.now(),
     type: 'decision',
     transactionId,
-    data: { canCommit, votes }
+    data: { canCommit, votes },
   });
 
   return {
@@ -287,7 +296,7 @@ async function prepare(transactionId: string, options?: {
     phase: tx.phase,
     votes,
     canCommit,
-    timedOut
+    timedOut,
   };
 }
 
@@ -298,10 +307,11 @@ async function prepare(transactionId: string, options?: {
 async function commit(transactionId: string): Promise<CommitResult> {
   const tx = transactions.get(transactionId);
   if (!tx) throw new Error(`Transaction ${transactionId} not found`);
-  if (tx.phase !== 'prepared') throw new Error(`Transaction in ${tx.phase} phase, expected prepared`);
+  if (tx.phase !== 'prepared')
+    throw new Error(`Transaction in ${tx.phase} phase, expected prepared`);
 
   // Check all votes are yes
-  const allYes = Array.from(tx.participants.values()).every(p => p.vote === 'yes');
+  const allYes = Array.from(tx.participants.values()).every((p) => p.vote === 'yes');
   if (!allYes) {
     return abort(transactionId);
   }
@@ -316,7 +326,7 @@ async function commit(transactionId: string): Promise<CommitResult> {
     timestamp: Date.now(),
     type: 'commit',
     transactionId,
-    data: { decision: 'commit' }
+    data: { decision: 'commit' },
   });
 
   // For 3PC, do pre-commit phase first
@@ -339,7 +349,7 @@ async function commit(transactionId: string): Promise<CommitResult> {
         type: 'ack',
         transactionId,
         participantId: pId,
-        data: { ack: 'commit' }
+        data: { ack: 'commit' },
       });
     }
 
@@ -355,19 +365,19 @@ async function commit(transactionId: string): Promise<CommitResult> {
     participantResults: new Map(
       Array.from(tx.participants.entries()).map(([id, p]) => [
         id,
-        { vote: p.vote, finalState: p.state }
+        { vote: p.vote, finalState: p.state },
       ])
     ),
     duration: tx.endTime - tx.startTime,
     blockingOccurred: false,
-    heuristicDecision: false
+    heuristicDecision: false,
   };
 
   return {
     transactionId,
     status: 'committed',
     participants: participantStates,
-    duration: tx.endTime - tx.startTime
+    duration: tx.endTime - tx.startTime,
   };
 }
 
@@ -385,7 +395,7 @@ async function abort(transactionId: string): Promise<CommitResult> {
     timestamp: Date.now(),
     type: 'abort',
     transactionId,
-    data: { decision: 'abort' }
+    data: { decision: 'abort' },
   });
 
   // Send abort to all participants
@@ -403,7 +413,7 @@ async function abort(transactionId: string): Promise<CommitResult> {
         type: 'ack',
         transactionId,
         participantId: pId,
-        data: { ack: 'abort' }
+        data: { ack: 'abort' },
       });
     }
 
@@ -419,19 +429,19 @@ async function abort(transactionId: string): Promise<CommitResult> {
     participantResults: new Map(
       Array.from(tx.participants.entries()).map(([id, p]) => [
         id,
-        { vote: p.vote, finalState: p.state }
+        { vote: p.vote, finalState: p.state },
       ])
     ),
     duration: tx.endTime - tx.startTime,
     blockingOccurred: false,
-    heuristicDecision: false
+    heuristicDecision: false,
   };
 
   return {
     transactionId,
     status: 'aborted',
     participants: participantStates,
-    duration: tx.endTime - tx.startTime
+    duration: tx.endTime - tx.startTime,
   };
 }
 
@@ -454,7 +464,7 @@ async function preCommitPhase(tx: Transaction): Promise<void> {
         timestamp: Date.now(),
         type: 'pre_commit',
         transactionId: tx.id,
-        participantId: pId
+        participantId: pId,
       });
 
       tx.threePhaseState.preCommitAcks.add(pId);
@@ -470,10 +480,13 @@ async function preCommitPhase(tx: Transaction): Promise<void> {
 // RECOVERY
 // ============================================================================
 
-function recover(transactionId: string, options?: {
-  coordinatorFailed?: boolean;
-  failedParticipants?: string[];
-}): RecoveryResult {
+function recover(
+  transactionId: string,
+  options?: {
+    coordinatorFailed?: boolean;
+    failedParticipants?: string[];
+  }
+): RecoveryResult {
   const tx = transactions.get(transactionId);
   if (!tx) throw new Error(`Transaction ${transactionId} not found`);
 
@@ -484,9 +497,9 @@ function recover(transactionId: string, options?: {
   const participantsRecovered: string[] = [];
 
   // Check log for decision
-  const decisionLog = log.find(e => e.type === 'commit' || e.type === 'abort');
-  const commitLog = log.find(e => e.type === 'commit');
-  const abortLog = log.find(e => e.type === 'abort');
+  const decisionLog = log.find((e) => e.type === 'commit' || e.type === 'abort');
+  const commitLog = log.find((e) => e.type === 'commit');
+  const abortLog = log.find((e) => e.type === 'abort');
 
   if (options?.coordinatorFailed) {
     tx.coordinator.failureSimulated = true;
@@ -522,8 +535,8 @@ function recover(transactionId: string, options?: {
 
         // Check participant's log for its state
         const pLog = participant.logEntries;
-        const votedYes = pLog.some(e => e.type === 'vote_yes');
-        const votedNo = pLog.some(e => e.type === 'vote_no');
+        const votedYes = pLog.some((e) => e.type === 'vote_yes');
+        const votedNo = pLog.some((e) => e.type === 'vote_no');
 
         if (decisionLog) {
           // Decision was made, participant can recover
@@ -570,11 +583,14 @@ function recover(transactionId: string, options?: {
     participantsRecovered,
     decision,
     logBased: !!decisionLog,
-    explanation: explanation.trim() || 'Recovery completed'
+    explanation: explanation.trim() || 'Recovery completed',
   };
 }
 
-function heuristicDecision(transactionId: string, decision: 'commit' | 'abort'): {
+function heuristicDecision(
+  transactionId: string,
+  decision: 'commit' | 'abort'
+): {
   transactionId: string;
   decision: string;
   warning: string;
@@ -604,14 +620,14 @@ function heuristicDecision(transactionId: string, decision: 'commit' | 'abort'):
     timestamp: Date.now(),
     type: decision === 'commit' ? 'commit' : 'abort',
     transactionId,
-    data: { heuristic: true, decision }
+    data: { heuristic: true, decision },
   });
 
   return {
     transactionId,
     decision,
     warning: 'HEURISTIC DECISION: May cause data inconsistency if actual decision differs!',
-    affectedParticipants
+    affectedParticipants,
   };
 }
 
@@ -619,7 +635,10 @@ function heuristicDecision(transactionId: string, decision: 'commit' | 'abort'):
 // FAILURE SIMULATION
 // ============================================================================
 
-function simulateFailure(transactionId: string, failure: FailureSimulation): {
+function simulateFailure(
+  transactionId: string,
+  failure: FailureSimulation
+): {
   success: boolean;
   targetId: string;
   failureType: string;
@@ -647,7 +666,7 @@ function simulateFailure(transactionId: string, failure: FailureSimulation): {
     success: true,
     targetId: failure.targetId,
     failureType: failure.failureType,
-    currentPhase: tx.phase
+    currentPhase: tx.phase,
   };
 }
 
@@ -696,11 +715,13 @@ function analyzeBlocking(transactionId: string): BlockingAnalysis {
   } else if (tx.presumedAbort && noDecision) {
     canResolve = true;
     resolution = 'Presumed abort: Can safely abort if no commit decision logged.';
-    worstCaseScenario = 'Participants may block until timeout if coordinator fails after logging commit.';
+    worstCaseScenario =
+      'Participants may block until timeout if coordinator fails after logging commit.';
   } else if (coordinatorFailed) {
     canResolve = false;
     resolution = 'Must wait for coordinator recovery or use heuristic decision.';
-    worstCaseScenario = 'Indefinite blocking if coordinator never recovers. Data inconsistency if heuristic decision differs from actual.';
+    worstCaseScenario =
+      'Indefinite blocking if coordinator never recovers. Data inconsistency if heuristic decision differs from actual.';
   } else {
     canResolve = true;
     resolution = 'Coordinator can complete the transaction.';
@@ -720,7 +741,7 @@ function analyzeBlocking(transactionId: string): BlockingAnalysis {
     uncertainParticipants,
     canResolve,
     resolution,
-    worstCaseScenario
+    worstCaseScenario,
   };
 }
 
@@ -763,21 +784,23 @@ function getState(transactionId: string): {
       id: tx.coordinator.id,
       state: tx.coordinator.state,
       decision: tx.coordinator.decision,
-      failed: tx.coordinator.failureSimulated
+      failed: tx.coordinator.failureSimulated,
     },
-    participants: Array.from(tx.participants.values()).map(p => ({
+    participants: Array.from(tx.participants.values()).map((p) => ({
       id: p.id,
       state: p.state,
       vote: p.vote,
-      failed: p.failureSimulated
+      failed: p.failureSimulated,
     })),
     duration: (tx.endTime || Date.now()) - tx.startTime,
     presumedAbort: tx.presumedAbort,
-    threePhaseState: tx.threePhaseState ? {
-      preCommitPhase: tx.threePhaseState.preCommitPhase,
-      preCommitAcks: tx.threePhaseState.preCommitAcks.size,
-      canCommit: tx.threePhaseState.canCommit
-    } : undefined
+    threePhaseState: tx.threePhaseState
+      ? {
+          preCommitPhase: tx.threePhaseState.preCommitPhase,
+          preCommitAcks: tx.threePhaseState.preCommitAcks.size,
+          canCommit: tx.threePhaseState.canCommit,
+        }
+      : undefined,
   };
 }
 
@@ -801,7 +824,7 @@ function getLog(transactionId: string): {
     transactionId,
     entries: log,
     coordinatorLog: tx.coordinator.logEntries,
-    participantLogs
+    participantLogs,
   };
 }
 
@@ -829,7 +852,7 @@ function writeLog(transactionId: string, entry: LogEntry): void {
 }
 
 async function simulateDelay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, Math.min(ms, 100)));
+  return new Promise((resolve) => setTimeout(resolve, Math.min(ms, 100)));
 }
 
 // ============================================================================
@@ -845,18 +868,25 @@ export const twophasecommitTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: [
-          'init_transaction', 'prepare', 'commit', 'abort',
-          'recover', 'get_state', 'simulate_failure', 'analyze_blocking',
-          'heuristic_decision', 'get_log'
+          'init_transaction',
+          'prepare',
+          'commit',
+          'abort',
+          'recover',
+          'get_state',
+          'simulate_failure',
+          'analyze_blocking',
+          'heuristic_decision',
+          'get_log',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       transactionId: { type: 'string', description: 'Transaction identifier' },
       coordinatorId: { type: 'string', description: 'Coordinator identifier' },
       participantIds: {
         type: 'array',
         items: { type: 'string' },
-        description: 'List of participant identifiers'
+        description: 'List of participant identifiers',
       },
       protocol: { type: 'string', enum: ['2pc', '3pc'], description: 'Protocol type' },
       timeoutMs: { type: 'number', description: 'Timeout in milliseconds' },
@@ -867,22 +897,28 @@ export const twophasecommitTool: UnifiedTool = {
         type: 'object',
         properties: {
           targetId: { type: 'string' },
-          failureType: { type: 'string', enum: ['crash', 'timeout', 'network_partition', 'message_loss'] },
+          failureType: {
+            type: 'string',
+            enum: ['crash', 'timeout', 'network_partition', 'message_loss'],
+          },
           phase: { type: 'string' },
-          duration: { type: 'number' }
+          duration: { type: 'number' },
         },
-        description: 'Failure simulation configuration'
+        description: 'Failure simulation configuration',
       },
-      coordinatorFailed: { type: 'boolean', description: 'Simulate coordinator failure in recovery' },
+      coordinatorFailed: {
+        type: 'boolean',
+        description: 'Simulate coordinator failure in recovery',
+      },
       failedParticipants: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Participants to mark as failed in recovery'
+        description: 'Participants to mark as failed in recovery',
       },
-      decision: { type: 'string', enum: ['commit', 'abort'], description: 'Heuristic decision' }
+      decision: { type: 'string', enum: ['commit', 'abort'], description: 'Heuristic decision' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -911,7 +947,7 @@ export async function executetwophasecommit(toolCall: UnifiedToolCall): Promise<
           participantIds: args.participantIds,
           protocol: args.protocol,
           timeoutMs: args.timeoutMs,
-          presumedAbort: args.presumedAbort
+          presumedAbort: args.presumedAbort,
         });
 
         result = {
@@ -920,7 +956,7 @@ export async function executetwophasecommit(toolCall: UnifiedToolCall): Promise<
           coordinatorId: tx.coordinator.id,
           participantCount: tx.participants.size,
           phase: tx.phase,
-          presumedAbort: tx.presumedAbort
+          presumedAbort: tx.presumedAbort,
         };
         break;
       }
@@ -930,7 +966,7 @@ export async function executetwophasecommit(toolCall: UnifiedToolCall): Promise<
 
         result = await prepare(args.transactionId, {
           simulateVoteNo: args.simulateVoteNo,
-          simulateTimeout: args.simulateTimeout
+          simulateTimeout: args.simulateTimeout,
         });
         break;
       }
@@ -952,7 +988,7 @@ export async function executetwophasecommit(toolCall: UnifiedToolCall): Promise<
 
         result = recover(args.transactionId, {
           coordinatorFailed: args.coordinatorFailed,
-          failedParticipants: args.failedParticipants
+          failedParticipants: args.failedParticipants,
         });
         break;
       }
@@ -998,9 +1034,8 @@ export async function executetwophasecommit(toolCall: UnifiedToolCall): Promise<
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

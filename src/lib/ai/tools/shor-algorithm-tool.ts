@@ -27,18 +27,6 @@ function gcd(a: number, b: number): number {
 }
 
 /**
- * Extended Euclidean Algorithm
- * Returns [gcd, x, y] where gcd = a*x + b*y
- */
-function extendedGcd(a: number, b: number): [number, number, number] {
-  if (b === 0) {
-    return [a, 1, 0];
-  }
-  const [g, x, y] = extendedGcd(b, a % b);
-  return [g, y, x - Math.floor(a / b) * y];
-}
-
-/**
  * Modular exponentiation: (base^exp) mod m
  */
 function modPow(base: number, exp: number, m: number): number {
@@ -110,7 +98,7 @@ interface Complex {
 function complexMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -140,18 +128,6 @@ interface QuantumState {
 }
 
 /**
- * Create uniform superposition state
- */
-function createUniformState(size: number): QuantumState {
-  const amplitude = 1 / Math.sqrt(size);
-  const amplitudes: Complex[] = new Array(size);
-  for (let i = 0; i < size; i++) {
-    amplitudes[i] = { re: amplitude, im: 0 };
-  }
-  return { size, amplitudes };
-}
-
-/**
  * Apply Quantum Fourier Transform to the state
  * QFT: |j⟩ → (1/√N) Σₖ e^(2πijk/N) |k⟩
  */
@@ -164,28 +140,6 @@ function applyQFT(state: QuantumState): QuantumState {
     let sum: Complex = { re: 0, im: 0 };
     for (let j = 0; j < N; j++) {
       const phase = (2 * Math.PI * j * k) / N;
-      const omega = complexExp(phase);
-      const term = complexMul(state.amplitudes[j], omega);
-      sum = complexAdd(sum, term);
-    }
-    newAmplitudes[k] = complexScale(sum, normFactor);
-  }
-
-  return { size: N, amplitudes: newAmplitudes };
-}
-
-/**
- * Apply inverse QFT
- */
-function applyInverseQFT(state: QuantumState): QuantumState {
-  const N = state.size;
-  const newAmplitudes: Complex[] = new Array(N);
-  const normFactor = 1 / Math.sqrt(N);
-
-  for (let k = 0; k < N; k++) {
-    let sum: Complex = { re: 0, im: 0 };
-    for (let j = 0; j < N; j++) {
-      const phase = -(2 * Math.PI * j * k) / N; // Negative for inverse
       const omega = complexExp(phase);
       const term = complexMul(state.amplitudes[j], omega);
       sum = complexAdd(sum, term);
@@ -212,10 +166,13 @@ function toContinuedFraction(p: number, q: number, maxTerms: number = 20): Conti
   const coefficients: number[] = [];
   const convergents: Array<{ numerator: number; denominator: number }> = [];
 
-  let pPrev = 1, pCurr = 0;
-  let qPrev = 0, qCurr = 1;
+  let pPrev = 1,
+    pCurr = 0;
+  let qPrev = 0,
+    qCurr = 1;
 
-  let num = p, den = q;
+  let num = p,
+    den = q;
 
   while (den !== 0 && coefficients.length < maxTerms) {
     const a = Math.floor(num / den);
@@ -303,7 +260,7 @@ function classicalPreprocessing(N: number): FactorizationResult | null {
       factors: [2, N / 2],
       success: true,
       method: 'trivial_even',
-      details: { reason: 'N is even, trivially divisible by 2' }
+      details: { reason: 'N is even, trivially divisible by 2' },
     };
   }
 
@@ -314,7 +271,7 @@ function classicalPreprocessing(N: number): FactorizationResult | null {
       factors: [N],
       success: true,
       method: 'prime',
-      details: { reason: 'N is prime, cannot be factored' }
+      details: { reason: 'N is prime, cannot be factored' },
     };
   }
 
@@ -326,7 +283,7 @@ function classicalPreprocessing(N: number): FactorizationResult | null {
       factors: Array(powerCheck.power).fill(powerCheck.base),
       success: true,
       method: 'perfect_power',
-      details: { base: powerCheck.base, power: powerCheck.power }
+      details: { base: powerCheck.base, power: powerCheck.power },
     };
   }
 
@@ -381,7 +338,7 @@ function simulatePeriodFinding(a: number, N: number): PeriodFindingResult {
       period: null,
       measurements: [],
       candidatePeriods: [],
-      success: false
+      success: false,
     };
   }
 
@@ -416,7 +373,7 @@ function simulatePeriodFinding(a: number, N: number): PeriodFindingResult {
     period: foundPeriod,
     measurements,
     candidatePeriods,
-    success: foundPeriod !== null
+    success: foundPeriod !== null,
   };
 }
 
@@ -451,7 +408,7 @@ function factorWithShor(N: number): FactorizationResult {
         factors: [g, N / g],
         success: true,
         method: 'lucky_gcd',
-        details: { a, gcd: g, attempt }
+        details: { a, gcd: g, attempt },
       };
     }
 
@@ -498,8 +455,8 @@ function factorWithShor(N: number): FactorizationResult {
             factor1,
             factor2,
             attempt,
-            periodFindingDetails: periodResult
-          }
+            periodFindingDetails: periodResult,
+          },
         };
       } else if (factors.length === 1) {
         const otherFactor = N / factors[0];
@@ -509,7 +466,7 @@ function factorWithShor(N: number): FactorizationResult {
             factors: [factors[0], otherFactor].sort((a, b) => a - b),
             success: true,
             method: 'shor_quantum',
-            details: { a, period: r, attempt }
+            details: { a, period: r, attempt },
           };
         }
       }
@@ -521,7 +478,7 @@ function factorWithShor(N: number): FactorizationResult {
     factors: [],
     success: false,
     method: 'shor_failed',
-    details: { maxAttempts, triedBases }
+    details: { maxAttempts, triedBases },
   };
 }
 
@@ -550,7 +507,7 @@ function detailedSimulation(N: number, a?: number): SimulationResult {
   // Step 1: Initialize
   stateEvolution.push({
     step: 'initialize',
-    description: `Initialize ${numQubits}-qubit control register and ${nBits}-qubit target register to |0⟩`
+    description: `Initialize ${numQubits}-qubit control register and ${nBits}-qubit target register to |0⟩`,
   });
 
   // Step 2: Apply Hadamard to control register
@@ -560,14 +517,14 @@ function detailedSimulation(N: number, a?: number): SimulationResult {
     sampleAmplitudes: [
       { state: 0, amplitude: { re: 1 / Math.sqrt(Q), im: 0 }, probability: 1 / Q },
       { state: 1, amplitude: { re: 1 / Math.sqrt(Q), im: 0 }, probability: 1 / Q },
-      { state: Q - 1, amplitude: { re: 1 / Math.sqrt(Q), im: 0 }, probability: 1 / Q }
-    ]
+      { state: Q - 1, amplitude: { re: 1 / Math.sqrt(Q), im: 0 }, probability: 1 / Q },
+    ],
   });
 
   // Step 3: Apply controlled-U operations (modular exponentiation)
   stateEvolution.push({
     step: 'modular_exponentiation',
-    description: `Apply controlled-U^(2^k) operations to compute |x⟩|${a}^x mod ${N}⟩`
+    description: `Apply controlled-U^(2^k) operations to compute |x⟩|${a}^x mod ${N}⟩`,
   });
 
   // Step 4: Measure target register
@@ -575,16 +532,27 @@ function detailedSimulation(N: number, a?: number): SimulationResult {
   stateEvolution.push({
     step: 'measure_target',
     description: `Measure target register, collapsing to states where ${a}^x ≡ f (mod ${N}) for some f`,
-    sampleAmplitudes: actualPeriod > 0 ? [
-      { state: 0, amplitude: { re: Math.sqrt(actualPeriod / Q), im: 0 }, probability: actualPeriod / Q },
-      { state: actualPeriod, amplitude: { re: Math.sqrt(actualPeriod / Q), im: 0 }, probability: actualPeriod / Q }
-    ] : undefined
+    sampleAmplitudes:
+      actualPeriod > 0
+        ? [
+            {
+              state: 0,
+              amplitude: { re: Math.sqrt(actualPeriod / Q), im: 0 },
+              probability: actualPeriod / Q,
+            },
+            {
+              state: actualPeriod,
+              amplitude: { re: Math.sqrt(actualPeriod / Q), im: 0 },
+              probability: actualPeriod / Q,
+            },
+          ]
+        : undefined,
   });
 
   // Step 5: Apply inverse QFT
   stateEvolution.push({
     step: 'inverse_qft',
-    description: 'Apply inverse Quantum Fourier Transform to control register'
+    description: 'Apply inverse Quantum Fourier Transform to control register',
   });
 
   // Step 6: Measure
@@ -598,7 +566,7 @@ function detailedSimulation(N: number, a?: number): SimulationResult {
 
   stateEvolution.push({
     step: 'measure_control',
-    description: `Measure control register, obtaining values close to multiples of Q/r = ${Q}/${actualPeriod}`
+    description: `Measure control register, obtaining values close to multiples of Q/r = ${Q}/${actualPeriod}`,
   });
 
   // Extract period
@@ -621,7 +589,7 @@ function detailedSimulation(N: number, a?: number): SimulationResult {
     a,
     stateEvolution,
     measurements,
-    extractedPeriod
+    extractedPeriod,
   };
 }
 
@@ -649,7 +617,7 @@ function analyzeComplexity(N: number): Record<string, unknown> {
       controlRegister: controlQubits,
       targetRegister: targetQubits,
       total: totalQubits,
-      note: 'Additional ancilla qubits may be needed for modular exponentiation'
+      note: 'Additional ancilla qubits may be needed for modular exponentiation',
     },
     gateComplexity: {
       hadamardGates,
@@ -657,27 +625,27 @@ function analyzeComplexity(N: number): Record<string, unknown> {
       qftGates,
       totalApproximate: hadamardGates + controlledUGates * nBits * nBits + qftGates,
       dominatingTerm: `O(n³) where n = ${nBits} (bit length)`,
-      note: 'Modular exponentiation dominates with O(n³) gates'
+      note: 'Modular exponentiation dominates with O(n³) gates',
     },
     classicalComplexity: {
       continuedFractionSteps,
       gcdOperations: 'O(n)',
-      totalClassical: 'O(n² log n)'
+      totalClassical: 'O(n² log n)',
     },
     quantumSpeedup: {
       classical: `O(exp(n^(1/3) * (log n)^(2/3))) - best known (Number Field Sieve)`,
-      quantum: 'O(n³) - Shor\'s algorithm',
-      speedup: 'Exponential'
+      quantum: "O(n³) - Shor's algorithm",
+      speedup: 'Exponential',
     },
     successProbability: {
       singleRun: 'O(1/log log N)',
-      withRepetition: 'Approaches 1 with O(log N) repetitions'
+      withRepetition: 'Approaches 1 with O(log N) repetitions',
     },
     currentHardwareLimitations: {
       largestFactored: 21,
-      note: 'As of 2023, largest number factored using Shor\'s on quantum hardware',
-      requirement: `Factoring ${N} would require ~${totalQubits} logical qubits with error correction`
-    }
+      note: "As of 2023, largest number factored using Shor's on quantum hardware",
+      requirement: `Factoring ${N} would require ~${totalQubits} logical qubits with error correction`,
+    },
   };
 }
 
@@ -687,30 +655,33 @@ function analyzeComplexity(N: number): Record<string, unknown> {
 
 export const shoralgorithmTool: UnifiedTool = {
   name: 'shor_algorithm',
-  description: "Shor's quantum factoring algorithm - simulates quantum period finding for integer factorization with QFT, continued fractions, and complexity analysis",
+  description:
+    "Shor's quantum factoring algorithm - simulates quantum period finding for integer factorization with QFT, continued fractions, and complexity analysis",
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['factor', 'simulate', 'analyze', 'period_find', 'qft', 'info'],
-        description: 'Operation: factor (run full algorithm), simulate (detailed state evolution), analyze (complexity analysis), period_find (just period finding), qft (demonstrate QFT), info (algorithm explanation)'
+        description:
+          'Operation: factor (run full algorithm), simulate (detailed state evolution), analyze (complexity analysis), period_find (just period finding), qft (demonstrate QFT), info (algorithm explanation)',
       },
       number: {
         type: 'number',
-        description: 'Number to factor (for factor/simulate/analyze/period_find)'
+        description: 'Number to factor (for factor/simulate/analyze/period_find)',
       },
       base: {
         type: 'number',
-        description: 'Base a for period finding (optional, will be chosen randomly if not provided)'
+        description:
+          'Base a for period finding (optional, will be chosen randomly if not provided)',
       },
       stateSize: {
         type: 'number',
-        description: 'Size of quantum state for QFT demonstration (power of 2)'
-      }
+        description: 'Size of quantum state for QFT demonstration (power of 2)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -726,36 +697,49 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
         if (!N || N < 2 || !Number.isInteger(N)) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Please provide a valid integer N >= 2 to factor',
-              usage: 'shor_algorithm factor with number: 15'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Please provide a valid integer N >= 2 to factor',
+                usage: 'shor_algorithm factor with number: 15',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
         if (N > 10000) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Number too large for simulation',
-              note: 'This is a classical simulation. Real quantum hardware would be needed for large numbers.',
-              maxRecommended: 10000
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Number too large for simulation',
+                note: 'This is a classical simulation. Real quantum hardware would be needed for large numbers.',
+                maxRecommended: 10000,
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
         const result = factorWithShor(N);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'factor',
-            result,
-            verification: result.success && result.factors.length === 2
-              ? `${result.factors[0]} × ${result.factors[1]} = ${result.factors[0] * result.factors[1]}`
-              : null
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'factor',
+              result,
+              verification:
+                result.success && result.factors.length === 2
+                  ? `${result.factors[0]} × ${result.factors[1]} = ${result.factors[0] * result.factors[1]}`
+                  : null,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -766,10 +750,14 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
         if (N < 2 || N > 1000) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Number must be between 2 and 1000 for detailed simulation'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Number must be between 2 and 1000 for detailed simulation',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -777,15 +765,19 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            simulation,
-            interpretation: {
-              purpose: 'Demonstrates quantum state evolution through Shor\'s algorithm',
-              keyInsight: `The QFT extracts the period ${simulation.extractedPeriod} from interference patterns`,
-              quantumAdvantage: 'Superposition allows testing all x values simultaneously'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              simulation,
+              interpretation: {
+                purpose: "Demonstrates quantum state evolution through Shor's algorithm",
+                keyInsight: `The QFT extracts the period ${simulation.extractedPeriod} from interference patterns`,
+                quantumAdvantage: 'Superposition allows testing all x values simultaneously',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -795,10 +787,14 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            analysis
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              analysis,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -809,10 +805,14 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
         if (!N || N < 2) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Please provide valid N >= 2'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Please provide valid N >= 2',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -830,13 +830,18 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'period_find',
-            result: periodResult,
-            verification: periodResult.period !== null
-              ? `${a}^${periodResult.period} mod ${N} = ${modPow(a, periodResult.period, N)}`
-              : 'Period not found'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'period_find',
+              result: periodResult,
+              verification:
+                periodResult.period !== null
+                  ? `${a}^${periodResult.period} mod ${N} = ${modPow(a, periodResult.period, N)}`
+                  : 'Period not found',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -846,147 +851,170 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
         if (size < 2 || size > 64 || (size & (size - 1)) !== 0) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'State size must be a power of 2 between 2 and 64'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'State size must be a power of 2 between 2 and 64',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
         // Create computational basis state |1⟩
         const inputState: QuantumState = {
           size,
-          amplitudes: new Array(size).fill(null).map((_, i) =>
-            i === 1 ? { re: 1, im: 0 } : { re: 0, im: 0 }
-          )
+          amplitudes: new Array(size)
+            .fill(null)
+            .map((_, i) => (i === 1 ? { re: 1, im: 0 } : { re: 0, im: 0 })),
         };
 
         const outputState = applyQFT(inputState);
 
         // Format for display
-        const inputAmplitudes = inputState.amplitudes.map((amp, i) => ({
-          state: i,
-          amplitude: amp,
-          probability: complexMagnitudeSq(amp)
-        })).filter(a => a.probability > 1e-10);
+        const inputAmplitudes = inputState.amplitudes
+          .map((amp, i) => ({
+            state: i,
+            amplitude: amp,
+            probability: complexMagnitudeSq(amp),
+          }))
+          .filter((a) => a.probability > 1e-10);
 
         const outputAmplitudes = outputState.amplitudes.map((amp, i) => ({
           state: i,
           amplitude: { re: Number(amp.re.toFixed(6)), im: Number(amp.im.toFixed(6)) },
-          probability: Number(complexMagnitudeSq(amp).toFixed(6))
+          probability: Number(complexMagnitudeSq(amp).toFixed(6)),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'qft',
-            stateSize: size,
-            inputState: {
-              description: '|1⟩ - computational basis state',
-              amplitudes: inputAmplitudes
+          content: JSON.stringify(
+            {
+              operation: 'qft',
+              stateSize: size,
+              inputState: {
+                description: '|1⟩ - computational basis state',
+                amplitudes: inputAmplitudes,
+              },
+              outputState: {
+                description: 'QFT|1⟩ - uniform superposition with phase progression',
+                amplitudes: outputAmplitudes,
+              },
+              formula: 'QFT|j⟩ = (1/√N) Σₖ e^(2πijk/N) |k⟩',
+              verification: {
+                totalProbability: outputAmplitudes.reduce((sum, a) => sum + a.probability, 0),
+                note: 'QFT preserves total probability (unitary operation)',
+              },
             },
-            outputState: {
-              description: 'QFT|1⟩ - uniform superposition with phase progression',
-              amplitudes: outputAmplitudes
-            },
-            formula: 'QFT|j⟩ = (1/√N) Σₖ e^(2πijk/N) |k⟩',
-            verification: {
-              totalProbability: outputAmplitudes.reduce((sum, a) => sum + a.probability, 0),
-              note: 'QFT preserves total probability (unitary operation)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: "Shor's Algorithm",
-            type: 'Quantum Integer Factorization',
-            inventor: 'Peter Shor (1994)',
+          content: JSON.stringify(
+            {
+              algorithm: "Shor's Algorithm",
+              type: 'Quantum Integer Factorization',
+              inventor: 'Peter Shor (1994)',
 
-            overview: {
-              purpose: 'Factor composite integers efficiently using quantum computing',
-              significance: 'Demonstrates exponential quantum speedup over best known classical algorithms',
-              securityImplication: 'Threatens RSA and other factoring-based cryptosystems'
-            },
-
-            algorithmSteps: [
-              '1. Classical preprocessing: Check for trivial factors (even, prime, perfect power)',
-              '2. Choose random base a coprime to N',
-              '3. Quantum period finding: Find r where a^r ≡ 1 (mod N)',
-              '   - Initialize: |0⟩|0⟩ (control and target registers)',
-              '   - Hadamard on control: (1/√Q)Σ|x⟩|0⟩',
-              '   - Modular exponentiation: (1/√Q)Σ|x⟩|a^x mod N⟩',
-              '   - Inverse QFT on control register',
-              '   - Measure to get s/r approximation',
-              '4. Use continued fractions to extract period r from measurement',
-              '5. If r is even and a^(r/2) ≢ -1 (mod N):',
-              '   - Compute gcd(a^(r/2) ± 1, N) to find factors',
-              '6. Repeat with different base if needed'
-            ],
-
-            keyComponents: {
-              quantumFourierTransform: {
-                purpose: 'Extracts periodicity from quantum states',
-                action: '|j⟩ → (1/√N) Σₖ e^(2πijk/N) |k⟩',
-                efficiency: 'O(n²) gates vs O(n·2^n) classical FFT on superposition'
+              overview: {
+                purpose: 'Factor composite integers efficiently using quantum computing',
+                significance:
+                  'Demonstrates exponential quantum speedup over best known classical algorithms',
+                securityImplication: 'Threatens RSA and other factoring-based cryptosystems',
               },
-              modularExponentiation: {
-                purpose: 'Computes a^x mod N for all x in superposition',
-                action: '|x⟩|0⟩ → |x⟩|a^x mod N⟩',
-                note: 'Most gate-intensive part of the algorithm'
+
+              algorithmSteps: [
+                '1. Classical preprocessing: Check for trivial factors (even, prime, perfect power)',
+                '2. Choose random base a coprime to N',
+                '3. Quantum period finding: Find r where a^r ≡ 1 (mod N)',
+                '   - Initialize: |0⟩|0⟩ (control and target registers)',
+                '   - Hadamard on control: (1/√Q)Σ|x⟩|0⟩',
+                '   - Modular exponentiation: (1/√Q)Σ|x⟩|a^x mod N⟩',
+                '   - Inverse QFT on control register',
+                '   - Measure to get s/r approximation',
+                '4. Use continued fractions to extract period r from measurement',
+                '5. If r is even and a^(r/2) ≢ -1 (mod N):',
+                '   - Compute gcd(a^(r/2) ± 1, N) to find factors',
+                '6. Repeat with different base if needed',
+              ],
+
+              keyComponents: {
+                quantumFourierTransform: {
+                  purpose: 'Extracts periodicity from quantum states',
+                  action: '|j⟩ → (1/√N) Σₖ e^(2πijk/N) |k⟩',
+                  efficiency: 'O(n²) gates vs O(n·2^n) classical FFT on superposition',
+                },
+                modularExponentiation: {
+                  purpose: 'Computes a^x mod N for all x in superposition',
+                  action: '|x⟩|0⟩ → |x⟩|a^x mod N⟩',
+                  note: 'Most gate-intensive part of the algorithm',
+                },
+                continuedFractions: {
+                  purpose: 'Extracts exact period r from measured fraction s/r',
+                  classical: 'Efficient classical algorithm O(log N)',
+                },
               },
-              continuedFractions: {
-                purpose: 'Extracts exact period r from measured fraction s/r',
-                classical: 'Efficient classical algorithm O(log N)'
-              }
+
+              complexity: {
+                quantum: 'O(n³) gates where n = log₂(N)',
+                classical: 'O(exp(n^(1/3) × (log n)^(2/3))) - Number Field Sieve',
+                speedup: 'Exponential',
+              },
+
+              operations: [
+                'factor: Run complete factorization algorithm',
+                'simulate: Show detailed quantum state evolution',
+                'analyze: Analyze complexity and qubit requirements',
+                'period_find: Run just the quantum period finding',
+                'qft: Demonstrate Quantum Fourier Transform',
+                'info: This documentation',
+              ],
+
+              examples: [
+                { operation: 'factor', number: 15, expected: '[3, 5]' },
+                { operation: 'factor', number: 21, expected: '[3, 7]' },
+                { operation: 'factor', number: 35, expected: '[5, 7]' },
+                { operation: 'simulate', number: 15, description: 'See quantum state evolution' },
+                {
+                  operation: 'analyze',
+                  number: 2048,
+                  description: 'Analyze RSA-2048 requirements',
+                },
+              ],
+
+              historicalMilestones: [
+                { year: 1994, event: 'Shor publishes algorithm' },
+                { year: 2001, event: 'IBM factors 15 using 7 qubits' },
+                { year: 2012, event: '21 factored using quantum optimization' },
+                { year: 2019, event: 'Google achieves quantum supremacy (not factoring)' },
+              ],
+
+              note: 'This tool provides classical simulation of the quantum algorithm. True quantum advantage requires actual quantum hardware.',
             },
-
-            complexity: {
-              quantum: 'O(n³) gates where n = log₂(N)',
-              classical: 'O(exp(n^(1/3) × (log n)^(2/3))) - Number Field Sieve',
-              speedup: 'Exponential'
-            },
-
-            operations: [
-              'factor: Run complete factorization algorithm',
-              'simulate: Show detailed quantum state evolution',
-              'analyze: Analyze complexity and qubit requirements',
-              'period_find: Run just the quantum period finding',
-              'qft: Demonstrate Quantum Fourier Transform',
-              'info: This documentation'
-            ],
-
-            examples: [
-              { operation: 'factor', number: 15, expected: '[3, 5]' },
-              { operation: 'factor', number: 21, expected: '[3, 7]' },
-              { operation: 'factor', number: 35, expected: '[5, 7]' },
-              { operation: 'simulate', number: 15, description: 'See quantum state evolution' },
-              { operation: 'analyze', number: 2048, description: 'Analyze RSA-2048 requirements' }
-            ],
-
-            historicalMilestones: [
-              { year: 1994, event: 'Shor publishes algorithm' },
-              { year: 2001, event: 'IBM factors 15 using 7 qubits' },
-              { year: 2012, event: '21 factored using quantum optimization' },
-              { year: 2019, event: 'Google achieves quantum supremacy (not factoring)' }
-            ],
-
-            note: 'This tool provides classical simulation of the quantum algorithm. True quantum advantage requires actual quantum hardware.'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            validOperations: ['factor', 'simulate', 'analyze', 'period_find', 'qft', 'info']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              validOperations: ['factor', 'simulate', 'analyze', 'period_find', 'qft', 'info'],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -994,7 +1022,7 @@ export async function executeshoralgorithm(toolCall: UnifiedToolCall): Promise<U
     return {
       toolCallId: id,
       content: `Error in Shor's algorithm: ${errorMessage}`,
-      isError: true
+      isError: true,
     };
   }
 }

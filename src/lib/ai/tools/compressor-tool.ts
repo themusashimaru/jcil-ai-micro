@@ -6,6 +6,24 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
+interface CompressorAnalysis {
+  type: string;
+  settings: {
+    threshold: string;
+    ratio: string;
+    attack: string;
+    release: string;
+    knee: string;
+    makeupGain: string;
+    detectionMode: string;
+  };
+  statistics: {
+    maxGainReduction: string;
+    avgGainReduction: string;
+    compressionActivity: string;
+  };
+}
+
 export const compressorTool: UnifiedTool = {
   name: 'compressor',
   description: 'Dynamic range compressor with RMS/peak detection, soft knee, and multiband modes',
@@ -14,68 +32,70 @@ export const compressorTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['info', 'examples', 'demo', 'compress', 'multiband', 'sidechain', 'analyze', 'transfer_curve'],
-        description: 'Operation to perform'
+        enum: [
+          'info',
+          'examples',
+          'demo',
+          'compress',
+          'multiband',
+          'sidechain',
+          'analyze',
+          'transfer_curve',
+        ],
+        description: 'Operation to perform',
       },
       signal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Input audio signal samples'
+        description: 'Input audio signal samples',
       },
       sampleRate: {
         type: 'number',
-        description: 'Sample rate in Hz (default: 44100)'
+        description: 'Sample rate in Hz (default: 44100)',
       },
       threshold: {
         type: 'number',
-        description: 'Threshold level in dB (default: -20)'
+        description: 'Threshold level in dB (default: -20)',
       },
       ratio: {
         type: 'number',
-        description: 'Compression ratio (e.g., 4 for 4:1, default: 4)'
+        description: 'Compression ratio (e.g., 4 for 4:1, default: 4)',
       },
       attack: {
         type: 'number',
-        description: 'Attack time in milliseconds (default: 10)'
+        description: 'Attack time in milliseconds (default: 10)',
       },
       release: {
         type: 'number',
-        description: 'Release time in milliseconds (default: 100)'
+        description: 'Release time in milliseconds (default: 100)',
       },
       knee: {
         type: 'number',
-        description: 'Knee width in dB (0 = hard knee, default: 6)'
+        description: 'Knee width in dB (0 = hard knee, default: 6)',
       },
       makeupGain: {
         type: 'number',
-        description: 'Output makeup gain in dB (default: 0)'
+        description: 'Output makeup gain in dB (default: 0)',
       },
       detectionMode: {
         type: 'string',
         enum: ['peak', 'rms'],
-        description: 'Level detection mode (default: rms)'
+        description: 'Level detection mode (default: rms)',
       },
       sidechainSignal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'External sidechain signal for sidechain compression'
+        description: 'External sidechain signal for sidechain compression',
       },
       bands: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            lowFreq: { type: 'number' },
-            highFreq: { type: 'number' },
-            threshold: { type: 'number' },
-            ratio: { type: 'number' }
-          }
-        },
-        description: 'Multiband compressor band settings'
-      }
+        items: { type: 'object' },
+        description:
+          'Multiband compressor band settings. Each band has: lowFreq (number), highFreq (number), threshold (number), ratio (number)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Convert linear amplitude to dB
@@ -90,10 +110,10 @@ function dbToLinear(db: number): number {
 
 // Calculate gain reduction using soft knee
 function calculateGainReduction(
-  inputLevel: number,  // in dB
-  threshold: number,   // in dB
+  inputLevel: number, // in dB
+  threshold: number, // in dB
   ratio: number,
-  kneeWidth: number    // in dB
+  kneeWidth: number // in dB
 ): number {
   // Below threshold
   if (inputLevel < threshold - kneeWidth / 2) {
@@ -107,14 +127,11 @@ function calculateGainReduction(
 
   // In the knee region (soft knee)
   const x = inputLevel - threshold + kneeWidth / 2;
-  return (x * x) / (2 * kneeWidth) * (1 - 1 / ratio);
+  return ((x * x) / (2 * kneeWidth)) * (1 - 1 / ratio);
 }
 
 // RMS level detector
-function rmsDetector(
-  samples: number[],
-  windowSize: number
-): number[] {
+function rmsDetector(samples: number[], windowSize: number): number[] {
   const levels: number[] = new Array(samples.length).fill(0);
   const halfWindow = Math.floor(windowSize / 2);
 
@@ -137,11 +154,7 @@ function rmsDetector(
 }
 
 // Peak detector with attack/release envelope
-function peakDetector(
-  samples: number[],
-  attackCoeff: number,
-  releaseCoeff: number
-): number[] {
+function peakDetector(samples: number[], attackCoeff: number, releaseCoeff: number): number[] {
   const levels: number[] = new Array(samples.length).fill(0);
   let envelope = 0;
 
@@ -172,10 +185,10 @@ function compress(
   makeupGain: number,
   detectionMode: 'peak' | 'rms',
   sidechainSignal?: number[]
-): { output: number[]; gainReduction: number[]; analysis: object } {
+): { output: number[]; gainReduction: number[]; analysis: CompressorAnalysis } {
   // Calculate time constants
-  const attackCoeff = Math.exp(-1 / (attackMs * sampleRate / 1000));
-  const releaseCoeff = Math.exp(-1 / (releaseMs * sampleRate / 1000));
+  const attackCoeff = Math.exp(-1 / ((attackMs * sampleRate) / 1000));
+  const releaseCoeff = Math.exp(-1 / ((releaseMs * sampleRate) / 1000));
 
   // Detect levels from sidechain or main signal
   const detectionSignal = sidechainSignal || signal;
@@ -183,7 +196,7 @@ function compress(
   let levels: number[];
   if (detectionMode === 'rms') {
     // RMS window based on attack time
-    const rmsWindow = Math.max(32, Math.floor(attackMs * sampleRate / 1000));
+    const rmsWindow = Math.max(32, Math.floor((attackMs * sampleRate) / 1000));
     levels = rmsDetector(detectionSignal, rmsWindow);
   } else {
     levels = peakDetector(detectionSignal, attackCoeff, releaseCoeff);
@@ -240,15 +253,17 @@ function compress(
         release: releaseMs + ' ms',
         knee: kneeWidth + ' dB',
         makeupGain: makeupGain + ' dB',
-        detectionMode
+        detectionMode,
       },
       statistics: {
         maxGainReduction: maxGainReduction.toFixed(2) + ' dB',
-        avgGainReduction: samplesCompressed > 0 ?
-          (totalGainReduction / samplesCompressed).toFixed(2) + ' dB' : '0 dB',
-        compressionActivity: ((samplesCompressed / signal.length) * 100).toFixed(1) + '%'
-      }
-    }
+        avgGainReduction:
+          samplesCompressed > 0
+            ? (totalGainReduction / samplesCompressed).toFixed(2) + ' dB'
+            : '0 dB',
+        compressionActivity: ((samplesCompressed / signal.length) * 100).toFixed(1) + '%',
+      },
+    },
   };
 }
 
@@ -259,7 +274,7 @@ function applyFilter(
   frequency: number,
   type: 'lowpass' | 'highpass'
 ): number[] {
-  const w0 = 2 * Math.PI * frequency / sampleRate;
+  const w0 = (2 * Math.PI * frequency) / sampleRate;
   const cosw0 = Math.cos(w0);
   const sinw0 = Math.sin(w0);
   const alpha = sinw0 / (2 * 0.707); // Q = 0.707 for Butterworth
@@ -280,18 +295,27 @@ function applyFilter(
   a2 = 1 - alpha;
 
   // Normalize
-  b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+  b0 /= a0;
+  b1 /= a0;
+  b2 /= a0;
+  a1 /= a0;
+  a2 /= a0;
 
   // Apply filter
   const output: number[] = new Array(signal.length);
-  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  let x1 = 0,
+    x2 = 0,
+    y1 = 0,
+    y2 = 0;
 
   for (let i = 0; i < signal.length; i++) {
     const x0 = signal[i];
     const y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
 
-    x2 = x1; x1 = x0;
-    y2 = y1; y1 = y0;
+    x2 = x1;
+    x1 = x0;
+    y2 = y1;
+    y1 = y0;
     output[i] = y0;
   }
 
@@ -302,7 +326,14 @@ function applyFilter(
 function multibandCompress(
   signal: number[],
   sampleRate: number,
-  bands: { lowFreq: number; highFreq: number; threshold: number; ratio: number; attack?: number; release?: number }[]
+  bands: {
+    lowFreq: number;
+    highFreq: number;
+    threshold: number;
+    ratio: number;
+    attack?: number;
+    release?: number;
+  }[]
 ): { output: number[]; bandOutputs: number[][]; analysis: object } {
   // Sort bands by frequency
   const sortedBands = [...bands].sort((a, b) => a.lowFreq - b.lowFreq);
@@ -349,7 +380,7 @@ function multibandCompress(
       frequency: `${band.lowFreq}-${band.highFreq} Hz`,
       threshold: band.threshold + ' dB',
       ratio: band.ratio + ':1',
-      ...result.analysis.statistics
+      ...result.analysis.statistics,
     });
   }
 
@@ -367,8 +398,8 @@ function multibandCompress(
     analysis: {
       type: 'Multiband Compressor',
       bandCount: bands.length,
-      bands: bandAnalyses
-    }
+      bands: bandAnalyses,
+    },
   };
 }
 
@@ -399,7 +430,7 @@ function analyzeDynamics(signal: number[], _sampleRate: number): object {
   // Calculate levels
   const absSignal = signal.map(Math.abs);
   const maxLevel = Math.max(...absSignal);
-  const minLevel = Math.min(...absSignal.filter(s => s > 1e-6));
+  const minLevel = Math.min(...absSignal.filter((s) => s > 1e-6));
 
   // Calculate RMS
   const rms = Math.sqrt(signal.reduce((sum, s) => sum + s * s, 0) / signal.length);
@@ -436,14 +467,14 @@ function analyzeDynamics(signal: number[], _sampleRate: number): object {
       peakLevel: linearToDb(maxLevel).toFixed(2) + ' dB',
       rmsLevel: linearToDb(rms).toFixed(2) + ' dB',
       crestFactor: crestFactor.toFixed(2) + ' dB',
-      dynamicRange: dynamicRange.toFixed(2) + ' dB'
+      dynamicRange: dynamicRange.toFixed(2) + ' dB',
     },
     levelDistribution: histogramPercent,
     recommendations: {
       suggestedThreshold: (linearToDb(rms) + 6).toFixed(0) + ' dB',
       suggestedRatio: crestFactor > 12 ? '4:1 to 8:1' : '2:1 to 4:1',
-      suggestedMakeup: Math.min(6, crestFactor / 2).toFixed(0) + ' dB'
-    }
+      suggestedMakeup: Math.min(6, crestFactor / 2).toFixed(0) + ' dB',
+    },
   };
 }
 
@@ -464,7 +495,7 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
       makeupGain = 0,
       detectionMode = 'rms',
       sidechainSignal,
-      bands = []
+      bands = [],
     } = args;
 
     let result: object;
@@ -478,7 +509,7 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
             detection: 'Peak or RMS level detection',
             knee: 'Soft knee for smooth compression onset',
             sidechain: 'External sidechain input support',
-            multiband: 'Multi-band compression with crossover filters'
+            multiband: 'Multi-band compression with crossover filters',
           },
           parameters: {
             threshold: 'Level above which compression begins (dB)',
@@ -486,15 +517,15 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
             attack: 'Time to reach full compression (ms)',
             release: 'Time to release compression (ms)',
             knee: 'Soft knee width (dB, 0 = hard knee)',
-            makeupGain: 'Output gain compensation (dB)'
+            makeupGain: 'Output gain compensation (dB)',
           },
           operations: [
             'compress - Standard compression',
             'multiband - Multi-band compression',
             'sidechain - Sidechain compression',
             'analyze - Analyze signal dynamics',
-            'transfer_curve - Generate transfer function'
-          ]
+            'transfer_curve - Generate transfer function',
+          ],
         };
         break;
 
@@ -508,8 +539,8 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
               threshold: -18,
               ratio: 4,
               attack: 5,
-              release: 80
-            }
+              release: 80,
+            },
           },
           multiband: {
             description: 'Three-band mastering compression',
@@ -519,9 +550,9 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
               bands: [
                 { lowFreq: 20, highFreq: 200, threshold: -24, ratio: 2 },
                 { lowFreq: 200, highFreq: 2000, threshold: -20, ratio: 3 },
-                { lowFreq: 2000, highFreq: 20000, threshold: -18, ratio: 4 }
-              ]
-            }
+                { lowFreq: 2000, highFreq: 20000, threshold: -18, ratio: 4 },
+              ],
+            },
           },
           transferCurve: {
             description: 'Visualize compression curve',
@@ -529,9 +560,9 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
               operation: 'transfer_curve',
               threshold: -20,
               ratio: 4,
-              knee: 6
-            }
-          }
+              knee: 6,
+            },
+          },
         };
         break;
 
@@ -540,29 +571,19 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
         const demoSignal: number[] = [];
         for (let i = 0; i < 2000; i++) {
           // Varying amplitude envelope
-          const envelope = 0.3 + 0.7 * Math.sin(2 * Math.PI * i / 500);
-          const tone = Math.sin(2 * Math.PI * 440 * i / sampleRate);
+          const envelope = 0.3 + 0.7 * Math.sin((2 * Math.PI * i) / 500);
+          const tone = Math.sin((2 * Math.PI * 440 * i) / sampleRate);
           demoSignal.push(tone * envelope);
         }
 
-        const demoResult = compress(
-          demoSignal,
-          sampleRate,
-          -20,
-          4,
-          10,
-          100,
-          6,
-          4,
-          'rms'
-        );
+        const demoResult = compress(demoSignal, sampleRate, -20, 4, 10, 100, 6, 4, 'rms');
 
         result = {
           demo: 'Compression of dynamic signal',
           inputSignal: {
             type: 'Amplitude-modulated 440Hz tone',
             length: demoSignal.length,
-            peakLevel: linearToDb(Math.max(...demoSignal.map(Math.abs))).toFixed(2) + ' dB'
+            peakLevel: linearToDb(Math.max(...demoSignal.map(Math.abs))).toFixed(2) + ' dB',
           },
           settings: {
             threshold: '-20 dB',
@@ -570,11 +591,13 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
             attack: '10 ms',
             release: '100 ms',
             knee: '6 dB',
-            makeupGain: '4 dB'
+            makeupGain: '4 dB',
           },
-          outputPreview: demoResult.output.slice(0, 50).map(v => v.toFixed(4)),
-          gainReductionPreview: demoResult.gainReduction.slice(0, 50).map(v => v.toFixed(2) + ' dB'),
-          analysis: demoResult.analysis
+          outputPreview: demoResult.output.slice(0, 50).map((v) => v.toFixed(4)),
+          gainReductionPreview: demoResult.gainReduction
+            .slice(0, 50)
+            .map((v) => v.toFixed(2) + ' dB'),
+          analysis: demoResult.analysis,
         };
         break;
 
@@ -599,8 +622,8 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
           operation: 'compress',
           inputLength: signal.length,
           output: compResult.output.slice(0, 100),
-          gainReduction: compResult.gainReduction.slice(0, 100).map(gr => gr.toFixed(2)),
-          analysis: compResult.analysis
+          gainReduction: compResult.gainReduction.slice(0, 100).map((gr) => gr.toFixed(2)),
+          analysis: compResult.analysis,
         };
         break;
 
@@ -609,11 +632,14 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
           throw new Error('Signal array is required for multiband operation');
         }
 
-        const defaultBands = bands.length > 0 ? bands : [
-          { lowFreq: 20, highFreq: 200, threshold: -24, ratio: 2 },
-          { lowFreq: 200, highFreq: 2000, threshold: -20, ratio: 3 },
-          { lowFreq: 2000, highFreq: 20000, threshold: -18, ratio: 4 }
-        ];
+        const defaultBands =
+          bands.length > 0
+            ? bands
+            : [
+                { lowFreq: 20, highFreq: 200, threshold: -24, ratio: 2 },
+                { lowFreq: 200, highFreq: 2000, threshold: -20, ratio: 3 },
+                { lowFreq: 2000, highFreq: 20000, threshold: -18, ratio: 4 },
+              ];
 
         const mbResult = multibandCompress(signal, sampleRate, defaultBands);
 
@@ -621,7 +647,7 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
           operation: 'multiband',
           inputLength: signal.length,
           output: mbResult.output.slice(0, 100),
-          analysis: mbResult.analysis
+          analysis: mbResult.analysis,
         };
         break;
 
@@ -665,13 +691,13 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
           inputLength: signal.length,
           sidechainLength: sidechain.length,
           output: scResult.output.slice(0, 100),
-          gainReduction: scResult.gainReduction.slice(0, 100).map(gr => gr.toFixed(2)),
+          gainReduction: scResult.gainReduction.slice(0, 100).map((gr) => gr.toFixed(2)),
           analysis: {
             ...scResult.analysis,
-            sidechainInfo: sidechainSignal ?
-              'External sidechain provided' :
-              'Auto-generated periodic kick sidechain'
-          }
+            sidechainInfo: sidechainSignal
+              ? 'External sidechain provided'
+              : 'Auto-generated periodic kick sidechain',
+          },
         };
         break;
 
@@ -683,7 +709,7 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
         result = {
           operation: 'analyze',
           signalLength: signal.length,
-          analysis: analyzeDynamics(signal, sampleRate)
+          analysis: analyzeDynamics(signal, sampleRate),
         };
         break;
 
@@ -696,7 +722,8 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
           curvePoints.push({
             input: curve.inputLevels[i] + ' dB',
             output: curve.outputLevels[i].toFixed(1) + ' dB',
-            reduction: (curve.inputLevels[i] - curve.outputLevels[i] + makeupGain).toFixed(1) + ' dB'
+            reduction:
+              (curve.inputLevels[i] - curve.outputLevels[i] + makeupGain).toFixed(1) + ' dB',
           });
         }
 
@@ -706,38 +733,46 @@ export async function executecompressor(toolCall: UnifiedToolCall): Promise<Unif
             threshold: threshold + ' dB',
             ratio: ratio + ':1',
             knee: knee + ' dB',
-            makeupGain: makeupGain + ' dB'
+            makeupGain: makeupGain + ' dB',
           },
           curve: curvePoints,
           keyPoints: {
             thresholdPoint: {
               input: threshold + ' dB',
-              output: (threshold + makeupGain) + ' dB'
+              output: threshold + makeupGain + ' dB',
             },
-            kneeStart: (threshold - knee / 2) + ' dB',
-            kneeEnd: (threshold + knee / 2) + ' dB'
-          }
+            kneeStart: threshold - knee / 2 + ' dB',
+            kneeEnd: threshold + knee / 2 + ' dB',
+          },
         };
         break;
 
       default:
         result = {
           error: `Unknown operation: ${operation}`,
-          availableOperations: ['info', 'examples', 'demo', 'compress', 'multiband', 'sidechain', 'analyze', 'transfer_curve']
+          availableOperations: [
+            'info',
+            'examples',
+            'demo',
+            'compress',
+            'multiband',
+            'sidechain',
+            'analyze',
+            'transfer_curve',
+          ],
         };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

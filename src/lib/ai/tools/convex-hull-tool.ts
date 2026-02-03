@@ -21,30 +21,36 @@ export const convexhullTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['compute', 'area', 'perimeter', 'contains', 'diameter', 'minimum_enclosing', 'analyze', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'compute',
+          'area',
+          'perimeter',
+          'contains',
+          'diameter',
+          'minimum_enclosing',
+          'analyze',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       points: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Array of 2D or 3D points'
+        items: { type: 'array' },
+        description: 'Array of 2D or 3D points (2D array of numbers)',
       },
       algorithm: {
         type: 'string',
         enum: ['graham_scan', 'jarvis_march', 'quickhull', 'auto'],
-        description: 'Algorithm to use (default: auto)'
+        description: 'Algorithm to use (default: auto)',
       },
       query_point: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Point to test for containment'
-      }
+        description: 'Point to test for containment',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // 2D Point type
@@ -55,8 +61,7 @@ interface Point2D {
 }
 
 // 3D Point type
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Point3D {
+export interface Point3D {
   x: number;
   y: number;
   z: number;
@@ -87,8 +92,10 @@ function grahamScan(points: Point2D[]): Point2D[] {
   // Find lowest point (and leftmost if tie)
   let lowest = 0;
   for (let i = 1; i < points.length; i++) {
-    if (points[i].y < points[lowest].y ||
-        (points[i].y === points[lowest].y && points[i].x < points[lowest].x)) {
+    if (
+      points[i].y < points[lowest].y ||
+      (points[i].y === points[lowest].y && points[i].x < points[lowest].x)
+    ) {
       lowest = i;
     }
   }
@@ -98,10 +105,10 @@ function grahamScan(points: Point2D[]): Point2D[] {
   // Sort by polar angle with pivot
   const sorted = points
     .filter((_, i) => i !== lowest)
-    .map(p => ({
+    .map((p) => ({
       point: p,
       angle: Math.atan2(p.y - pivot.y, p.x - pivot.x),
-      dist: distSq2D(pivot, p)
+      dist: distSq2D(pivot, p),
     }))
     .sort((a, b) => {
       if (Math.abs(a.angle - b.angle) < 1e-10) {
@@ -109,7 +116,7 @@ function grahamScan(points: Point2D[]): Point2D[] {
       }
       return a.angle - b.angle;
     })
-    .map(item => item.point);
+    .map((item) => item.point);
 
   // Build hull
   const hull: Point2D[] = [pivot];
@@ -131,8 +138,10 @@ function jarvisMarch(points: Point2D[]): Point2D[] {
   // Find leftmost point
   let leftmost = 0;
   for (let i = 1; i < points.length; i++) {
-    if (points[i].x < points[leftmost].x ||
-        (points[i].x === points[leftmost].x && points[i].y < points[leftmost].y)) {
+    if (
+      points[i].x < points[leftmost].x ||
+      (points[i].x === points[leftmost].x && points[i].y < points[leftmost].y)
+    ) {
       leftmost = i;
     }
   }
@@ -146,7 +155,10 @@ function jarvisMarch(points: Point2D[]): Point2D[] {
 
     for (let i = 0; i < points.length; i++) {
       const cross = cross2D(points[p], points[i], points[q]);
-      if (cross > 0 || (cross === 0 && distSq2D(points[p], points[i]) > distSq2D(points[p], points[q]))) {
+      if (
+        cross > 0 ||
+        (cross === 0 && distSq2D(points[p], points[i]) > distSq2D(points[p], points[q]))
+      ) {
         q = i;
       }
     }
@@ -162,7 +174,8 @@ function quickhull(points: Point2D[]): Point2D[] {
   if (points.length < 3) return [...points];
 
   // Find min and max x points
-  let minX = 0, maxX = 0;
+  let minX = 0,
+    maxX = 0;
   for (let i = 1; i < points.length; i++) {
     if (points[i].x < points[minX].x) minX = i;
     if (points[i].x > points[maxX].x) maxX = i;
@@ -316,8 +329,10 @@ function minEnclosingCircle(points: Point2D[]): { center: Point2D; radius: numbe
   }
 
   function circleFrom3(p1: Point2D, p2: Point2D, p3: Point2D): { center: Point2D; radius: number } {
-    const ax = p2.x - p1.x, ay = p2.y - p1.y;
-    const bx = p3.x - p1.x, by = p3.y - p1.y;
+    const ax = p2.x - p1.x,
+      ay = p2.y - p1.y;
+    const bx = p3.x - p1.x,
+      by = p3.y - p1.y;
     const m = ax * ax + ay * ay;
     const u = bx * bx + by * by;
     const s = 2 * (ax * by - ay * bx);
@@ -343,7 +358,11 @@ function minEnclosingCircle(points: Point2D[]): { center: Point2D; radius: numbe
     return dist2D(circle.center, p) <= circle.radius + 1e-10;
   }
 
-  function welzl(points: Point2D[], boundary: Point2D[], n: number): { center: Point2D; radius: number } {
+  function welzl(
+    points: Point2D[],
+    boundary: Point2D[],
+    n: number
+  ): { center: Point2D; radius: number } {
     if (n === 0 || boundary.length === 3) {
       if (boundary.length === 0) return { center: { x: 0, y: 0 }, radius: 0 };
       if (boundary.length === 1) return circleFrom1(boundary[0]);
@@ -389,10 +408,22 @@ function generateSamplePoints(type: string, n: number): Point2D[] {
         const side = Math.floor(Math.random() * 4);
         let x, y;
         switch (side) {
-          case 0: x = Math.random() * 100; y = 0; break;
-          case 1: x = 100; y = Math.random() * 100; break;
-          case 2: x = Math.random() * 100; y = 100; break;
-          default: x = 0; y = Math.random() * 100; break;
+          case 0:
+            x = Math.random() * 100;
+            y = 0;
+            break;
+          case 1:
+            x = 100;
+            y = Math.random() * 100;
+            break;
+          case 2:
+            x = Math.random() * 100;
+            y = 100;
+            break;
+          default:
+            x = 0;
+            y = Math.random() * 100;
+            break;
         }
         points.push({ x, y, index: i });
       }
@@ -401,15 +432,17 @@ function generateSamplePoints(type: string, n: number): Point2D[] {
     case 'clustered':
       const numClusters = 4;
       const centers = [
-        { x: 25, y: 25 }, { x: 75, y: 25 },
-        { x: 25, y: 75 }, { x: 75, y: 75 }
+        { x: 25, y: 25 },
+        { x: 75, y: 25 },
+        { x: 25, y: 75 },
+        { x: 75, y: 75 },
       ];
       for (let i = 0; i < n; i++) {
         const center = centers[i % numClusters];
         points.push({
           x: center.x + (Math.random() - 0.5) * 30,
           y: center.y + (Math.random() - 0.5) * 30,
-          index: i
+          index: i,
         });
       }
       break;
@@ -424,7 +457,10 @@ function generateSamplePoints(type: string, n: number): Point2D[] {
 }
 
 // Compute convex hull with selected algorithm
-function computeHull(points: Point2D[], algorithm: string): {
+function computeHull(
+  points: Point2D[],
+  algorithm: string
+): {
   hull: Point2D[];
   algorithm_used: string;
   comparisons: number;
@@ -457,7 +493,7 @@ function computeHull(points: Point2D[], algorithm: string): {
   return {
     hull,
     algorithm_used: algoUsed,
-    comparisons: points.length * Math.ceil(Math.log2(points.length + 1))
+    comparisons: points.length * Math.ceil(Math.log2(points.length + 1)),
   };
 }
 
@@ -471,38 +507,48 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'convex_hull',
-          description: 'Convex hull computation for 2D point sets',
-          operations: {
-            compute: 'Compute convex hull of point set',
-            area: 'Calculate area enclosed by convex hull',
-            perimeter: 'Calculate perimeter of convex hull',
-            contains: 'Test if point is inside convex hull',
-            diameter: 'Find diameter of convex hull (farthest pair)',
-            minimum_enclosing: 'Find minimum enclosing circle',
-            analyze: 'Full analysis of point set and hull'
+        content: JSON.stringify(
+          {
+            tool: 'convex_hull',
+            description: 'Convex hull computation for 2D point sets',
+            operations: {
+              compute: 'Compute convex hull of point set',
+              area: 'Calculate area enclosed by convex hull',
+              perimeter: 'Calculate perimeter of convex hull',
+              contains: 'Test if point is inside convex hull',
+              diameter: 'Find diameter of convex hull (farthest pair)',
+              minimum_enclosing: 'Find minimum enclosing circle',
+              analyze: 'Full analysis of point set and hull',
+            },
+            algorithms: {
+              graham_scan: 'O(n log n) - Sort by polar angle, build monotone chain',
+              jarvis_march: 'O(nh) - Gift wrapping, good for small hulls',
+              quickhull: 'O(n log n) average - Divide and conquer',
+              auto: 'Automatically select best algorithm',
+            },
+            features: [
+              'Multiple algorithm implementations',
+              'Area and perimeter computation',
+              'Point containment testing',
+              'Rotating calipers for diameter',
+              'Minimum enclosing circle (Welzl)',
+              'Sample point generation',
+            ],
+            example: {
+              operation: 'compute',
+              points: [
+                [0, 0],
+                [10, 0],
+                [5, 10],
+                [3, 3],
+                [7, 2],
+              ],
+              algorithm: 'graham_scan',
+            },
           },
-          algorithms: {
-            graham_scan: 'O(n log n) - Sort by polar angle, build monotone chain',
-            jarvis_march: 'O(nh) - Gift wrapping, good for small hulls',
-            quickhull: 'O(n log n) average - Divide and conquer',
-            auto: 'Automatically select best algorithm'
-          },
-          features: [
-            'Multiple algorithm implementations',
-            'Area and perimeter computation',
-            'Point containment testing',
-            'Rotating calipers for diameter',
-            'Minimum enclosing circle (Welzl)',
-            'Sample point generation'
-          ],
-          example: {
-            operation: 'compute',
-            points: [[0,0], [10,0], [5,10], [3,3], [7,2]],
-            algorithm: 'graham_scan'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -523,20 +569,24 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'compute',
-          input_points: points.length,
-          hull_vertices: result.hull.length,
-          algorithm_used: result.algorithm_used,
-          hull: result.hull.map(p => [parseFloat(p.x.toFixed(4)), parseFloat(p.y.toFixed(4))]),
-          area: parseFloat(polygonArea(result.hull).toFixed(4)),
-          perimeter: parseFloat(polygonPerimeter(result.hull).toFixed(4)),
-          complexity: {
-            input_size: points.length,
-            hull_size: result.hull.length,
-            ratio: parseFloat((result.hull.length / points.length).toFixed(4))
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'compute',
+            input_points: points.length,
+            hull_vertices: result.hull.length,
+            algorithm_used: result.algorithm_used,
+            hull: result.hull.map((p) => [parseFloat(p.x.toFixed(4)), parseFloat(p.y.toFixed(4))]),
+            area: parseFloat(polygonArea(result.hull).toFixed(4)),
+            perimeter: parseFloat(polygonPerimeter(result.hull).toFixed(4)),
+            complexity: {
+              input_size: points.length,
+              hull_size: result.hull.length,
+              ratio: parseFloat((result.hull.length / points.length).toFixed(4)),
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -546,34 +596,46 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'area',
-          hull_vertices: result.hull.length,
-          area,
-          unit: 'square units',
-          comparison: {
-            bounding_box_area: (() => {
-              let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-              for (const p of points) {
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-                if (p.y < minY) minY = p.y;
-                if (p.y > maxY) maxY = p.y;
-              }
-              return (maxX - minX) * (maxY - minY);
-            })(),
-            efficiency: area / (() => {
-              let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-              for (const p of points) {
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-                if (p.y < minY) minY = p.y;
-                if (p.y > maxY) maxY = p.y;
-              }
-              return (maxX - minX) * (maxY - minY) || 1;
-            })()
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'area',
+            hull_vertices: result.hull.length,
+            area,
+            unit: 'square units',
+            comparison: {
+              bounding_box_area: (() => {
+                let minX = Infinity,
+                  maxX = -Infinity,
+                  minY = Infinity,
+                  maxY = -Infinity;
+                for (const p of points) {
+                  if (p.x < minX) minX = p.x;
+                  if (p.x > maxX) maxX = p.x;
+                  if (p.y < minY) minY = p.y;
+                  if (p.y > maxY) maxY = p.y;
+                }
+                return (maxX - minX) * (maxY - minY);
+              })(),
+              efficiency:
+                area /
+                (() => {
+                  let minX = Infinity,
+                    maxX = -Infinity,
+                    minY = Infinity,
+                    maxY = -Infinity;
+                  for (const p of points) {
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                  }
+                  return (maxX - minX) * (maxY - minY) || 1;
+                })(),
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -583,20 +645,24 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'perimeter',
-          hull_vertices: result.hull.length,
-          perimeter,
-          avg_edge_length: perimeter / result.hull.length,
-          edges: result.hull.map((p, i) => {
-            const next = result.hull[(i + 1) % result.hull.length];
-            return {
-              from: [p.x, p.y],
-              to: [next.x, next.y],
-              length: dist2D(p, next)
-            };
-          })
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'perimeter',
+            hull_vertices: result.hull.length,
+            perimeter,
+            avg_edge_length: perimeter / result.hull.length,
+            edges: result.hull.map((p, i) => {
+              const next = result.hull[(i + 1) % result.hull.length];
+              return {
+                from: [p.x, p.y],
+                to: [next.x, next.y],
+                length: dist2D(p, next),
+              };
+            }),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -612,17 +678,21 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'contains',
-          query_point: queryPoint,
-          is_inside: inside,
-          hull_vertices: result.hull.length,
-          distance_to_centroid: (() => {
-            const cx = result.hull.reduce((s, p) => s + p.x, 0) / result.hull.length;
-            const cy = result.hull.reduce((s, p) => s + p.y, 0) / result.hull.length;
-            return Math.sqrt((point.x - cx) ** 2 + (point.y - cy) ** 2);
-          })()
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'contains',
+            query_point: queryPoint,
+            is_inside: inside,
+            hull_vertices: result.hull.length,
+            distance_to_centroid: (() => {
+              const cx = result.hull.reduce((s, p) => s + p.x, 0) / result.hull.length;
+              const cy = result.hull.reduce((s, p) => s + p.y, 0) / result.hull.length;
+              return Math.sqrt((point.x - cx) ** 2 + (point.y - cy) ** 2);
+            })(),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -632,16 +702,20 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'diameter',
-          diameter: diam.diameter,
-          antipodal_points: [
-            [diam.points[0].x, diam.points[0].y],
-            [diam.points[1].x, diam.points[1].y]
-          ],
-          hull_vertices: result.hull.length,
-          diameter_to_perimeter_ratio: diam.diameter / polygonPerimeter(result.hull)
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'diameter',
+            diameter: diam.diameter,
+            antipodal_points: [
+              [diam.points[0].x, diam.points[0].y],
+              [diam.points[1].x, diam.points[1].y],
+            ],
+            hull_vertices: result.hull.length,
+            diameter_to_perimeter_ratio: diam.diameter / polygonPerimeter(result.hull),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -650,19 +724,23 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'minimum_enclosing',
-          circle: {
-            center: [circle.center.x, circle.center.y],
-            radius: circle.radius
+        content: JSON.stringify(
+          {
+            operation: 'minimum_enclosing',
+            circle: {
+              center: [circle.center.x, circle.center.y],
+              radius: circle.radius,
+            },
+            circle_area: Math.PI * circle.radius * circle.radius,
+            circumference: 2 * Math.PI * circle.radius,
+            num_points: points.length,
+            points_on_boundary: points.filter(
+              (p) => Math.abs(dist2D(p, circle.center) - circle.radius) < 0.01
+            ).length,
           },
-          circle_area: Math.PI * circle.radius * circle.radius,
-          circumference: 2 * Math.PI * circle.radius,
-          num_points: points.length,
-          points_on_boundary: points.filter(p =>
-            Math.abs(dist2D(p, circle.center) - circle.radius) < 0.01
-          ).length
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -678,7 +756,10 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
       const cy = result.hull.reduce((s, p) => s + p.y, 0) / result.hull.length;
 
       // Bounding box
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity;
       for (const p of points) {
         if (p.x < minX) minX = p.x;
         if (p.x > maxX) maxX = p.x;
@@ -688,50 +769,66 @@ export async function executeconvexhull(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          input_statistics: {
-            num_points: points.length,
-            bounding_box: {
-              min: [minX, minY],
-              max: [maxX, maxY],
-              width: maxX - minX,
-              height: maxY - minY
-            }
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            input_statistics: {
+              num_points: points.length,
+              bounding_box: {
+                min: [minX, minY],
+                max: [maxX, maxY],
+                width: maxX - minX,
+                height: maxY - minY,
+              },
+            },
+            hull_statistics: {
+              num_vertices: result.hull.length,
+              hull_ratio: result.hull.length / points.length,
+              area,
+              perimeter,
+              centroid: [cx, cy],
+              compactness: (4 * Math.PI * area) / (perimeter * perimeter),
+              circularity: area / (Math.PI * (diam.diameter / 2) ** 2),
+            },
+            diameter: {
+              value: diam.diameter,
+              points: diam.points.map((p) => [p.x, p.y]),
+            },
+            minimum_enclosing_circle: {
+              center: [circle.center.x, circle.center.y],
+              radius: circle.radius,
+              area_ratio: area / (Math.PI * circle.radius * circle.radius),
+            },
+            algorithm_used: result.algorithm_used,
+            vertices: result.hull.map((p) => [p.x.toFixed(2), p.y.toFixed(2)]),
           },
-          hull_statistics: {
-            num_vertices: result.hull.length,
-            hull_ratio: result.hull.length / points.length,
-            area,
-            perimeter,
-            centroid: [cx, cy],
-            compactness: 4 * Math.PI * area / (perimeter * perimeter),
-            circularity: area / (Math.PI * (diam.diameter / 2) ** 2)
-          },
-          diameter: {
-            value: diam.diameter,
-            points: diam.points.map(p => [p.x, p.y])
-          },
-          minimum_enclosing_circle: {
-            center: [circle.center.x, circle.center.y],
-            radius: circle.radius,
-            area_ratio: area / (Math.PI * circle.radius * circle.radius)
-          },
-          algorithm_used: result.algorithm_used,
-          vertices: result.hull.map(p => [p.x.toFixed(2), p.y.toFixed(2)])
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: `Unknown operation: ${operation}`,
-        available_operations: ['compute', 'area', 'perimeter', 'contains', 'diameter', 'minimum_enclosing', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: `Unknown operation: ${operation}`,
+          available_operations: [
+            'compute',
+            'area',
+            'perimeter',
+            'contains',
+            'diameter',
+            'minimum_enclosing',
+            'analyze',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

@@ -15,37 +15,53 @@ export const branchpredictorTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['predict', 'train', 'simulate', 'compare', 'analyze', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       predictor: {
         type: 'string',
-        enum: ['1-bit', '2-bit', 'gshare', 'tournament', 'local', 'correlating', 'always_taken', 'always_not_taken'],
-        description: 'Predictor type'
+        enum: [
+          '1-bit',
+          '2-bit',
+          'gshare',
+          'tournament',
+          'local',
+          'correlating',
+          'always_taken',
+          'always_not_taken',
+        ],
+        description: 'Predictor type',
       },
       branch_trace: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            pc: { type: 'integer', description: 'Program counter / branch address' },
-            taken: { type: 'boolean', description: 'Whether branch was actually taken' }
-          }
-        },
-        description: 'Trace of branch outcomes'
+        items: { type: 'object' },
+        description:
+          'Trace of branch outcomes. Each entry has: pc (integer, program counter/branch address), taken (boolean)',
       },
-      table_size: { type: 'integer', description: 'Size of prediction table (power of 2, default: 1024)' },
-      history_bits: { type: 'integer', description: 'Number of history bits for gshare/correlating (default: 10)' },
-      local_history_bits: { type: 'integer', description: 'Local history bits for local predictor' },
-      misprediction_penalty: { type: 'integer', description: 'Cycles lost on misprediction (default: 15)' },
+      table_size: {
+        type: 'integer',
+        description: 'Size of prediction table (power of 2, default: 1024)',
+      },
+      history_bits: {
+        type: 'integer',
+        description: 'Number of history bits for gshare/correlating (default: 10)',
+      },
+      local_history_bits: {
+        type: 'integer',
+        description: 'Local history bits for local predictor',
+      },
+      misprediction_penalty: {
+        type: 'integer',
+        description: 'Cycles lost on misprediction (default: 15)',
+      },
       pattern: {
         type: 'string',
         enum: ['loop', 'alternating', 'random', 'mostly_taken', 'mostly_not_taken', 'nested_loop'],
-        description: 'Pattern for generating test trace'
+        description: 'Pattern for generating test trace',
       },
-      trace_length: { type: 'integer', description: 'Length of generated trace' }
+      trace_length: { type: 'integer', description: 'Length of generated trace' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Predictor states for 2-bit counter
@@ -120,7 +136,12 @@ class TwoBitPredictor {
   }
 
   getState(pc: number): TwoBitState {
-    const states: TwoBitState[] = ['strongly_not_taken', 'weakly_not_taken', 'weakly_taken', 'strongly_taken'];
+    const states: TwoBitState[] = [
+      'strongly_not_taken',
+      'weakly_not_taken',
+      'weakly_taken',
+      'strongly_taken',
+    ];
     return states[this.table[this.index(pc)]];
   }
 }
@@ -158,7 +179,8 @@ class GsharePredictor {
     }
 
     // Shift in new history bit
-    this.globalHistory = ((this.globalHistory << 1) | (taken ? 1 : 0)) & ((1 << this.historyBits) - 1);
+    this.globalHistory =
+      ((this.globalHistory << 1) | (taken ? 1 : 0)) & ((1 << this.historyBits) - 1);
   }
 
   getState(pc: number): string {
@@ -321,16 +343,24 @@ class CorrelatingPredictor {
 
 // Always taken predictor
 class AlwaysTakenPredictor {
-  predict(_pc: number): boolean { return true; }
+  predict(_pc: number): boolean {
+    return true;
+  }
   update(_pc: number, _taken: boolean): void {}
-  getState(_pc: number): string { return 'always_taken'; }
+  getState(_pc: number): string {
+    return 'always_taken';
+  }
 }
 
 // Always not taken predictor
 class AlwaysNotTakenPredictor {
-  predict(_pc: number): boolean { return false; }
+  predict(_pc: number): boolean {
+    return false;
+  }
   update(_pc: number, _taken: boolean): void {}
-  getState(_pc: number): string { return 'always_not_taken'; }
+  getState(_pc: number): string {
+    return 'always_not_taken';
+  }
 }
 
 // Generate test traces
@@ -341,7 +371,7 @@ function generateTrace(pattern: string, length: number): Array<{ pc: number; tak
     case 'loop':
       // Loop: TTTT...TTTTN (9 taken, 1 not taken)
       for (let i = 0; i < length; i++) {
-        trace.push({ pc: 0x1000, taken: (i % 10) !== 9 });
+        trace.push({ pc: 0x1000, taken: i % 10 !== 9 });
       }
       break;
 
@@ -395,7 +425,7 @@ function generateTrace(pattern: string, length: number): Array<{ pc: number; tak
     default:
       // Default to loop pattern
       for (let i = 0; i < length; i++) {
-        trace.push({ pc: 0x1000, taken: (i % 10) !== 9 });
+        trace.push({ pc: 0x1000, taken: i % 10 !== 9 });
       }
   }
 
@@ -409,7 +439,11 @@ function simulatePredictor(
   tableSize: number,
   historyBits: number
 ): PredictorStats {
-  let predictor: { predict: (pc: number) => boolean; update: (pc: number, taken: boolean) => void; getState: (pc: number) => string };
+  let predictor: {
+    predict: (pc: number) => boolean;
+    update: (pc: number, taken: boolean) => void;
+    getState: (pc: number) => string;
+  };
 
   switch (predictorType) {
     case '1-bit':
@@ -445,7 +479,7 @@ function simulatePredictor(
     correct: 0,
     mispredictions: 0,
     accuracy: 0,
-    history: []
+    history: [],
   };
 
   for (const branch of trace) {
@@ -466,7 +500,7 @@ function simulatePredictor(
         prediction,
         actual: branch.taken,
         correct,
-        state: predictor.getState(branch.pc)
+        state: predictor.getState(branch.pc),
       });
     }
 
@@ -477,7 +511,9 @@ function simulatePredictor(
   return stats;
 }
 
-export async function executebranchpredictor(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executebranchpredictor(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -504,42 +540,57 @@ export async function executebranchpredictor(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            predictor: predictorType,
-            table_size: tableSize,
-            history_bits: historyBits,
-            trace_length: trace.length,
-            results: {
-              total_branches: stats.predictions,
-              correct_predictions: stats.correct,
-              mispredictions: stats.mispredictions,
-              accuracy: stats.accuracy.toFixed(2) + '%',
-              misprediction_rate: ((stats.mispredictions / stats.predictions) * 100).toFixed(2) + '%'
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              predictor: predictorType,
+              table_size: tableSize,
+              history_bits: historyBits,
+              trace_length: trace.length,
+              results: {
+                total_branches: stats.predictions,
+                correct_predictions: stats.correct,
+                mispredictions: stats.mispredictions,
+                accuracy: stats.accuracy.toFixed(2) + '%',
+                misprediction_rate:
+                  ((stats.mispredictions / stats.predictions) * 100).toFixed(2) + '%',
+              },
+              performance_impact: {
+                misprediction_penalty: mispredictionPenalty + ' cycles',
+                total_penalty_cycles: totalCycles,
+                average_penalty_per_branch:
+                  (totalCycles / stats.predictions).toFixed(2) + ' cycles',
+              },
+              prediction_history: stats.history.slice(0, 20),
             },
-            performance_impact: {
-              misprediction_penalty: mispredictionPenalty + ' cycles',
-              total_penalty_cycles: totalCycles,
-              average_penalty_per_branch: (totalCycles / stats.predictions).toFixed(2) + ' cycles'
-            },
-            prediction_history: stats.history.slice(0, 20)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'compare': {
-        const predictors = ['always_taken', 'always_not_taken', '1-bit', '2-bit', 'gshare', 'local', 'correlating', 'tournament'];
+        const predictors = [
+          'always_taken',
+          'always_not_taken',
+          '1-bit',
+          '2-bit',
+          'gshare',
+          'local',
+          'correlating',
+          'tournament',
+        ];
         const pattern = args.pattern || 'loop';
         const length = args.trace_length || 1000;
         const trace = generateTrace(pattern, length);
 
-        const results = predictors.map(pred => {
+        const results = predictors.map((pred) => {
           const stats = simulatePredictor(pred, trace, tableSize, historyBits);
           return {
             predictor: pred,
             accuracy: parseFloat(stats.accuracy.toFixed(2)),
             mispredictions: stats.mispredictions,
-            penalty_cycles: stats.mispredictions * mispredictionPenalty
+            penalty_cycles: stats.mispredictions * mispredictionPenalty,
           };
         });
 
@@ -548,47 +599,62 @@ export async function executebranchpredictor(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            pattern: pattern,
-            trace_length: length,
-            table_size: tableSize,
-            history_bits: historyBits,
-            misprediction_penalty: mispredictionPenalty + ' cycles',
-            comparison: results,
-            best_predictor: results[0].predictor,
-            worst_predictor: results[results.length - 1].predictor,
-            ranking: results.map((r, i) => `${i + 1}. ${r.predictor}: ${r.accuracy}%`)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              pattern: pattern,
+              trace_length: length,
+              table_size: tableSize,
+              history_bits: historyBits,
+              misprediction_penalty: mispredictionPenalty + ' cycles',
+              comparison: results,
+              best_predictor: results[0].predictor,
+              worst_predictor: results[results.length - 1].predictor,
+              ranking: results.map((r, i) => `${i + 1}. ${r.predictor}: ${r.accuracy}%`),
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'analyze': {
         const predictorType = args.predictor || '2-bit';
-        const patterns = ['loop', 'alternating', 'random', 'mostly_taken', 'mostly_not_taken', 'nested_loop'];
+        const patterns = [
+          'loop',
+          'alternating',
+          'random',
+          'mostly_taken',
+          'mostly_not_taken',
+          'nested_loop',
+        ];
         const length = args.trace_length || 500;
 
-        const results = patterns.map(pattern => {
+        const results = patterns.map((pattern) => {
           const trace = generateTrace(pattern, length);
           const stats = simulatePredictor(predictorType, trace, tableSize, historyBits);
           return {
             pattern,
             accuracy: parseFloat(stats.accuracy.toFixed(2)),
-            mispredictions: stats.mispredictions
+            mispredictions: stats.mispredictions,
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            predictor: predictorType,
-            trace_length: length,
-            pattern_analysis: results,
-            best_pattern: results.reduce((a, b) => a.accuracy > b.accuracy ? a : b).pattern,
-            worst_pattern: results.reduce((a, b) => a.accuracy < b.accuracy ? a : b).pattern,
-            predictor_characteristics: getPredictorCharacteristics(predictorType)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              predictor: predictorType,
+              trace_length: length,
+              pattern_analysis: results,
+              best_pattern: results.reduce((a, b) => (a.accuracy > b.accuracy ? a : b)).pattern,
+              worst_pattern: results.reduce((a, b) => (a.accuracy < b.accuracy ? a : b)).pattern,
+              predictor_characteristics: getPredictorCharacteristics(predictorType),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -604,142 +670,156 @@ export async function executebranchpredictor(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            description: 'Demonstrates why 2-bit predictors are better for loops',
-            loop_pattern: {
-              description: 'TTTTTTTTN repeated (9 taken, 1 not taken)',
-              '1_bit_accuracy': oneBitLoop.accuracy.toFixed(2) + '%',
-              '2_bit_accuracy': twoBitLoop.accuracy.toFixed(2) + '%',
-              explanation: '1-bit mispredicts twice per loop (on the N and the T after it). 2-bit only mispredicts once (just the N).'
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              description: 'Demonstrates why 2-bit predictors are better for loops',
+              loop_pattern: {
+                description: 'TTTTTTTTN repeated (9 taken, 1 not taken)',
+                '1_bit_accuracy': oneBitLoop.accuracy.toFixed(2) + '%',
+                '2_bit_accuracy': twoBitLoop.accuracy.toFixed(2) + '%',
+                explanation:
+                  '1-bit mispredicts twice per loop (on the N and the T after it). 2-bit only mispredicts once (just the N).',
+              },
+              alternating_pattern: {
+                description: 'TNTNTN... (alternating)',
+                '1_bit_accuracy': oneBitAlt.accuracy.toFixed(2) + '%',
+                '2_bit_accuracy': twoBitAlt.accuracy.toFixed(2) + '%',
+                explanation: 'Both perform poorly on alternating patterns - this is a worst case.',
+              },
+              key_insight:
+                'The 2-bit counter requires two consecutive wrong predictions to change direction, making it more stable for loops.',
             },
-            alternating_pattern: {
-              description: 'TNTNTN... (alternating)',
-              '1_bit_accuracy': oneBitAlt.accuracy.toFixed(2) + '%',
-              '2_bit_accuracy': twoBitAlt.accuracy.toFixed(2) + '%',
-              explanation: 'Both perform poorly on alternating patterns - this is a worst case.'
-            },
-            key_insight: 'The 2-bit counter requires two consecutive wrong predictions to change direction, making it more stable for loops.'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'branch_predictor',
-            description: 'CPU branch prediction simulation',
-            predictors: {
-              'always_taken': {
-                description: 'Static predictor - always predicts taken',
-                complexity: 'O(1)',
-                use_case: 'Baseline comparison'
+          content: JSON.stringify(
+            {
+              tool: 'branch_predictor',
+              description: 'CPU branch prediction simulation',
+              predictors: {
+                always_taken: {
+                  description: 'Static predictor - always predicts taken',
+                  complexity: 'O(1)',
+                  use_case: 'Baseline comparison',
+                },
+                always_not_taken: {
+                  description: 'Static predictor - always predicts not taken',
+                  complexity: 'O(1)',
+                  use_case: 'Baseline comparison',
+                },
+                '1-bit': {
+                  description: 'Single bit per branch - remembers last outcome',
+                  complexity: 'O(1) lookup, small table',
+                  weakness: 'Mispredicts twice per loop iteration',
+                },
+                '2-bit': {
+                  description: 'Saturating counter - needs two wrong predictions to switch',
+                  complexity: 'O(1) lookup, small table',
+                  use_case: 'Simple and effective for loops',
+                },
+                gshare: {
+                  description: 'XORs global history with PC for index',
+                  complexity: 'Moderate - needs history register',
+                  use_case: 'Correlated branches',
+                },
+                local: {
+                  description: 'Per-branch history table + pattern table',
+                  complexity: 'Higher - two table lookups',
+                  use_case: 'Branches with local patterns',
+                },
+                correlating: {
+                  description: 'Uses global branch history for correlation',
+                  complexity: 'Moderate - 2D table',
+                  use_case: 'Correlated branch sequences',
+                },
+                tournament: {
+                  description: 'Combines global and local predictors with chooser',
+                  complexity: 'Highest - multiple predictors',
+                  use_case: 'Best overall accuracy',
+                },
               },
-              'always_not_taken': {
-                description: 'Static predictor - always predicts not taken',
-                complexity: 'O(1)',
-                use_case: 'Baseline comparison'
+              patterns: {
+                loop: 'TTTTTTTTN - typical loop branch',
+                alternating: 'TNTNTN - worst case for simple predictors',
+                random: 'Unpredictable - 50% taken',
+                mostly_taken: '90% taken',
+                mostly_not_taken: '10% taken',
+                nested_loop: 'Multiple branches with nesting',
               },
-              '1-bit': {
-                description: 'Single bit per branch - remembers last outcome',
-                complexity: 'O(1) lookup, small table',
-                weakness: 'Mispredicts twice per loop iteration'
+              metrics: {
+                accuracy: 'Percentage of correct predictions',
+                misprediction_rate: 'Percentage of wrong predictions',
+                penalty_cycles: 'Total cycles lost to pipeline flushes',
               },
-              '2-bit': {
-                description: 'Saturating counter - needs two wrong predictions to switch',
-                complexity: 'O(1) lookup, small table',
-                use_case: 'Simple and effective for loops'
-              },
-              'gshare': {
-                description: 'XORs global history with PC for index',
-                complexity: 'Moderate - needs history register',
-                use_case: 'Correlated branches'
-              },
-              'local': {
-                description: 'Per-branch history table + pattern table',
-                complexity: 'Higher - two table lookups',
-                use_case: 'Branches with local patterns'
-              },
-              'correlating': {
-                description: 'Uses global branch history for correlation',
-                complexity: 'Moderate - 2D table',
-                use_case: 'Correlated branch sequences'
-              },
-              'tournament': {
-                description: 'Combines global and local predictors with chooser',
-                complexity: 'Highest - multiple predictors',
-                use_case: 'Best overall accuracy'
-              }
             },
-            patterns: {
-              loop: 'TTTTTTTTN - typical loop branch',
-              alternating: 'TNTNTN - worst case for simple predictors',
-              random: 'Unpredictable - 50% taken',
-              mostly_taken: '90% taken',
-              mostly_not_taken: '10% taken',
-              nested_loop: 'Multiple branches with nesting'
-            },
-            metrics: {
-              accuracy: 'Percentage of correct predictions',
-              misprediction_rate: 'Percentage of wrong predictions',
-              penalty_cycles: 'Total cycles lost to pipeline flushes'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                description: 'Simulate 2-bit predictor on loop pattern',
-                call: {
-                  operation: 'simulate',
-                  predictor: '2-bit',
-                  pattern: 'loop',
-                  trace_length: 1000
-                }
-              },
-              {
-                description: 'Compare all predictors',
-                call: {
-                  operation: 'compare',
-                  pattern: 'nested_loop',
-                  trace_length: 1000
-                }
-              },
-              {
-                description: 'Analyze gshare on different patterns',
-                call: {
-                  operation: 'analyze',
-                  predictor: 'gshare',
-                  trace_length: 500
-                }
-              },
-              {
-                description: 'Demo 1-bit vs 2-bit',
-                call: {
-                  operation: 'demo'
-                }
-              },
-              {
-                description: 'Custom branch trace',
-                call: {
-                  operation: 'simulate',
-                  predictor: 'tournament',
-                  branch_trace: [
-                    { pc: 4096, taken: true },
-                    { pc: 4096, taken: true },
-                    { pc: 4096, taken: false },
-                    { pc: 4096, taken: true }
-                  ]
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  description: 'Simulate 2-bit predictor on loop pattern',
+                  call: {
+                    operation: 'simulate',
+                    predictor: '2-bit',
+                    pattern: 'loop',
+                    trace_length: 1000,
+                  },
+                },
+                {
+                  description: 'Compare all predictors',
+                  call: {
+                    operation: 'compare',
+                    pattern: 'nested_loop',
+                    trace_length: 1000,
+                  },
+                },
+                {
+                  description: 'Analyze gshare on different patterns',
+                  call: {
+                    operation: 'analyze',
+                    predictor: 'gshare',
+                    trace_length: 500,
+                  },
+                },
+                {
+                  description: 'Demo 1-bit vs 2-bit',
+                  call: {
+                    operation: 'demo',
+                  },
+                },
+                {
+                  description: 'Custom branch trace',
+                  call: {
+                    operation: 'simulate',
+                    predictor: 'tournament',
+                    branch_trace: [
+                      { pc: 4096, taken: true },
+                      { pc: 4096, taken: true },
+                      { pc: 4096, taken: false },
+                      { pc: 4096, taken: true },
+                    ],
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -758,38 +838,38 @@ function getPredictorCharacteristics(predictor: string): object {
       storage: 'N bits for N entries',
       latency: '1 cycle (single lookup)',
       strengths: ['Simple', 'Fast', 'Low power'],
-      weaknesses: ['Poor loop prediction', 'No hysteresis']
+      weaknesses: ['Poor loop prediction', 'No hysteresis'],
     },
     '2-bit': {
       storage: '2N bits for N entries',
       latency: '1 cycle',
       strengths: ['Good loop prediction', 'Stable', 'Simple'],
-      weaknesses: ['No correlation awareness', 'Cannot adapt to patterns']
+      weaknesses: ['No correlation awareness', 'Cannot adapt to patterns'],
     },
-    'gshare': {
+    gshare: {
       storage: '2N bits + history register',
       latency: '1 cycle (XOR + lookup)',
       strengths: ['Captures global correlation', 'Good for if-else chains'],
-      weaknesses: ['Aliasing between branches', 'History pollution']
+      weaknesses: ['Aliasing between branches', 'History pollution'],
     },
-    'local': {
+    local: {
       storage: 'L bits per entry + pattern table',
       latency: '2 cycles (two lookups)',
       strengths: ['Captures per-branch patterns', 'Good for loops'],
-      weaknesses: ['Higher latency', 'More storage']
+      weaknesses: ['Higher latency', 'More storage'],
     },
-    'correlating': {
+    correlating: {
       storage: '2^H * N * 2 bits',
       latency: '1 cycle',
       strengths: ['Captures branch correlation', 'Better than 2-bit'],
-      weaknesses: ['Large table for many history bits']
+      weaknesses: ['Large table for many history bits'],
     },
-    'tournament': {
+    tournament: {
       storage: 'Global + Local + Chooser tables',
       latency: '2+ cycles',
       strengths: ['Best overall accuracy', 'Adaptive'],
-      weaknesses: ['Complex', 'High area/power']
-    }
+      weaknesses: ['Complex', 'High area/power'],
+    },
   };
 
   return characteristics[predictor] || characteristics['2-bit'];

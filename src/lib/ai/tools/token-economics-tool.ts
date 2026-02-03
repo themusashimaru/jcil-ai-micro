@@ -17,81 +17,222 @@ interface AllocationCategory {
 
 // Standard token allocation templates
 const ALLOCATION_TEMPLATES: Record<string, AllocationCategory[]> = {
-  'defi_protocol': [
-    { name: 'Community Treasury', percentage: 40, vestingMonths: 48, cliffMonths: 0, description: 'DAO-controlled community funds' },
-    { name: 'Team & Advisors', percentage: 20, vestingMonths: 36, cliffMonths: 12, description: 'Core team with cliff' },
-    { name: 'Investors', percentage: 15, vestingMonths: 24, cliffMonths: 6, description: 'Seed and strategic investors' },
-    { name: 'Liquidity Mining', percentage: 15, vestingMonths: 36, cliffMonths: 0, description: 'Protocol incentives' },
-    { name: 'Ecosystem Fund', percentage: 10, vestingMonths: 48, cliffMonths: 0, description: 'Grants and partnerships' }
+  defi_protocol: [
+    {
+      name: 'Community Treasury',
+      percentage: 40,
+      vestingMonths: 48,
+      cliffMonths: 0,
+      description: 'DAO-controlled community funds',
+    },
+    {
+      name: 'Team & Advisors',
+      percentage: 20,
+      vestingMonths: 36,
+      cliffMonths: 12,
+      description: 'Core team with cliff',
+    },
+    {
+      name: 'Investors',
+      percentage: 15,
+      vestingMonths: 24,
+      cliffMonths: 6,
+      description: 'Seed and strategic investors',
+    },
+    {
+      name: 'Liquidity Mining',
+      percentage: 15,
+      vestingMonths: 36,
+      cliffMonths: 0,
+      description: 'Protocol incentives',
+    },
+    {
+      name: 'Ecosystem Fund',
+      percentage: 10,
+      vestingMonths: 48,
+      cliffMonths: 0,
+      description: 'Grants and partnerships',
+    },
   ],
-  'layer1_blockchain': [
-    { name: 'Public Sale', percentage: 25, vestingMonths: 12, cliffMonths: 0, description: 'TGE with gradual unlock' },
-    { name: 'Foundation', percentage: 20, vestingMonths: 60, cliffMonths: 12, description: 'Long-term development' },
-    { name: 'Team', percentage: 15, vestingMonths: 48, cliffMonths: 12, description: 'Core contributors' },
-    { name: 'Validators/Staking', percentage: 20, vestingMonths: 0, cliffMonths: 0, description: 'Staking rewards pool' },
-    { name: 'Private Sale', percentage: 12, vestingMonths: 18, cliffMonths: 6, description: 'Early investors' },
-    { name: 'Advisors', percentage: 5, vestingMonths: 24, cliffMonths: 6, description: 'Strategic advisors' },
-    { name: 'Marketing', percentage: 3, vestingMonths: 36, cliffMonths: 0, description: 'Growth initiatives' }
+  layer1_blockchain: [
+    {
+      name: 'Public Sale',
+      percentage: 25,
+      vestingMonths: 12,
+      cliffMonths: 0,
+      description: 'TGE with gradual unlock',
+    },
+    {
+      name: 'Foundation',
+      percentage: 20,
+      vestingMonths: 60,
+      cliffMonths: 12,
+      description: 'Long-term development',
+    },
+    {
+      name: 'Team',
+      percentage: 15,
+      vestingMonths: 48,
+      cliffMonths: 12,
+      description: 'Core contributors',
+    },
+    {
+      name: 'Validators/Staking',
+      percentage: 20,
+      vestingMonths: 0,
+      cliffMonths: 0,
+      description: 'Staking rewards pool',
+    },
+    {
+      name: 'Private Sale',
+      percentage: 12,
+      vestingMonths: 18,
+      cliffMonths: 6,
+      description: 'Early investors',
+    },
+    {
+      name: 'Advisors',
+      percentage: 5,
+      vestingMonths: 24,
+      cliffMonths: 6,
+      description: 'Strategic advisors',
+    },
+    {
+      name: 'Marketing',
+      percentage: 3,
+      vestingMonths: 36,
+      cliffMonths: 0,
+      description: 'Growth initiatives',
+    },
   ],
-  'nft_gaming': [
-    { name: 'Play-to-Earn', percentage: 35, vestingMonths: 60, cliffMonths: 0, description: 'In-game rewards' },
-    { name: 'Ecosystem', percentage: 20, vestingMonths: 48, cliffMonths: 0, description: 'Developer grants' },
+  nft_gaming: [
+    {
+      name: 'Play-to-Earn',
+      percentage: 35,
+      vestingMonths: 60,
+      cliffMonths: 0,
+      description: 'In-game rewards',
+    },
+    {
+      name: 'Ecosystem',
+      percentage: 20,
+      vestingMonths: 48,
+      cliffMonths: 0,
+      description: 'Developer grants',
+    },
     { name: 'Team', percentage: 15, vestingMonths: 36, cliffMonths: 12, description: 'Core team' },
-    { name: 'Private Sale', percentage: 10, vestingMonths: 18, cliffMonths: 3, description: 'Early backers' },
-    { name: 'Public Sale', percentage: 10, vestingMonths: 6, cliffMonths: 0, description: 'Community sale' },
-    { name: 'Liquidity', percentage: 5, vestingMonths: 0, cliffMonths: 0, description: 'DEX liquidity' },
-    { name: 'Advisors', percentage: 5, vestingMonths: 24, cliffMonths: 6, description: 'Industry advisors' }
+    {
+      name: 'Private Sale',
+      percentage: 10,
+      vestingMonths: 18,
+      cliffMonths: 3,
+      description: 'Early backers',
+    },
+    {
+      name: 'Public Sale',
+      percentage: 10,
+      vestingMonths: 6,
+      cliffMonths: 0,
+      description: 'Community sale',
+    },
+    {
+      name: 'Liquidity',
+      percentage: 5,
+      vestingMonths: 0,
+      cliffMonths: 0,
+      description: 'DEX liquidity',
+    },
+    {
+      name: 'Advisors',
+      percentage: 5,
+      vestingMonths: 24,
+      cliffMonths: 6,
+      description: 'Industry advisors',
+    },
   ],
-  'dao_governance': [
-    { name: 'Treasury', percentage: 50, vestingMonths: 0, cliffMonths: 0, description: 'DAO-controlled' },
-    { name: 'Retroactive Airdrop', percentage: 20, vestingMonths: 12, cliffMonths: 0, description: 'Early users' },
-    { name: 'Core Contributors', percentage: 15, vestingMonths: 48, cliffMonths: 12, description: 'Initial team' },
-    { name: 'Strategic Partners', percentage: 10, vestingMonths: 24, cliffMonths: 6, description: 'Ecosystem partners' },
-    { name: 'Advisors', percentage: 5, vestingMonths: 24, cliffMonths: 6, description: 'Strategic advisors' }
-  ]
+  dao_governance: [
+    {
+      name: 'Treasury',
+      percentage: 50,
+      vestingMonths: 0,
+      cliffMonths: 0,
+      description: 'DAO-controlled',
+    },
+    {
+      name: 'Retroactive Airdrop',
+      percentage: 20,
+      vestingMonths: 12,
+      cliffMonths: 0,
+      description: 'Early users',
+    },
+    {
+      name: 'Core Contributors',
+      percentage: 15,
+      vestingMonths: 48,
+      cliffMonths: 12,
+      description: 'Initial team',
+    },
+    {
+      name: 'Strategic Partners',
+      percentage: 10,
+      vestingMonths: 24,
+      cliffMonths: 6,
+      description: 'Ecosystem partners',
+    },
+    {
+      name: 'Advisors',
+      percentage: 5,
+      vestingMonths: 24,
+      cliffMonths: 6,
+      description: 'Strategic advisors',
+    },
+  ],
 };
 
 // Inflation model types
-const INFLATION_MODELS: Record<string, {
-  description: string;
-  formula: string;
-  parameters: string[];
-}> = {
-  'fixed': {
+const INFLATION_MODELS: Record<
+  string,
+  {
+    description: string;
+    formula: string;
+    parameters: string[];
+  }
+> = {
+  fixed: {
     description: 'Constant inflation rate each period',
     formula: 'supply(t) = supply(0) * (1 + r)^t',
-    parameters: ['annual_rate']
+    parameters: ['annual_rate'],
   },
-  'decreasing': {
+  decreasing: {
     description: 'Halving or decreasing schedule (Bitcoin-style)',
     formula: 'reward(t) = initial_reward / 2^floor(t/halving_period)',
-    parameters: ['initial_reward', 'halving_period']
+    parameters: ['initial_reward', 'halving_period'],
   },
-  'asymptotic': {
+  asymptotic: {
     description: 'Approaches max supply asymptotically',
     formula: 'supply(t) = max_supply * (1 - e^(-k*t))',
-    parameters: ['max_supply', 'k_rate']
+    parameters: ['max_supply', 'k_rate'],
   },
-  'dynamic': {
+  dynamic: {
     description: 'Adjusts based on staking ratio or other metrics',
     formula: 'inflation = base_rate * (1 - staking_ratio / target_ratio)',
-    parameters: ['base_rate', 'target_staking_ratio']
+    parameters: ['base_rate', 'target_staking_ratio'],
   },
-  'deflationary': {
+  deflationary: {
     description: 'Burns exceed emissions, net negative inflation',
     formula: 'supply(t) = supply(t-1) + emissions - burns',
-    parameters: ['burn_rate', 'emission_rate']
-  }
+    parameters: ['burn_rate', 'emission_rate'],
+  },
 };
 
 // Token velocity benchmarks by sector
 const VELOCITY_BENCHMARKS: Record<string, { low: number; median: number; high: number }> = {
-  'currency': { low: 4, median: 6, high: 12 },
-  'defi': { low: 10, median: 25, high: 50 },
-  'governance': { low: 0.5, median: 2, high: 5 },
-  'utility': { low: 8, median: 15, high: 30 },
-  'store_of_value': { low: 0.2, median: 1, high: 3 },
-  'gaming': { low: 15, median: 40, high: 100 }
+  currency: { low: 4, median: 6, high: 12 },
+  defi: { low: 10, median: 25, high: 50 },
+  governance: { low: 0.5, median: 2, high: 5 },
+  utility: { low: 8, median: 15, high: 30 },
+  store_of_value: { low: 0.2, median: 1, high: 3 },
+  gaming: { low: 15, median: 40, high: 100 },
 };
 
 // Vesting schedule types
@@ -99,14 +240,26 @@ type VestingType = 'linear' | 'cliff_then_linear' | 'milestone' | 'exponential' 
 
 export const tokeneconomicsTool: UnifiedTool = {
   name: 'token_economics',
-  description: 'Comprehensive tokenomics analysis - supply curves, vesting schedules, inflation models, distribution analysis, token velocity, and valuation models',
+  description:
+    'Comprehensive tokenomics analysis - supply curves, vesting schedules, inflation models, distribution analysis, token velocity, and valuation models',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['supply_analysis', 'vesting_schedule', 'inflation_model', 'distribution', 'token_velocity', 'valuation', 'unlock_calendar', 'staking_economics', 'info', 'examples'],
-        description: 'Operation type'
+        enum: [
+          'supply_analysis',
+          'vesting_schedule',
+          'inflation_model',
+          'distribution',
+          'token_velocity',
+          'valuation',
+          'unlock_calendar',
+          'staking_economics',
+          'info',
+          'examples',
+        ],
+        description: 'Operation type',
       },
       // Supply analysis
       initial_supply: { type: 'number', description: 'Initial token supply at launch' },
@@ -114,25 +267,41 @@ export const tokeneconomicsTool: UnifiedTool = {
       current_supply: { type: 'number', description: 'Current circulating supply' },
 
       // Vesting parameters
-      vesting_type: { type: 'string', enum: ['linear', 'cliff_then_linear', 'milestone', 'exponential', 'step'], description: 'Vesting schedule type' },
+      vesting_type: {
+        type: 'string',
+        enum: ['linear', 'cliff_then_linear', 'milestone', 'exponential', 'step'],
+        description: 'Vesting schedule type',
+      },
       total_tokens: { type: 'number', description: 'Total tokens in vesting' },
       vesting_months: { type: 'number', description: 'Total vesting period in months' },
       cliff_months: { type: 'number', description: 'Cliff period before vesting starts' },
       tge_percentage: { type: 'number', description: 'Token Generation Event unlock percentage' },
 
       // Inflation model
-      model_type: { type: 'string', enum: ['fixed', 'decreasing', 'asymptotic', 'dynamic', 'deflationary'], description: 'Inflation model type' },
+      model_type: {
+        type: 'string',
+        enum: ['fixed', 'decreasing', 'asymptotic', 'dynamic', 'deflationary'],
+        description: 'Inflation model type',
+      },
       annual_rate: { type: 'number', description: 'Annual inflation rate (decimal)' },
       halving_period: { type: 'number', description: 'Halving period in years' },
       initial_reward: { type: 'number', description: 'Initial block/epoch reward' },
       burn_rate: { type: 'number', description: 'Annual burn rate (decimal)' },
 
       // Distribution
-      template: { type: 'string', enum: ['defi_protocol', 'layer1_blockchain', 'nft_gaming', 'dao_governance', 'custom'], description: 'Distribution template' },
+      template: {
+        type: 'string',
+        enum: ['defi_protocol', 'layer1_blockchain', 'nft_gaming', 'dao_governance', 'custom'],
+        description: 'Distribution template',
+      },
       allocations: { type: 'array', description: 'Custom allocation categories' },
 
       // Velocity and valuation
-      sector: { type: 'string', enum: ['currency', 'defi', 'governance', 'utility', 'store_of_value', 'gaming'], description: 'Token sector' },
+      sector: {
+        type: 'string',
+        enum: ['currency', 'defi', 'governance', 'utility', 'store_of_value', 'gaming'],
+        description: 'Token sector',
+      },
       gdp: { type: 'number', description: 'Economic value (GDP) flowing through token' },
 
       // Staking
@@ -142,10 +311,10 @@ export const tokeneconomicsTool: UnifiedTool = {
 
       // Time parameters
       years: { type: 'number', description: 'Number of years to project' },
-      price: { type: 'number', description: 'Current token price in USD' }
+      price: { type: 'number', description: 'Current token price in USD' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executetokeneconomics(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -221,16 +390,21 @@ function analyzeSupply(args: Record<string, unknown>): Record<string, unknown> {
   const fdvToMcapRatio = fullyDilutedValue / marketCap;
 
   // Project supply over time (assuming linear release of remaining)
-  const supplyProjection: { year: number; supply: number; percentOfMax: number; marketCap: number }[] = [];
+  const supplyProjection: {
+    year: number;
+    supply: number;
+    percentOfMax: number;
+    marketCap: number;
+  }[] = [];
   const annualRelease = remainingToMint / years;
 
   for (let year = 0; year <= years; year++) {
-    const projectedSupply = Math.min(currentSupply + (annualRelease * year), maxSupply);
+    const projectedSupply = Math.min(currentSupply + annualRelease * year, maxSupply);
     supplyProjection.push({
       year,
       supply: Math.round(projectedSupply),
       percentOfMax: (projectedSupply / maxSupply) * 100,
-      marketCap: projectedSupply * price
+      marketCap: projectedSupply * price,
     });
   }
 
@@ -244,17 +418,17 @@ function analyzeSupply(args: Record<string, unknown>): Record<string, unknown> {
       current_circulating: currentSupply,
       max_supply: maxSupply,
       remaining_to_mint: remainingToMint,
-      circulating_ratio: (circulatingRatio * 100).toFixed(2) + '%'
+      circulating_ratio: (circulatingRatio * 100).toFixed(2) + '%',
     },
     valuation: {
       price_usd: price,
       market_cap_usd: marketCap,
       fully_diluted_value_usd: fullyDilutedValue,
-      fdv_to_mcap_ratio: fdvToMcapRatio.toFixed(2) + 'x'
+      fdv_to_mcap_ratio: fdvToMcapRatio.toFixed(2) + 'x',
     },
     supply_projection: supplyProjection,
     dilution_analysis: dilutionImpact,
-    risk_assessment: assessSupplyRisk(circulatingRatio, fdvToMcapRatio)
+    risk_assessment: assessSupplyRisk(circulatingRatio, fdvToMcapRatio),
   };
 }
 
@@ -264,23 +438,24 @@ function calculateDilutionImpact(current: number, max: number): Record<string, u
 
   // Assuming linear 10-year release
   for (let year = 1; year <= 10; year++) {
-    const newSupply = current + ((max - current) * year / 10);
+    const newSupply = current + ((max - current) * year) / 10;
     const ownershipRetained = (current / newSupply) * 100;
     dilutionPerYear.push({
       year,
       ownership_if_hold: Number(ownershipRetained.toFixed(2)),
-      dilution: Number((100 - ownershipRetained).toFixed(2))
+      dilution: Number((100 - ownershipRetained).toFixed(2)),
     });
   }
 
   return {
     max_dilution_percent: remainingPercent.toFixed(2) + '%',
     yearly_dilution_projection: dilutionPerYear,
-    interpretation: remainingPercent > 100
-      ? 'High dilution risk - supply can more than double'
-      : remainingPercent > 50
-        ? 'Moderate dilution risk'
-        : 'Low dilution risk - most supply already circulating'
+    interpretation:
+      remainingPercent > 100
+        ? 'High dilution risk - supply can more than double'
+        : remainingPercent > 50
+          ? 'Moderate dilution risk'
+          : 'Low dilution risk - most supply already circulating',
   };
 }
 
@@ -310,7 +485,7 @@ function assessSupplyRisk(circulatingRatio: number, fdvRatio: number): Record<st
 
   return {
     risk_level: riskLevel,
-    risk_factors: risks
+    risk_factors: risks,
   };
 }
 
@@ -321,7 +496,8 @@ function generateVestingSchedule(args: Record<string, unknown>): Record<string, 
   const cliffMonths = (args.cliff_months as number) || 12;
   const tgePercentage = (args.tge_percentage as number) || 0;
 
-  const schedule: { month: number; unlocked: number; cumulative: number; percentage: number }[] = [];
+  const schedule: { month: number; unlocked: number; cumulative: number; percentage: number }[] =
+    [];
   let cumulative = 0;
 
   // TGE unlock
@@ -377,16 +553,20 @@ function generateVestingSchedule(args: Record<string, unknown>): Record<string, 
       month,
       unlocked: Math.round(unlocked),
       cumulative: Math.round(cumulative),
-      percentage: Number(((cumulative / totalTokens) * 100).toFixed(2))
+      percentage: Number(((cumulative / totalTokens) * 100).toFixed(2)),
     });
   }
 
   // Key milestones
   const milestones = [
     { name: 'TGE', month: 0, unlocked: tgePercentage + '%' },
-    { name: 'Cliff End', month: cliffMonths, unlocked: schedule[cliffMonths]?.percentage + '%' || 'N/A' },
+    {
+      name: 'Cliff End',
+      month: cliffMonths,
+      unlocked: schedule[cliffMonths]?.percentage + '%' || 'N/A',
+    },
     { name: '50% Vested', month: findMilestoneMonth(schedule, 50), unlocked: '50%' },
-    { name: 'Full Vest', month: vestingMonths, unlocked: '100%' }
+    { name: 'Full Vest', month: vestingMonths, unlocked: '100%' },
   ];
 
   return {
@@ -396,15 +576,15 @@ function generateVestingSchedule(args: Record<string, unknown>): Record<string, 
       total_tokens: totalTokens,
       vesting_months: vestingMonths,
       cliff_months: cliffMonths,
-      tge_percentage: tgePercentage
+      tge_percentage: tgePercentage,
     },
     schedule: schedule.filter((_, i) => i % 3 === 0 || i === schedule.length - 1), // Show quarterly
     milestones,
     summary: {
       tokens_at_tge: Math.round(tgeUnlock),
       tokens_after_cliff: schedule[cliffMonths]?.cumulative || tgeUnlock,
-      monthly_unlock_avg: Math.round((totalTokens - tgeUnlock) / (vestingMonths - cliffMonths))
-    }
+      monthly_unlock_avg: Math.round((totalTokens - tgeUnlock) / (vestingMonths - cliffMonths)),
+    },
   };
 }
 
@@ -421,7 +601,8 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
   const years = (args.years as number) || 10;
 
   const modelInfo = INFLATION_MODELS[modelType] || INFLATION_MODELS['fixed'];
-  const projection: { year: number; supply: number; inflation_rate: number; new_tokens: number }[] = [];
+  const projection: { year: number; supply: number; inflation_rate: number; new_tokens: number }[] =
+    [];
 
   let currentSupply = initialSupply;
 
@@ -435,7 +616,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
           year,
           supply: Math.round(currentSupply),
           inflation_rate: year === 0 ? 0 : annualRate * 100,
-          new_tokens: Math.round(newTokens)
+          new_tokens: Math.round(newTokens),
         });
       }
       break;
@@ -456,7 +637,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
           year,
           supply: Math.round(currentSupply),
           inflation_rate: Number(rate.toFixed(2)),
-          new_tokens: Math.round(newTokens)
+          new_tokens: Math.round(newTokens),
         });
       }
       break;
@@ -468,7 +649,8 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
 
       for (let year = 0; year <= years; year++) {
         const targetSupply = maxSupply * (1 - Math.exp(-k * year));
-        const newTokens = year === 0 ? 0 : targetSupply - (maxSupply * (1 - Math.exp(-k * (year - 1))));
+        const newTokens =
+          year === 0 ? 0 : targetSupply - maxSupply * (1 - Math.exp(-k * (year - 1)));
         const rate = year === 0 ? 0 : (newTokens / currentSupply) * 100;
         currentSupply = Math.max(initialSupply, targetSupply);
 
@@ -476,7 +658,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
           year,
           supply: Math.round(currentSupply),
           inflation_rate: Number(rate.toFixed(2)),
-          new_tokens: Math.round(newTokens)
+          new_tokens: Math.round(newTokens),
         });
       }
       break;
@@ -501,7 +683,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
           year,
           supply: Math.round(currentSupply),
           inflation_rate: Number((effectiveRate * 100).toFixed(2)),
-          new_tokens: Math.round(newTokens)
+          new_tokens: Math.round(newTokens),
         });
       }
       break;
@@ -521,7 +703,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
           year,
           supply: Math.round(currentSupply),
           inflation_rate: Number(((netChange / (currentSupply - netChange)) * 100).toFixed(2)),
-          new_tokens: Math.round(netChange)
+          new_tokens: Math.round(netChange),
         });
       }
       break;
@@ -529,7 +711,8 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
   }
 
   const totalInflation = ((projection[years].supply - initialSupply) / initialSupply) * 100;
-  const avgAnnualInflation = projection.slice(1).reduce((sum, p) => sum + p.inflation_rate, 0) / years;
+  const avgAnnualInflation =
+    projection.slice(1).reduce((sum, p) => sum + p.inflation_rate, 0) / years;
 
   return {
     operation: 'inflation_model',
@@ -537,7 +720,7 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
       type: modelType,
       description: modelInfo.description,
       formula: modelInfo.formula,
-      parameters: modelInfo.parameters
+      parameters: modelInfo.parameters,
     },
     projection,
     summary: {
@@ -545,8 +728,8 @@ function modelInflation(args: Record<string, unknown>): Record<string, unknown> 
       final_supply: projection[years].supply,
       total_inflation: totalInflation.toFixed(2) + '%',
       average_annual_inflation: avgAnnualInflation.toFixed(2) + '%',
-      supply_multiple: (projection[years].supply / initialSupply).toFixed(2) + 'x'
-    }
+      supply_multiple: (projection[years].supply / initialSupply).toFixed(2) + 'x',
+    },
   };
 }
 
@@ -566,22 +749,24 @@ function analyzeDistribution(args: Record<string, unknown>): Record<string, unkn
   const totalPercentage = allocations.reduce((sum, a) => sum + a.percentage, 0);
 
   // Calculate token amounts and weighted vesting
-  const distribution = allocations.map(allocation => ({
+  const distribution = allocations.map((allocation) => ({
     category: allocation.name,
     percentage: allocation.percentage + '%',
     tokens: Math.round(totalSupply * (allocation.percentage / 100)),
     vesting_months: allocation.vestingMonths,
     cliff_months: allocation.cliffMonths,
-    description: allocation.description
+    description: allocation.description,
   }));
 
   // Calculate weighted average vesting
-  const weightedVesting = allocations.reduce((sum, a) =>
-    sum + (a.vestingMonths * a.percentage), 0) / 100;
+  const weightedVesting =
+    allocations.reduce((sum, a) => sum + a.vestingMonths * a.percentage, 0) / 100;
 
   // Centralization metrics
   const insiderAllocation = allocations
-    .filter(a => ['Team', 'Team & Advisors', 'Advisors', 'Investors', 'Private Sale'].includes(a.name))
+    .filter((a) =>
+      ['Team', 'Team & Advisors', 'Advisors', 'Investors', 'Private Sale'].includes(a.name)
+    )
     .reduce((sum, a) => sum + a.percentage, 0);
 
   const communityAllocation = 100 - insiderAllocation;
@@ -599,10 +784,14 @@ function analyzeDistribution(args: Record<string, unknown>): Record<string, unkn
       weighted_avg_vesting_months: weightedVesting.toFixed(1),
       insider_allocation: insiderAllocation + '%',
       community_allocation: communityAllocation + '%',
-      decentralization_score: calculateDecentralizationScore(insiderAllocation, weightedVesting)
+      decentralization_score: calculateDecentralizationScore(insiderAllocation, weightedVesting),
     },
     unlock_summary: unlockTimeline,
-    recommendations: generateDistributionRecommendations(insiderAllocation, weightedVesting, allocations)
+    recommendations: generateDistributionRecommendations(
+      insiderAllocation,
+      weightedVesting,
+      allocations
+    ),
   };
 }
 
@@ -610,7 +799,7 @@ function generateUnlockTimeline(
   allocations: AllocationCategory[],
   totalSupply: number
 ): { month: number; unlocked_percent: number; unlocked_tokens: number }[] {
-  const maxMonth = Math.max(...allocations.map(a => a.vestingMonths));
+  const maxMonth = Math.max(...allocations.map((a) => a.vestingMonths));
   const timeline: { month: number; unlocked_percent: number; unlocked_tokens: number }[] = [];
 
   for (let month = 0; month <= maxMonth; month += 6) {
@@ -637,7 +826,7 @@ function generateUnlockTimeline(
     timeline.push({
       month,
       unlocked_percent: Number(((totalUnlocked / totalSupply) * 100).toFixed(1)),
-      unlocked_tokens: Math.round(totalUnlocked)
+      unlocked_tokens: Math.round(totalUnlocked),
     });
   }
 
@@ -669,19 +858,23 @@ function generateDistributionRecommendations(
   const recommendations: string[] = [];
 
   if (insiderPercent > 40) {
-    recommendations.push('Consider reducing insider allocation below 40% for better decentralization');
+    recommendations.push(
+      'Consider reducing insider allocation below 40% for better decentralization'
+    );
   }
 
   if (avgVesting < 18) {
     recommendations.push('Longer vesting periods (18+ months avg) signal long-term commitment');
   }
 
-  const teamAlloc = allocations.find(a => a.name.includes('Team'));
+  const teamAlloc = allocations.find((a) => a.name.includes('Team'));
   if (teamAlloc && teamAlloc.cliffMonths < 12) {
     recommendations.push('Team allocation should have at least 12-month cliff');
   }
 
-  const treasuryAlloc = allocations.find(a => a.name.includes('Treasury') || a.name.includes('Community'));
+  const treasuryAlloc = allocations.find(
+    (a) => a.name.includes('Treasury') || a.name.includes('Community')
+  );
   if (!treasuryAlloc || treasuryAlloc.percentage < 20) {
     recommendations.push('Consider allocating at least 20% to community treasury');
   }
@@ -709,7 +902,7 @@ function analyzeVelocity(args: Record<string, unknown>): Record<string, unknown>
   const fairValues = {
     low_velocity: gdp / (currentSupply * benchmark.low),
     median_velocity: gdp / (currentSupply * benchmark.median),
-    high_velocity: gdp / (currentSupply * benchmark.high)
+    high_velocity: gdp / (currentSupply * benchmark.high),
   };
 
   // Velocity comparison
@@ -730,19 +923,19 @@ function analyzeVelocity(args: Record<string, unknown>): Record<string, unknown>
       formula: 'M × V = P × Q (Money Supply × Velocity = Price Level × Economic Output)',
       market_cap_M: marketCap,
       economic_value_PQ: gdp,
-      implied_velocity_V: impliedVelocity.toFixed(2)
+      implied_velocity_V: impliedVelocity.toFixed(2),
     },
     sector_benchmarks: {
       sector,
       low: benchmark.low,
       median: benchmark.median,
-      high: benchmark.high
+      high: benchmark.high,
     },
     fair_value_analysis: {
       at_low_velocity: '$' + fairValues.low_velocity.toFixed(4),
       at_median_velocity: '$' + fairValues.median_velocity.toFixed(4),
       at_high_velocity: '$' + fairValues.high_velocity.toFixed(4),
-      current_price: '$' + price.toFixed(4)
+      current_price: '$' + price.toFixed(4),
     },
     assessment: velocityAssessment,
     velocity_reduction_strategies: [
@@ -750,8 +943,8 @@ function analyzeVelocity(args: Record<string, unknown>): Record<string, unknown>
       'Governance utility requiring holding',
       'Fee discounts for token holders',
       'Buyback and burn mechanisms',
-      'Tiered benefits based on holding duration'
-    ]
+      'Tiered benefits based on holding duration',
+    ],
   };
 }
 
@@ -780,14 +973,14 @@ function calculateValuation(args: Record<string, unknown>): Record<string, unkno
 
   // 3. Comparable analysis (sector multiples)
   const sectorMultiples: Record<string, number> = {
-    'currency': 50,
-    'defi': 20,
-    'governance': 15,
-    'utility': 25,
-    'store_of_value': 100,
-    'gaming': 30
+    currency: 50,
+    defi: 20,
+    governance: 15,
+    utility: 25,
+    store_of_value: 100,
+    gaming: 30,
   };
-  const comparableValuation = gdp * (sectorMultiples[sector] || 25) / currentSupply;
+  const comparableValuation = (gdp * (sectorMultiples[sector] || 25)) / currentSupply;
 
   return {
     operation: 'valuation',
@@ -795,31 +988,31 @@ function calculateValuation(args: Record<string, unknown>): Record<string, unkno
       price: '$' + price.toFixed(4),
       market_cap: '$' + marketCap.toLocaleString(),
       fully_diluted_value: '$' + fdv.toLocaleString(),
-      economic_throughput: '$' + gdp.toLocaleString()
+      economic_throughput: '$' + gdp.toLocaleString(),
     },
     valuation_models: {
       equation_of_exchange: {
         fair_value: '$' + eoeValuation.toFixed(4),
         upside_downside: (((eoeValuation - price) / price) * 100).toFixed(1) + '%',
-        methodology: 'GDP / (Supply × Median Velocity)'
+        methodology: 'GDP / (Supply × Median Velocity)',
       },
       nvt_analysis: {
         nvt_ratio: nvtRatio.toFixed(2),
-        assessment: nvtAssessment
+        assessment: nvtAssessment,
       },
       comparable_analysis: {
         sector,
         sector_multiple: sectorMultiples[sector] || 25,
         fair_value: '$' + comparableValuation.toFixed(4),
-        upside_downside: (((comparableValuation - price) / price) * 100).toFixed(1) + '%'
-      }
+        upside_downside: (((comparableValuation - price) / price) * 100).toFixed(1) + '%',
+      },
     },
     consensus_fair_value: {
       average: '$' + ((eoeValuation + comparableValuation) / 2).toFixed(4),
       range_low: '$' + Math.min(eoeValuation, comparableValuation).toFixed(4),
-      range_high: '$' + Math.max(eoeValuation, comparableValuation).toFixed(4)
+      range_high: '$' + Math.max(eoeValuation, comparableValuation).toFixed(4),
     },
-    disclaimer: 'Valuations are theoretical models and not investment advice'
+    disclaimer: 'Valuations are theoretical models and not investment advice',
   };
 }
 
@@ -849,7 +1042,7 @@ function generateUnlockCalendar(args: Record<string, unknown>): Record<string, u
         category: alloc.name,
         tokens_unlocked: tokens,
         value_usd: tokens * price,
-        event_type: 'TGE Full Unlock'
+        event_type: 'TGE Full Unlock',
       });
     } else {
       // Cliff event
@@ -859,7 +1052,7 @@ function generateUnlockCalendar(args: Record<string, unknown>): Record<string, u
           category: alloc.name,
           tokens_unlocked: 0,
           value_usd: 0,
-          event_type: 'Cliff End - Vesting Begins'
+          event_type: 'Cliff End - Vesting Begins',
         });
       }
 
@@ -868,13 +1061,13 @@ function generateUnlockCalendar(args: Record<string, unknown>): Record<string, u
       const quarterlyUnlock = tokens / (vestingPeriod / 3);
 
       for (let q = 1; q <= vestingPeriod / 3; q++) {
-        const month = alloc.cliffMonths + (q * 3);
+        const month = alloc.cliffMonths + q * 3;
         events.push({
           month,
           category: alloc.name,
           tokens_unlocked: quarterlyUnlock,
           value_usd: quarterlyUnlock * price,
-          event_type: 'Quarterly Unlock'
+          event_type: 'Quarterly Unlock',
         });
       }
     }
@@ -884,11 +1077,14 @@ function generateUnlockCalendar(args: Record<string, unknown>): Record<string, u
   events.sort((a, b) => a.month - b.month);
 
   // Aggregate by month
-  const monthlyAggregate: Record<number, {
-    total_tokens: number;
-    total_value: number;
-    categories: string[]
-  }> = {};
+  const monthlyAggregate: Record<
+    number,
+    {
+      total_tokens: number;
+      total_value: number;
+      categories: string[];
+    }
+  > = {};
 
   for (const event of events) {
     if (!monthlyAggregate[event.month]) {
@@ -907,13 +1103,13 @@ function generateUnlockCalendar(args: Record<string, unknown>): Record<string, u
       total_tokens: Math.round(data.total_tokens),
       total_value_usd: Math.round(data.total_value),
       percent_of_supply: ((data.total_tokens / totalSupply) * 100).toFixed(2) + '%',
-      categories: data.categories
+      categories: data.categories,
     }))
-    .filter(entry => entry.total_tokens > 0);
+    .filter((entry) => entry.total_tokens > 0);
 
   // Identify high-impact months
   const avgMonthlyUnlock = totalSupply / 48; // Assume 4-year distribution
-  const highImpactMonths = calendar.filter(m => m.total_tokens > avgMonthlyUnlock * 2);
+  const highImpactMonths = calendar.filter((m) => m.total_tokens > avgMonthlyUnlock * 2);
 
   return {
     operation: 'unlock_calendar',
@@ -921,18 +1117,24 @@ function generateUnlockCalendar(args: Record<string, unknown>): Record<string, u
     total_supply: totalSupply,
     price_assumption: price,
     calendar: calendar.slice(0, 24), // Show first 2 years
-    high_impact_months: highImpactMonths.map(m => ({
+    high_impact_months: highImpactMonths.map((m) => ({
       month: m.month,
       tokens: m.total_tokens,
       percent: m.percent_of_supply,
-      warning: 'Large unlock - potential sell pressure'
+      warning: 'Large unlock - potential sell pressure',
     })),
     yearly_summary: {
-      year_1: calendar.filter(m => m.month <= 12).reduce((sum, m) => sum + m.total_tokens, 0),
-      year_2: calendar.filter(m => m.month > 12 && m.month <= 24).reduce((sum, m) => sum + m.total_tokens, 0),
-      year_3: calendar.filter(m => m.month > 24 && m.month <= 36).reduce((sum, m) => sum + m.total_tokens, 0),
-      year_4: calendar.filter(m => m.month > 36 && m.month <= 48).reduce((sum, m) => sum + m.total_tokens, 0)
-    }
+      year_1: calendar.filter((m) => m.month <= 12).reduce((sum, m) => sum + m.total_tokens, 0),
+      year_2: calendar
+        .filter((m) => m.month > 12 && m.month <= 24)
+        .reduce((sum, m) => sum + m.total_tokens, 0),
+      year_3: calendar
+        .filter((m) => m.month > 24 && m.month <= 36)
+        .reduce((sum, m) => sum + m.total_tokens, 0),
+      year_4: calendar
+        .filter((m) => m.month > 36 && m.month <= 48)
+        .reduce((sum, m) => sum + m.total_tokens, 0),
+    },
   };
 }
 
@@ -955,13 +1157,11 @@ function analyzeStakingEconomics(args: Record<string, unknown>): Record<string, 
 
   // Real yield for stakers (APY adjusted for dilution)
   const dilutionToNonStakers = effectiveInflation;
-  const realYieldForStakers = (stakingApy * 100) - (effectiveInflation * (1 - stakingRatio));
+  const realYieldForStakers = stakingApy * 100 - effectiveInflation * (1 - stakingRatio);
 
   // Lock period economics
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const lockPeriodMonths = lockPeriodDays / 30;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const opportunityCost = lockPeriodDays * 0.0001; // Simplified opportunity cost
+  const _lockPeriodMonths = lockPeriodDays / 30;
+  const _opportunityCost = lockPeriodDays * 0.0001; // Simplified opportunity cost
 
   // Staking equilibrium analysis
   const equilibriumStakingRatio = findStakingEquilibrium(stakingApy, effectiveInflation / 100);
@@ -972,27 +1172,28 @@ function analyzeStakingEconomics(args: Record<string, unknown>): Record<string, 
       total_supply: totalSupply,
       staking_apy: (stakingApy * 100).toFixed(1) + '%',
       current_staking_ratio: (stakingRatio * 100).toFixed(1) + '%',
-      lock_period_days: lockPeriodDays
+      lock_period_days: lockPeriodDays,
     },
     staking_metrics: {
       staked_tokens: stakedTokens,
       staked_value_usd: stakedTokens * price,
       liquid_tokens: liquidTokens,
-      liquid_value_usd: liquidTokens * price
+      liquid_value_usd: liquidTokens * price,
     },
     rewards_analysis: {
       annual_rewards_tokens: Math.round(annualRewards),
       annual_rewards_usd: annualRewardsValue,
       effective_inflation: effectiveInflation.toFixed(2) + '%',
       real_yield_stakers: realYieldForStakers.toFixed(2) + '%',
-      dilution_non_stakers: dilutionToNonStakers.toFixed(2) + '%'
+      dilution_non_stakers: dilutionToNonStakers.toFixed(2) + '%',
     },
     economics: {
       staking_incentive_score: calculateStakingIncentive(stakingApy, lockPeriodDays),
       equilibrium_staking_ratio: (equilibriumStakingRatio * 100).toFixed(1) + '%',
-      current_vs_equilibrium: stakingRatio > equilibriumStakingRatio ? 'Over-staked' : 'Under-staked'
+      current_vs_equilibrium:
+        stakingRatio > equilibriumStakingRatio ? 'Over-staked' : 'Under-staked',
     },
-    recommendations: generateStakingRecommendations(stakingApy, stakingRatio, lockPeriodDays)
+    recommendations: generateStakingRecommendations(stakingApy, stakingRatio, lockPeriodDays),
   };
 }
 
@@ -1052,8 +1253,8 @@ function getExamples(): Record<string, unknown> {
           max_supply: 2000000000,
           current_supply: 500000000,
           price: 0.5,
-          years: 10
-        }
+          years: 10,
+        },
       },
       {
         name: 'Generate vesting schedule',
@@ -1063,8 +1264,8 @@ function getExamples(): Record<string, unknown> {
           total_tokens: 10000000,
           vesting_months: 36,
           cliff_months: 12,
-          tge_percentage: 10
-        }
+          tge_percentage: 10,
+        },
       },
       {
         name: 'Model inflation',
@@ -1074,16 +1275,16 @@ function getExamples(): Record<string, unknown> {
           initial_supply: 1000000000,
           halving_period: 4,
           initial_reward: 50000000,
-          years: 20
-        }
+          years: 20,
+        },
       },
       {
         name: 'Analyze distribution',
         call: {
           operation: 'distribution',
           template: 'defi_protocol',
-          max_supply: 1000000000
-        }
+          max_supply: 1000000000,
+        },
       },
       {
         name: 'Token velocity analysis',
@@ -1092,8 +1293,8 @@ function getExamples(): Record<string, unknown> {
           sector: 'defi',
           gdp: 500000000,
           current_supply: 100000000,
-          price: 10
-        }
+          price: 10,
+        },
       },
       {
         name: 'Staking economics',
@@ -1103,10 +1304,10 @@ function getExamples(): Record<string, unknown> {
           staking_apy: 0.12,
           staking_ratio: 0.45,
           lock_period_days: 30,
-          price: 1.5
-        }
-      }
-    ]
+          price: 1.5,
+        },
+      },
+    ],
   };
 }
 
@@ -1123,7 +1324,7 @@ function getInfo(): Record<string, unknown> {
       'Token velocity and equation of exchange analysis',
       'Multi-method valuation (NVT, comparable, equation of exchange)',
       'Unlock calendar generation',
-      'Staking economics analysis'
+      'Staking economics analysis',
     ],
     operations: {
       supply_analysis: 'Analyze token supply metrics, dilution, and projections',
@@ -1135,7 +1336,7 @@ function getInfo(): Record<string, unknown> {
       unlock_calendar: 'Generate unlock events calendar',
       staking_economics: 'Analyze staking rewards and economics',
       info: 'Display this information',
-      examples: 'Show example API calls'
+      examples: 'Show example API calls',
     },
     distribution_templates: Object.keys(ALLOCATION_TEMPLATES),
     inflation_models: Object.keys(INFLATION_MODELS),
@@ -1144,8 +1345,8 @@ function getInfo(): Record<string, unknown> {
       'Equation of Exchange (Fisher)',
       'NVT Ratio (Willy Woo)',
       'Token Velocity Problem (Vitalik Buterin)',
-      'Staking Derivatives Research'
-    ]
+      'Staking Derivatives Research',
+    ],
   };
 }
 

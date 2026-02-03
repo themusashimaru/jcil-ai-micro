@@ -108,10 +108,11 @@ History teaches us lessons for the future.
 // =============================================================================
 
 function tokenizeForNGram(text: string): string[] {
-  return text.toLowerCase()
+  return text
+    .toLowerCase()
     .replace(/[^a-z\s]/g, '')
     .split(/\s+/)
-    .filter(t => t.length > 0);
+    .filter((t) => t.length > 0);
 }
 
 function buildNGramModel(corpus: string, n: number = 3): NGramModel {
@@ -139,7 +140,7 @@ function buildNGramModel(corpus: string, n: number = 3): NGramModel {
     n,
     counts,
     vocabSize: vocabulary.size,
-    vocabulary
+    vocabulary,
   };
 }
 
@@ -155,7 +156,6 @@ function getNextWordProbabilities(
   let totalCount = 0;
 
   if (contextCounts) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_word, count] of contextCounts) {
       totalCount += count;
     }
@@ -296,11 +296,13 @@ function beamSearch(
   beamWidth: number,
   stopTokens: string[]
 ): BeamCandidate[] {
-  let beams: BeamCandidate[] = [{
-    tokens: [...startTokens],
-    logProb: 0,
-    finished: false
-  }];
+  let beams: BeamCandidate[] = [
+    {
+      tokens: [...startTokens],
+      logProb: 0,
+      finished: false,
+    },
+  ];
 
   for (let step = 0; step < maxLength; step++) {
     const allCandidates: BeamCandidate[] = [];
@@ -325,18 +327,16 @@ function beamSearch(
         allCandidates.push({
           tokens: newTokens,
           logProb: newLogProb,
-          finished
+          finished,
         });
       }
     }
 
     // Keep top beams
-    beams = allCandidates
-      .sort((a, b) => b.logProb - a.logProb)
-      .slice(0, beamWidth);
+    beams = allCandidates.sort((a, b) => b.logProb - a.logProb).slice(0, beamWidth);
 
     // Check if all beams finished
-    if (beams.every(b => b.finished)) {
+    if (beams.every((b) => b.finished)) {
       break;
     }
   }
@@ -358,7 +358,13 @@ function generateText(
   let totalLogProb = 0;
 
   if (config.strategy === 'beam_search') {
-    const beams = beamSearch(model, startTokens, config.maxLength, config.beamWidth, config.stopTokens);
+    const beams = beamSearch(
+      model,
+      startTokens,
+      config.maxLength,
+      config.beamWidth,
+      config.stopTokens
+    );
     const best = beams[0];
 
     return {
@@ -366,7 +372,7 @@ function generateText(
       tokens: best.tokens,
       logProbability: best.logProb,
       perplexity: Math.exp(-best.logProb / best.tokens.length),
-      strategy: 'beam_search'
+      strategy: 'beam_search',
     };
   }
 
@@ -411,7 +417,7 @@ function generateText(
 
     generatedTokens.push(nextToken);
     tokens.push(nextToken);
-    totalLogProb += Math.log((probs.get(nextToken) || 1e-10));
+    totalLogProb += Math.log(probs.get(nextToken) || 1e-10);
     seenTokens.set(nextToken, (seenTokens.get(nextToken) || 0) + 1);
   }
 
@@ -421,9 +427,8 @@ function generateText(
     text: allTokens.join(' '),
     tokens: allTokens,
     logProbability: totalLogProb,
-    perplexity: generatedTokens.length > 0 ?
-      Math.exp(-totalLogProb / generatedTokens.length) : 0,
-    strategy: config.strategy
+    perplexity: generatedTokens.length > 0 ? Math.exp(-totalLogProb / generatedTokens.length) : 0,
+    strategy: config.strategy,
   };
 }
 
@@ -474,7 +479,7 @@ interface SamplingStrategyInfo {
 }
 
 const SAMPLING_STRATEGIES: Record<string, SamplingStrategyInfo> = {
-  'greedy': {
+  greedy: {
     name: 'Greedy Decoding',
     description: 'Always selects the token with the highest probability',
     parameters: [],
@@ -482,11 +487,11 @@ const SAMPLING_STRATEGIES: Record<string, SamplingStrategyInfo> = {
       'Deterministic output',
       'Fast execution',
       'May produce repetitive text',
-      'No exploration of alternatives'
+      'No exploration of alternatives',
     ],
-    useCase: 'When you need reproducible, deterministic output'
+    useCase: 'When you need reproducible, deterministic output',
   },
-  'top_k': {
+  top_k: {
     name: 'Top-K Sampling',
     description: 'Samples from the K most probable tokens',
     parameters: ['k (number of top tokens to consider)'],
@@ -494,11 +499,11 @@ const SAMPLING_STRATEGIES: Record<string, SamplingStrategyInfo> = {
       'Limits vocabulary to top K options',
       'Prevents sampling unlikely tokens',
       'Fixed truncation regardless of distribution',
-      'Moderate diversity'
+      'Moderate diversity',
     ],
-    useCase: 'When you want controlled randomness with fixed truncation'
+    useCase: 'When you want controlled randomness with fixed truncation',
   },
-  'top_p': {
+  top_p: {
     name: 'Top-P (Nucleus) Sampling',
     description: 'Samples from the smallest set of tokens whose cumulative probability exceeds P',
     parameters: ['p (cumulative probability threshold)'],
@@ -506,11 +511,11 @@ const SAMPLING_STRATEGIES: Record<string, SamplingStrategyInfo> = {
       'Dynamically sized vocabulary',
       'Adapts to probability distribution',
       'Better diversity than top-k',
-      'More natural-sounding output'
+      'More natural-sounding output',
     ],
-    useCase: 'When you want adaptive, natural-sounding generation'
+    useCase: 'When you want adaptive, natural-sounding generation',
   },
-  'temperature': {
+  temperature: {
     name: 'Temperature Sampling',
     description: 'Scales logits by temperature before sampling',
     parameters: ['temperature (scaling factor)'],
@@ -518,11 +523,11 @@ const SAMPLING_STRATEGIES: Record<string, SamplingStrategyInfo> = {
       'T < 1: sharper distribution (more deterministic)',
       'T > 1: flatter distribution (more random)',
       'T = 1: unmodified distribution',
-      'Smooth control over randomness'
+      'Smooth control over randomness',
     ],
-    useCase: 'When you want fine-grained control over output diversity'
+    useCase: 'When you want fine-grained control over output diversity',
   },
-  'beam_search': {
+  beam_search: {
     name: 'Beam Search',
     description: 'Explores multiple hypotheses in parallel, keeping the best K at each step',
     parameters: ['beam_width (number of hypotheses)'],
@@ -530,10 +535,10 @@ const SAMPLING_STRATEGIES: Record<string, SamplingStrategyInfo> = {
       'Considers global sequence probability',
       'More coherent long-form output',
       'Computationally expensive',
-      'May produce generic text'
+      'May produce generic text',
     ],
-    useCase: 'When you need high-quality, coherent sequences'
-  }
+    useCase: 'When you need high-quality, coherent sequences',
+  },
 };
 
 // =============================================================================
@@ -570,53 +575,61 @@ Features:
     properties: {
       operation: {
         type: 'string',
-        enum: ['generate', 'complete', 'beam_search', 'perplexity', 'strategies', 'vocabulary', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'generate',
+          'complete',
+          'beam_search',
+          'perplexity',
+          'strategies',
+          'vocabulary',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       prompt: {
         type: 'string',
-        description: 'Text prompt to continue'
+        description: 'Text prompt to continue',
       },
       text: {
         type: 'string',
-        description: 'Text for perplexity calculation'
+        description: 'Text for perplexity calculation',
       },
       sampling: {
         type: 'string',
         enum: ['greedy', 'top_k', 'top_p', 'temperature'],
-        description: 'Sampling strategy'
+        description: 'Sampling strategy',
       },
       maxLength: {
         type: 'number',
-        description: 'Maximum number of tokens to generate (default: 20)'
+        description: 'Maximum number of tokens to generate (default: 20)',
       },
       temperature: {
         type: 'number',
-        description: 'Temperature for sampling (default: 1.0)'
+        description: 'Temperature for sampling (default: 1.0)',
       },
       topK: {
         type: 'number',
-        description: 'K value for top-k sampling (default: 10)'
+        description: 'K value for top-k sampling (default: 10)',
       },
       topP: {
         type: 'number',
-        description: 'P value for top-p sampling (default: 0.9)'
+        description: 'P value for top-p sampling (default: 0.9)',
       },
       beamWidth: {
         type: 'number',
-        description: 'Beam width for beam search (default: 5)'
+        description: 'Beam width for beam search (default: 5)',
       },
       repetitionPenalty: {
         type: 'number',
-        description: 'Penalty for repeated tokens (default: 1.2)'
+        description: 'Penalty for repeated tokens (default: 1.2)',
       },
       strategy: {
         type: 'string',
-        description: 'Specific strategy to get info about'
-      }
+        description: 'Specific strategy to get info about',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -635,7 +648,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
       topP = 0.9,
       beamWidth = 5,
       repetitionPenalty = 1.2,
-      strategy
+      strategy,
     } = args;
 
     let result: Record<string, unknown>;
@@ -655,7 +668,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
           strategy: sampling || 'temperature',
           beamWidth,
           stopTokens: ['<END>'],
-          repetitionPenalty
+          repetitionPenalty,
         };
 
         const generated = generateText(model, prompt, config);
@@ -674,8 +687,8 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
             temperature: config.temperature,
             topK: config.topK,
             topP: config.topP,
-            repetitionPenalty: config.repetitionPenalty
-          }
+            repetitionPenalty: config.repetitionPenalty,
+          },
         };
         break;
       }
@@ -694,7 +707,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
           strategy: 'top_p',
           beamWidth,
           stopTokens: ['<END>'],
-          repetitionPenalty: repetitionPenalty || 1.0
+          repetitionPenalty: repetitionPenalty || 1.0,
         };
 
         const generated = generateText(model, prompt, config);
@@ -704,7 +717,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
           prompt,
           completion: generated.tokens.slice(tokenizeForNGram(prompt).length).join(' '),
           fullText: generated.text,
-          perplexity: generated.perplexity
+          perplexity: generated.perplexity,
         };
         break;
       }
@@ -727,8 +740,8 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
             text: beam.tokens.join(' '),
             logProbability: beam.logProb,
             perplexity: Math.exp(-beam.logProb / beam.tokens.length),
-            finished: beam.finished
-          }))
+            finished: beam.finished,
+          })),
         };
         break;
       }
@@ -747,10 +760,15 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
           text,
           perplexity: ppl,
           tokenCount: tokens.length,
-          interpretation: ppl < 50 ? 'Good fit to model' :
-                         ppl < 200 ? 'Moderate fit' :
-                         ppl < 1000 ? 'Poor fit' : 'Very poor fit',
-          note: 'Lower perplexity indicates text is more likely under the model'
+          interpretation:
+            ppl < 50
+              ? 'Good fit to model'
+              : ppl < 200
+                ? 'Moderate fit'
+                : ppl < 1000
+                  ? 'Poor fit'
+                  : 'Very poor fit',
+          note: 'Lower perplexity indicates text is more likely under the model',
         };
         break;
       }
@@ -764,13 +782,13 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
             result = {
               operation: 'strategies',
               error: `Unknown strategy: ${strategy}`,
-              availableStrategies: Object.keys(SAMPLING_STRATEGIES)
+              availableStrategies: Object.keys(SAMPLING_STRATEGIES),
             };
           } else {
             result = {
               operation: 'strategies',
               strategy: strategyLower,
-              ...strategyInfo
+              ...strategyInfo,
             };
           }
         } else {
@@ -781,13 +799,13 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
               name,
               fullName: info.name,
               description: info.description,
-              useCase: info.useCase
+              useCase: info.useCase,
             })),
             comparison: {
               determinism: 'greedy > beam_search > top_k > top_p > temperature',
               diversity: 'temperature > top_p > top_k > beam_search > greedy',
-              quality: 'beam_search > top_p > top_k > temperature > greedy (typically)'
-            }
+              quality: 'beam_search > top_p > top_k > temperature > greedy (typically)',
+            },
           };
         }
         break;
@@ -800,14 +818,13 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
         const contextStats: Array<{ context: string; uniqueNext: number; totalCount: number }> = [];
         for (const [context, nextWords] of model.counts) {
           let total = 0;
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for (const [_word, count] of nextWords) {
             total += count;
           }
           contextStats.push({
             context,
             uniqueNext: nextWords.size,
-            totalCount: total
+            totalCount: total,
           });
         }
         contextStats.sort((a, b) => b.totalCount - a.totalCount);
@@ -818,7 +835,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
           vocabularySize: model.vocabSize,
           uniqueContexts: model.counts.size,
           topContexts: contextStats.slice(0, 10),
-          sampleVocabulary: [...model.vocabulary].slice(0, 50)
+          sampleVocabulary: [...model.vocabulary].slice(0, 50),
         };
         break;
       }
@@ -836,7 +853,7 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
             beam_search: 'Generate with beam search for multiple hypotheses',
             perplexity: 'Calculate perplexity of text under model',
             strategies: 'Get information about sampling strategies',
-            vocabulary: 'Get model vocabulary and statistics'
+            vocabulary: 'Get model vocabulary and statistics',
           },
           samplingStrategies: Object.keys(SAMPLING_STRATEGIES),
           parameters: {
@@ -845,18 +862,19 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
             topK: 'Top-K truncation (default: 10)',
             topP: 'Nucleus probability threshold (default: 0.9)',
             beamWidth: 'Beam search width (default: 5)',
-            repetitionPenalty: 'Penalty for repeated tokens (default: 1.2)'
+            repetitionPenalty: 'Penalty for repeated tokens (default: 1.2)',
           },
           tips: [
             'Use lower temperature (0.3-0.7) for more focused output',
             'Use higher temperature (1.2-1.5) for more creative output',
             'Top-p sampling often gives more natural results than top-k',
             'Beam search is best for coherent, high-quality sequences',
-            'Repetition penalty > 1.0 helps avoid loops'
+            'Repetition penalty > 1.0 helps avoid loops',
           ],
           example: {
-            usage: '{"operation": "generate", "prompt": "the quick brown", "sampling": "top_p", "maxLength": 10}'
-          }
+            usage:
+              '{"operation": "generate", "prompt": "the quick brown", "sampling": "top_p", "maxLength": 10}',
+          },
         };
       }
     }
@@ -868,4 +886,6 @@ export async function executetextgeneration(toolCall: UnifiedToolCall): Promise<
   }
 }
 
-export function istextgenerationAvailable(): boolean { return true; }
+export function istextgenerationAvailable(): boolean {
+  return true;
+}

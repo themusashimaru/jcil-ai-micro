@@ -40,7 +40,7 @@ function createDeclarativeMemory(config?: Partial<DeclarativeMemory>): Declarati
     chunks: new Map(),
     baseLevelDecay: config?.baseLevelDecay || 0.5,
     retrievalThreshold: config?.retrievalThreshold || -2.0,
-    noise: config?.noise || 0.25
+    noise: config?.noise || 0.25,
   };
 }
 
@@ -52,7 +52,8 @@ function calculateActivation(
 ): number {
   // Base-level activation (power law of practice)
   const timeSinceCreation = Math.max(1, currentTime - chunk.createdAt);
-  const baseLevelLearning = Math.log(chunk.accessCount) - memory.baseLevelDecay * Math.log(timeSinceCreation);
+  const baseLevelLearning =
+    Math.log(chunk.accessCount) - memory.baseLevelDecay * Math.log(timeSinceCreation);
 
   // Add spreading activation from linked chunks
   const totalActivation = baseLevelLearning + spreadingActivation;
@@ -109,7 +110,7 @@ function storeChunk(
     activation: 0,
     createdAt: currentTime,
     lastAccessed: currentTime,
-    accessCount: 1
+    accessCount: 1,
   };
 
   memory.chunks.set(newChunk.id, newChunk);
@@ -162,7 +163,7 @@ function createACTRState(): ACTRState {
     buffers,
     currentTime: 0,
     cycleTime: 50,
-    utilityNoise: 0.5
+    utilityNoise: 0.5,
   };
 }
 
@@ -180,7 +181,7 @@ function matchProduction(production: ACTRProduction, buffers: Map<string, ACTRBu
 }
 
 function selectProduction(state: ACTRState): ACTRProduction | null {
-  const matchingProductions = state.proceduralMemory.filter(p =>
+  const matchingProductions = state.proceduralMemory.filter((p) =>
     matchProduction(p, state.buffers)
   );
 
@@ -218,7 +219,11 @@ function executeProduction(state: ACTRState, production: ACTRProduction): string
         const retrievalBuffer = state.buffers.get('retrieval');
         if (retrievalBuffer) {
           retrievalBuffer.state = 'busy';
-          const chunk = retrieveChunk(state.declarativeMemory, action.params.cue, state.currentTime);
+          const chunk = retrieveChunk(
+            state.declarativeMemory,
+            action.params.cue,
+            state.currentTime
+          );
           if (chunk) {
             retrievalBuffer.chunk = chunk;
             retrievalBuffer.state = 'free';
@@ -238,7 +243,7 @@ function executeProduction(state: ACTRState, production: ACTRProduction): string
         const newChunk = storeChunk(state.declarativeMemory, {
           type: action.params.type,
           content: action.params.content,
-          links: []
+          links: [],
         });
         results.push(`Stored new chunk: ${newChunk.id}`);
         break;
@@ -249,7 +254,10 @@ function executeProduction(state: ACTRState, production: ACTRProduction): string
   return results;
 }
 
-function simulateACTR(state: ACTRState, maxCycles: number): {
+function simulateACTR(
+  state: ACTRState,
+  maxCycles: number
+): {
   trace: Array<{ cycle: number; production: string; actions: string[] }>;
   finalState: ACTRState;
 } {
@@ -302,20 +310,20 @@ function createSOARState(): SOARState {
     subgoals: [],
     impasses: [],
     chunking: true,
-    learnedRules: []
+    learnedRules: [],
   };
 }
 
 function selectSOAROperator(state: SOARState): SOAROperator | null {
   // Filter acceptable operators
-  const applicable = state.operators.filter(op =>
-    op.preferences.acceptable && op.preconditions(state)
+  const applicable = state.operators.filter(
+    (op) => op.preferences.acceptable && op.preconditions(state)
   );
 
   if (applicable.length === 0) return null;
 
   // Check for impasse (tie or conflict)
-  const best = applicable.filter(op => op.preferences.best);
+  const best = applicable.filter((op) => op.preferences.best);
   if (best.length === 1) return best[0];
   if (best.length > 1) {
     state.impasses.push('tie');
@@ -324,7 +332,7 @@ function selectSOAROperator(state: SOARState): SOAROperator | null {
   }
 
   // No best preference, check for worst
-  const notWorst = applicable.filter(op => !op.preferences.worst);
+  const notWorst = applicable.filter((op) => !op.preferences.worst);
   if (notWorst.length === 1) return notWorst[0];
   if (notWorst.length > 1) {
     // Random selection among acceptable
@@ -334,14 +342,27 @@ function selectSOAROperator(state: SOARState): SOAROperator | null {
   return applicable[Math.floor(Math.random() * applicable.length)];
 }
 
-function simulateSOAR(state: SOARState, maxSteps: number): {
+function simulateSOAR(
+  state: SOARState,
+  maxSteps: number
+): {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trace: Array<{ step: number; operator: string | null; impasse: string | null; wm: Record<string, any> }>;
+  trace: Array<{
+    step: number;
+    operator: string | null;
+    impasse: string | null;
+    wm: Record<string, any>;
+  }>;
   finalState: SOARState;
   learnedChunks: string[];
 } {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const trace: Array<{ step: number; operator: string | null; impasse: string | null; wm: Record<string, any> }> = [];
+  const trace: Array<{
+    step: number;
+    operator: string | null;
+    impasse: string | null;
+    wm: Record<string, any>;
+  }> = [];
 
   for (let step = 0; step < maxSteps; step++) {
     const operator = selectSOAROperator(state);
@@ -351,7 +372,7 @@ function simulateSOAR(state: SOARState, maxSteps: number): {
       step,
       operator: operator?.name || null,
       impasse,
-      wm: Object.fromEntries(state.workingMemory)
+      wm: Object.fromEntries(state.workingMemory),
     });
 
     if (!operator) {
@@ -376,7 +397,7 @@ function simulateSOAR(state: SOARState, maxSteps: number): {
   return {
     trace,
     finalState: state,
-    learnedChunks: state.learnedRules
+    learnedChunks: state.learnedRules,
   };
 }
 
@@ -407,14 +428,62 @@ function createGlobalWorkspace(): GlobalWorkspace {
   const modules = new Map<string, GWTModule>();
 
   // Initialize standard modules
-  modules.set('visual', { name: 'visual', type: 'perception', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('auditory', { name: 'auditory', type: 'perception', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('declarative', { name: 'declarative', type: 'memory', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('episodic', { name: 'episodic', type: 'memory', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('attention', { name: 'attention', type: 'attention', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('motor', { name: 'motor', type: 'motor', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('language', { name: 'language', type: 'language', activation: 0, content: null, broadcastPriority: 0 });
-  modules.set('executive', { name: 'executive', type: 'executive', activation: 0, content: null, broadcastPriority: 0 });
+  modules.set('visual', {
+    name: 'visual',
+    type: 'perception',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('auditory', {
+    name: 'auditory',
+    type: 'perception',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('declarative', {
+    name: 'declarative',
+    type: 'memory',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('episodic', {
+    name: 'episodic',
+    type: 'memory',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('attention', {
+    name: 'attention',
+    type: 'attention',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('motor', {
+    name: 'motor',
+    type: 'motor',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('language', {
+    name: 'language',
+    type: 'language',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
+  modules.set('executive', {
+    name: 'executive',
+    type: 'executive',
+    activation: 0,
+    content: null,
+    broadcastPriority: 0,
+  });
 
   return {
     modules,
@@ -422,7 +491,7 @@ function createGlobalWorkspace(): GlobalWorkspace {
     broadcastHistory: [],
     competitionThreshold: 0.5,
     consciousnessThreshold: 0.7,
-    ignitionCount: 0
+    ignitionCount: 0,
   };
 }
 
@@ -447,7 +516,7 @@ function broadcast(workspace: GlobalWorkspace, module: GWTModule): void {
   workspace.broadcastHistory.push({
     time: Date.now(),
     module: module.name,
-    content: module.content
+    content: module.content,
   });
 
   // Global ignition: all modules receive the broadcast
@@ -465,7 +534,11 @@ function broadcast(workspace: GlobalWorkspace, module: GWTModule): void {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string; content: any; activation: number }>, steps: number): {
+function simulateGWT(
+  workspace: GlobalWorkspace,
+  stimuli: Array<{ module: string; content: any; activation: number }>,
+  steps: number
+): {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   broadcasts: Array<{ step: number; winner: string; content: any; conscious: boolean }>;
   finalWorkspace: GlobalWorkspace;
@@ -494,7 +567,7 @@ function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string
         step,
         winner: winner.name,
         content: winner.content,
-        conscious
+        conscious,
       });
       broadcast(workspace, winner);
     }
@@ -510,7 +583,7 @@ function simulateGWT(workspace: GlobalWorkspace, stimuli: Array<{ module: string
   return {
     broadcasts,
     finalWorkspace: workspace,
-    consciousEvents: workspace.ignitionCount
+    consciousEvents: workspace.ignitionCount,
   };
 }
 
@@ -536,14 +609,14 @@ function createPredictiveModel(numLevels: number, dimensionality: number): Predi
       name: `level_${i}`,
       predictions: Array(dimensionality).fill(0),
       predictionErrors: Array(dimensionality).fill(0),
-      precision: 1.0 / (i + 1) // Higher levels have lower precision
+      precision: 1.0 / (i + 1), // Higher levels have lower precision
     });
   }
 
   return {
     levels,
     freeEnergy: 0,
-    learningRate: 0.1
+    learningRate: 0.1,
   };
 }
 
@@ -587,7 +660,7 @@ function computeFreeEnergy(model: PredictiveModel): number {
   for (const level of model.levels) {
     for (let i = 0; i < level.predictionErrors.length; i++) {
       // Free energy = sum of precision-weighted squared prediction errors
-      energy += level.precision * (level.predictionErrors[i] ** 2);
+      energy += level.precision * level.predictionErrors[i] ** 2;
     }
   }
 
@@ -595,7 +668,11 @@ function computeFreeEnergy(model: PredictiveModel): number {
   return energy;
 }
 
-function activeInference(model: PredictiveModel, observations: number[][], maxSteps: number): {
+function activeInference(
+  model: PredictiveModel,
+  observations: number[][],
+  maxSteps: number
+): {
   freeEnergyHistory: number[];
   predictionHistory: number[][];
   finalModel: PredictiveModel;
@@ -619,7 +696,7 @@ function activeInference(model: PredictiveModel, observations: number[][], maxSt
   return {
     freeEnergyHistory,
     predictionHistory,
-    finalModel: model
+    finalModel: model,
   };
 }
 
@@ -643,128 +720,123 @@ const ARCHITECTURES: Record<string, ArchitectureComparison> = {
       'Strong empirical grounding in psychology',
       'Precise timing predictions',
       'Learning through practice and compilation',
-      'Good at modeling human errors'
+      'Good at modeling human errors',
     ],
     weaknesses: [
       'Modular but limited cross-module integration',
       'Less suited for creative reasoning',
-      'Production system can be brittle'
+      'Production system can be brittle',
     ],
     bestFor: [
       'Cognitive task modeling',
       'Skill acquisition',
       'Memory and attention research',
-      'Human-computer interaction'
+      'Human-computer interaction',
     ],
     keyMechanisms: [
       'Declarative memory with activation',
       'Procedural memory as productions',
       'Utility learning',
-      'Conflict resolution'
+      'Conflict resolution',
     ],
     computationalProperties: {
       memoryModel: 'Chunk-based with activation decay',
       learning: 'Utility learning, production compilation',
       timing: 'Detailed cycle-by-cycle predictions',
-      consciousness: 'Implicit through buffer contents'
-    }
+      consciousness: 'Implicit through buffer contents',
+    },
   },
-  'SOAR': {
+  SOAR: {
     name: 'State, Operator, And Result',
     strengths: [
       'Powerful problem-solving framework',
       'Automatic subgoaling',
       'Learning through chunking',
-      'Unified theory of cognition'
+      'Unified theory of cognition',
     ],
     weaknesses: [
       'Less detailed timing predictions',
       'Working memory can explode',
-      'Chunking can over-generalize'
+      'Chunking can over-generalize',
     ],
-    bestFor: [
-      'Problem solving',
-      'Intelligent agents',
-      'Expert systems',
-      'Game AI'
-    ],
+    bestFor: ['Problem solving', 'Intelligent agents', 'Expert systems', 'Game AI'],
     keyMechanisms: [
       'Impasses and subgoals',
       'Operator selection preferences',
       'Chunking for learning',
-      'Universal subgoaling'
+      'Universal subgoaling',
     ],
     computationalProperties: {
       memoryModel: 'Working memory with WMEs',
       learning: 'Chunking from subgoal resolution',
       timing: 'Decision cycle based',
-      consciousness: 'Implicit through operator selection'
-    }
+      consciousness: 'Implicit through operator selection',
+    },
   },
-  'Global_Workspace': {
+  Global_Workspace: {
     name: 'Global Workspace Theory',
     strengths: [
       'Explicit model of consciousness',
       'Neurologically plausible',
       'Good for attention modeling',
-      'Explains binding problem'
+      'Explains binding problem',
     ],
     weaknesses: [
       'Less detailed procedural knowledge',
       'Competition mechanism needs tuning',
-      'Limited learning theory'
+      'Limited learning theory',
     ],
     bestFor: [
       'Consciousness research',
       'Attention studies',
       'Multi-modal integration',
-      'Cognitive broadcasting'
+      'Cognitive broadcasting',
     ],
     keyMechanisms: [
       'Competition for access',
       'Global broadcast',
       'Ignition dynamics',
-      'Modular specialists'
+      'Modular specialists',
     ],
     computationalProperties: {
       memoryModel: 'Distributed across modules',
       learning: 'Not specified in original theory',
       timing: 'Broadcast cycle based',
-      consciousness: 'Explicit through global broadcast'
-    }
+      consciousness: 'Explicit through global broadcast',
+    },
   },
-  'Predictive_Processing': {
+  Predictive_Processing: {
     name: 'Predictive Processing / Active Inference',
     strengths: [
       'Unified theory of perception and action',
       'Mathematically principled (free energy)',
       'Handles uncertainty naturally',
-      'Explains many perceptual phenomena'
+      'Explains many perceptual phenomena',
     ],
     weaknesses: [
       'Less developed for higher cognition',
       'Precision weighting hard to specify',
-      'Computational complexity'
+      'Computational complexity',
     ],
     bestFor: [
       'Perception modeling',
       'Sensorimotor integration',
       'Uncertainty quantification',
-      'Embodied cognition'
+      'Embodied cognition',
     ],
     keyMechanisms: [
       'Hierarchical predictions',
       'Prediction error minimization',
       'Precision weighting',
-      'Active inference'
+      'Active inference',
     ],
     computationalProperties: {
       memoryModel: 'Hierarchical generative model',
       learning: 'Gradient descent on free energy',
       timing: 'Continuous dynamics',
-      consciousness: 'Explained via precision/attention'
-    }
-  }
+      consciousness: 'Explained via precision/attention',
+    },
+  },
 };
 
 // ============================================================================
@@ -780,71 +852,52 @@ export const cognitivearchitectureTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['design', 'simulate', 'analyze', 'compare', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       architecture: {
         type: 'string',
         enum: ['ACT-R', 'SOAR', 'Global_Workspace', 'Predictive_Processing', 'custom'],
-        description: 'Architecture type'
+        description: 'Architecture type',
       },
       // ACT-R parameters
       productions: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            conditions: { type: 'object' },
-            actions: { type: 'array' },
-            utility: { type: 'number' }
-          }
-        },
-        description: 'Production rules for ACT-R'
+        items: { type: 'object' },
+        description:
+          'Production rules for ACT-R. Each production has: name (string), conditions (object), actions (array), utility (number)',
       },
       initialGoal: { type: 'object', description: 'Initial goal state' },
       memories: {
         type: 'array',
         items: { type: 'object' },
-        description: 'Initial memory chunks'
+        description: 'Initial memory chunks',
       },
       // SOAR parameters
       operators: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            preconditions: { type: 'object' },
-            effects: { type: 'object' }
-          }
-        },
-        description: 'Operators for SOAR'
+        items: { type: 'object' },
+        description:
+          'Operators for SOAR. Each operator has: name (string), preconditions (object), effects (object)',
       },
       initialWM: { type: 'object', description: 'Initial working memory' },
       // GWT parameters
       modules: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            type: { type: 'string' },
-            activation: { type: 'number' }
-          }
-        },
-        description: 'Modules for Global Workspace'
+        items: { type: 'object' },
+        description:
+          'Modules for Global Workspace. Each module has: name (string), type (string), activation (number)',
       },
       stimuli: {
         type: 'array',
         items: { type: 'object' },
-        description: 'Stimuli sequence'
+        description: 'Stimuli sequence',
       },
       // Predictive Processing parameters
       numLevels: { type: 'number', description: 'Hierarchy levels' },
       observations: {
         type: 'array',
-        items: { type: 'array', items: { type: 'number' } },
-        description: 'Observation sequence'
+        items: { type: 'array' },
+        description: 'Observation sequence (2D array of numbers)',
       },
       // Simulation parameters
       maxSteps: { type: 'number', description: 'Maximum simulation steps' },
@@ -852,14 +905,16 @@ export const cognitivearchitectureTool: UnifiedTool = {
       analyzeTopic: {
         type: 'string',
         enum: ['memory', 'learning', 'attention', 'consciousness', 'all'],
-        description: 'Topic to analyze'
-      }
+        description: 'Topic to analyze',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executecognitivearchitecture(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executecognitivearchitecture(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -871,35 +926,39 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'cognitive_architecture',
-            description: 'Design, simulate, and analyze cognitive architectures',
-            operations: {
-              design: {
-                description: 'Create a cognitive architecture configuration',
-                parameters: ['architecture', 'productions/operators/modules', 'initialState']
+          content: JSON.stringify(
+            {
+              tool: 'cognitive_architecture',
+              description: 'Design, simulate, and analyze cognitive architectures',
+              operations: {
+                design: {
+                  description: 'Create a cognitive architecture configuration',
+                  parameters: ['architecture', 'productions/operators/modules', 'initialState'],
+                },
+                simulate: {
+                  description: 'Run a simulation of the architecture',
+                  parameters: ['architecture', 'maxSteps', 'stimuli/observations'],
+                },
+                analyze: {
+                  description: 'Analyze architectural properties',
+                  parameters: ['architecture', 'analyzeTopic'],
+                },
+                compare: {
+                  description: 'Compare multiple architectures',
+                  parameters: ['(none - compares all)'],
+                },
               },
-              simulate: {
-                description: 'Run a simulation of the architecture',
-                parameters: ['architecture', 'maxSteps', 'stimuli/observations']
+              architectures: Object.keys(ARCHITECTURES),
+              concepts: {
+                'ACT-R': 'Production system with activation-based memory',
+                SOAR: 'Universal subgoaling with chunking',
+                Global_Workspace: 'Competition for conscious access',
+                Predictive_Processing: 'Hierarchical prediction error minimization',
               },
-              analyze: {
-                description: 'Analyze architectural properties',
-                parameters: ['architecture', 'analyzeTopic']
-              },
-              compare: {
-                description: 'Compare multiple architectures',
-                parameters: ['(none - compares all)']
-              }
             },
-            architectures: Object.keys(ARCHITECTURES),
-            concepts: {
-              'ACT-R': 'Production system with activation-based memory',
-              'SOAR': 'Universal subgoaling with chunking',
-              'Global_Workspace': 'Competition for conscious access',
-              'Predictive_Processing': 'Hierarchical prediction error minimization'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -914,14 +973,14 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
             // Add initial memories
             const memories = args.memories || [
               { type: 'fact', content: { name: 'addition-fact', arg1: 2, arg2: 3, result: 5 } },
-              { type: 'fact', content: { name: 'addition-fact', arg1: 3, arg2: 4, result: 7 } }
+              { type: 'fact', content: { name: 'addition-fact', arg1: 3, arg2: 4, result: 7 } },
             ];
 
             for (const mem of memories) {
               storeChunk(state.declarativeMemory, {
                 type: mem.type,
                 content: mem.content,
-                links: []
+                links: [],
               });
             }
 
@@ -934,7 +993,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                 utility: 1.0,
                 successCount: 10,
                 failureCount: 2,
-                cost: 50
+                cost: 50,
               },
               {
                 name: 'report-result',
@@ -943,8 +1002,8 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                 utility: 0.8,
                 successCount: 8,
                 failureCount: 1,
-                cost: 30
-              }
+                cost: 30,
+              },
             ];
 
             state.proceduralMemory = productions;
@@ -956,24 +1015,24 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                   baseLevelDecay: state.declarativeMemory.baseLevelDecay,
                   retrievalThreshold: state.declarativeMemory.retrievalThreshold,
                   noise: state.declarativeMemory.noise,
-                  chunkCount: state.declarativeMemory.chunks.size
+                  chunkCount: state.declarativeMemory.chunks.size,
                 },
                 proceduralMemory: {
                   productionCount: state.proceduralMemory.length,
-                  productions: state.proceduralMemory.map(p => ({
+                  productions: state.proceduralMemory.map((p) => ({
                     name: p.name,
                     utility: p.utility,
-                    cost: p.cost
-                  }))
+                    cost: p.cost,
+                  })),
                 },
                 buffers: Array.from(state.buffers.keys()),
-                cycleTime: state.cycleTime
+                cycleTime: state.cycleTime,
               },
               theory: {
                 baseLevelLearning: 'B_i = ln(Σ t_j^(-d)) where d is decay parameter',
                 utilityLearning: 'U_i = P_i * G - C_i',
-                conflictResolution: 'Select production with highest utility + noise'
-              }
+                conflictResolution: 'Select production with highest utility + noise',
+              },
             };
             break;
           }
@@ -983,9 +1042,9 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
 
             // Set initial working memory
             const initialWM = args.initialWM || {
-              'state': 'initial',
-              'goal': 'solve-problem',
-              'operator': null
+              state: 'initial',
+              goal: 'solve-problem',
+              operator: null,
             };
 
             for (const [key, value] of Object.entries(initialWM)) {
@@ -997,23 +1056,23 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
               config: {
                 workingMemory: Object.fromEntries(state.workingMemory),
                 chunking: state.chunking,
-                impasses: ['tie', 'conflict', 'no-change', 'constraint-failure']
+                impasses: ['tie', 'conflict', 'no-change', 'constraint-failure'],
               },
               decisionCycle: [
                 'Input phase: Update working memory from perception',
                 'Propose operators: Match productions to propose operators',
                 'Decision: Select operator using preferences',
                 'Apply operator: Execute selected operator',
-                'Output phase: Send commands to motor system'
+                'Output phase: Send commands to motor system',
               ],
               preferences: {
-                'acceptable': 'Operator can be considered',
-                'reject': 'Operator should not be considered',
+                acceptable: 'Operator can be considered',
+                reject: 'Operator should not be considered',
                 'better/worse': 'Relative preference between operators',
                 'best/worst': 'Absolute preference',
-                'require': 'Must be selected if applicable',
-                'prohibit': 'Must not be selected'
-              }
+                require: 'Must be selected if applicable',
+                prohibit: 'Must not be selected',
+              },
             };
             break;
           }
@@ -1024,13 +1083,13 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
             design = {
               architecture: 'Global_Workspace',
               config: {
-                modules: Array.from(workspace.modules.values()).map(m => ({
+                modules: Array.from(workspace.modules.values()).map((m) => ({
                   name: m.name,
                   type: m.type,
-                  activation: m.activation
+                  activation: m.activation,
                 })),
                 competitionThreshold: workspace.competitionThreshold,
-                consciousnessThreshold: workspace.consciousnessThreshold
+                consciousnessThreshold: workspace.consciousnessThreshold,
               },
               processFlow: [
                 '1. Parallel processing in specialized modules',
@@ -1038,13 +1097,13 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                 '3. Competition for global access',
                 '4. Winning coalition broadcasts globally',
                 '5. All modules receive broadcast and update',
-                '6. New cycle begins'
+                '6. New cycle begins',
               ],
               consciousAccess: {
                 conditions: 'Activation above consciousness threshold',
                 effects: 'Global ignition, widespread neural activation',
-                duration: 'Typically 100-500ms per conscious moment'
-              }
+                duration: 'Typically 100-500ms per conscious moment',
+              },
             };
             break;
           }
@@ -1058,23 +1117,23 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
               config: {
                 numLevels,
                 learningRate: model.learningRate,
-                levels: model.levels.map(l => ({
+                levels: model.levels.map((l) => ({
                   name: l.name,
                   precision: l.precision,
-                  dimensionality: l.predictions.length
-                }))
+                  dimensionality: l.predictions.length,
+                })),
               },
               freeEnergyPrinciple: {
                 definition: 'F = D_KL[Q(θ)||P(θ|o)] ≈ -log P(o) + complexity',
                 perception: 'Minimize prediction error by updating internal model',
                 action: 'Minimize prediction error by changing the world',
-                learning: 'Optimize model parameters to minimize average F'
+                learning: 'Optimize model parameters to minimize average F',
               },
               hierarchy: {
                 bottomUp: 'Prediction errors propagate upward',
                 topDown: 'Predictions propagate downward',
-                precision: 'Higher levels have lower precision (more abstract)'
-              }
+                precision: 'Higher levels have lower precision (more abstract)',
+              },
             };
             break;
           }
@@ -1085,10 +1144,14 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'design',
-            ...design
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'design',
+              ...design,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1108,20 +1171,20 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                 conditions: { goal: { task: 'count', current: '?n' } },
                 actions: [
                   { type: 'modify_buffer', params: { buffer: 'goal', slots: { current: '?n+1' } } },
-                  { type: 'output', params: { message: 'Counted' } }
+                  { type: 'output', params: { message: 'Counted' } },
                 ],
                 utility: 1.0,
                 successCount: 10,
                 failureCount: 0,
-                cost: 50
-              }
+                cost: 50,
+              },
             ];
 
             // Set initial goal
             const goalChunk = storeChunk(state.declarativeMemory, {
               type: 'goal',
               content: { task: 'count', current: 0 },
-              links: []
+              links: [],
             });
             state.buffers.get('goal')!.chunk = goalChunk;
 
@@ -1132,7 +1195,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
               trace: result.trace,
               finalTime: result.finalState.currentTime,
               productionsFired: result.trace.length,
-              memoryChunks: result.finalState.declarativeMemory.chunks.size
+              memoryChunks: result.finalState.declarativeMemory.chunks.size,
             };
             break;
           }
@@ -1152,7 +1215,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                   s.workingMemory.set('count', current + 1);
                   return s;
                 },
-                preferences: { acceptable: true, best: true }
+                preferences: { acceptable: true, best: true },
               },
               {
                 name: 'done',
@@ -1161,8 +1224,8 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
                   s.workingMemory.delete('goal');
                   return s;
                 },
-                preferences: { acceptable: true }
-              }
+                preferences: { acceptable: true },
+              },
             ];
 
             const result = simulateSOAR(state, maxSteps);
@@ -1172,7 +1235,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
               trace: result.trace,
               stepsExecuted: result.trace.length,
               learnedChunks: result.learnedChunks,
-              finalWM: Object.fromEntries(result.finalState.workingMemory)
+              finalWM: Object.fromEntries(result.finalState.workingMemory),
             };
             break;
           }
@@ -1184,7 +1247,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
             const stimuli = args.stimuli || [
               { module: 'visual', content: 'red object', activation: 0.8 },
               { module: 'auditory', content: 'beep sound', activation: 0.6 },
-              { module: 'language', content: 'word recognition', activation: 0.7 }
+              { module: 'language', content: 'word recognition', activation: 0.7 },
             ];
 
             const result = simulateGWT(workspace, stimuli, maxSteps);
@@ -1194,11 +1257,11 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
               broadcasts: result.broadcasts,
               consciousEvents: result.consciousEvents,
               totalBroadcasts: result.broadcasts.length,
-              moduleStates: Array.from(result.finalWorkspace.modules.values()).map(m => ({
+              moduleStates: Array.from(result.finalWorkspace.modules.values()).map((m) => ({
                 name: m.name,
                 activation: m.activation,
-                content: m.content
-              }))
+                content: m.content,
+              })),
             };
             break;
           }
@@ -1208,9 +1271,15 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
             const model = createPredictiveModel(numLevels, 5);
 
             // Generate observations if not provided
-            const observations = args.observations || Array(maxSteps).fill(0).map(() =>
-              Array(5).fill(0).map(() => Math.sin(Math.random() * Math.PI) + Math.random() * 0.1)
-            );
+            const observations =
+              args.observations ||
+              Array(maxSteps)
+                .fill(0)
+                .map(() =>
+                  Array(5)
+                    .fill(0)
+                    .map(() => Math.sin(Math.random() * Math.PI) + Math.random() * 0.1)
+                );
 
             const result = activeInference(model, observations, maxSteps);
 
@@ -1218,12 +1287,14 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
               architecture: 'Predictive_Processing',
               freeEnergyHistory: result.freeEnergyHistory,
               finalFreeEnergy: result.freeEnergyHistory[result.freeEnergyHistory.length - 1],
-              predictionAccuracy: 1 - (result.finalModel.freeEnergy / observations.length),
-              levelPrecisions: result.finalModel.levels.map(l => ({
+              predictionAccuracy: 1 - result.finalModel.freeEnergy / observations.length,
+              levelPrecisions: result.finalModel.levels.map((l) => ({
                 name: l.name,
                 precision: l.precision,
-                avgPredictionError: l.predictionErrors.reduce((a, b) => a + Math.abs(b), 0) / l.predictionErrors.length
-              }))
+                avgPredictionError:
+                  l.predictionErrors.reduce((a, b) => a + Math.abs(b), 0) /
+                  l.predictionErrors.length,
+              })),
             };
             break;
           }
@@ -1234,11 +1305,15 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            maxSteps,
-            ...simulation
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              maxSteps,
+              ...simulation,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1251,60 +1326,64 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
             toolCallId: id,
             content: JSON.stringify({
               error: `Unknown architecture: ${architecture}`,
-              available: Object.keys(ARCHITECTURES)
+              available: Object.keys(ARCHITECTURES),
             }),
-            isError: true
+            isError: true,
           };
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const analysis: any = {
           architecture: archInfo.name,
-          fullName: archInfo.name
+          fullName: archInfo.name,
         };
 
         if (topic === 'all' || topic === 'memory') {
           analysis.memoryAnalysis = {
             model: archInfo.computationalProperties.memoryModel,
-            characteristics: architecture === 'ACT-R'
-              ? ['Activation decay', 'Spreading activation', 'Base-level learning']
-              : architecture === 'SOAR'
-              ? ['Working memory elements', 'Long-term procedural', 'Chunking']
-              : architecture === 'Global_Workspace'
-              ? ['Distributed across modules', 'Short-term in workspace']
-              : ['Hierarchical generative model', 'Precision-weighted']
+            characteristics:
+              architecture === 'ACT-R'
+                ? ['Activation decay', 'Spreading activation', 'Base-level learning']
+                : architecture === 'SOAR'
+                  ? ['Working memory elements', 'Long-term procedural', 'Chunking']
+                  : architecture === 'Global_Workspace'
+                    ? ['Distributed across modules', 'Short-term in workspace']
+                    : ['Hierarchical generative model', 'Precision-weighted'],
           };
         }
 
         if (topic === 'all' || topic === 'learning') {
           analysis.learningAnalysis = {
             mechanism: archInfo.computationalProperties.learning,
-            type: architecture === 'ACT-R'
-              ? 'Reinforcement (utility), Procedural (compilation)'
-              : architecture === 'SOAR'
-              ? 'Explanation-based (chunking)'
-              : architecture === 'Global_Workspace'
-              ? 'Not specified in core theory'
-              : 'Gradient descent on free energy'
+            type:
+              architecture === 'ACT-R'
+                ? 'Reinforcement (utility), Procedural (compilation)'
+                : architecture === 'SOAR'
+                  ? 'Explanation-based (chunking)'
+                  : architecture === 'Global_Workspace'
+                    ? 'Not specified in core theory'
+                    : 'Gradient descent on free energy',
           };
         }
 
         if (topic === 'all' || topic === 'attention') {
           analysis.attentionAnalysis = {
-            mechanism: architecture === 'ACT-R'
-              ? 'Implicit through buffer selection'
-              : architecture === 'SOAR'
-              ? 'Implicit through operator selection'
-              : architecture === 'Global_Workspace'
-              ? 'Explicit competition for access'
-              : 'Precision weighting'
+            mechanism:
+              architecture === 'ACT-R'
+                ? 'Implicit through buffer selection'
+                : architecture === 'SOAR'
+                  ? 'Implicit through operator selection'
+                  : architecture === 'Global_Workspace'
+                    ? 'Explicit competition for access'
+                    : 'Precision weighting',
           };
         }
 
         if (topic === 'all' || topic === 'consciousness') {
           analysis.consciousnessAnalysis = {
             model: archInfo.computationalProperties.consciousness,
-            explicit: architecture === 'Global_Workspace' || architecture === 'Predictive_Processing'
+            explicit:
+              architecture === 'Global_Workspace' || architecture === 'Predictive_Processing',
           };
         }
 
@@ -1314,11 +1393,15 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            topic,
-            ...analysis
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              topic,
+              ...analysis,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1330,49 +1413,53 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
             strengths: arch.strengths.slice(0, 2),
             bestFor: arch.bestFor.slice(0, 2),
             memoryModel: arch.computationalProperties.memoryModel,
-            learningMechanism: arch.computationalProperties.learning
+            learningMechanism: arch.computationalProperties.learning,
           })),
           dimensionalComparison: {
             empiricalGrounding: {
               'ACT-R': 5,
-              'SOAR': 4,
-              'Global_Workspace': 4,
-              'Predictive_Processing': 4
+              SOAR: 4,
+              Global_Workspace: 4,
+              Predictive_Processing: 4,
             },
             mathematicalRigor: {
               'ACT-R': 4,
-              'SOAR': 3,
-              'Global_Workspace': 3,
-              'Predictive_Processing': 5
+              SOAR: 3,
+              Global_Workspace: 3,
+              Predictive_Processing: 5,
             },
             biologicalPlausibility: {
               'ACT-R': 3,
-              'SOAR': 2,
-              'Global_Workspace': 4,
-              'Predictive_Processing': 5
+              SOAR: 2,
+              Global_Workspace: 4,
+              Predictive_Processing: 5,
             },
             practicalApplications: {
               'ACT-R': 5,
-              'SOAR': 5,
-              'Global_Workspace': 3,
-              'Predictive_Processing': 3
-            }
+              SOAR: 5,
+              Global_Workspace: 3,
+              Predictive_Processing: 3,
+            },
           },
           recommendations: {
             forCognitiveModeling: 'ACT-R',
             forProblemSolving: 'SOAR',
             forConsciousnessResearch: 'Global_Workspace',
             forPerceptionModeling: 'Predictive_Processing',
-            forAGI: 'Hybrid approach combining multiple architectures'
-          }
+            forAGI: 'Hybrid approach combining multiple architectures',
+          },
         };
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            ...comparison
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              ...comparison,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1381,9 +1468,9 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown operation: ${operation}`,
-            availableOperations: ['design', 'simulate', 'analyze', 'compare', 'info']
+            availableOperations: ['design', 'simulate', 'analyze', 'compare', 'info'],
           }),
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1391,7 +1478,7 @@ export async function executecognitivearchitecture(toolCall: UnifiedToolCall): P
     return {
       toolCallId: id,
       content: `Error in cognitive architecture tool: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

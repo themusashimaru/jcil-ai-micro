@@ -23,33 +23,36 @@ interface RGBColor {
   r: number;
   g: number;
   b: number;
+  [key: string]: number;
 }
 
 interface HSLColor {
-  h: number;  // 0-360
-  s: number;  // 0-1
-  l: number;  // 0-1
+  h: number; // 0-360
+  s: number; // 0-1
+  l: number; // 0-1
+  [key: string]: number;
 }
 
 interface HSVColor {
-  h: number;  // 0-360
-  s: number;  // 0-1
-  v: number;  // 0-1
+  h: number; // 0-360
+  s: number; // 0-1
+  v: number; // 0-1
+  [key: string]: number;
 }
 
 interface LUTData {
   size: number;
-  data: number[][][];  // [r][g][b] -> [R, G, B]
+  data: number[][][][]; // [r][g][b] -> [R, G, B]
   title?: string;
   domainMin?: [number, number, number];
   domainMax?: [number, number, number];
 }
 
 interface ColorWheels {
-  lift: RGBColor;     // Shadows
-  gamma: RGBColor;    // Midtones
-  gain: RGBColor;     // Highlights
-  offset: RGBColor;   // Overall offset
+  lift: RGBColor; // Shadows
+  gamma: RGBColor; // Midtones
+  gain: RGBColor; // Highlights
+  offset: RGBColor; // Overall offset
 }
 
 interface CurvePoint {
@@ -69,7 +72,7 @@ interface SplitToning {
   shadowsSaturation: number;
   highlightsHue: number;
   highlightsSaturation: number;
-  balance: number;  // -1 to 1
+  balance: number; // -1 to 1
 }
 
 interface GradingSettings {
@@ -94,18 +97,14 @@ class ColorSpaceConverter {
    * sRGB to Linear RGB
    */
   static sRGBToLinear(c: number): number {
-    return c <= 0.04045
-      ? c / 12.92
-      : Math.pow((c + 0.055) / 1.055, 2.4);
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   }
 
   /**
    * Linear RGB to sRGB
    */
   static linearTosRGB(c: number): number {
-    return c <= 0.0031308
-      ? c * 12.92
-      : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+    return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
   }
 
   /**
@@ -115,7 +114,7 @@ class ColorSpaceConverter {
     return {
       r: this.sRGBToLinear(rgb.r),
       g: this.sRGBToLinear(rgb.g),
-      b: this.sRGBToLinear(rgb.b)
+      b: this.sRGBToLinear(rgb.b),
     };
   }
 
@@ -126,7 +125,7 @@ class ColorSpaceConverter {
     return {
       r: this.linearTosRGB(rgb.r),
       g: this.linearTosRGB(rgb.g),
-      b: this.linearTosRGB(rgb.b)
+      b: this.linearTosRGB(rgb.b),
     };
   }
 
@@ -141,7 +140,8 @@ class ColorSpaceConverter {
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     const l = (max + min) / 2;
-    let h = 0, s = 0;
+    let h = 0,
+      s = 0;
 
     if (max !== min) {
       const d = max - min;
@@ -178,9 +178,9 @@ class ColorSpaceConverter {
     const hue2rgb = (p: number, q: number, t: number): number => {
       if (t < 0) t += 1;
       if (t > 1) t -= 1;
-      if (t < 1/6) return p + (q - p) * 6 * t;
-      if (t < 1/2) return q;
-      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
       return p;
     };
 
@@ -188,9 +188,9 @@ class ColorSpaceConverter {
     const p = 2 * l - q;
 
     return {
-      r: hue2rgb(p, q, h + 1/3),
+      r: hue2rgb(p, q, h + 1 / 3),
       g: hue2rgb(p, q, h),
-      b: hue2rgb(p, q, h - 1/3)
+      b: hue2rgb(p, q, h - 1 / 3),
     };
   }
 
@@ -241,13 +241,20 @@ class ColorSpaceConverter {
     const t = v * (1 - (1 - f) * s);
 
     switch (i % 6) {
-      case 0: return { r: v, g: t, b: p };
-      case 1: return { r: q, g: v, b: p };
-      case 2: return { r: p, g: v, b: t };
-      case 3: return { r: p, g: q, b: v };
-      case 4: return { r: t, g: p, b: v };
-      case 5: return { r: v, g: p, b: q };
-      default: return { r: v, g: t, b: p };
+      case 0:
+        return { r: v, g: t, b: p };
+      case 1:
+        return { r: q, g: v, b: p };
+      case 2:
+        return { r: p, g: v, b: t };
+      case 3:
+        return { r: p, g: q, b: v };
+      case 4:
+        return { r: t, g: p, b: v };
+      case 5:
+        return { r: v, g: p, b: q };
+      default:
+        return { r: v, g: t, b: p };
     }
   }
 
@@ -257,14 +264,12 @@ class ColorSpaceConverter {
   static sRGBToRec709(rgb: RGBColor): RGBColor {
     // sRGB and Rec.709 share primaries, differ in transfer function
     const linearize = (c: number) => this.sRGBToLinear(c);
-    const rec709Gamma = (c: number) => c < 0.018
-      ? c * 4.5
-      : 1.099 * Math.pow(c, 0.45) - 0.099;
+    const rec709Gamma = (c: number) => (c < 0.018 ? c * 4.5 : 1.099 * Math.pow(c, 0.45) - 0.099);
 
     return {
       r: rec709Gamma(linearize(rgb.r)),
       g: rec709Gamma(linearize(rgb.g)),
-      b: rec709Gamma(linearize(rgb.b))
+      b: rec709Gamma(linearize(rgb.b)),
     };
   }
 
@@ -275,8 +280,8 @@ class ColorSpaceConverter {
     const linear = this.rgbToLinear(rgb);
     return {
       x: linear.r * 0.4124564 + linear.g * 0.3575761 + linear.b * 0.1804375,
-      y: linear.r * 0.2126729 + linear.g * 0.7151522 + linear.b * 0.0721750,
-      z: linear.r * 0.0193339 + linear.g * 0.1191920 + linear.b * 0.9503041
+      y: linear.r * 0.2126729 + linear.g * 0.7151522 + linear.b * 0.072175,
+      z: linear.r * 0.0193339 + linear.g * 0.119192 + linear.b * 0.9503041,
     };
   }
 
@@ -285,9 +290,9 @@ class ColorSpaceConverter {
    */
   static xyzToRGB(xyz: { x: number; y: number; z: number }): RGBColor {
     const linear = {
-      r: xyz.x *  3.2404542 + xyz.y * -1.5371385 + xyz.z * -0.4985314,
-      g: xyz.x * -0.9692660 + xyz.y *  1.8760108 + xyz.z *  0.0415560,
-      b: xyz.x *  0.0556434 + xyz.y * -0.2040259 + xyz.z *  1.0572252
+      r: xyz.x * 3.2404542 + xyz.y * -1.5371385 + xyz.z * -0.4985314,
+      g: xyz.x * -0.969266 + xyz.y * 1.8760108 + xyz.z * 0.041556,
+      b: xyz.x * 0.0556434 + xyz.y * -0.2040259 + xyz.z * 1.0572252,
     };
     return this.linearToRGB(linear);
   }
@@ -297,11 +302,11 @@ class ColorSpaceConverter {
    */
   static xyzToLab(xyz: { x: number; y: number; z: number }): { l: number; a: number; b: number } {
     // D65 reference white
-    const xn = 0.95047, yn = 1.0, zn = 1.08883;
+    const xn = 0.95047,
+      yn = 1.0,
+      zn = 1.08883;
 
-    const f = (t: number) => t > 0.008856
-      ? Math.pow(t, 1/3)
-      : (903.3 * t + 16) / 116;
+    const f = (t: number) => (t > 0.008856 ? Math.pow(t, 1 / 3) : (903.3 * t + 16) / 116);
 
     const fx = f(xyz.x / xn);
     const fy = f(xyz.y / yn);
@@ -310,7 +315,7 @@ class ColorSpaceConverter {
     return {
       l: 116 * fy - 16,
       a: 500 * (fx - fy),
-      b: 200 * (fy - fz)
+      b: 200 * (fy - fz),
     };
   }
 
@@ -318,20 +323,20 @@ class ColorSpaceConverter {
    * Lab to XYZ (D65)
    */
   static labToXYZ(lab: { l: number; a: number; b: number }): { x: number; y: number; z: number } {
-    const xn = 0.95047, yn = 1.0, zn = 1.08883;
+    const xn = 0.95047,
+      yn = 1.0,
+      zn = 1.08883;
 
     const fy = (lab.l + 16) / 116;
     const fx = lab.a / 500 + fy;
     const fz = fy - lab.b / 200;
 
-    const f_inv = (t: number) => t > 0.206893
-      ? Math.pow(t, 3)
-      : (116 * t - 16) / 903.3;
+    const f_inv = (t: number) => (t > 0.206893 ? Math.pow(t, 3) : (116 * t - 16) / 903.3);
 
     return {
       x: xn * f_inv(fx),
       y: yn * f_inv(fy),
-      z: zn * f_inv(fz)
+      z: zn * f_inv(fz),
     };
   }
 }
@@ -345,18 +350,14 @@ class LUTProcessor {
    * Create identity LUT
    */
   static createIdentity(size: number): LUTData {
-    const data: number[][][] = [];
+    const data: number[][][][] = [];
 
     for (let r = 0; r < size; r++) {
       data[r] = [];
       for (let g = 0; g < size; g++) {
         data[r][g] = [];
         for (let b = 0; b < size; b++) {
-          data[r][g][b] = [
-            r / (size - 1),
-            g / (size - 1),
-            b / (size - 1)
-          ];
+          data[r][g][b] = [r / (size - 1), g / (size - 1), b / (size - 1)];
         }
       }
     }
@@ -366,7 +367,7 @@ class LUTProcessor {
       data,
       title: 'Identity LUT',
       domainMin: [0, 0, 0],
-      domainMax: [1, 1, 1]
+      domainMax: [1, 1, 1],
     };
   }
 
@@ -383,9 +384,12 @@ class LUTProcessor {
     const b = Math.max(0, Math.min(1, rgb.b)) * maxIdx;
 
     // Get integer and fractional parts
-    const r0 = Math.floor(r), r1 = Math.min(r0 + 1, maxIdx);
-    const g0 = Math.floor(g), g1 = Math.min(g0 + 1, maxIdx);
-    const b0 = Math.floor(b), b1 = Math.min(b0 + 1, maxIdx);
+    const r0 = Math.floor(r),
+      r1 = Math.min(r0 + 1, maxIdx);
+    const g0 = Math.floor(g),
+      g1 = Math.min(g0 + 1, maxIdx);
+    const b0 = Math.floor(b),
+      b1 = Math.min(b0 + 1, maxIdx);
 
     const fr = r - r0;
     const fg = g - g0;
@@ -416,20 +420,15 @@ class LUTProcessor {
     return {
       r: interpolate(0),
       g: interpolate(1),
-      b: interpolate(2)
+      b: interpolate(2),
     };
   }
 
   /**
    * Apply LUT to image
    */
-  static applyToImage(
-    image: RGBColor[][],
-    lut: LUTData
-  ): RGBColor[][] {
-    return image.map(row =>
-      row.map(pixel => this.lookup(lut, pixel))
-    );
+  static applyToImage(image: RGBColor[][], lut: LUTData): RGBColor[][] {
+    return image.map((row) => row.map((pixel) => this.lookup(lut, pixel)));
   }
 
   /**
@@ -437,7 +436,7 @@ class LUTProcessor {
    */
   static combine(lut1: LUTData, lut2: LUTData): LUTData {
     const size = Math.min(lut1.size, lut2.size);
-    const data: number[][][] = [];
+    const data: number[][][][] = [];
 
     for (let r = 0; r < size; r++) {
       data[r] = [];
@@ -447,7 +446,7 @@ class LUTProcessor {
           const color1: RGBColor = {
             r: r / (size - 1),
             g: g / (size - 1),
-            b: b / (size - 1)
+            b: b / (size - 1),
           };
 
           const color2 = this.lookup(lut1, color1);
@@ -461,7 +460,7 @@ class LUTProcessor {
     return {
       size,
       data,
-      title: `${lut1.title || 'LUT1'} + ${lut2.title || 'LUT2'}`
+      title: `${lut1.title || 'LUT1'} + ${lut2.title || 'LUT2'}`,
     };
   }
 
@@ -500,7 +499,10 @@ class LUTProcessor {
    * Parse .cube format string
    */
   static parseCube(cubeStr: string): LUTData {
-    const lines = cubeStr.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    const lines = cubeStr
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'));
 
     let size = 0;
     let title = '';
@@ -528,7 +530,7 @@ class LUTProcessor {
     }
 
     // Build 3D array
-    const data: number[][][] = [];
+    const data: number[][][][] = [];
 
     for (let r = 0; r < size; r++) {
       data[r] = [];
@@ -537,7 +539,7 @@ class LUTProcessor {
         for (let b = 0; b < size; b++) {
           // .cube format is B-major, so we need to reorder
           const cubeIdx = b * size * size + g * size + r;
-          data[r][g][b] = colorData[cubeIdx] || [r/(size-1), g/(size-1), b/(size-1)];
+          data[r][g][b] = colorData[cubeIdx] || [r / (size - 1), g / (size - 1), b / (size - 1)];
         }
       }
     }
@@ -582,7 +584,7 @@ class ColorWheelProcessor {
     return {
       r: Math.max(0, Math.min(1, r)),
       g: Math.max(0, Math.min(1, g)),
-      b: Math.max(0, Math.min(1, b))
+      b: Math.max(0, Math.min(1, b)),
     };
   }
 
@@ -594,7 +596,7 @@ class ColorWheelProcessor {
       lift: { r: 0.5, g: 0.5, b: 0.5 },
       gamma: { r: 0.5, g: 0.5, b: 0.5 },
       gain: { r: 0.5, g: 0.5, b: 0.5 },
-      offset: { r: 0.5, g: 0.5, b: 0.5 }
+      offset: { r: 0.5, g: 0.5, b: 0.5 },
     };
   }
 }
@@ -658,7 +660,7 @@ class CurveProcessor {
     return {
       r: masterCurve(redCurve(rgb.r)),
       g: masterCurve(greenCurve(rgb.g)),
-      b: masterCurve(blueCurve(rgb.b))
+      b: masterCurve(blueCurve(rgb.b)),
     };
   }
 
@@ -666,8 +668,7 @@ class CurveProcessor {
    * Create S-curve for contrast
    */
   static createSCurve(intensity: number): CurvePoint[] {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const mid = 0.5;
+    // Midpoint is fixed at 0.5
     const offset = intensity * 0.2;
 
     return [
@@ -675,7 +676,7 @@ class CurveProcessor {
       { input: 0.25, output: 0.25 - offset },
       { input: 0.5, output: 0.5 },
       { input: 0.75, output: 0.75 + offset },
-      { input: 1, output: 1 }
+      { input: 1, output: 1 },
     ];
   }
 }
@@ -696,25 +697,43 @@ class SplitToneProcessor {
     const shadowColor = ColorSpaceConverter.hslToRGB({
       h: settings.shadowsHue,
       s: settings.shadowsSaturation,
-      l: 0.5
+      l: 0.5,
     });
 
     const highlightColor = ColorSpaceConverter.hslToRGB({
       h: settings.highlightsHue,
       s: settings.highlightsSaturation,
-      l: 0.5
+      l: 0.5,
     });
 
     // Calculate blend factors
-    const balance = (settings.balance + 1) / 2;  // 0 to 1
+    const balance = (settings.balance + 1) / 2; // 0 to 1
     const shadowWeight = Math.pow(1 - luma, 2) * (1 - balance);
     const highlightWeight = Math.pow(luma, 2) * balance;
 
     // Blend
     return {
-      r: Math.max(0, Math.min(1, rgb.r + (shadowColor.r - 0.5) * shadowWeight + (highlightColor.r - 0.5) * highlightWeight)),
-      g: Math.max(0, Math.min(1, rgb.g + (shadowColor.g - 0.5) * shadowWeight + (highlightColor.g - 0.5) * highlightWeight)),
-      b: Math.max(0, Math.min(1, rgb.b + (shadowColor.b - 0.5) * shadowWeight + (highlightColor.b - 0.5) * highlightWeight))
+      r: Math.max(
+        0,
+        Math.min(
+          1,
+          rgb.r + (shadowColor.r - 0.5) * shadowWeight + (highlightColor.r - 0.5) * highlightWeight
+        )
+      ),
+      g: Math.max(
+        0,
+        Math.min(
+          1,
+          rgb.g + (shadowColor.g - 0.5) * shadowWeight + (highlightColor.g - 0.5) * highlightWeight
+        )
+      ),
+      b: Math.max(
+        0,
+        Math.min(
+          1,
+          rgb.b + (shadowColor.b - 0.5) * shadowWeight + (highlightColor.b - 0.5) * highlightWeight
+        )
+      ),
     };
   }
 }
@@ -732,7 +751,7 @@ class BasicAdjustments {
     return {
       r: Math.max(0, Math.min(1, rgb.r * multiplier)),
       g: Math.max(0, Math.min(1, rgb.g * multiplier)),
-      b: Math.max(0, Math.min(1, rgb.b * multiplier))
+      b: Math.max(0, Math.min(1, rgb.b * multiplier)),
     };
   }
 
@@ -740,11 +759,11 @@ class BasicAdjustments {
    * Apply contrast adjustment
    */
   static contrast(rgb: RGBColor, amount: number): RGBColor {
-    const factor = (1 + amount);
+    const factor = 1 + amount;
     return {
       r: Math.max(0, Math.min(1, (rgb.r - 0.5) * factor + 0.5)),
       g: Math.max(0, Math.min(1, (rgb.g - 0.5) * factor + 0.5)),
-      b: Math.max(0, Math.min(1, (rgb.b - 0.5) * factor + 0.5))
+      b: Math.max(0, Math.min(1, (rgb.b - 0.5) * factor + 0.5)),
     };
   }
 
@@ -777,7 +796,7 @@ class BasicAdjustments {
     return {
       r: Math.max(0, Math.min(1, rgb.r + temperature * 0.1)),
       g: Math.max(0, Math.min(1, rgb.g - tint * 0.1)),
-      b: Math.max(0, Math.min(1, rgb.b - temperature * 0.1))
+      b: Math.max(0, Math.min(1, rgb.b - temperature * 0.1)),
     };
   }
 }
@@ -815,7 +834,7 @@ class FilmEmulation {
           lut.data[r][g][b] = [
             Math.max(0, Math.min(1, newR)),
             Math.max(0, Math.min(1, newG)),
-            Math.max(0, Math.min(1, newB))
+            Math.max(0, Math.min(1, newB)),
           ];
         }
       }
@@ -853,7 +872,7 @@ class FilmEmulation {
           lut.data[r][g][b] = [
             Math.max(0, Math.min(1, saturated.r)),
             Math.max(0, Math.min(1, saturated.g)),
-            Math.max(0, Math.min(1, saturated.b))
+            Math.max(0, Math.min(1, saturated.b)),
           ];
         }
       }
@@ -898,7 +917,7 @@ class FilmEmulation {
           lut.data[r][g][b] = [
             Math.max(0, Math.min(1, newR)),
             Math.max(0, Math.min(1, newG)),
-            Math.max(0, Math.min(1, newB))
+            Math.max(0, Math.min(1, newB)),
           ];
         }
       }
@@ -926,11 +945,7 @@ class ColorGradingProcessor {
     }
 
     if (settings.temperature !== undefined || settings.tint !== undefined) {
-      result = BasicAdjustments.whiteBalance(
-        result,
-        settings.temperature || 0,
-        settings.tint || 0
-      );
+      result = BasicAdjustments.whiteBalance(result, settings.temperature || 0, settings.tint || 0);
     }
 
     if (settings.contrast !== undefined && settings.contrast !== 0) {
@@ -975,15 +990,14 @@ class ColorGradingProcessor {
           cyan: [165, 195],
           blue: [195, 255],
           purple: [255, 285],
-          magenta: [285, 330]
+          magenta: [285, 330],
         };
 
         const range = hueRanges[colorName.toLowerCase()];
         if (range) {
           const [start, end] = range;
-          const inRange = start > end
-            ? (hsl.h >= start || hsl.h <= end)
-            : (hsl.h >= start && hsl.h <= end);
+          const inRange =
+            start > end ? hsl.h >= start || hsl.h <= end : hsl.h >= start && hsl.h <= end;
 
           if (inRange) {
             hsl.h = (hsl.h + adjustment.hue + 360) % 360;
@@ -999,7 +1013,7 @@ class ColorGradingProcessor {
     return {
       r: Math.max(0, Math.min(1, result.r)),
       g: Math.max(0, Math.min(1, result.g)),
-      b: Math.max(0, Math.min(1, result.b))
+      b: Math.max(0, Math.min(1, result.b)),
     };
   }
 
@@ -1007,9 +1021,7 @@ class ColorGradingProcessor {
    * Grade full image
    */
   static gradeImage(image: RGBColor[][], settings: GradingSettings): RGBColor[][] {
-    return image.map(row =>
-      row.map(pixel => this.grade(pixel, settings))
-    );
+    return image.map((row) => row.map((pixel) => this.grade(pixel, settings)));
   }
 }
 
@@ -1019,72 +1031,71 @@ class ColorGradingProcessor {
 
 export const colorgradingTool: UnifiedTool = {
   name: 'color_grading',
-  description: 'Professional color grading and LUT processing tool. Supports 3D LUT generation/application, color space conversions, lift/gamma/gain wheels, curves, split toning, HSL adjustments, and film emulation presets.',
+  description:
+    'Professional color grading and LUT processing tool. Supports 3D LUT generation/application, color space conversions, lift/gamma/gain wheels, curves, split toning, HSL adjustments, and film emulation presets.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'grade', 'create_lut', 'apply_lut', 'combine_luts', 'export_cube', 'parse_cube',
-          'convert_colorspace', 'film_preset', 'demo', 'info', 'examples'
+          'grade',
+          'create_lut',
+          'apply_lut',
+          'combine_luts',
+          'export_cube',
+          'parse_cube',
+          'convert_colorspace',
+          'film_preset',
+          'demo',
+          'info',
+          'examples',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       image: {
         type: 'array',
-        description: 'Input image as 2D array of {r, g, b} pixels (0-1 range)'
+        description: 'Input image as 2D array of {r, g, b} pixels (0-1 range)',
       },
       color: {
         type: 'object',
-        description: 'Single color to process {r, g, b}'
+        description: 'Single color to process {r, g, b}',
       },
       settings: {
         type: 'object',
-        properties: {
-          exposure: { type: 'number', description: 'Exposure in stops (-5 to +5)' },
-          contrast: { type: 'number', description: 'Contrast (-1 to +1)' },
-          saturation: { type: 'number', description: 'Saturation (-1 to +1)' },
-          vibrance: { type: 'number', description: 'Vibrance (-1 to +1)' },
-          temperature: { type: 'number', description: 'Temperature (-1 cool to +1 warm)' },
-          tint: { type: 'number', description: 'Tint (-1 green to +1 magenta)' },
-          colorWheels: { type: 'object', description: 'Lift/Gamma/Gain/Offset wheels' },
-          curves: { type: 'object', description: 'RGB and master curves' },
-          splitToning: { type: 'object', description: 'Split toning settings' },
-          hslAdjustments: { type: 'object', description: 'Per-color HSL adjustments' }
-        },
-        description: 'Grading settings'
+        description:
+          'Grading settings: { exposure?: number (-5 to +5), contrast?: number (-1 to +1), saturation?: number, vibrance?: number, temperature?: number, tint?: number, colorWheels?: object, curves?: object, splitToning?: object, hslAdjustments?: object }',
       },
       lut: {
         type: 'object',
-        description: 'LUT data for apply/combine operations'
+        description: 'LUT data for apply/combine operations',
       },
       lutSize: {
         type: 'number',
-        description: 'LUT cube size (default: 17)'
+        description: 'LUT cube size (default: 17)',
       },
       cubeString: {
         type: 'string',
-        description: '.cube format string for parsing'
+        description: '.cube format string for parsing',
       },
       fromSpace: {
         type: 'string',
         enum: ['srgb', 'linear', 'rec709', 'hsl', 'hsv', 'xyz', 'lab'],
-        description: 'Source color space'
+        description: 'Source color space',
       },
       toSpace: {
         type: 'string',
         enum: ['srgb', 'linear', 'rec709', 'hsl', 'hsv', 'xyz', 'lab'],
-        description: 'Target color space'
+        description: 'Target color space',
       },
       filmPreset: {
         type: 'string',
         enum: ['portra', 'velvia', 'cinematic', 'bw_high_contrast', 'bw_soft'],
-        description: 'Film emulation preset'
-      }
+        description: 'Film emulation preset',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -1096,7 +1107,18 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { operation, image, color, settings, lut, lutSize, cubeString, fromSpace, toSpace, filmPreset } = args;
+    const {
+      operation,
+      image,
+      color,
+      settings,
+      lut,
+      lutSize,
+      cubeString,
+      fromSpace,
+      toSpace,
+      filmPreset,
+    } = args;
 
     let result: Record<string, unknown>;
 
@@ -1111,14 +1133,32 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             colorWheels: ['lift', 'gamma', 'gain', 'offset'],
             curves: ['master', 'red', 'green', 'blue'],
             splitToning: ['shadows_hue', 'highlights_hue', 'balance'],
-            hslAdjustments: ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta'],
+            hslAdjustments: [
+              'red',
+              'orange',
+              'yellow',
+              'green',
+              'cyan',
+              'blue',
+              'purple',
+              'magenta',
+            ],
             lutSupport: ['create', 'apply', 'combine', 'export_cube', 'parse_cube'],
-            filmPresets: ['portra', 'velvia', 'cinematic']
+            filmPresets: ['portra', 'velvia', 'cinematic'],
           },
           operations: [
-            'grade', 'create_lut', 'apply_lut', 'combine_luts', 'export_cube',
-            'parse_cube', 'convert_colorspace', 'film_preset', 'demo', 'info', 'examples'
-          ]
+            'grade',
+            'create_lut',
+            'apply_lut',
+            'combine_luts',
+            'export_cube',
+            'parse_cube',
+            'convert_colorspace',
+            'film_preset',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
         break;
       }
@@ -1130,7 +1170,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
               name: 'Basic grading',
               operation: 'grade',
               color: { r: 0.5, g: 0.4, b: 0.3 },
-              settings: { exposure: 0.5, contrast: 0.2, saturation: 0.1 }
+              settings: { exposure: 0.5, contrast: 0.2, saturation: 0.1 },
             },
             {
               name: 'Split toning',
@@ -1141,9 +1181,9 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
                   shadowsSaturation: 0.3,
                   highlightsHue: 40,
                   highlightsSaturation: 0.25,
-                  balance: 0
-                }
-              }
+                  balance: 0,
+                },
+              },
             },
             {
               name: 'Color wheels',
@@ -1153,24 +1193,24 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
                   lift: { r: 0.48, g: 0.5, b: 0.52 },
                   gamma: { r: 0.5, g: 0.5, b: 0.5 },
                   gain: { r: 0.52, g: 0.5, b: 0.48 },
-                  offset: { r: 0.5, g: 0.5, b: 0.5 }
-                }
-              }
+                  offset: { r: 0.5, g: 0.5, b: 0.5 },
+                },
+              },
             },
             {
               name: 'Create film LUT',
               operation: 'film_preset',
               filmPreset: 'portra',
-              lutSize: 17
+              lutSize: 17,
             },
             {
               name: 'Color space conversion',
               operation: 'convert_colorspace',
               color: { r: 0.5, g: 0.3, b: 0.2 },
               fromSpace: 'srgb',
-              toSpace: 'lab'
-            }
-          ]
+              toSpace: 'lab',
+            },
+          ],
         };
         break;
       }
@@ -1184,7 +1224,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             testGradient[y][x] = {
               r: x / 7,
               g: y / 7,
-              b: (x + y) / 14
+              b: (x + y) / 14,
             };
           }
         }
@@ -1199,8 +1239,8 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             shadowsSaturation: 0.2,
             highlightsHue: 45,
             highlightsSaturation: 0.15,
-            balance: 0.1
-          }
+            balance: 0.1,
+          },
         };
 
         const graded = ColorGradingProcessor.gradeImage(testGradient, demoSettings);
@@ -1212,14 +1252,14 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           inputSample: {
             topLeft: testGradient[0][0],
             center: testGradient[4][4],
-            bottomRight: testGradient[7][7]
+            bottomRight: testGradient[7][7],
           },
           outputSample: {
             topLeft: graded[0][0],
             center: graded[4][4],
-            bottomRight: graded[7][7]
+            bottomRight: graded[7][7],
           },
-          message: 'Applied warm split-toning with lifted exposure and subtle vibrance'
+          message: 'Applied warm split-toning with lifted exposure and subtle vibrance',
         };
         break;
       }
@@ -1231,7 +1271,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             operation: 'grade',
             input: color,
             settings: settings || {},
-            output: graded
+            output: graded,
           };
         } else if (image && Array.isArray(image)) {
           const graded = ColorGradingProcessor.gradeImage(image, settings || {});
@@ -1239,7 +1279,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             operation: 'grade',
             inputSize: { width: image[0]?.length || 0, height: image.length },
             settings: settings || {},
-            output: graded.length <= 16 ? graded : 'Output truncated'
+            output: graded.length <= 16 ? graded : 'Output truncated',
           };
         } else {
           throw new Error('Either color or image required');
@@ -1259,7 +1299,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
                 const inputColor: RGBColor = {
                   r: r / (size - 1),
                   g: g / (size - 1),
-                  b: b / (size - 1)
+                  b: b / (size - 1),
                 };
                 const graded = ColorGradingProcessor.grade(inputColor, settings);
                 identity.data[r][g][b] = [graded.r, graded.g, graded.b];
@@ -1275,10 +1315,11 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           hasSettings: !!settings,
           lutPreview: {
             black: identity.data[0][0][0],
-            midGray: identity.data[Math.floor(size/2)][Math.floor(size/2)][Math.floor(size/2)],
-            white: identity.data[size-1][size-1][size-1]
+            midGray:
+              identity.data[Math.floor(size / 2)][Math.floor(size / 2)][Math.floor(size / 2)],
+            white: identity.data[size - 1][size - 1][size - 1],
           },
-          lut: identity
+          lut: identity,
         };
         break;
       }
@@ -1293,14 +1334,14 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           result = {
             operation: 'apply_lut',
             input: color,
-            output
+            output,
           };
         } else if (image && Array.isArray(image)) {
           const output = LUTProcessor.applyToImage(image, lut);
           result = {
             operation: 'apply_lut',
             inputSize: { width: image[0]?.length || 0, height: image.length },
-            output: output.length <= 16 ? output : 'Output truncated'
+            output: output.length <= 16 ? output : 'Output truncated',
           };
         } else {
           throw new Error('Either color or image required');
@@ -1320,7 +1361,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           lut2Title: args.lut2.title || 'LUT 2',
           combinedSize: combined.size,
           combinedTitle: combined.title,
-          lut: combined
+          lut: combined,
         };
         break;
       }
@@ -1336,7 +1377,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           lutTitle: lut.title || 'Untitled',
           lutSize: lut.size,
           cubeFormat: cubeOutput,
-          lineCount: cubeOutput.split('\n').length
+          lineCount: cubeOutput.split('\n').length,
         };
         break;
       }
@@ -1353,7 +1394,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           size: parsed.size,
           domainMin: parsed.domainMin,
           domainMax: parsed.domainMax,
-          lut: parsed
+          lut: parsed,
         };
         break;
       }
@@ -1369,7 +1410,12 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
         let output: Record<string, number>;
 
         // First convert to a common format (linear RGB or XYZ)
-        let intermediate: RGBColor | { x: number; y: number; z: number } | HSLColor | HSVColor | { l: number; a: number; b: number };
+        let intermediate:
+          | RGBColor
+          | { x: number; y: number; z: number }
+          | HSLColor
+          | HSVColor
+          | { l: number; a: number; b: number };
 
         // Convert from source
         switch (from) {
@@ -1386,10 +1432,14 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             intermediate = ColorSpaceConverter.hsvToRGB(color as unknown as HSVColor);
             break;
           case 'xyz':
-            intermediate = ColorSpaceConverter.xyzToRGB(color as unknown as { x: number; y: number; z: number });
+            intermediate = ColorSpaceConverter.xyzToRGB(
+              color as unknown as { x: number; y: number; z: number }
+            );
             break;
           case 'lab':
-            const xyz = ColorSpaceConverter.labToXYZ(color as unknown as { l: number; a: number; b: number });
+            const xyz = ColorSpaceConverter.labToXYZ(
+              color as unknown as { l: number; a: number; b: number }
+            );
             intermediate = ColorSpaceConverter.xyzToRGB(xyz);
             break;
           default:
@@ -1430,7 +1480,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
           input: color,
           fromSpace: from,
           toSpace: to,
-          output
+          output,
         };
         break;
       }
@@ -1461,7 +1511,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             preset,
             input: color,
             output,
-            lut: filmLut
+            lut: filmLut,
           };
         } else if (image && Array.isArray(image)) {
           const output = LUTProcessor.applyToImage(image, filmLut);
@@ -1470,7 +1520,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             preset,
             inputSize: { width: image[0]?.length || 0, height: image.length },
             output: output.length <= 16 ? output : 'Output truncated',
-            lut: filmLut
+            lut: filmLut,
           };
         } else {
           result = {
@@ -1478,7 +1528,7 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
             preset,
             lutSize: size,
             lut: filmLut,
-            message: `Created ${preset}-style film emulation LUT`
+            message: `Created ${preset}-style film emulation LUT`,
           };
         }
         break;
@@ -1489,7 +1539,6 @@ export async function executecolorgrading(toolCall: UnifiedToolCall): Promise<Un
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${error}`, isError: true };

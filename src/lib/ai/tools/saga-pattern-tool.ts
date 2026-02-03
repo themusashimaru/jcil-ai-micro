@@ -11,8 +11,22 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 type SagaType = 'choreography' | 'orchestration';
-type StepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'compensating' | 'compensated' | 'skipped';
-type SagaStatus = 'created' | 'running' | 'completed' | 'failed' | 'compensating' | 'compensated' | 'partially_compensated';
+type StepStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'compensating'
+  | 'compensated'
+  | 'skipped';
+type SagaStatus =
+  | 'created'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'compensating'
+  | 'compensated'
+  | 'partially_compensated';
 
 interface SagaStep {
   id: string;
@@ -161,7 +175,11 @@ function createSaga(config: {
     backoffType: config.retryPolicy?.backoffType ?? 'exponential',
     initialDelayMs: config.retryPolicy?.initialDelayMs ?? 100,
     maxDelayMs: config.retryPolicy?.maxDelayMs ?? 10000,
-    retryableErrors: config.retryPolicy?.retryableErrors ?? ['TIMEOUT', 'TEMPORARY_FAILURE', 'NETWORK_ERROR']
+    retryableErrors: config.retryPolicy?.retryableErrors ?? [
+      'TIMEOUT',
+      'TEMPORARY_FAILURE',
+      'NETWORK_ERROR',
+    ],
   };
 
   const saga: Saga = {
@@ -176,7 +194,7 @@ function createSaga(config: {
     log: [],
     retryPolicy,
     timeoutMs: config.timeoutMs || 300000, // 5 minutes default
-    compensationStrategy: config.compensationStrategy || 'backward'
+    compensationStrategy: config.compensationStrategy || 'backward',
   };
 
   addLogEntry(saga, null, 'CREATE', 'created', `Saga ${config.name} created`);
@@ -185,19 +203,23 @@ function createSaga(config: {
   return saga;
 }
 
-function addStep(sagaId: string, step: {
-  name: string;
-  serviceName: string;
-  action: StepAction;
-  compensation?: StepAction;
-  timeout?: number;
-  maxRetries?: number;
-  dependencies?: string[];
-  semanticLock?: Omit<SemanticLock, 'acquiredAt' | 'releasedAt' | 'held'>;
-}): SagaStep {
+function addStep(
+  sagaId: string,
+  step: {
+    name: string;
+    serviceName: string;
+    action: StepAction;
+    compensation?: StepAction;
+    timeout?: number;
+    maxRetries?: number;
+    dependencies?: string[];
+    semanticLock?: Omit<SemanticLock, 'acquiredAt' | 'releasedAt' | 'held'>;
+  }
+): SagaStep {
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
-  if (saga.status !== 'created') throw new Error(`Cannot add steps to saga in ${saga.status} status`);
+  if (saga.status !== 'created')
+    throw new Error(`Cannot add steps to saga in ${saga.status} status`);
 
   const stepId = `step_${saga.steps.length}_${Date.now()}`;
   const idempotencyKey = `${sagaId}:${stepId}:${Date.now()}`;
@@ -214,10 +236,12 @@ function addStep(sagaId: string, step: {
     timeout: step.timeout || 30000,
     idempotencyKey,
     dependencies: step.dependencies || [],
-    semanticLock: step.semanticLock ? {
-      ...step.semanticLock,
-      held: false
-    } : undefined
+    semanticLock: step.semanticLock
+      ? {
+          ...step.semanticLock,
+          held: false,
+        }
+      : undefined,
   };
 
   saga.steps.push(sagaStep);
@@ -230,11 +254,17 @@ function addCompensation(sagaId: string, stepId: string, compensation: StepActio
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
 
-  const step = saga.steps.find(s => s.id === stepId);
+  const step = saga.steps.find((s) => s.id === stepId);
   if (!step) throw new Error(`Step ${stepId} not found`);
 
   step.compensation = compensation;
-  addLogEntry(saga, stepId, 'ADD_COMPENSATION', step.status, `Added compensation for step: ${step.name}`);
+  addLogEntry(
+    saga,
+    stepId,
+    'ADD_COMPENSATION',
+    step.status,
+    `Added compensation for step: ${step.name}`
+  );
 
   return step;
 }
@@ -243,10 +273,13 @@ function addCompensation(sagaId: string, stepId: string, compensation: StepActio
 // SAGA EXECUTION
 // ============================================================================
 
-async function executeSaga(sagaId: string, options?: {
-  simulateFailure?: string;
-  failureType?: string;
-}): Promise<ExecutionResult> {
+async function executeSaga(
+  sagaId: string,
+  options?: {
+    simulateFailure?: string;
+    failureType?: string;
+  }
+): Promise<ExecutionResult> {
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
   if (saga.status !== 'created') throw new Error(`Saga already in ${saga.status} status`);
@@ -309,14 +342,18 @@ async function executeSaga(sagaId: string, options?: {
     failedStep,
     error,
     duration,
-    compensationRequired: saga.status === 'failed' && completedSteps.length > 0
+    compensationRequired: saga.status === 'failed' && completedSteps.length > 0,
   };
 }
 
-async function executeStep(saga: Saga, step: SagaStep, options?: {
-  simulateFailure?: string;
-  failureType?: string;
-}): Promise<StepResult> {
+async function executeStep(
+  saga: Saga,
+  step: SagaStep,
+  options?: {
+    simulateFailure?: string;
+    failureType?: string;
+  }
+): Promise<StepResult> {
   step.status = 'running';
   step.executedAt = Date.now();
 
@@ -325,12 +362,18 @@ async function executeStep(saga: Saga, step: SagaStep, options?: {
   // Check idempotency
   if (executedIdempotencyKeys.has(step.idempotencyKey)) {
     step.status = 'completed';
-    addLogEntry(saga, step.id, 'IDEMPOTENT_SKIP', 'completed', 'Step already executed (idempotent)');
+    addLogEntry(
+      saga,
+      step.id,
+      'IDEMPOTENT_SKIP',
+      'completed',
+      'Step already executed (idempotent)'
+    );
     return {
       stepId: step.id,
       status: 'completed',
       duration: 0,
-      retryCount: step.retryCount
+      retryCount: step.retryCount,
     };
   }
 
@@ -338,7 +381,13 @@ async function executeStep(saga: Saga, step: SagaStep, options?: {
   if (step.semanticLock) {
     step.semanticLock.acquiredAt = Date.now();
     step.semanticLock.held = true;
-    addLogEntry(saga, step.id, 'LOCK_ACQUIRED', 'running', `Acquired lock on ${step.semanticLock.resourceId}`);
+    addLogEntry(
+      saga,
+      step.id,
+      'LOCK_ACQUIRED',
+      'running',
+      `Acquired lock on ${step.semanticLock.resourceId}`
+    );
   }
 
   try {
@@ -365,23 +414,26 @@ async function executeStep(saga: Saga, step: SagaStep, options?: {
       status: 'completed',
       result: step.result,
       duration: step.completedAt - step.executedAt,
-      retryCount: step.retryCount
+      retryCount: step.retryCount,
     };
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     step.error = err;
 
     // Check if error is retryable
-    const isRetryable = saga.retryPolicy.retryableErrors.some(re =>
-      err.includes(re)
-    );
+    const isRetryable = saga.retryPolicy.retryableErrors.some((re) => err.includes(re));
 
     if (isRetryable && step.retryCount < step.maxRetries) {
       step.retryCount++;
       const delay = calculateBackoff(saga.retryPolicy, step.retryCount);
 
-      addLogEntry(saga, step.id, 'RETRY', 'running',
-        `Retrying step (attempt ${step.retryCount}/${step.maxRetries}) after ${delay}ms`);
+      addLogEntry(
+        saga,
+        step.id,
+        'RETRY',
+        'running',
+        `Retrying step (attempt ${step.retryCount}/${step.maxRetries}) after ${delay}ms`
+      );
 
       await simulateDelay(delay);
       return executeStep(saga, step, options);
@@ -401,15 +453,18 @@ async function executeStep(saga: Saga, step: SagaStep, options?: {
       status: 'failed',
       error: err,
       duration: Date.now() - (step.executedAt || Date.now()),
-      retryCount: step.retryCount
+      retryCount: step.retryCount,
     };
   }
 }
 
-async function executeChoreography(saga: Saga, options?: {
-  simulateFailure?: string;
-  failureType?: string;
-}): Promise<void> {
+async function executeChoreography(
+  saga: Saga,
+  options?: {
+    simulateFailure?: string;
+    failureType?: string;
+  }
+): Promise<void> {
   // In choreography, each step publishes an event that triggers the next
   const eventBus: Array<{ type: string; stepId: string; payload: unknown }> = [];
 
@@ -421,7 +476,7 @@ async function executeChoreography(saga: Saga, options?: {
       eventBus.push({
         type: `${firstStep.serviceName}.${firstStep.action.type}.completed`,
         stepId: firstStep.id,
-        payload: result.result
+        payload: result.result,
       });
     } else {
       throw new Error(result.error || 'First step failed');
@@ -433,9 +488,8 @@ async function executeChoreography(saga: Saga, options?: {
     const event = eventBus.shift()!;
 
     // Find steps that react to this event
-    const nextSteps = saga.steps.filter(s =>
-      s.status === 'pending' &&
-      s.dependencies.includes(event.stepId)
+    const nextSteps = saga.steps.filter(
+      (s) => s.status === 'pending' && s.dependencies.includes(event.stepId)
     );
 
     for (const step of nextSteps) {
@@ -444,7 +498,7 @@ async function executeChoreography(saga: Saga, options?: {
         eventBus.push({
           type: `${step.serviceName}.${step.action.type}.completed`,
           stepId: step.id,
-          payload: result.result
+          payload: result.result,
         });
       } else {
         throw new Error(result.error || `Step ${step.name} failed`);
@@ -453,7 +507,7 @@ async function executeChoreography(saga: Saga, options?: {
   }
 
   // Check if all steps completed
-  const allCompleted = saga.steps.every(s => s.status === 'completed');
+  const allCompleted = saga.steps.every((s) => s.status === 'completed');
   if (allCompleted) {
     saga.status = 'completed';
     saga.completedAt = Date.now();
@@ -464,10 +518,13 @@ async function executeChoreography(saga: Saga, options?: {
 // COMPENSATION (ROLLBACK)
 // ============================================================================
 
-async function rollback(sagaId: string, options?: {
-  fromStep?: string;
-  simulateFailure?: string;
-}): Promise<CompensationResult> {
+async function rollback(
+  sagaId: string,
+  options?: {
+    fromStep?: string;
+    simulateFailure?: string;
+  }
+): Promise<CompensationResult> {
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
 
@@ -488,23 +545,19 @@ async function rollback(sagaId: string, options?: {
 
   if (saga.compensationStrategy === 'backward') {
     // Backward recovery: compensate in reverse order
-    stepsToCompensate = [...saga.steps]
-      .filter(s => s.status === 'completed')
-      .reverse();
+    stepsToCompensate = [...saga.steps].filter((s) => s.status === 'completed').reverse();
   } else if (saga.compensationStrategy === 'forward') {
     // Forward recovery: try to complete remaining steps
-    stepsToCompensate = saga.steps.filter(s => s.status === 'failed');
+    stepsToCompensate = saga.steps.filter((s) => s.status === 'failed');
     // Then compensate completed ones if forward fails
   } else {
     // Semantic compensation: use semantic locks
-    stepsToCompensate = saga.steps.filter(s =>
-      s.status === 'completed' && s.semanticLock?.held
-    );
+    stepsToCompensate = saga.steps.filter((s) => s.status === 'completed' && s.semanticLock?.held);
   }
 
   // Start from specific step if provided
   if (options?.fromStep) {
-    const startIdx = stepsToCompensate.findIndex(s => s.id === options.fromStep);
+    const startIdx = stepsToCompensate.findIndex((s) => s.id === options.fromStep);
     if (startIdx !== -1) {
       stepsToCompensate = stepsToCompensate.slice(startIdx);
     }
@@ -512,14 +565,24 @@ async function rollback(sagaId: string, options?: {
 
   for (const step of stepsToCompensate) {
     if (!step.compensation) {
-      addLogEntry(saga, step.id, 'NO_COMPENSATION', step.status,
-        `No compensation defined for step: ${step.name}`);
+      addLogEntry(
+        saga,
+        step.id,
+        'NO_COMPENSATION',
+        step.status,
+        `No compensation defined for step: ${step.name}`
+      );
       continue;
     }
 
     step.status = 'compensating';
-    addLogEntry(saga, step.id, 'COMPENSATE_START', 'compensating',
-      `Compensating step: ${step.name}`);
+    addLogEntry(
+      saga,
+      step.id,
+      'COMPENSATE_START',
+      'compensating',
+      `Compensating step: ${step.name}`
+    );
 
     try {
       // Simulate failure if requested
@@ -540,13 +603,24 @@ async function rollback(sagaId: string, options?: {
       }
 
       compensatedSteps.push(step.id);
-      addLogEntry(saga, step.id, 'COMPENSATE_COMPLETE', 'compensated',
-        `Compensation completed for: ${step.name}`);
+      addLogEntry(
+        saga,
+        step.id,
+        'COMPENSATE_COMPLETE',
+        'compensated',
+        `Compensation completed for: ${step.name}`
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : 'Unknown error';
       failedCompensations.push(step.id);
-      addLogEntry(saga, step.id, 'COMPENSATE_FAIL', 'failed',
-        `Compensation failed for: ${step.name}`, err);
+      addLogEntry(
+        saga,
+        step.id,
+        'COMPENSATE_FAIL',
+        'failed',
+        `Compensation failed for: ${step.name}`,
+        err
+      );
     }
   }
 
@@ -556,8 +630,13 @@ async function rollback(sagaId: string, options?: {
     addLogEntry(saga, null, 'ROLLBACK_COMPLETE', 'compensated', 'Compensation completed');
   } else {
     saga.status = 'partially_compensated';
-    addLogEntry(saga, null, 'ROLLBACK_PARTIAL', 'partially_compensated',
-      `Partial compensation: ${failedCompensations.length} failed`);
+    addLogEntry(
+      saga,
+      null,
+      'ROLLBACK_PARTIAL',
+      'partially_compensated',
+      `Partial compensation: ${failedCompensations.length} failed`
+    );
   }
 
   return {
@@ -565,7 +644,7 @@ async function rollback(sagaId: string, options?: {
     compensatedSteps,
     failedCompensations,
     status: saga.status,
-    duration: Date.now() - startTime
+    duration: Date.now() - startTime,
   };
 }
 
@@ -577,7 +656,7 @@ async function retryStep(sagaId: string, stepId: string): Promise<StepResult> {
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
 
-  const step = saga.steps.find(s => s.id === stepId);
+  const step = saga.steps.find((s) => s.id === stepId);
   if (!step) throw new Error(`Step ${stepId} not found`);
 
   if (step.status !== 'failed') {
@@ -639,13 +718,14 @@ function getStatus(sagaId: string): {
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
 
-  const completedCount = saga.steps.filter(s =>
-    s.status === 'completed' || s.status === 'compensated'
+  const completedCount = saga.steps.filter(
+    (s) => s.status === 'completed' || s.status === 'compensated'
   ).length;
 
-  const currentStep = saga.currentStepIndex >= 0 && saga.currentStepIndex < saga.steps.length
-    ? saga.steps[saga.currentStepIndex]
-    : null;
+  const currentStep =
+    saga.currentStepIndex >= 0 && saga.currentStepIndex < saga.steps.length
+      ? saga.steps[saga.currentStepIndex]
+      : null;
 
   return {
     saga: {
@@ -655,18 +735,16 @@ function getStatus(sagaId: string): {
       status: saga.status,
       currentStep: currentStep?.name || null,
       progress: saga.steps.length > 0 ? (completedCount / saga.steps.length) * 100 : 0,
-      duration: saga.startedAt
-        ? (saga.completedAt || Date.now()) - saga.startedAt
-        : null
+      duration: saga.startedAt ? (saga.completedAt || Date.now()) - saga.startedAt : null,
     },
-    steps: saga.steps.map(s => ({
+    steps: saga.steps.map((s) => ({
       id: s.id,
       name: s.name,
       status: s.status,
       retryCount: s.retryCount,
-      error: s.error
+      error: s.error,
     })),
-    recentLog: saga.log.slice(-10)
+    recentLog: saga.log.slice(-10),
   };
 }
 
@@ -674,31 +752,27 @@ function analyzeSaga(sagaId: string): SagaAnalysis {
   const saga = sagas.get(sagaId);
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
 
-  const completedSteps = saga.steps.filter(s => s.status === 'completed');
-  const failedSteps = saga.steps.filter(s => s.status === 'failed');
-  const compensatedSteps = saga.steps.filter(s => s.status === 'compensated');
+  const completedSteps = saga.steps.filter((s) => s.status === 'completed');
+  const failedSteps = saga.steps.filter((s) => s.status === 'failed');
+  const compensatedSteps = saga.steps.filter((s) => s.status === 'compensated');
 
   // Calculate durations
   const stepDurations = saga.steps
-    .filter(s => s.executedAt && s.completedAt)
-    .map(s => s.completedAt! - s.executedAt!);
+    .filter((s) => s.executedAt && s.completedAt)
+    .map((s) => s.completedAt! - s.executedAt!);
 
-  const totalDuration = saga.startedAt
-    ? (saga.completedAt || Date.now()) - saga.startedAt
-    : 0;
+  const totalDuration = saga.startedAt ? (saga.completedAt || Date.now()) - saga.startedAt : 0;
 
-  const avgDuration = stepDurations.length > 0
-    ? stepDurations.reduce((a, b) => a + b, 0) / stepDurations.length
-    : 0;
+  const avgDuration =
+    stepDurations.length > 0 ? stepDurations.reduce((a, b) => a + b, 0) / stepDurations.length : 0;
 
   // Find critical path (longest chain of dependencies)
   const criticalPath = findCriticalPath(saga);
 
   // Find potential bottlenecks
   const bottlenecks = saga.steps
-    .filter(s => s.executedAt && s.completedAt &&
-      (s.completedAt - s.executedAt) > avgDuration * 2)
-    .map(s => s.name);
+    .filter((s) => s.executedAt && s.completedAt && s.completedAt - s.executedAt > avgDuration * 2)
+    .map((s) => s.name);
 
   // Generate recommendations
   const recommendations: string[] = [];
@@ -711,12 +785,12 @@ function analyzeSaga(sagaId: string): SagaAnalysis {
     recommendations.push(`Potential bottlenecks: ${bottlenecks.join(', ')}`);
   }
 
-  const stepsWithoutCompensation = saga.steps.filter(s => !s.compensation);
+  const stepsWithoutCompensation = saga.steps.filter((s) => !s.compensation);
   if (stepsWithoutCompensation.length > 0) {
     recommendations.push(`${stepsWithoutCompensation.length} step(s) lack compensation logic.`);
   }
 
-  const highRetrySteps = saga.steps.filter(s => s.retryCount > 1);
+  const highRetrySteps = saga.steps.filter((s) => s.retryCount > 1);
   if (highRetrySteps.length > 0) {
     recommendations.push(`${highRetrySteps.length} step(s) required multiple retries.`);
   }
@@ -731,7 +805,7 @@ function analyzeSaga(sagaId: string): SagaAnalysis {
     averageStepDuration: avgDuration,
     criticalPath,
     potentialBottlenecks: bottlenecks,
-    recommendations
+    recommendations,
   };
 }
 
@@ -740,12 +814,12 @@ function visualizeFlow(sagaId: string): SagaVisualization {
   if (!saga) throw new Error(`Saga ${sagaId} not found`);
 
   // Build timeline
-  const timeline = saga.steps.map(s => ({
+  const timeline = saga.steps.map((s) => ({
     stepId: s.id,
     name: s.name,
     status: s.status,
     startTime: s.executedAt || 0,
-    endTime: s.completedAt
+    endTime: s.completedAt,
   }));
 
   // Generate ASCII flow diagram
@@ -786,7 +860,7 @@ function visualizeFlow(sagaId: string): SagaVisualization {
   return {
     sagaId,
     flowDiagram: lines.join('\n'),
-    timeline
+    timeline,
   };
 }
 
@@ -794,22 +868,29 @@ function visualizeFlow(sagaId: string): SagaVisualization {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function addLogEntry(saga: Saga, stepId: string | null, action: string, status: string, details: string, error?: string): void {
+function addLogEntry(
+  saga: Saga,
+  stepId: string | null,
+  action: string,
+  status: string,
+  details: string,
+  error?: string
+): void {
   saga.log.push({
     timestamp: Date.now(),
     stepId,
     action,
     status,
     details,
-    error
+    error,
   });
 }
 
 function checkDependencies(saga: Saga, step: SagaStep): boolean {
   if (step.dependencies.length === 0) return true;
 
-  return step.dependencies.every(depId => {
-    const depStep = saga.steps.find(s => s.id === depId);
+  return step.dependencies.every((depId) => {
+    const depStep = saga.steps.find((s) => s.id === depId);
     return depStep && depStep.status === 'completed';
   });
 }
@@ -823,13 +904,13 @@ function findCriticalPath(saga: Saga): string[] {
     if (visited.has(stepId)) return;
     visited.add(stepId);
 
-    const step = saga.steps.find(s => s.id === stepId);
+    const step = saga.steps.find((s) => s.id === stepId);
     if (!step) return;
 
     const newPath = [...path, step.name];
 
     // Find steps that depend on this one
-    const dependents = saga.steps.filter(s => s.dependencies.includes(stepId));
+    const dependents = saga.steps.filter((s) => s.dependencies.includes(stepId));
 
     if (dependents.length === 0) {
       if (newPath.length > longestPath.length) {
@@ -843,7 +924,7 @@ function findCriticalPath(saga: Saga): string[] {
   }
 
   // Start from steps with no dependencies
-  const rootSteps = saga.steps.filter(s => s.dependencies.length === 0);
+  const rootSteps = saga.steps.filter((s) => s.dependencies.length === 0);
   for (const root of rootSteps) {
     visited.clear();
     dfs(root.id, []);
@@ -854,19 +935,27 @@ function findCriticalPath(saga: Saga): string[] {
 
 function getStatusIcon(status: StepStatus): string {
   switch (status) {
-    case 'completed': return '+';
-    case 'failed': return 'x';
-    case 'compensated': return '~';
-    case 'compensating': return '<';
-    case 'running': return '>';
-    case 'pending': return '?';
-    case 'skipped': return '-';
-    default: return '?';
+    case 'completed':
+      return '+';
+    case 'failed':
+      return 'x';
+    case 'compensated':
+      return '~';
+    case 'compensating':
+      return '<';
+    case 'running':
+      return '>';
+    case 'pending':
+      return '?';
+    case 'skipped':
+      return '-';
+    default:
+      return '?';
   }
 }
 
 async function simulateDelay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, Math.min(ms, 100))); // Cap for testing
+  return new Promise((resolve) => setTimeout(resolve, Math.min(ms, 100))); // Cap for testing
 }
 
 // ============================================================================
@@ -875,18 +964,26 @@ async function simulateDelay(ms: number): Promise<void> {
 
 export const sagapatternTool: UnifiedTool = {
   name: 'saga_pattern',
-  description: 'Saga pattern for distributed transactions with choreography, orchestration, and compensation',
+  description:
+    'Saga pattern for distributed transactions with choreography, orchestration, and compensation',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'create_saga', 'add_step', 'add_compensation', 'execute',
-          'rollback', 'get_status', 'retry_step', 'analyze_saga',
-          'visualize_flow', 'get_log'
+          'create_saga',
+          'add_step',
+          'add_compensation',
+          'execute',
+          'rollback',
+          'get_status',
+          'retry_step',
+          'analyze_saga',
+          'visualize_flow',
+          'get_log',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       sagaId: { type: 'string', description: 'Saga identifier' },
       name: { type: 'string', description: 'Saga or step name' },
@@ -894,20 +991,12 @@ export const sagapatternTool: UnifiedTool = {
       compensationStrategy: {
         type: 'string',
         enum: ['backward', 'forward', 'semantic'],
-        description: 'Compensation strategy'
+        description: 'Compensation strategy',
       },
       step: {
         type: 'object',
-        properties: {
-          name: { type: 'string' },
-          serviceName: { type: 'string' },
-          action: { type: 'object' },
-          compensation: { type: 'object' },
-          timeout: { type: 'number' },
-          maxRetries: { type: 'number' },
-          dependencies: { type: 'array', items: { type: 'string' } }
-        },
-        description: 'Step configuration'
+        description:
+          'Step configuration: name (string), serviceName (string), action (object), compensation (object), timeout (number), maxRetries (number), dependencies (string[])',
       },
       stepId: { type: 'string', description: 'Step identifier' },
       compensation: { type: 'object', description: 'Compensation action' },
@@ -916,10 +1005,10 @@ export const sagapatternTool: UnifiedTool = {
       timeoutMs: { type: 'number', description: 'Saga timeout in milliseconds' },
       simulateFailure: { type: 'string', description: 'Step ID to simulate failure' },
       failureType: { type: 'string', description: 'Type of failure to simulate' },
-      fromStep: { type: 'string', description: 'Step ID to start compensation from' }
+      fromStep: { type: 'string', description: 'Step ID to start compensation from' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -946,7 +1035,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
           compensationStrategy: args.compensationStrategy,
           timeoutMs: args.timeoutMs,
           retryPolicy: args.retryPolicy,
-          context: args.context
+          context: args.context,
         });
 
         result = {
@@ -954,7 +1043,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
           name: saga.name,
           type: saga.type,
           status: saga.status,
-          compensationStrategy: saga.compensationStrategy
+          compensationStrategy: saga.compensationStrategy,
         };
         break;
       }
@@ -972,7 +1061,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
           stepId: step.id,
           name: step.name,
           serviceName: step.serviceName,
-          hasCompensation: !!step.compensation
+          hasCompensation: !!step.compensation,
         };
         break;
       }
@@ -987,7 +1076,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
         result = {
           stepId: step.id,
           name: step.name,
-          compensationAdded: true
+          compensationAdded: true,
         };
         break;
       }
@@ -997,7 +1086,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
 
         result = await executeSaga(args.sagaId, {
           simulateFailure: args.simulateFailure,
-          failureType: args.failureType
+          failureType: args.failureType,
         });
         break;
       }
@@ -1007,7 +1096,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
 
         result = await rollback(args.sagaId, {
           fromStep: args.fromStep,
-          simulateFailure: args.simulateFailure
+          simulateFailure: args.simulateFailure,
         });
         break;
       }
@@ -1044,7 +1133,7 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
 
         result = {
           sagaId: args.sagaId,
-          log: saga.log
+          log: saga.log,
         };
         break;
       }
@@ -1055,9 +1144,8 @@ export async function executesagapattern(toolCall: UnifiedToolCall): Promise<Uni
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

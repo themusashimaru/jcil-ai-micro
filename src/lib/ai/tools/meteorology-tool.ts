@@ -13,9 +13,15 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TEMPERATURE CONVERSIONS
 // ============================================================================
 
-function celsiusToFahrenheit(c: number): number { return c * 9/5 + 32; }
-function fahrenheitToCelsius(f: number): number { return (f - 32) * 5/9; }
-export function celsiusToKelvin(c: number): number { return c + 273.15; }
+function celsiusToFahrenheit(c: number): number {
+  return (c * 9) / 5 + 32;
+}
+function fahrenheitToCelsius(f: number): number {
+  return ((f - 32) * 5) / 9;
+}
+export function celsiusToKelvin(c: number): number {
+  return c + 273.15;
+}
 
 // ============================================================================
 // HEAT INDEX (Feels Like - Hot)
@@ -27,10 +33,16 @@ function heatIndex(T: number, RH: number): number {
 
   if (T_f < 80) return T;
 
-  const HI = -42.379 + 2.04901523 * T_f + 10.14333127 * RH
-           - 0.22475541 * T_f * RH - 0.00683783 * T_f * T_f
-           - 0.05481717 * RH * RH + 0.00122874 * T_f * T_f * RH
-           + 0.00085282 * T_f * RH * RH - 0.00000199 * T_f * T_f * RH * RH;
+  const HI =
+    -42.379 +
+    2.04901523 * T_f +
+    10.14333127 * RH -
+    0.22475541 * T_f * RH -
+    0.00683783 * T_f * T_f -
+    0.05481717 * RH * RH +
+    0.00122874 * T_f * T_f * RH +
+    0.00085282 * T_f * RH * RH -
+    0.00000199 * T_f * T_f * RH * RH;
 
   return fahrenheitToCelsius(HI);
 }
@@ -46,8 +58,8 @@ function windChill(T: number, V: number): number {
 
   if (T_f > 50 || V_mph < 3) return T;
 
-  const WC = 35.74 + 0.6215 * T_f - 35.75 * Math.pow(V_mph, 0.16)
-             + 0.4275 * T_f * Math.pow(V_mph, 0.16);
+  const WC =
+    35.74 + 0.6215 * T_f - 35.75 * Math.pow(V_mph, 0.16) + 0.4275 * T_f * Math.pow(V_mph, 0.16);
 
   return fahrenheitToCelsius(WC);
 }
@@ -83,8 +95,8 @@ function relativeHumidity(T: number, Td: number): number {
 function absoluteHumidity(T: number, RH: number): number {
   // g/m³
   const es = saturationVaporPressure(T) * 1000; // Pa
-  const e = es * RH / 100;
-  return (e * 0.622) / (461.5 * (T + 273.15)) * 1000;
+  const e = (es * RH) / 100;
+  return ((e * 0.622) / (461.5 * (T + 273.15))) * 1000;
 }
 
 // ============================================================================
@@ -159,7 +171,7 @@ function beaufortScale(windSpeed: number): { force: number; description: string 
     { max: Infinity, force: 12, description: 'Hurricane' },
   ];
 
-  const scale = scales.find(s => windSpeed <= s.max)!;
+  const scale = scales.find((s) => windSpeed <= s.max)!;
   return { force: scale.force, description: scale.description };
 }
 
@@ -186,7 +198,16 @@ Operations:
     properties: {
       operation: {
         type: 'string',
-        enum: ['heat_index', 'wind_chill', 'dew_point', 'humidity', 'pressure', 'cloud_base', 'beaufort', 'conditions'],
+        enum: [
+          'heat_index',
+          'wind_chill',
+          'dew_point',
+          'humidity',
+          'pressure',
+          'cloud_base',
+          'beaufort',
+          'conditions',
+        ],
         description: 'Weather calculation type',
       },
       temperature: { type: 'number', description: 'Temperature in °C' },
@@ -378,7 +399,7 @@ export async function executeMeteorology(toolCall: UnifiedToolCall): Promise<Uni
         const scale = beaufortScale(wind_speed);
         const visibility = visibilityFromRH(humidity);
 
-        const feelsLike = temperature > 27 ? hi : (temperature < 10 ? wc : temperature);
+        const feelsLike = temperature > 27 ? hi : temperature < 10 ? wc : temperature;
 
         result = {
           operation: 'conditions',
@@ -405,12 +426,14 @@ export async function executeMeteorology(toolCall: UnifiedToolCall): Promise<Uni
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Meteorology Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Meteorology Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isMeteorologyAvailable(): boolean { return true; }
-
-// ESLint unused function references
-void _celsiusToKelvin;
-void _precipitationType;
+export function isMeteorologyAvailable(): boolean {
+  return true;
+}

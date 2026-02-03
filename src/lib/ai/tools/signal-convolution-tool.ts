@@ -42,21 +42,8 @@ function complexSub(a: Complex, b: Complex): Complex {
 function complexMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
-}
-
-function complexDiv(a: Complex, b: Complex): Complex {
-  const denom = b.re * b.re + b.im * b.im;
-  if (denom === 0) return { re: 0, im: 0 };
-  return {
-    re: (a.re * b.re + a.im * b.im) / denom,
-    im: (a.im * b.re - a.re * b.im) / denom
-  };
-}
-
-function complexMag(a: Complex): number {
-  return Math.sqrt(a.re * a.re + a.im * a.im);
 }
 
 function complexConj(a: Complex): Complex {
@@ -94,11 +81,11 @@ function fft(signal: Complex[], inverse: boolean = false): Complex[] {
   // Cooley-Tukey iterative FFT
   for (let size = 2; size <= n; size *= 2) {
     const halfSize = size / 2;
-    const angle = (inverse ? 2 : -2) * Math.PI / size;
+    const angle = ((inverse ? 2 : -2) * Math.PI) / size;
 
     const wBase: Complex = {
       re: Math.cos(angle),
-      im: Math.sin(angle)
+      im: Math.sin(angle),
     };
 
     for (let i = 0; i < n; i += size) {
@@ -132,11 +119,11 @@ function nextPowerOf2(n: number): number {
 }
 
 function realToComplex(signal: number[]): Complex[] {
-  return signal.map(x => ({ re: x, im: 0 }));
+  return signal.map((x) => ({ re: x, im: 0 }));
 }
 
 function complexToReal(signal: Complex[]): number[] {
-  return signal.map(x => x.re);
+  return signal.map((x) => x.re);
 }
 
 // ============================================================================
@@ -217,7 +204,12 @@ function circularConvolve(signal: number[], kernel: number[]): number[] {
 /**
  * Apply output mode trimming
  */
-function applyMode(result: number[], signalLength: number, kernelLength: number, mode: string): number[] {
+function applyMode(
+  result: number[],
+  signalLength: number,
+  kernelLength: number,
+  mode: string
+): number[] {
   switch (mode) {
     case 'full':
       return result;
@@ -270,7 +262,7 @@ function normalizedCrossCorrelate(signal1: number[], signal2: number[]): number[
   const norm = Math.sqrt(energy1 * energy2);
   if (norm === 0) return correlation.map(() => 0);
 
-  return correlation.map(c => c / norm);
+  return correlation.map((c) => c / norm);
 }
 
 // ============================================================================
@@ -313,7 +305,7 @@ function wienerDeconvolve(
       const numerator = complexMul(Y, Hconj);
       resultFFT.push({
         re: numerator.re / regularized,
-        im: numerator.im / regularized
+        im: numerator.im / regularized,
       });
     }
 
@@ -322,57 +314,13 @@ function wienerDeconvolve(
 
     return {
       result: complexToReal(result).slice(0, signal.length),
-      success: true
+      success: true,
     };
   } catch (e) {
     return {
       result: [],
       success: false,
-      error: e instanceof Error ? e.message : 'Deconvolution failed'
-    };
-  }
-}
-
-/**
- * Simple inverse filtering (more susceptible to noise)
- */
-function inverseFilter(
-  signal: number[],
-  kernel: number[],
-  threshold: number = 1e-6
-): { result: number[]; success: boolean; error?: string } {
-  try {
-    const n = Math.max(signal.length, kernel.length);
-    const fftLength = nextPowerOf2(n * 2);
-
-    const paddedSignal = [...signal, ...new Array(fftLength - signal.length).fill(0)];
-    const paddedKernel = [...kernel, ...new Array(fftLength - kernel.length).fill(0)];
-
-    const signalFFT = fft(realToComplex(paddedSignal));
-    const kernelFFT = fft(realToComplex(paddedKernel));
-
-    const resultFFT: Complex[] = [];
-    for (let i = 0; i < fftLength; i++) {
-      const mag = complexMag(kernelFFT[i]);
-      if (mag < threshold) {
-        // Skip near-zero frequencies
-        resultFFT.push({ re: 0, im: 0 });
-      } else {
-        resultFFT.push(complexDiv(signalFFT[i], kernelFFT[i]));
-      }
-    }
-
-    const result = fft(resultFFT, true);
-
-    return {
-      result: complexToReal(result).slice(0, signal.length),
-      success: true
-    };
-  } catch (e) {
-    return {
-      result: [],
-      success: false,
-      error: e instanceof Error ? e.message : 'Inverse filtering failed'
+      error: e instanceof Error ? e.message : 'Deconvolution failed',
     };
   }
 }
@@ -417,43 +365,54 @@ export const signalconvolutionTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['convolve', 'correlate', 'autocorrelate', 'deconvolve', 'circular', 'analyze', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'convolve',
+          'correlate',
+          'autocorrelate',
+          'deconvolve',
+          'circular',
+          'analyze',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       signal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Input signal'
+        description: 'Input signal',
       },
       kernel: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Convolution kernel or second signal for correlation'
+        description: 'Convolution kernel or second signal for correlation',
       },
       mode: {
         type: 'string',
         enum: ['full', 'same', 'valid'],
-        description: 'Output mode: full (default), same (output size matches signal), valid (only fully overlapping)'
+        description:
+          'Output mode: full (default), same (output size matches signal), valid (only fully overlapping)',
       },
       method: {
         type: 'string',
         enum: ['auto', 'direct', 'fft'],
-        description: 'Computation method: auto (default), direct (O(nm)), fft (O(n log n))'
+        description: 'Computation method: auto (default), direct (O(nm)), fft (O(n log n))',
       },
       normalize: {
         type: 'boolean',
-        description: 'Normalize correlation output to [-1, 1]'
+        description: 'Normalize correlation output to [-1, 1]',
       },
       noise_level: {
         type: 'number',
-        description: 'Noise level for Wiener deconvolution (default: 0.01)'
-      }
+        description: 'Noise level for Wiener deconvolution (default: 0.01)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executesignalconvolution(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executesignalconvolution(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -465,7 +424,7 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
       mode = 'full',
       method = 'auto',
       normalize = false,
-      noise_level = 0.01
+      noise_level = 0.01,
     } = args;
 
     // Info operation
@@ -479,17 +438,17 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
           autocorrelate: 'Auto-correlation of a signal with itself',
           deconvolve: 'Deconvolution using Wiener filter',
           circular: 'Circular/cyclic convolution',
-          analyze: 'Analyze signal properties'
+          analyze: 'Analyze signal properties',
         },
         outputModes: {
           full: 'Full output of length N + M - 1',
           same: 'Output same length as input signal',
-          valid: 'Only fully overlapping region'
+          valid: 'Only fully overlapping region',
         },
         methods: {
           direct: 'Direct computation O(N*M) - better for small kernels',
           fft: 'FFT-based O(N log N) - better for large signals',
-          auto: 'Automatically choose based on sizes'
+          auto: 'Automatically choose based on sizes',
         },
         applications: [
           'FIR filtering',
@@ -497,13 +456,13 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
           'Audio effects (reverb, echo)',
           'Pattern matching',
           'System identification',
-          'Channel equalization'
+          'Channel equalization',
         ],
         mathematics: {
           linearConvolution: '(f * g)[n] = Σ f[k] · g[n-k]',
           crossCorrelation: '(f ⋆ g)[n] = Σ f[k] · g[k+n]',
-          circularConvolution: '(f ⊛ g)[n] = Σ f[k] · g[(n-k) mod N]'
-        }
+          circularConvolution: '(f ⊛ g)[n] = Σ f[k] · g[(n-k) mod N]',
+        },
       };
       return { toolCallId: id, content: JSON.stringify(info, null, 2) };
     }
@@ -511,7 +470,11 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
     // Analyze operation
     if (operation === 'analyze') {
       if (!signal || !Array.isArray(signal)) {
-        return { toolCallId: id, content: 'Error: signal array required for analyze', isError: true };
+        return {
+          toolCallId: id,
+          content: 'Error: signal array required for analyze',
+          isError: true,
+        };
       }
 
       const energy = computeEnergy(signal);
@@ -528,7 +491,7 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
           length: signal.length,
           min: Math.min(...signal),
           max: Math.max(...signal),
-          range: Math.max(...signal) - Math.min(...signal)
+          range: Math.max(...signal) - Math.min(...signal),
         },
         statistics: {
           mean,
@@ -536,17 +499,18 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
           standardDeviation: Math.sqrt(variance),
           energy,
           power: energy / signal.length,
-          rms
+          rms,
         },
         peaks: {
           count: peaks.length,
-          top5: peaks.slice(0, 5)
+          top5: peaks.slice(0, 5),
         },
         autocorrelation: {
           peak: Math.max(...autoCorr),
           firstNonZeroLag: maxLag,
-          interpretation: maxLag > 1 ? `Possible periodicity at lag ${maxLag}` : 'No clear periodicity detected'
-        }
+          interpretation:
+            maxLag > 1 ? `Possible periodicity at lag ${maxLag}` : 'No clear periodicity detected',
+        },
       };
 
       return { toolCallId: id, content: JSON.stringify(analysis, null, 2) };
@@ -565,17 +529,20 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
       const output = {
         operation: 'autocorrelate',
         input: {
-          signal: signal.slice(0, 10).concat(signal.length > 10 ? ['...'] : []),
-          length: signal.length
+          signal: signal.slice(0, 10) as (number | string)[],
+          signalTruncated: signal.length > 10,
+          length: signal.length,
         },
         output: {
-          result: trimmed.slice(0, 20).concat(trimmed.length > 20 ? ['...'] : []),
+          result: trimmed.slice(0, 20) as (number | string)[],
+          resultTruncated: trimmed.length > 20,
           length: trimmed.length,
           peak: Math.max(...trimmed),
-          peakIndex: trimmed.indexOf(Math.max(...trimmed))
+          peakIndex: trimmed.indexOf(Math.max(...trimmed)),
         },
         mode,
-        interpretation: 'Peak at index 0 represents signal energy. Secondary peaks indicate periodicity.'
+        interpretation:
+          'Peak at index 0 represents signal energy. Secondary peaks indicate periodicity.',
       };
 
       return { toolCallId: id, content: JSON.stringify(output, null, 2) };
@@ -583,14 +550,18 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
 
     // Other operations need kernel
     if (!kernel || !Array.isArray(kernel)) {
-      return { toolCallId: id, content: 'Error: kernel array required for this operation', isError: true };
+      return {
+        toolCallId: id,
+        content: 'Error: kernel array required for this operation',
+        isError: true,
+      };
     }
 
     // Linear convolution
     if (operation === 'convolve') {
       // Choose method
-      const useFFT = method === 'fft' ||
-        (method === 'auto' && signal.length * kernel.length > 1000);
+      const useFFT =
+        method === 'fft' || (method === 'auto' && signal.length * kernel.length > 1000);
 
       const rawResult = useFFT
         ? linearConvolveFFT(signal, kernel)
@@ -602,19 +573,20 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
         operation: 'convolve',
         input: {
           signalLength: signal.length,
-          kernelLength: kernel.length
+          kernelLength: kernel.length,
         },
         output: {
-          result: result.slice(0, 30).concat(result.length > 30 ? ['...'] : []),
+          result: result.slice(0, 30),
+          resultTruncated: result.length > 30,
           length: result.length,
-          fullLength: signal.length + kernel.length - 1
+          fullLength: signal.length + kernel.length - 1,
         },
         mode,
         method: useFFT ? 'fft' : 'direct',
         computation: {
           algorithm: useFFT ? 'FFT-based (O(n log n))' : 'Direct (O(n*m))',
-          reason: method === 'auto' ? 'Auto-selected based on input sizes' : 'User specified'
-        }
+          reason: method === 'auto' ? 'Auto-selected based on input sizes' : 'User specified',
+        },
       };
 
       return { toolCallId: id, content: JSON.stringify(output, null, 2) };
@@ -634,20 +606,21 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
         operation: 'correlate',
         input: {
           signal1Length: signal.length,
-          signal2Length: kernel.length
+          signal2Length: kernel.length,
         },
         output: {
-          result: result.slice(0, 30).concat(result.length > 30 ? ['...'] : []),
+          result: result.slice(0, 30),
+          resultTruncated: result.length > 30,
           length: result.length,
-          normalized: normalize
+          normalized: normalize,
         },
         mode,
         analysis: {
           maxCorrelation: Math.max(...result),
           maxCorrelationIndex: maxIdx,
           estimatedLag: lag,
-          interpretation: `Maximum correlation at index ${maxIdx} suggests signal2 is ${lag >= 0 ? 'delayed' : 'advanced'} by ${Math.abs(lag)} samples relative to signal1`
-        }
+          interpretation: `Maximum correlation at index ${maxIdx} suggests signal2 is ${lag >= 0 ? 'delayed' : 'advanced'} by ${Math.abs(lag)} samples relative to signal1`,
+        },
       };
 
       return { toolCallId: id, content: JSON.stringify(output, null, 2) };
@@ -661,13 +634,14 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
         operation: 'circular',
         input: {
           signalLength: signal.length,
-          kernelLength: kernel.length
+          kernelLength: kernel.length,
         },
         output: {
-          result: result.slice(0, 30).concat(result.length > 30 ? ['...'] : []),
-          length: result.length
+          result: result.slice(0, 30),
+          resultTruncated: result.length > 30,
+          length: result.length,
         },
-        note: 'Circular convolution wraps around at boundaries, equivalent to DFT-based multiplication'
+        note: 'Circular convolution wraps around at boundaries, equivalent to DFT-based multiplication',
       };
 
       return { toolCallId: id, content: JSON.stringify(output, null, 2) };
@@ -678,48 +652,57 @@ export async function executesignalconvolution(toolCall: UnifiedToolCall): Promi
       const { result, success, error } = wienerDeconvolve(signal, kernel, noise_level);
 
       if (!success) {
-        return { toolCallId: id, content: JSON.stringify({
-          operation: 'deconvolve',
-          success: false,
-          error
-        }, null, 2) };
+        return {
+          toolCallId: id,
+          content: JSON.stringify(
+            {
+              operation: 'deconvolve',
+              success: false,
+              error,
+            },
+            null,
+            2
+          ),
+        };
       }
 
       // Verify by reconvolving
       const verification = linearConvolveFFT(result, kernel);
-      const mse = signal.slice(0, verification.length).reduce((sum, x, i) =>
-        sum + (x - verification[i]) ** 2, 0) / signal.length;
+      const mse =
+        signal
+          .slice(0, verification.length)
+          .reduce((sum, x, i) => sum + (x - verification[i]) ** 2, 0) / signal.length;
 
       const output = {
         operation: 'deconvolve',
         input: {
           outputSignalLength: signal.length,
-          kernelLength: kernel.length
+          kernelLength: kernel.length,
         },
         output: {
-          result: result.slice(0, 30).concat(result.length > 30 ? ['...'] : []),
-          length: result.length
+          result: result.slice(0, 30),
+          resultTruncated: result.length > 30,
+          length: result.length,
         },
         parameters: {
           noiseLevel: noise_level,
-          method: 'Wiener filter'
+          method: 'Wiener filter',
         },
         verification: {
           reconvolutionMSE: mse,
-          quality: mse < 0.01 ? 'Excellent' : mse < 0.1 ? 'Good' : mse < 1 ? 'Fair' : 'Poor'
+          quality: mse < 0.01 ? 'Excellent' : mse < 0.1 ? 'Good' : mse < 1 ? 'Fair' : 'Poor',
         },
         notes: [
           'Deconvolution recovers an estimate of the input given output and kernel',
           'Wiener filter provides regularization against noise amplification',
-          'Increase noise_level parameter if result is too noisy'
-        ]
+          'Increase noise_level parameter if result is too noisy',
+        ],
       };
 
       return { toolCallId: id, content: JSON.stringify(output, null, 2) };
     }
 
     return { toolCallId: id, content: `Error: Unknown operation '${operation}'`, isError: true };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

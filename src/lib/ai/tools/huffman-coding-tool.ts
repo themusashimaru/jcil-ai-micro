@@ -16,7 +16,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 // Huffman tree node
 interface HuffmanNode {
-  char: string | null;  // null for internal nodes
+  char: string | null; // null for internal nodes
   frequency: number;
   left: HuffmanNode | null;
   right: HuffmanNode | null;
@@ -130,7 +130,7 @@ function buildHuffmanTree(frequencies: Map<string, number>): HuffmanNode | null 
       char: null,
       frequency: left.frequency + right.frequency,
       left,
-      right
+      right,
     };
 
     heap.push(parent);
@@ -149,7 +149,7 @@ function generateCodeTable(
 
   if (root.char !== null) {
     // Leaf node
-    table.set(root.char, prefix || '0');  // Single char case
+    table.set(root.char, prefix || '0'); // Single char case
   } else {
     // Internal node
     if (root.left) generateCodeTable(root.left, prefix + '0', table);
@@ -223,7 +223,7 @@ function calculateStats(
   frequencies: Map<string, number>
 ): CompressionStats {
   const total = text.length;
-  const originalBits = total * 8;  // Assuming 8-bit ASCII
+  const originalBits = total * 8; // Assuming 8-bit ASCII
   const compressedBits = encoded.length;
 
   const compressionRatio = originalBits / compressedBits;
@@ -237,7 +237,7 @@ function calculateStats(
   }
 
   const entropy = calculateEntropy(frequencies);
-  const efficiency = entropy / avgCodeLength * 100;
+  const efficiency = (entropy / avgCodeLength) * 100;
 
   return {
     originalBits,
@@ -246,7 +246,7 @@ function calculateStats(
     spaceSavings,
     avgCodeLength,
     entropy,
-    efficiency
+    efficiency,
   };
 }
 
@@ -267,7 +267,7 @@ function generateCanonicalCodes(codeTable: Map<string, string>): Map<string, str
 
     // Shift code to match new length
     if (length > prevLength) {
-      code <<= (length - prevLength);
+      code <<= length - prevLength;
     }
 
     canonical.set(char, code.toString(2).padStart(length, '0'));
@@ -279,13 +279,18 @@ function generateCanonicalCodes(codeTable: Map<string, string>): Map<string, str
 }
 
 // Visualize Huffman tree as ASCII art
-function visualizeTree(root: HuffmanNode | null, prefix: string = '', isLeft: boolean = true): string[] {
+function visualizeTree(
+  root: HuffmanNode | null,
+  prefix: string = '',
+  isLeft: boolean = true
+): string[] {
   if (!root) return [];
 
   const lines: string[] = [];
-  const nodeStr = root.char !== null
-    ? `[${root.char === ' ' ? 'SP' : root.char === '\n' ? 'NL' : root.char}:${root.frequency}]`
-    : `(${root.frequency})`;
+  const nodeStr =
+    root.char !== null
+      ? `[${root.char === ' ' ? 'SP' : root.char === '\n' ? 'NL' : root.char}:${root.frequency}]`
+      : `(${root.frequency})`;
 
   if (root.right) {
     const rightLines = visualizeTree(root.right, prefix + (isLeft ? '│   ' : '    '), false);
@@ -317,7 +322,7 @@ function buildCodeEntries(
       frequency: freq,
       probability: freq / total,
       code,
-      codeLength: code.length
+      codeLength: code.length,
     });
   }
 
@@ -339,7 +344,10 @@ function serializeTree(root: HuffmanNode | null): string {
 }
 
 // Deserialize Huffman tree
-function deserializeTree(data: string, index: { value: number } = { value: 0 }): HuffmanNode | null {
+function deserializeTree(
+  data: string,
+  index: { value: number } = { value: 0 }
+): HuffmanNode | null {
   if (index.value >= data.length) return null;
 
   const flag = data[index.value++];
@@ -366,19 +374,18 @@ export const huffmancodingTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['encode', 'decode', 'build_tree', 'analyze', 'canonical', 'visualize', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       text: { type: 'string', description: 'Text to encode or analyze' },
       encoded: { type: 'string', description: 'Encoded binary string to decode' },
       tree: { type: 'string', description: 'Serialized Huffman tree' },
       frequencies: {
         type: 'object',
-        description: 'Custom frequency table as {char: count} object',
-        additionalProperties: { type: 'number' }
-      }
+        description: 'Custom frequency table as {char: count} object where values are numbers',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -391,33 +398,37 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'huffman-coding',
-          description: 'Huffman coding - optimal prefix-free compression',
-          capabilities: [
-            'Frequency analysis',
-            'Huffman tree construction',
-            'Variable-length code generation',
-            'Text encoding and decoding',
-            'Compression ratio analysis',
-            'Canonical Huffman codes',
-            'Tree visualization',
-            'Tree serialization/deserialization'
-          ],
-          theory: {
-            principle: 'Assigns shorter codes to more frequent symbols',
-            optimality: 'Optimal among prefix-free codes for symbol-by-symbol encoding',
-            complexity: 'O(n log n) construction, O(n) encoding/decoding',
-            entropy: 'Average code length approaches Shannon entropy for large alphabets'
+        content: JSON.stringify(
+          {
+            tool: 'huffman-coding',
+            description: 'Huffman coding - optimal prefix-free compression',
+            capabilities: [
+              'Frequency analysis',
+              'Huffman tree construction',
+              'Variable-length code generation',
+              'Text encoding and decoding',
+              'Compression ratio analysis',
+              'Canonical Huffman codes',
+              'Tree visualization',
+              'Tree serialization/deserialization',
+            ],
+            theory: {
+              principle: 'Assigns shorter codes to more frequent symbols',
+              optimality: 'Optimal among prefix-free codes for symbol-by-symbol encoding',
+              complexity: 'O(n log n) construction, O(n) encoding/decoding',
+              entropy: 'Average code length approaches Shannon entropy for large alphabets',
+            },
+            applications: [
+              'DEFLATE (ZIP, gzip, PNG)',
+              'JPEG compression',
+              'MP3 audio',
+              'Fax transmission (Modified Huffman)',
+              'Data serialization',
+            ],
           },
-          applications: [
-            'DEFLATE (ZIP, gzip, PNG)',
-            'JPEG compression',
-            'MP3 audio',
-            'Fax transmission (Modified Huffman)',
-            'Data serialization'
-          ]
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -432,35 +443,40 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'encode',
-          input: {
-            text: text.length > 100 ? text.substring(0, 100) + '...' : text,
-            length: text.length,
-            uniqueChars: frequencies.size
+        content: JSON.stringify(
+          {
+            operation: 'encode',
+            input: {
+              text: text.length > 100 ? text.substring(0, 100) + '...' : text,
+              length: text.length,
+              uniqueChars: frequencies.size,
+            },
+            encoded: {
+              binary: encoded.length > 200 ? encoded.substring(0, 200) + '...' : encoded,
+              length: encoded.length + ' bits',
+            },
+            codeTable: codeEntries.slice(0, 20).map((e) => ({
+              char: e.char,
+              freq: e.frequency,
+              prob: (e.probability * 100).toFixed(2) + '%',
+              code: e.code,
+              bits: e.codeLength,
+            })),
+            statistics: {
+              originalSize: stats.originalBits + ' bits (' + stats.originalBits / 8 + ' bytes)',
+              compressedSize:
+                stats.compressedBits + ' bits (' + Math.ceil(stats.compressedBits / 8) + ' bytes)',
+              compressionRatio: stats.compressionRatio.toFixed(3) + ':1',
+              spaceSavings: stats.spaceSavings.toFixed(2) + '%',
+              avgCodeLength: stats.avgCodeLength.toFixed(3) + ' bits/symbol',
+              entropy: stats.entropy.toFixed(3) + ' bits/symbol',
+              efficiency: stats.efficiency.toFixed(2) + '%',
+            },
+            serializedTree: serializeTree(tree),
           },
-          encoded: {
-            binary: encoded.length > 200 ? encoded.substring(0, 200) + '...' : encoded,
-            length: encoded.length + ' bits'
-          },
-          codeTable: codeEntries.slice(0, 20).map(e => ({
-            char: e.char,
-            freq: e.frequency,
-            prob: (e.probability * 100).toFixed(2) + '%',
-            code: e.code,
-            bits: e.codeLength
-          })),
-          statistics: {
-            originalSize: stats.originalBits + ' bits (' + (stats.originalBits / 8) + ' bytes)',
-            compressedSize: stats.compressedBits + ' bits (' + Math.ceil(stats.compressedBits / 8) + ' bytes)',
-            compressionRatio: stats.compressionRatio.toFixed(3) + ':1',
-            spaceSavings: stats.spaceSavings.toFixed(2) + '%',
-            avgCodeLength: stats.avgCodeLength.toFixed(3) + ' bits/symbol',
-            entropy: stats.entropy.toFixed(3) + ' bits/symbol',
-            efficiency: stats.efficiency.toFixed(2) + '%'
-          },
-          serializedTree: serializeTree(tree)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -469,7 +485,7 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Missing encoded string' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -494,9 +510,9 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
           toolCallId: id,
           content: JSON.stringify({
             error: 'Need tree, original text, or frequency table for decoding',
-            hint: 'Provide tree, text, or frequencies parameter'
+            hint: 'Provide tree, text, or frequencies parameter',
           }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -504,17 +520,22 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'decode',
-          input: {
-            encoded: args.encoded.length > 200 ? args.encoded.substring(0, 200) + '...' : args.encoded,
-            length: args.encoded.length + ' bits'
+        content: JSON.stringify(
+          {
+            operation: 'decode',
+            input: {
+              encoded:
+                args.encoded.length > 200 ? args.encoded.substring(0, 200) + '...' : args.encoded,
+              length: args.encoded.length + ' bits',
+            },
+            decoded: {
+              text: decoded.length > 200 ? decoded.substring(0, 200) + '...' : decoded,
+              length: decoded.length + ' characters',
+            },
           },
-          decoded: {
-            text: decoded.length > 200 ? decoded.substring(0, 200) + '...' : decoded,
-            length: decoded.length + ' characters'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -532,7 +553,7 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Need text or frequencies to build tree' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -542,19 +563,23 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'build_tree',
-          frequencies: Object.fromEntries(frequencies),
-          codeTable: codeEntries.map(e => ({
-            char: e.char,
-            frequency: e.frequency,
-            probability: (e.probability * 100).toFixed(2) + '%',
-            code: e.code,
-            codeLength: e.codeLength
-          })),
-          serializedTree: serializeTree(tree),
-          entropy: calculateEntropy(frequencies).toFixed(4) + ' bits/symbol'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'build_tree',
+            frequencies: Object.fromEntries(frequencies),
+            codeTable: codeEntries.map((e) => ({
+              char: e.char,
+              frequency: e.frequency,
+              probability: (e.probability * 100).toFixed(2) + '%',
+              code: e.code,
+              codeLength: e.codeLength,
+            })),
+            serializedTree: serializeTree(tree),
+            entropy: calculateEntropy(frequencies).toFixed(4) + ' bits/symbol',
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -574,38 +599,43 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          input: {
-            text: text.length > 100 ? text.substring(0, 100) + '...' : text,
-            length: text.length,
-            uniqueSymbols: frequencies.size
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            input: {
+              text: text.length > 100 ? text.substring(0, 100) + '...' : text,
+              length: text.length,
+              uniqueSymbols: frequencies.size,
+            },
+            frequencyDistribution: codeEntries.slice(0, 15).map((e) => ({
+              char: e.char,
+              count: e.frequency,
+              percentage: (e.probability * 100).toFixed(2) + '%',
+            })),
+            huffmanCodes: codeEntries.slice(0, 15).map((e) => ({
+              char: e.char,
+              code: e.code,
+              length: e.codeLength,
+            })),
+            compressionAnalysis: {
+              asciiEncoding: stats.originalBits + ' bits',
+              fixedLengthEncoding: fixedLength + ' bits',
+              huffmanEncoding: stats.compressedBits + ' bits',
+              theoreticalMinimum: theoreticalMin + ' bits (Shannon limit)',
+              huffmanVsAscii: stats.spaceSavings.toFixed(2) + '% savings',
+              huffmanVsFixed:
+                ((1 - stats.compressedBits / fixedLength) * 100).toFixed(2) + '% savings',
+            },
+            theoreticalMetrics: {
+              shannonEntropy: entropy.toFixed(4) + ' bits/symbol',
+              avgCodeLength: stats.avgCodeLength.toFixed(4) + ' bits/symbol',
+              redundancy: (stats.avgCodeLength - entropy).toFixed(4) + ' bits/symbol',
+              efficiency: stats.efficiency.toFixed(2) + '%',
+            },
           },
-          frequencyDistribution: codeEntries.slice(0, 15).map(e => ({
-            char: e.char,
-            count: e.frequency,
-            percentage: (e.probability * 100).toFixed(2) + '%'
-          })),
-          huffmanCodes: codeEntries.slice(0, 15).map(e => ({
-            char: e.char,
-            code: e.code,
-            length: e.codeLength
-          })),
-          compressionAnalysis: {
-            asciiEncoding: stats.originalBits + ' bits',
-            fixedLengthEncoding: fixedLength + ' bits',
-            huffmanEncoding: stats.compressedBits + ' bits',
-            theoreticalMinimum: theoreticalMin + ' bits (Shannon limit)',
-            huffmanVsAscii: stats.spaceSavings.toFixed(2) + '% savings',
-            huffmanVsFixed: ((1 - stats.compressedBits / fixedLength) * 100).toFixed(2) + '% savings'
-          },
-          theoreticalMetrics: {
-            shannonEntropy: entropy.toFixed(4) + ' bits/symbol',
-            avgCodeLength: stats.avgCodeLength.toFixed(4) + ' bits/symbol',
-            redundancy: (stats.avgCodeLength - entropy).toFixed(4) + ' bits/symbol',
-            efficiency: stats.efficiency.toFixed(2) + '%'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -616,25 +646,31 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
       const standardCodes = generateCodeTable(tree);
       const canonicalCodes = generateCanonicalCodes(standardCodes);
 
-      const comparison = Array.from(frequencies.keys()).map(char => ({
-        char: char === ' ' ? '<space>' : char,
-        frequency: frequencies.get(char),
-        standardCode: standardCodes.get(char),
-        canonicalCode: canonicalCodes.get(char)
-      })).sort((a, b) => (a.standardCode?.length || 0) - (b.standardCode?.length || 0));
+      const comparison = Array.from(frequencies.keys())
+        .map((char) => ({
+          char: char === ' ' ? '<space>' : char,
+          frequency: frequencies.get(char),
+          standardCode: standardCodes.get(char),
+          canonicalCode: canonicalCodes.get(char),
+        }))
+        .sort((a, b) => (a.standardCode?.length || 0) - (b.standardCode?.length || 0));
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'canonical_huffman',
-          text: text.length > 50 ? text.substring(0, 50) + '...' : text,
-          comparison,
-          benefits: [
-            'Codes can be reconstructed from just code lengths',
-            'Simpler decoder implementation',
-            'Used in DEFLATE, JPEG, and other standards'
-          ]
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'canonical_huffman',
+            text: text.length > 50 ? text.substring(0, 50) + '...' : text,
+            comparison,
+            benefits: [
+              'Codes can be reconstructed from just code lengths',
+              'Simpler decoder implementation',
+              'Used in DEFLATE, JPEG, and other standards',
+            ],
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -647,28 +683,31 @@ export async function executehuffmancoding(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'visualize',
-          text,
-          frequencies: Object.fromEntries(frequencies),
-          tree: visualization.join('\n'),
-          codes: Object.fromEntries(codeTable),
-          legend: {
-            '(n)': 'Internal node with frequency n',
-            '[c:n]': 'Leaf node with character c and frequency n',
-            '┌──': 'Right child (bit 1)',
-            '└──': 'Left child (bit 0)'
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'visualize',
+            text,
+            frequencies: Object.fromEntries(frequencies),
+            tree: visualization.join('\n'),
+            codes: Object.fromEntries(codeTable),
+            legend: {
+              '(n)': 'Internal node with frequency n',
+              '[c:n]': 'Leaf node with character c and frequency n',
+              '┌──': 'Right child (bit 1)',
+              '└──': 'Left child (bit 0)',
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
       content: JSON.stringify({ error: 'Unknown operation', operation }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

@@ -19,10 +19,10 @@ interface City {
 interface ACOConfig {
   numAnts: number;
   numIterations: number;
-  alpha: number;        // Pheromone importance
-  beta: number;         // Heuristic importance
+  alpha: number; // Pheromone importance
+  beta: number; // Heuristic importance
   evaporationRate: number;
-  Q: number;           // Pheromone deposit factor
+  Q: number; // Pheromone deposit factor
   elitistWeight?: number;
 }
 
@@ -81,7 +81,7 @@ function calculateTourDistance(tour: number[], distMatrix: number[][]): number {
 // ============================================================================
 
 class AntColonyOptimizer {
-  private cities: City[];
+  protected cities: City[];
   private distMatrix: number[][];
   private pheromones: number[][];
   private config: ACOConfig;
@@ -95,18 +95,18 @@ class AntColonyOptimizer {
     this.config = {
       numAnts: config.numAnts || cities.length,
       numIterations: config.numIterations || 100,
-      alpha: config.alpha || 1.0,        // Pheromone importance
-      beta: config.beta || 2.0,          // Distance importance
+      alpha: config.alpha || 1.0, // Pheromone importance
+      beta: config.beta || 2.0, // Distance importance
       evaporationRate: config.evaporationRate || 0.5,
       Q: config.Q || 100,
-      elitistWeight: config.elitistWeight || 0
+      elitistWeight: config.elitistWeight || 0,
     };
 
     // Initialize pheromones
     const initialPheromone = 1.0 / this.n;
-    this.pheromones = Array(this.n).fill(null).map(() =>
-      Array(this.n).fill(initialPheromone)
-    );
+    this.pheromones = Array(this.n)
+      .fill(null)
+      .map(() => Array(this.n).fill(initialPheromone));
   }
 
   /**
@@ -174,7 +174,7 @@ class AntColonyOptimizer {
     // Evaporation
     for (let i = 0; i < this.n; i++) {
       for (let j = 0; j < this.n; j++) {
-        this.pheromones[i][j] *= (1 - this.config.evaporationRate);
+        this.pheromones[i][j] *= 1 - this.config.evaporationRate;
         // Ensure minimum pheromone level
         this.pheromones[i][j] = Math.max(this.pheromones[i][j], 0.0001);
       }
@@ -198,7 +198,7 @@ class AntColonyOptimizer {
 
     // Elitist strategy: extra pheromone on best tour
     if (this.config.elitistWeight && this.config.elitistWeight > 0) {
-      const eliteDeposit = this.config.elitistWeight * this.config.Q / bestPath.distance;
+      const eliteDeposit = (this.config.elitistWeight * this.config.Q) / bestPath.distance;
       for (let i = 0; i < bestPath.tour.length - 1; i++) {
         const from = bestPath.tour[i];
         const to = bestPath.tour[i + 1];
@@ -214,7 +214,8 @@ class AntColonyOptimizer {
   optimize(): ACOResult {
     let bestTour: number[] = [];
     let bestDistance = Infinity;
-    const convergenceHistory: { iteration: number; bestDistance: number; avgDistance: number }[] = [];
+    const convergenceHistory: { iteration: number; bestDistance: number; avgDistance: number }[] =
+      [];
     const improvementIterations: number[] = [];
 
     for (let iter = 0; iter < this.config.numIterations; iter++) {
@@ -239,7 +240,7 @@ class AntColonyOptimizer {
       convergenceHistory.push({
         iteration: iter,
         bestDistance,
-        avgDistance
+        avgDistance,
       });
 
       // Update pheromones
@@ -249,15 +250,15 @@ class AntColonyOptimizer {
     return {
       bestTour: [...bestTour, bestTour[0]], // Include return to start
       bestDistance,
-      convergenceHistory: convergenceHistory.filter((_, i) => i % 10 === 0 || i === convergenceHistory.length - 1),
-      finalPheromones: this.pheromones.map(row =>
-        row.map(v => parseFloat(v.toFixed(4)))
+      convergenceHistory: convergenceHistory.filter(
+        (_, i) => i % 10 === 0 || i === convergenceHistory.length - 1
       ),
+      finalPheromones: this.pheromones.map((row) => row.map((v) => parseFloat(v.toFixed(4)))),
       executionStats: {
         totalIterations: this.config.numIterations,
         totalAnts: this.config.numAnts * this.config.numIterations,
-        improvementIterations
-      }
+        improvementIterations,
+      },
     };
   }
 }
@@ -267,9 +268,9 @@ class AntColonyOptimizer {
 // ============================================================================
 
 export class MaxMinAntSystem extends AntColonyOptimizer {
-  // MMAS pheromone bounds - used in full implementation
-  private _pheromoneMin: number;
-  private _pheromoneMax: number;
+  // MMAS pheromone bounds
+  private pheromoneMin: number;
+  private pheromoneMax: number;
 
   constructor(cities: City[], config: Partial<ACOConfig> = {}) {
     super(cities, config);
@@ -277,8 +278,16 @@ export class MaxMinAntSystem extends AntColonyOptimizer {
     // MMAS specific bounds
     const n = cities.length;
     const tau0 = 1.0 / (n * this.calculateNearestNeighborTour());
-    this._pheromoneMax = tau0;
-    this._pheromoneMin = this._pheromoneMax / (2 * n);
+    this.pheromoneMax = tau0;
+    this.pheromoneMin = this.pheromoneMax / (2 * n);
+  }
+
+  /**
+   * Get the pheromone bounds for MAX-MIN Ant System
+   * Used to clamp pheromone values within valid range
+   */
+  getPheromoneBounds(): { min: number; max: number } {
+    return { min: this.pheromoneMin, max: this.pheromoneMax };
   }
 
   private calculateNearestNeighborTour(): number {
@@ -327,47 +336,41 @@ export const antcolonyTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['tsp', 'optimize', 'demo', 'compare_params', 'info', 'examples'],
-        description: 'Operation: tsp (solve TSP), optimize (general), demo (run demonstration), compare_params (compare parameters)'
+        description:
+          'Operation: tsp (solve TSP), optimize (general), demo (run demonstration), compare_params (compare parameters)',
       },
       cities: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            x: { type: 'number' },
-            y: { type: 'number' },
-            name: { type: 'string' }
-          }
-        },
-        description: 'City coordinates for TSP'
+        items: { type: 'object' },
+        description: 'City coordinates for TSP: array of {x: number, y: number, name?: string}',
       },
       numAnts: {
         type: 'number',
-        description: 'Number of ants (default: number of cities)'
+        description: 'Number of ants (default: number of cities)',
       },
       numIterations: {
         type: 'number',
-        description: 'Number of iterations (default: 100)'
+        description: 'Number of iterations (default: 100)',
       },
       alpha: {
         type: 'number',
-        description: 'Pheromone importance factor (default: 1.0)'
+        description: 'Pheromone importance factor (default: 1.0)',
       },
       beta: {
         type: 'number',
-        description: 'Heuristic (distance) importance factor (default: 2.0)'
+        description: 'Heuristic (distance) importance factor (default: 2.0)',
       },
       evaporationRate: {
         type: 'number',
-        description: 'Pheromone evaporation rate 0-1 (default: 0.5)'
+        description: 'Pheromone evaporation rate 0-1 (default: 0.5)',
       },
       elitist: {
         type: 'boolean',
-        description: 'Use elitist ant system'
-      }
+        description: 'Use elitist ant system',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeantcolony(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -387,7 +390,7 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           { x: 7, y: 1, name: 'D' },
           { x: 8, y: 4, name: 'E' },
           { x: 6, y: 6, name: 'F' },
-          { x: 3, y: 5, name: 'G' }
+          { x: 3, y: 5, name: 'G' },
         ];
 
         const config: Partial<ACOConfig> = {
@@ -396,41 +399,43 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           alpha: args.alpha,
           beta: args.beta,
           evaporationRate: args.evaporationRate,
-          elitistWeight: args.elitist ? 2 : 0
+          elitistWeight: args.elitist ? 2 : 0,
         };
 
         const aco = new AntColonyOptimizer(cities, config);
         const result = aco.optimize();
 
         // Map tour indices to city names
-        const tourNames = result.bestTour.map(i =>
-          cities[i].name || `City ${i}`
-        );
+        const tourNames = result.bestTour.map((i) => cities[i].name || `City ${i}`);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'tsp',
-            problem: {
-              numCities: cities.length,
-              cities: cities.map((c, i) => ({
-                index: i,
-                name: c.name || `City ${i}`,
-                coordinates: { x: c.x, y: c.y }
-              }))
+          content: JSON.stringify(
+            {
+              operation: 'tsp',
+              problem: {
+                numCities: cities.length,
+                cities: cities.map((c, i) => ({
+                  index: i,
+                  name: c.name || `City ${i}`,
+                  coordinates: { x: c.x, y: c.y },
+                })),
+              },
+              solution: {
+                bestTour: result.bestTour,
+                tourPath: tourNames.join(' → '),
+                totalDistance: result.bestDistance.toFixed(4),
+              },
+              convergence: {
+                history: result.convergenceHistory,
+                improvementIterations: result.executionStats.improvementIterations,
+              },
+              parameters: config,
+              executionStats: result.executionStats,
             },
-            solution: {
-              bestTour: result.bestTour,
-              tourPath: tourNames.join(' → '),
-              totalDistance: result.bestDistance.toFixed(4)
-            },
-            convergence: {
-              history: result.convergenceHistory,
-              improvementIterations: result.executionStats.improvementIterations
-            },
-            parameters: config,
-            executionStats: result.executionStats
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -446,7 +451,7 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           { x: 200, y: 160, name: 'G' },
           { x: 140, y: 140, name: 'H' },
           { x: 40, y: 120, name: 'I' },
-          { x: 100, y: 120, name: 'J' }
+          { x: 100, y: 120, name: 'J' },
         ];
 
         // Run with different configurations
@@ -457,13 +462,13 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           numIterations: 30,
           alpha: 1,
           beta: 2,
-          evaporationRate: 0.5
+          evaporationRate: 0.5,
         });
         const resultStandard = acoStandard.optimize();
         results.push({
           config: 'Standard (α=1, β=2, ρ=0.5)',
           distance: resultStandard.bestDistance,
-          tour: resultStandard.bestTour.map(i => demoCities[i].name).join('→')
+          tour: resultStandard.bestTour.map((i) => demoCities[i].name).join('→'),
         });
 
         // High pheromone importance
@@ -471,13 +476,13 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           numIterations: 30,
           alpha: 2,
           beta: 1,
-          evaporationRate: 0.5
+          evaporationRate: 0.5,
         });
         const resultHighAlpha = acoHighAlpha.optimize();
         results.push({
           config: 'High Pheromone (α=2, β=1)',
           distance: resultHighAlpha.bestDistance,
-          tour: resultHighAlpha.bestTour.map(i => demoCities[i].name).join('→')
+          tour: resultHighAlpha.bestTour.map((i) => demoCities[i].name).join('→'),
         });
 
         // High heuristic importance
@@ -485,13 +490,13 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           numIterations: 30,
           alpha: 1,
           beta: 5,
-          evaporationRate: 0.5
+          evaporationRate: 0.5,
         });
         const resultHighBeta = acoHighBeta.optimize();
         results.push({
           config: 'High Heuristic (α=1, β=5)',
           distance: resultHighBeta.bestDistance,
-          tour: resultHighBeta.bestTour.map(i => demoCities[i].name).join('→')
+          tour: resultHighBeta.bestTour.map((i) => demoCities[i].name).join('→'),
         });
 
         // Elitist
@@ -500,52 +505,59 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
           alpha: 1,
           beta: 2,
           evaporationRate: 0.5,
-          elitistWeight: 2
+          elitistWeight: 2,
         });
         const resultElitist = acoElitist.optimize();
         results.push({
           config: 'Elitist (weight=2)',
           distance: resultElitist.bestDistance,
-          tour: resultElitist.bestTour.map(i => demoCities[i].name).join('→')
+          tour: resultElitist.bestTour.map((i) => demoCities[i].name).join('→'),
         });
 
-        const bestResult = results.reduce((best, r) =>
-          r.distance < best.distance ? r : best
-        );
+        const bestResult = results.reduce((best, r) => (r.distance < best.distance ? r : best));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            description: 'Comparison of ACO configurations on 10-city TSP',
-            cities: demoCities.map((c, i) => ({
-              index: i,
-              name: c.name,
-              x: c.x,
-              y: c.y
-            })),
-            results: results.map(r => ({
-              ...r,
-              distance: r.distance.toFixed(4)
-            })),
-            best: {
-              configuration: bestResult.config,
-              distance: bestResult.distance.toFixed(4),
-              tour: bestResult.tour
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              description: 'Comparison of ACO configurations on 10-city TSP',
+              cities: demoCities.map((c, i) => ({
+                index: i,
+                name: c.name,
+                x: c.x,
+                y: c.y,
+              })),
+              results: results.map((r) => ({
+                ...r,
+                distance: r.distance.toFixed(4),
+              })),
+              best: {
+                configuration: bestResult.config,
+                distance: bestResult.distance.toFixed(4),
+                tour: bestResult.tour,
+              },
+              insights: {
+                alphaBetaBalance:
+                  'Higher β favors greedy choices; higher α follows pheromone trails',
+                evaporation: 'Higher evaporation = more exploration, lower = more exploitation',
+                elitist: 'Elitist reinforces best solutions but may converge prematurely',
+              },
             },
-            insights: {
-              alphaBetaBalance: 'Higher β favors greedy choices; higher α follows pheromone trails',
-              evaporation: 'Higher evaporation = more exploration, lower = more exploitation',
-              elitist: 'Elitist reinforces best solutions but may converge prematurely'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'compare_params': {
         const cities: City[] = args.cities || [
-          { x: 0, y: 0 }, { x: 1, y: 3 }, { x: 4, y: 3 },
-          { x: 6, y: 1 }, { x: 3, y: 0 }, { x: 2, y: 2 }
+          { x: 0, y: 0 },
+          { x: 1, y: 3 },
+          { x: 4, y: 3 },
+          { x: 6, y: 1 },
+          { x: 3, y: 0 },
+          { x: 2, y: 2 },
         ];
 
         const alphaValues = [0.5, 1.0, 2.0];
@@ -558,152 +570,169 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
               numIterations: 30,
               alpha,
               beta,
-              evaporationRate: 0.5
+              evaporationRate: 0.5,
             });
             const result = aco.optimize();
             results.push({
               alpha,
               beta,
-              distance: parseFloat(result.bestDistance.toFixed(4))
+              distance: parseFloat(result.bestDistance.toFixed(4)),
             });
           }
         }
 
         // Find best combination
-        const best = results.reduce((b, r) => r.distance < b.distance ? r : b);
+        const best = results.reduce((b, r) => (r.distance < b.distance ? r : b));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare_params',
-            numCities: cities.length,
-            parameterGrid: {
-              alpha: alphaValues,
-              beta: betaValues
+          content: JSON.stringify(
+            {
+              operation: 'compare_params',
+              numCities: cities.length,
+              parameterGrid: {
+                alpha: alphaValues,
+                beta: betaValues,
+              },
+              results,
+              bestConfiguration: {
+                alpha: best.alpha,
+                beta: best.beta,
+                distance: best.distance,
+              },
+              parameterGuide: {
+                alpha:
+                  'Controls pheromone trail influence (0 = ignore trails, high = follow trails)',
+                beta: 'Controls distance heuristic influence (0 = ignore distance, high = greedy)',
+                typical: 'α=1, β=2-5 often works well',
+                tradeoff: 'α/β ratio determines exploration vs exploitation',
+              },
             },
-            results,
-            bestConfiguration: {
-              alpha: best.alpha,
-              beta: best.beta,
-              distance: best.distance
-            },
-            parameterGuide: {
-              alpha: 'Controls pheromone trail influence (0 = ignore trails, high = follow trails)',
-              beta: 'Controls distance heuristic influence (0 = ignore distance, high = greedy)',
-              typical: 'α=1, β=2-5 often works well',
-              tradeoff: 'α/β ratio determines exploration vs exploitation'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Ant Colony Optimization',
-            description: 'Probabilistic metaheuristic inspired by ant foraging behavior',
-            algorithm: {
-              inspiration: 'Real ants deposit pheromones to mark good paths',
-              mechanism: 'Artificial ants build solutions probabilistically based on pheromone and heuristic info',
-              learning: 'Good solutions reinforce pheromone trails'
+          content: JSON.stringify(
+            {
+              tool: 'Ant Colony Optimization',
+              description: 'Probabilistic metaheuristic inspired by ant foraging behavior',
+              algorithm: {
+                inspiration: 'Real ants deposit pheromones to mark good paths',
+                mechanism:
+                  'Artificial ants build solutions probabilistically based on pheromone and heuristic info',
+                learning: 'Good solutions reinforce pheromone trails',
+              },
+              parameters: {
+                alpha: {
+                  description: 'Pheromone importance factor',
+                  typical: '1.0',
+                  effect: 'Higher = more trail following',
+                },
+                beta: {
+                  description: 'Heuristic importance factor',
+                  typical: '2.0-5.0',
+                  effect: 'Higher = more greedy choices',
+                },
+                evaporationRate: {
+                  description: 'Pheromone decay rate per iteration',
+                  typical: '0.1-0.5',
+                  effect: 'Higher = more exploration',
+                },
+                Q: {
+                  description: 'Pheromone deposit amount',
+                  typical: '1-100',
+                  effect: 'Scales pheromone updates',
+                },
+              },
+              variants: [
+                { name: 'Ant System (AS)', description: 'Original algorithm by Dorigo' },
+                { name: 'Elitist AS', description: 'Extra pheromone on best-so-far tour' },
+                { name: 'Max-Min AS (MMAS)', description: 'Bounded pheromone levels' },
+                { name: 'Ant Colony System (ACS)', description: 'Local pheromone update' },
+              ],
+              applications: [
+                'Traveling Salesman Problem',
+                'Vehicle Routing',
+                'Job Shop Scheduling',
+                'Network Routing',
+                'Graph Coloring',
+                'Protein Folding',
+              ],
+              complexity: {
+                perIteration: 'O(n² × m) where n=cities, m=ants',
+                space: 'O(n²) for pheromone matrix',
+              },
             },
-            parameters: {
-              alpha: {
-                description: 'Pheromone importance factor',
-                typical: '1.0',
-                effect: 'Higher = more trail following'
-              },
-              beta: {
-                description: 'Heuristic importance factor',
-                typical: '2.0-5.0',
-                effect: 'Higher = more greedy choices'
-              },
-              evaporationRate: {
-                description: 'Pheromone decay rate per iteration',
-                typical: '0.1-0.5',
-                effect: 'Higher = more exploration'
-              },
-              Q: {
-                description: 'Pheromone deposit amount',
-                typical: '1-100',
-                effect: 'Scales pheromone updates'
-              }
-            },
-            variants: [
-              { name: 'Ant System (AS)', description: 'Original algorithm by Dorigo' },
-              { name: 'Elitist AS', description: 'Extra pheromone on best-so-far tour' },
-              { name: 'Max-Min AS (MMAS)', description: 'Bounded pheromone levels' },
-              { name: 'Ant Colony System (ACS)', description: 'Local pheromone update' }
-            ],
-            applications: [
-              'Traveling Salesman Problem',
-              'Vehicle Routing',
-              'Job Shop Scheduling',
-              'Network Routing',
-              'Graph Coloring',
-              'Protein Folding'
-            ],
-            complexity: {
-              perIteration: 'O(n² × m) where n=cities, m=ants',
-              space: 'O(n²) for pheromone matrix'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Solve TSP with 6 cities',
-                call: {
-                  operation: 'tsp',
-                  cities: [
-                    { x: 0, y: 0, name: 'Start' },
-                    { x: 3, y: 4, name: 'A' },
-                    { x: 6, y: 1, name: 'B' },
-                    { x: 8, y: 5, name: 'C' },
-                    { x: 5, y: 8, name: 'D' },
-                    { x: 2, y: 6, name: 'E' }
-                  ],
-                  numIterations: 50
-                }
-              },
-              {
-                name: 'Custom parameters',
-                call: {
-                  operation: 'tsp',
-                  cities: [
-                    { x: 0, y: 0 }, { x: 1, y: 2 }, { x: 3, y: 1 },
-                    { x: 4, y: 3 }, { x: 2, y: 4 }
-                  ],
-                  alpha: 1.5,
-                  beta: 3.0,
-                  evaporationRate: 0.3,
-                  numIterations: 100
-                }
-              },
-              {
-                name: 'Elitist ant system',
-                call: {
-                  operation: 'tsp',
-                  elitist: true,
-                  numIterations: 50
-                }
-              },
-              {
-                name: 'Run demonstration',
-                call: { operation: 'demo' }
-              },
-              {
-                name: 'Compare parameters',
-                call: { operation: 'compare_params' }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Solve TSP with 6 cities',
+                  call: {
+                    operation: 'tsp',
+                    cities: [
+                      { x: 0, y: 0, name: 'Start' },
+                      { x: 3, y: 4, name: 'A' },
+                      { x: 6, y: 1, name: 'B' },
+                      { x: 8, y: 5, name: 'C' },
+                      { x: 5, y: 8, name: 'D' },
+                      { x: 2, y: 6, name: 'E' },
+                    ],
+                    numIterations: 50,
+                  },
+                },
+                {
+                  name: 'Custom parameters',
+                  call: {
+                    operation: 'tsp',
+                    cities: [
+                      { x: 0, y: 0 },
+                      { x: 1, y: 2 },
+                      { x: 3, y: 1 },
+                      { x: 4, y: 3 },
+                      { x: 2, y: 4 },
+                    ],
+                    alpha: 1.5,
+                    beta: 3.0,
+                    evaporationRate: 0.3,
+                    numIterations: 100,
+                  },
+                },
+                {
+                  name: 'Elitist ant system',
+                  call: {
+                    operation: 'tsp',
+                    elitist: true,
+                    numIterations: 50,
+                  },
+                },
+                {
+                  name: 'Run demonstration',
+                  call: { operation: 'demo' },
+                },
+                {
+                  name: 'Compare parameters',
+                  call: { operation: 'compare_params' },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -711,7 +740,7 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -720,4 +749,6 @@ export async function executeantcolony(toolCall: UnifiedToolCall): Promise<Unifi
   }
 }
 
-export function isantcolonyAvailable(): boolean { return true; }
+export function isantcolonyAvailable(): boolean {
+  return true;
+}

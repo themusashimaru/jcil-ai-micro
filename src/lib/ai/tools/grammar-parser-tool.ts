@@ -62,7 +62,10 @@ const EPSILON = 'ε';
 // ============================================================================
 
 function parseGrammar(grammarText: string): Grammar {
-  const lines = grammarText.trim().split('\n').filter(l => l.trim() && !l.trim().startsWith('//'));
+  const lines = grammarText
+    .trim()
+    .split('\n')
+    .filter((l) => l.trim() && !l.trim().startsWith('//'));
   const productions: Production[] = [];
   const nonTerminals = new Set<string>();
   const allSymbols = new Set<string>();
@@ -73,25 +76,25 @@ function parseGrammar(grammarText: string): Grammar {
     if (!match) return;
 
     const lhs = match[1];
-    const rhsAlternatives = match[2].split('|').map(s => s.trim());
+    const rhsAlternatives = match[2].split('|').map((s) => s.trim());
 
     if (!startSymbol) startSymbol = lhs;
     nonTerminals.add(lhs);
 
-    rhsAlternatives.forEach(alt => {
-      const rhs = alt === EPSILON ? [] : alt.split(/\s+/).filter(s => s);
+    rhsAlternatives.forEach((alt) => {
+      const rhs = alt === EPSILON ? [] : alt.split(/\s+/).filter((s) => s);
       productions.push({ lhs, rhs, index: productions.length });
-      rhs.forEach(s => allSymbols.add(s));
+      rhs.forEach((s) => allSymbols.add(s));
     });
   });
 
-  const terminals = [...allSymbols].filter(s => !nonTerminals.has(s) && s !== EPSILON);
+  const terminals = [...allSymbols].filter((s) => !nonTerminals.has(s) && s !== EPSILON);
 
   return {
     terminals,
     nonTerminals: [...nonTerminals],
     startSymbol,
-    productions
+    productions,
   };
 }
 
@@ -107,7 +110,7 @@ function computeNullable(grammar: Grammar): Set<string> {
     changed = false;
     for (const prod of grammar.productions) {
       if (nullable.has(prod.lhs)) continue;
-      if (prod.rhs.length === 0 || prod.rhs.every(s => nullable.has(s))) {
+      if (prod.rhs.length === 0 || prod.rhs.every((s) => nullable.has(s))) {
         nullable.add(prod.lhs);
         changed = true;
       }
@@ -125,7 +128,7 @@ function computeGenerating(grammar: Grammar): Set<string> {
     changed = false;
     for (const prod of grammar.productions) {
       if (generating.has(prod.lhs)) continue;
-      if (prod.rhs.length === 0 || prod.rhs.every(s => generating.has(s))) {
+      if (prod.rhs.length === 0 || prod.rhs.every((s) => generating.has(s))) {
         generating.add(prod.lhs);
         changed = true;
       }
@@ -161,13 +164,13 @@ function analyzeGrammar(grammar: Grammar): GrammarAnalysis {
   const reachable = computeReachable(grammar);
 
   const allSymbols = new Set([...grammar.nonTerminals, ...grammar.terminals]);
-  const useful = new Set([...allSymbols].filter(s => generating.has(s) && reachable.has(s)));
-  const useless = [...grammar.nonTerminals].filter(s => !useful.has(s));
+  const useful = new Set([...allSymbols].filter((s) => generating.has(s) && reachable.has(s)));
+  const useless = [...grammar.nonTerminals].filter((s) => !useful.has(s));
 
   // Check for epsilon and unit productions
-  const hasEpsilonProductions = grammar.productions.some(p => p.rhs.length === 0);
-  const hasUnitProductions = grammar.productions.some(p =>
-    p.rhs.length === 1 && grammar.nonTerminals.includes(p.rhs[0])
+  const hasEpsilonProductions = grammar.productions.some((p) => p.rhs.length === 0);
+  const hasUnitProductions = grammar.productions.some(
+    (p) => p.rhs.length === 1 && grammar.nonTerminals.includes(p.rhs[0])
   );
 
   // Check linearity
@@ -175,14 +178,14 @@ function analyzeGrammar(grammar: Grammar): GrammarAnalysis {
   let isRightLinear = true;
 
   for (const prod of grammar.productions) {
-    const ntCount = prod.rhs.filter(s => grammar.nonTerminals.includes(s)).length;
+    const ntCount = prod.rhs.filter((s) => grammar.nonTerminals.includes(s)).length;
     if (ntCount > 1) {
       isLeftLinear = false;
       isRightLinear = false;
       break;
     }
     if (ntCount === 1) {
-      const ntIndex = prod.rhs.findIndex(s => grammar.nonTerminals.includes(s));
+      const ntIndex = prod.rhs.findIndex((s) => grammar.nonTerminals.includes(s));
       if (ntIndex !== 0) isLeftLinear = false;
       if (ntIndex !== prod.rhs.length - 1) isRightLinear = false;
     }
@@ -201,9 +204,9 @@ function analyzeGrammar(grammar: Grammar): GrammarAnalysis {
     hasUnitProductions,
     hasUselessSymbols: useless.length > 0,
     nullable: [...nullable],
-    generating: [...generating].filter(s => grammar.nonTerminals.includes(s)),
-    reachable: [...reachable].filter(s => grammar.nonTerminals.includes(s)),
-    useless
+    generating: [...generating].filter((s) => grammar.nonTerminals.includes(s)),
+    reachable: [...reachable].filter((s) => grammar.nonTerminals.includes(s)),
+    useless,
   };
 }
 
@@ -215,8 +218,10 @@ function removeUselessSymbols(grammar: Grammar): Grammar {
   const generating = computeGenerating(grammar);
 
   // First pass: keep only generating productions
-  let prods = grammar.productions.filter(p =>
-    generating.has(p.lhs) && p.rhs.every(s => generating.has(s) || grammar.terminals.includes(s))
+  let prods = grammar.productions.filter(
+    (p) =>
+      generating.has(p.lhs) &&
+      p.rhs.every((s) => generating.has(s) || grammar.terminals.includes(s))
   );
 
   // Recompute reachable with remaining productions
@@ -224,19 +229,21 @@ function removeUselessSymbols(grammar: Grammar): Grammar {
   const newReachable = computeReachable(tempGrammar);
 
   // Second pass: keep only reachable productions
-  prods = prods.filter(p => newReachable.has(p.lhs));
+  prods = prods.filter((p) => newReachable.has(p.lhs));
 
   // Renumber productions
   prods = prods.map((p, i) => ({ ...p, index: i }));
 
-  const newNonTerminals = [...new Set(prods.map(p => p.lhs))];
-  const newTerminals = [...new Set(prods.flatMap(p => p.rhs))].filter(s => !newNonTerminals.includes(s));
+  const newNonTerminals = [...new Set(prods.map((p) => p.lhs))];
+  const newTerminals = [...new Set(prods.flatMap((p) => p.rhs))].filter(
+    (s) => !newNonTerminals.includes(s)
+  );
 
   return {
     terminals: newTerminals,
     nonTerminals: newNonTerminals,
     startSymbol: grammar.startSymbol,
-    productions: prods
+    productions: prods,
   };
 }
 
@@ -249,8 +256,8 @@ function removeEpsilonProductions(grammar: Grammar): Grammar {
 
     // Generate all combinations based on nullable symbols
     const nullablePositions = prod.rhs
-      .map((s, i) => nullable.has(s) ? i : -1)
-      .filter(i => i >= 0);
+      .map((s, i) => (nullable.has(s) ? i : -1))
+      .filter((i) => i >= 0);
 
     // Generate subsets of nullable positions
     const subsets = generateSubsets(nullablePositions);
@@ -259,11 +266,11 @@ function removeEpsilonProductions(grammar: Grammar): Grammar {
       const newRhs = prod.rhs.filter((_, i) => !subset.includes(i));
       if (newRhs.length > 0) {
         const key = `${prod.lhs}->${newRhs.join(' ')}`;
-        if (!newProductions.some(p => `${p.lhs}->${p.rhs.join(' ')}` === key)) {
+        if (!newProductions.some((p) => `${p.lhs}->${p.rhs.join(' ')}` === key)) {
           newProductions.push({
             lhs: prod.lhs,
             rhs: newRhs,
-            index: newProductions.length
+            index: newProductions.length,
           });
         }
       }
@@ -278,14 +285,14 @@ function removeEpsilonProductions(grammar: Grammar): Grammar {
       { lhs: newStart, rhs: [], index: 1 }
     );
     // Renumber
-    newProductions.forEach((p, i) => p.index = i);
+    newProductions.forEach((p, i) => (p.index = i));
 
     const newNonTerminals = [newStart, ...grammar.nonTerminals];
     return {
       ...grammar,
       nonTerminals: newNonTerminals,
       startSymbol: newStart,
-      productions: newProductions
+      productions: newProductions,
     };
   }
 
@@ -333,7 +340,7 @@ function removeUnitProductions(grammar: Grammar): Grammar {
           newProductions.push({
             lhs: A,
             rhs: prod.rhs,
-            index: newProductions.length
+            index: newProductions.length,
           });
         }
       }
@@ -373,19 +380,19 @@ function toChomskyNormalForm(grammar: Grammar): Grammar {
       }
     } else if (prod.rhs.length === 2) {
       // Replace terminals with their non-terminal versions
-      const newRhs = prod.rhs.map(s => g.terminals.includes(s) ? terminalToNT.get(s)! : s);
+      const newRhs = prod.rhs.map((s) => (g.terminals.includes(s) ? terminalToNT.get(s)! : s));
       newProductions.push({ lhs: prod.lhs, rhs: newRhs, index: newProductions.length });
     } else {
       // Break down longer productions: A -> B C D E becomes A -> B X1, X1 -> C X2, X2 -> D E
       let currentLhs = prod.lhs;
-      const symbols = prod.rhs.map(s => g.terminals.includes(s) ? terminalToNT.get(s)! : s);
+      const symbols = prod.rhs.map((s) => (g.terminals.includes(s) ? terminalToNT.get(s)! : s));
 
       for (let i = 0; i < symbols.length - 2; i++) {
         const newNT = `X_${newNTCount++}`;
         newProductions.push({
           lhs: currentLhs,
           rhs: [symbols[i], newNT],
-          index: newProductions.length
+          index: newProductions.length,
         });
         currentLhs = newNT;
       }
@@ -393,32 +400,30 @@ function toChomskyNormalForm(grammar: Grammar): Grammar {
       newProductions.push({
         lhs: currentLhs,
         rhs: [symbols[symbols.length - 2], symbols[symbols.length - 1]],
-        index: newProductions.length
+        index: newProductions.length,
       });
     }
   }
 
   // Add terminal productions
   for (const [t, nt] of terminalToNT) {
-    const hasTerminal = g.productions.some(p =>
-      p.rhs.length > 1 && p.rhs.includes(t)
-    );
+    const hasTerminal = g.productions.some((p) => p.rhs.length > 1 && p.rhs.includes(t));
     if (hasTerminal) {
       newProductions.push({
         lhs: nt,
         rhs: [t],
-        index: newProductions.length
+        index: newProductions.length,
       });
     }
   }
 
-  const allNTs = [...new Set(newProductions.map(p => p.lhs))];
+  const allNTs = [...new Set(newProductions.map((p) => p.lhs))];
 
   return {
     terminals: g.terminals,
     nonTerminals: allNTs,
     startSymbol: g.startSymbol,
-    productions: newProductions
+    productions: newProductions,
   };
 }
 
@@ -427,7 +432,6 @@ function toGreibachNormalForm(grammar: Grammar): Grammar {
   const g = toChomskyNormalForm(grammar);
 
   // Order non-terminals
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const ntOrder = new Map<string, number>();
   g.nonTerminals.forEach((nt, i) => ntOrder.set(nt, i));
 
@@ -472,7 +476,7 @@ function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100
     visited.add(formKey);
 
     // Check if we've derived the target
-    if (form.every(s => grammar.terminals.includes(s))) {
+    if (form.every((s) => grammar.terminals.includes(s))) {
       if (JSON.stringify(form) === JSON.stringify(target)) {
         return { steps: currentSteps, type: 'leftmost', success: true };
       }
@@ -480,7 +484,7 @@ function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100
     }
 
     // Find leftmost non-terminal
-    const ntIndex = form.findIndex(s => grammar.nonTerminals.includes(s));
+    const ntIndex = form.findIndex((s) => grammar.nonTerminals.includes(s));
     if (ntIndex === -1) continue;
 
     const nt = form[ntIndex];
@@ -493,12 +497,12 @@ function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100
       const step: DerivationStep = {
         sententialForm: newForm.join(' ') || EPSILON,
         production: `${prod.lhs} -> ${prod.rhs.join(' ') || EPSILON}`,
-        position: ntIndex
+        position: ntIndex,
       };
 
       queue.push({
         form: newForm,
-        steps: [...currentSteps, step]
+        steps: [...currentSteps, step],
       });
     }
   }
@@ -507,7 +511,7 @@ function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100
     steps: [],
     type: 'leftmost',
     success: false,
-    error: 'Could not derive target string within step limit'
+    error: 'Could not derive target string within step limit',
   };
 }
 
@@ -519,13 +523,17 @@ function cykParse(grammar: Grammar, input: string[]): boolean {
   // Grammar must be in CNF
   const n = input.length;
   if (n === 0) {
-    return grammar.productions.some(p => p.lhs === grammar.startSymbol && p.rhs.length === 0);
+    return grammar.productions.some((p) => p.lhs === grammar.startSymbol && p.rhs.length === 0);
   }
 
   // Initialize table: table[i][j] = set of non-terminals that derive input[i..i+j]
-  const table: Set<string>[][] = Array(n).fill(null).map(() =>
-    Array(n).fill(null).map(() => new Set())
-  );
+  const table: Set<string>[][] = Array(n)
+    .fill(null)
+    .map(() =>
+      Array(n)
+        .fill(null)
+        .map(() => new Set())
+    );
 
   // Fill diagonal (single terminals)
   for (let i = 0; i < n; i++) {
@@ -595,32 +603,44 @@ function formatGrammar(grammar: Grammar): string {
 
 export const grammarparserTool: UnifiedTool = {
   name: 'grammar_parser',
-  description: 'Context-free grammar analysis, normal forms (CNF, GNF), derivations, and language properties',
+  description:
+    'Context-free grammar analysis, normal forms (CNF, GNF), derivations, and language properties',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['analyze', 'derive', 'check', 'transform', 'cnf', 'gnf', 'cyk', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'analyze',
+          'derive',
+          'check',
+          'transform',
+          'cnf',
+          'gnf',
+          'cyk',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       grammar: {
         type: 'string',
-        description: 'Grammar in BNF notation'
+        description: 'Grammar in BNF notation',
       },
       input: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Input string/tokens'
+        description: 'Input string/tokens',
       },
       transformation: {
         type: 'string',
         enum: ['remove_useless', 'remove_epsilon', 'remove_unit', 'all'],
-        description: 'Transformation to apply'
-      }
+        description: 'Transformation to apply',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -638,59 +658,77 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Context-Free Grammar Parser',
-            description: 'CFG analysis and transformation toolkit',
-            capabilities: [
-              'Grammar parsing and validation',
-              'Language property analysis (regular, linear)',
-              'Nullable, generating, reachable symbol computation',
-              'Useless symbol elimination',
-              'Epsilon production removal',
-              'Unit production removal',
-              'Chomsky Normal Form conversion',
-              'Greibach Normal Form conversion',
-              'CYK parsing algorithm',
-              'Derivation generation'
-            ],
-            normalForms: {
-              CNF: 'A -> BC or A -> a (two non-terminals or one terminal)',
-              GNF: 'A -> aα (terminal followed by non-terminals)'
+          content: JSON.stringify(
+            {
+              tool: 'Context-Free Grammar Parser',
+              description: 'CFG analysis and transformation toolkit',
+              capabilities: [
+                'Grammar parsing and validation',
+                'Language property analysis (regular, linear)',
+                'Nullable, generating, reachable symbol computation',
+                'Useless symbol elimination',
+                'Epsilon production removal',
+                'Unit production removal',
+                'Chomsky Normal Form conversion',
+                'Greibach Normal Form conversion',
+                'CYK parsing algorithm',
+                'Derivation generation',
+              ],
+              normalForms: {
+                CNF: 'A -> BC or A -> a (two non-terminals or one terminal)',
+                GNF: 'A -> aα (terminal followed by non-terminals)',
+              },
+              operations: [
+                'analyze',
+                'derive',
+                'check',
+                'transform',
+                'cnf',
+                'gnf',
+                'cyk',
+                'demo',
+                'examples',
+              ],
             },
-            operations: ['analyze', 'derive', 'check', 'transform', 'cnf', 'gnf', 'cyk', 'demo', 'examples']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Analyze Grammar',
-                params: {
-                  operation: 'analyze',
-                  grammar: 'S -> a S b | ε'
-                }
-              },
-              {
-                name: 'Convert to CNF',
-                params: {
-                  operation: 'cnf',
-                  grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id'
-                }
-              },
-              {
-                name: 'CYK Parse',
-                params: {
-                  operation: 'cyk',
-                  grammar: 'S -> A B\nA -> a\nB -> b',
-                  input: ['a', 'b']
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Analyze Grammar',
+                  params: {
+                    operation: 'analyze',
+                    grammar: 'S -> a S b | ε',
+                  },
+                },
+                {
+                  name: 'Convert to CNF',
+                  params: {
+                    operation: 'cnf',
+                    grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
+                  },
+                },
+                {
+                  name: 'CYK Parse',
+                  params: {
+                    operation: 'cyk',
+                    grammar: 'S -> A B\nA -> a\nB -> b',
+                    input: ['a', 'b'],
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -704,36 +742,40 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            grammar: {
-              formatted: formatGrammar(grammar),
-              terminals: grammar.terminals,
-              nonTerminals: grammar.nonTerminals,
-              startSymbol: grammar.startSymbol,
-              productionCount: grammar.productions.length
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              grammar: {
+                formatted: formatGrammar(grammar),
+                terminals: grammar.terminals,
+                nonTerminals: grammar.nonTerminals,
+                startSymbol: grammar.startSymbol,
+                productionCount: grammar.productions.length,
+              },
+              analysis: {
+                languageClass: analysis.isRegular ? 'Regular' : 'Context-Free',
+                properties: {
+                  isRegular: analysis.isRegular,
+                  isLinear: analysis.isLinear,
+                  isLeftLinear: analysis.isLeftLinear,
+                  isRightLinear: analysis.isRightLinear,
+                },
+                productionTypes: {
+                  hasEpsilonProductions: analysis.hasEpsilonProductions,
+                  hasUnitProductions: analysis.hasUnitProductions,
+                },
+                symbols: {
+                  nullable: analysis.nullable,
+                  generating: analysis.generating,
+                  reachable: analysis.reachable,
+                  useless: analysis.useless,
+                  hasUselessSymbols: analysis.hasUselessSymbols,
+                },
+              },
             },
-            analysis: {
-              languageClass: analysis.isRegular ? 'Regular' : 'Context-Free',
-              properties: {
-                isRegular: analysis.isRegular,
-                isLinear: analysis.isLinear,
-                isLeftLinear: analysis.isLeftLinear,
-                isRightLinear: analysis.isRightLinear
-              },
-              productionTypes: {
-                hasEpsilonProductions: analysis.hasEpsilonProductions,
-                hasUnitProductions: analysis.hasUnitProductions
-              },
-              symbols: {
-                nullable: analysis.nullable,
-                generating: analysis.generating,
-                reachable: analysis.reachable,
-                useless: analysis.useless,
-                hasUselessSymbols: analysis.hasUselessSymbols
-              }
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -750,20 +792,26 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'derive',
-            target: input.join(' '),
-            success: derivation.success,
-            derivationType: derivation.type,
-            ...(derivation.success ? {
-              steps: [
-                { sententialForm: grammar.startSymbol, production: 'start', position: 0 },
-                ...derivation.steps
-              ]
-            } : {
-              error: derivation.error
-            })
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'derive',
+              target: input.join(' '),
+              success: derivation.success,
+              derivationType: derivation.type,
+              ...(derivation.success
+                ? {
+                    steps: [
+                      { sententialForm: grammar.startSymbol, production: 'start', position: 0 },
+                      ...derivation.steps,
+                    ],
+                  }
+                : {
+                    error: derivation.error,
+                  }),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -781,13 +829,17 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'check',
-            input: input.join(' '),
-            accepted,
-            algorithm: 'CYK (Cocke-Younger-Kasami)',
-            complexity: `O(n³) where n = ${input.length}`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'check',
+              input: input.join(' '),
+              accepted,
+              algorithm: 'CYK (Cocke-Younger-Kasami)',
+              complexity: `O(n³) where n = ${input.length}`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -825,16 +877,20 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'transform',
-            originalGrammar: original,
-            transformations: steps,
-            transformedGrammar: formatGrammar(transformed),
-            stats: {
-              originalProductions: grammar.productions.length,
-              transformedProductions: transformed.productions.length
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'transform',
+              originalGrammar: original,
+              transformations: steps,
+              transformedGrammar: formatGrammar(transformed),
+              stats: {
+                originalProductions: grammar.productions.length,
+                transformedProductions: transformed.productions.length,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -848,21 +904,25 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'cnf',
-            originalGrammar: formatGrammar(grammar),
-            cnfGrammar: formatGrammar(cnf),
-            properties: {
-              form: 'Chomsky Normal Form',
-              rules: 'A -> BC or A -> a (except S -> ε if ε ∈ L)',
-              uses: ['CYK parsing', 'Complexity proofs', 'Language theorems']
+          content: JSON.stringify(
+            {
+              operation: 'cnf',
+              originalGrammar: formatGrammar(grammar),
+              cnfGrammar: formatGrammar(cnf),
+              properties: {
+                form: 'Chomsky Normal Form',
+                rules: 'A -> BC or A -> a (except S -> ε if ε ∈ L)',
+                uses: ['CYK parsing', 'Complexity proofs', 'Language theorems'],
+              },
+              stats: {
+                originalProductions: grammar.productions.length,
+                cnfProductions: cnf.productions.length,
+                newNonTerminals: cnf.nonTerminals.length - grammar.nonTerminals.length,
+              },
             },
-            stats: {
-              originalProductions: grammar.productions.length,
-              cnfProductions: cnf.productions.length,
-              newNonTerminals: cnf.nonTerminals.length - grammar.nonTerminals.length
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -876,17 +936,21 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'gnf',
-            originalGrammar: formatGrammar(grammar),
-            gnfGrammar: formatGrammar(gnf),
-            properties: {
-              form: 'Greibach Normal Form',
-              rules: 'A -> aα where a is terminal, α is string of non-terminals',
-              uses: ['Pushdown automaton construction', 'One terminal per step parsing']
+          content: JSON.stringify(
+            {
+              operation: 'gnf',
+              originalGrammar: formatGrammar(grammar),
+              gnfGrammar: formatGrammar(gnf),
+              properties: {
+                form: 'Greibach Normal Form',
+                rules: 'A -> aα where a is terminal, α is string of non-terminals',
+                uses: ['Pushdown automaton construction', 'One terminal per step parsing'],
+              },
+              note: 'Full GNF conversion requires iterative left recursion elimination',
             },
-            note: 'Full GNF conversion requires iterative left recursion elimination'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -904,17 +968,21 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'cyk',
-            input: input.join(' '),
-            accepted,
-            cnfGrammar: formatGrammar(cnf),
-            algorithm: {
-              name: 'CYK (Cocke-Younger-Kasami)',
-              complexity: 'O(n³ · |G|)',
-              description: 'Dynamic programming algorithm for CFG membership'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'cyk',
+              input: input.join(' '),
+              accepted,
+              cnfGrammar: formatGrammar(cnf),
+              algorithm: {
+                name: 'CYK (Cocke-Younger-Kasami)',
+                complexity: 'O(n³ · |G|)',
+                description: 'Dynamic programming algorithm for CFG membership',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -929,36 +997,40 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            title: 'Context-Free Grammar Analysis Demo',
-            grammar: {
-              original: formatGrammar(grammar),
-              terminals: grammar.terminals,
-              nonTerminals: grammar.nonTerminals
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              title: 'Context-Free Grammar Analysis Demo',
+              grammar: {
+                original: formatGrammar(grammar),
+                terminals: grammar.terminals,
+                nonTerminals: grammar.nonTerminals,
+              },
+              analysis: {
+                languageClass: analysis.isRegular ? 'Regular' : 'Context-Free',
+                nullable: analysis.nullable,
+                hasEpsilonProductions: analysis.hasEpsilonProductions,
+                hasUnitProductions: analysis.hasUnitProductions,
+              },
+              cnfConversion: {
+                cnfGrammar: formatGrammar(cnf),
+                productionIncrease: cnf.productions.length - grammar.productions.length,
+              },
+              membership: {
+                input: testInput.join(' '),
+                accepted,
+                algorithm: 'CYK',
+              },
+              concepts: [
+                'CFGs generate context-free languages',
+                'CNF has exactly two non-terminals or one terminal on RHS',
+                'CYK algorithm checks membership in O(n³)',
+                'Normal forms simplify analysis and parsing',
+              ],
             },
-            analysis: {
-              languageClass: analysis.isRegular ? 'Regular' : 'Context-Free',
-              nullable: analysis.nullable,
-              hasEpsilonProductions: analysis.hasEpsilonProductions,
-              hasUnitProductions: analysis.hasUnitProductions
-            },
-            cnfConversion: {
-              cnfGrammar: formatGrammar(cnf),
-              productionIncrease: cnf.productions.length - grammar.productions.length
-            },
-            membership: {
-              input: testInput.join(' '),
-              accepted,
-              algorithm: 'CYK'
-            },
-            concepts: [
-              'CFGs generate context-free languages',
-              'CNF has exactly two non-terminals or one terminal on RHS',
-              'CYK algorithm checks membership in O(n³)',
-              'Normal forms simplify analysis and parsing'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -966,7 +1038,7 @@ export async function executegrammarparser(toolCall: UnifiedToolCall): Promise<U
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

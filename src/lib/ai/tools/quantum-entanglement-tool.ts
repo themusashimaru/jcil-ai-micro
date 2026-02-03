@@ -37,7 +37,7 @@ function cSub(a: Complex, b: Complex): Complex {
 function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -78,15 +78,14 @@ function createZeroState(n: number): StateVector {
   return state;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalize(state: StateVector): StateVector {
+export function normalize(state: StateVector): StateVector {
   const norm = Math.sqrt(state.reduce((sum, a) => sum + cAbsSq(a), 0));
   if (norm < 1e-10) return state;
-  return state.map(a => cScale(a, 1 / norm));
+  return state.map((a) => cScale(a, 1 / norm));
 }
 
 function measureProbabilities(state: StateVector): number[] {
-  return state.map(a => cAbsSq(a));
+  return state.map((a) => cAbsSq(a));
 }
 
 function stateToString(state: StateVector, nQubits: number): string[] {
@@ -126,8 +125,13 @@ function applyHadamard(state: StateVector, target: number, nQubits: number): Sta
   return result;
 }
 
-function applyCNOT(state: StateVector, control: number, target: number, nQubits: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+function applyCNOT(
+  state: StateVector,
+  control: number,
+  target: number,
+  nQubits: number
+): StateVector {
+  const result: StateVector = state.map((c) => ({ ...c }));
   const controlMask = 1 << (nQubits - 1 - control);
   const targetMask = 1 << (nQubits - 1 - target);
 
@@ -146,7 +150,7 @@ function applyCNOT(state: StateVector, control: number, target: number, nQubits:
 }
 
 function applyX(state: StateVector, target: number, nQubits: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+  const result: StateVector = state.map((c) => ({ ...c }));
   const mask = 1 << (nQubits - 1 - target);
 
   for (let i = 0; i < state.length / 2; i++) {
@@ -163,7 +167,7 @@ function applyX(state: StateVector, target: number, nQubits: number): StateVecto
 }
 
 function applyZ(state: StateVector, target: number, nQubits: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+  const result: StateVector = state.map((c) => ({ ...c }));
   const mask = 1 << (nQubits - 1 - target);
 
   for (let i = 0; i < state.length; i++) {
@@ -175,8 +179,12 @@ function applyZ(state: StateVector, target: number, nQubits: number): StateVecto
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function applyRotationY(state: StateVector, target: number, theta: number, nQubits: number): StateVector {
+export function applyRotationY(
+  state: StateVector,
+  target: number,
+  theta: number,
+  nQubits: number
+): StateVector {
   const result: StateVector = new Array(state.length).fill(null).map(() => complex(0));
   const mask = 1 << (nQubits - 1 - target);
   const cosHalf = Math.cos(theta / 2);
@@ -301,7 +309,7 @@ function createGHZState(nQubits: number): MultiQubitState {
     nQubits,
     state,
     stateString,
-    circuit
+    circuit,
   };
 }
 
@@ -322,7 +330,7 @@ function createWState(nQubits: number): MultiQubitState {
   circuit.push(`// W state requires ${nQubits - 1} controlled rotations`);
   for (let i = 0; i < nQubits - 1; i++) {
     const angle = Math.acos(Math.sqrt(1 / (nQubits - i)));
-    circuit.push(`Ry(${(angle * 180 / Math.PI).toFixed(2)}°) on q${i}`);
+    circuit.push(`Ry(${((angle * 180) / Math.PI).toFixed(2)}°) on q${i}`);
     if (i < nQubits - 2) {
       circuit.push(`CNOT(q${i}, q${i + 1})`);
     }
@@ -339,7 +347,7 @@ function createWState(nQubits: number): MultiQubitState {
     nQubits,
     state,
     stateString,
-    circuit
+    circuit,
   };
 }
 
@@ -365,7 +373,7 @@ function computeEntanglementMeasures(state: StateVector): EntanglementMeasures {
       linearEntropy: 0,
       vonNeumannEntropy: 0,
       negativity: 0,
-      isMaximallyEntangled: false
+      isMaximallyEntangled: false,
     };
   }
 
@@ -383,7 +391,7 @@ function computeEntanglementMeasures(state: StateVector): EntanglementMeasures {
   // Partial trace over second qubit to get reduced density matrix
   const rhoA: Complex[][] = [
     [cAdd(rho[0][0], rho[1][1]), cAdd(rho[0][2], rho[1][3])],
-    [cAdd(rho[2][0], rho[3][1]), cAdd(rho[2][2], rho[3][3])]
+    [cAdd(rho[2][0], rho[3][1]), cAdd(rho[2][2], rho[3][3])],
   ];
 
   // Linear entropy: S_L = 1 - Tr(ρ_A²)
@@ -401,7 +409,7 @@ function computeEntanglementMeasures(state: StateVector): EntanglementMeasures {
   const bc = cAbsSq(rhoA[0][1]);
   const trace = a + d;
   const det = a * d - bc;
-  const disc = Math.sqrt(Math.max(0, trace * trace / 4 - det));
+  const disc = Math.sqrt(Math.max(0, (trace * trace) / 4 - det));
   const lambda1 = trace / 2 + disc;
   const lambda2 = trace / 2 - disc;
 
@@ -436,7 +444,7 @@ function computeEntanglementMeasures(state: StateVector): EntanglementMeasures {
     linearEntropy,
     vonNeumannEntropy,
     negativity,
-    isMaximallyEntangled
+    isMaximallyEntangled,
   };
 }
 
@@ -461,8 +469,8 @@ function testCHSHInequality(state: StateVector): CHSHResult {
   const measureCorrelation = (aliceAngle: number, bobAngle: number): number => {
     // Expectation value for σ_a ⊗ σ_b measurement
     // For |Φ+⟩: E(a,b) = cos(2(a-b))
-    const a = aliceAngle * Math.PI / 180;
-    const b = bobAngle * Math.PI / 180;
+    const a = (aliceAngle * Math.PI) / 180;
+    const b = (bobAngle * Math.PI) / 180;
 
     // General calculation using state amplitudes
     // ⟨ψ|σ_a⊗σ_b|ψ⟩
@@ -471,18 +479,21 @@ function testCHSHInequality(state: StateVector): CHSHResult {
 
     // For the given state, compute correlation
     // Simplified: for maximally entangled states
-    const stateCorrelation = cAbsSq(state[0]) * cosA * cosB +
-                             cAbsSq(state[3]) * cosA * cosB -
-                             cAbsSq(state[1]) * cosA * cosB -
-                             cAbsSq(state[2]) * cosA * cosB;
+    const stateCorrelation =
+      cAbsSq(state[0]) * cosA * cosB +
+      cAbsSq(state[3]) * cosA * cosB -
+      cAbsSq(state[1]) * cosA * cosB -
+      cAbsSq(state[2]) * cosA * cosB;
 
     // Use state-based correlation if significant, otherwise use theoretical
     return Math.abs(stateCorrelation) > 0.01 ? stateCorrelation : Math.cos(2 * (a - b));
   };
 
   // Standard CHSH angles
-  const a1 = 0, a2 = 45;
-  const b1 = 22.5, b2 = 67.5;
+  const a1 = 0,
+    a2 = 45;
+  const b1 = 22.5,
+    b2 = 67.5;
 
   const E11 = measureCorrelation(a1, b1);
   const E12 = measureCorrelation(a1, b2);
@@ -496,9 +507,10 @@ function testCHSHInequality(state: StateVector): CHSHResult {
     classicalBound: 2,
     quantumBound: 2 * Math.sqrt(2),
     violatesClassical: chshValue > 2,
-    interpretation: chshValue > 2
-      ? `Violates classical bound by ${(chshValue - 2).toFixed(4)} - demonstrates quantum nonlocality`
-      : 'Within classical bound - state may not be maximally entangled'
+    interpretation:
+      chshValue > 2
+        ? `Violates classical bound by ${(chshValue - 2).toFixed(4)} - demonstrates quantum nonlocality`
+        : 'Within classical bound - state may not be maximally entangled',
   };
 }
 
@@ -528,7 +540,7 @@ function simulateTeleportation(alpha: Complex, beta: Complex): TeleportationResu
     '4. Alice applies CNOT and Hadamard to her qubits',
     '5. Alice measures her two qubits in computational basis',
     '6. Alice sends 2 classical bits to Bob',
-    '7. Bob applies corrections based on Alice\'s measurement'
+    "7. Bob applies corrections based on Alice's measurement",
   ];
 
   // Simulate random measurement outcome
@@ -539,11 +551,20 @@ function simulateTeleportation(alpha: Complex, beta: Complex): TeleportationResu
   // Determine correction
   let correction: string;
   switch (bellMeasurement) {
-    case '00': correction = 'None (I)'; break;
-    case '01': correction = 'Apply X'; break;
-    case '10': correction = 'Apply Z'; break;
-    case '11': correction = 'Apply ZX'; break;
-    default: correction = 'None';
+    case '00':
+      correction = 'None (I)';
+      break;
+    case '01':
+      correction = 'Apply X';
+      break;
+    case '10':
+      correction = 'Apply Z';
+      break;
+    case '11':
+      correction = 'Apply ZX';
+      break;
+    default:
+      correction = 'None';
   }
 
   return {
@@ -552,7 +573,7 @@ function simulateTeleportation(alpha: Complex, beta: Complex): TeleportationResu
     correction,
     finalState: `${cToString(a)}|0⟩ + ${cToString(b)}|1⟩ (teleported to Bob)`,
     protocol,
-    fidelity: 1.0 // Perfect teleportation
+    fidelity: 1.0, // Perfect teleportation
   };
 }
 
@@ -588,40 +609,51 @@ Operations:
     properties: {
       operation: {
         type: 'string',
-        enum: ['create_bell', 'create_ghz', 'create_w', 'measure_entanglement', 'chsh_test', 'teleport', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'create_bell',
+          'create_ghz',
+          'create_w',
+          'measure_entanglement',
+          'chsh_test',
+          'teleport',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       bell_type: {
         type: 'string',
         enum: ['phi+', 'phi-', 'psi+', 'psi-'],
-        description: 'Type of Bell state'
+        description: 'Type of Bell state',
       },
       num_qubits: {
         type: 'number',
-        description: 'Number of qubits for GHZ/W states (2-8)'
+        description: 'Number of qubits for GHZ/W states (2-8)',
       },
       alpha_re: {
         type: 'number',
-        description: 'Real part of α for teleportation'
+        description: 'Real part of α for teleportation',
       },
       alpha_im: {
         type: 'number',
-        description: 'Imaginary part of α for teleportation'
+        description: 'Imaginary part of α for teleportation',
       },
       beta_re: {
         type: 'number',
-        description: 'Real part of β for teleportation'
+        description: 'Real part of β for teleportation',
       },
       beta_im: {
         type: 'number',
-        description: 'Imaginary part of β for teleportation'
-      }
+        description: 'Imaginary part of β for teleportation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executequantumentanglement(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executequantumentanglement(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -637,30 +669,34 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'create_bell',
-            name: result.name,
-            symbol: result.symbol,
-            mathematicalForm: result.stateString,
-            stateVector: stateToString(result.state, 2),
-            measurementProbabilities: {
-              '|00⟩': (probs[0] * 100).toFixed(2) + '%',
-              '|01⟩': (probs[1] * 100).toFixed(2) + '%',
-              '|10⟩': (probs[2] * 100).toFixed(2) + '%',
-              '|11⟩': (probs[3] * 100).toFixed(2) + '%'
+          content: JSON.stringify(
+            {
+              operation: 'create_bell',
+              name: result.name,
+              symbol: result.symbol,
+              mathematicalForm: result.stateString,
+              stateVector: stateToString(result.state, 2),
+              measurementProbabilities: {
+                '|00⟩': (probs[0] * 100).toFixed(2) + '%',
+                '|01⟩': (probs[1] * 100).toFixed(2) + '%',
+                '|10⟩': (probs[2] * 100).toFixed(2) + '%',
+                '|11⟩': (probs[3] * 100).toFixed(2) + '%',
+              },
+              entanglement: {
+                concurrence: measures.concurrence.toFixed(4),
+                vonNeumannEntropy: measures.vonNeumannEntropy.toFixed(4) + ' bits',
+                isMaximallyEntangled: measures.isMaximallyEntangled,
+              },
+              circuit: result.circuit,
+              properties: [
+                'Cannot be written as product state |ψ₁⟩⊗|ψ₂⟩',
+                'Measuring one qubit instantly determines the other',
+                'Correlations stronger than any classical system',
+              ],
             },
-            entanglement: {
-              concurrence: measures.concurrence.toFixed(4),
-              vonNeumannEntropy: measures.vonNeumannEntropy.toFixed(4) + ' bits',
-              isMaximallyEntangled: measures.isMaximallyEntangled
-            },
-            circuit: result.circuit,
-            properties: [
-              'Cannot be written as product state |ψ₁⟩⊗|ψ₂⟩',
-              'Measuring one qubit instantly determines the other',
-              'Correlations stronger than any classical system'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -680,21 +716,25 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'create_ghz',
-            name: result.name,
-            mathematicalForm: result.stateString,
-            nQubits: result.nQubits,
-            measurementProbabilities: nonZeroProbs,
-            circuit: result.circuit,
-            properties: [
-              'Maximally entangled state of n qubits',
-              `Superposition of |${'0'.repeat(nQubits)}⟩ and |${'1'.repeat(nQubits)}⟩`,
-              'All qubits are correlated - measuring one determines all others',
-              'Used in quantum error correction and secret sharing'
-            ],
-            robustness: 'Fragile - single qubit loss destroys entanglement'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'create_ghz',
+              name: result.name,
+              mathematicalForm: result.stateString,
+              nQubits: result.nQubits,
+              measurementProbabilities: nonZeroProbs,
+              circuit: result.circuit,
+              properties: [
+                'Maximally entangled state of n qubits',
+                `Superposition of |${'0'.repeat(nQubits)}⟩ and |${'1'.repeat(nQubits)}⟩`,
+                'All qubits are correlated - measuring one determines all others',
+                'Used in quantum error correction and secret sharing',
+              ],
+              robustness: 'Fragile - single qubit loss destroys entanglement',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -714,22 +754,26 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'create_w',
-            name: result.name,
-            mathematicalForm: result.stateString,
-            nQubits: result.nQubits,
-            measurementProbabilities: nonZeroProbs,
-            circuit: result.circuit,
-            properties: [
-              'Symmetric entangled state with exactly one |1⟩',
-              'Each qubit has equal probability of being |1⟩',
-              'Pairwise entanglement preserved after qubit loss',
-              'Used in quantum communication and voting'
-            ],
-            robustness: 'Robust - entanglement partially survives qubit loss',
-            comparisonToGHZ: 'W state is more robust but less entangled than GHZ'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'create_w',
+              name: result.name,
+              mathematicalForm: result.stateString,
+              nQubits: result.nQubits,
+              measurementProbabilities: nonZeroProbs,
+              circuit: result.circuit,
+              properties: [
+                'Symmetric entangled state with exactly one |1⟩',
+                'Each qubit has equal probability of being |1⟩',
+                'Pairwise entanglement preserved after qubit loss',
+                'Used in quantum communication and voting',
+              ],
+              robustness: 'Robust - entanglement partially survives qubit loss',
+              comparisonToGHZ: 'W state is more robust but less entangled than GHZ',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -740,39 +784,43 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'measure_entanglement',
-            state: bellState.symbol,
-            measures: {
-              concurrence: {
-                value: measures.concurrence.toFixed(6),
-                range: '[0, 1]',
-                interpretation: 'C=1 for maximally entangled, C=0 for separable'
+          content: JSON.stringify(
+            {
+              operation: 'measure_entanglement',
+              state: bellState.symbol,
+              measures: {
+                concurrence: {
+                  value: measures.concurrence.toFixed(6),
+                  range: '[0, 1]',
+                  interpretation: 'C=1 for maximally entangled, C=0 for separable',
+                },
+                entanglementOfFormation: {
+                  value: measures.entanglementOfFormation.toFixed(6) + ' ebits',
+                  range: '[0, 1]',
+                  interpretation: 'Minimum entanglement needed to create the state',
+                },
+                vonNeumannEntropy: {
+                  value: measures.vonNeumannEntropy.toFixed(6) + ' bits',
+                  range: '[0, 1]',
+                  interpretation: 'Uncertainty in reduced density matrix',
+                },
+                linearEntropy: {
+                  value: measures.linearEntropy.toFixed(6),
+                  range: '[0, 0.5]',
+                  interpretation: 'Measure of mixedness (0 for pure state)',
+                },
+                negativity: {
+                  value: measures.negativity.toFixed(6),
+                  range: '[0, 0.5]',
+                  interpretation: 'Violation of positive partial transpose',
+                },
               },
-              entanglementOfFormation: {
-                value: measures.entanglementOfFormation.toFixed(6) + ' ebits',
-                range: '[0, 1]',
-                interpretation: 'Minimum entanglement needed to create the state'
-              },
-              vonNeumannEntropy: {
-                value: measures.vonNeumannEntropy.toFixed(6) + ' bits',
-                range: '[0, 1]',
-                interpretation: 'Uncertainty in reduced density matrix'
-              },
-              linearEntropy: {
-                value: measures.linearEntropy.toFixed(6),
-                range: '[0, 0.5]',
-                interpretation: 'Measure of mixedness (0 for pure state)'
-              },
-              negativity: {
-                value: measures.negativity.toFixed(6),
-                range: '[0, 0.5]',
-                interpretation: 'Violation of positive partial transpose'
-              }
+              isMaximallyEntangled: measures.isMaximallyEntangled,
+              note: 'All measures are equivalent for pure 2-qubit states',
             },
-            isMaximallyEntangled: measures.isMaximallyEntangled,
-            note: 'All measures are equivalent for pure 2-qubit states'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -783,27 +831,31 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'chsh_test',
-            state: bellState.symbol,
-            inequality: '|⟨A₁B₁⟩ + ⟨A₁B₂⟩ + ⟨A₂B₁⟩ - ⟨A₂B₂⟩| ≤ S',
-            results: {
-              measuredValue: chshResult.value.toFixed(6),
-              classicalBound: chshResult.classicalBound.toFixed(6) + ' (Bell inequality)',
-              quantumBound: chshResult.quantumBound.toFixed(6) + " (Tsirelson's bound)"
+          content: JSON.stringify(
+            {
+              operation: 'chsh_test',
+              state: bellState.symbol,
+              inequality: '|⟨A₁B₁⟩ + ⟨A₁B₂⟩ + ⟨A₂B₁⟩ - ⟨A₂B₂⟩| ≤ S',
+              results: {
+                measuredValue: chshResult.value.toFixed(6),
+                classicalBound: chshResult.classicalBound.toFixed(6) + ' (Bell inequality)',
+                quantumBound: chshResult.quantumBound.toFixed(6) + " (Tsirelson's bound)",
+              },
+              violatesClassical: chshResult.violatesClassical,
+              interpretation: chshResult.interpretation,
+              measurementAngles: {
+                alice: ['0°', '45°'],
+                bob: ['22.5°', '67.5°'],
+              },
+              significance: [
+                'Violation proves quantum mechanics cannot be explained by local hidden variables',
+                'Demonstrates quantum nonlocality - "spooky action at a distance"',
+                'Foundation for device-independent quantum cryptography',
+              ],
             },
-            violatesClassical: chshResult.violatesClassical,
-            interpretation: chshResult.interpretation,
-            measurementAngles: {
-              alice: ['0°', '45°'],
-              bob: ['22.5°', '67.5°']
-            },
-            significance: [
-              'Violation proves quantum mechanics cannot be explained by local hidden variables',
-              'Demonstrates quantum nonlocality - "spooky action at a distance"',
-              'Foundation for device-independent quantum cryptography'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -821,95 +873,107 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'teleport',
-            input: {
-              alpha: cToString(alpha),
-              beta: cToString(beta),
-              state: result.originalState
+          content: JSON.stringify(
+            {
+              operation: 'teleport',
+              input: {
+                alpha: cToString(alpha),
+                beta: cToString(beta),
+                state: result.originalState,
+              },
+              protocol: result.protocol,
+              simulatedRun: {
+                bellMeasurement: result.bellMeasurement,
+                classicalBitsSent: '2 bits',
+                correction: result.correction,
+                finalState: result.finalState,
+                fidelity: result.fidelity.toFixed(4),
+              },
+              keyPoints: [
+                'No faster-than-light communication (requires classical channel)',
+                'Original state is destroyed (no-cloning theorem)',
+                'Perfect fidelity with maximally entangled resource',
+                'Requires pre-shared entanglement',
+              ],
             },
-            protocol: result.protocol,
-            simulatedRun: {
-              bellMeasurement: result.bellMeasurement,
-              classicalBitsSent: '2 bits',
-              correction: result.correction,
-              finalState: result.finalState,
-              fidelity: result.fidelity.toFixed(4)
-            },
-            keyPoints: [
-              'No faster-than-light communication (requires classical channel)',
-              'Original state is destroyed (no-cloning theorem)',
-              'Perfect fidelity with maximally entangled resource',
-              'Requires pre-shared entanglement'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'quantum_entanglement',
-            description: 'Quantum entanglement simulation and analysis',
-            bellStates: {
-              'phi+': '|Φ+⟩ = (|00⟩ + |11⟩)/√2',
-              'phi-': '|Φ-⟩ = (|00⟩ - |11⟩)/√2',
-              'psi+': '|Ψ+⟩ = (|01⟩ + |10⟩)/√2',
-              'psi-': '|Ψ-⟩ = (|01⟩ - |10⟩)/√2'
+          content: JSON.stringify(
+            {
+              tool: 'quantum_entanglement',
+              description: 'Quantum entanglement simulation and analysis',
+              bellStates: {
+                'phi+': '|Φ+⟩ = (|00⟩ + |11⟩)/√2',
+                'phi-': '|Φ-⟩ = (|00⟩ - |11⟩)/√2',
+                'psi+': '|Ψ+⟩ = (|01⟩ + |10⟩)/√2',
+                'psi-': '|Ψ-⟩ = (|01⟩ - |10⟩)/√2',
+              },
+              multiQubitStates: {
+                GHZ: '(|00...0⟩ + |11...1⟩)/√2 - maximally entangled, fragile',
+                W: '(|100..⟩ + |010..⟩ + ...)/√n - robust to qubit loss',
+              },
+              entanglementMeasures: [
+                'Concurrence: [0,1], 1 for maximally entangled',
+                'Entanglement of Formation: ebits needed to create state',
+                'Von Neumann Entropy: information theoretic measure',
+                'Negativity: detects bound entanglement',
+              ],
+              applications: [
+                'Quantum teleportation',
+                'Quantum key distribution (QKD)',
+                'Superdense coding',
+                'Quantum error correction',
+                'Quantum computing',
+              ],
             },
-            multiQubitStates: {
-              GHZ: '(|00...0⟩ + |11...1⟩)/√2 - maximally entangled, fragile',
-              W: '(|100..⟩ + |010..⟩ + ...)/√n - robust to qubit loss'
-            },
-            entanglementMeasures: [
-              'Concurrence: [0,1], 1 for maximally entangled',
-              'Entanglement of Formation: ebits needed to create state',
-              'Von Neumann Entropy: information theoretic measure',
-              'Negativity: detects bound entanglement'
-            ],
-            applications: [
-              'Quantum teleportation',
-              'Quantum key distribution (QKD)',
-              'Superdense coding',
-              'Quantum error correction',
-              'Quantum computing'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Create Bell Phi+ state',
-                call: { operation: 'create_bell', bell_type: 'phi+' }
-              },
-              {
-                name: 'Create 4-qubit GHZ state',
-                call: { operation: 'create_ghz', num_qubits: 4 }
-              },
-              {
-                name: 'Create W state',
-                call: { operation: 'create_w', num_qubits: 3 }
-              },
-              {
-                name: 'Measure entanglement of Psi- state',
-                call: { operation: 'measure_entanglement', bell_type: 'psi-' }
-              },
-              {
-                name: 'Test CHSH inequality',
-                call: { operation: 'chsh_test', bell_type: 'phi+' }
-              },
-              {
-                name: 'Teleport state |+⟩ = (|0⟩+|1⟩)/√2',
-                call: { operation: 'teleport', alpha_re: 0.707, beta_re: 0.707 }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Create Bell Phi+ state',
+                  call: { operation: 'create_bell', bell_type: 'phi+' },
+                },
+                {
+                  name: 'Create 4-qubit GHZ state',
+                  call: { operation: 'create_ghz', num_qubits: 4 },
+                },
+                {
+                  name: 'Create W state',
+                  call: { operation: 'create_w', num_qubits: 3 },
+                },
+                {
+                  name: 'Measure entanglement of Psi- state',
+                  call: { operation: 'measure_entanglement', bell_type: 'psi-' },
+                },
+                {
+                  name: 'Test CHSH inequality',
+                  call: { operation: 'chsh_test', bell_type: 'phi+' },
+                },
+                {
+                  name: 'Teleport state |+⟩ = (|0⟩+|1⟩)/√2',
+                  call: { operation: 'teleport', alpha_re: 0.707, beta_re: 0.707 },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -917,7 +981,7 @@ export async function executequantumentanglement(toolCall: UnifiedToolCall): Pro
         return {
           toolCallId: id,
           content: `Error: Unknown operation '${operation}'. Valid: create_bell, create_ghz, create_w, measure_entanglement, chsh_test, teleport, info, examples`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

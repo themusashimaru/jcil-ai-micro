@@ -78,14 +78,14 @@ function semiEmpiricalMass(Z: number, A: number): number {
   const N = A - Z;
   const av = 15.67; // Volume term (MeV)
   const as = 17.23; // Surface term
-  const ac = 0.75;  // Coulomb term
-  const aa = 93.2;  // Asymmetry term
-  const ap = 12.0;  // Pairing term
+  const ac = 0.75; // Coulomb term
+  const aa = 93.2; // Asymmetry term
+  const ap = 12.0; // Pairing term
 
   const volume = av * A;
-  const surface = -as * Math.pow(A, 2/3);
-  const coulomb = -ac * Z * (Z - 1) / Math.pow(A, 1/3);
-  const asymmetry = -aa * Math.pow(N - Z, 2) / A;
+  const surface = -as * Math.pow(A, 2 / 3);
+  const coulomb = (-ac * Z * (Z - 1)) / Math.pow(A, 1 / 3);
+  const asymmetry = (-aa * Math.pow(N - Z, 2)) / A;
 
   let pairing = 0;
   if (Z % 2 === 0 && N % 2 === 0) pairing = ap / Math.sqrt(A);
@@ -155,7 +155,7 @@ const ISOTOPES: Record<string, { Z: number; A: number; mass: number; halfLife: n
   'He-4': { Z: 2, A: 4, mass: 4.002603, halfLife: null },
   'C-12': { Z: 6, A: 12, mass: 12.0, halfLife: null },
   'C-14': { Z: 6, A: 14, mass: 14.003242, halfLife: 1.81e11 },
-  'U-235': { Z: 92, A: 235, mass: 235.043930, halfLife: 2.22e16 },
+  'U-235': { Z: 92, A: 235, mass: 235.04393, halfLife: 2.22e16 },
   'U-238': { Z: 92, A: 238, mass: 238.050788, halfLife: 1.41e17 },
   'Pu-239': { Z: 94, A: 239, mass: 239.052163, halfLife: 7.61e11 },
 };
@@ -231,7 +231,7 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
             time_s: time,
             remaining_nuclei: remaining.toExponential(3),
             decayed_nuclei: decayed.toExponential(3),
-            fraction_remaining: (remaining / initial_amount * 100).toFixed(2) + '%',
+            fraction_remaining: ((remaining / initial_amount) * 100).toFixed(2) + '%',
             activity_Bq: act.toExponential(3),
             activity_Ci: (act / 3.7e10).toExponential(3),
           };
@@ -286,7 +286,12 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
       }
 
       case 'radiation': {
-        const { absorbed_dose = 0.001, quality_factor = 1, attenuation_coeff = 0.1, thickness = 10 } = args;
+        const {
+          absorbed_dose = 0.001,
+          quality_factor = 1,
+          attenuation_coeff = 0.1,
+          thickness = 10,
+        } = args;
         const equivalent = doseEquivalent(absorbed_dose, quality_factor);
         const hvl = halfValueLayer(attenuation_coeff);
         const attenuated = shieldingAttenuation(1, attenuation_coeff, thickness);
@@ -302,10 +307,10 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
           },
           quality_factors: {
             'gamma/X-rays': 1,
-            'beta': 1,
-            'protons': 2,
-            'alpha': 20,
-            'neutrons': '5-20 (energy dependent)',
+            beta: 1,
+            protons: 2,
+            alpha: 20,
+            neutrons: '5-20 (energy dependent)',
           },
           shielding: {
             attenuation_coefficient_per_cm: attenuation_coeff,
@@ -368,10 +373,12 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
             neutrons_N: N,
             mass_number_A: iso.A,
             atomic_mass_amu: iso.mass,
-            half_life: iso.halfLife ? {
-              seconds: iso.halfLife,
-              years: iso.halfLife / (365.25 * 24 * 3600),
-            } : 'Stable',
+            half_life: iso.halfLife
+              ? {
+                  seconds: iso.halfLife,
+                  years: iso.halfLife / (365.25 * 24 * 3600),
+                }
+              : 'Stable',
             binding_energy_per_nucleon_MeV: (semf / iso.A).toFixed(2),
           };
         } else {
@@ -391,11 +398,14 @@ export async function executeNuclearPhysics(toolCall: UnifiedToolCall): Promise<
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Nuclear Physics Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Nuclear Physics Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isNuclearPhysicsAvailable(): boolean { return true; }
-
-// ESLint unused function references
-void _timeToDecay; void _thresholdEnergy; void _fissionEnergy; void _fusionEnergy;
+export function isNuclearPhysicsAvailable(): boolean {
+  return true;
+}

@@ -12,14 +12,12 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPES AND INTERFACES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface FieldElement {
+export interface FieldElement {
   value: bigint;
   field: bigint;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Commitment {
+export interface Commitment {
   c: bigint;
   r: bigint;
 }
@@ -62,8 +60,7 @@ interface Wire {
   value?: bigint;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface QAP {
+export interface QAP {
   L: bigint[][];
   R: bigint[][];
   O: bigint[][];
@@ -118,7 +115,9 @@ interface InnerProductProof {
 // ============================================================================
 
 // Prime field for demonstrations (a small but secure-ish prime)
-const PRIME = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
+const PRIME = BigInt(
+  '21888242871839275222246405745257275088548364400416034343698204186575808495617'
+);
 const GENERATOR = BigInt(7);
 
 // Modular arithmetic
@@ -187,13 +186,12 @@ function hash(...inputs: bigint[]): bigint {
 // SCHNORR IDENTIFICATION PROTOCOL
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function schnorrSetup(): { g: bigint; p: bigint; q: bigint } {
+export function schnorrSetup(): { g: bigint; p: bigint; q: bigint } {
   // Using pre-defined safe prime group
   return {
     g: GENERATOR,
     p: PRIME,
-    q: (PRIME - BigInt(1)) / BigInt(2)
+    q: (PRIME - BigInt(1)) / BigInt(2),
   };
 }
 
@@ -289,7 +287,7 @@ function sigmaOrProve(
     return {
       commitments: [commitment0, commitment1],
       challenges: [challenge0, fakeChallenge],
-      responses: [response0, fakeResponse]
+      responses: [response0, fakeResponse],
     };
   } else {
     // Know discrete log of z
@@ -307,7 +305,7 @@ function sigmaOrProve(
     return {
       commitments: [commitment0, commitment1],
       challenges: [fakeChallenge, challenge1],
-      responses: [fakeResponse, response1]
+      responses: [fakeResponse, response1],
     };
   }
 }
@@ -316,11 +314,7 @@ function sigmaOrProve(
 // RANGE PROOF (Simplified)
 // ============================================================================
 
-function simpleRangeProof(
-  value: bigint,
-  bits: number,
-  h: bigint
-): RangeProof {
+function simpleRangeProof(value: bigint, bits: number, h: bigint): RangeProof {
   // Prove value is in [0, 2^bits - 1]
   if (value < BigInt(0) || value >= BigInt(1) << BigInt(bits)) {
     throw new Error('Value out of range');
@@ -346,8 +340,12 @@ function simpleRangeProof(
   return { commitments, responses, challenges };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function verifyRangeProof(proof: RangeProof, _commitment: bigint, bits: number, _h: bigint): boolean {
+export function verifyRangeProof(
+  proof: RangeProof,
+  _commitment: bigint,
+  bits: number,
+  _h: bigint
+): boolean {
   const { commitments, challenges } = proof;
 
   if (commitments.length !== bits) return false;
@@ -412,7 +410,7 @@ function createCircuit(expression: string): ArithmeticCircuit {
       type: op === '*' ? 'mul' : 'add',
       left: 0,
       right: 1,
-      output: outputWire
+      output: outputWire,
     });
 
     return {
@@ -420,7 +418,7 @@ function createCircuit(expression: string): ArithmeticCircuit {
       wires,
       publicInputs,
       privateInputs,
-      output: outputWire
+      output: outputWire,
     };
   }
 
@@ -429,7 +427,7 @@ function createCircuit(expression: string): ArithmeticCircuit {
     wires,
     publicInputs,
     privateInputs,
-    output: 0
+    output: 0,
   };
 }
 
@@ -492,7 +490,7 @@ function snarkSetup(circuit: ArithmeticCircuit): {
 
   return {
     pk: { alpha, beta, delta, L },
-    vk: { alpha, beta, gamma, delta }
+    vk: { alpha, beta, gamma, delta },
   };
 }
 
@@ -524,20 +522,14 @@ function snarkProve(
   }
 
   // In real Groth16, these would be elliptic curve points
-  const piA: [bigint, bigint] = [
-    modAdd(pk.alpha, modMul(aSum, r)),
-    modMul(aSum, s)
-  ];
+  const piA: [bigint, bigint] = [modAdd(pk.alpha, modMul(aSum, r)), modMul(aSum, s)];
 
   const piB: [[bigint, bigint], [bigint, bigint]] = [
     [modAdd(pk.beta, modMul(bSum, r)), modMul(bSum, s)],
-    [modMul(bSum, r), modAdd(pk.beta, modMul(bSum, s))]
+    [modMul(bSum, r), modAdd(pk.beta, modMul(bSum, s))],
   ];
 
-  const piC: [bigint, bigint] = [
-    modMul(cSum, modAdd(r, s)),
-    modDiv(cSum, pk.delta)
-  ];
+  const piC: [bigint, bigint] = [modMul(cSum, modAdd(r, s)), modDiv(cSum, pk.delta)];
 
   return { piA, piB, piC };
 }
@@ -546,8 +538,7 @@ function modDiv(a: bigint, b: bigint, p: bigint = PRIME): bigint {
   return modMul(a, modInverse(b, p), p);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function snarkVerify(
+export function snarkVerify(
   publicInputs: bigint[],
   proof: SNARKProof,
   vk: { alpha: bigint; beta: bigint; gamma: bigint; delta: bigint }
@@ -576,7 +567,7 @@ function starkSetup(_traceLength: number): {
   return {
     fieldSize: PRIME,
     blowupFactor: 4,
-    numQueries: 20
+    numQueries: 20,
   };
 }
 
@@ -597,7 +588,7 @@ function computeTrace(program: string, input: bigint[]): bigint[] {
 function merkleCommit(values: bigint[]): { root: bigint; tree: bigint[][] } {
   const n = values.length;
   const depth = Math.ceil(Math.log2(n)) + 1;
-  const tree: bigint[][] = [values.map(v => hash(v))];
+  const tree: bigint[][] = [values.map((v) => hash(v))];
 
   for (let d = 1; d < depth; d++) {
     const level: bigint[] = [];
@@ -613,10 +604,7 @@ function merkleCommit(values: bigint[]): { root: bigint; tree: bigint[][] } {
   return { root: tree[tree.length - 1][0], tree };
 }
 
-function starkProve(
-  trace: bigint[],
-  constraints: ((values: bigint[]) => bigint)[]
-): STARKProof {
+function starkProve(trace: bigint[], constraints: ((values: bigint[]) => bigint)[]): STARKProof {
   // Commit to trace
   const { root: traceCommitment, tree: traceTree } = merkleCommit(trace);
 
@@ -640,7 +628,7 @@ function starkProve(
       position,
       traceValue: trace[position],
       constraintValue: constraintEvals[position] || BigInt(0),
-      merkleProof: getMerkleProof(traceTree, position)
+      merkleProof: getMerkleProof(traceTree, position),
     });
   }
 
@@ -651,7 +639,7 @@ function starkProve(
     traceCommitment,
     constraintCommitment,
     queries,
-    friProof
+    friProof,
   };
 }
 
@@ -700,15 +688,11 @@ function friProtocol(poly: bigint[]): FRIProof {
   return {
     commitments,
     queries,
-    finalPoly: currentPoly
+    finalPoly: currentPoly,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function starkVerify(
-  proof: STARKProof,
-  _publicInput: bigint[]
-): boolean {
+export function starkVerify(proof: STARKProof, _publicInput: bigint[]): boolean {
   // Verify Merkle proofs for queries
   for (const query of proof.queries) {
     const leafHash = hash(query.traceValue);
@@ -771,7 +755,7 @@ function bulletproofSetup(n: number): {
     G,
     H,
     g: [GENERATOR, modPow(GENERATOR, BigInt(2))],
-    h: [modPow(GENERATOR, BigInt(3)), modPow(GENERATOR, BigInt(4))]
+    h: [modPow(GENERATOR, BigInt(3)), modPow(GENERATOR, BigInt(4))],
   };
 }
 
@@ -783,10 +767,7 @@ function innerProduct(a: bigint[], b: bigint[]): bigint {
   return sum;
 }
 
-function bulletproofRangeProve(
-  value: bigint,
-  bits: number
-): BulletproofRangeProof {
+function bulletproofRangeProve(value: bigint, bits: number): BulletproofRangeProof {
   // Decompose value into bits
   const aL: bigint[] = [];
   const aR: bigint[] = [];
@@ -842,12 +823,12 @@ function bulletproofRangeProve(
 
   const T1: [bigint, bigint] = [
     modMul(modPow(setup.g[0], t1), modPow(setup.h[0], tau1)),
-    modMul(modPow(setup.g[1], t1), modPow(setup.h[1], tau1))
+    modMul(modPow(setup.g[1], t1), modPow(setup.h[1], tau1)),
   ];
 
   const T2: [bigint, bigint] = [
     modMul(modPow(setup.g[0], t2), modPow(setup.h[0], tau2)),
-    modMul(modPow(setup.g[1], t2), modPow(setup.h[1], tau2))
+    modMul(modPow(setup.g[1], t2), modPow(setup.h[1], tau2)),
   ];
 
   // Challenge x
@@ -867,7 +848,7 @@ function bulletproofRangeProve(
     T2,
     taux,
     mu,
-    innerProductProof
+    innerProductProof,
   };
 }
 
@@ -879,8 +860,7 @@ function computeInnerProductProof(
   _z: bigint,
   _x: bigint
 ): InnerProductProof {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const n = a.length;
+  const _n = a.length;
   const L: [bigint, bigint][] = [];
   const R: [bigint, bigint][] = [];
 
@@ -920,7 +900,7 @@ function computeInnerProductProof(
     L,
     R,
     a: aCurrent[0] || BigInt(0),
-    b: bCurrent[0] || BigInt(0)
+    b: bCurrent[0] || BigInt(0),
   };
 }
 
@@ -928,8 +908,7 @@ function computeInnerProductProof(
 // PLONK (Simplified)
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface PlonkCircuit {
+export interface PlonkCircuit {
   qL: bigint[];
   qR: bigint[];
   qO: bigint[];
@@ -940,8 +919,7 @@ interface PlonkCircuit {
   sigma3: number[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function plonkSetup(circuit: PlonkCircuit): {
+export function plonkSetup(circuit: PlonkCircuit): {
   srs: bigint[];
   verifierKey: { n: number; omega: bigint };
 } {
@@ -961,7 +939,7 @@ function plonkSetup(circuit: PlonkCircuit): {
 
   return {
     srs,
-    verifierKey: { n, omega }
+    verifierKey: { n, omega },
   };
 }
 
@@ -971,71 +949,80 @@ function plonkSetup(circuit: PlonkCircuit): {
 
 export const zeroknowledgeTool: UnifiedTool = {
   name: 'zero_knowledge',
-  description: 'Zero-knowledge proofs - Schnorr, Pedersen commitments, range proofs, zk-SNARKs, zk-STARKs, Bulletproofs',
+  description:
+    'Zero-knowledge proofs - Schnorr, Pedersen commitments, range proofs, zk-SNARKs, zk-STARKs, Bulletproofs',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'schnorr_prove', 'schnorr_verify',
-          'pedersen_commit', 'pedersen_verify',
-          'range_proof', 'range_verify',
-          'snark_setup', 'snark_prove', 'snark_verify',
-          'stark_setup', 'stark_prove', 'stark_verify',
-          'bulletproof_range', 'bulletproof_verify',
+          'schnorr_prove',
+          'schnorr_verify',
+          'pedersen_commit',
+          'pedersen_verify',
+          'range_proof',
+          'range_verify',
+          'snark_setup',
+          'snark_prove',
+          'snark_verify',
+          'stark_setup',
+          'stark_prove',
+          'stark_verify',
+          'bulletproof_range',
+          'bulletproof_verify',
           'or_proof',
-          'info'
+          'info',
         ],
-        description: 'ZKP operation to perform'
+        description: 'ZKP operation to perform',
       },
       proof_system: {
         type: 'string',
         enum: ['schnorr', 'pedersen', 'range', 'snark', 'stark', 'bulletproof', 'sigma'],
-        description: 'Proof system type'
+        description: 'Proof system type',
       },
       secret: {
         type: 'string',
-        description: 'Secret value (as decimal string for bigint)'
+        description: 'Secret value (as decimal string for bigint)',
       },
       public_key: {
         type: 'string',
-        description: 'Public key (as decimal string)'
+        description: 'Public key (as decimal string)',
       },
       value: {
         type: 'string',
-        description: 'Value to prove/commit (as decimal string)'
+        description: 'Value to prove/commit (as decimal string)',
       },
       bits: {
         type: 'number',
-        description: 'Number of bits for range proof'
+        description: 'Number of bits for range proof',
       },
       circuit: {
         type: 'string',
-        description: 'Arithmetic circuit expression (e.g., "x * y")'
+        description: 'Arithmetic circuit expression (e.g., "x * y")',
       },
       witness: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Witness values (array of decimal strings)'
+        description: 'Witness values (array of decimal strings)',
       },
       proof: {
         type: 'object',
-        description: 'Proof object for verification'
+        description: 'Proof object for verification',
       },
       program: {
         type: 'string',
         enum: ['fibonacci', 'hash', 'custom'],
-        description: 'STARK program type'
+        description: 'STARK program type',
       },
       input: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Program input values'
-      }
+        description: 'Program input values',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -1056,17 +1043,22 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'schnorr_prove',
-            publicKey: effectivePK.toString(),
-            proof: {
-              commitment: proof.commitment.toString(),
-              challenge: proof.challenge.toString(),
-              response: proof.response.toString()
+          content: JSON.stringify(
+            {
+              operation: 'schnorr_prove',
+              publicKey: effectivePK.toString(),
+              proof: {
+                commitment: proof.commitment.toString(),
+                challenge: proof.challenge.toString(),
+                response: proof.response.toString(),
+              },
+              description:
+                'Schnorr identification proof: proves knowledge of discrete log without revealing it',
+              security: 'Based on discrete logarithm problem hardness',
             },
-            description: 'Schnorr identification proof: proves knowledge of discrete log without revealing it',
-            security: 'Based on discrete logarithm problem hardness'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1075,20 +1067,26 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
         const proof: SchnorrProof = {
           commitment: BigInt(args.proof?.commitment || '0'),
           challenge: BigInt(args.proof?.challenge || '0'),
-          response: BigInt(args.proof?.response || '0')
+          response: BigInt(args.proof?.response || '0'),
         };
 
         const valid = schnorrVerify(publicKey, proof);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'schnorr_verify',
-            valid,
-            publicKey: publicKey.toString(),
-            verification: valid ? 'Proof accepted: prover knows the discrete log' : 'Proof rejected',
-            equation: 'g^response = commitment * publicKey^challenge'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'schnorr_verify',
+              valid,
+              publicKey: publicKey.toString(),
+              verification: valid
+                ? 'Proof accepted: prover knows the discrete log'
+                : 'Proof rejected',
+              equation: 'g^response = commitment * publicKey^challenge',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1099,19 +1097,23 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'pedersen_commit',
-            value: value.toString(),
-            commitment: commitment.toString(),
-            randomness: randomness.toString(),
-            generatorH: h.toString(),
-            properties: {
-              hiding: 'Computationally hiding - commitment reveals nothing about value',
-              binding: 'Computationally binding - cannot open to different value',
-              homomorphic: 'Commit(a) * Commit(b) = Commit(a + b)'
+          content: JSON.stringify(
+            {
+              operation: 'pedersen_commit',
+              value: value.toString(),
+              commitment: commitment.toString(),
+              randomness: randomness.toString(),
+              generatorH: h.toString(),
+              properties: {
+                hiding: 'Computationally hiding - commitment reveals nothing about value',
+                binding: 'Computationally binding - cannot open to different value',
+                homomorphic: 'Commit(a) * Commit(b) = Commit(a + b)',
+              },
+              formula: 'C = g^value * h^randomness',
             },
-            formula: 'C = g^value * h^randomness'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1119,17 +1121,25 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
         const commitment = BigInt(args.proof?.commitment || '0');
         const value = BigInt(args.value || '0');
         const randomness = BigInt(args.proof?.randomness || '0');
-        const h = BigInt(args.proof?.generatorH || modPow(GENERATOR, randomFieldElement()).toString());
+        const h = BigInt(
+          args.proof?.generatorH || modPow(GENERATOR, randomFieldElement()).toString()
+        );
 
         const valid = pedersenVerify(commitment, value, randomness, h);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'pedersen_verify',
-            valid,
-            message: valid ? 'Commitment opens correctly to the claimed value' : 'Invalid opening'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'pedersen_verify',
+              valid,
+              message: valid
+                ? 'Commitment opens correctly to the claimed value'
+                : 'Invalid opening',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1142,18 +1152,24 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'range_proof',
-            value: value.toString(),
-            range: `[0, ${(BigInt(1) << BigInt(bits)) - BigInt(1)}]`,
-            bits,
-            proof: {
-              numCommitments: proof.commitments.length,
-              commitmentHashes: proof.commitments.slice(0, 3).map(c => c.toString().slice(0, 20) + '...')
+          content: JSON.stringify(
+            {
+              operation: 'range_proof',
+              value: value.toString(),
+              range: `[0, ${(BigInt(1) << BigInt(bits)) - BigInt(1)}]`,
+              bits,
+              proof: {
+                numCommitments: proof.commitments.length,
+                commitmentHashes: proof.commitments
+                  .slice(0, 3)
+                  .map((c) => c.toString().slice(0, 20) + '...'),
+              },
+              description: 'Proves value lies in range without revealing exact value',
+              technique: 'Bit decomposition with OR-proofs for each bit',
             },
-            description: 'Proves value lies in range without revealing exact value',
-            technique: 'Bit decomposition with OR-proofs for each bit'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1164,26 +1180,30 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'snark_setup',
-            circuit: circuitExpr,
-            circuitInfo: {
-              numGates: circuit.gates.length,
-              numWires: circuit.wires.length,
-              publicInputs: circuit.publicInputs.length,
-              privateInputs: circuit.privateInputs.length
+          content: JSON.stringify(
+            {
+              operation: 'snark_setup',
+              circuit: circuitExpr,
+              circuitInfo: {
+                numGates: circuit.gates.length,
+                numWires: circuit.wires.length,
+                publicInputs: circuit.publicInputs.length,
+                privateInputs: circuit.privateInputs.length,
+              },
+              provingKey: {
+                alpha: pk.alpha.toString().slice(0, 20) + '...',
+                beta: pk.beta.toString().slice(0, 20) + '...',
+              },
+              verificationKey: {
+                alpha: vk.alpha.toString().slice(0, 20) + '...',
+                beta: vk.beta.toString().slice(0, 20) + '...',
+              },
+              warning: 'TRUSTED SETUP - toxic waste must be destroyed!',
+              description: 'zk-SNARK trusted setup generates proving and verification keys',
             },
-            provingKey: {
-              alpha: pk.alpha.toString().slice(0, 20) + '...',
-              beta: pk.beta.toString().slice(0, 20) + '...'
-            },
-            verificationKey: {
-              alpha: vk.alpha.toString().slice(0, 20) + '...',
-              beta: vk.beta.toString().slice(0, 20) + '...'
-            },
-            warning: 'TRUSTED SETUP - toxic waste must be destroyed!',
-            description: 'zk-SNARK trusted setup generates proving and verification keys'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1197,21 +1217,25 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'snark_prove',
-            circuit: circuitExpr,
-            witness: witness.map((w: bigint) => w.toString()),
-            proof: {
-              piA: proof.piA.map(x => x.toString().slice(0, 20) + '...'),
-              piB: proof.piB.map(row => row.map(x => x.toString().slice(0, 20) + '...')),
-              piC: proof.piC.map(x => x.toString().slice(0, 20) + '...')
+          content: JSON.stringify(
+            {
+              operation: 'snark_prove',
+              circuit: circuitExpr,
+              witness: witness.map((w: bigint) => w.toString()),
+              proof: {
+                piA: proof.piA.map((x) => x.toString().slice(0, 20) + '...'),
+                piB: proof.piB.map((row) => row.map((x) => x.toString().slice(0, 20) + '...')),
+                piC: proof.piC.map((x) => x.toString().slice(0, 20) + '...'),
+              },
+              properties: {
+                succinctness: 'Proof size is constant regardless of computation size',
+                nonInteractive: 'Single message from prover to verifier',
+                argumentOfKnowledge: 'Prover must know witness to create valid proof',
+              },
             },
-            properties: {
-              succinctness: 'Proof size is constant regardless of computation size',
-              nonInteractive: 'Single message from prover to verifier',
-              argumentOfKnowledge: 'Prover must know witness to create valid proof'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1221,16 +1245,24 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'stark_setup',
-            parameters: setup,
-            advantages: {
-              noTrustedSetup: 'Uses public randomness only',
-              postQuantum: 'Security based on collision-resistant hashing',
-              scalable: 'Verification time logarithmic in computation size'
+          content: JSON.stringify(
+            {
+              operation: 'stark_setup',
+              parameters: setup,
+              advantages: {
+                noTrustedSetup: 'Uses public randomness only',
+                postQuantum: 'Security based on collision-resistant hashing',
+                scalable: 'Verification time logarithmic in computation size',
+              },
+              components: [
+                'Algebraic Intermediate Representation (AIR)',
+                'FRI low-degree testing',
+                'Merkle tree commitments',
+              ],
             },
-            components: ['Algebraic Intermediate Representation (AIR)', 'FRI low-degree testing', 'Merkle tree commitments']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1240,27 +1272,31 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         const trace = computeTrace(program, input);
         const constraints = [
-          (vals: bigint[]) => modSub(vals[1], modAdd(vals[0], trace[0] || BigInt(0)))
+          (vals: bigint[]) => modSub(vals[1], modAdd(vals[0], trace[0] || BigInt(0))),
         ];
 
         const proof = starkProve(trace, constraints);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'stark_prove',
-            program,
-            input: input.map((x: bigint) => x.toString()),
-            traceLength: trace.length,
-            proof: {
-              traceCommitment: proof.traceCommitment.toString().slice(0, 20) + '...',
-              constraintCommitment: proof.constraintCommitment.toString().slice(0, 20) + '...',
-              numQueries: proof.queries.length,
-              friRounds: proof.friProof.commitments.length
+          content: JSON.stringify(
+            {
+              operation: 'stark_prove',
+              program,
+              input: input.map((x: bigint) => x.toString()),
+              traceLength: trace.length,
+              proof: {
+                traceCommitment: proof.traceCommitment.toString().slice(0, 20) + '...',
+                constraintCommitment: proof.constraintCommitment.toString().slice(0, 20) + '...',
+                numQueries: proof.queries.length,
+                friRounds: proof.friProof.commitments.length,
+              },
+              transparency: 'No trusted setup required',
+              security: 'Collision-resistant hash function',
             },
-            transparency: 'No trusted setup required',
-            security: 'Collision-resistant hash function'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1272,23 +1308,27 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'bulletproof_range',
-            value: value.toString(),
-            range: `[0, ${(BigInt(1) << BigInt(bits)) - BigInt(1)}]`,
-            bits,
-            proofSize: {
-              curvePoints: 4 + 2 * Math.ceil(Math.log2(bits)),
-              scalars: 5,
-              total: `${4 + 2 * Math.ceil(Math.log2(bits))} points, 5 scalars`
+          content: JSON.stringify(
+            {
+              operation: 'bulletproof_range',
+              value: value.toString(),
+              range: `[0, ${(BigInt(1) << BigInt(bits)) - BigInt(1)}]`,
+              bits,
+              proofSize: {
+                curvePoints: 4 + 2 * Math.ceil(Math.log2(bits)),
+                scalars: 5,
+                total: `${4 + 2 * Math.ceil(Math.log2(bits))} points, 5 scalars`,
+              },
+              advantages: {
+                noTrustedSetup: 'Uses nothing-up-my-sleeve generators',
+                logarithmicSize: 'Proof size O(log n) in range bits',
+                aggregatable: 'Multiple proofs can be batched efficiently',
+              },
+              innerProductRounds: proof.innerProductProof.L.length,
             },
-            advantages: {
-              noTrustedSetup: 'Uses nothing-up-my-sleeve generators',
-              logarithmicSize: 'Proof size O(log n) in range bits',
-              aggregatable: 'Multiple proofs can be batched efficiently'
-            },
-            innerProductRounds: proof.innerProductProof.L.length
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1303,20 +1343,25 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'or_proof',
-            statement: 'Proves: know x such that y = g^x OR z = g^x',
-            targets: {
-              y: y.toString().slice(0, 20) + '...',
-              z: z.toString().slice(0, 20) + '...'
+          content: JSON.stringify(
+            {
+              operation: 'or_proof',
+              statement: 'Proves: know x such that y = g^x OR z = g^x',
+              targets: {
+                y: y.toString().slice(0, 20) + '...',
+                z: z.toString().slice(0, 20) + '...',
+              },
+              proof: {
+                commitments: proof.commitments.map((c) => c.toString().slice(0, 20) + '...'),
+                challengeSum:
+                  modAdd(proof.challenges[0], proof.challenges[1]).toString().slice(0, 20) + '...',
+              },
+              zeroKnowledge: 'Verifier learns nothing about which statement is true',
+              technique: 'Sigma protocol composition with simulated transcript',
             },
-            proof: {
-              commitments: proof.commitments.map(c => c.toString().slice(0, 20) + '...'),
-              challengeSum: modAdd(proof.challenges[0], proof.challenges[1]).toString().slice(0, 20) + '...'
-            },
-            zeroKnowledge: 'Verifier learns nothing about which statement is true',
-            technique: 'Sigma protocol composition with simulated transcript'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1324,58 +1369,67 @@ export async function executezeroknowledge(toolCall: UnifiedToolCall): Promise<U
       default: {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'zero_knowledge',
-            description: 'Zero-knowledge proof systems for proving statements without revealing information',
-            proofSystems: {
-              schnorr: {
-                description: 'Schnorr identification protocol',
-                security: 'Discrete logarithm assumption',
-                operations: ['schnorr_prove', 'schnorr_verify'],
-                useCase: 'Digital signatures, authentication'
+          content: JSON.stringify(
+            {
+              tool: 'zero_knowledge',
+              description:
+                'Zero-knowledge proof systems for proving statements without revealing information',
+              proofSystems: {
+                schnorr: {
+                  description: 'Schnorr identification protocol',
+                  security: 'Discrete logarithm assumption',
+                  operations: ['schnorr_prove', 'schnorr_verify'],
+                  useCase: 'Digital signatures, authentication',
+                },
+                pedersen: {
+                  description: 'Pedersen commitment scheme',
+                  properties: ['Hiding', 'Binding', 'Homomorphic'],
+                  operations: ['pedersen_commit', 'pedersen_verify'],
+                  useCase: 'Confidential transactions, voting',
+                },
+                rangeProof: {
+                  description: 'Prove value lies in range without revealing it',
+                  operations: ['range_proof', 'range_verify'],
+                  useCase: 'Confidential amounts, age verification',
+                },
+                snark: {
+                  description: 'Succinct Non-interactive ARgument of Knowledge',
+                  properties: [
+                    'Constant-size proofs',
+                    'Fast verification',
+                    'Requires trusted setup',
+                  ],
+                  operations: ['snark_setup', 'snark_prove', 'snark_verify'],
+                  useCase: 'Blockchain scalability, private computation',
+                },
+                stark: {
+                  description: 'Scalable Transparent ARgument of Knowledge',
+                  properties: ['No trusted setup', 'Post-quantum secure', 'Larger proofs'],
+                  operations: ['stark_setup', 'stark_prove', 'stark_verify'],
+                  useCase: 'Blockchain rollups, verifiable computation',
+                },
+                bulletproof: {
+                  description: 'Short proofs without trusted setup',
+                  properties: ['Logarithmic proof size', 'Aggregatable', 'No trusted setup'],
+                  operations: ['bulletproof_range', 'bulletproof_verify'],
+                  useCase: 'Confidential transactions in Monero/Mimblewimble',
+                },
+                sigma: {
+                  description: 'Three-move honest-verifier protocols',
+                  operations: ['or_proof'],
+                  useCase: 'Building block for complex proofs',
+                },
               },
-              pedersen: {
-                description: 'Pedersen commitment scheme',
-                properties: ['Hiding', 'Binding', 'Homomorphic'],
-                operations: ['pedersen_commit', 'pedersen_verify'],
-                useCase: 'Confidential transactions, voting'
+              concepts: {
+                soundness: 'Prover cannot convince verifier of false statement',
+                completeness: 'Honest prover can always convince verifier',
+                zeroKnowledge: 'Verifier learns nothing beyond validity',
+                fiatShamir: 'Transform interactive proof to non-interactive using hash',
               },
-              rangeProof: {
-                description: 'Prove value lies in range without revealing it',
-                operations: ['range_proof', 'range_verify'],
-                useCase: 'Confidential amounts, age verification'
-              },
-              snark: {
-                description: 'Succinct Non-interactive ARgument of Knowledge',
-                properties: ['Constant-size proofs', 'Fast verification', 'Requires trusted setup'],
-                operations: ['snark_setup', 'snark_prove', 'snark_verify'],
-                useCase: 'Blockchain scalability, private computation'
-              },
-              stark: {
-                description: 'Scalable Transparent ARgument of Knowledge',
-                properties: ['No trusted setup', 'Post-quantum secure', 'Larger proofs'],
-                operations: ['stark_setup', 'stark_prove', 'stark_verify'],
-                useCase: 'Blockchain rollups, verifiable computation'
-              },
-              bulletproof: {
-                description: 'Short proofs without trusted setup',
-                properties: ['Logarithmic proof size', 'Aggregatable', 'No trusted setup'],
-                operations: ['bulletproof_range', 'bulletproof_verify'],
-                useCase: 'Confidential transactions in Monero/Mimblewimble'
-              },
-              sigma: {
-                description: 'Three-move honest-verifier protocols',
-                operations: ['or_proof'],
-                useCase: 'Building block for complex proofs'
-              }
             },
-            concepts: {
-              soundness: 'Prover cannot convince verifier of false statement',
-              completeness: 'Honest prover can always convince verifier',
-              zeroKnowledge: 'Verifier learns nothing beyond validity',
-              fiatShamir: 'Transform interactive proof to non-interactive using hash'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
     }

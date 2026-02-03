@@ -25,7 +25,7 @@ interface Payoff {
 interface NormalFormGame {
   player1Strategies: Strategy[];
   player2Strategies: Strategy[];
-  payoffMatrix: Payoff[][];  // [p1 strategy][p2 strategy]
+  payoffMatrix: Payoff[][]; // [p1 strategy][p2 strategy]
   name?: string;
 }
 
@@ -38,7 +38,7 @@ function createGame(
   return {
     player1Strategies: p1Strategies.map((name, index) => ({ name, index })),
     player2Strategies: p2Strategies.map((name, index) => ({ name, index })),
-    payoffMatrix: payoffs.map(row => row.map(([p1, p2]) => ({ player1: p1, player2: p2 })))
+    payoffMatrix: payoffs.map((row) => row.map(([p1, p2]) => ({ player1: p1, player2: p2 }))),
   };
 }
 
@@ -128,11 +128,11 @@ function findMixedNashEquilibrium2x2(game: NormalFormGame): {
   const p2Denom = e - f - g + h;
 
   if (Math.abs(p1Denom) < 1e-10 || Math.abs(p2Denom) < 1e-10) {
-    return null;  // No interior mixed equilibrium
+    return null; // No interior mixed equilibrium
   }
 
-  const q = (d - c) / p1Denom;  // P2's probability of playing strategy 0
-  const p = (h - f) / p2Denom;  // P1's probability of playing strategy 0
+  const q = (d - c) / p1Denom; // P2's probability of playing strategy 0
+  const p = (h - f) / p2Denom; // P1's probability of playing strategy 0
 
   // Check if probabilities are valid (between 0 and 1)
   if (p < 0 || p > 1 || q < 0 || q > 1) {
@@ -140,13 +140,13 @@ function findMixedNashEquilibrium2x2(game: NormalFormGame): {
   }
 
   // Calculate expected payoffs
-  const expectedP1 = p * q * a + p * (1-q) * b + (1-p) * q * c + (1-p) * (1-q) * d;
-  const expectedP2 = p * q * e + p * (1-q) * f + (1-p) * q * g + (1-p) * (1-q) * h;
+  const expectedP1 = p * q * a + p * (1 - q) * b + (1 - p) * q * c + (1 - p) * (1 - q) * d;
+  const expectedP2 = p * q * e + p * (1 - q) * f + (1 - p) * q * g + (1 - p) * (1 - q) * h;
 
   return {
     p1Mix: [p, 1 - p],
     p2Mix: [q, 1 - q],
-    expectedPayoffs: { player1: expectedP1, player2: expectedP2 }
+    expectedPayoffs: { player1: expectedP1, player2: expectedP2 },
   };
 }
 
@@ -288,9 +288,10 @@ function findParetoOptimalOutcomes(game: NormalFormGame): [number, number][] {
   for (let i = 0; i < game.player1Strategies.length; i++) {
     for (let j = 0; j < game.player2Strategies.length; j++) {
       outcomes.push({
-        i, j,
+        i,
+        j,
         p1: game.payoffMatrix[i][j].player1,
-        p2: game.payoffMatrix[i][j].player2
+        p2: game.payoffMatrix[i][j].player2,
       });
     }
   }
@@ -304,8 +305,11 @@ function findParetoOptimalOutcomes(game: NormalFormGame): [number, number][] {
       if (outcome === other) continue;
 
       // Check if other Pareto-dominates outcome
-      if (other.p1 >= outcome.p1 && other.p2 >= outcome.p2 &&
-          (other.p1 > outcome.p1 || other.p2 > outcome.p2)) {
+      if (
+        other.p1 >= outcome.p1 &&
+        other.p2 >= outcome.p2 &&
+        (other.p1 > outcome.p1 || other.p2 > outcome.p2)
+      ) {
         isDominated = true;
         break;
       }
@@ -346,60 +350,132 @@ function formatPayoffMatrix(game: NormalFormGame): string {
 
 // Classic game examples
 const CLASSIC_GAMES: Record<string, NormalFormGame> = {
-  'prisoners_dilemma': {
-    player1Strategies: [{ name: 'Cooperate', index: 0 }, { name: 'Defect', index: 1 }],
-    player2Strategies: [{ name: 'Cooperate', index: 0 }, { name: 'Defect', index: 1 }],
-    payoffMatrix: [
-      [{ player1: -1, player2: -1 }, { player1: -3, player2: 0 }],
-      [{ player1: 0, player2: -3 }, { player1: -2, player2: -2 }]
+  prisoners_dilemma: {
+    player1Strategies: [
+      { name: 'Cooperate', index: 0 },
+      { name: 'Defect', index: 1 },
     ],
-    name: "Prisoner's Dilemma"
+    player2Strategies: [
+      { name: 'Cooperate', index: 0 },
+      { name: 'Defect', index: 1 },
+    ],
+    payoffMatrix: [
+      [
+        { player1: -1, player2: -1 },
+        { player1: -3, player2: 0 },
+      ],
+      [
+        { player1: 0, player2: -3 },
+        { player1: -2, player2: -2 },
+      ],
+    ],
+    name: "Prisoner's Dilemma",
   },
-  'battle_of_sexes': {
-    player1Strategies: [{ name: 'Opera', index: 0 }, { name: 'Football', index: 1 }],
-    player2Strategies: [{ name: 'Opera', index: 0 }, { name: 'Football', index: 1 }],
-    payoffMatrix: [
-      [{ player1: 3, player2: 2 }, { player1: 0, player2: 0 }],
-      [{ player1: 0, player2: 0 }, { player1: 2, player2: 3 }]
+  battle_of_sexes: {
+    player1Strategies: [
+      { name: 'Opera', index: 0 },
+      { name: 'Football', index: 1 },
     ],
-    name: 'Battle of the Sexes'
+    player2Strategies: [
+      { name: 'Opera', index: 0 },
+      { name: 'Football', index: 1 },
+    ],
+    payoffMatrix: [
+      [
+        { player1: 3, player2: 2 },
+        { player1: 0, player2: 0 },
+      ],
+      [
+        { player1: 0, player2: 0 },
+        { player1: 2, player2: 3 },
+      ],
+    ],
+    name: 'Battle of the Sexes',
   },
-  'chicken': {
-    player1Strategies: [{ name: 'Swerve', index: 0 }, { name: 'Straight', index: 1 }],
-    player2Strategies: [{ name: 'Swerve', index: 0 }, { name: 'Straight', index: 1 }],
-    payoffMatrix: [
-      [{ player1: 0, player2: 0 }, { player1: -1, player2: 1 }],
-      [{ player1: 1, player2: -1 }, { player1: -10, player2: -10 }]
+  chicken: {
+    player1Strategies: [
+      { name: 'Swerve', index: 0 },
+      { name: 'Straight', index: 1 },
     ],
-    name: 'Chicken (Game of Dare)'
+    player2Strategies: [
+      { name: 'Swerve', index: 0 },
+      { name: 'Straight', index: 1 },
+    ],
+    payoffMatrix: [
+      [
+        { player1: 0, player2: 0 },
+        { player1: -1, player2: 1 },
+      ],
+      [
+        { player1: 1, player2: -1 },
+        { player1: -10, player2: -10 },
+      ],
+    ],
+    name: 'Chicken (Game of Dare)',
   },
-  'matching_pennies': {
-    player1Strategies: [{ name: 'Heads', index: 0 }, { name: 'Tails', index: 1 }],
-    player2Strategies: [{ name: 'Heads', index: 0 }, { name: 'Tails', index: 1 }],
-    payoffMatrix: [
-      [{ player1: 1, player2: -1 }, { player1: -1, player2: 1 }],
-      [{ player1: -1, player2: 1 }, { player1: 1, player2: -1 }]
+  matching_pennies: {
+    player1Strategies: [
+      { name: 'Heads', index: 0 },
+      { name: 'Tails', index: 1 },
     ],
-    name: 'Matching Pennies'
+    player2Strategies: [
+      { name: 'Heads', index: 0 },
+      { name: 'Tails', index: 1 },
+    ],
+    payoffMatrix: [
+      [
+        { player1: 1, player2: -1 },
+        { player1: -1, player2: 1 },
+      ],
+      [
+        { player1: -1, player2: 1 },
+        { player1: 1, player2: -1 },
+      ],
+    ],
+    name: 'Matching Pennies',
   },
-  'stag_hunt': {
-    player1Strategies: [{ name: 'Stag', index: 0 }, { name: 'Hare', index: 1 }],
-    player2Strategies: [{ name: 'Stag', index: 0 }, { name: 'Hare', index: 1 }],
-    payoffMatrix: [
-      [{ player1: 4, player2: 4 }, { player1: 0, player2: 3 }],
-      [{ player1: 3, player2: 0 }, { player1: 3, player2: 3 }]
+  stag_hunt: {
+    player1Strategies: [
+      { name: 'Stag', index: 0 },
+      { name: 'Hare', index: 1 },
     ],
-    name: 'Stag Hunt'
+    player2Strategies: [
+      { name: 'Stag', index: 0 },
+      { name: 'Hare', index: 1 },
+    ],
+    payoffMatrix: [
+      [
+        { player1: 4, player2: 4 },
+        { player1: 0, player2: 3 },
+      ],
+      [
+        { player1: 3, player2: 0 },
+        { player1: 3, player2: 3 },
+      ],
+    ],
+    name: 'Stag Hunt',
   },
-  'coordination': {
-    player1Strategies: [{ name: 'A', index: 0 }, { name: 'B', index: 1 }],
-    player2Strategies: [{ name: 'A', index: 0 }, { name: 'B', index: 1 }],
-    payoffMatrix: [
-      [{ player1: 2, player2: 2 }, { player1: 0, player2: 0 }],
-      [{ player1: 0, player2: 0 }, { player1: 1, player2: 1 }]
+  coordination: {
+    player1Strategies: [
+      { name: 'A', index: 0 },
+      { name: 'B', index: 1 },
     ],
-    name: 'Coordination Game'
-  }
+    player2Strategies: [
+      { name: 'A', index: 0 },
+      { name: 'B', index: 1 },
+    ],
+    payoffMatrix: [
+      [
+        { player1: 2, player2: 2 },
+        { player1: 0, player2: 0 },
+      ],
+      [
+        { player1: 0, player2: 0 },
+        { player1: 1, player2: 1 },
+      ],
+    ],
+    name: 'Coordination Game',
+  },
 };
 
 export const payoffmatrixTool: UnifiedTool = {
@@ -424,40 +500,52 @@ Includes classic games:
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'analyze', 'nash', 'dominant', 'dominated', 'pareto', 'best_response', 'mixed', 'examples', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'create',
+          'analyze',
+          'nash',
+          'dominant',
+          'dominated',
+          'pareto',
+          'best_response',
+          'mixed',
+          'examples',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       game: {
         type: 'string',
-        enum: ['prisoners_dilemma', 'battle_of_sexes', 'chicken', 'matching_pennies', 'stag_hunt', 'coordination'],
-        description: 'Classic game to analyze'
+        enum: [
+          'prisoners_dilemma',
+          'battle_of_sexes',
+          'chicken',
+          'matching_pennies',
+          'stag_hunt',
+          'coordination',
+        ],
+        description: 'Classic game to analyze',
       },
       player1_strategies: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Player 1 strategy names'
+        description: 'Player 1 strategy names',
       },
       player2_strategies: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Player 2 strategy names'
+        description: 'Player 2 strategy names',
       },
       payoffs: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: {
-            type: 'array',
-            items: { type: 'number' }
-          }
-        },
-        description: 'Payoff matrix as [[[p1,p2],...],...]'
+        items: { type: 'array' },
+        description: 'Payoff matrix as 3D array of numbers [[[p1,p2],...],...]',
       },
       p1_strategy: { type: 'integer', description: 'Player 1 strategy index for best response' },
-      p2_strategy: { type: 'integer', description: 'Player 2 strategy index for best response' }
+      p2_strategy: { type: 'integer', description: 'Player 2 strategy index for best response' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -465,7 +553,15 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { operation, game: gameName, player1_strategies, player2_strategies, payoffs, p1_strategy, p2_strategy } = args;
+    const {
+      operation,
+      game: gameName,
+      player1_strategies,
+      player2_strategies,
+      payoffs,
+      p1_strategy,
+      p2_strategy,
+    } = args;
 
     // Get or create game
     let game: NormalFormGame;
@@ -482,16 +578,18 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
       case 'create': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            player1_strategies: game.player1Strategies.map(s => s.name),
-            player2_strategies: game.player2Strategies.map(s => s.name),
-            payoff_matrix: game.payoffMatrix.map(row =>
-              row.map(p => [p.player1, p.player2])
-            ),
-            formatted_matrix: formatPayoffMatrix(game),
-            interpretation: 'Payoffs shown as (Player1, Player2)'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              player1_strategies: game.player1Strategies.map((s) => s.name),
+              player2_strategies: game.player2Strategies.map((s) => s.name),
+              payoff_matrix: game.payoffMatrix.map((row) => row.map((p) => [p.player1, p.player2])),
+              formatted_matrix: formatPayoffMatrix(game),
+              interpretation: 'Payoffs shown as (Player1, Player2)',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -504,45 +602,55 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            formatted_matrix: formatPayoffMatrix(game),
-            analysis: {
-              pure_nash_equilibria: nashPure.map(([i, j]) => ({
-                strategies: [game.player1Strategies[i].name, game.player2Strategies[j].name],
-                payoffs: game.payoffMatrix[i][j]
-              })),
-              mixed_nash_equilibrium: nashMixed ? {
-                player1_mix: game.player1Strategies.map((s, i) => ({
-                  strategy: s.name,
-                  probability: nashMixed.p1Mix[i].toFixed(4)
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              formatted_matrix: formatPayoffMatrix(game),
+              analysis: {
+                pure_nash_equilibria: nashPure.map(([i, j]) => ({
+                  strategies: [game.player1Strategies[i].name, game.player2Strategies[j].name],
+                  payoffs: game.payoffMatrix[i][j],
                 })),
-                player2_mix: game.player2Strategies.map((s, i) => ({
-                  strategy: s.name,
-                  probability: nashMixed.p2Mix[i].toFixed(4)
+                mixed_nash_equilibrium: nashMixed
+                  ? {
+                      player1_mix: game.player1Strategies.map((s, i) => ({
+                        strategy: s.name,
+                        probability: nashMixed.p1Mix[i].toFixed(4),
+                      })),
+                      player2_mix: game.player2Strategies.map((s, i) => ({
+                        strategy: s.name,
+                        probability: nashMixed.p2Mix[i].toFixed(4),
+                      })),
+                      expected_payoffs: nashMixed.expectedPayoffs,
+                    }
+                  : 'Not applicable (not 2x2) or no interior equilibrium',
+                dominant_strategies: {
+                  player1: dominant.player1
+                    ? {
+                        strategy: game.player1Strategies[dominant.player1.strategy].name,
+                        type: dominant.player1.type,
+                      }
+                    : 'None',
+                  player2: dominant.player2
+                    ? {
+                        strategy: game.player2Strategies[dominant.player2.strategy].name,
+                        type: dominant.player2.type,
+                      }
+                    : 'None',
+                },
+                dominated_strategies: {
+                  player1: dominated.player1.map((i) => game.player1Strategies[i].name),
+                  player2: dominated.player2.map((j) => game.player2Strategies[j].name),
+                },
+                pareto_optimal_outcomes: pareto.map(([i, j]) => ({
+                  strategies: [game.player1Strategies[i].name, game.player2Strategies[j].name],
+                  payoffs: game.payoffMatrix[i][j],
                 })),
-                expected_payoffs: nashMixed.expectedPayoffs
-              } : 'Not applicable (not 2x2) or no interior equilibrium',
-              dominant_strategies: {
-                player1: dominant.player1 ? {
-                  strategy: game.player1Strategies[dominant.player1.strategy].name,
-                  type: dominant.player1.type
-                } : 'None',
-                player2: dominant.player2 ? {
-                  strategy: game.player2Strategies[dominant.player2.strategy].name,
-                  type: dominant.player2.type
-                } : 'None'
               },
-              dominated_strategies: {
-                player1: dominated.player1.map(i => game.player1Strategies[i].name),
-                player2: dominated.player2.map(j => game.player2Strategies[j].name)
-              },
-              pareto_optimal_outcomes: pareto.map(([i, j]) => ({
-                strategies: [game.player1Strategies[i].name, game.player2Strategies[j].name],
-                payoffs: game.payoffMatrix[i][j]
-              }))
-            }
-          }, null, 2)
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -552,20 +660,37 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            pure_strategy_nash_equilibria: nashPure.length > 0 ? nashPure.map(([i, j]) => ({
-              player1: game.player1Strategies[i].name,
-              player2: game.player2Strategies[j].name,
-              payoffs: { player1: game.payoffMatrix[i][j].player1, player2: game.payoffMatrix[i][j].player2 }
-            })) : 'None found',
-            mixed_strategy_nash_equilibrium: nashMixed ? {
-              player1_probabilities: game.player1Strategies.map((s, i) => `${s.name}: ${(nashMixed.p1Mix[i] * 100).toFixed(1)}%`),
-              player2_probabilities: game.player2Strategies.map((s, i) => `${s.name}: ${(nashMixed.p2Mix[i] * 100).toFixed(1)}%`),
-              expected_payoffs: nashMixed.expectedPayoffs
-            } : 'Not applicable or no interior equilibrium',
-            definition: 'Nash equilibrium: No player can improve by unilaterally changing strategy'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              pure_strategy_nash_equilibria:
+                nashPure.length > 0
+                  ? nashPure.map(([i, j]) => ({
+                      player1: game.player1Strategies[i].name,
+                      player2: game.player2Strategies[j].name,
+                      payoffs: {
+                        player1: game.payoffMatrix[i][j].player1,
+                        player2: game.payoffMatrix[i][j].player2,
+                      },
+                    }))
+                  : 'None found',
+              mixed_strategy_nash_equilibrium: nashMixed
+                ? {
+                    player1_probabilities: game.player1Strategies.map(
+                      (s, i) => `${s.name}: ${(nashMixed.p1Mix[i] * 100).toFixed(1)}%`
+                    ),
+                    player2_probabilities: game.player2Strategies.map(
+                      (s, i) => `${s.name}: ${(nashMixed.p2Mix[i] * 100).toFixed(1)}%`
+                    ),
+                    expected_payoffs: nashMixed.expectedPayoffs,
+                  }
+                : 'Not applicable or no interior equilibrium',
+              definition:
+                'Nash equilibrium: No player can improve by unilaterally changing strategy',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -574,25 +699,35 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            dominant_strategies: {
-              player1: dominant.player1 ? {
-                strategy: game.player1Strategies[dominant.player1.strategy].name,
-                type: dominant.player1.type,
-                definition: dominant.player1.type === 'strict'
-                  ? 'Always better regardless of opponent\'s choice'
-                  : 'Never worse and sometimes better'
-              } : 'No dominant strategy',
-              player2: dominant.player2 ? {
-                strategy: game.player2Strategies[dominant.player2.strategy].name,
-                type: dominant.player2.type,
-                definition: dominant.player2.type === 'strict'
-                  ? 'Always better regardless of opponent\'s choice'
-                  : 'Never worse and sometimes better'
-              } : 'No dominant strategy'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              dominant_strategies: {
+                player1: dominant.player1
+                  ? {
+                      strategy: game.player1Strategies[dominant.player1.strategy].name,
+                      type: dominant.player1.type,
+                      definition:
+                        dominant.player1.type === 'strict'
+                          ? "Always better regardless of opponent's choice"
+                          : 'Never worse and sometimes better',
+                    }
+                  : 'No dominant strategy',
+                player2: dominant.player2
+                  ? {
+                      strategy: game.player2Strategies[dominant.player2.strategy].name,
+                      type: dominant.player2.type,
+                      definition:
+                        dominant.player2.type === 'strict'
+                          ? "Always better regardless of opponent's choice"
+                          : 'Never worse and sometimes better',
+                    }
+                  : 'No dominant strategy',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -601,24 +736,30 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            dominated_strategies: {
-              player1: dominated.player1.length > 0
-                ? dominated.player1.map(i => ({
-                    strategy: game.player1Strategies[i].name,
-                    meaning: 'This strategy is always worse than some other strategy'
-                  }))
-                : 'No dominated strategies',
-              player2: dominated.player2.length > 0
-                ? dominated.player2.map(j => ({
-                    strategy: game.player2Strategies[j].name,
-                    meaning: 'This strategy is always worse than some other strategy'
-                  }))
-                : 'No dominated strategies'
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              dominated_strategies: {
+                player1:
+                  dominated.player1.length > 0
+                    ? dominated.player1.map((i) => ({
+                        strategy: game.player1Strategies[i].name,
+                        meaning: 'This strategy is always worse than some other strategy',
+                      }))
+                    : 'No dominated strategies',
+                player2:
+                  dominated.player2.length > 0
+                    ? dominated.player2.map((j) => ({
+                        strategy: game.player2Strategies[j].name,
+                        meaning: 'This strategy is always worse than some other strategy',
+                      }))
+                    : 'No dominated strategies',
+              },
+              note: 'Rational players never play dominated strategies',
             },
-            note: 'Rational players never play dominated strategies'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -629,25 +770,29 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
         // Check if Nash equilibria are Pareto optimal
         const nashPareto = nashPure.map(([i, j]) => ({
           nash: [game.player1Strategies[i].name, game.player2Strategies[j].name],
-          is_pareto_optimal: pareto.some(([pi, pj]) => pi === i && pj === j)
+          is_pareto_optimal: pareto.some(([pi, pj]) => pi === i && pj === j),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            pareto_optimal_outcomes: pareto.map(([i, j]) => ({
-              player1_strategy: game.player1Strategies[i].name,
-              player2_strategy: game.player2Strategies[j].name,
-              payoffs: game.payoffMatrix[i][j],
-              is_nash: nashPure.some(([ni, nj]) => ni === i && nj === j)
-            })),
-            nash_pareto_comparison: nashPareto,
-            definition: 'Pareto optimal: No outcome makes both players better off',
-            social_dilemma: nashPareto.some(n => !n.is_pareto_optimal)
-              ? 'Yes - Nash equilibrium is not Pareto optimal (social dilemma exists)'
-              : 'No - Nash equilibrium is Pareto optimal'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              pareto_optimal_outcomes: pareto.map(([i, j]) => ({
+                player1_strategy: game.player1Strategies[i].name,
+                player2_strategy: game.player2Strategies[j].name,
+                payoffs: game.payoffMatrix[i][j],
+                is_nash: nashPure.some(([ni, nj]) => ni === i && nj === j),
+              })),
+              nash_pareto_comparison: nashPareto,
+              definition: 'Pareto optimal: No outcome makes both players better off',
+              social_dilemma: nashPareto.some((n) => !n.is_pareto_optimal)
+                ? 'Yes - Nash equilibrium is not Pareto optimal (social dilemma exists)'
+                : 'No - Nash equilibrium is Pareto optimal',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -658,7 +803,7 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
           const br = bestResponsesP1(game, p2_strategy);
           results.push({
             scenario: `P2 plays ${game.player2Strategies[p2_strategy].name}`,
-            best_responses: br.map(i => game.player1Strategies[i].name)
+            best_responses: br.map((i) => game.player1Strategies[i].name),
           });
         }
 
@@ -666,7 +811,7 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
           const br = bestResponsesP2(game, p1_strategy);
           results.push({
             scenario: `P1 plays ${game.player1Strategies[p1_strategy].name}`,
-            best_responses: br.map(j => game.player2Strategies[j].name)
+            best_responses: br.map((j) => game.player2Strategies[j].name),
           });
         }
 
@@ -678,7 +823,7 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
           const br = bestResponsesP1(game, j);
           p1Correspondence.push({
             against: game.player2Strategies[j].name,
-            best_responses: br.map(i => game.player1Strategies[i].name)
+            best_responses: br.map((i) => game.player1Strategies[i].name),
           });
         }
 
@@ -686,21 +831,26 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
           const br = bestResponsesP2(game, i);
           p2Correspondence.push({
             against: game.player1Strategies[i].name,
-            best_responses: br.map(j => game.player2Strategies[j].name)
+            best_responses: br.map((j) => game.player2Strategies[j].name),
           });
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            specific_queries: results.length > 0 ? results : 'Use p1_strategy or p2_strategy parameters',
-            best_response_correspondence: {
-              player1: p1Correspondence,
-              player2: p2Correspondence
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              specific_queries:
+                results.length > 0 ? results : 'Use p1_strategy or p2_strategy parameters',
+              best_response_correspondence: {
+                player1: p1Correspondence,
+                player2: p2Correspondence,
+              },
+              definition: "Best response: Strategy that maximizes payoff given opponent's choice",
             },
-            definition: 'Best response: Strategy that maximizes payoff given opponent\'s choice'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -710,91 +860,115 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
         if (!mixed) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              game_name: game.name || 'Custom Game',
-              mixed_strategy_equilibrium: 'Not applicable (not 2x2 game or no interior equilibrium)',
-              note: 'Mixed strategy equilibrium calculation is implemented for 2x2 games'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                game_name: game.name || 'Custom Game',
+                mixed_strategy_equilibrium:
+                  'Not applicable (not 2x2 game or no interior equilibrium)',
+                note: 'Mixed strategy equilibrium calculation is implemented for 2x2 games',
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game_name: game.name || 'Custom Game',
-            mixed_strategy_equilibrium: {
-              player1: {
-                strategy_mix: game.player1Strategies.map((s, i) => ({
-                  strategy: s.name,
-                  probability: mixed.p1Mix[i],
-                  percentage: `${(mixed.p1Mix[i] * 100).toFixed(1)}%`
-                }))
+          content: JSON.stringify(
+            {
+              game_name: game.name || 'Custom Game',
+              mixed_strategy_equilibrium: {
+                player1: {
+                  strategy_mix: game.player1Strategies.map((s, i) => ({
+                    strategy: s.name,
+                    probability: mixed.p1Mix[i],
+                    percentage: `${(mixed.p1Mix[i] * 100).toFixed(1)}%`,
+                  })),
+                },
+                player2: {
+                  strategy_mix: game.player2Strategies.map((s, i) => ({
+                    strategy: s.name,
+                    probability: mixed.p2Mix[i],
+                    percentage: `${(mixed.p2Mix[i] * 100).toFixed(1)}%`,
+                  })),
+                },
+                expected_payoffs: {
+                  player1: mixed.expectedPayoffs.player1.toFixed(4),
+                  player2: mixed.expectedPayoffs.player2.toFixed(4),
+                },
               },
-              player2: {
-                strategy_mix: game.player2Strategies.map((s, i) => ({
-                  strategy: s.name,
-                  probability: mixed.p2Mix[i],
-                  percentage: `${(mixed.p2Mix[i] * 100).toFixed(1)}%`
-                }))
-              },
-              expected_payoffs: {
-                player1: mixed.expectedPayoffs.player1.toFixed(4),
-                player2: mixed.expectedPayoffs.player2.toFixed(4)
-              }
+              interpretation: 'Each player randomizes to make opponent indifferent',
             },
-            interpretation: 'Each player randomizes to make opponent indifferent'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            classic_games: Object.entries(CLASSIC_GAMES).map(([key, g]) => ({
-              key,
-              name: g.name,
-              strategies: {
-                player1: g.player1Strategies.map(s => s.name),
-                player2: g.player2Strategies.map(s => s.name)
-              },
-              type: key === 'prisoners_dilemma' ? 'Social dilemma'
-                : key === 'battle_of_sexes' ? 'Coordination with conflict'
-                : key === 'chicken' ? 'Anti-coordination'
-                : key === 'matching_pennies' ? 'Zero-sum'
-                : key === 'stag_hunt' ? 'Coordination'
-                : 'Pure coordination'
-            })),
-            usage: 'Use game parameter to analyze these classic games'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              classic_games: Object.entries(CLASSIC_GAMES).map(([key, g]) => ({
+                key,
+                name: g.name,
+                strategies: {
+                  player1: g.player1Strategies.map((s) => s.name),
+                  player2: g.player2Strategies.map((s) => s.name),
+                },
+                type:
+                  key === 'prisoners_dilemma'
+                    ? 'Social dilemma'
+                    : key === 'battle_of_sexes'
+                      ? 'Coordination with conflict'
+                      : key === 'chicken'
+                        ? 'Anti-coordination'
+                        : key === 'matching_pennies'
+                          ? 'Zero-sum'
+                          : key === 'stag_hunt'
+                            ? 'Coordination'
+                            : 'Pure coordination',
+              })),
+              usage: 'Use game parameter to analyze these classic games',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'payoff_matrix',
-            description: 'Game theory payoff matrix analysis',
-            concepts: {
-              nash_equilibrium: 'Strategy profile where no player benefits from unilateral deviation',
-              dominant_strategy: 'Strategy that is best regardless of opponent\'s choice',
-              dominated_strategy: 'Strategy that is never best (always worse than another)',
-              pareto_optimal: 'No outcome makes everyone better off',
-              mixed_strategy: 'Probability distribution over pure strategies'
+          content: JSON.stringify(
+            {
+              tool: 'payoff_matrix',
+              description: 'Game theory payoff matrix analysis',
+              concepts: {
+                nash_equilibrium:
+                  'Strategy profile where no player benefits from unilateral deviation',
+                dominant_strategy: "Strategy that is best regardless of opponent's choice",
+                dominated_strategy: 'Strategy that is never best (always worse than another)',
+                pareto_optimal: 'No outcome makes everyone better off',
+                mixed_strategy: 'Probability distribution over pure strategies',
+              },
+              operations: {
+                create: 'Create and display payoff matrix',
+                analyze: 'Complete game analysis',
+                nash: 'Find Nash equilibria (pure and mixed)',
+                dominant: 'Find dominant strategies',
+                dominated: 'Find dominated strategies',
+                pareto: 'Find Pareto optimal outcomes',
+                best_response: 'Calculate best response correspondence',
+                mixed: 'Calculate mixed strategy equilibrium',
+                examples: 'List classic games',
+              },
             },
-            operations: {
-              create: 'Create and display payoff matrix',
-              analyze: 'Complete game analysis',
-              nash: 'Find Nash equilibria (pure and mixed)',
-              dominant: 'Find dominant strategies',
-              dominated: 'Find dominated strategies',
-              pareto: 'Find Pareto optimal outcomes',
-              best_response: 'Calculate best response correspondence',
-              mixed: 'Calculate mixed strategy equilibrium',
-              examples: 'List classic games'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -802,7 +976,7 @@ export async function executepayoffmatrix(toolCall: UnifiedToolCall): Promise<Un
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

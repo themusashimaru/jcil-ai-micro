@@ -17,7 +17,7 @@ function designModelAPI(config: {
       endpoint: '/v1/predict',
       method: 'POST',
       request: getRequestSchema(modelType),
-      response: getResponseSchema(modelType)
+      response: getResponseSchema(modelType),
     },
     serverImplementation: generateServerCode(framework, modelType, batchingEnabled),
     dockerfile: generateDockerfile(framework),
@@ -25,8 +25,8 @@ function designModelAPI(config: {
     loadTesting: {
       expectedLatency: modelType === 'nlp' ? '100-500ms' : '10-50ms',
       recommendedBatchSize: batchingEnabled ? 32 : 1,
-      warmupRequests: 100
-    }
+      warmupRequests: 100,
+    },
   };
 }
 
@@ -35,15 +35,15 @@ function getRequestSchema(modelType: string): Record<string, unknown> {
     classification: {
       type: 'object',
       properties: {
-        inputs: { type: 'array', items: { type: 'array', items: { type: 'number' } } },
+        inputs: { type: 'array', items: { type: 'array' }, description: '2D array of numbers' },
         options: {
           type: 'object',
           properties: {
             topK: { type: 'integer', default: 5 },
-            threshold: { type: 'number', default: 0.5 }
-          }
-        }
-      }
+            threshold: { type: 'number', default: 0.5 },
+          },
+        },
+      },
     },
     nlp: {
       type: 'object',
@@ -53,10 +53,10 @@ function getRequestSchema(modelType: string): Record<string, unknown> {
           type: 'object',
           properties: {
             maxLength: { type: 'integer', default: 512 },
-            temperature: { type: 'number', default: 1.0 }
-          }
-        }
-      }
+            temperature: { type: 'number', default: 1.0 },
+          },
+        },
+      },
     },
     vision: {
       type: 'object',
@@ -65,18 +65,18 @@ function getRequestSchema(modelType: string): Record<string, unknown> {
         options: {
           type: 'object',
           properties: {
-            resize: { type: 'array', items: { type: 'integer' } }
-          }
-        }
-      }
+            resize: { type: 'array', items: { type: 'integer' } },
+          },
+        },
+      },
     },
     embedding: {
       type: 'object',
       properties: {
         texts: { type: 'array', items: { type: 'string' } },
-        normalize: { type: 'boolean', default: true }
-      }
-    }
+        normalize: { type: 'boolean', default: true },
+      },
+    },
   };
 
   return schemas[modelType] || schemas.classification;
@@ -87,26 +87,24 @@ function getResponseSchema(modelType: string): Record<string, unknown> {
     classification: {
       predictions: [
         { label: 'cat', score: 0.95 },
-        { label: 'dog', score: 0.04 }
+        { label: 'dog', score: 0.04 },
       ],
-      latencyMs: 15
+      latencyMs: 15,
     },
     nlp: {
       outputs: ['Generated text...'],
       tokens: 256,
-      latencyMs: 150
+      latencyMs: 150,
     },
     vision: {
-      predictions: [
-        { bbox: [10, 20, 100, 200], label: 'person', score: 0.92 }
-      ],
-      latencyMs: 25
+      predictions: [{ bbox: [10, 20, 100, 200], label: 'person', score: 0.92 }],
+      latencyMs: 25,
     },
     embedding: {
       embeddings: [[0.1, 0.2, 0.3]],
       dimensions: 768,
-      latencyMs: 20
-    }
+      latencyMs: 20,
+    },
   };
 
   return schemas[modelType] || schemas.classification;
@@ -129,7 +127,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = torch.jit.load('model.pt').to(device)
 model.eval()
 
-${batching ? `
+${
+  batching
+    ? `
 # Dynamic batching
 class BatchProcessor:
     def __init__(self, max_batch_size=32, max_wait_ms=50):
@@ -173,7 +173,9 @@ class BatchProcessor:
             asyncio.create_task(self.process_batch())
 
 batch_processor = BatchProcessor()
-` : ''}
+`
+    : ''
+}
 
 class PredictRequest(BaseModel):
     inputs: List[List[float]]
@@ -187,11 +189,15 @@ class PredictResponse(BaseModel):
 async def predict(request: PredictRequest):
     start = time.time()
 
-    ${batching ? `results = await asyncio.gather(*[
+    ${
+      batching
+        ? `results = await asyncio.gather(*[
         batch_processor.add_request(inp) for inp in request.inputs
-    ])` : `with torch.no_grad():
+    ])`
+        : `with torch.no_grad():
         inputs = torch.tensor(request.inputs).to(device)
-        results = model(inputs).cpu().numpy().tolist()`}
+        results = model(inputs).cpu().numpy().tolist()`
+    }
 
     latency = (time.time() - start) * 1000
 
@@ -215,7 +221,7 @@ function generateDockerfile(framework: string): string {
     pytorch: 'pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime',
     tensorflow: 'tensorflow/tensorflow:2.14.0-gpu',
     onnx: 'mcr.microsoft.com/onnxruntime/server:latest',
-    huggingface: 'huggingface/transformers-pytorch-gpu:latest'
+    huggingface: 'huggingface/transformers-pytorch-gpu:latest',
   };
 
   return `FROM ${baseImages[framework] || baseImages.pytorch}
@@ -320,13 +326,18 @@ function designABTest(config: {
   trafficSplit?: number;
   metrics?: string[];
 }): Record<string, unknown> {
-  const { modelA, modelB, trafficSplit = 50, metrics = ['latency', 'accuracy', 'throughput'] } = config;
+  const {
+    modelA,
+    modelB,
+    trafficSplit = 50,
+    metrics = ['latency', 'accuracy', 'throughput'],
+  } = config;
 
   return {
     experiment: {
       name: `${modelA}_vs_${modelB}`,
       trafficSplit: { [modelA]: trafficSplit, [modelB]: 100 - trafficSplit },
-      metrics
+      metrics,
     },
     implementation: `class ABTestRouter:
     def __init__(self, model_a, model_b, split_pct=50):
@@ -368,8 +379,8 @@ GROUP BY model;`,
     statisticalSignificance: {
       minSampleSize: 1000,
       confidenceLevel: 0.95,
-      method: 'Chi-squared test for categorical, t-test for continuous'
-    }
+      method: 'Chi-squared test for categorical, t-test for continuous',
+    },
   };
 }
 
@@ -377,7 +388,6 @@ function designModelRegistry(_config: {
   storage?: 's3' | 'gcs' | 'azure' | 'local';
   versioning?: boolean;
 }): Record<string, unknown> {
-
   return {
     schema: {
       model: {
@@ -390,8 +400,8 @@ function designModelRegistry(_config: {
         metadata: 'object',
         stage: 'development | staging | production | archived',
         createdAt: 'timestamp',
-        createdBy: 'string'
-      }
+        createdBy: 'string',
+      },
     },
     implementation: `import boto3
 from dataclasses import dataclass
@@ -495,19 +505,18 @@ ml-registry register --name my-model --version 1.0.0 \\
 
 ml-registry promote --name my-model --version 1.0.0 --stage production
 
-ml-registry get --name my-model --stage production`
+ml-registry get --name my-model --stage production`,
   };
 }
 
 function designFeatureStore(_config: {
   storageType?: 'online' | 'offline' | 'both';
 }): Record<string, unknown> {
-
   return {
     architecture: {
       online: 'Redis/DynamoDB for low-latency serving',
       offline: 'S3/BigQuery for training data',
-      featureServer: 'gRPC service for feature retrieval'
+      featureServer: 'gRPC service for feature retrieval',
     },
     featureDefinition: `from feast import Entity, Feature, FeatureView, FileSource, ValueType
 
@@ -564,8 +573,8 @@ training_df = store.get_historical_features(
       'Monitor feature freshness',
       'Validate feature distributions',
       'Handle missing features gracefully',
-      'Use point-in-time correct joins for training'
-    ]
+      'Use point-in-time correct joins for training',
+    ],
   };
 }
 
@@ -576,9 +585,9 @@ export const mlModelServingTool: UnifiedTool = {
     type: 'object',
     properties: {
       operation: { type: 'string', enum: ['api', 'ab_test', 'registry', 'feature_store'] },
-      config: { type: 'object' }
+      config: { type: 'object' },
     },
-    required: ['operation']
+    required: ['operation'],
   },
 };
 
@@ -593,11 +602,13 @@ export async function executeMlModelServing(toolCall: UnifiedToolCall): Promise<
         result = designModelAPI(args.config || {});
         break;
       case 'ab_test':
-        result = designABTest(args.config || {
-          modelA: 'model_v1',
-          modelB: 'model_v2',
-          trafficSplit: 50
-        });
+        result = designABTest(
+          args.config || {
+            modelA: 'model_v1',
+            modelB: 'model_v2',
+            trafficSplit: 50,
+          }
+        );
         break;
       case 'registry':
         result = designModelRegistry(args.config || {});
@@ -611,8 +622,14 @@ export async function executeMlModelServing(toolCall: UnifiedToolCall): Promise<
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (e) {
-    return { toolCallId: id, content: `Error: ${e instanceof Error ? e.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Error: ${e instanceof Error ? e.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isMlModelServingAvailable(): boolean { return true; }
+export function isMlModelServingAvailable(): boolean {
+  return true;
+}

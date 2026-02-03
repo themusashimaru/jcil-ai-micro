@@ -9,48 +9,49 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const rsaencryptionTool: UnifiedTool = {
   name: 'rsa_encryption',
-  description: 'RSA public key encryption - key generation, encrypt/decrypt, sign/verify with PKCS#1 and OAEP',
+  description:
+    'RSA public key encryption - key generation, encrypt/decrypt, sign/verify with PKCS#1 and OAEP',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['generate_keypair', 'encrypt', 'decrypt', 'sign', 'verify', 'analyze_key', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       key_size: {
         type: 'number',
         enum: ['512', '1024', '2048', '3072', '4096'],
-        description: 'Key size in bits (512/1024 for demo only)'
+        description: 'Key size in bits (512/1024 for demo only)',
       },
       message: {
         type: 'string',
-        description: 'Message to encrypt/sign'
+        description: 'Message to encrypt/sign',
       },
       ciphertext: {
         type: 'string',
-        description: 'Ciphertext to decrypt (hex)'
+        description: 'Ciphertext to decrypt (hex)',
       },
       signature: {
         type: 'string',
-        description: 'Signature to verify (hex)'
+        description: 'Signature to verify (hex)',
       },
       public_key: {
         type: 'object',
-        description: 'Public key {n, e} in hex'
+        description: 'Public key {n, e} in hex',
       },
       private_key: {
         type: 'object',
-        description: 'Private key {n, d} in hex'
+        description: 'Private key {n, d} in hex',
       },
       padding: {
         type: 'string',
         enum: ['PKCS1', 'OAEP', 'none'],
-        description: 'Padding scheme'
-      }
+        description: 'Padding scheme',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // BigInt utilities for RSA
@@ -61,7 +62,7 @@ function randomBigInt(bits: number): bigint {
     result = (result << 8n) | BigInt(Math.floor(Math.random() * 256));
   }
   // Ensure high bit is set
-  result |= (1n << BigInt(bits - 1));
+  result |= 1n << BigInt(bits - 1);
   return result;
 }
 
@@ -118,7 +119,7 @@ function millerRabin(n: bigint, k: number = 40): boolean {
 
   // Witness loop
   for (let i = 0; i < k; i++) {
-    const a = randomBigInt(Number(n.toString(2).length - 1)) % (n - 4n) + 2n;
+    const a = (randomBigInt(Number(n.toString(2).length - 1)) % (n - 4n)) + 2n;
     let x = modPow(a, d, n);
 
     if (x === 1n || x === n - 1n) continue;
@@ -154,15 +155,21 @@ function generatePrime(bits: number): bigint {
   }
 
   // Fallback: use small primes for demo
-  const smallPrimes = [
-    65537n, 65539n, 65543n, 65551n, 65557n, 65563n, 65579n, 65581n
-  ];
+  const smallPrimes = [65537n, 65539n, 65543n, 65551n, 65557n, 65563n, 65579n, 65581n];
   return smallPrimes[Math.floor(Math.random() * smallPrimes.length)];
 }
 
 interface RSAKeyPair {
   publicKey: { n: bigint; e: bigint };
-  privateKey: { n: bigint; d: bigint; p?: bigint; q?: bigint; dp?: bigint; dq?: bigint; qinv?: bigint };
+  privateKey: {
+    n: bigint;
+    d: bigint;
+    p?: bigint;
+    q?: bigint;
+    dp?: bigint;
+    dq?: bigint;
+    qinv?: bigint;
+  };
 }
 
 function generateKeyPair(bits: number): RSAKeyPair {
@@ -203,7 +210,7 @@ function generateKeyPair(bits: number): RSAKeyPair {
 
   return {
     publicKey: { n, e },
-    privateKey: { n, d, p, q, dp, dq, qinv }
+    privateKey: { n, d, p, q, dp, dq, qinv },
   };
 }
 
@@ -242,11 +249,11 @@ function stringToBytes(str: string): number[] {
 }
 
 function bytesToString(bytes: number[]): string {
-  return bytes.map(b => String.fromCharCode(b)).join('');
+  return bytes.map((b) => String.fromCharCode(b)).join('');
 }
 
 function bytesToHex(bytes: number[]): string {
-  return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function hexToBytes(hex: string): number[] {
@@ -299,10 +306,21 @@ function pkcs1v15Unpad(padded: number[]): number[] {
 function pkcs1v15SignPad(hash: number[], keyBytes: number, hashAlgo: string): number[] {
   // DigestInfo for common hash algorithms
   const digestInfoPrefixes: Record<string, number[]> = {
-    'SHA-1': [0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14],
-    'SHA-256': [0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20],
-    'SHA-384': [0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05, 0x00, 0x04, 0x30],
-    'SHA-512': [0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40]
+    'SHA-1': [
+      0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14,
+    ],
+    'SHA-256': [
+      0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01,
+      0x05, 0x00, 0x04, 0x20,
+    ],
+    'SHA-384': [
+      0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02,
+      0x05, 0x00, 0x04, 0x30,
+    ],
+    'SHA-512': [
+      0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03,
+      0x05, 0x00, 0x04, 0x40,
+    ],
   };
 
   const prefix = digestInfoPrefixes[hashAlgo] || digestInfoPrefixes['SHA-256'];
@@ -329,7 +347,7 @@ function sha256Simple(message: number[]): number[] {
     0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
     0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
   ];
 
   const rotr = (x: number, n: number) => ((x >>> n) | (x << (32 - n))) >>> 0;
@@ -337,24 +355,26 @@ function sha256Simple(message: number[]): number[] {
   const msg = [...message];
   const ml = BigInt(message.length * 8);
   msg.push(0x80);
-  while ((msg.length % 64) !== 56) msg.push(0);
+  while (msg.length % 64 !== 56) msg.push(0);
   for (let i = 56; i >= 0; i -= 8) msg.push(Number((ml >> BigInt(i)) & 0xffn));
 
   let [h0, h1, h2, h3, h4, h5, h6, h7] = [
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ];
 
   for (let i = 0; i < msg.length; i += 64) {
     const w: number[] = [];
     for (let j = 0; j < 16; j++) {
-      w[j] = (msg[i + j * 4] << 24) | (msg[i + j * 4 + 1] << 16) |
-             (msg[i + j * 4 + 2] << 8) | msg[i + j * 4 + 3];
+      w[j] =
+        (msg[i + j * 4] << 24) |
+        (msg[i + j * 4 + 1] << 16) |
+        (msg[i + j * 4 + 2] << 8) |
+        msg[i + j * 4 + 3];
     }
     for (let j = 16; j < 64; j++) {
-      const s0 = rotr(w[j-15], 7) ^ rotr(w[j-15], 18) ^ (w[j-15] >>> 3);
-      const s1 = rotr(w[j-2], 17) ^ rotr(w[j-2], 19) ^ (w[j-2] >>> 10);
-      w[j] = (w[j-16] + s0 + w[j-7] + s1) >>> 0;
+      const s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+      const s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+      w[j] = (w[j - 16] + s0 + w[j - 7] + s1) >>> 0;
     }
 
     let [a, b, c, d, e, f, g, h] = [h0, h1, h2, h3, h4, h5, h6, h7];
@@ -365,14 +385,24 @@ function sha256Simple(message: number[]): number[] {
       const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
       const maj = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (S0 + maj) >>> 0;
-      h = g; g = f; f = e; e = (d + temp1) >>> 0;
-      d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) >>> 0;
     }
 
-    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0;
-    h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0;
-    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0;
-    h6 = (h6 + g) >>> 0; h7 = (h7 + h) >>> 0;
+    h0 = (h0 + a) >>> 0;
+    h1 = (h1 + b) >>> 0;
+    h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0;
+    h5 = (h5 + f) >>> 0;
+    h6 = (h6 + g) >>> 0;
+    h7 = (h7 + h) >>> 0;
   }
 
   const hash: number[] = [];
@@ -468,7 +498,7 @@ function mgf1(seed: number[], length: number): number[] {
       (counter >> 24) & 0xff,
       (counter >> 16) & 0xff,
       (counter >> 8) & 0xff,
-      counter & 0xff
+      counter & 0xff,
     ];
     const hash = sha256Simple([...seed, ...C]);
     mask.push(...hash);
@@ -488,8 +518,7 @@ function rsaDecrypt(c: bigint, d: bigint, n: bigint): bigint {
 }
 
 // CRT decryption (faster)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function rsaDecryptCRT(c: bigint, privateKey: RSAKeyPair['privateKey']): bigint {
+export function rsaDecryptCRT(c: bigint, privateKey: RSAKeyPair['privateKey']): bigint {
   if (!privateKey.p || !privateKey.q || !privateKey.dp || !privateKey.dq || !privateKey.qinv) {
     return rsaDecrypt(c, privateKey.d, privateKey.n);
   }
@@ -511,7 +540,7 @@ function analyzeKey(n: bigint, e: bigint, d?: bigint): object {
     public_exponent_common: e === 65537n ? 'Yes (F4)' : e === 3n ? 'Yes (3)' : 'No',
     max_message_bytes_pkcs1: nBytes - 11,
     max_message_bytes_oaep: nBytes - 66,
-    security_estimate: estimateSecurity(nBits)
+    security_estimate: estimateSecurity(nBits),
   };
 
   if (d) {
@@ -540,42 +569,47 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'rsa_encryption',
-          description: 'RSA public key cryptography',
-          operations: {
-            generate_keypair: 'Generate RSA key pair',
-            encrypt: 'Encrypt message with public key',
-            decrypt: 'Decrypt ciphertext with private key',
-            sign: 'Sign message with private key',
-            verify: 'Verify signature with public key',
-            analyze_key: 'Analyze RSA key properties'
+        content: JSON.stringify(
+          {
+            tool: 'rsa_encryption',
+            description: 'RSA public key cryptography',
+            operations: {
+              generate_keypair: 'Generate RSA key pair',
+              encrypt: 'Encrypt message with public key',
+              decrypt: 'Decrypt ciphertext with private key',
+              sign: 'Sign message with private key',
+              verify: 'Verify signature with public key',
+              analyze_key: 'Analyze RSA key properties',
+            },
+            key_sizes: {
+              512: 'DEMO ONLY - Easily broken',
+              1024: 'DEMO ONLY - Weak',
+              2048: 'Minimum recommended',
+              3072: 'Recommended for new systems',
+              4096: 'High security',
+            },
+            padding_schemes: {
+              PKCS1: 'PKCS#1 v1.5 - Legacy, vulnerable to padding oracle',
+              OAEP: 'Optimal Asymmetric Encryption Padding - Recommended',
+              none: 'Raw RSA - NEVER use in production',
+            },
+            security_notes: [
+              'RSA alone provides confidentiality, not authentication',
+              'Always use proper padding schemes',
+              'Use RSA-OAEP for encryption',
+              'Use RSA-PSS or PKCS#1 v1.5 for signatures',
+              'Key sizes below 2048 bits are considered weak',
+              'For new systems, prefer elliptic curve cryptography (ECDSA, EdDSA)',
+            ],
+            example_usage: {
+              generate: '{ operation: "generate_keypair", key_size: 2048 }',
+              encrypt:
+                '{ operation: "encrypt", message: "hello", public_key: {n, e}, padding: "OAEP" }',
+            },
           },
-          key_sizes: {
-            512: 'DEMO ONLY - Easily broken',
-            1024: 'DEMO ONLY - Weak',
-            2048: 'Minimum recommended',
-            3072: 'Recommended for new systems',
-            4096: 'High security'
-          },
-          padding_schemes: {
-            PKCS1: 'PKCS#1 v1.5 - Legacy, vulnerable to padding oracle',
-            OAEP: 'Optimal Asymmetric Encryption Padding - Recommended',
-            none: 'Raw RSA - NEVER use in production'
-          },
-          security_notes: [
-            'RSA alone provides confidentiality, not authentication',
-            'Always use proper padding schemes',
-            'Use RSA-OAEP for encryption',
-            'Use RSA-PSS or PKCS#1 v1.5 for signatures',
-            'Key sizes below 2048 bits are considered weak',
-            'For new systems, prefer elliptic curve cryptography (ECDSA, EdDSA)'
-          ],
-          example_usage: {
-            generate: '{ operation: "generate_keypair", key_size: 2048 }',
-            encrypt: '{ operation: "encrypt", message: "hello", public_key: {n, e}, padding: "OAEP" }'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -593,25 +627,30 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'generate_keypair',
-          key_size_requested: keySize,
-          key_size_generated: actualSize,
-          note: keySize > 1024 ? 'Key size limited to 1024 bits for demo performance' : undefined,
-          public_key: {
-            n: nHex,
-            e: eHex,
-            n_bits: keyPair.publicKey.n.toString(2).length
+        content: JSON.stringify(
+          {
+            operation: 'generate_keypair',
+            key_size_requested: keySize,
+            key_size_generated: actualSize,
+            note: keySize > 1024 ? 'Key size limited to 1024 bits for demo performance' : undefined,
+            public_key: {
+              n: nHex,
+              e: eHex,
+              n_bits: keyPair.publicKey.n.toString(2).length,
+            },
+            private_key: {
+              n: nHex,
+              d: dHex,
+              d_bits: keyPair.privateKey.d.toString(2).length,
+            },
+            security_warning:
+              actualSize < 2048
+                ? 'This key is for DEMONSTRATION only. Use 2048+ bits for real security.'
+                : 'Key generation complete',
           },
-          private_key: {
-            n: nHex,
-            d: dHex,
-            d_bits: keyPair.privateKey.d.toString(2).length
-          },
-          security_warning: actualSize < 2048
-            ? 'This key is for DEMONSTRATION only. Use 2048+ bits for real security.'
-            : 'Key generation complete'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -623,11 +662,15 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
       if (!publicKey || !publicKey.n || !publicKey.e) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Public key required',
-            required: '{ n: "hex", e: "hex" }'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Public key required',
+              required: '{ n: "hex", e: "hex" }',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -656,13 +699,17 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'encrypt',
-          padding,
-          message_length: messageBytes.length,
-          ciphertext: bytesToHex(cipherBytes),
-          ciphertext_bits: cipherBytes.length * 8
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'encrypt',
+            padding,
+            message_length: messageBytes.length,
+            ciphertext: bytesToHex(cipherBytes),
+            ciphertext_bits: cipherBytes.length * 8,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -674,11 +721,15 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
       if (!privateKey || !privateKey.n || !privateKey.d) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Private key required',
-            required: '{ n: "hex", d: "hex" }'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Private key required',
+              required: '{ n: "hex", d: "hex" }',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -703,12 +754,16 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'decrypt',
-          padding,
-          message: bytesToString(messageBytes),
-          message_hex: bytesToHex(messageBytes)
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'decrypt',
+            padding,
+            message: bytesToString(messageBytes),
+            message_hex: bytesToHex(messageBytes),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -719,11 +774,15 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
       if (!privateKey || !privateKey.n || !privateKey.d) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Private key required for signing',
-            required: '{ n: "hex", d: "hex" }'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Private key required for signing',
+              required: '{ n: "hex", d: "hex" }',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -741,14 +800,18 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'sign',
-          algorithm: 'RSASSA-PKCS1-v1_5',
-          hash: 'SHA-256',
-          message_hash: bytesToHex(hash),
-          signature: bytesToHex(sigBytes),
-          signature_bits: sigBytes.length * 8
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'sign',
+            algorithm: 'RSASSA-PKCS1-v1_5',
+            hash: 'SHA-256',
+            message_hash: bytesToHex(hash),
+            signature: bytesToHex(sigBytes),
+            signature_bits: sigBytes.length * 8,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -760,11 +823,15 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
       if (!publicKey || !publicKey.n || !publicKey.e) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Public key required for verification',
-            required: '{ n: "hex", e: "hex" }'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Public key required for verification',
+              required: '{ n: "hex", e: "hex" }',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -781,19 +848,23 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
       const expectedHash = sha256Simple(messageBytes);
       const expectedPadded = pkcs1v15SignPad(expectedHash, keyBytes, 'SHA-256');
 
-      const isValid = padded.length === expectedPadded.length &&
-        padded.every((b, i) => b === expectedPadded[i]);
+      const isValid =
+        padded.length === expectedPadded.length && padded.every((b, i) => b === expectedPadded[i]);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'verify',
-          algorithm: 'RSASSA-PKCS1-v1_5',
-          hash: 'SHA-256',
-          valid: isValid,
-          message_hash: bytesToHex(expectedHash),
-          note: isValid ? 'Signature verified successfully' : 'Signature verification failed'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'verify',
+            algorithm: 'RSASSA-PKCS1-v1_5',
+            hash: 'SHA-256',
+            valid: isValid,
+            message_hash: bytesToHex(expectedHash),
+            note: isValid ? 'Signature verified successfully' : 'Signature verification failed',
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -813,11 +884,15 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
       } else {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: 'Key required',
-            required: 'public_key or private_key'
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: 'Key required',
+              required: 'public_key or private_key',
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -825,22 +900,37 @@ export async function executeraesncryption(toolCall: UnifiedToolCall): Promise<U
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze_key',
-          analysis
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'analyze_key',
+            analysis,
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: 'Unknown operation',
-        available: ['generate_keypair', 'encrypt', 'decrypt', 'sign', 'verify', 'analyze_key', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: 'Unknown operation',
+          available: [
+            'generate_keypair',
+            'encrypt',
+            'decrypt',
+            'sign',
+            'verify',
+            'analyze_key',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

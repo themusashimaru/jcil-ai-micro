@@ -25,7 +25,7 @@ interface Vector3 {
 }
 
 interface Matrix4 {
-  m: number[][];  // 4x4 matrix
+  m: number[][]; // 4x4 matrix
 }
 
 interface Light {
@@ -35,20 +35,20 @@ interface Light {
   color: { r: number; g: number; b: number };
   intensity: number;
   // Spot light specific
-  innerAngle?: number;  // degrees
-  outerAngle?: number;  // degrees
+  innerAngle?: number; // degrees
+  outerAngle?: number; // degrees
   // Point/spot specific
   range?: number;
 }
 
 interface ShadowMapSettings {
-  resolution: number;       // Shadow map size (e.g., 1024, 2048, 4096)
-  nearPlane: number;        // Light frustum near plane
-  farPlane: number;         // Light frustum far plane
-  bias: number;             // Depth bias to prevent shadow acne
-  normalBias: number;       // Normal-based bias
-  softness: number;         // PCF kernel size (1, 3, 5, 7)
-  cascadeCount?: number;    // Number of cascades for CSM
+  resolution: number; // Shadow map size (e.g., 1024, 2048, 4096)
+  nearPlane: number; // Light frustum near plane
+  farPlane: number; // Light frustum far plane
+  bias: number; // Depth bias to prevent shadow acne
+  normalBias: number; // Normal-based bias
+  softness: number; // PCF kernel size (1, 3, 5, 7)
+  cascadeCount?: number; // Number of cascades for CSM
   cascadeSplits?: number[]; // Split distances for cascades
 }
 
@@ -92,7 +92,7 @@ class VectorMath {
     return {
       x: a.y * b.z - a.z * b.y,
       y: a.z * b.x - a.x * b.z,
-      z: a.x * b.y - a.y * b.x
+      z: a.x * b.y - a.y * b.x,
     };
   }
 
@@ -118,8 +118,8 @@ class MatrixMath {
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 1, 0],
-        [0, 0, 0, 1]
-      ]
+        [0, 0, 0, 1],
+      ],
     };
   }
 
@@ -142,7 +142,7 @@ class MatrixMath {
     return {
       x: (m.m[0][0] * p.x + m.m[0][1] * p.y + m.m[0][2] * p.z + m.m[0][3]) / w,
       y: (m.m[1][0] * p.x + m.m[1][1] * p.y + m.m[1][2] * p.z + m.m[1][3]) / w,
-      z: (m.m[2][0] * p.x + m.m[2][1] * p.y + m.m[2][2] * p.z + m.m[2][3]) / w
+      z: (m.m[2][0] * p.x + m.m[2][1] * p.y + m.m[2][2] * p.z + m.m[2][3]) / w,
     };
   }
 
@@ -156,31 +156,38 @@ class MatrixMath {
         [xAxis.x, xAxis.y, xAxis.z, -VectorMath.dot(xAxis, eye)],
         [yAxis.x, yAxis.y, yAxis.z, -VectorMath.dot(yAxis, eye)],
         [zAxis.x, zAxis.y, zAxis.z, -VectorMath.dot(zAxis, eye)],
-        [0, 0, 0, 1]
-      ]
+        [0, 0, 0, 1],
+      ],
     };
   }
 
-  static orthographic(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix4 {
+  static orthographic(
+    left: number,
+    right: number,
+    bottom: number,
+    top: number,
+    near: number,
+    far: number
+  ): Matrix4 {
     return {
       m: [
         [2 / (right - left), 0, 0, -(right + left) / (right - left)],
         [0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom)],
         [0, 0, -2 / (far - near), -(far + near) / (far - near)],
-        [0, 0, 0, 1]
-      ]
+        [0, 0, 0, 1],
+      ],
     };
   }
 
   static perspective(fovY: number, aspect: number, near: number, far: number): Matrix4 {
-    const f = 1 / Math.tan((fovY * Math.PI / 180) / 2);
+    const f = 1 / Math.tan((fovY * Math.PI) / 180 / 2);
     return {
       m: [
         [f / aspect, 0, 0, 0],
         [0, f, 0, 0],
         [0, 0, (far + near) / (near - far), (2 * far * near) / (near - far)],
-        [0, 0, -1, 0]
-      ]
+        [0, 0, -1, 0],
+      ],
     };
   }
 }
@@ -210,11 +217,7 @@ class LightSpaceCalculator {
    * Calculate orthographic projection for directional light
    */
   static directionalLightProjection(sceneRadius: number, near: number, far: number): Matrix4 {
-    return MatrixMath.orthographic(
-      -sceneRadius, sceneRadius,
-      -sceneRadius, sceneRadius,
-      near, far
-    );
+    return MatrixMath.orthographic(-sceneRadius, sceneRadius, -sceneRadius, sceneRadius, near, far);
   }
 
   /**
@@ -255,23 +258,36 @@ class LightSpaceCalculator {
     switch (light.type) {
       case 'directional':
         view = this.directionalLightView(light, sceneCenter, sceneRadius);
-        projection = this.directionalLightProjection(sceneRadius, settings.nearPlane, settings.farPlane);
+        projection = this.directionalLightProjection(
+          sceneRadius,
+          settings.nearPlane,
+          settings.farPlane
+        );
         break;
 
       case 'spot':
         view = this.spotLightView(light);
-        projection = this.spotLightProjection(light, settings.nearPlane, light.range || settings.farPlane);
+        projection = this.spotLightProjection(
+          light,
+          settings.nearPlane,
+          light.range || settings.farPlane
+        );
         break;
 
       case 'point':
         // Point lights need 6 shadow maps (cube map) - simplified to single direction
-        const dir = { x: 0, y: -1, z: 0 };  // Default down direction
-        view = MatrixMath.lookAt(
-          light.position,
-          VectorMath.add(light.position, dir),
-          { x: 0, y: 0, z: 1 }
+        const dir = { x: 0, y: -1, z: 0 }; // Default down direction
+        view = MatrixMath.lookAt(light.position, VectorMath.add(light.position, dir), {
+          x: 0,
+          y: 0,
+          z: 1,
+        });
+        projection = MatrixMath.perspective(
+          90,
+          1,
+          settings.nearPlane,
+          light.range || settings.farPlane
         );
-        projection = MatrixMath.perspective(90, 1, settings.nearPlane, light.range || settings.farPlane);
         break;
 
       default:
@@ -297,7 +313,7 @@ class ShadowMapGenerator {
     for (let y = 0; y < resolution; y++) {
       map[y] = [];
       for (let x = 0; x < resolution; x++) {
-        map[y][x] = 1.0;  // Far plane (maximum depth)
+        map[y][x] = 1.0; // Far plane (maximum depth)
       }
     }
     return map;
@@ -323,7 +339,7 @@ class ShadowMapGenerator {
       const toScreen = (p: Vector3) => ({
         x: ((p.x + 1) / 2) * resolution,
         y: ((p.y + 1) / 2) * resolution,
-        z: (p.z + 1) / 2  // Depth 0-1
+        z: (p.z + 1) / 2, // Depth 0-1
       });
 
       const s0 = toScreen(p0);
@@ -358,7 +374,7 @@ class ShadowMapGenerator {
       (cx - ax) * (by - ay) - (cy - ay) * (bx - ax);
 
     const area = edge(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
-    if (Math.abs(area) < 0.0001) return;  // Degenerate triangle
+    if (Math.abs(area) < 0.0001) return; // Degenerate triangle
 
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
@@ -391,7 +407,7 @@ class ShadowMapGenerator {
     // Ground plane
     const ground = [
       { v0: { x: -10, y: 0, z: -10 }, v1: { x: 10, y: 0, z: -10 }, v2: { x: 10, y: 0, z: 10 } },
-      { v0: { x: -10, y: 0, z: -10 }, v1: { x: 10, y: 0, z: 10 }, v2: { x: -10, y: 0, z: 10 } }
+      { v0: { x: -10, y: 0, z: -10 }, v1: { x: 10, y: 0, z: 10 }, v2: { x: -10, y: 0, z: 10 } },
     ];
 
     // Box (simplified - just top and one side)
@@ -401,7 +417,7 @@ class ShadowMapGenerator {
       { v0: { x: -2, y: 3, z: -2 }, v1: { x: 2, y: 3, z: 2 }, v2: { x: -2, y: 3, z: 2 } },
       // Front
       { v0: { x: -2, y: 0, z: 2 }, v1: { x: 2, y: 0, z: 2 }, v2: { x: 2, y: 3, z: 2 } },
-      { v0: { x: -2, y: 0, z: 2 }, v1: { x: 2, y: 3, z: 2 }, v2: { x: -2, y: 3, z: 2 } }
+      { v0: { x: -2, y: 0, z: 2 }, v1: { x: 2, y: 3, z: 2 }, v2: { x: -2, y: 3, z: 2 } },
     ];
 
     return [...ground, ...box];
@@ -429,7 +445,7 @@ class ShadowSampler {
 
     // Check bounds
     if (u < 0 || u > 1 || v < 0 || v > 1) {
-      return 1.0;  // Outside shadow map = lit
+      return 1.0; // Outside shadow map = lit
     }
 
     // Sample shadow map
@@ -472,7 +488,8 @@ class ShadowSampler {
         if (sampleU >= 0 && sampleU <= 1 && sampleV >= 0 && sampleV <= 1) {
           const x = Math.floor(sampleU * resolution);
           const y = Math.floor(sampleV * resolution);
-          const shadowDepth = shadowMap[Math.min(y, resolution - 1)]?.[Math.min(x, resolution - 1)] ?? 1;
+          const shadowDepth =
+            shadowMap[Math.min(y, resolution - 1)]?.[Math.min(x, resolution - 1)] ?? 1;
 
           shadow += depth - bias > shadowDepth ? 0.0 : 1.0;
           count++;
@@ -497,20 +514,20 @@ class ShadowSampler {
     const poissonDisk = [
       { x: -0.94201624, y: -0.39906216 },
       { x: 0.94558609, y: -0.76890725 },
-      { x: -0.094184101, y: -0.92938870 },
-      { x: 0.34495938, y: 0.29387760 },
+      { x: -0.094184101, y: -0.9293887 },
+      { x: 0.34495938, y: 0.2938776 },
       { x: -0.91588581, y: 0.45771432 },
       { x: -0.81544232, y: -0.87912464 },
       { x: -0.38277543, y: 0.27676845 },
       { x: 0.97484398, y: 0.75648379 },
       { x: 0.44323325, y: -0.97511554 },
-      { x: 0.53742981, y: -0.47373420 },
+      { x: 0.53742981, y: -0.4737342 },
       { x: -0.26496911, y: -0.41893023 },
       { x: 0.79197514, y: 0.19090188 },
-      { x: -0.24188840, y: 0.99706507 },
-      { x: -0.81409955, y: 0.91437590 },
+      { x: -0.2418884, y: 0.99706507 },
+      { x: -0.81409955, y: 0.9143759 },
       { x: 0.19984126, y: 0.78641367 },
-      { x: 0.14383161, y: -0.14100790 }
+      { x: 0.14383161, y: -0.1410079 },
     ];
 
     const u = (lightSpacePos.x + 1) / 2;
@@ -531,7 +548,8 @@ class ShadowSampler {
       if (sampleU >= 0 && sampleU <= 1 && sampleV >= 0 && sampleV <= 1) {
         const x = Math.floor(sampleU * resolution);
         const y = Math.floor(sampleV * resolution);
-        const shadowDepth = shadowMap[Math.min(y, resolution - 1)]?.[Math.min(x, resolution - 1)] ?? 1;
+        const shadowDepth =
+          shadowMap[Math.min(y, resolution - 1)]?.[Math.min(x, resolution - 1)] ?? 1;
 
         shadow += depth - bias > shadowDepth ? 0.0 : 1.0;
       } else {
@@ -568,7 +586,7 @@ class VarianceShadowMap {
       const toScreen = (p: Vector3) => ({
         x: ((p.x + 1) / 2) * resolution,
         y: ((p.y + 1) / 2) * resolution,
-        z: (p.z + 1) / 2
+        z: (p.z + 1) / 2,
       });
 
       this.rasterizeVSM(depth, depthSq, toScreen(p0), toScreen(p1), toScreen(p2), resolution);
@@ -677,7 +695,7 @@ class VarianceShadowMap {
     // Chebyshev's inequality
     const d = depth - E_x;
     if (d <= 0) {
-      return 1.0;  // Definitely lit
+      return 1.0; // Definitely lit
     }
 
     const pMax = variance / (variance + d * d);
@@ -693,7 +711,12 @@ class CascadedShadowMaps {
   /**
    * Calculate cascade split distances
    */
-  static calculateSplits(near: number, far: number, cascadeCount: number, lambda: number = 0.5): number[] {
+  static calculateSplits(
+    near: number,
+    far: number,
+    cascadeCount: number,
+    lambda: number = 0.5
+  ): number[] {
     const splits: number[] = [];
 
     for (let i = 0; i <= cascadeCount; i++) {
@@ -744,7 +767,7 @@ class CascadedShadowMaps {
       const cascadeSettings: ShadowMapSettings = {
         ...settings,
         nearPlane: 0.1,
-        farPlane: cascadeRadius * 4
+        farPlane: cascadeRadius * 4,
       };
 
       const { view, projection, viewProjection } = LightSpaceCalculator.calculateLVP(
@@ -754,7 +777,11 @@ class CascadedShadowMaps {
         cascadeSettings
       );
 
-      const depthBuffer = ShadowMapGenerator.renderDepth(triangles, viewProjection, settings.resolution);
+      const depthBuffer = ShadowMapGenerator.renderDepth(
+        triangles,
+        viewProjection,
+        settings.resolution
+      );
 
       cascades.push({
         resolution: settings.resolution,
@@ -763,17 +790,20 @@ class CascadedShadowMaps {
         lightProjectionMatrix: projection,
         lightViewProjection: viewProjection,
         bounds: {
-          minX: -cascadeRadius, maxX: cascadeRadius,
-          minY: -cascadeRadius, maxY: cascadeRadius,
-          minZ: cascadeNear, maxZ: cascadeFar
-        }
+          minX: -cascadeRadius,
+          maxX: cascadeRadius,
+          minY: -cascadeRadius,
+          maxY: cascadeRadius,
+          minZ: cascadeNear,
+          maxZ: cascadeFar,
+        },
       });
     }
 
     return {
       cascadeCount,
       cascades,
-      splitDistances: splits
+      splitDistances: splits,
     };
   }
 }
@@ -784,57 +814,51 @@ class CascadedShadowMaps {
 
 export const shadowmappingTool: UnifiedTool = {
   name: 'shadow_mapping',
-  description: 'Real-time shadow generation using depth-based shadow mapping. Supports basic shadow maps, PCF soft shadows, Variance Shadow Maps (VSM), and Cascaded Shadow Maps (CSM) for large scenes.',
+  description:
+    'Real-time shadow generation using depth-based shadow mapping. Supports basic shadow maps, PCF soft shadows, Variance Shadow Maps (VSM), and Cascaded Shadow Maps (CSM) for large scenes.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['generate', 'sample', 'generate_vsm', 'sample_vsm', 'generate_csm', 'calculate_lvp', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'generate',
+          'sample',
+          'generate_vsm',
+          'sample_vsm',
+          'generate_csm',
+          'calculate_lvp',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       light: {
         type: 'object',
-        properties: {
-          type: { type: 'string', enum: ['directional', 'point', 'spot'] },
-          position: { type: 'object' },
-          direction: { type: 'object' },
-          color: { type: 'object' },
-          intensity: { type: 'number' },
-          innerAngle: { type: 'number' },
-          outerAngle: { type: 'number' },
-          range: { type: 'number' }
-        },
-        description: 'Light configuration'
+        description:
+          'Light config: type (directional|point|spot), position, direction, color, intensity, innerAngle, outerAngle, range',
       },
       settings: {
         type: 'object',
-        properties: {
-          resolution: { type: 'number', description: 'Shadow map resolution (default: 1024)' },
-          nearPlane: { type: 'number', description: 'Near plane distance (default: 0.1)' },
-          farPlane: { type: 'number', description: 'Far plane distance (default: 100)' },
-          bias: { type: 'number', description: 'Depth bias (default: 0.005)' },
-          normalBias: { type: 'number', description: 'Normal-based bias (default: 0.02)' },
-          softness: { type: 'number', description: 'PCF kernel size (default: 3)' },
-          cascadeCount: { type: 'number', description: 'Number of CSM cascades (default: 4)' }
-        },
-        description: 'Shadow map settings'
+        description:
+          'Shadow settings: resolution (1024), nearPlane (0.1), farPlane (100), bias (0.005), normalBias (0.02), softness (3), cascadeCount (4)',
       },
       triangles: {
         type: 'array',
-        description: 'Scene geometry as array of triangles {v0, v1, v2}'
+        description: 'Scene geometry as array of triangles {v0, v1, v2}',
       },
       worldPosition: {
         type: 'object',
-        description: 'World position to test shadow at'
+        description: 'World position to test shadow at',
       },
       shadowMap: {
         type: 'array',
-        description: 'Existing shadow map for sampling'
-      }
+        description: 'Existing shadow map for sampling',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -856,7 +880,7 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
       bias: settings?.bias ?? 0.005,
       normalBias: settings?.normalBias ?? 0.02,
       softness: settings?.softness ?? 3,
-      cascadeCount: settings?.cascadeCount ?? 4
+      cascadeCount: settings?.cascadeCount ?? 4,
     };
 
     // Default light
@@ -865,7 +889,7 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
       position: { x: 10, y: 20, z: 10 },
       direction: { x: -0.5, y: -1, z: -0.5 },
       color: { r: 1, g: 1, b: 1 },
-      intensity: 1
+      intensity: 1,
     };
 
     let result: Record<string, unknown>;
@@ -879,26 +903,36 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
             basicShadowMap: {
               description: 'Render scene from light perspective, compare depths',
               pros: ['Fast', 'Simple implementation'],
-              cons: ['Hard shadow edges', 'Shadow acne']
+              cons: ['Hard shadow edges', 'Shadow acne'],
             },
             pcf: {
               description: 'Percentage Closer Filtering for soft edges',
               pros: ['Soft shadows', 'Reduced aliasing'],
-              cons: ['More texture samples', 'Still some banding']
+              cons: ['More texture samples', 'Still some banding'],
             },
             vsm: {
               description: 'Variance Shadow Maps using statistical moments',
               pros: ['Very soft shadows', 'Hardware filterable'],
-              cons: ['Light bleeding in high-contrast areas']
+              cons: ['Light bleeding in high-contrast areas'],
             },
             csm: {
               description: 'Cascaded Shadow Maps for large scenes',
               pros: ['High detail near camera', 'Good for outdoor scenes'],
-              cons: ['Multiple shadow maps', 'Cascade transitions visible']
-            }
+              cons: ['Multiple shadow maps', 'Cascade transitions visible'],
+            },
           },
           lightTypes: ['directional', 'point', 'spot'],
-          operations: ['generate', 'sample', 'generate_vsm', 'sample_vsm', 'generate_csm', 'calculate_lvp', 'demo', 'info', 'examples']
+          operations: [
+            'generate',
+            'sample',
+            'generate_vsm',
+            'sample_vsm',
+            'generate_csm',
+            'calculate_lvp',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
         break;
       }
@@ -909,24 +943,29 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
             {
               name: 'Directional light shadow',
               light: { type: 'directional', direction: { x: -1, y: -1, z: -1 } },
-              settings: { resolution: 2048, bias: 0.005 }
+              settings: { resolution: 2048, bias: 0.005 },
             },
             {
               name: 'Soft PCF shadows',
               light: { type: 'directional', direction: { x: 0, y: -1, z: 0 } },
-              settings: { resolution: 1024, softness: 5 }
+              settings: { resolution: 1024, softness: 5 },
             },
             {
               name: 'Spot light shadow',
-              light: { type: 'spot', position: { x: 0, y: 5, z: 0 }, direction: { x: 0, y: -1, z: 0 }, outerAngle: 45 },
-              settings: { resolution: 1024 }
+              light: {
+                type: 'spot',
+                position: { x: 0, y: 5, z: 0 },
+                direction: { x: 0, y: -1, z: 0 },
+                outerAngle: 45,
+              },
+              settings: { resolution: 1024 },
             },
             {
               name: 'Cascaded shadows (outdoor)',
               light: { type: 'directional', direction: { x: -0.3, y: -1, z: -0.3 } },
-              settings: { cascadeCount: 4, resolution: 2048 }
-            }
-          ]
+              settings: { cascadeCount: 4, resolution: 2048 },
+            },
+          ],
         };
         break;
       }
@@ -936,8 +975,11 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const sceneCenter = { x: 0, y: 1.5, z: 0 };
         const sceneRadius = 15;
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { view: _view, projection: _projection, viewProjection } = LightSpaceCalculator.calculateLVP(
+        const {
+          view: _view,
+          projection: _projection,
+          viewProjection,
+        } = LightSpaceCalculator.calculateLVP(
           defaultLight,
           sceneCenter,
           sceneRadius,
@@ -952,12 +994,18 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const testPoints = [
           { name: 'center_floor', pos: { x: 0, y: 0.01, z: 0 } },
           { name: 'under_box', pos: { x: 0, y: 0.01, z: 3 } },
-          { name: 'beside_box', pos: { x: 5, y: 0.01, z: 0 } }
+          { name: 'beside_box', pos: { x: 5, y: 0.01, z: 0 } },
         ];
 
         const shadowTests = testPoints.map(({ name, pos }) => {
           const lightSpacePos = MatrixMath.transformPoint(viewProjection, pos);
-          const shadow = ShadowSampler.samplePCF(depthBuffer, lightSpacePos, demoResolution, shadowSettings.bias, 3);
+          const shadow = ShadowSampler.samplePCF(
+            depthBuffer,
+            lightSpacePos,
+            demoResolution,
+            shadowSettings.bias,
+            3
+          );
           return { name, position: pos, shadow: shadow.toFixed(2), lit: shadow > 0.5 };
         });
 
@@ -969,17 +1017,17 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
           sceneInfo: {
             triangleCount: scene.length,
             center: sceneCenter,
-            radius: sceneRadius
+            radius: sceneRadius,
           },
           shadowMapPreview: {
             resolution: demoResolution,
             depthRange: {
               min: Math.min(...depthBuffer.flat()),
-              max: Math.max(...depthBuffer.flat().filter(d => d < 1))
-            }
+              max: Math.max(...depthBuffer.flat().filter((d) => d < 1)),
+            },
           },
           shadowTests,
-          message: 'Shadow map generated and sampled at test points'
+          message: 'Shadow map generated and sampled at test points',
         };
         break;
       }
@@ -989,15 +1037,18 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const sceneCenter = { x: 0, y: 1.5, z: 0 };
         const sceneRadius = 15;
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { view: _view, projection: _projection, viewProjection } = LightSpaceCalculator.calculateLVP(
+        const {
+          view: _view,
+          projection: _projection,
+          viewProjection,
+        } = LightSpaceCalculator.calculateLVP(
           defaultLight,
           sceneCenter,
           sceneRadius,
           shadowSettings
         );
 
-        const resolution = Math.min(shadowSettings.resolution, 64);  // Limit for response
+        const resolution = Math.min(shadowSettings.resolution, 64); // Limit for response
         const depthBuffer = ShadowMapGenerator.renderDepth(scene, viewProjection, resolution);
 
         result = {
@@ -1009,10 +1060,13 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
           depthBuffer: resolution <= 32 ? depthBuffer : 'Depth buffer truncated',
           depthStats: {
             min: Math.min(...depthBuffer.flat()),
-            max: Math.max(...depthBuffer.flat().filter(d => d < 1)),
-            avgNonFar: depthBuffer.flat().filter(d => d < 1).reduce((a, b) => a + b, 0) /
-                       depthBuffer.flat().filter(d => d < 1).length || 0
-          }
+            max: Math.max(...depthBuffer.flat().filter((d) => d < 1)),
+            avgNonFar:
+              depthBuffer
+                .flat()
+                .filter((d) => d < 1)
+                .reduce((a, b) => a + b, 0) / depthBuffer.flat().filter((d) => d < 1).length || 0,
+          },
         };
         break;
       }
@@ -1034,9 +1088,26 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const lightSpacePos = MatrixMath.transformPoint(viewProjection, worldPosition);
         const resolution = shadowMap.length;
 
-        const hardShadow = ShadowSampler.sample(shadowMap, lightSpacePos, resolution, shadowSettings.bias);
-        const pcfShadow = ShadowSampler.samplePCF(shadowMap, lightSpacePos, resolution, shadowSettings.bias, shadowSettings.softness);
-        const poissonShadow = ShadowSampler.samplePoissonPCF(shadowMap, lightSpacePos, resolution, shadowSettings.bias, 2);
+        const hardShadow = ShadowSampler.sample(
+          shadowMap,
+          lightSpacePos,
+          resolution,
+          shadowSettings.bias
+        );
+        const pcfShadow = ShadowSampler.samplePCF(
+          shadowMap,
+          lightSpacePos,
+          resolution,
+          shadowSettings.bias,
+          shadowSettings.softness
+        );
+        const poissonShadow = ShadowSampler.samplePoissonPCF(
+          shadowMap,
+          lightSpacePos,
+          resolution,
+          shadowSettings.bias,
+          2
+        );
 
         result = {
           operation: 'sample',
@@ -1045,9 +1116,9 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
           shadowResults: {
             hard: hardShadow.toFixed(2),
             pcf: pcfShadow.toFixed(2),
-            poisson: poissonShadow.toFixed(2)
+            poisson: poissonShadow.toFixed(2),
           },
-          isLit: pcfShadow > 0.5
+          isLit: pcfShadow > 0.5,
         };
         break;
       }
@@ -1074,9 +1145,10 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
           triangleCount: scene.length,
           vsmMoments: {
             firstMoment: vsm.depth.length <= 16 ? vsm.depth : 'Truncated',
-            secondMoment: vsm.depthSq.length <= 16 ? vsm.depthSq : 'Truncated'
+            secondMoment: vsm.depthSq.length <= 16 ? vsm.depthSq : 'Truncated',
           },
-          description: 'VSM stores depth (E[x]) and depth squared (E[x^2]) for Chebyshev inequality'
+          description:
+            'VSM stores depth (E[x]) and depth squared (E[x^2]) for Chebyshev inequality',
         };
         break;
       }
@@ -1111,7 +1183,7 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
           lightSpacePosition: lightSpacePos,
           vsmShadow: vsmShadow.toFixed(3),
           isLit: vsmShadow > 0.5,
-          description: 'VSM uses Chebyshev inequality for probabilistic shadow testing'
+          description: 'VSM uses Chebyshev inequality for probabilistic shadow testing',
         };
         break;
       }
@@ -1121,23 +1193,26 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
         const cameraFar = settings?.cameraFar || 100;
 
         // Use smaller resolution for response
-        const csmSettings = { ...shadowSettings, resolution: Math.min(shadowSettings.resolution, 32) };
+        const csmSettings = {
+          ...shadowSettings,
+          resolution: Math.min(shadowSettings.resolution, 32),
+        };
         const csm = CascadedShadowMaps.generate(scene, defaultLight, csmSettings, cameraFar);
 
         result = {
           operation: 'generate_csm',
           light: defaultLight,
           cascadeCount: csm.cascadeCount,
-          splitDistances: csm.splitDistances.map(d => d.toFixed(2)),
+          splitDistances: csm.splitDistances.map((d) => d.toFixed(2)),
           cascades: csm.cascades.map((c, i) => ({
             index: i,
             resolution: c.resolution,
             bounds: c.bounds,
             depthRange: {
               min: Math.min(...c.depthBuffer.flat()),
-              max: Math.max(...c.depthBuffer.flat().filter(d => d < 1))
-            }
-          }))
+              max: Math.max(...c.depthBuffer.flat().filter((d) => d < 1)),
+            },
+          })),
         };
         break;
       }
@@ -1161,8 +1236,8 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
           matrices: {
             view: view.m,
             projection: projection.m,
-            viewProjection: viewProjection.m
-          }
+            viewProjection: viewProjection.m,
+          },
         };
         break;
       }
@@ -1172,7 +1247,6 @@ export async function executeshadowmapping(toolCall: UnifiedToolCall): Promise<U
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${error}`, isError: true };

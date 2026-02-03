@@ -29,24 +29,22 @@ function cAdd(a: Complex, b: Complex): Complex {
   return { re: a.re + b.re, im: a.im + b.im };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cSub(a: Complex, b: Complex): Complex {
+export function cSub(a: Complex, b: Complex): Complex {
   return { re: a.re - b.re, im: a.im - b.im };
 }
 
 function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cDiv(a: Complex, b: Complex): Complex {
+export function cDiv(a: Complex, b: Complex): Complex {
   const denom = b.re * b.re + b.im * b.im;
   return {
     re: (a.re * b.re + a.im * b.im) / denom,
-    im: (a.im * b.re - a.re * b.im) / denom
+    im: (a.im * b.re - a.re * b.im) / denom,
   };
 }
 
@@ -54,8 +52,7 @@ function cConj(a: Complex): Complex {
   return { re: a.re, im: -a.im };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cAbs(a: Complex): number {
+export function cAbs(a: Complex): number {
   return Math.sqrt(a.re * a.re + a.im * a.im);
 }
 
@@ -82,30 +79,33 @@ function cFromPolar(r: number, theta: number): Complex {
 
 interface QuantumState {
   numQubits: number;
-  amplitudes: Complex[];  // 2^n amplitudes
+  amplitudes: Complex[]; // 2^n amplitudes
 }
 
 function createZeroState(numQubits: number): QuantumState {
-  const dim = 1 << numQubits;  // 2^n
-  const amplitudes: Complex[] = Array(dim).fill(null).map(() => complex(0));
-  amplitudes[0] = complex(1);  // |00...0⟩
+  const dim = 1 << numQubits; // 2^n
+  const amplitudes: Complex[] = Array(dim)
+    .fill(null)
+    .map(() => complex(0));
+  amplitudes[0] = complex(1); // |00...0⟩
   return { numQubits, amplitudes };
 }
 
 function createBasisState(numQubits: number, basisIndex: number): QuantumState {
   const dim = 1 << numQubits;
-  const amplitudes: Complex[] = Array(dim).fill(null).map(() => complex(0));
+  const amplitudes: Complex[] = Array(dim)
+    .fill(null)
+    .map(() => complex(0));
   amplitudes[basisIndex] = complex(1);
   return { numQubits, amplitudes };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalize(state: QuantumState): QuantumState {
+export function normalize(state: QuantumState): QuantumState {
   const norm = Math.sqrt(state.amplitudes.reduce((sum, a) => sum + cAbsSq(a), 0));
   if (norm < 1e-10) return state;
   return {
     numQubits: state.numQubits,
-    amplitudes: state.amplitudes.map(a => cScale(a, 1 / norm))
+    amplitudes: state.amplitudes.map((a) => cScale(a, 1 / norm)),
   };
 }
 
@@ -135,7 +135,7 @@ function stateToKet(state: QuantumState): string {
 }
 
 function getProbabilities(state: QuantumState): number[] {
-  return state.amplitudes.map(a => cAbsSq(a));
+  return state.amplitudes.map((a) => cAbsSq(a));
 }
 
 // ============================================================================
@@ -145,42 +145,41 @@ function getProbabilities(state: QuantumState): number[] {
 type Gate = Complex[][];
 
 // Pauli matrices
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const IDENTITY: Gate = [
+export const IDENTITY: Gate = [
   [complex(1), complex(0)],
-  [complex(0), complex(1)]
+  [complex(0), complex(1)],
 ];
 
 const PAULI_X: Gate = [
   [complex(0), complex(1)],
-  [complex(1), complex(0)]
+  [complex(1), complex(0)],
 ];
 
 const PAULI_Y: Gate = [
   [complex(0), complex(0, -1)],
-  [complex(0, 1), complex(0)]
+  [complex(0, 1), complex(0)],
 ];
 
 const PAULI_Z: Gate = [
   [complex(1), complex(0)],
-  [complex(0), complex(-1)]
+  [complex(0), complex(-1)],
 ];
 
 // Hadamard
 const HADAMARD: Gate = [
   [complex(1 / Math.sqrt(2)), complex(1 / Math.sqrt(2))],
-  [complex(1 / Math.sqrt(2)), complex(-1 / Math.sqrt(2))]
+  [complex(1 / Math.sqrt(2)), complex(-1 / Math.sqrt(2))],
 ];
 
 // Phase gates
 const S_GATE: Gate = [
   [complex(1), complex(0)],
-  [complex(0), complex(0, 1)]
+  [complex(0), complex(0, 1)],
 ];
 
 const T_GATE: Gate = [
   [complex(1), complex(0)],
-  [complex(0), cFromPolar(1, Math.PI / 4)]
+  [complex(0), cFromPolar(1, Math.PI / 4)],
 ];
 
 // Rotation gates
@@ -189,7 +188,7 @@ function rotationX(theta: number): Gate {
   const s = Math.sin(theta / 2);
   return [
     [complex(c), complex(0, -s)],
-    [complex(0, -s), complex(c)]
+    [complex(0, -s), complex(c)],
   ];
 }
 
@@ -198,22 +197,21 @@ function rotationY(theta: number): Gate {
   const s = Math.sin(theta / 2);
   return [
     [complex(c), complex(-s)],
-    [complex(s), complex(c)]
+    [complex(s), complex(c)],
   ];
 }
 
 function rotationZ(theta: number): Gate {
   return [
     [cExp(complex(0, -theta / 2)), complex(0)],
-    [complex(0), cExp(complex(0, theta / 2))]
+    [complex(0), cExp(complex(0, theta / 2))],
   ];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function phaseGate(phi: number): Gate {
+export function phaseGate(phi: number): Gate {
   return [
     [complex(1), complex(0)],
-    [complex(0), cFromPolar(1, phi)]
+    [complex(0), cFromPolar(1, phi)],
   ];
 }
 
@@ -222,21 +220,21 @@ const CNOT: Gate = [
   [complex(1), complex(0), complex(0), complex(0)],
   [complex(0), complex(1), complex(0), complex(0)],
   [complex(0), complex(0), complex(0), complex(1)],
-  [complex(0), complex(0), complex(1), complex(0)]
+  [complex(0), complex(0), complex(1), complex(0)],
 ];
 
 const SWAP: Gate = [
   [complex(1), complex(0), complex(0), complex(0)],
   [complex(0), complex(0), complex(1), complex(0)],
   [complex(0), complex(1), complex(0), complex(0)],
-  [complex(0), complex(0), complex(0), complex(1)]
+  [complex(0), complex(0), complex(0), complex(1)],
 ];
 
 const CZ: Gate = [
   [complex(1), complex(0), complex(0), complex(0)],
   [complex(0), complex(1), complex(0), complex(0)],
   [complex(0), complex(0), complex(1), complex(0)],
-  [complex(0), complex(0), complex(0), complex(-1)]
+  [complex(0), complex(0), complex(0), complex(-1)],
 ];
 
 // ============================================================================
@@ -245,7 +243,9 @@ const CZ: Gate = [
 
 function applySingleQubitGate(state: QuantumState, gate: Gate, target: number): QuantumState {
   const dim = 1 << state.numQubits;
-  const newAmplitudes: Complex[] = Array(dim).fill(null).map(() => complex(0));
+  const newAmplitudes: Complex[] = Array(dim)
+    .fill(null)
+    .map(() => complex(0));
 
   for (let i = 0; i < dim; i++) {
     // Extract the target qubit bit
@@ -267,9 +267,16 @@ function applySingleQubitGate(state: QuantumState, gate: Gate, target: number): 
   return { numQubits: state.numQubits, amplitudes: newAmplitudes };
 }
 
-function applyTwoQubitGate(state: QuantumState, gate: Gate, control: number, target: number): QuantumState {
+function applyTwoQubitGate(
+  state: QuantumState,
+  gate: Gate,
+  control: number,
+  target: number
+): QuantumState {
   const dim = 1 << state.numQubits;
-  const newAmplitudes: Complex[] = Array(dim).fill(null).map(() => complex(0));
+  const newAmplitudes: Complex[] = Array(dim)
+    .fill(null)
+    .map(() => complex(0));
 
   for (let i = 0; i < dim; i++) {
     const controlBit = (i >> control) & 1;
@@ -284,11 +291,14 @@ function applyTwoQubitGate(state: QuantumState, gate: Gate, control: number, tar
       base,
       base | (1 << target),
       base | (1 << control),
-      base | (1 << control) | (1 << target)
+      base | (1 << control) | (1 << target),
     ];
 
     for (let col = 0; col < 4; col++) {
-      newAmplitudes[i] = cAdd(newAmplitudes[i], cMul(gate[gateRow][col], state.amplitudes[indices[col]]));
+      newAmplitudes[i] = cAdd(
+        newAmplitudes[i],
+        cMul(gate[gateRow][col], state.amplitudes[indices[col]])
+      );
     }
   }
 
@@ -299,7 +309,11 @@ function applyTwoQubitGate(state: QuantumState, gate: Gate, control: number, tar
 // MEASUREMENT
 // ============================================================================
 
-function measureAll(state: QuantumState): { outcome: number; probability: number; newState: QuantumState } {
+function measureAll(state: QuantumState): {
+  outcome: number;
+  probability: number;
+  newState: QuantumState;
+} {
   const probs = getProbabilities(state);
   const rand = Math.random();
   let cumProb = 0;
@@ -319,12 +333,14 @@ function measureAll(state: QuantumState): { outcome: number; probability: number
   return {
     outcome,
     probability: probs[outcome],
-    newState
+    newState,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function measureQubit(state: QuantumState, qubit: number): { outcome: number; probability: number; newState: QuantumState } {
+export function measureQubit(
+  state: QuantumState,
+  qubit: number
+): { outcome: number; probability: number; newState: QuantumState } {
   const dim = 1 << state.numQubits;
 
   // Calculate probability of measuring 0 or 1
@@ -359,7 +375,7 @@ function measureQubit(state: QuantumState, qubit: number): { outcome: number; pr
   return {
     outcome,
     probability,
-    newState: { numQubits: state.numQubits, amplitudes: newAmplitudes }
+    newState: { numQubits: state.numQubits, amplitudes: newAmplitudes },
   };
 }
 
@@ -423,8 +439,13 @@ function calculateEntanglement(state: QuantumState, partition: number[]): number
   // Compute reduced density matrix by tracing out complement of partition
   const partitionSize = partition.length;
   const reducedDim = 1 << partitionSize;
-  const rho: Complex[][] = Array(reducedDim).fill(null)
-    .map(() => Array(reducedDim).fill(null).map(() => complex(0)));
+  const rho: Complex[][] = Array(reducedDim)
+    .fill(null)
+    .map(() =>
+      Array(reducedDim)
+        .fill(null)
+        .map(() => complex(0))
+    );
 
   const fullDim = 1 << state.numQubits;
   const complement = [];
@@ -446,7 +467,8 @@ function calculateEntanglement(state: QuantumState, partition: number[]): number
 
       if (match) {
         // Extract partition indices
-        let pi = 0, pj = 0;
+        let pi = 0,
+          pj = 0;
         for (let k = 0; k < partition.length; k++) {
           pi |= ((i >> partition[k]) & 1) << k;
           pj |= ((j >> partition[k]) & 1) << k;
@@ -478,8 +500,13 @@ function calculateEntanglement(state: QuantumState, partition: number[]): number
 
 function stateToDensityMatrix(state: QuantumState): Complex[][] {
   const dim = 1 << state.numQubits;
-  const rho: Complex[][] = Array(dim).fill(null)
-    .map(() => Array(dim).fill(null).map(() => complex(0)));
+  const rho: Complex[][] = Array(dim)
+    .fill(null)
+    .map(() =>
+      Array(dim)
+        .fill(null)
+        .map(() => complex(0))
+    );
 
   for (let i = 0; i < dim; i++) {
     for (let j = 0; j < dim; j++) {
@@ -498,8 +525,7 @@ function traceDensityMatrix(rho: Complex[][]): Complex {
   return trace;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function fidelity(state1: QuantumState, state2: QuantumState): number {
+export function fidelity(state1: QuantumState, state2: QuantumState): number {
   if (state1.numQubits !== state2.numQubits) return 0;
 
   // F = |⟨ψ|φ⟩|²
@@ -524,42 +550,35 @@ export const qubitsimulatorTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['create', 'measure', 'apply_gate', 'entangle', 'density_matrix', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       num_qubits: { type: 'number', description: 'Number of qubits (default 2)' },
       initial_state: {
         type: 'string',
         enum: ['zero', 'one', 'plus', 'minus', 'custom'],
-        description: 'Initial state type'
+        description: 'Initial state type',
       },
       gates: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            gate: { type: 'string', description: 'Gate name (H, X, Y, Z, S, T, CNOT, CZ, SWAP, Rx, Ry, Rz)' },
-            target: { type: 'number', description: 'Target qubit index' },
-            control: { type: 'number', description: 'Control qubit index (for two-qubit gates)' },
-            angle: { type: 'number', description: 'Rotation angle (for Rx, Ry, Rz)' }
-          }
-        },
-        description: 'Sequence of gates to apply'
+        items: { type: 'object' },
+        description:
+          'Sequence of gates to apply. Each gate has: gate (string: H, X, Y, Z, S, T, CNOT, CZ, SWAP, Rx, Ry, Rz), target (number), control (optional number for two-qubit gates), angle (optional number for rotations)',
       },
       measure_qubit: { type: 'number', description: 'Specific qubit to measure (-1 for all)' },
       num_shots: { type: 'number', description: 'Number of measurement repetitions' },
       bell_state: {
         type: 'string',
         enum: ['phi+', 'phi-', 'psi+', 'psi-'],
-        description: 'Bell state type'
+        description: 'Bell state type',
       },
       partition: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Qubit indices for entanglement calculation'
-      }
+        description: 'Qubit indices for entanglement calculation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -573,42 +592,46 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'qubit_simulator',
-            description: 'Quantum state simulation with gates and measurements',
-            operations: {
-              create: {
-                description: 'Create a quantum state',
-                parameters: ['num_qubits', 'initial_state']
+          content: JSON.stringify(
+            {
+              tool: 'qubit_simulator',
+              description: 'Quantum state simulation with gates and measurements',
+              operations: {
+                create: {
+                  description: 'Create a quantum state',
+                  parameters: ['num_qubits', 'initial_state'],
+                },
+                apply_gate: {
+                  description: 'Apply quantum gates to a state',
+                  parameters: ['num_qubits', 'gates[]'],
+                },
+                measure: {
+                  description: 'Measure qubits (collapse state)',
+                  parameters: ['num_qubits', 'measure_qubit', 'num_shots'],
+                },
+                entangle: {
+                  description: 'Create entangled states',
+                  parameters: ['bell_state', 'num_qubits (for GHZ)'],
+                },
+                density_matrix: {
+                  description: 'Compute density matrix and properties',
+                  parameters: ['num_qubits', 'partition'],
+                },
               },
-              apply_gate: {
-                description: 'Apply quantum gates to a state',
-                parameters: ['num_qubits', 'gates[]']
+              availableGates: {
+                singleQubit: ['H', 'X', 'Y', 'Z', 'S', 'T', 'Rx', 'Ry', 'Rz'],
+                twoQubit: ['CNOT', 'CZ', 'SWAP'],
               },
-              measure: {
-                description: 'Measure qubits (collapse state)',
-                parameters: ['num_qubits', 'measure_qubit', 'num_shots']
+              concepts: {
+                superposition: 'α|0⟩ + β|1⟩ where |α|² + |β|² = 1',
+                measurement: 'Collapses superposition with Born rule probabilities',
+                entanglement: 'Non-separable multi-qubit states',
+                bellStates: '|Φ±⟩ = (|00⟩ ± |11⟩)/√2, |Ψ±⟩ = (|01⟩ ± |10⟩)/√2',
               },
-              entangle: {
-                description: 'Create entangled states',
-                parameters: ['bell_state', 'num_qubits (for GHZ)']
-              },
-              density_matrix: {
-                description: 'Compute density matrix and properties',
-                parameters: ['num_qubits', 'partition']
-              }
             },
-            availableGates: {
-              singleQubit: ['H', 'X', 'Y', 'Z', 'S', 'T', 'Rx', 'Ry', 'Rz'],
-              twoQubit: ['CNOT', 'CZ', 'SWAP']
-            },
-            concepts: {
-              superposition: 'α|0⟩ + β|1⟩ where |α|² + |β|² = 1',
-              measurement: 'Collapses superposition with Born rule probabilities',
-              entanglement: 'Non-separable multi-qubit states',
-              bellStates: '|Φ±⟩ = (|00⟩ ± |11⟩)/√2, |Ψ±⟩ = (|01⟩ ± |10⟩)/√2'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -648,17 +671,23 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'create',
-            numQubits,
-            initialState,
-            stateVector: stateToKet(state),
-            probabilities: probs.map((p, i) => ({
-              basis: i.toString(2).padStart(numQubits, '0'),
-              probability: p
-            })).filter(x => x.probability > 1e-10),
-            dimension: 1 << numQubits
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'create',
+              numQubits,
+              initialState,
+              stateVector: stateToKet(state),
+              probabilities: probs
+                .map((p, i) => ({
+                  basis: i.toString(2).padStart(numQubits, '0'),
+                  probability: p,
+                }))
+                .filter((x) => x.probability > 1e-10),
+              dimension: 1 << numQubits,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -667,7 +696,12 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
         const gates = args.gates || [{ gate: 'H', target: 0 }];
 
         let state = createZeroState(numQubits);
-        const gateLog: Array<{ gate: string; target: number; control?: number; stateAfter: string }> = [];
+        const gateLog: Array<{
+          gate: string;
+          target: number;
+          control?: number;
+          stateAfter: string;
+        }> = [];
 
         for (const gateSpec of gates) {
           let gate: Gate;
@@ -730,22 +764,28 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
             gate: gateSpec.gate,
             target,
             control,
-            stateAfter: stateToKet(state)
+            stateAfter: stateToKet(state),
           });
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'apply_gate',
-            numQubits,
-            gatesApplied: gateLog,
-            finalState: stateToKet(state),
-            probabilities: getProbabilities(state).map((p, i) => ({
-              basis: i.toString(2).padStart(numQubits, '0'),
-              probability: p
-            })).filter(x => x.probability > 1e-10)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'apply_gate',
+              numQubits,
+              gatesApplied: gateLog,
+              finalState: stateToKet(state),
+              probabilities: getProbabilities(state)
+                .map((p, i) => ({
+                  basis: i.toString(2).padStart(numQubits, '0'),
+                  probability: p,
+                }))
+                .filter((x) => x.probability > 1e-10),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -803,18 +843,24 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'measure',
-            numQubits,
-            numShots,
-            stateBeforeMeasurement: stateToKet(state),
-            theoreticalProbabilities: probs.map((p, i) => ({
-              basis: i.toString(2).padStart(numQubits, '0'),
-              probability: p
-            })).filter(x => x.probability > 1e-10),
-            measuredCounts: counts,
-            measuredFrequencies: frequencies
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'measure',
+              numQubits,
+              numShots,
+              stateBeforeMeasurement: stateToKet(state),
+              theoreticalProbabilities: probs
+                .map((p, i) => ({
+                  basis: i.toString(2).padStart(numQubits, '0'),
+                  probability: p,
+                }))
+                .filter((x) => x.probability > 1e-10),
+              measuredCounts: counts,
+              measuredFrequencies: frequencies,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -839,33 +885,47 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'entangle',
-            stateType,
-            stateVector: stateToKet(state),
-            probabilities: getProbabilities(state).map((p, i) => ({
-              basis: i.toString(2).padStart(state.numQubits, '0'),
-              probability: p
-            })).filter(x => x.probability > 1e-10),
-            entanglement: {
-              partition,
-              linearEntropy: entanglement,
-              interpretation: entanglement > 0.4 ? 'Highly entangled' : entanglement > 0.1 ? 'Partially entangled' : 'Weakly entangled'
+          content: JSON.stringify(
+            {
+              operation: 'entangle',
+              stateType,
+              stateVector: stateToKet(state),
+              probabilities: getProbabilities(state)
+                .map((p, i) => ({
+                  basis: i.toString(2).padStart(state.numQubits, '0'),
+                  probability: p,
+                }))
+                .filter((x) => x.probability > 1e-10),
+              entanglement: {
+                partition,
+                linearEntropy: entanglement,
+                interpretation:
+                  entanglement > 0.4
+                    ? 'Highly entangled'
+                    : entanglement > 0.1
+                      ? 'Partially entangled'
+                      : 'Weakly entangled',
+              },
+              bellStateFormulas: {
+                'phi+': '(|00⟩ + |11⟩)/√2',
+                'phi-': '(|00⟩ - |11⟩)/√2',
+                'psi+': '(|01⟩ + |10⟩)/√2',
+                'psi-': '(|01⟩ - |10⟩)/√2',
+              },
             },
-            bellStateFormulas: {
-              'phi+': '(|00⟩ + |11⟩)/√2',
-              'phi-': '(|00⟩ - |11⟩)/√2',
-              'psi+': '(|01⟩ + |10⟩)/√2',
-              'psi-': '(|01⟩ - |10⟩)/√2'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'density_matrix': {
         const numQubits = args.num_qubits || 2;
         const partition = args.partition || [0];
-        const gates = args.gates || [{ gate: 'H', target: 0 }, { gate: 'CNOT', control: 0, target: 1 }];
+        const gates = args.gates || [
+          { gate: 'H', target: 0 },
+          { gate: 'CNOT', control: 0, target: 1 },
+        ];
 
         // Create state
         let state = createZeroState(numQubits);
@@ -909,9 +969,10 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
               rhoFormatted.push({
                 row: i,
                 col: j,
-                value: Math.abs(val.im) < 1e-10
-                  ? val.re.toFixed(4)
-                  : `${val.re.toFixed(4)}${val.im >= 0 ? '+' : ''}${val.im.toFixed(4)}i`
+                value:
+                  Math.abs(val.im) < 1e-10
+                    ? val.re.toFixed(4)
+                    : `${val.re.toFixed(4)}${val.im >= 0 ? '+' : ''}${val.im.toFixed(4)}i`,
               });
             }
           }
@@ -919,25 +980,29 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'density_matrix',
-            numQubits,
-            stateVector: stateToKet(state),
-            densityMatrix: {
-              dimension: rho.length,
-              significantEntries: rhoFormatted,
-              trace: trace.re
+          content: JSON.stringify(
+            {
+              operation: 'density_matrix',
+              numQubits,
+              stateVector: stateToKet(state),
+              densityMatrix: {
+                dimension: rho.length,
+                significantEntries: rhoFormatted,
+                trace: trace.re,
+              },
+              properties: {
+                purity,
+                isPure: Math.abs(purity - 1) < 1e-6,
+                linearEntropy: 1 - purity,
+                entanglement: {
+                  partition,
+                  value: entanglement,
+                },
+              },
             },
-            properties: {
-              purity,
-              isPure: Math.abs(purity - 1) < 1e-6,
-              linearEntropy: 1 - purity,
-              entanglement: {
-                partition,
-                value: entanglement
-              }
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -946,9 +1011,16 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown operation: ${operation}`,
-            availableOperations: ['create', 'apply_gate', 'measure', 'entangle', 'density_matrix', 'info']
+            availableOperations: [
+              'create',
+              'apply_gate',
+              'measure',
+              'entangle',
+              'density_matrix',
+              'info',
+            ],
           }),
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -956,7 +1028,7 @@ export async function executequbitsimulator(toolCall: UnifiedToolCall): Promise<
     return {
       toolCallId: id,
       content: `Error in qubit simulator: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

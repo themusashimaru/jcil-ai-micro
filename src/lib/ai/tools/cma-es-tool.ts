@@ -12,7 +12,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 interface CMAESConfig {
   populationSize: number;
-  sigma: number;           // Initial step size
+  sigma: number; // Initial step size
   maxIterations: number;
   targetFitness?: number;
   dimension: number;
@@ -21,11 +21,11 @@ interface CMAESConfig {
 interface CMAESState {
   mean: number[];
   sigma: number;
-  C: number[][];          // Covariance matrix
-  pc: number[];           // Evolution path for C
-  ps: number[];           // Evolution path for sigma
-  B: number[][];          // Eigenvectors of C
-  D: number[];            // Eigenvalues of C
+  C: number[][]; // Covariance matrix
+  pc: number[]; // Evolution path for C
+  ps: number[]; // Evolution path for sigma
+  B: number[][]; // Eigenvectors of C
+  D: number[]; // Eigenvalues of C
   generation: number;
 }
 
@@ -45,17 +45,20 @@ interface OptimizationResult {
 // BENCHMARK FUNCTIONS
 // ============================================================================
 
-const benchmarkFunctions: Record<string, {
-  fn: (x: number[]) => number;
-  optimum: number;
-  bounds: [number, number];
-  description: string;
-}> = {
+const benchmarkFunctions: Record<
+  string,
+  {
+    fn: (x: number[]) => number;
+    optimum: number;
+    bounds: [number, number];
+    description: string;
+  }
+> = {
   sphere: {
     fn: (x: number[]) => x.reduce((sum, xi) => sum + xi * xi, 0),
     optimum: 0,
     bounds: [-5.12, 5.12],
-    description: 'Simple sphere function: sum(x_i^2)'
+    description: 'Simple sphere function: sum(x_i^2)',
   },
   rosenbrock: {
     fn: (x: number[]) => {
@@ -67,52 +70,52 @@ const benchmarkFunctions: Record<string, {
     },
     optimum: 0,
     bounds: [-5, 10],
-    description: 'Rosenbrock banana function'
+    description: 'Rosenbrock banana function',
   },
   rastrigin: {
     fn: (x: number[]) => {
       const A = 10;
-      return A * x.length + x.reduce((sum, xi) =>
-        sum + xi * xi - A * Math.cos(2 * Math.PI * xi), 0);
+      return (
+        A * x.length + x.reduce((sum, xi) => sum + xi * xi - A * Math.cos(2 * Math.PI * xi), 0)
+      );
     },
     optimum: 0,
     bounds: [-5.12, 5.12],
-    description: 'Rastrigin function with many local minima'
+    description: 'Rastrigin function with many local minima',
   },
   ackley: {
     fn: (x: number[]) => {
       const n = x.length;
       const sum1 = x.reduce((s, xi) => s + xi * xi, 0);
       const sum2 = x.reduce((s, xi) => s + Math.cos(2 * Math.PI * xi), 0);
-      return -20 * Math.exp(-0.2 * Math.sqrt(sum1 / n)) -
-             Math.exp(sum2 / n) + 20 + Math.E;
+      return -20 * Math.exp(-0.2 * Math.sqrt(sum1 / n)) - Math.exp(sum2 / n) + 20 + Math.E;
     },
     optimum: 0,
     bounds: [-32.768, 32.768],
-    description: 'Ackley function'
+    description: 'Ackley function',
   },
   schwefel: {
     fn: (x: number[]) => {
       const n = x.length;
-      return 418.9829 * n - x.reduce((sum, xi) =>
-        sum + xi * Math.sin(Math.sqrt(Math.abs(xi))), 0);
+      return 418.9829 * n - x.reduce((sum, xi) => sum + xi * Math.sin(Math.sqrt(Math.abs(xi))), 0);
     },
     optimum: 0,
     bounds: [-500, 500],
-    description: 'Schwefel function'
-  }
+    description: 'Schwefel function',
+  },
 };
 
 // ============================================================================
 // LINEAR ALGEBRA UTILITIES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function matrixMultiply(A: number[][], B: number[][]): number[][] {
+export function matrixMultiply(A: number[][], B: number[][]): number[][] {
   const m = A.length;
   const n = B[0].length;
   const p = B.length;
-  const result: number[][] = Array(m).fill(null).map(() => Array(n).fill(0));
+  const result: number[][] = Array(m)
+    .fill(null)
+    .map(() => Array(n).fill(0));
 
   for (let i = 0; i < m; i++) {
     for (let j = 0; j < n; j++) {
@@ -125,14 +128,15 @@ function matrixMultiply(A: number[][], B: number[][]): number[][] {
 }
 
 function matrixVectorMultiply(A: number[][], v: number[]): number[] {
-  return A.map(row => row.reduce((sum, a, j) => sum + a * v[j], 0));
+  return A.map((row) => row.reduce((sum, a, j) => sum + a * v[j], 0));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function transpose(A: number[][]): number[][] {
+export function transpose(A: number[][]): number[][] {
   const m = A.length;
   const n = A[0].length;
-  const result: number[][] = Array(n).fill(null).map(() => Array(m).fill(0));
+  const result: number[][] = Array(n)
+    .fill(null)
+    .map(() => Array(m).fill(0));
   for (let i = 0; i < m; i++) {
     for (let j = 0; j < n; j++) {
       result[j][i] = A[i][j];
@@ -142,7 +146,9 @@ function transpose(A: number[][]): number[][] {
 }
 
 function identityMatrix(n: number): number[][] {
-  const I: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+  const I: number[][] = Array(n)
+    .fill(null)
+    .map(() => Array(n).fill(0));
   for (let i = 0; i < n; i++) I[i][i] = 1;
   return I;
 }
@@ -195,15 +201,15 @@ class CMAES {
   private fitnessFunction: (x: number[]) => number;
 
   // Strategy parameters
-  private mu: number;           // Number of parents
-  private weights: number[];    // Recombination weights
-  private mueff: number;        // Variance effective selection mass
-  private cc: number;           // Learning rate for C
-  private cs: number;           // Learning rate for sigma
-  private c1: number;           // Learning rate for rank-1 update
-  private cmu: number;          // Learning rate for rank-mu update
-  private damps: number;        // Damping for sigma
-  private chiN: number;         // Expectation of ||N(0,I)||
+  private mu: number; // Number of parents
+  private weights: number[]; // Recombination weights
+  private mueff: number; // Variance effective selection mass
+  private cc: number; // Learning rate for C
+  private cs: number; // Learning rate for sigma
+  private c1: number; // Learning rate for rank-1 update
+  private cmu: number; // Learning rate for rank-mu update
+  private damps: number; // Damping for sigma
+  private chiN: number; // Expectation of ||N(0,I)||
 
   constructor(
     fitnessFunction: (x: number[]) => number,
@@ -219,7 +225,7 @@ class CMAES {
       populationSize: lambda,
       sigma: config.sigma || 0.5,
       maxIterations: config.maxIterations || 1000,
-      targetFitness: config.targetFitness
+      targetFitness: config.targetFitness,
     };
 
     // Initialize strategy parameters
@@ -231,18 +237,18 @@ class CMAES {
       this.weights.push(Math.log(this.mu + 0.5) - Math.log(i + 1));
     }
     const sumW = this.weights.reduce((a, b) => a + b, 0);
-    this.weights = this.weights.map(w => w / sumW);
+    this.weights = this.weights.map((w) => w / sumW);
 
     // Variance effective selection mass
     this.mueff = 1 / this.weights.reduce((sum, w) => sum + w * w, 0);
 
     // Learning rates
-    this.cc = (4 + this.mueff / n) / (n + 4 + 2 * this.mueff / n);
+    this.cc = (4 + this.mueff / n) / (n + 4 + (2 * this.mueff) / n);
     this.cs = (this.mueff + 2) / (n + this.mueff + 5);
     this.c1 = 2 / ((n + 1.3) * (n + 1.3) + this.mueff);
     this.cmu = Math.min(
       1 - this.c1,
-      2 * (this.mueff - 2 + 1 / this.mueff) / ((n + 2) * (n + 2) + this.mueff)
+      (2 * (this.mueff - 2 + 1 / this.mueff)) / ((n + 2) * (n + 2) + this.mueff)
     );
     this.damps = 1 + 2 * Math.max(0, Math.sqrt((this.mueff - 1) / (n + 1)) - 1) + this.cs;
     this.chiN = Math.sqrt(n) * (1 - 1 / (4 * n) + 1 / (21 * n * n));
@@ -256,7 +262,7 @@ class CMAES {
       ps: Array(n).fill(0),
       B: identityMatrix(n),
       D: Array(n).fill(1),
-      generation: 0
+      generation: 0,
     };
   }
 
@@ -303,23 +309,31 @@ class CMAES {
 
     // ps path
     for (let i = 0; i < n; i++) {
-      this.state.ps[i] = (1 - this.cs) * this.state.ps[i] +
+      this.state.ps[i] =
+        (1 - this.cs) * this.state.ps[i] +
         Math.sqrt(this.cs * (2 - this.cs) * this.mueff) * BDinvz[i];
     }
 
     // pc path
-    const hsig = Math.sqrt(this.state.ps.reduce((s, p) => s + p * p, 0)) /
-      Math.sqrt(1 - Math.pow(1 - this.cs, 2 * (this.state.generation + 1))) / this.chiN < 1.4 + 2 / (n + 1) ? 1 : 0;
+    const hsig =
+      Math.sqrt(this.state.ps.reduce((s, p) => s + p * p, 0)) /
+        Math.sqrt(1 - Math.pow(1 - this.cs, 2 * (this.state.generation + 1))) /
+        this.chiN <
+      1.4 + 2 / (n + 1)
+        ? 1
+        : 0;
 
     for (let i = 0; i < n; i++) {
-      this.state.pc[i] = (1 - this.cc) * this.state.pc[i] +
+      this.state.pc[i] =
+        (1 - this.cc) * this.state.pc[i] +
         hsig * Math.sqrt(this.cc * (2 - this.cc) * this.mueff) * meanDiff[i];
     }
 
     // Update covariance matrix (simplified rank-1 update)
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
-        this.state.C[i][j] = (1 - this.c1 - this.cmu) * this.state.C[i][j] +
+        this.state.C[i][j] =
+          (1 - this.c1 - this.cmu) * this.state.C[i][j] +
           this.c1 * this.state.pc[i] * this.state.pc[j];
       }
     }
@@ -357,7 +371,7 @@ class CMAES {
         convergenceHistory.push({
           generation: g,
           bestFitness,
-          sigma: this.state.sigma
+          sigma: this.state.sigma,
         });
       }
 
@@ -380,8 +394,8 @@ class CMAES {
       finalState: {
         mean: this.state.mean,
         sigma: this.state.sigma,
-        covarianceTrace: this.state.C.reduce((sum, row, i) => sum + row[i], 0)
-      }
+        covarianceTrace: this.state.C.reduce((sum, row, i) => sum + row[i], 0),
+      },
     };
   }
 
@@ -396,44 +410,46 @@ class CMAES {
 
 export const cmaesTool: UnifiedTool = {
   name: 'cma_es',
-  description: 'CMA-ES (Covariance Matrix Adaptation Evolution Strategy) for continuous optimization',
+  description:
+    'CMA-ES (Covariance Matrix Adaptation Evolution Strategy) for continuous optimization',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['optimize', 'benchmark', 'compare', 'info', 'examples'],
-        description: 'Operation: optimize (run CMA-ES), benchmark (test on standard functions), compare (compare with other methods)'
+        description:
+          'Operation: optimize (run CMA-ES), benchmark (test on standard functions), compare (compare with other methods)',
       },
       function: {
         type: 'string',
         enum: ['sphere', 'rosenbrock', 'rastrigin', 'ackley', 'schwefel', 'custom'],
-        description: 'Optimization function to use'
+        description: 'Optimization function to use',
       },
       dimension: {
         type: 'number',
-        description: 'Problem dimension (default: 10)'
+        description: 'Problem dimension (default: 10)',
       },
       populationSize: {
         type: 'number',
-        description: 'Population size (default: 4 + 3*ln(n))'
+        description: 'Population size (default: 4 + 3*ln(n))',
       },
       sigma: {
         type: 'number',
-        description: 'Initial step size (default: 0.5)'
+        description: 'Initial step size (default: 0.5)',
       },
       maxIterations: {
         type: 'number',
-        description: 'Maximum iterations (default: 1000)'
+        description: 'Maximum iterations (default: 1000)',
       },
       initialMean: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Initial mean vector'
-      }
+        description: 'Initial mean vector',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -452,7 +468,7 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
           return {
             toolCallId: id,
             content: `Unknown function: ${funcName}. Available: ${Object.keys(benchmarkFunctions).join(', ')}`,
-            isError: true
+            isError: true,
           };
         }
 
@@ -461,38 +477,46 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
           dimension,
           populationSize: args.populationSize,
           sigma: args.sigma || 0.5,
-          maxIterations: args.maxIterations || 500
+          maxIterations: args.maxIterations || 500,
         });
 
         // Set initial mean within bounds
-        const initialMean = args.initialMean ||
-          Array(dimension).fill(0).map(() =>
-            benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
-          );
+        const initialMean =
+          args.initialMean ||
+          Array(dimension)
+            .fill(0)
+            .map(
+              () =>
+                benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
+            );
         cmaes.setInitialMean(initialMean);
 
         const result = cmaes.optimize();
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'optimize',
-            function: funcName,
-            functionDescription: benchmark.description,
-            dimension,
-            result: {
-              bestSolution: result.bestSolution.map(x => parseFloat(x.toFixed(6))),
-              bestFitness: result.bestFitness,
-              knownOptimum: benchmark.optimum,
-              gap: result.bestFitness - benchmark.optimum,
-              generations: result.generations
+          content: JSON.stringify(
+            {
+              operation: 'optimize',
+              function: funcName,
+              functionDescription: benchmark.description,
+              dimension,
+              result: {
+                bestSolution: result.bestSolution.map((x) => parseFloat(x.toFixed(6))),
+                bestFitness: result.bestFitness,
+                knownOptimum: benchmark.optimum,
+                gap: result.bestFitness - benchmark.optimum,
+                generations: result.generations,
+              },
+              convergence: result.convergenceHistory,
+              finalState: {
+                sigma: result.finalState.sigma.toFixed(6),
+                covarianceTrace: result.finalState.covarianceTrace.toFixed(4),
+              },
             },
-            convergence: result.convergenceHistory,
-            finalState: {
-              sigma: result.finalState.sigma.toFixed(6),
-              covarianceTrace: result.finalState.covarianceTrace.toFixed(4)
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -500,19 +524,23 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
         const dimension = args.dimension || 5;
         const maxIterations = args.maxIterations || 200;
 
-        const results: { function: string; fitness: number; generations: number; gap: number }[] = [];
+        const results: { function: string; fitness: number; generations: number; gap: number }[] =
+          [];
 
         for (const [name, benchmark] of Object.entries(benchmarkFunctions)) {
           const cmaes = new CMAES(benchmark.fn, {
             dimension,
             sigma: 0.5,
-            maxIterations
+            maxIterations,
           });
 
           // Random initial point
-          const init = Array(dimension).fill(0).map(() =>
-            benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
-          );
+          const init = Array(dimension)
+            .fill(0)
+            .map(
+              () =>
+                benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
+            );
           cmaes.setInitialMean(init);
 
           const result = cmaes.optimize();
@@ -521,23 +549,29 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
             function: name,
             fitness: parseFloat(result.bestFitness.toFixed(6)),
             generations: result.generations,
-            gap: parseFloat((result.bestFitness - benchmark.optimum).toFixed(6))
+            gap: parseFloat((result.bestFitness - benchmark.optimum).toFixed(6)),
           });
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'benchmark',
-            dimension,
-            maxIterations,
-            results,
-            summary: {
-              totalFunctions: results.length,
-              successfulOptimizations: results.filter(r => r.gap < 0.01).length,
-              averageGenerations: Math.round(results.reduce((s, r) => s + r.generations, 0) / results.length)
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'benchmark',
+              dimension,
+              maxIterations,
+              results,
+              summary: {
+                totalFunctions: results.length,
+                successfulOptimizations: results.filter((r) => r.gap < 0.01).length,
+                averageGenerations: Math.round(
+                  results.reduce((s, r) => s + r.generations, 0) / results.length
+                ),
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -550,11 +584,13 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
         const cmaes = new CMAES(benchmark.fn, {
           dimension,
           sigma: 0.5,
-          maxIterations: 200
+          maxIterations: 200,
         });
-        const init = Array(dimension).fill(0).map(() =>
-          benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
-        );
+        const init = Array(dimension)
+          .fill(0)
+          .map(
+            () => benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
+          );
         cmaes.setInitialMean(init);
         const cmaResult = cmaes.optimize();
 
@@ -562,9 +598,12 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
         let randomBest = Infinity;
         let randomEvals = 0;
         for (let i = 0; i < cmaResult.generations * 10; i++) {
-          const x = Array(dimension).fill(0).map(() =>
-            benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
-          );
+          const x = Array(dimension)
+            .fill(0)
+            .map(
+              () =>
+                benchmark.bounds[0] + Math.random() * (benchmark.bounds[1] - benchmark.bounds[0])
+            );
           const f = benchmark.fn(x);
           randomEvals++;
           if (f < randomBest) randomBest = f;
@@ -572,116 +611,129 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            function: funcName,
-            dimension,
-            comparison: {
-              cmaes: {
-                bestFitness: cmaResult.bestFitness.toFixed(6),
-                generations: cmaResult.generations,
-                evaluations: cmaResult.generations * (4 + Math.floor(3 * Math.log(dimension)))
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              function: funcName,
+              dimension,
+              comparison: {
+                cmaes: {
+                  bestFitness: cmaResult.bestFitness.toFixed(6),
+                  generations: cmaResult.generations,
+                  evaluations: cmaResult.generations * (4 + Math.floor(3 * Math.log(dimension))),
+                },
+                randomSearch: {
+                  bestFitness: randomBest.toFixed(6),
+                  evaluations: randomEvals,
+                },
               },
-              randomSearch: {
-                bestFitness: randomBest.toFixed(6),
-                evaluations: randomEvals
-              }
+              winner: cmaResult.bestFitness < randomBest ? 'CMA-ES' : 'Random Search',
+              improvement:
+                (((randomBest - cmaResult.bestFitness) / randomBest) * 100).toFixed(2) + '%',
             },
-            winner: cmaResult.bestFitness < randomBest ? 'CMA-ES' : 'Random Search',
-            improvement: ((randomBest - cmaResult.bestFitness) / randomBest * 100).toFixed(2) + '%'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'CMA-ES',
-            fullName: 'Covariance Matrix Adaptation Evolution Strategy',
-            description: 'State-of-the-art evolutionary algorithm for continuous optimization',
-            keyFeatures: [
-              'Self-adaptive step size control',
-              'Learns variable dependencies via covariance matrix',
-              'Invariant to linear transformations',
-              'No gradient required (derivative-free)',
-              'Robust to local optima'
-            ],
-            algorithm: {
-              sampling: 'Generate population from multivariate normal N(mean, sigma^2 * C)',
-              selection: 'Select best mu individuals from lambda',
-              recombination: 'Weighted average of selected individuals',
-              adaptation: 'Update C and sigma based on evolution paths'
+          content: JSON.stringify(
+            {
+              tool: 'CMA-ES',
+              fullName: 'Covariance Matrix Adaptation Evolution Strategy',
+              description: 'State-of-the-art evolutionary algorithm for continuous optimization',
+              keyFeatures: [
+                'Self-adaptive step size control',
+                'Learns variable dependencies via covariance matrix',
+                'Invariant to linear transformations',
+                'No gradient required (derivative-free)',
+                'Robust to local optima',
+              ],
+              algorithm: {
+                sampling: 'Generate population from multivariate normal N(mean, sigma^2 * C)',
+                selection: 'Select best mu individuals from lambda',
+                recombination: 'Weighted average of selected individuals',
+                adaptation: 'Update C and sigma based on evolution paths',
+              },
+              parameters: {
+                lambda: 'Population size (typically 4 + 3*ln(n))',
+                mu: 'Number of parents (lambda/2)',
+                sigma: 'Global step size',
+                C: 'Covariance matrix encoding variable correlations',
+              },
+              benchmarkFunctions: Object.entries(benchmarkFunctions).map(([name, b]) => ({
+                name,
+                description: b.description,
+                optimum: b.optimum,
+                bounds: b.bounds,
+              })),
+              applications: [
+                'Neural network training',
+                'Hyperparameter optimization',
+                'Reinforcement learning policy search',
+                'Engineering design optimization',
+                'Game AI',
+              ],
+              complexity: {
+                perGeneration: 'O(n^2) for covariance update',
+                eigenDecomposition: 'O(n^3) but done periodically',
+              },
             },
-            parameters: {
-              lambda: 'Population size (typically 4 + 3*ln(n))',
-              mu: 'Number of parents (lambda/2)',
-              sigma: 'Global step size',
-              C: 'Covariance matrix encoding variable correlations'
-            },
-            benchmarkFunctions: Object.entries(benchmarkFunctions).map(([name, b]) => ({
-              name,
-              description: b.description,
-              optimum: b.optimum,
-              bounds: b.bounds
-            })),
-            applications: [
-              'Neural network training',
-              'Hyperparameter optimization',
-              'Reinforcement learning policy search',
-              'Engineering design optimization',
-              'Game AI'
-            ],
-            complexity: {
-              perGeneration: 'O(n^2) for covariance update',
-              eigenDecomposition: 'O(n^3) but done periodically'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Optimize sphere function',
-                call: {
-                  operation: 'optimize',
-                  function: 'sphere',
-                  dimension: 10,
-                  maxIterations: 300
-                }
-              },
-              {
-                name: 'Optimize Rosenbrock',
-                call: {
-                  operation: 'optimize',
-                  function: 'rosenbrock',
-                  dimension: 5,
-                  sigma: 1.0,
-                  maxIterations: 500
-                }
-              },
-              {
-                name: 'Run all benchmarks',
-                call: {
-                  operation: 'benchmark',
-                  dimension: 5,
-                  maxIterations: 200
-                }
-              },
-              {
-                name: 'Compare with random search',
-                call: {
-                  operation: 'compare',
-                  function: 'rastrigin',
-                  dimension: 10
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Optimize sphere function',
+                  call: {
+                    operation: 'optimize',
+                    function: 'sphere',
+                    dimension: 10,
+                    maxIterations: 300,
+                  },
+                },
+                {
+                  name: 'Optimize Rosenbrock',
+                  call: {
+                    operation: 'optimize',
+                    function: 'rosenbrock',
+                    dimension: 5,
+                    sigma: 1.0,
+                    maxIterations: 500,
+                  },
+                },
+                {
+                  name: 'Run all benchmarks',
+                  call: {
+                    operation: 'benchmark',
+                    dimension: 5,
+                    maxIterations: 200,
+                  },
+                },
+                {
+                  name: 'Compare with random search',
+                  call: {
+                    operation: 'compare',
+                    function: 'rastrigin',
+                    dimension: 10,
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -689,7 +741,7 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -698,4 +750,6 @@ export async function executecmaes(toolCall: UnifiedToolCall): Promise<UnifiedTo
   }
 }
 
-export function iscmaesAvailable(): boolean { return true; }
+export function iscmaesAvailable(): boolean {
+  return true;
+}

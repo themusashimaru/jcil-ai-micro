@@ -41,8 +41,7 @@ interface TriangulationResult {
   executionSteps?: string[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface MonotoneChain {
+export interface MonotoneChain {
   vertices: Point[];
   isLeftChain: boolean;
 }
@@ -85,7 +84,7 @@ function triangleArea(p0: Point, p1: Point, p2: Point): number {
 function triangleCentroid(p0: Point, p1: Point, p2: Point): Point {
   return {
     x: (p0.x + p1.x + p2.x) / 3,
-    y: (p0.y + p1.y + p2.y) / 3
+    y: (p0.y + p1.y + p2.y) / 3,
   };
 }
 
@@ -114,8 +113,8 @@ function pointInTriangle(p: Point, t0: Point, t1: Point, t2: Point): boolean {
   const d2 = crossProduct(p, t1, t2);
   const d3 = crossProduct(p, t2, t0);
 
-  const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-  const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+  const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+  const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
 
   return !(hasNeg && hasPos);
 }
@@ -123,8 +122,7 @@ function pointInTriangle(p: Point, t0: Point, t1: Point, t2: Point): boolean {
 /**
  * Check if diagonal from vertex i to vertex j is valid
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isDiagonalValid(vertices: Point[], i: number, j: number): boolean {
+export function isDiagonalValid(vertices: Point[], i: number, j: number): boolean {
   const n = vertices.length;
 
   // Check if j is in the cone formed by edges at i
@@ -176,8 +174,7 @@ function segmentsIntersect(p1: Point, p2: Point, p3: Point, p4: Point): boolean 
   const d3 = crossProduct(p1, p2, p3);
   const d4 = crossProduct(p1, p2, p4);
 
-  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-      ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
     return true;
   }
 
@@ -194,11 +191,7 @@ function isConvex(vertices: Point[]): boolean {
   let sign = 0;
 
   for (let i = 0; i < n; i++) {
-    const cross = crossProduct(
-      vertices[i],
-      vertices[(i + 1) % n],
-      vertices[(i + 2) % n]
-    );
+    const cross = crossProduct(vertices[i], vertices[(i + 1) % n], vertices[(i + 2) % n]);
 
     if (cross !== 0) {
       if (sign === 0) {
@@ -222,10 +215,9 @@ function isSimplePolygon(vertices: Point[]): boolean {
     for (let j = i + 2; j < n; j++) {
       if (i === 0 && j === n - 1) continue; // Adjacent edges
 
-      if (segmentsIntersect(
-        vertices[i], vertices[(i + 1) % n],
-        vertices[j], vertices[(j + 1) % n]
-      )) {
+      if (
+        segmentsIntersect(vertices[i], vertices[(i + 1) % n], vertices[j], vertices[(j + 1) % n])
+      ) {
         return false;
       }
     }
@@ -308,12 +300,14 @@ function earClipping(vertices: Point[]): TriangulationResult {
           vertices: [v0, v1, v2],
           indices: [indices[prev], indices[i], indices[next]],
           area: triangleArea(v0, v1, v2),
-          centroid: triangleCentroid(v0, v1, v2)
+          centroid: triangleCentroid(v0, v1, v2),
         };
 
         triangles.push(triangle);
         earCount++;
-        steps.push(`Ear ${earCount}: Clipped vertex ${indices[i]} → Triangle [${indices[prev]}, ${indices[i]}, ${indices[next]}]`);
+        steps.push(
+          `Ear ${earCount}: Clipped vertex ${indices[i]} → Triangle [${indices[prev]}, ${indices[i]}, ${indices[next]}]`
+        );
 
         // Remove ear vertex
         indices.splice(i, 1);
@@ -338,7 +332,7 @@ function earClipping(vertices: Point[]): TriangulationResult {
       vertices: [v0, v1, v2],
       indices: [indices[0], indices[1], indices[2]],
       area: triangleArea(v0, v1, v2),
-      centroid: triangleCentroid(v0, v1, v2)
+      centroid: triangleCentroid(v0, v1, v2),
     });
     steps.push(`Final triangle: [${indices[0]}, ${indices[1]}, ${indices[2]}]`);
   }
@@ -353,7 +347,7 @@ function earClipping(vertices: Point[]): TriangulationResult {
     isConvex: isConvex(vertices),
     isSimple: isSimplePolygon(vertices),
     algorithm: 'ear_clipping',
-    executionSteps: steps
+    executionSteps: steps,
   };
 }
 
@@ -386,7 +380,7 @@ function fanTriangulation(vertices: Point[]): TriangulationResult {
       vertices: [pivot, v1, v2],
       indices: [0, i, i + 1],
       area: triangleArea(pivot, v1, v2),
-      centroid: triangleCentroid(pivot, v1, v2)
+      centroid: triangleCentroid(pivot, v1, v2),
     });
 
     steps.push(`Triangle ${i}: [0, ${i}, ${i + 1}]`);
@@ -402,7 +396,7 @@ function fanTriangulation(vertices: Point[]): TriangulationResult {
     isConvex: convex,
     isSimple: isSimplePolygon(vertices),
     algorithm: 'fan',
-    executionSteps: steps
+    executionSteps: steps,
   };
 }
 
@@ -434,7 +428,8 @@ function monotoneTriangulation(vertices: Point[], direction: 'x' | 'y' = 'y'): T
   const rightChain = new Set<number>();
 
   // Find top and bottom vertices
-  let topIdx = 0, bottomIdx = 0;
+  let topIdx = 0,
+    bottomIdx = 0;
   for (let i = 1; i < n; i++) {
     if (direction === 'y') {
       if (vertices[i].y > vertices[topIdx].y) topIdx = i;
@@ -470,12 +465,12 @@ function monotoneTriangulation(vertices: Point[], direction: 'x' | 'y' = 'y'): T
     stack.push({
       vertex: v0,
       index: v0.index!,
-      chain: leftChain.has(v0.index!) ? 'left' : 'right'
+      chain: leftChain.has(v0.index!) ? 'left' : 'right',
     });
     stack.push({
       vertex: v1,
       index: v1.index!,
-      chain: leftChain.has(v1.index!) ? 'left' : 'right'
+      chain: leftChain.has(v1.index!) ? 'left' : 'right',
     });
   }
 
@@ -493,13 +488,17 @@ function monotoneTriangulation(vertices: Point[], direction: 'x' | 'y' = 'y'): T
           vertices: [u, vj.vertex, vjPrev.vertex],
           indices: [u.index!, vj.index, vjPrev.index],
           area: triangleArea(u, vj.vertex, vjPrev.vertex),
-          centroid: triangleCentroid(u, vj.vertex, vjPrev.vertex)
+          centroid: triangleCentroid(u, vj.vertex, vjPrev.vertex),
         });
 
         steps.push(`Triangle from different chains: [${u.index}, ${vj.index}, ${vjPrev.index}]`);
       }
       stack.pop();
-      stack.push({ vertex: sortedVertices[i - 1], index: sortedVertices[i - 1].index!, chain: leftChain.has(sortedVertices[i - 1].index!) ? 'left' : 'right' });
+      stack.push({
+        vertex: sortedVertices[i - 1],
+        index: sortedVertices[i - 1].index!,
+        chain: leftChain.has(sortedVertices[i - 1].index!) ? 'left' : 'right',
+      });
       stack.push({ vertex: u, index: u.index!, chain: uChain });
     } else {
       // Same chain
@@ -517,7 +516,7 @@ function monotoneTriangulation(vertices: Point[], direction: 'x' | 'y' = 'y'): T
             vertices: [u, vj.vertex, vjPrev.vertex],
             indices: [u.index!, vj.index, vjPrev.index],
             area: triangleArea(u, vj.vertex, vjPrev.vertex),
-            centroid: triangleCentroid(u, vj.vertex, vjPrev.vertex)
+            centroid: triangleCentroid(u, vj.vertex, vjPrev.vertex),
           });
 
           steps.push(`Triangle from same chain: [${u.index}, ${vj.index}, ${vjPrev.index}]`);
@@ -542,7 +541,7 @@ function monotoneTriangulation(vertices: Point[], direction: 'x' | 'y' = 'y'): T
     isConvex: isConvex(vertices),
     isSimple: isSimplePolygon(vertices),
     algorithm: 'monotone',
-    executionSteps: steps
+    executionSteps: steps,
   };
 }
 
@@ -564,12 +563,15 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
       isConvex: false,
       isSimple: false,
       algorithm: 'delaunay',
-      executionSteps: ['Not enough vertices for triangulation']
+      executionSteps: ['Not enough vertices for triangulation'],
     };
   }
 
   // Find bounding box
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const v of vertices) {
     minX = Math.min(minX, v.x);
     minY = Math.min(minY, v.y);
@@ -587,7 +589,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
   const superTriangle: Point[] = [
     { x: midX - 2 * delta, y: midY - delta, index: -1 },
     { x: midX, y: midY + 2 * delta, index: -2 },
-    { x: midX + 2 * delta, y: midY - delta, index: -3 }
+    { x: midX + 2 * delta, y: midY - delta, index: -3 },
   ];
 
   steps.push(`Created super-triangle enclosing all points`);
@@ -600,9 +602,12 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
 
   // Calculate circumcircle
   function circumcircle(p1: Point, p2: Point, p3: Point): { center: Point; radiusSq: number } {
-    const ax = p1.x, ay = p1.y;
-    const bx = p2.x, by = p2.y;
-    const cx = p3.x, cy = p3.y;
+    const ax = p1.x,
+      ay = p1.y;
+    const bx = p2.x,
+      by = p2.y;
+    const cx = p3.x,
+      cy = p3.y;
 
     const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
 
@@ -610,8 +615,16 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
       return { center: { x: 0, y: 0 }, radiusSq: Infinity };
     }
 
-    const ux = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d;
-    const uy = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d;
+    const ux =
+      ((ax * ax + ay * ay) * (by - cy) +
+        (bx * bx + by * by) * (cy - ay) +
+        (cx * cx + cy * cy) * (ay - by)) /
+      d;
+    const uy =
+      ((ax * ax + ay * ay) * (cx - bx) +
+        (bx * bx + by * by) * (ax - cx) +
+        (cx * cx + cy * cy) * (bx - ax)) /
+      d;
 
     const center = { x: ux, y: uy };
     const radiusSq = (ax - ux) * (ax - ux) + (ay - uy) * (ay - uy);
@@ -626,7 +639,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
   delaunayTriangles.push({
     vertices: superTriangle,
     circumcenter: center,
-    circumradiusSq: radiusSq
+    circumradiusSq: radiusSq,
   });
 
   // Insert points one by one
@@ -650,7 +663,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
           start: tri.vertices[j],
           end: tri.vertices[(j + 1) % 3],
           startIndex: tri.vertices[j].index ?? -1,
-          endIndex: tri.vertices[(j + 1) % 3].index ?? -1
+          endIndex: tri.vertices[(j + 1) % 3].index ?? -1,
         };
 
         // Check if edge is shared with another bad triangle
@@ -661,11 +674,13 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
           for (let k = 0; k < 3; k++) {
             const otherEdge = {
               start: other.vertices[k],
-              end: other.vertices[(k + 1) % 3]
+              end: other.vertices[(k + 1) % 3],
             };
 
-            if ((edge.start === otherEdge.end && edge.end === otherEdge.start) ||
-                (edge.start === otherEdge.start && edge.end === otherEdge.end)) {
+            if (
+              (edge.start === otherEdge.end && edge.end === otherEdge.start) ||
+              (edge.start === otherEdge.start && edge.end === otherEdge.end)
+            ) {
               shared = true;
               break;
             }
@@ -680,7 +695,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
     }
 
     // Remove bad triangles
-    delaunayTriangles = delaunayTriangles.filter(t => !badTriangles.includes(t));
+    delaunayTriangles = delaunayTriangles.filter((t) => !badTriangles.includes(t));
 
     // Create new triangles
     for (const edge of polygon) {
@@ -690,7 +705,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
       delaunayTriangles.push({
         vertices: newVerts,
         circumcenter: center,
-        circumradiusSq: radiusSq
+        circumradiusSq: radiusSq,
       });
     }
 
@@ -698,7 +713,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
   }
 
   // Remove triangles that share vertices with super-triangle
-  const finalTriangles = delaunayTriangles.filter(tri => {
+  const finalTriangles = delaunayTriangles.filter((tri) => {
     for (const v of tri.vertices) {
       if (v.index !== undefined && v.index < 0) {
         return false;
@@ -707,19 +722,17 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
     return true;
   });
 
-  steps.push(`Removed super-triangle: ${delaunayTriangles.length - finalTriangles.length} triangles removed`);
+  steps.push(
+    `Removed super-triangle: ${delaunayTriangles.length - finalTriangles.length} triangles removed`
+  );
 
   // Convert to output format
   for (const tri of finalTriangles) {
     triangles.push({
       vertices: [tri.vertices[0], tri.vertices[1], tri.vertices[2]],
-      indices: [
-        tri.vertices[0].index ?? 0,
-        tri.vertices[1].index ?? 0,
-        tri.vertices[2].index ?? 0
-      ],
+      indices: [tri.vertices[0].index ?? 0, tri.vertices[1].index ?? 0, tri.vertices[2].index ?? 0],
       area: triangleArea(tri.vertices[0], tri.vertices[1], tri.vertices[2]),
-      centroid: triangleCentroid(tri.vertices[0], tri.vertices[1], tri.vertices[2])
+      centroid: triangleCentroid(tri.vertices[0], tri.vertices[1], tri.vertices[2]),
     });
   }
 
@@ -733,7 +746,7 @@ function delaunayTriangulation(vertices: Point[]): TriangulationResult {
     isConvex: isConvex(vertices),
     isSimple: true, // Point set is always simple
     algorithm: 'delaunay',
-    executionSteps: steps
+    executionSteps: steps,
   };
 }
 
@@ -746,23 +759,23 @@ const examplePolygons: Record<string, Point[]> = {
     { x: 0, y: 0 },
     { x: 1, y: 0 },
     { x: 1, y: 1 },
-    { x: 0, y: 1 }
+    { x: 0, y: 1 },
   ],
   triangle: [
     { x: 0, y: 0 },
     { x: 1, y: 0 },
-    { x: 0.5, y: Math.sqrt(3) / 2 }
+    { x: 0.5, y: Math.sqrt(3) / 2 },
   ],
   pentagon: [
     { x: Math.cos(Math.PI / 2), y: Math.sin(Math.PI / 2) },
-    { x: Math.cos(Math.PI / 2 + 2 * Math.PI / 5), y: Math.sin(Math.PI / 2 + 2 * Math.PI / 5) },
-    { x: Math.cos(Math.PI / 2 + 4 * Math.PI / 5), y: Math.sin(Math.PI / 2 + 4 * Math.PI / 5) },
-    { x: Math.cos(Math.PI / 2 + 6 * Math.PI / 5), y: Math.sin(Math.PI / 2 + 6 * Math.PI / 5) },
-    { x: Math.cos(Math.PI / 2 + 8 * Math.PI / 5), y: Math.sin(Math.PI / 2 + 8 * Math.PI / 5) }
+    { x: Math.cos(Math.PI / 2 + (2 * Math.PI) / 5), y: Math.sin(Math.PI / 2 + (2 * Math.PI) / 5) },
+    { x: Math.cos(Math.PI / 2 + (4 * Math.PI) / 5), y: Math.sin(Math.PI / 2 + (4 * Math.PI) / 5) },
+    { x: Math.cos(Math.PI / 2 + (6 * Math.PI) / 5), y: Math.sin(Math.PI / 2 + (6 * Math.PI) / 5) },
+    { x: Math.cos(Math.PI / 2 + (8 * Math.PI) / 5), y: Math.sin(Math.PI / 2 + (8 * Math.PI) / 5) },
   ],
   hexagon: Array.from({ length: 6 }, (_, i) => ({
-    x: Math.cos(i * Math.PI / 3),
-    y: Math.sin(i * Math.PI / 3)
+    x: Math.cos((i * Math.PI) / 3),
+    y: Math.sin((i * Math.PI) / 3),
   })),
   l_shape: [
     { x: 0, y: 0 },
@@ -770,7 +783,7 @@ const examplePolygons: Record<string, Point[]> = {
     { x: 2, y: 1 },
     { x: 1, y: 1 },
     { x: 1, y: 2 },
-    { x: 0, y: 2 }
+    { x: 0, y: 2 },
   ],
   star: [
     { x: 0, y: 1 },
@@ -782,7 +795,7 @@ const examplePolygons: Record<string, Point[]> = {
     { x: 0.5, y: -0.8 },
     { x: -0.1, y: -0.1 },
     { x: 0.8, y: 0.3 },
-    { x: -0.2, y: 0.3 }
+    { x: -0.2, y: 0.3 },
   ],
   arrow: [
     { x: 0, y: 0.5 },
@@ -791,8 +804,8 @@ const examplePolygons: Record<string, Point[]> = {
     { x: 1, y: 0.7 },
     { x: 1, y: 0.3 },
     { x: 0.5, y: 0.3 },
-    { x: 0.5, y: 0 }
-  ]
+    { x: 0.5, y: 0 },
+  ],
 };
 
 // =============================================================================
@@ -801,44 +814,51 @@ const examplePolygons: Record<string, Point[]> = {
 
 export const polygontriangulationTool: UnifiedTool = {
   name: 'polygon_triangulation',
-  description: 'Polygon triangulation algorithms including ear clipping, monotone decomposition, fan triangulation, and Delaunay triangulation. Can triangulate any simple polygon or point set.',
+  description:
+    'Polygon triangulation algorithms including ear clipping, monotone decomposition, fan triangulation, and Delaunay triangulation. Can triangulate any simple polygon or point set.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['triangulate', 'ear_clipping', 'fan', 'monotone', 'delaunay', 'analyze', 'examples', 'info'],
-        description: 'Operation: triangulate (auto-select), ear_clipping, fan (convex only), monotone, delaunay, analyze polygon, examples, or info'
+        enum: [
+          'triangulate',
+          'ear_clipping',
+          'fan',
+          'monotone',
+          'delaunay',
+          'analyze',
+          'examples',
+          'info',
+        ],
+        description:
+          'Operation: triangulate (auto-select), ear_clipping, fan (convex only), monotone, delaunay, analyze polygon, examples, or info',
       },
       vertices: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            x: { type: 'number' },
-            y: { type: 'number' }
-          }
-        },
-        description: 'Array of polygon vertices as {x, y} objects'
+        items: { type: 'object' },
+        description: 'Array of polygon vertices. Each vertex has: x (number), y (number)',
       },
       polygon: {
         type: 'string',
-        description: 'Named polygon: square, triangle, pentagon, hexagon, l_shape, star, arrow'
+        description: 'Named polygon: square, triangle, pentagon, hexagon, l_shape, star, arrow',
       },
       show_steps: {
         type: 'boolean',
-        description: 'Show detailed execution steps'
-      }
+        description: 'Show detailed execution steps',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // =============================================================================
 // TOOL EXECUTOR
 // =============================================================================
 
-export async function executepolygontriangulation(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executepolygontriangulation(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -855,26 +875,26 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
             description: 'Iteratively removes "ears" (triangles) from polygon',
             complexity: 'O(n²)',
             works_for: 'Any simple polygon',
-            method: 'Find convex vertex with no other vertices inside, clip as triangle'
+            method: 'Find convex vertex with no other vertices inside, clip as triangle',
           },
           fan: {
             description: 'Creates fan of triangles from one vertex',
             complexity: 'O(n)',
             works_for: 'Convex polygons only',
-            method: 'Connect all vertices to a single pivot vertex'
+            method: 'Connect all vertices to a single pivot vertex',
           },
           monotone: {
             description: 'Triangulates y-monotone polygons using stack',
             complexity: 'O(n)',
             works_for: 'Monotone polygons',
-            method: 'Process vertices in y-order, maintain reflex chain'
+            method: 'Process vertices in y-order, maintain reflex chain',
           },
           delaunay: {
             description: 'Creates triangulation maximizing minimum angles',
             complexity: 'O(n log n)',
             works_for: 'Point sets',
-            property: 'No point is inside circumcircle of any triangle'
-          }
+            property: 'No point is inside circumcircle of any triangle',
+          },
         },
         key_concepts: {
           ear: 'Triangle formed by three consecutive vertices where no other vertex is inside',
@@ -882,9 +902,9 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
           reflex_vertex: 'Interior angle > 180°',
           monotone_polygon: 'Boundary can be split into two chains monotone in some direction',
           circumcircle: 'Circle passing through all three vertices of a triangle',
-          delaunay_property: 'Maximizes minimum angle across all triangles'
+          delaunay_property: 'Maximizes minimum angle across all triangles',
         },
-        example_polygons: Object.keys(examplePolygons)
+        example_polygons: Object.keys(examplePolygons),
       };
       return { toolCallId: id, content: JSON.stringify(info, null, 2) };
     }
@@ -895,7 +915,7 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
         name,
         vertices: verts.length,
         isConvex: isConvex(verts),
-        area: Math.abs(signedArea(verts))
+        area: Math.abs(signedArea(verts)),
       }));
       return { toolCallId: id, content: JSON.stringify({ available_polygons: examples }, null, 2) };
     }
@@ -910,8 +930,9 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
     } else {
       return {
         toolCallId: id,
-        content: 'Error: Provide vertices array or polygon name (square, triangle, pentagon, hexagon, l_shape, star, arrow)',
-        isError: true
+        content:
+          'Error: Provide vertices array or polygon name (square, triangle, pentagon, hexagon, l_shape, star, arrow)',
+        isError: true,
       };
     }
 
@@ -919,7 +940,7 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
       return {
         toolCallId: id,
         content: 'Error: Need at least 3 vertices for triangulation',
-        isError: true
+        isError: true,
       };
     }
 
@@ -934,7 +955,9 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
         signed_area: signedArea(vertices),
         area: Math.abs(signedArea(vertices)),
         expected_triangles: vertices.length - 2,
-        recommended_algorithm: isConvex(vertices) ? 'fan (fastest for convex)' : 'ear_clipping (works for any simple polygon)'
+        recommended_algorithm: isConvex(vertices)
+          ? 'fan (fastest for convex)'
+          : 'ear_clipping (works for any simple polygon)',
       };
       return { toolCallId: id, content: JSON.stringify(analysis, null, 2) };
     }
@@ -976,19 +999,19 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
       polygon: {
         vertex_count: result.vertexCount,
         is_convex: result.isConvex,
-        is_simple: result.isSimple
+        is_simple: result.isSimple,
       },
       triangulation: {
         triangle_count: result.triangleCount,
         total_area: result.totalArea,
-        expected_triangles: result.vertexCount - 2
+        expected_triangles: result.vertexCount - 2,
       },
       triangles: result.triangles.map((t, i) => ({
         index: i,
         vertex_indices: t.indices,
         area: t.area,
-        centroid: t.centroid
-      }))
+        centroid: t.centroid,
+      })),
     };
 
     if (show_steps && result.executionSteps) {
@@ -996,7 +1019,6 @@ export async function executepolygontriangulation(toolCall: UnifiedToolCall): Pr
     }
 
     return { toolCallId: id, content: JSON.stringify(output, null, 2) };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

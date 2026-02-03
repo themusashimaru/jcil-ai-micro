@@ -22,25 +22,25 @@ interface Point3D {
 }
 
 interface CameraIntrinsics {
-  fx: number;           // Focal length x
-  fy: number;           // Focal length y
-  cx: number;           // Principal point x
-  cy: number;           // Principal point y
-  skew: number;         // Skew coefficient
+  fx: number; // Focal length x
+  fy: number; // Focal length y
+  cx: number; // Principal point x
+  cy: number; // Principal point y
+  skew: number; // Skew coefficient
 }
 
 interface DistortionCoefficients {
-  k1: number;           // Radial distortion coefficient 1
-  k2: number;           // Radial distortion coefficient 2
-  k3: number;           // Radial distortion coefficient 3
-  p1: number;           // Tangential distortion coefficient 1
-  p2: number;           // Tangential distortion coefficient 2
+  k1: number; // Radial distortion coefficient 1
+  k2: number; // Radial distortion coefficient 2
+  k3: number; // Radial distortion coefficient 3
+  p1: number; // Tangential distortion coefficient 1
+  p2: number; // Tangential distortion coefficient 2
 }
 
 interface CameraExtrinsics {
-  rotation: number[][];  // 3x3 rotation matrix
+  rotation: number[][]; // 3x3 rotation matrix
   translation: number[]; // 3x1 translation vector
-  rvec: number[];        // Rodrigues rotation vector
+  rvec: number[]; // Rodrigues rotation vector
 }
 
 interface CalibrationResult {
@@ -68,12 +68,14 @@ class Matrix {
   constructor(rows: number, cols: number, fill: number = 0) {
     this.rows = rows;
     this.cols = cols;
-    this.data = Array(rows).fill(null).map(() => Array(cols).fill(fill));
+    this.data = Array(rows)
+      .fill(null)
+      .map(() => Array(cols).fill(fill));
   }
 
   static fromArray(arr: number[][]): Matrix {
     const m = new Matrix(arr.length, arr[0]?.length || 0);
-    m.data = arr.map(row => [...row]);
+    m.data = arr.map((row) => [...row]);
     return m;
   }
 
@@ -129,7 +131,7 @@ class Matrix {
     for (let k = 0; k < Math.min(m, n); k++) {
       let v = Array(n).fill(1);
       const norm = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
-      v = v.map(x => x / norm);
+      v = v.map((x) => x / norm);
 
       for (let iter = 0; iter < iterations; iter++) {
         const newV = Array(n).fill(0);
@@ -139,7 +141,7 @@ class Matrix {
           }
         }
         const newNorm = Math.sqrt(newV.reduce((sum, x) => sum + x * x, 0));
-        v = newV.map(x => x / newNorm);
+        v = newV.map((x) => x / newNorm);
       }
 
       // Compute singular value
@@ -176,7 +178,7 @@ class Matrix {
   }
 
   toArray(): number[][] {
-    return this.data.map(row => [...row]);
+    return this.data.map((row) => [...row]);
   }
 }
 
@@ -195,7 +197,11 @@ class CameraCalibrator {
     this.imageSize = imageSize;
   }
 
-  addCalibrationImage(corners: Point2D[], boardSize: { rows: number; cols: number }, squareSize: number): void {
+  addCalibrationImage(
+    corners: Point2D[],
+    boardSize: { rows: number; cols: number },
+    squareSize: number
+  ): void {
     // Generate object points (3D coordinates of checkerboard corners)
     const objPts: Point3D[] = [];
     for (let r = 0; r < boardSize.rows; r++) {
@@ -203,7 +209,7 @@ class CameraCalibrator {
         objPts.push({
           x: c * squareSize,
           y: r * squareSize,
-          z: 0
+          z: 0,
         });
       }
     }
@@ -230,7 +236,7 @@ class CameraCalibrator {
       fy,
       cx,
       cy,
-      skew: 0
+      skew: 0,
     };
 
     let distortion: DistortionCoefficients = {
@@ -238,7 +244,7 @@ class CameraCalibrator {
       k2: 0,
       k3: 0,
       p1: 0,
-      p2: 0
+      p2: 0,
     };
 
     // Compute extrinsics for each image
@@ -260,7 +266,7 @@ class CameraCalibrator {
       intrinsics,
       distortion,
       reprojectionError,
-      extrinsics
+      extrinsics,
     };
   }
 
@@ -340,10 +346,7 @@ class CameraCalibrator {
       const h1 = [H.get(0, 0), H.get(1, 0), H.get(2, 0)];
       const h2 = [H.get(0, 1), H.get(1, 1), H.get(2, 1)];
 
-      // v12 constraint
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v12 = h1[0] * h2[0] + h1[1] * h2[1];
-
+      // v12 constraint: h1[0]*h2[0] + h1[1]*h2[1] (used in full Zhang's method)
       // v11 - v22 constraint
       const v11_22 = h1[0] * h1[0] - h2[0] * h2[0] + h1[1] * h1[1] - h2[1] * h2[1];
 
@@ -357,8 +360,8 @@ class CameraCalibrator {
       }
     }
 
-    const fx = count > 0 ? sumFx / count * this.imageSize.width : this.imageSize.width;
-    const fy = fx * this.imageSize.height / this.imageSize.width;
+    const fx = count > 0 ? (sumFx / count) * this.imageSize.width : this.imageSize.width;
+    const fy = (fx * this.imageSize.height) / this.imageSize.width;
 
     return { fx, fy };
   }
@@ -375,7 +378,7 @@ class CameraCalibrator {
     const KinvH = Matrix.fromArray([
       [Kinv.get(0, 0), Kinv.get(0, 1), Kinv.get(0, 2)],
       [Kinv.get(1, 0), Kinv.get(1, 1), Kinv.get(1, 2)],
-      [Kinv.get(2, 0), Kinv.get(2, 1), Kinv.get(2, 2)]
+      [Kinv.get(2, 0), Kinv.get(2, 1), Kinv.get(2, 2)],
     ]).multiply(H);
 
     // Extract r1, r2, t and normalize
@@ -385,21 +388,21 @@ class CameraCalibrator {
 
     const lambda = 1 / Math.sqrt(r1[0] * r1[0] + r1[1] * r1[1] + r1[2] * r1[2]);
 
-    const r1n = r1.map(x => x * lambda);
-    const r2n = r2.map(x => x * lambda);
-    const tn = t.map(x => x * lambda);
+    const r1n = r1.map((x) => x * lambda);
+    const r2n = r2.map((x) => x * lambda);
+    const tn = t.map((x) => x * lambda);
 
     // r3 = r1 x r2
     const r3n = [
       r1n[1] * r2n[2] - r1n[2] * r2n[1],
       r1n[2] * r2n[0] - r1n[0] * r2n[2],
-      r1n[0] * r2n[1] - r1n[1] * r2n[0]
+      r1n[0] * r2n[1] - r1n[1] * r2n[0],
     ];
 
     const rotation = [
       [r1n[0], r2n[0], r3n[0]],
       [r1n[1], r2n[1], r3n[1]],
-      [r1n[2], r2n[2], r3n[2]]
+      [r1n[2], r2n[2], r3n[2]],
     ];
 
     // Convert to Rodrigues vector
@@ -408,7 +411,7 @@ class CameraCalibrator {
     return {
       rotation,
       translation: tn,
-      rvec
+      rvec,
     };
   }
 
@@ -421,16 +424,12 @@ class CameraCalibrator {
     }
 
     const scale = theta / (2 * Math.sin(theta));
-    return [
-      scale * (R[2][1] - R[1][2]),
-      scale * (R[0][2] - R[2][0]),
-      scale * (R[1][0] - R[0][1])
-    ];
+    return [scale * (R[2][1] - R[1][2]), scale * (R[0][2] - R[2][0]), scale * (R[1][0] - R[0][1])];
   }
 
   private refineParameters(
     intrinsics: CameraIntrinsics,
-    distortion: DistortionCoefficients,
+    _distortion: DistortionCoefficients,
     extrinsics: CameraExtrinsics[]
   ): { intrinsics: CameraIntrinsics; distortion: DistortionCoefficients } {
     // Simplified refinement - estimate distortion from reprojection residuals
@@ -443,7 +442,13 @@ class CameraCalibrator {
         const imgPt = this.imagePoints[i][j];
 
         // Project without distortion
-        const projected = this.projectPoint(objPt, intrinsics, extrinsics[i], { k1: 0, k2: 0, k3: 0, p1: 0, p2: 0 });
+        const projected = this.projectPoint(objPt, intrinsics, extrinsics[i], {
+          k1: 0,
+          k2: 0,
+          k3: 0,
+          p1: 0,
+          p2: 0,
+        });
 
         // Compute normalized coordinates
         const xn = (projected.x - intrinsics.cx) / intrinsics.fx;
@@ -470,8 +475,8 @@ class CameraCalibrator {
         k2: 0,
         k3: 0,
         p1: 0,
-        p2: 0
-      }
+        p2: 0,
+      },
     };
   }
 
@@ -525,13 +530,15 @@ class CameraCalibrator {
 
     const radialDistortion = 1 + distortion.k1 * r2 + distortion.k2 * r4 + distortion.k3 * r6;
 
-    const xd = xn * radialDistortion + 2 * distortion.p1 * xn * yn + distortion.p2 * (r2 + 2 * xn * xn);
-    const yd = yn * radialDistortion + distortion.p1 * (r2 + 2 * yn * yn) + 2 * distortion.p2 * xn * yn;
+    const xd =
+      xn * radialDistortion + 2 * distortion.p1 * xn * yn + distortion.p2 * (r2 + 2 * xn * xn);
+    const yd =
+      yn * radialDistortion + distortion.p1 * (r2 + 2 * yn * yn) + 2 * distortion.p2 * xn * yn;
 
     // Project to image
     return {
       x: intrinsics.fx * xd + intrinsics.cx,
-      y: intrinsics.fy * yd + intrinsics.cy
+      y: intrinsics.fy * yd + intrinsics.cy,
     };
   }
 }
@@ -571,7 +578,7 @@ function undistortPoint(
 
   return {
     x: xu * intrinsics.fx + intrinsics.cx,
-    y: yu * intrinsics.fy + intrinsics.cy
+    y: yu * intrinsics.fy + intrinsics.cy,
   };
 }
 
@@ -611,7 +618,9 @@ function detectCheckerboardCorners(
   for (let y = halfWin + 1; y < height - halfWin - 1; y++) {
     harrisResponse[y] = [];
     for (let x = halfWin + 1; x < width - halfWin - 1; x++) {
-      let sumIxx = 0, sumIyy = 0, sumIxy = 0;
+      let sumIxx = 0,
+        sumIyy = 0,
+        sumIxy = 0;
 
       for (let wy = -halfWin; wy <= halfWin; wy++) {
         for (let wx = -halfWin; wx <= halfWin; wx++) {
@@ -630,7 +639,7 @@ function detectCheckerboardCorners(
   }
 
   // Non-maximum suppression and threshold
-  const threshold = 0.01 * Math.max(...harrisResponse.flat().filter(v => v !== undefined));
+  const threshold = 0.01 * Math.max(...harrisResponse.flat().filter((v) => v !== undefined));
   const suppWindow = 5;
   const halfSupp = Math.floor(suppWindow / 2);
 
@@ -662,7 +671,7 @@ function detectCheckerboardCorners(
   return {
     found,
     corners: corners.slice(0, expectedCorners),
-    gridSize
+    gridSize,
   };
 }
 
@@ -686,9 +695,9 @@ function generateSyntheticCalibrationData(
     const imgPts: Point2D[] = [];
 
     // Generate random rotation and translation
-    const rx = (Math.random() - 0.5) * Math.PI / 4;
-    const ry = (Math.random() - 0.5) * Math.PI / 4;
-    const rz = (Math.random() - 0.5) * Math.PI / 6;
+    const rx = ((Math.random() - 0.5) * Math.PI) / 4;
+    const ry = ((Math.random() - 0.5) * Math.PI) / 4;
+    const rz = ((Math.random() - 0.5) * Math.PI) / 6;
     const tx = (Math.random() - 0.5) * squareSize * boardSize.cols;
     const ty = (Math.random() - 0.5) * squareSize * boardSize.rows;
     const tz = squareSize * boardSize.cols * 2 + Math.random() * squareSize * boardSize.cols;
@@ -697,21 +706,25 @@ function generateSyntheticCalibrationData(
     const Rx = [
       [1, 0, 0],
       [0, Math.cos(rx), -Math.sin(rx)],
-      [0, Math.sin(rx), Math.cos(rx)]
+      [0, Math.sin(rx), Math.cos(rx)],
     ];
     const Ry = [
       [Math.cos(ry), 0, Math.sin(ry)],
       [0, 1, 0],
-      [-Math.sin(ry), 0, Math.cos(ry)]
+      [-Math.sin(ry), 0, Math.cos(ry)],
     ];
     const Rz = [
       [Math.cos(rz), -Math.sin(rz), 0],
       [Math.sin(rz), Math.cos(rz), 0],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
 
     const multiplyMat = (A: number[][], B: number[][]): number[][] => {
-      const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      const C = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ];
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
           for (let k = 0; k < 3; k++) {
@@ -770,29 +783,32 @@ function generateSyntheticCalibrationData(
 
 export const cameracalibrationTool: UnifiedTool = {
   name: 'camera_calibration',
-  description: 'Camera intrinsic and extrinsic calibration using checkerboard patterns, Zhang\'s method, and distortion correction',
+  description:
+    "Camera intrinsic and extrinsic calibration using checkerboard patterns, Zhang's method, and distortion correction",
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['calibrate', 'undistort', 'project', 'detect_corners', 'info', 'examples', 'demo'],
-        description: 'Calibration operation to perform'
+        description: 'Calibration operation to perform',
       },
       parameters: {
         type: 'object',
-        description: 'Operation-specific parameters'
-      }
+        description: 'Operation-specific parameters',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
 // TOOL EXECUTOR
 // ============================================================================
 
-export async function executecameracalibration(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executecameracalibration(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -806,7 +822,7 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
           boardSize = { rows: 6, cols: 9 },
           squareSize = 25,
           imagePoints = null,
-          numSyntheticImages = 10
+          numSyntheticImages = 10,
         } = parameters;
 
         const calibrator = new CameraCalibrator(imageSize);
@@ -823,14 +839,14 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
             fy: 500,
             cx: imageSize.width / 2,
             cy: imageSize.height / 2,
-            skew: 0
+            skew: 0,
           };
           const trueDistortion: DistortionCoefficients = {
             k1: -0.1,
             k2: 0.01,
             k3: 0,
             p1: 0,
-            p2: 0
+            p2: 0,
           };
 
           const syntheticData = generateSyntheticCalibrationData(
@@ -850,31 +866,41 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'calibrate',
-            method: 'Zhang\'s Camera Calibration',
-            configuration: {
-              imageSize,
-              boardSize,
-              squareSize,
-              numImages: imagePoints?.length || numSyntheticImages
-            },
-            result: {
-              intrinsics: {
-                focalLength: { fx: result.intrinsics.fx.toFixed(2), fy: result.intrinsics.fy.toFixed(2) },
-                principalPoint: { cx: result.intrinsics.cx.toFixed(2), cy: result.intrinsics.cy.toFixed(2) },
-                cameraMatrix: [
-                  [result.intrinsics.fx, result.intrinsics.skew, result.intrinsics.cx],
-                  [0, result.intrinsics.fy, result.intrinsics.cy],
-                  [0, 0, 1]
-                ]
+          content: JSON.stringify(
+            {
+              operation: 'calibrate',
+              method: "Zhang's Camera Calibration",
+              configuration: {
+                imageSize,
+                boardSize,
+                squareSize,
+                numImages: imagePoints?.length || numSyntheticImages,
               },
-              distortion: result.distortion,
-              reprojectionError: result.reprojectionError.toFixed(4) + ' pixels',
-              numExtrinsics: result.extrinsics?.length
+              result: {
+                intrinsics: {
+                  focalLength: {
+                    fx: result.intrinsics.fx.toFixed(2),
+                    fy: result.intrinsics.fy.toFixed(2),
+                  },
+                  principalPoint: {
+                    cx: result.intrinsics.cx.toFixed(2),
+                    cy: result.intrinsics.cy.toFixed(2),
+                  },
+                  cameraMatrix: [
+                    [result.intrinsics.fx, result.intrinsics.skew, result.intrinsics.cx],
+                    [0, result.intrinsics.fy, result.intrinsics.cy],
+                    [0, 0, 1],
+                  ],
+                },
+                distortion: result.distortion,
+                reprojectionError: result.reprojectionError.toFixed(4) + ' pixels',
+                numExtrinsics: result.extrinsics?.length,
+              },
+              description: 'Estimated camera intrinsic parameters and lens distortion coefficients',
             },
-            description: 'Estimated camera intrinsic parameters and lens distortion coefficients'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -882,7 +908,7 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
         const {
           points = [{ x: 320, y: 240 }],
           intrinsics = { fx: 500, fy: 500, cx: 320, cy: 240, skew: 0 },
-          distortion = { k1: -0.1, k2: 0.01, k3: 0, p1: 0, p2: 0 }
+          distortion = { k1: -0.1, k2: 0.01, k3: 0, p1: 0, p2: 0 },
         } = parameters;
 
         const undistortedPoints = points.map((pt: Point2D) =>
@@ -891,27 +917,31 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'undistort',
-            input: {
-              points,
-              intrinsics,
-              distortion
+          content: JSON.stringify(
+            {
+              operation: 'undistort',
+              input: {
+                points,
+                intrinsics,
+                distortion,
+              },
+              result: {
+                undistortedPoints: undistortedPoints.map((pt: Point2D) => ({
+                  x: pt.x.toFixed(2),
+                  y: pt.y.toFixed(2),
+                })),
+                displacement: points.map((pt: Point2D, i: number) => ({
+                  original: pt,
+                  undistorted: undistortedPoints[i],
+                  dx: (undistortedPoints[i].x - pt.x).toFixed(2),
+                  dy: (undistortedPoints[i].y - pt.y).toFixed(2),
+                })),
+              },
+              description: 'Removed lens distortion from image points',
             },
-            result: {
-              undistortedPoints: undistortedPoints.map((pt: Point2D) => ({
-                x: pt.x.toFixed(2),
-                y: pt.y.toFixed(2)
-              })),
-              displacement: points.map((pt: Point2D, i: number) => ({
-                original: pt,
-                undistorted: undistortedPoints[i],
-                dx: (undistortedPoints[i].x - pt.x).toFixed(2),
-                dy: (undistortedPoints[i].y - pt.y).toFixed(2)
-              }))
-            },
-            description: 'Removed lens distortion from image points'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -921,9 +951,13 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
           intrinsics = { fx: 500, fy: 500, cx: 320, cy: 240, skew: 0 },
           distortion = { k1: 0, k2: 0, k3: 0, p1: 0, p2: 0 },
           extrinsics = {
-            rotation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-            translation: [0, 0, 0]
-          }
+            rotation: [
+              [1, 0, 0],
+              [0, 1, 0],
+              [0, 0, 1],
+            ],
+            translation: [0, 0, 0],
+          },
         } = parameters;
 
         const projectedPoints = points3D.map((pt: Point3D) => {
@@ -942,38 +976,41 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
 
           return {
             x: intrinsics.fx * xn * radial + intrinsics.cx,
-            y: intrinsics.fy * yn * radial + intrinsics.cy
+            y: intrinsics.fy * yn * radial + intrinsics.cy,
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'project',
-            input: { points3D, intrinsics, extrinsics },
-            result: {
-              projectedPoints: projectedPoints.map((pt: Point2D) => ({
-                x: pt.x.toFixed(2),
-                y: pt.y.toFixed(2)
-              }))
+          content: JSON.stringify(
+            {
+              operation: 'project',
+              input: { points3D, intrinsics, extrinsics },
+              result: {
+                projectedPoints: projectedPoints.map((pt: Point2D) => ({
+                  x: pt.x.toFixed(2),
+                  y: pt.y.toFixed(2),
+                })),
+              },
+              description: 'Projected 3D world points to 2D image coordinates',
             },
-            description: 'Projected 3D world points to 2D image coordinates'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'detect_corners': {
-        const {
-          imageData = null,
-          gridSize = { rows: 6, cols: 9 }
-        } = parameters;
+        const { imageData = null, gridSize = { rows: 6, cols: 9 } } = parameters;
 
         // Generate synthetic image data if not provided
         let data = imageData;
         if (!data) {
           const width = 640;
           const height = 480;
-          data = Array(height).fill(null).map(() => Array(width).fill(128));
+          data = Array(height)
+            .fill(null)
+            .map(() => Array(width).fill(128));
 
           // Draw synthetic checkerboard pattern
           const cellSize = 40;
@@ -982,7 +1019,7 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
 
           for (let r = 0; r < gridSize.rows + 1; r++) {
             for (let c = 0; c < gridSize.cols + 1; c++) {
-              const color = ((r + c) % 2 === 0) ? 255 : 0;
+              const color = (r + c) % 2 === 0 ? 255 : 0;
               for (let py = 0; py < cellSize; py++) {
                 for (let px = 0; px < cellSize; px++) {
                   const y = startY + r * cellSize + py;
@@ -1000,87 +1037,117 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'detect_corners',
-            configuration: { gridSize },
-            result: {
-              found: result.found,
-              numCorners: result.corners.length,
-              expectedCorners: gridSize.rows * gridSize.cols,
-              sampleCorners: result.corners.slice(0, 5).map((c: Point2D) => ({
-                x: Math.round(c.x),
-                y: Math.round(c.y)
-              }))
+          content: JSON.stringify(
+            {
+              operation: 'detect_corners',
+              configuration: { gridSize },
+              result: {
+                found: result.found,
+                numCorners: result.corners.length,
+                expectedCorners: gridSize.rows * gridSize.cols,
+                sampleCorners: result.corners.slice(0, 5).map((c: Point2D) => ({
+                  x: Math.round(c.x),
+                  y: Math.round(c.y),
+                })),
+              },
+              description: 'Detected checkerboard corners using Harris corner detection',
             },
-            description: 'Detected checkerboard corners using Harris corner detection'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'camera_calibration',
-            description: 'Camera calibration for computer vision applications',
-            concepts: {
-              intrinsics: {
-                description: 'Internal camera parameters',
-                parameters: ['Focal length (fx, fy)', 'Principal point (cx, cy)', 'Skew coefficient']
+          content: JSON.stringify(
+            {
+              tool: 'camera_calibration',
+              description: 'Camera calibration for computer vision applications',
+              concepts: {
+                intrinsics: {
+                  description: 'Internal camera parameters',
+                  parameters: [
+                    'Focal length (fx, fy)',
+                    'Principal point (cx, cy)',
+                    'Skew coefficient',
+                  ],
+                },
+                extrinsics: {
+                  description: 'Camera pose in world coordinates',
+                  parameters: ['Rotation matrix (3x3)', 'Translation vector (3x1)'],
+                },
+                distortion: {
+                  description: 'Lens distortion coefficients',
+                  types: ['Radial (k1, k2, k3)', 'Tangential (p1, p2)'],
+                },
               },
-              extrinsics: {
-                description: 'Camera pose in world coordinates',
-                parameters: ['Rotation matrix (3x3)', 'Translation vector (3x1)']
+              methods: {
+                zhang: 'Planar calibration using multiple checkerboard images',
+                dlt: 'Direct Linear Transform for homography estimation',
+                levenbergMarquardt: 'Nonlinear refinement of parameters',
               },
-              distortion: {
-                description: 'Lens distortion coefficients',
-                types: ['Radial (k1, k2, k3)', 'Tangential (p1, p2)']
-              }
+              operations: [
+                'calibrate',
+                'undistort',
+                'project',
+                'detect_corners',
+                'info',
+                'examples',
+                'demo',
+              ],
             },
-            methods: {
-              zhang: 'Planar calibration using multiple checkerboard images',
-              dlt: 'Direct Linear Transform for homography estimation',
-              levenbergMarquardt: 'Nonlinear refinement of parameters'
-            },
-            operations: ['calibrate', 'undistort', 'project', 'detect_corners', 'info', 'examples', 'demo']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Calibrate from checkerboard',
-                operation: 'calibrate',
-                parameters: {
-                  imageSize: { width: 1920, height: 1080 },
-                  boardSize: { rows: 6, cols: 9 },
-                  squareSize: 25,
-                  numSyntheticImages: 15
-                }
-              },
-              {
-                name: 'Undistort points',
-                operation: 'undistort',
-                parameters: {
-                  points: [{ x: 100, y: 100 }, { x: 500, y: 300 }],
-                  intrinsics: { fx: 1000, fy: 1000, cx: 960, cy: 540, skew: 0 },
-                  distortion: { k1: -0.2, k2: 0.1, k3: 0, p1: 0, p2: 0 }
-                }
-              },
-              {
-                name: 'Project 3D points',
-                operation: 'project',
-                parameters: {
-                  points3D: [{ x: 0, y: 0, z: 500 }, { x: 100, y: 0, z: 500 }],
-                  intrinsics: { fx: 500, fy: 500, cx: 320, cy: 240, skew: 0 }
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Calibrate from checkerboard',
+                  operation: 'calibrate',
+                  parameters: {
+                    imageSize: { width: 1920, height: 1080 },
+                    boardSize: { rows: 6, cols: 9 },
+                    squareSize: 25,
+                    numSyntheticImages: 15,
+                  },
+                },
+                {
+                  name: 'Undistort points',
+                  operation: 'undistort',
+                  parameters: {
+                    points: [
+                      { x: 100, y: 100 },
+                      { x: 500, y: 300 },
+                    ],
+                    intrinsics: { fx: 1000, fy: 1000, cx: 960, cy: 540, skew: 0 },
+                    distortion: { k1: -0.2, k2: 0.1, k3: 0, p1: 0, p2: 0 },
+                  },
+                },
+                {
+                  name: 'Project 3D points',
+                  operation: 'project',
+                  parameters: {
+                    points3D: [
+                      { x: 0, y: 0, z: 500 },
+                      { x: 100, y: 0, z: 500 },
+                    ],
+                    intrinsics: { fx: 500, fy: 500, cx: 320, cy: 240, skew: 0 },
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1095,14 +1162,14 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
           fy: 500,
           cx: 320,
           cy: 240,
-          skew: 0
+          skew: 0,
         };
         const trueDistortion: DistortionCoefficients = {
           k1: -0.15,
           k2: 0.02,
           k3: 0,
           p1: 0,
-          p2: 0
+          p2: 0,
         };
 
         const calibrator = new CameraCalibrator(imageSize);
@@ -1126,49 +1193,65 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            demo: 'Camera Calibration Pipeline',
-            description: 'Complete calibration from synthetic checkerboard images',
-            groundTruth: {
-              intrinsics: trueIntrinsics,
-              distortion: trueDistortion
-            },
-            estimated: {
-              intrinsics: {
-                fx: result.intrinsics.fx.toFixed(2),
-                fy: result.intrinsics.fy.toFixed(2),
-                cx: result.intrinsics.cx.toFixed(2),
-                cy: result.intrinsics.cy.toFixed(2)
+          content: JSON.stringify(
+            {
+              demo: 'Camera Calibration Pipeline',
+              description: 'Complete calibration from synthetic checkerboard images',
+              groundTruth: {
+                intrinsics: trueIntrinsics,
+                distortion: trueDistortion,
               },
-              distortion: {
-                k1: result.distortion.k1.toFixed(4),
-                k2: result.distortion.k2.toFixed(4)
-              }
+              estimated: {
+                intrinsics: {
+                  fx: result.intrinsics.fx.toFixed(2),
+                  fy: result.intrinsics.fy.toFixed(2),
+                  cx: result.intrinsics.cx.toFixed(2),
+                  cy: result.intrinsics.cy.toFixed(2),
+                },
+                distortion: {
+                  k1: result.distortion.k1.toFixed(4),
+                  k2: result.distortion.k2.toFixed(4),
+                },
+              },
+              accuracy: {
+                reprojectionError: result.reprojectionError.toFixed(4) + ' pixels',
+                fxError: Math.abs(result.intrinsics.fx - trueIntrinsics.fx).toFixed(2),
+                fyError: Math.abs(result.intrinsics.fy - trueIntrinsics.fy).toFixed(2),
+              },
+              undistortionExample: {
+                original: testPoint,
+                undistorted: {
+                  x: undistorted.x.toFixed(2),
+                  y: undistorted.y.toFixed(2),
+                },
+              },
             },
-            accuracy: {
-              reprojectionError: result.reprojectionError.toFixed(4) + ' pixels',
-              fxError: Math.abs(result.intrinsics.fx - trueIntrinsics.fx).toFixed(2),
-              fyError: Math.abs(result.intrinsics.fy - trueIntrinsics.fy).toFixed(2)
-            },
-            undistortionExample: {
-              original: testPoint,
-              undistorted: {
-                x: undistorted.x.toFixed(2),
-                y: undistorted.y.toFixed(2)
-              }
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            availableOperations: ['calibrate', 'undistort', 'project', 'detect_corners', 'info', 'examples', 'demo']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              availableOperations: [
+                'calibrate',
+                'undistort',
+                'project',
+                'detect_corners',
+                'info',
+                'examples',
+                'demo',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -1176,7 +1259,7 @@ export async function executecameracalibration(toolCall: UnifiedToolCall): Promi
     return {
       toolCallId: id,
       content: JSON.stringify({ error: errorMessage }, null, 2),
-      isError: true
+      isError: true,
     };
   }
 }

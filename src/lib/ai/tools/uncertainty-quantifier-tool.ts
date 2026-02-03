@@ -22,7 +22,7 @@ function mean(arr: number[]): number {
 
 function variance(arr: number[], isSample: boolean = true): number {
   const m = mean(arr);
-  const squaredDiffs = arr.map(x => (x - m) ** 2);
+  const squaredDiffs = arr.map((x) => (x - m) ** 2);
   const divisor = isSample ? arr.length - 1 : arr.length;
   return squaredDiffs.reduce((a, b) => a + b, 0) / divisor;
 }
@@ -45,8 +45,7 @@ function quantile(arr: number[], q: number): number {
 }
 
 // Normal distribution functions
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalCDF(x: number, mu: number = 0, sigma: number = 1): number {
+export function normalCDF(x: number, mu: number = 0, sigma: number = 1): number {
   const z = (x - mu) / sigma;
   // Approximation using error function
   const a1 = 0.254829592;
@@ -60,7 +59,7 @@ function normalCDF(x: number, mu: number = 0, sigma: number = 1): number {
   const absZ = Math.abs(z) / Math.sqrt(2);
 
   const t = 1.0 / (1.0 + p * absZ);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absZ * absZ);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-absZ * absZ);
 
   return 0.5 * (1.0 + sign * y);
 }
@@ -72,24 +71,18 @@ function normalPPF(p: number, mu: number = 0, sigma: number = 1): number {
   if (p === 0.5) return mu;
 
   const a = [
-    -3.969683028665376e+01, 2.209460984245205e+02,
-    -2.759285104469687e+02, 1.383577518672690e+02,
-    -3.066479806614716e+01, 2.506628277459239e+00
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
   ];
   const b = [
-    -5.447609879822406e+01, 1.615858368580409e+02,
-    -1.556989798598866e+02, 6.680131188771972e+01,
-    -1.328068155288572e+01
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
   ];
   const c = [
-    -7.784894002430293e-03, -3.223964580411365e-01,
-    -2.400758277161838e+00, -2.549732539343734e+00,
-    4.374664141464968e+00, 2.938163982698783e+00
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
   ];
-  const d = [
-    7.784695709041462e-03, 3.224671290700398e-01,
-    2.445134137142996e+00, 3.754408661907416e+00
-  ];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
 
   const pLow = 0.02425;
   const pHigh = 1 - pLow;
@@ -98,17 +91,20 @@ function normalPPF(p: number, mu: number = 0, sigma: number = 1): number {
 
   if (p < pLow) {
     q = Math.sqrt(-2 * Math.log(p));
-    result = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-             ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    result =
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
   } else if (p <= pHigh) {
     q = p - 0.5;
     r = q * q;
-    result = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
-             (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+    result =
+      ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
   } else {
     q = Math.sqrt(-2 * Math.log(1 - p));
-    result = -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-              ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    result =
+      -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
   }
 
   return mu + sigma * result;
@@ -125,21 +121,19 @@ function tPPF(p: number, df: number): number {
   const g2 = (5 * z ** 5 + 16 * z ** 3 + 3 * z) / 96;
   const g3 = (3 * z ** 7 + 19 * z ** 5 + 17 * z ** 3 - 15 * z) / 384;
 
-  return z + g1 / df + g2 / (df ** 2) + g3 / (df ** 3);
+  return z + g1 / df + g2 / df ** 2 + g3 / df ** 3;
 }
 
 // Chi-squared distribution (for df calculation)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function chiSquaredPPF(p: number, df: number): number {
+export function chiSquaredPPF(p: number, df: number): number {
   // Simple approximation using Wilson-Hilferty transformation
   const z = normalPPF(p);
   const term = 1 - 2 / (9 * df) + z * Math.sqrt(2 / (9 * df));
-  return df * (term ** 3);
+  return df * term ** 3;
 }
 
 // Beta distribution functions (for Bayesian)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function betaPDF(x: number, alpha: number, beta: number): number {
+export function betaPDF(x: number, alpha: number, beta: number): number {
   if (x <= 0 || x >= 1) return 0;
   const B = (gamma(alpha) * gamma(beta)) / gamma(alpha + beta);
   return (x ** (alpha - 1) * (1 - x) ** (beta - 1)) / B;
@@ -149,9 +143,9 @@ function gamma(z: number): number {
   // Lanczos approximation
   const g = 7;
   const c = [
-    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-    771.32342877765313, -176.61502916214059, 12.507343278686905,
-    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
+    1.5056327351493116e-7,
   ];
 
   if (z < 0.5) {
@@ -164,7 +158,7 @@ function gamma(z: number): number {
     x += c[i] / (z + i);
   }
   const t = z + g + 0.5;
-  return Math.sqrt(2 * Math.PI) * (t ** (z + 0.5)) * Math.exp(-t) * x;
+  return Math.sqrt(2 * Math.PI) * t ** (z + 0.5) * Math.exp(-t) * x;
 }
 
 function betaMean(alpha: number, beta: number): number {
@@ -209,14 +203,11 @@ function normalConfidenceInterval(
     upper: m + z * se,
     point: m,
     level: confidenceLevel,
-    method: 'normal'
+    method: 'normal',
   };
 }
 
-function tConfidenceInterval(
-  data: number[],
-  confidenceLevel: number = 0.95
-): ConfidenceInterval {
+function tConfidenceInterval(data: number[], confidenceLevel: number = 0.95): ConfidenceInterval {
   const n = data.length;
   const m = mean(data);
   const s = stdDev(data);
@@ -231,7 +222,7 @@ function tConfidenceInterval(
     upper: m + t * se,
     point: m,
     level: confidenceLevel,
-    method: 't-distribution'
+    method: 't-distribution',
   };
 }
 
@@ -261,7 +252,7 @@ function bootstrapConfidenceInterval(
     upper,
     point: statistic(data),
     level: confidenceLevel,
-    method: 'bootstrap-percentile'
+    method: 'bootstrap-percentile',
   };
 }
 
@@ -278,14 +269,14 @@ function proportionConfidenceInterval(
 
   const denominator = 1 + z2 / n;
   const center = (p + z2 / (2 * n)) / denominator;
-  const halfWidth = (z / denominator) * Math.sqrt(p * (1 - p) / n + z2 / (4 * n ** 2));
+  const halfWidth = (z / denominator) * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n ** 2));
 
   return {
     lower: Math.max(0, center - halfWidth),
     upper: Math.min(1, center + halfWidth),
     point: p,
     level: confidenceLevel,
-    method: 'wilson-score'
+    method: 'wilson-score',
   };
 }
 
@@ -335,8 +326,8 @@ function betaBayesianUpdate(
     credibleInterval: {
       lower: Math.max(0, priorMean - z * priorSd),
       upper: Math.min(1, priorMean + z * priorSd),
-      level: credibleLevel
-    }
+      level: credibleLevel,
+    },
   };
 
   const posterior: BayesianBelief = {
@@ -344,25 +335,29 @@ function betaBayesianUpdate(
     parameters: { alpha: posteriorAlpha, beta: posteriorBeta },
     mean: posteriorMean,
     variance: posteriorVar,
-    mode: posteriorAlpha > 1 && posteriorBeta > 1 ? betaMode(posteriorAlpha, posteriorBeta) : undefined,
+    mode:
+      posteriorAlpha > 1 && posteriorBeta > 1 ? betaMode(posteriorAlpha, posteriorBeta) : undefined,
     credibleInterval: {
       lower: Math.max(0, posteriorMean - z * posteriorSd),
       upper: Math.min(1, posteriorMean + z * posteriorSd),
-      level: credibleLevel
-    }
+      level: credibleLevel,
+    },
   };
 
   // Bayes factor (ratio of marginal likelihoods)
   // For conjugate prior, this has a closed form
-  const logBF = (
-    Math.log(gamma(priorAlpha + priorBeta)) - Math.log(gamma(priorAlpha)) - Math.log(gamma(priorBeta)) +
-    Math.log(gamma(posteriorAlpha)) + Math.log(gamma(posteriorBeta)) - Math.log(gamma(posteriorAlpha + posteriorBeta))
-  );
+  const logBF =
+    Math.log(gamma(priorAlpha + priorBeta)) -
+    Math.log(gamma(priorAlpha)) -
+    Math.log(gamma(priorBeta)) +
+    Math.log(gamma(posteriorAlpha)) +
+    Math.log(gamma(posteriorBeta)) -
+    Math.log(gamma(posteriorAlpha + posteriorBeta));
 
   return {
     prior,
     posterior,
-    bayesFactor: Math.exp(logBF)
+    bayesFactor: Math.exp(logBF),
   };
 }
 
@@ -381,7 +376,8 @@ function normalBayesianUpdate(
   const dataPrecision = n / knownVariance;
   const posteriorPrecision = priorPrecision + dataPrecision;
   const posteriorVariance = 1 / posteriorPrecision;
-  const posteriorMean = (priorPrecision * priorMean + dataPrecision * dataMean) / posteriorPrecision;
+  const posteriorMean =
+    (priorPrecision * priorMean + dataPrecision * dataMean) / posteriorPrecision;
 
   const alpha = 1 - credibleLevel;
   const z = normalPPF(1 - alpha / 2);
@@ -398,8 +394,8 @@ function normalBayesianUpdate(
     credibleInterval: {
       lower: priorMean - z * priorSd,
       upper: priorMean + z * priorSd,
-      level: credibleLevel
-    }
+      level: credibleLevel,
+    },
   };
 
   const posterior: BayesianBelief = {
@@ -411,8 +407,8 @@ function normalBayesianUpdate(
     credibleInterval: {
       lower: posteriorMean - z * posteriorSd,
       upper: posteriorMean + z * posteriorSd,
-      level: credibleLevel
-    }
+      level: credibleLevel,
+    },
   };
 
   return { prior, posterior };
@@ -431,8 +427,8 @@ interface UncertaintyDecomposition {
 }
 
 function decomposePredictionUncertainty(
-  predictions: number[][],  // Multiple model predictions for each input
-  variance_estimates?: number[]  // Optional aleatoric variance estimates
+  predictions: number[][], // Multiple model predictions for each input
+  variance_estimates?: number[] // Optional aleatoric variance estimates
 ): UncertaintyDecomposition {
   const numModels = predictions.length;
   const numSamples = predictions[0].length;
@@ -486,12 +482,12 @@ function decomposePredictionUncertainty(
     epistemic,
     aleatoric,
     ratio,
-    interpretation
+    interpretation,
   };
 }
 
 function ensembleUncertainty(
-  predictions: number[][]  // predictions[model][sample]
+  predictions: number[][] // predictions[model][sample]
 ): {
   meanPrediction: number[];
   stdPrediction: number[];
@@ -507,15 +503,16 @@ function ensembleUncertainty(
   const mutualInformation: number[] = [];
 
   for (let i = 0; i < numSamples; i++) {
-    const samplePreds = predictions.map(p => p[i]);
+    const samplePreds = predictions.map((p) => p[i]);
     meanPrediction.push(mean(samplePreds));
     stdPrediction.push(stdDev(samplePreds, false));
 
     // For classification-like predictions (values between 0 and 1)
     const avgProb = meanPrediction[i];
-    const avgEntropy = avgProb > 0 && avgProb < 1
-      ? -(avgProb * Math.log(avgProb + 1e-10) + (1 - avgProb) * Math.log(1 - avgProb + 1e-10))
-      : 0;
+    const avgEntropy =
+      avgProb > 0 && avgProb < 1
+        ? -(avgProb * Math.log(avgProb + 1e-10) + (1 - avgProb) * Math.log(1 - avgProb + 1e-10))
+        : 0;
     entropy.push(avgEntropy);
 
     // Mutual information approximation
@@ -534,7 +531,7 @@ function ensembleUncertainty(
     meanPrediction,
     stdPrediction,
     entropy,
-    mutualInformation
+    mutualInformation,
   };
 }
 
@@ -557,8 +554,8 @@ interface CalibrationResult {
 }
 
 function calculateCalibration(
-  predictions: number[],  // Predicted probabilities
-  actuals: number[],      // Actual outcomes (0 or 1)
+  predictions: number[], // Predicted probabilities
+  actuals: number[], // Actual outcomes (0 or 1)
   numBins: number = 10
 ): CalibrationResult {
   const n = predictions.length;
@@ -583,19 +580,21 @@ function calculateCalibration(
     const binUpper = (b + 1) * binWidth;
     const binMidpoint = (binLower + binUpper) / 2;
 
-    const inBin = predictions.map((p, i) => ({
-      pred: p,
-      actual: actuals[i]
-    })).filter(x => x.pred >= binLower && x.pred < binUpper);
+    const inBin = predictions
+      .map((p, i) => ({
+        pred: p,
+        actual: actuals[i],
+      }))
+      .filter((x) => x.pred >= binLower && x.pred < binUpper);
 
     if (inBin.length > 0) {
-      const predictedProb = mean(inBin.map(x => x.pred));
-      const actualFreq = mean(inBin.map(x => x.actual));
+      const predictedProb = mean(inBin.map((x) => x.pred));
+      const actualFreq = mean(inBin.map((x) => x.actual));
       reliabilityDiagram.push({
         binMidpoint,
         predictedProb,
         actualFreq,
-        count: inBin.length
+        count: inBin.length,
       });
     }
   }
@@ -627,7 +626,7 @@ function calculateCalibration(
     calibrationError,
     reliabilityDiagram,
     isCalibrated,
-    recommendation
+    recommendation,
   };
 }
 
@@ -654,11 +653,11 @@ function plattScaling(
       gradB += error;
     }
 
-    A -= learningRate * gradA / predictions.length;
-    B -= learningRate * gradB / predictions.length;
+    A -= (learningRate * gradA) / predictions.length;
+    B -= (learningRate * gradB) / predictions.length;
   }
 
-  const calibratedPredictions = predictions.map(p => {
+  const calibratedPredictions = predictions.map((p) => {
     const z = A * p + B;
     return 1 / (1 + Math.exp(-z));
   });
@@ -672,14 +671,15 @@ function plattScaling(
 
 export const uncertaintyquantifierTool: UnifiedTool = {
   name: 'uncertainty_quantifier',
-  description: 'Quantify uncertainty - confidence intervals, Bayesian credence, epistemic vs aleatoric',
+  description:
+    'Quantify uncertainty - confidence intervals, Bayesian credence, epistemic vs aleatoric',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['confidence', 'bayesian_update', 'epistemic', 'aleatoric', 'calibration', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       // Common parameters
       data: { type: 'array', items: { type: 'number' }, description: 'Data points for analysis' },
@@ -688,7 +688,7 @@ export const uncertaintyquantifierTool: UnifiedTool = {
       method: {
         type: 'string',
         enum: ['normal', 't', 'bootstrap', 'proportion'],
-        description: 'CI method'
+        description: 'CI method',
       },
       successes: { type: 'number', description: 'Number of successes (for proportion CI)' },
       n: { type: 'number', description: 'Sample size (for proportion CI)' },
@@ -699,29 +699,43 @@ export const uncertaintyquantifierTool: UnifiedTool = {
       priorMean: { type: 'number', description: 'Normal prior mean' },
       priorVariance: { type: 'number', description: 'Normal prior variance' },
       knownVariance: { type: 'number', description: 'Known data variance for normal model' },
-      distributionType: { type: 'string', enum: ['beta', 'normal'], description: 'Prior distribution type' },
+      distributionType: {
+        type: 'string',
+        enum: ['beta', 'normal'],
+        description: 'Prior distribution type',
+      },
       // Uncertainty decomposition
       predictions: {
         type: 'array',
-        items: { type: 'array', items: { type: 'number' } },
-        description: 'Multiple model predictions (models x samples)'
+        items: { type: 'array' },
+        description: 'Multiple model predictions (2D array of numbers, models x samples)',
       },
       varianceEstimates: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Optional aleatoric variance estimates'
+        description: 'Optional aleatoric variance estimates',
       },
       // Calibration parameters
-      predictedProbs: { type: 'array', items: { type: 'number' }, description: 'Predicted probabilities' },
-      actuals: { type: 'array', items: { type: 'number' }, description: 'Actual outcomes (0 or 1)' },
+      predictedProbs: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Predicted probabilities',
+      },
+      actuals: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Actual outcomes (0 or 1)',
+      },
       numBins: { type: 'number', description: 'Number of bins for reliability diagram' },
-      calibrate: { type: 'boolean', description: 'Apply Platt scaling calibration' }
+      calibrate: { type: 'boolean', description: 'Apply Platt scaling calibration' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeuncertaintyquantifier(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -732,41 +746,51 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'uncertainty_quantifier',
-            description: 'Quantify and reason about uncertainty in predictions and estimates',
-            operations: {
-              confidence: {
-                description: 'Calculate confidence intervals',
-                methods: ['normal', 't', 'bootstrap', 'proportion'],
-                parameters: ['data', 'confidenceLevel', 'method', 'nBootstrap']
+          content: JSON.stringify(
+            {
+              tool: 'uncertainty_quantifier',
+              description: 'Quantify and reason about uncertainty in predictions and estimates',
+              operations: {
+                confidence: {
+                  description: 'Calculate confidence intervals',
+                  methods: ['normal', 't', 'bootstrap', 'proportion'],
+                  parameters: ['data', 'confidenceLevel', 'method', 'nBootstrap'],
+                },
+                bayesian_update: {
+                  description: 'Bayesian belief updating from prior to posterior',
+                  distributionTypes: ['beta', 'normal'],
+                  parameters: [
+                    'priorAlpha/priorBeta or priorMean/priorVariance',
+                    'data',
+                    'credibleLevel',
+                  ],
+                },
+                epistemic: {
+                  description: 'Decompose uncertainty into epistemic (model) and aleatoric (data)',
+                  parameters: ['predictions (models x samples)', 'varianceEstimates (optional)'],
+                },
+                aleatoric: {
+                  description: 'Analyze aleatoric (irreducible) uncertainty',
+                  parameters: ['data', 'predictions'],
+                },
+                calibration: {
+                  description: 'Assess and improve probability calibration',
+                  metrics: ['Brier score', 'log loss', 'ECE', 'reliability diagram'],
+                  parameters: ['predictedProbs', 'actuals', 'numBins', 'calibrate'],
+                },
               },
-              bayesian_update: {
-                description: 'Bayesian belief updating from prior to posterior',
-                distributionTypes: ['beta', 'normal'],
-                parameters: ['priorAlpha/priorBeta or priorMean/priorVariance', 'data', 'credibleLevel']
+              concepts: {
+                epistemic:
+                  'Uncertainty from lack of knowledge, reducible with more data/better models',
+                aleatoric: 'Inherent randomness in the data, irreducible',
+                calibration: 'How well predicted probabilities match actual frequencies',
+                credibleInterval:
+                  'Bayesian analog of confidence interval, probability parameter is in range',
               },
-              epistemic: {
-                description: 'Decompose uncertainty into epistemic (model) and aleatoric (data)',
-                parameters: ['predictions (models x samples)', 'varianceEstimates (optional)']
-              },
-              aleatoric: {
-                description: 'Analyze aleatoric (irreducible) uncertainty',
-                parameters: ['data', 'predictions']
-              },
-              calibration: {
-                description: 'Assess and improve probability calibration',
-                metrics: ['Brier score', 'log loss', 'ECE', 'reliability diagram'],
-                parameters: ['predictedProbs', 'actuals', 'numBins', 'calibrate']
-              }
             },
-            concepts: {
-              epistemic: 'Uncertainty from lack of knowledge, reducible with more data/better models',
-              aleatoric: 'Inherent randomness in the data, irreducible',
-              calibration: 'How well predicted probabilities match actual frequencies',
-              credibleInterval: 'Bayesian analog of confidence interval, probability parameter is in range'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -782,14 +806,19 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
           return {
             toolCallId: id,
             content: JSON.stringify({
-              error: 'Proportion CI requires successes and n parameters'
+              error: 'Proportion CI requires successes and n parameters',
             }),
-            isError: true
+            isError: true,
           };
         }
 
         // Generate example data if none provided
-        const sampleData = data.length > 0 ? data : Array(30).fill(0).map(() => 100 + Math.random() * 20 - 10);
+        const sampleData =
+          data.length > 0
+            ? data
+            : Array(30)
+                .fill(0)
+                .map(() => 100 + Math.random() * 20 - 10);
 
         let result: ConfidenceInterval;
         switch (method) {
@@ -810,31 +839,45 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
         }
 
         // Calculate all methods for comparison
-        const comparison = method !== 'proportion' ? {
-          normal: normalConfidenceInterval(sampleData, confidenceLevel),
-          t: tConfidenceInterval(sampleData, confidenceLevel),
-          bootstrap: bootstrapConfidenceInterval(sampleData, confidenceLevel, Math.min(nBootstrap, 500))
-        } : undefined;
+        const comparison =
+          method !== 'proportion'
+            ? {
+                normal: normalConfidenceInterval(sampleData, confidenceLevel),
+                t: tConfidenceInterval(sampleData, confidenceLevel),
+                bootstrap: bootstrapConfidenceInterval(
+                  sampleData,
+                  confidenceLevel,
+                  Math.min(nBootstrap, 500)
+                ),
+              }
+            : undefined;
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'confidence',
-            result,
-            sampleStats: method !== 'proportion' ? {
-              n: sampleData.length,
-              mean: mean(sampleData),
-              stdDev: stdDev(sampleData),
-              min: Math.min(...sampleData),
-              max: Math.max(...sampleData)
-            } : undefined,
-            comparison,
-            interpretation: {
-              meaning: `We are ${confidenceLevel * 100}% confident the true value lies between ${result.lower.toFixed(4)} and ${result.upper.toFixed(4)}`,
-              width: result.upper - result.lower,
-              marginOfError: (result.upper - result.lower) / 2
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'confidence',
+              result,
+              sampleStats:
+                method !== 'proportion'
+                  ? {
+                      n: sampleData.length,
+                      mean: mean(sampleData),
+                      stdDev: stdDev(sampleData),
+                      min: Math.min(...sampleData),
+                      max: Math.max(...sampleData),
+                    }
+                  : undefined,
+              comparison,
+              interpretation: {
+                meaning: `We are ${confidenceLevel * 100}% confident the true value lies between ${result.lower.toFixed(4)} and ${result.upper.toFixed(4)}`,
+                width: result.upper - result.lower,
+                marginOfError: (result.upper - result.lower) / 2,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -844,7 +887,7 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
         const data = args.data || [];
 
         if (distributionType === 'beta') {
-          const priorAlpha = args.priorAlpha || 1;  // Uniform prior
+          const priorAlpha = args.priorAlpha || 1; // Uniform prior
           const priorBeta = args.priorBeta || 1;
 
           // Count successes and failures from data (interpret as binary)
@@ -852,7 +895,7 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
           let failures = args.failures;
 
           if (successes === undefined && data.length > 0) {
-            successes = data.filter(x => x > 0.5).length;
+            successes = data.filter((x) => x > 0.5).length;
             failures = data.length - successes;
           } else if (successes === undefined) {
             // Demo data
@@ -862,27 +905,37 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
 
           failures = failures || (args.n ? args.n - successes : 10 - successes);
 
-          const result = betaBayesianUpdate(priorAlpha, priorBeta, successes, failures, confidenceLevel);
+          const result = betaBayesianUpdate(
+            priorAlpha,
+            priorBeta,
+            successes,
+            failures,
+            confidenceLevel
+          );
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'bayesian_update',
-              distributionType: 'beta',
-              data: { successes, failures, total: successes + failures },
-              prior: result.prior,
-              posterior: result.posterior,
-              update: {
-                meanShift: result.posterior.mean - result.prior.mean,
-                varianceReduction: 1 - result.posterior.variance / result.prior.variance,
-                bayesFactor: result.bayesFactor
+            content: JSON.stringify(
+              {
+                operation: 'bayesian_update',
+                distributionType: 'beta',
+                data: { successes, failures, total: successes + failures },
+                prior: result.prior,
+                posterior: result.posterior,
+                update: {
+                  meanShift: result.posterior.mean - result.prior.mean,
+                  varianceReduction: 1 - result.posterior.variance / result.prior.variance,
+                  bayesFactor: result.bayesFactor,
+                },
+                interpretation: {
+                  prior: `Started with belief: P(success) ~ Beta(${priorAlpha}, ${priorBeta})`,
+                  posterior: `After observing ${successes} successes and ${failures} failures: P(success) ~ Beta(${result.posterior.parameters.alpha}, ${result.posterior.parameters.beta})`,
+                  conclusion: `Updated belief: ${(result.posterior.mean * 100).toFixed(1)}% probability of success (${confidenceLevel * 100}% CI: ${(result.posterior.credibleInterval.lower * 100).toFixed(1)}% - ${(result.posterior.credibleInterval.upper * 100).toFixed(1)}%)`,
+                },
               },
-              interpretation: {
-                prior: `Started with belief: P(success) ~ Beta(${priorAlpha}, ${priorBeta})`,
-                posterior: `After observing ${successes} successes and ${failures} failures: P(success) ~ Beta(${result.posterior.parameters.alpha}, ${result.posterior.parameters.beta})`,
-                conclusion: `Updated belief: ${(result.posterior.mean * 100).toFixed(1)}% probability of success (${confidenceLevel * 100}% CI: ${(result.posterior.credibleInterval.lower * 100).toFixed(1)}% - ${(result.posterior.credibleInterval.upper * 100).toFixed(1)}%)`
-              }
-            }, null, 2)
+              null,
+              2
+            ),
           };
         } else {
           // Normal distribution
@@ -890,33 +943,48 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
           const priorVariance = args.priorVariance || 1;
           const knownVariance = args.knownVariance || 1;
 
-          const sampleData = data.length > 0 ? data : Array(10).fill(0).map(() => priorMean + Math.random() * 2 - 1);
+          const sampleData =
+            data.length > 0
+              ? data
+              : Array(10)
+                  .fill(0)
+                  .map(() => priorMean + Math.random() * 2 - 1);
 
-          const result = normalBayesianUpdate(priorMean, priorVariance, sampleData, knownVariance, confidenceLevel);
+          const result = normalBayesianUpdate(
+            priorMean,
+            priorVariance,
+            sampleData,
+            knownVariance,
+            confidenceLevel
+          );
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'bayesian_update',
-              distributionType: 'normal',
-              data: {
-                n: sampleData.length,
-                sampleMean: mean(sampleData),
-                knownVariance
+            content: JSON.stringify(
+              {
+                operation: 'bayesian_update',
+                distributionType: 'normal',
+                data: {
+                  n: sampleData.length,
+                  sampleMean: mean(sampleData),
+                  knownVariance,
+                },
+                prior: result.prior,
+                posterior: result.posterior,
+                update: {
+                  meanShift: result.posterior.mean - result.prior.mean,
+                  varianceReduction: 1 - result.posterior.variance / result.prior.variance,
+                  precisionGain: 1 / result.posterior.variance / (1 / result.prior.variance),
+                },
+                interpretation: {
+                  prior: `Started with belief: μ ~ N(${priorMean}, ${priorVariance})`,
+                  posterior: `After observing ${sampleData.length} points: μ ~ N(${result.posterior.mean.toFixed(4)}, ${result.posterior.variance.toFixed(4)})`,
+                  conclusion: `Updated estimate: μ = ${result.posterior.mean.toFixed(4)} (${confidenceLevel * 100}% CI: ${result.posterior.credibleInterval.lower.toFixed(4)} - ${result.posterior.credibleInterval.upper.toFixed(4)})`,
+                },
               },
-              prior: result.prior,
-              posterior: result.posterior,
-              update: {
-                meanShift: result.posterior.mean - result.prior.mean,
-                varianceReduction: 1 - result.posterior.variance / result.prior.variance,
-                precisionGain: (1 / result.posterior.variance) / (1 / result.prior.variance)
-              },
-              interpretation: {
-                prior: `Started with belief: μ ~ N(${priorMean}, ${priorVariance})`,
-                posterior: `After observing ${sampleData.length} points: μ ~ N(${result.posterior.mean.toFixed(4)}, ${result.posterior.variance.toFixed(4)})`,
-                conclusion: `Updated estimate: μ = ${result.posterior.mean.toFixed(4)} (${confidenceLevel * 100}% CI: ${result.posterior.credibleInterval.lower.toFixed(4)} - ${result.posterior.credibleInterval.upper.toFixed(4)})`
-              }
-            }, null, 2)
+              null,
+              2
+            ),
           };
         }
       }
@@ -947,38 +1015,45 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'uncertainty_decomposition',
-            input: {
-              numModels: predictions.length,
-              numSamples: predictions[0].length
+          content: JSON.stringify(
+            {
+              operation: 'uncertainty_decomposition',
+              input: {
+                numModels: predictions.length,
+                numSamples: predictions[0].length,
+              },
+              decomposition: {
+                total: decomposition.total,
+                epistemic: decomposition.epistemic,
+                aleatoric: decomposition.aleatoric,
+                epistemicRatio: decomposition.ratio,
+                interpretation: decomposition.interpretation,
+              },
+              ensemble: {
+                meanPrediction: mean(ensemble.meanPrediction),
+                avgStd: mean(ensemble.stdPrediction),
+                avgEntropy: mean(ensemble.entropy),
+                avgMutualInformation: mean(ensemble.mutualInformation),
+              },
+              recommendations: {
+                highEpistemic:
+                  decomposition.ratio > 0.5
+                    ? 'Consider collecting more training data or using a more expressive model'
+                    : null,
+                highAleatoric:
+                  decomposition.ratio < 0.5
+                    ? 'Inherent noise is dominant; focus on robust predictions and proper uncertainty quantification'
+                    : null,
+              },
+              definitions: {
+                epistemic:
+                  'Model uncertainty - reducible with more data/better models (variance across models)',
+                aleatoric: 'Data uncertainty - irreducible noise inherent in the problem',
+              },
             },
-            decomposition: {
-              total: decomposition.total,
-              epistemic: decomposition.epistemic,
-              aleatoric: decomposition.aleatoric,
-              epistemicRatio: decomposition.ratio,
-              interpretation: decomposition.interpretation
-            },
-            ensemble: {
-              meanPrediction: mean(ensemble.meanPrediction),
-              avgStd: mean(ensemble.stdPrediction),
-              avgEntropy: mean(ensemble.entropy),
-              avgMutualInformation: mean(ensemble.mutualInformation)
-            },
-            recommendations: {
-              highEpistemic: decomposition.ratio > 0.5
-                ? 'Consider collecting more training data or using a more expressive model'
-                : null,
-              highAleatoric: decomposition.ratio < 0.5
-                ? 'Inherent noise is dominant; focus on robust predictions and proper uncertainty quantification'
-                : null
-            },
-            definitions: {
-              epistemic: 'Model uncertainty - reducible with more data/better models (variance across models)',
-              aleatoric: 'Data uncertainty - irreducible noise inherent in the problem'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1008,46 +1083,56 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
         let calibrationAdjustment = null;
         if (calibrate) {
           const scaling = plattScaling(predictedProbs, actuals);
-          const calibratedResult = calculateCalibration(scaling.calibratedPredictions, actuals, numBins);
+          const calibratedResult = calculateCalibration(
+            scaling.calibratedPredictions,
+            actuals,
+            numBins
+          );
 
           calibrationAdjustment = {
             plattScaling: {
               A: scaling.A,
               B: scaling.B,
-              formula: `P_calibrated = sigmoid(${scaling.A.toFixed(4)} * P_original + ${scaling.B.toFixed(4)})`
+              formula: `P_calibrated = sigmoid(${scaling.A.toFixed(4)} * P_original + ${scaling.B.toFixed(4)})`,
             },
             improvement: {
               originalECE: calibrationResult.calibrationError,
               calibratedECE: calibratedResult.calibrationError,
-              brierImprovement: calibrationResult.brierScore - calibratedResult.brierScore
+              brierImprovement: calibrationResult.brierScore - calibratedResult.brierScore,
             },
-            calibratedReliability: calibratedResult.reliabilityDiagram
+            calibratedReliability: calibratedResult.reliabilityDiagram,
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'calibration',
-            input: {
-              numPredictions: predictedProbs.length,
-              numBins
+          content: JSON.stringify(
+            {
+              operation: 'calibration',
+              input: {
+                numPredictions: predictedProbs.length,
+                numBins,
+              },
+              metrics: {
+                brierScore: calibrationResult.brierScore,
+                logLoss: calibrationResult.logLoss,
+                expectedCalibrationError: calibrationResult.calibrationError,
+                isWellCalibrated: calibrationResult.isCalibrated,
+              },
+              reliabilityDiagram: calibrationResult.reliabilityDiagram,
+              recommendation: calibrationResult.recommendation,
+              calibrationAdjustment,
+              interpretation: {
+                brierScore:
+                  'Mean squared error of probabilistic predictions (0 = perfect, 0.25 = random guessing)',
+                ece: 'Weighted average difference between predicted probability and actual frequency',
+                reliability:
+                  'Each bin shows predicted vs actual frequency - perfect calibration would be on the diagonal',
+              },
             },
-            metrics: {
-              brierScore: calibrationResult.brierScore,
-              logLoss: calibrationResult.logLoss,
-              expectedCalibrationError: calibrationResult.calibrationError,
-              isWellCalibrated: calibrationResult.isCalibrated
-            },
-            reliabilityDiagram: calibrationResult.reliabilityDiagram,
-            recommendation: calibrationResult.recommendation,
-            calibrationAdjustment,
-            interpretation: {
-              brierScore: 'Mean squared error of probabilistic predictions (0 = perfect, 0.25 = random guessing)',
-              ece: 'Weighted average difference between predicted probability and actual frequency',
-              reliability: 'Each bin shows predicted vs actual frequency - perfect calibration would be on the diagonal'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1056,9 +1141,16 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown operation: ${operation}`,
-            availableOperations: ['confidence', 'bayesian_update', 'epistemic', 'aleatoric', 'calibration', 'info']
+            availableOperations: [
+              'confidence',
+              'bayesian_update',
+              'epistemic',
+              'aleatoric',
+              'calibration',
+              'info',
+            ],
           }),
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1066,7 +1158,7 @@ export async function executeuncertaintyquantifier(toolCall: UnifiedToolCall): P
     return {
       toolCallId: id,
       content: `Error in uncertainty quantifier tool: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

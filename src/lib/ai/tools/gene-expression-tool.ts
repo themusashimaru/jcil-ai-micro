@@ -27,32 +27,141 @@ interface Gene {
 }
 
 const REFERENCE_GENES: Record<string, Gene> = {
-  GAPDH: { symbol: 'GAPDH', name: 'Glyceraldehyde-3-phosphate dehydrogenase', length_bp: 1310, chromosome: '12', pathway: ['Glycolysis'], go_terms: ['GO:0006096'] },
-  ACTB: { symbol: 'ACTB', name: 'Beta-actin', length_bp: 1793, chromosome: '7', pathway: ['Cytoskeleton'], go_terms: ['GO:0000146'] },
-  TP53: { symbol: 'TP53', name: 'Tumor protein p53', length_bp: 2591, chromosome: '17', pathway: ['Cell cycle', 'Apoptosis', 'DNA repair'], go_terms: ['GO:0006915', 'GO:0006281'] },
-  BRCA1: { symbol: 'BRCA1', name: 'BRCA1 DNA repair associated', length_bp: 7094, chromosome: '17', pathway: ['DNA repair', 'Cell cycle'], go_terms: ['GO:0006281'] },
-  EGFR: { symbol: 'EGFR', name: 'Epidermal growth factor receptor', length_bp: 5616, chromosome: '7', pathway: ['MAPK signaling', 'PI3K-Akt signaling'], go_terms: ['GO:0007169'] },
-  MYC: { symbol: 'MYC', name: 'MYC proto-oncogene', length_bp: 2367, chromosome: '8', pathway: ['Cell cycle', 'Apoptosis'], go_terms: ['GO:0006355'] },
-  VEGFA: { symbol: 'VEGFA', name: 'Vascular endothelial growth factor A', length_bp: 2308, chromosome: '6', pathway: ['Angiogenesis', 'VEGF signaling'], go_terms: ['GO:0001525'] },
-  IL6: { symbol: 'IL6', name: 'Interleukin 6', length_bp: 1131, chromosome: '7', pathway: ['JAK-STAT signaling', 'Cytokine signaling'], go_terms: ['GO:0006955'] },
-  TNF: { symbol: 'TNF', name: 'Tumor necrosis factor', length_bp: 1590, chromosome: '6', pathway: ['NF-kB signaling', 'Apoptosis'], go_terms: ['GO:0006915'] },
-  KRAS: { symbol: 'KRAS', name: 'KRAS proto-oncogene', length_bp: 5446, chromosome: '12', pathway: ['MAPK signaling', 'Ras signaling'], go_terms: ['GO:0007264'] },
-  PIK3CA: { symbol: 'PIK3CA', name: 'Phosphatidylinositol-4,5-bisphosphate 3-kinase', length_bp: 3207, chromosome: '3', pathway: ['PI3K-Akt signaling'], go_terms: ['GO:0046854'] },
-  AKT1: { symbol: 'AKT1', name: 'AKT serine/threonine kinase 1', length_bp: 2817, chromosome: '14', pathway: ['PI3K-Akt signaling', 'mTOR signaling'], go_terms: ['GO:0043066'] },
-  CDK4: { symbol: 'CDK4', name: 'Cyclin dependent kinase 4', length_bp: 1176, chromosome: '12', pathway: ['Cell cycle'], go_terms: ['GO:0000278'] },
-  RB1: { symbol: 'RB1', name: 'RB transcriptional corepressor 1', length_bp: 4767, chromosome: '13', pathway: ['Cell cycle'], go_terms: ['GO:0000278'] },
-  PTEN: { symbol: 'PTEN', name: 'Phosphatase and tensin homolog', length_bp: 5466, chromosome: '10', pathway: ['PI3K-Akt signaling'], go_terms: ['GO:0046854'] }
+  GAPDH: {
+    symbol: 'GAPDH',
+    name: 'Glyceraldehyde-3-phosphate dehydrogenase',
+    length_bp: 1310,
+    chromosome: '12',
+    pathway: ['Glycolysis'],
+    go_terms: ['GO:0006096'],
+  },
+  ACTB: {
+    symbol: 'ACTB',
+    name: 'Beta-actin',
+    length_bp: 1793,
+    chromosome: '7',
+    pathway: ['Cytoskeleton'],
+    go_terms: ['GO:0000146'],
+  },
+  TP53: {
+    symbol: 'TP53',
+    name: 'Tumor protein p53',
+    length_bp: 2591,
+    chromosome: '17',
+    pathway: ['Cell cycle', 'Apoptosis', 'DNA repair'],
+    go_terms: ['GO:0006915', 'GO:0006281'],
+  },
+  BRCA1: {
+    symbol: 'BRCA1',
+    name: 'BRCA1 DNA repair associated',
+    length_bp: 7094,
+    chromosome: '17',
+    pathway: ['DNA repair', 'Cell cycle'],
+    go_terms: ['GO:0006281'],
+  },
+  EGFR: {
+    symbol: 'EGFR',
+    name: 'Epidermal growth factor receptor',
+    length_bp: 5616,
+    chromosome: '7',
+    pathway: ['MAPK signaling', 'PI3K-Akt signaling'],
+    go_terms: ['GO:0007169'],
+  },
+  MYC: {
+    symbol: 'MYC',
+    name: 'MYC proto-oncogene',
+    length_bp: 2367,
+    chromosome: '8',
+    pathway: ['Cell cycle', 'Apoptosis'],
+    go_terms: ['GO:0006355'],
+  },
+  VEGFA: {
+    symbol: 'VEGFA',
+    name: 'Vascular endothelial growth factor A',
+    length_bp: 2308,
+    chromosome: '6',
+    pathway: ['Angiogenesis', 'VEGF signaling'],
+    go_terms: ['GO:0001525'],
+  },
+  IL6: {
+    symbol: 'IL6',
+    name: 'Interleukin 6',
+    length_bp: 1131,
+    chromosome: '7',
+    pathway: ['JAK-STAT signaling', 'Cytokine signaling'],
+    go_terms: ['GO:0006955'],
+  },
+  TNF: {
+    symbol: 'TNF',
+    name: 'Tumor necrosis factor',
+    length_bp: 1590,
+    chromosome: '6',
+    pathway: ['NF-kB signaling', 'Apoptosis'],
+    go_terms: ['GO:0006915'],
+  },
+  KRAS: {
+    symbol: 'KRAS',
+    name: 'KRAS proto-oncogene',
+    length_bp: 5446,
+    chromosome: '12',
+    pathway: ['MAPK signaling', 'Ras signaling'],
+    go_terms: ['GO:0007264'],
+  },
+  PIK3CA: {
+    symbol: 'PIK3CA',
+    name: 'Phosphatidylinositol-4,5-bisphosphate 3-kinase',
+    length_bp: 3207,
+    chromosome: '3',
+    pathway: ['PI3K-Akt signaling'],
+    go_terms: ['GO:0046854'],
+  },
+  AKT1: {
+    symbol: 'AKT1',
+    name: 'AKT serine/threonine kinase 1',
+    length_bp: 2817,
+    chromosome: '14',
+    pathway: ['PI3K-Akt signaling', 'mTOR signaling'],
+    go_terms: ['GO:0043066'],
+  },
+  CDK4: {
+    symbol: 'CDK4',
+    name: 'Cyclin dependent kinase 4',
+    length_bp: 1176,
+    chromosome: '12',
+    pathway: ['Cell cycle'],
+    go_terms: ['GO:0000278'],
+  },
+  RB1: {
+    symbol: 'RB1',
+    name: 'RB transcriptional corepressor 1',
+    length_bp: 4767,
+    chromosome: '13',
+    pathway: ['Cell cycle'],
+    go_terms: ['GO:0000278'],
+  },
+  PTEN: {
+    symbol: 'PTEN',
+    name: 'Phosphatase and tensin homolog',
+    length_bp: 5466,
+    chromosome: '10',
+    pathway: ['PI3K-Akt signaling'],
+    go_terms: ['GO:0046854'],
+  },
 };
 
 // Pathway database (simplified)
 const PATHWAYS: Record<string, { name: string; genes: string[]; category: string }> = {
-  'hsa04110': { name: 'Cell cycle', genes: ['TP53', 'RB1', 'CDK4', 'MYC'], category: 'Cell growth' },
-  'hsa04210': { name: 'Apoptosis', genes: ['TP53', 'TNF', 'MYC'], category: 'Cell death' },
-  'hsa04151': { name: 'PI3K-Akt signaling', genes: ['PIK3CA', 'AKT1', 'PTEN', 'EGFR'], category: 'Signal transduction' },
-  'hsa04010': { name: 'MAPK signaling', genes: ['EGFR', 'KRAS'], category: 'Signal transduction' },
-  'hsa04370': { name: 'VEGF signaling', genes: ['VEGFA'], category: 'Angiogenesis' },
-  'hsa04630': { name: 'JAK-STAT signaling', genes: ['IL6'], category: 'Signal transduction' },
-  'hsa03440': { name: 'Homologous recombination', genes: ['BRCA1'], category: 'DNA repair' }
+  hsa04110: { name: 'Cell cycle', genes: ['TP53', 'RB1', 'CDK4', 'MYC'], category: 'Cell growth' },
+  hsa04210: { name: 'Apoptosis', genes: ['TP53', 'TNF', 'MYC'], category: 'Cell death' },
+  hsa04151: {
+    name: 'PI3K-Akt signaling',
+    genes: ['PIK3CA', 'AKT1', 'PTEN', 'EGFR'],
+    category: 'Signal transduction',
+  },
+  hsa04010: { name: 'MAPK signaling', genes: ['EGFR', 'KRAS'], category: 'Signal transduction' },
+  hsa04370: { name: 'VEGF signaling', genes: ['VEGFA'], category: 'Angiogenesis' },
+  hsa04630: { name: 'JAK-STAT signaling', genes: ['IL6'], category: 'Signal transduction' },
+  hsa03440: { name: 'Homologous recombination', genes: ['BRCA1'], category: 'DNA repair' },
 };
 
 // ============================================================================
@@ -61,61 +170,73 @@ const PATHWAYS: Record<string, { name: string; genes: string[]; category: string
 
 export const geneexpressionTool: UnifiedTool = {
   name: 'gene_expression',
-  description: 'Comprehensive gene expression analysis tool. Supports normalization (TPM, FPKM, CPM), differential expression (DESeq2-like, edgeR-like), clustering, pathway enrichment, and GSEA.',
+  description:
+    'Comprehensive gene expression analysis tool. Supports normalization (TPM, FPKM, CPM), differential expression (DESeq2-like, edgeR-like), clustering, pathway enrichment, and GSEA.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['normalize', 'differential', 'cluster', 'pathway', 'gsea', 'visualize', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'normalize',
+          'differential',
+          'cluster',
+          'pathway',
+          'gsea',
+          'visualize',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       method: {
         type: 'string',
         enum: ['DESeq2', 'edgeR', 'limma', 'TPM', 'FPKM', 'CPM'],
-        description: 'Analysis method'
+        description: 'Analysis method',
       },
       // For normalize
       raw_counts: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            gene: { type: 'string' },
-            counts: { type: 'array', items: { type: 'number' } }
-          }
-        },
-        description: 'Raw count data [{gene, counts: [sample1, sample2, ...]}]'
+        items: { type: 'object' },
+        description:
+          'Raw count data. Each entry has: gene (string), counts (array of numbers for each sample)',
       },
       gene_lengths: {
         type: 'object',
-        description: 'Gene lengths in bp {gene: length}'
+        description: 'Gene lengths in bp {gene: length}',
       },
       // For differential
-      condition_a: { type: 'array', items: { type: 'number' }, description: 'Sample indices for condition A' },
-      condition_b: { type: 'array', items: { type: 'number' }, description: 'Sample indices for condition B' },
+      condition_a: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Sample indices for condition A',
+      },
+      condition_b: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Sample indices for condition B',
+      },
       fdr_threshold: { type: 'number', description: 'FDR threshold (default 0.05)' },
       log2fc_threshold: { type: 'number', description: 'Log2 fold change threshold (default 1)' },
       // For cluster
       genes: { type: 'array', items: { type: 'string' }, description: 'Gene symbols to cluster' },
       // For pathway
-      gene_list: { type: 'array', items: { type: 'string' }, description: 'List of differentially expressed genes' },
+      gene_list: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'List of differentially expressed genes',
+      },
       background_size: { type: 'number', description: 'Background gene set size' },
       // For gsea
       ranked_genes: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            gene: { type: 'string' },
-            score: { type: 'number' }
-          }
-        },
-        description: 'Genes ranked by expression metric'
-      }
+        items: { type: 'object' },
+        description:
+          'Genes ranked by expression metric. Each entry has: gene (string), score (number)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -153,15 +274,15 @@ function normalizeTPM(counts: CountData[], geneLengths: Record<string, number>):
 
     // Scale to TPM
     for (const gene of counts) {
-      if (!results.find(r => r.gene === gene.gene)) {
+      if (!results.find((r) => r.gene === gene.gene)) {
         results.push({
           gene: gene.gene,
           values: [],
           mean: 0,
-          variance: 0
+          variance: 0,
         });
       }
-      const geneResult = results.find(r => r.gene === gene.gene)!;
+      const geneResult = results.find((r) => r.gene === gene.gene)!;
       geneResult.values.push((rpk[gene.gene] / sumRpk) * 1e6);
     }
   }
@@ -270,8 +391,8 @@ function differentialExpression(
 
   for (const gene of counts) {
     // Get counts for each condition
-    const countsA = conditionA.map(i => gene.counts[i]);
-    const countsB = conditionB.map(i => gene.counts[i]);
+    const countsA = conditionA.map((i) => gene.counts[i]);
+    const countsB = conditionB.map((i) => gene.counts[i]);
 
     // Calculate means
     const meanA = countsA.reduce((a, b) => a + b, 0) / countsA.length;
@@ -303,7 +424,7 @@ function differentialExpression(
       pvalue,
       padj: 0, // Will be calculated with BH correction
       significant: false,
-      regulation: 'ns'
+      regulation: 'ns',
     });
   }
 
@@ -317,7 +438,9 @@ function differentialExpression(
   // Sort back by gene name and determine significance
   results.sort((a, b) => a.gene.localeCompare(b.gene));
 
-  let upCount = 0, downCount = 0, sigCount = 0;
+  let upCount = 0,
+    downCount = 0,
+    sigCount = 0;
 
   for (const r of results) {
     r.significant = r.padj < fdrThreshold && Math.abs(r.log2FoldChange) > log2fcThreshold;
@@ -334,11 +457,11 @@ function differentialExpression(
   }
 
   // Volcano plot data
-  const volcanoData = results.map(r => ({
+  const volcanoData = results.map((r) => ({
     gene: r.gene,
     log2FC: r.log2FoldChange,
     negLog10P: -Math.log10(r.pvalue + 1e-300),
-    significant: r.significant
+    significant: r.significant,
   }));
 
   return {
@@ -349,9 +472,9 @@ function differentialExpression(
       upregulated: upCount,
       downregulated: downCount,
       method,
-      thresholds: { fdr: fdrThreshold, log2fc: log2fcThreshold }
+      thresholds: { fdr: fdrThreshold, log2fc: log2fcThreshold },
     },
-    volcano_data: volcanoData
+    volcano_data: volcanoData,
   };
 }
 
@@ -368,7 +491,7 @@ function normalCDF(x: number): number {
   x = Math.abs(x) / Math.sqrt(2);
 
   const t = 1.0 / (1.0 + p * x);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
   return 0.5 * (1.0 + sign * y);
 }
@@ -401,13 +524,15 @@ function clusterGenes(
       baseExpr + Math.random() * 20,
       baseExpr + Math.random() * 20,
       baseExpr * (Math.random() > 0.5 ? 1.5 : 0.7),
-      baseExpr * (Math.random() > 0.5 ? 1.5 : 0.7)
+      baseExpr * (Math.random() > 0.5 ? 1.5 : 0.7),
     ];
   }
 
   // Calculate distance matrix (Euclidean)
   const n = geneList.length;
-  const distMatrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+  const distMatrix: number[][] = Array(n)
+    .fill(null)
+    .map(() => Array(n).fill(0));
 
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
@@ -421,7 +546,8 @@ function clusterGenes(
 
   // Simple k-means-like clustering (k=3)
   const k = Math.min(3, Math.floor(n / 2));
-  const clusters: Array<{ cluster_id: number; genes: string[]; centroid_expression?: number[] }> = [];
+  const clusters: Array<{ cluster_id: number; genes: string[]; centroid_expression?: number[] }> =
+    [];
 
   if (k > 0) {
     // Assign genes to clusters based on first coordinate
@@ -433,19 +559,19 @@ function clusterGenes(
       clusters.push({
         cluster_id: c + 1,
         genes: clusterGenes,
-        centroid_expression: clusterGenes[0] ? exprData[clusterGenes[0]] : undefined
+        centroid_expression: clusterGenes[0] ? exprData[clusterGenes[0]] : undefined,
       });
     }
   }
 
   return {
     genes: geneList,
-    distance_matrix: distMatrix.map(row => row.map(v => Math.round(v * 100) / 100)),
+    distance_matrix: distMatrix.map((row) => row.map((v) => Math.round(v * 100) / 100)),
     clustering: {
       method: 'hierarchical (average linkage)',
-      clusters
+      clusters,
     },
-    dendrogram_order: geneList
+    dendrogram_order: geneList,
   };
 }
 
@@ -485,7 +611,7 @@ function pathwayEnrichment(
     significant: boolean;
   }> = [];
 
-  const geneSet = new Set(geneList.map(g => g.toUpperCase()));
+  const geneSet = new Set(geneList.map((g) => g.toUpperCase()));
   const genePathwayMatrix: Record<string, string[]> = {};
 
   for (const gene of geneList) {
@@ -493,22 +619,22 @@ function pathwayEnrichment(
   }
 
   for (const [pathwayId, pathway] of Object.entries(PATHWAYS)) {
-    const pathwayGenes = new Set(pathway.genes.map(g => g.toUpperCase()));
-    const overlap = [...geneSet].filter(g => pathwayGenes.has(g));
+    const pathwayGenes = new Set(pathway.genes.map((g) => g.toUpperCase()));
+    const overlap = [...geneSet].filter((g) => pathwayGenes.has(g));
 
     if (overlap.length > 0) {
       // Fisher's exact test approximation
-      const k = overlap.length;       // Overlap
+      const k = overlap.length; // Overlap
       const m = pathway.genes.length; // Pathway size
-      const n = geneList.length;      // Query size
-      const N = backgroundSize;       // Background
+      const n = geneList.length; // Query size
+      const N = backgroundSize; // Background
 
       // Hypergeometric p-value (simplified)
       const expected = (m * n) / N;
       const foldEnrichment = k / expected;
 
       // Chi-squared approximation
-      const chiSq = ((k - expected) ** 2) / expected;
+      const chiSq = (k - expected) ** 2 / expected;
       const pvalue = Math.exp(-chiSq / 2);
 
       // Record gene-pathway associations
@@ -528,7 +654,7 @@ function pathwayEnrichment(
         fold_enrichment: foldEnrichment,
         pvalue,
         padj: 0,
-        significant: false
+        significant: false,
       });
     }
   }
@@ -547,7 +673,7 @@ function pathwayEnrichment(
   return {
     input: { gene_count: geneList.length, background_size: backgroundSize },
     enriched_pathways: results,
-    gene_pathway_matrix: genePathwayMatrix
+    gene_pathway_matrix: genePathwayMatrix,
   };
 }
 
@@ -555,9 +681,7 @@ function pathwayEnrichment(
 // GENE SET ENRICHMENT ANALYSIS (GSEA)
 // ============================================================================
 
-function gseaAnalysis(
-  rankedGenes: Array<{ gene: string; score: number }>
-): {
+function gseaAnalysis(rankedGenes: Array<{ gene: string; score: number }>): {
   input: { gene_count: number; ranking_metric: string };
   pathway_results: Array<{
     pathway_id: string;
@@ -591,14 +715,14 @@ function gseaAnalysis(
   }> = [];
 
   for (const [pathwayId, pathway] of Object.entries(PATHWAYS)) {
-    const pathwayGenes = new Set(pathway.genes.map(g => g.toUpperCase()));
+    const pathwayGenes = new Set(pathway.genes.map((g) => g.toUpperCase()));
 
     // Calculate running sum
     let runningSum = 0;
     let maxES = 0;
     const leadingEdge: string[] = [];
 
-    const pathwayHits = sortedGenes.filter(g => pathwayGenes.has(g.gene.toUpperCase()));
+    const pathwayHits = sortedGenes.filter((g) => pathwayGenes.has(g.gene.toUpperCase()));
     const nhit = pathwayHits.length;
 
     if (nhit === 0) continue;
@@ -633,7 +757,7 @@ function gseaAnalysis(
       pvalue: Math.round(pvalue * 10000) / 10000,
       fdr: 0,
       leading_edge: leadingEdge.slice(0, 5),
-      direction: maxES > 0 ? 'up' : 'down'
+      direction: maxES > 0 ? 'up' : 'down',
     });
   }
 
@@ -644,8 +768,8 @@ function gseaAnalysis(
     pathwayResults[i].fdr = Math.min(1, (pathwayResults[i].pvalue * nResults) / (i + 1));
   }
 
-  const sigUp = pathwayResults.filter(r => r.fdr < 0.25 && r.direction === 'up').length;
-  const sigDown = pathwayResults.filter(r => r.fdr < 0.25 && r.direction === 'down').length;
+  const sigUp = pathwayResults.filter((r) => r.fdr < 0.25 && r.direction === 'up').length;
+  const sigDown = pathwayResults.filter((r) => r.fdr < 0.25 && r.direction === 'down').length;
 
   return {
     input: { gene_count: n, ranking_metric: 'score' },
@@ -653,8 +777,8 @@ function gseaAnalysis(
     summary: {
       significant_up: sigUp,
       significant_down: sigDown,
-      top_pathways: pathwayResults.slice(0, 3).map(r => r.pathway_name)
-    }
+      top_pathways: pathwayResults.slice(0, 3).map((r) => r.pathway_name),
+    },
   };
 }
 
@@ -662,10 +786,7 @@ function gseaAnalysis(
 // VISUALIZATION HELPERS
 // ============================================================================
 
-function getVisualizationData(
-  type: string,
-  _data?: DEResult[] | NormalizedData[]
-): object {
+function getVisualizationData(type: string, _data?: DEResult[] | NormalizedData[]): object {
   switch (type) {
     case 'volcano':
       return {
@@ -675,9 +796,9 @@ function getVisualizationData(
         y_axis: '-log10(pvalue)',
         significance_lines: {
           horizontal: '-log10(0.05) = 1.3',
-          vertical: 'log2FC = ±1'
+          vertical: 'log2FC = ±1',
         },
-        coloring: 'Significant genes colored by regulation direction'
+        coloring: 'Significant genes colored by regulation direction',
       };
     case 'heatmap':
       return {
@@ -685,7 +806,7 @@ function getVisualizationData(
         description: 'Expression values across samples and genes',
         scaling: 'Z-score normalization recommended',
         clustering: 'Hierarchical clustering on both axes',
-        color_scheme: 'Diverging (blue-white-red) for centered data'
+        color_scheme: 'Diverging (blue-white-red) for centered data',
       };
     case 'pca':
       return {
@@ -693,7 +814,7 @@ function getVisualizationData(
         description: 'Principal Component Analysis of samples',
         axes: ['PC1', 'PC2'],
         variance_explained: 'Show percentage on axis labels',
-        coloring: 'By sample condition/group'
+        coloring: 'By sample condition/group',
       };
     case 'ma':
       return {
@@ -701,12 +822,12 @@ function getVisualizationData(
         description: 'M (log ratio) vs A (mean average)',
         x_axis: 'log2(baseMean)',
         y_axis: 'log2FoldChange',
-        significance: 'Highlight significant genes'
+        significance: 'Highlight significant genes',
       };
     default:
       return {
         available_plots: ['volcano', 'heatmap', 'pca', 'ma'],
-        description: 'Specify plot type for details'
+        description: 'Specify plot type for details',
       };
   }
 }
@@ -722,17 +843,17 @@ function getInfo(): object {
       'Hierarchical clustering',
       'Pathway enrichment analysis',
       'Gene Set Enrichment Analysis (GSEA)',
-      'Visualization helpers'
+      'Visualization helpers',
     ],
     normalization_methods: {
       TPM: 'Transcripts Per Million - controls for gene length and library size',
       FPKM: 'Fragments Per Kilobase Million - for paired-end data',
-      CPM: 'Counts Per Million - library size normalization only'
+      CPM: 'Counts Per Million - library size normalization only',
     },
     de_methods: {
       DESeq2: 'Negative binomial model, Wald test',
       edgeR: 'Negative binomial model, exact test',
-      limma: 'Linear models, empirical Bayes'
+      limma: 'Linear models, empirical Bayes',
     },
     reference_genes: Object.keys(REFERENCE_GENES).length,
     pathways_available: Object.keys(PATHWAYS).length,
@@ -740,8 +861,8 @@ function getInfo(): object {
       normalization: 'Raw counts matrix with gene identifiers',
       differential: 'Raw counts + condition assignments',
       pathway: 'List of differentially expressed genes',
-      gsea: 'Ranked gene list with scores'
-    }
+      gsea: 'Ranked gene list with scores',
+    },
   };
 }
 
@@ -753,8 +874,8 @@ function getExamples(): object {
       raw_counts: [
         { gene: 'GAPDH', counts: [1000, 1200, 800, 900] },
         { gene: 'TP53', counts: [50, 45, 150, 140] },
-        { gene: 'EGFR', counts: [200, 220, 180, 190] }
-      ]
+        { gene: 'EGFR', counts: [200, 220, 180, 190] },
+      ],
     },
     differential_expression: {
       operation: 'differential',
@@ -762,16 +883,16 @@ function getExamples(): object {
       raw_counts: [
         { gene: 'GAPDH', counts: [1000, 1100, 1200, 500, 550, 600] },
         { gene: 'TP53', counts: [50, 55, 60, 150, 160, 170] },
-        { gene: 'EGFR', counts: [200, 210, 220, 180, 170, 160] }
+        { gene: 'EGFR', counts: [200, 210, 220, 180, 170, 160] },
       ],
       condition_a: [0, 1, 2],
       condition_b: [3, 4, 5],
       fdr_threshold: 0.05,
-      log2fc_threshold: 1
+      log2fc_threshold: 1,
     },
     pathway_enrichment: {
       operation: 'pathway',
-      gene_list: ['TP53', 'BRCA1', 'RB1', 'CDK4', 'EGFR', 'KRAS']
+      gene_list: ['TP53', 'BRCA1', 'RB1', 'CDK4', 'EGFR', 'KRAS'],
     },
     gsea: {
       operation: 'gsea',
@@ -780,9 +901,9 @@ function getExamples(): object {
         { gene: 'EGFR', score: 2.8 },
         { gene: 'KRAS', score: 2.1 },
         { gene: 'GAPDH', score: 0.1 },
-        { gene: 'ACTB', score: -0.2 }
-      ]
-    }
+        { gene: 'ACTB', score: -0.2 },
+      ],
+    },
   };
 }
 
@@ -826,12 +947,12 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
           method,
           input_genes: counts.length,
           input_samples: counts[0]?.counts.length || 0,
-          normalized_data: normalized.map(n => ({
+          normalized_data: normalized.map((n) => ({
             gene: n.gene,
-            values: n.values.map(v => Math.round(v * 100) / 100),
+            values: n.values.map((v) => Math.round(v * 100) / 100),
             mean: Math.round(n.mean * 100) / 100,
-            variance: Math.round(n.variance * 100) / 100
-          }))
+            variance: Math.round(n.variance * 100) / 100,
+          })),
         };
         break;
       }
@@ -849,7 +970,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
             method,
             args.fdr_threshold || 0.05,
             args.log2fc_threshold || 1
-          )
+          ),
         };
         break;
       }
@@ -858,7 +979,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
         const genes = args.genes || Object.keys(REFERENCE_GENES).slice(0, 10);
         result = {
           operation: 'cluster',
-          ...clusterGenes(genes)
+          ...clusterGenes(genes),
         };
         break;
       }
@@ -869,7 +990,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
         }
         result = {
           operation: 'pathway',
-          ...pathwayEnrichment(args.gene_list, args.background_size || 20000)
+          ...pathwayEnrichment(args.gene_list, args.background_size || 20000),
         };
         break;
       }
@@ -880,7 +1001,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
         }
         result = {
           operation: 'gsea',
-          ...gseaAnalysis(args.ranked_genes)
+          ...gseaAnalysis(args.ranked_genes),
         };
         break;
       }
@@ -888,7 +1009,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
       case 'visualize': {
         result = {
           operation: 'visualize',
-          visualization: getVisualizationData(args.plot_type || 'volcano')
+          visualization: getVisualizationData(args.plot_type || 'volcano'),
         };
         break;
       }
@@ -896,7 +1017,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
       case 'examples':
         result = {
           operation: 'examples',
-          examples: getExamples()
+          examples: getExamples(),
         };
         break;
 
@@ -904,7 +1025,7 @@ export async function executegeneexpression(toolCall: UnifiedToolCall): Promise<
       default:
         result = {
           operation: 'info',
-          ...getInfo()
+          ...getInfo(),
         };
     }
 

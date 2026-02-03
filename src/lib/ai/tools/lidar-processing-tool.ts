@@ -86,8 +86,7 @@ function vec3Scale(v: Point3D, s: number): Point3D {
   return { x: v.x * s, y: v.y * s, z: v.z * s };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Dot(a: Point3D, b: Point3D): number {
+export function vec3Dot(a: Point3D, b: Point3D): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
@@ -95,7 +94,7 @@ function vec3Cross(a: Point3D, b: Point3D): Point3D {
   return {
     x: a.y * b.z - a.z * b.y,
     y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x
+    z: a.x * b.y - a.y * b.x,
   };
 }
 
@@ -117,7 +116,11 @@ function vec3Distance(a: Point3D, b: Point3D): number {
 }
 
 function matmul3x3(A: number[][], B: number[][]): number[][] {
-  const C: number[][] = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  const C: number[][] = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
       for (let k = 0; k < 3; k++) {
@@ -132,7 +135,7 @@ function matvec3(M: number[][], v: Point3D): Point3D {
   return {
     x: M[0][0] * v.x + M[0][1] * v.y + M[0][2] * v.z,
     y: M[1][0] * v.x + M[1][1] * v.y + M[1][2] * v.z,
-    z: M[2][0] * v.x + M[2][1] * v.y + M[2][2] * v.z
+    z: M[2][0] * v.x + M[2][1] * v.y + M[2][2] * v.z,
   };
 }
 
@@ -140,7 +143,7 @@ function transpose3x3(M: number[][]): number[][] {
   return [
     [M[0][0], M[1][0], M[2][0]],
     [M[0][1], M[1][1], M[2][1]],
-    [M[0][2], M[1][2], M[2][2]]
+    [M[0][2], M[1][2], M[2][2]],
   ];
 }
 
@@ -163,8 +166,12 @@ class VoxelGridFilter {
     if (points.length === 0) return { points: [] };
 
     // Find bounds
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
 
     for (const p of points) {
       minX = Math.min(minX, p.x);
@@ -194,7 +201,9 @@ class VoxelGridFilter {
     const filtered: Point3D[] = [];
 
     for (const voxelPoints of voxelMap.values()) {
-      let cx = 0, cy = 0, cz = 0;
+      let cx = 0,
+        cy = 0,
+        cz = 0;
       let intensity = 0;
 
       for (const p of voxelPoints) {
@@ -209,7 +218,7 @@ class VoxelGridFilter {
         x: cx / n,
         y: cy / n,
         z: cz / n,
-        intensity: intensity / n
+        intensity: intensity / n,
       });
     }
 
@@ -296,7 +305,7 @@ class RANSACPlane {
       return {
         plane: { a: 0, b: 0, c: 1, d: 0 },
         inliers: [],
-        outliers: points.map((_, i) => i)
+        outliers: points.map((_, i) => i),
       };
     }
 
@@ -321,7 +330,7 @@ class RANSACPlane {
         a: normal.x,
         b: normal.y,
         c: normal.z,
-        d: -(normal.x * p1.x + normal.y * p1.y + normal.z * p1.z)
+        d: -(normal.x * p1.x + normal.y * p1.y + normal.z * p1.z),
       };
 
       // Count inliers
@@ -329,10 +338,7 @@ class RANSACPlane {
 
       for (let i = 0; i < points.length; i++) {
         const dist = Math.abs(
-          plane.a * points[i].x +
-          plane.b * points[i].y +
-          plane.c * points[i].z +
-          plane.d
+          plane.a * points[i].x + plane.b * points[i].y + plane.c * points[i].z + plane.d
         );
 
         if (dist < this.distanceThreshold) {
@@ -348,7 +354,7 @@ class RANSACPlane {
 
     // Compute outliers
     const inlierSet = new Set(bestInliers);
-    const outliers = points.map((_, i) => i).filter(i => !inlierSet.has(i));
+    const outliers = points.map((_, i) => i).filter((i) => !inlierSet.has(i));
 
     return { plane: bestPlane, inliers: bestInliers, outliers };
   }
@@ -449,7 +455,7 @@ class DBSCANClustering {
           id: c,
           points: clusterPoints,
           centroid,
-          boundingBox
+          boundingBox,
         });
       }
     }
@@ -471,7 +477,9 @@ class DBSCANClustering {
   }
 
   private computeCentroid(points: Point3D[]): Point3D {
-    let cx = 0, cy = 0, cz = 0;
+    let cx = 0,
+      cy = 0,
+      cz = 0;
     for (const p of points) {
       cx += p.x;
       cy += p.y;
@@ -482,8 +490,12 @@ class DBSCANClustering {
   }
 
   private computeBoundingBox(points: Point3D[]): BoundingBox {
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
 
     for (const p of points) {
       minX = Math.min(minX, p.x);
@@ -498,13 +510,13 @@ class DBSCANClustering {
       center: {
         x: (minX + maxX) / 2,
         y: (minY + maxY) / 2,
-        z: (minZ + maxZ) / 2
+        z: (minZ + maxZ) / 2,
       },
       dimensions: {
         width: maxX - minX,
         height: maxY - minY,
-        depth: maxZ - minZ
-      }
+        depth: maxZ - minZ,
+      },
     };
   }
 }
@@ -561,9 +573,11 @@ class EuclideanClustering {
         }
       }
 
-      if (clusterIndices.length >= this.minClusterSize &&
-          clusterIndices.length <= this.maxClusterSize) {
-        const clusterPoints = clusterIndices.map(idx => points[idx]);
+      if (
+        clusterIndices.length >= this.minClusterSize &&
+        clusterIndices.length <= this.maxClusterSize
+      ) {
+        const clusterPoints = clusterIndices.map((idx) => points[idx]);
         const centroid = this.computeCentroid(clusterPoints);
         const boundingBox = this.computeBoundingBox(clusterPoints);
 
@@ -571,7 +585,7 @@ class EuclideanClustering {
           id: clusterId++,
           points: clusterPoints,
           centroid,
-          boundingBox
+          boundingBox,
         });
       }
     }
@@ -580,7 +594,9 @@ class EuclideanClustering {
   }
 
   private computeCentroid(points: Point3D[]): Point3D {
-    let cx = 0, cy = 0, cz = 0;
+    let cx = 0,
+      cy = 0,
+      cz = 0;
     for (const p of points) {
       cx += p.x;
       cy += p.y;
@@ -591,8 +607,12 @@ class EuclideanClustering {
   }
 
   private computeBoundingBox(points: Point3D[]): BoundingBox {
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
 
     for (const p of points) {
       minX = Math.min(minX, p.x);
@@ -607,13 +627,13 @@ class EuclideanClustering {
       center: {
         x: (minX + maxX) / 2,
         y: (minY + maxY) / 2,
-        z: (minZ + maxZ) / 2
+        z: (minZ + maxZ) / 2,
       },
       dimensions: {
         width: maxX - minX,
         height: maxY - minY,
-        depth: maxZ - minZ
-      }
+        depth: maxZ - minZ,
+      },
     };
   }
 }
@@ -656,12 +676,14 @@ class NormalEstimator {
     }
 
     distances.sort((a, b) => a.dist - b.dist);
-    return distances.slice(0, k).map(d => d.idx);
+    return distances.slice(0, k).map((d) => d.idx);
   }
 
   private estimateNormalPCA(points: Point3D[], indices: number[]): Normal {
     // Compute centroid
-    let cx = 0, cy = 0, cz = 0;
+    let cx = 0,
+      cy = 0,
+      cz = 0;
     for (const i of indices) {
       cx += points[i].x;
       cy += points[i].y;
@@ -672,8 +694,12 @@ class NormalEstimator {
     cz /= indices.length;
 
     // Compute covariance matrix
-    let cxx = 0, cxy = 0, cxz = 0;
-    let cyy = 0, cyz = 0, czz = 0;
+    let cxx = 0,
+      cxy = 0,
+      cxz = 0;
+    let cyy = 0,
+      cyz = 0,
+      czz = 0;
 
     for (const i of indices) {
       const dx = points[i].x - cx;
@@ -692,7 +718,7 @@ class NormalEstimator {
     const cov = [
       [cxx / n, cxy / n, cxz / n],
       [cxy / n, cyy / n, cyz / n],
-      [cxz / n, cyz / n, czz / n]
+      [cxz / n, cyz / n, czz / n],
     ];
 
     // Find smallest eigenvector using power iteration
@@ -721,18 +747,18 @@ class NormalEstimator {
       [
         (cov[1][1] * cov[2][2] - cov[1][2] * cov[2][1]) * invDet,
         (cov[0][2] * cov[2][1] - cov[0][1] * cov[2][2]) * invDet,
-        (cov[0][1] * cov[1][2] - cov[0][2] * cov[1][1]) * invDet
+        (cov[0][1] * cov[1][2] - cov[0][2] * cov[1][1]) * invDet,
       ],
       [
         (cov[1][2] * cov[2][0] - cov[1][0] * cov[2][2]) * invDet,
         (cov[0][0] * cov[2][2] - cov[0][2] * cov[2][0]) * invDet,
-        (cov[0][2] * cov[1][0] - cov[0][0] * cov[1][2]) * invDet
+        (cov[0][2] * cov[1][0] - cov[0][0] * cov[1][2]) * invDet,
       ],
       [
         (cov[1][0] * cov[2][1] - cov[1][1] * cov[2][0]) * invDet,
         (cov[0][1] * cov[2][0] - cov[0][0] * cov[2][1]) * invDet,
-        (cov[0][0] * cov[1][1] - cov[0][1] * cov[1][0]) * invDet
-      ]
+        (cov[0][0] * cov[1][1] - cov[0][1] * cov[1][0]) * invDet,
+      ],
     ];
 
     // Power iteration on inverse
@@ -761,7 +787,7 @@ function estimateCurvature(points: Point3D[], normals: Normal[], k: number = 20)
       }
     }
     distances.sort((a, b) => a.dist - b.dist);
-    const neighbors = distances.slice(0, k).map(d => d.idx);
+    const neighbors = distances.slice(0, k).map((d) => d.idx);
 
     // Compute curvature as variation of normals
     const ni = normals[i];
@@ -800,11 +826,15 @@ class ICPRegistration {
     source: PointCloud,
     target: PointCloud
   ): { rotation: number[][]; translation: Point3D; error: number; iterations: number } {
-    let R = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    let R = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ];
     let t: Point3D = { x: 0, y: 0, z: 0 };
 
     // Transform source points
-    let transformedSource = source.points.map(p => ({ ...p }));
+    let transformedSource = source.points.map((p) => ({ ...p }));
     let prevError = Infinity;
 
     let iter = 0;
@@ -844,7 +874,11 @@ class ICPRegistration {
       tgtCentroid = vec3Scale(tgtCentroid, 1 / correspondences.length);
 
       // Compute cross-covariance matrix
-      const H: number[][] = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      const H: number[][] = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ];
 
       for (const c of correspondences) {
         const srcCentered = vec3Sub(c.src, srcCentroid);
@@ -881,7 +915,7 @@ class ICPRegistration {
       t = vec3Add(matvec3(Rnew, t), tNew);
 
       // Transform source points
-      transformedSource = source.points.map(p => vec3Add(matvec3(R, p), t));
+      transformedSource = source.points.map((p) => vec3Add(matvec3(R, p), t));
 
       // Compute error
       let error = 0;
@@ -904,8 +938,12 @@ class ICPRegistration {
     const AtA = matmul3x3(transpose3x3(A), A);
 
     // Eigendecomposition of AtA
-    const V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-    const M = AtA.map(row => [...row]);
+    const V = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ];
+    const M = AtA.map((row) => [...row]);
 
     for (let sweep = 0; sweep < 20; sweep++) {
       for (let i = 0; i < 2; i++) {
@@ -917,7 +955,9 @@ class ICPRegistration {
           const s = Math.sin(theta);
 
           // Apply rotation to M
-          const Mii = M[i][i], Mjj = M[j][j], Mij = M[i][j];
+          const Mii = M[i][i],
+            Mjj = M[j][j],
+            Mij = M[i][j];
           M[i][i] = c * c * Mii + 2 * c * s * Mij + s * s * Mjj;
           M[j][j] = s * s * Mii - 2 * c * s * Mij + c * c * Mjj;
           M[i][j] = 0;
@@ -925,7 +965,8 @@ class ICPRegistration {
 
           for (let k = 0; k < 3; k++) {
             if (k !== i && k !== j) {
-              const Mik = M[i][k], Mjk = M[j][k];
+              const Mik = M[i][k],
+                Mjk = M[j][k];
               M[i][k] = c * Mik + s * Mjk;
               M[k][i] = M[i][k];
               M[j][k] = -s * Mik + c * Mjk;
@@ -935,7 +976,8 @@ class ICPRegistration {
 
           // Update V
           for (let k = 0; k < 3; k++) {
-            const Vki = V[k][i], Vkj = V[k][j];
+            const Vki = V[k][i],
+              Vkj = V[k][j];
             V[k][i] = c * Vki + s * Vkj;
             V[k][j] = -s * Vki + c * Vkj;
           }
@@ -943,10 +985,18 @@ class ICPRegistration {
       }
     }
 
-    const S = [Math.sqrt(Math.max(0, M[0][0])), Math.sqrt(Math.max(0, M[1][1])), Math.sqrt(Math.max(0, M[2][2]))];
+    const S = [
+      Math.sqrt(Math.max(0, M[0][0])),
+      Math.sqrt(Math.max(0, M[1][1])),
+      Math.sqrt(Math.max(0, M[2][2])),
+    ];
 
     // U = A * V * S^-1
-    const U: number[][] = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    const U: number[][] = [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0],
+    ];
     const AV = matmul3x3(A, V);
 
     for (let i = 0; i < 3; i++) {
@@ -981,8 +1031,12 @@ class Octree {
     this.maxPointsPerNode = maxPointsPerNode;
 
     // Find bounds
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
 
     for (const p of points) {
       minX = Math.min(minX, p.x);
@@ -996,12 +1050,18 @@ class Octree {
     const center: Point3D = {
       x: (minX + maxX) / 2,
       y: (minY + maxY) / 2,
-      z: (minZ + maxZ) / 2
+      z: (minZ + maxZ) / 2,
     };
 
     const halfSize = Math.max(maxX - minX, maxY - minY, maxZ - minZ) / 2 + 0.001;
 
-    this.root = this.buildNode(points.map((_, i) => i), points, center, halfSize, 0);
+    this.root = this.buildNode(
+      points.map((_, i) => i),
+      points,
+      center,
+      halfSize,
+      0
+    );
   }
 
   private buildNode(
@@ -1016,7 +1076,7 @@ class Octree {
       halfSize,
       points: [],
       children: [null, null, null, null, null, null, null, null],
-      isLeaf: true
+      isLeaf: true,
     };
 
     if (indices.length <= this.maxPointsPerNode || depth >= this.maxDepth) {
@@ -1030,9 +1090,7 @@ class Octree {
     for (const idx of indices) {
       const p = points[idx];
       const octant =
-        (p.x >= center.x ? 1 : 0) +
-        (p.y >= center.y ? 2 : 0) +
-        (p.z >= center.z ? 4 : 0);
+        (p.x >= center.x ? 1 : 0) + (p.y >= center.y ? 2 : 0) + (p.z >= center.z ? 4 : 0);
       octants[octant].push(idx);
     }
 
@@ -1042,9 +1100,9 @@ class Octree {
     for (let i = 0; i < 8; i++) {
       if (octants[i].length > 0) {
         const newCenter: Point3D = {
-          x: center.x + ((i & 1) ? newHalfSize : -newHalfSize),
-          y: center.y + ((i & 2) ? newHalfSize : -newHalfSize),
-          z: center.z + ((i & 4) ? newHalfSize : -newHalfSize)
+          x: center.x + (i & 1 ? newHalfSize : -newHalfSize),
+          y: center.y + (i & 2 ? newHalfSize : -newHalfSize),
+          z: center.z + (i & 4 ? newHalfSize : -newHalfSize),
         };
         node.children[i] = this.buildNode(octants[i], points, newCenter, newHalfSize, depth + 1);
       }
@@ -1138,7 +1196,7 @@ function generateTestPointCloud(
           x: (Math.random() - 0.5) * 10,
           y: (Math.random() - 0.5) * 10,
           z: Math.random() * 0.1,
-          intensity: Math.random() * 100
+          intensity: Math.random() * 100,
         });
       }
       break;
@@ -1152,7 +1210,7 @@ function generateTestPointCloud(
           x: r * Math.sin(phi) * Math.cos(theta),
           y: r * Math.sin(phi) * Math.sin(theta),
           z: r * Math.cos(phi),
-          intensity: Math.random() * 100
+          intensity: Math.random() * 100,
         });
       }
       break;
@@ -1165,7 +1223,7 @@ function generateTestPointCloud(
           x: r * Math.cos(theta),
           y: r * Math.sin(theta),
           z: (Math.random() - 0.5) * 5,
-          intensity: Math.random() * 100
+          intensity: Math.random() * 100,
         });
       }
       break;
@@ -1177,7 +1235,7 @@ function generateTestPointCloud(
           x: (Math.random() - 0.5) * 20,
           y: (Math.random() - 0.5) * 20,
           z: Math.random() * 0.05,
-          intensity: 50
+          intensity: 50,
         });
       }
 
@@ -1185,7 +1243,7 @@ function generateTestPointCloud(
       const objects = [
         { cx: 3, cy: 2, size: 1 },
         { cx: -2, cy: 4, size: 0.8 },
-        { cx: -4, cy: -3, size: 1.2 }
+        { cx: -4, cy: -3, size: 1.2 },
       ];
 
       for (const obj of objects) {
@@ -1195,7 +1253,7 @@ function generateTestPointCloud(
             x: obj.cx + (Math.random() - 0.5) * obj.size,
             y: obj.cy + (Math.random() - 0.5) * obj.size,
             z: Math.random() * obj.size + 0.05,
-            intensity: 80
+            intensity: 80,
           });
         }
       }
@@ -1208,7 +1266,7 @@ function generateTestPointCloud(
           x: (Math.random() - 0.5) * 10,
           y: (Math.random() - 0.5) * 10,
           z: (Math.random() - 0.5) * 10,
-          intensity: Math.random() * 100
+          intensity: Math.random() * 100,
         });
       }
   }
@@ -1229,58 +1287,55 @@ export const lidarprocessingTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: [
-          'voxel_filter', 'outlier_removal', 'ground_detection', 'clustering_dbscan',
-          'clustering_euclidean', 'estimate_normals', 'estimate_curvature',
-          'register_icp', 'build_octree', 'demo', 'info', 'examples'
+          'voxel_filter',
+          'outlier_removal',
+          'ground_detection',
+          'clustering_dbscan',
+          'clustering_euclidean',
+          'estimate_normals',
+          'estimate_curvature',
+          'register_icp',
+          'build_octree',
+          'demo',
+          'info',
+          'examples',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       cloud: {
         type: 'object',
-        description: 'Point cloud { points: [{ x, y, z, intensity? }, ...] }',
-        properties: {
-          points: { type: 'array' }
-        }
+        description: 'Point cloud with points array: { points: [{ x, y, z, intensity? }, ...] }',
       },
       target: {
         type: 'object',
-        description: 'Target point cloud for registration'
+        description: 'Target point cloud for registration',
       },
       params: {
         type: 'object',
-        description: 'Algorithm-specific parameters',
-        properties: {
-          leafSize: { type: 'number', description: 'Voxel grid leaf size' },
-          k: { type: 'number', description: 'Number of neighbors' },
-          stddevMult: { type: 'number', description: 'Standard deviation multiplier' },
-          distanceThreshold: { type: 'number', description: 'RANSAC distance threshold' },
-          eps: { type: 'number', description: 'DBSCAN epsilon' },
-          minPts: { type: 'number', description: 'DBSCAN minimum points' },
-          tolerance: { type: 'number', description: 'Clustering tolerance' },
-          minClusterSize: { type: 'number', description: 'Minimum cluster size' },
-          maxClusterSize: { type: 'number', description: 'Maximum cluster size' },
-          maxIterations: { type: 'number', description: 'Maximum iterations' }
-        }
+        description:
+          'Algorithm-specific parameters: leafSize (voxel size), k (neighbors), stddevMult (std dev multiplier), distanceThreshold (RANSAC), eps (DBSCAN epsilon), minPts (DBSCAN min), tolerance (clustering), minClusterSize, maxClusterSize, maxIterations',
       },
       testPattern: {
         type: 'string',
         enum: ['plane', 'sphere', 'cylinder', 'random', 'scene'],
-        description: 'Test pattern for demo'
+        description: 'Test pattern for demo',
       },
       numPoints: {
         type: 'number',
-        description: 'Number of points for test data'
-      }
+        description: 'Number of points for test data',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
 // EXECUTOR
 // ============================================================================
 
-export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executelidarprocessing(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -1303,7 +1358,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           inputPoints: cloud.points.length,
           outputPoints: filtered.points.length,
           reductionRatio: (1 - filtered.points.length / cloud.points.length).toFixed(3),
-          samplePoints: filtered.points.slice(0, 10)
+          samplePoints: filtered.points.slice(0, 10),
         };
         break;
       }
@@ -1322,7 +1377,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           stddevMult,
           inputPoints: cloud.points.length,
           outputPoints: filtered.points.length,
-          removedPoints: cloud.points.length - filtered.points.length
+          removedPoints: cloud.points.length - filtered.points.length,
         };
         break;
       }
@@ -1342,11 +1397,11 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
             b: plane.b.toFixed(4),
             c: plane.c.toFixed(4),
             d: plane.d.toFixed(4),
-            equation: `${plane.a.toFixed(4)}x + ${plane.b.toFixed(4)}y + ${plane.c.toFixed(4)}z + ${plane.d.toFixed(4)} = 0`
+            equation: `${plane.a.toFixed(4)}x + ${plane.b.toFixed(4)}y + ${plane.c.toFixed(4)}z + ${plane.d.toFixed(4)} = 0`,
           },
           inlierCount: inliers.length,
           outlierCount: outliers.length,
-          inlierRatio: (inliers.length / cloud.points.length).toFixed(3)
+          inlierRatio: (inliers.length / cloud.points.length).toFixed(3),
         };
         break;
       }
@@ -1365,16 +1420,16 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           minPts,
           inputPoints: cloud.points.length,
           numClusters: clusters.length,
-          clusters: clusters.slice(0, 10).map(c => ({
+          clusters: clusters.slice(0, 10).map((c) => ({
             id: c.id,
             size: c.points.length,
             centroid: {
               x: c.centroid.x.toFixed(3),
               y: c.centroid.y.toFixed(3),
-              z: c.centroid.z.toFixed(3)
+              z: c.centroid.z.toFixed(3),
             },
-            boundingBox: c.boundingBox
-          }))
+            boundingBox: c.boundingBox,
+          })),
         };
         break;
       }
@@ -1396,16 +1451,16 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           maxClusterSize,
           inputPoints: cloud.points.length,
           numClusters: clusters.length,
-          clusters: clusters.slice(0, 10).map(c => ({
+          clusters: clusters.slice(0, 10).map((c) => ({
             id: c.id,
             size: c.points.length,
             centroid: {
               x: c.centroid.x.toFixed(3),
               y: c.centroid.y.toFixed(3),
-              z: c.centroid.z.toFixed(3)
+              z: c.centroid.z.toFixed(3),
             },
-            boundingBox: c.boundingBox
-          }))
+            boundingBox: c.boundingBox,
+          })),
         };
         break;
       }
@@ -1422,11 +1477,11 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           k,
           numPoints: cloud.points.length,
           numNormals: normals.length,
-          sampleNormals: normals.slice(0, 10).map(n => ({
+          sampleNormals: normals.slice(0, 10).map((n) => ({
             nx: n.nx.toFixed(4),
             ny: n.ny.toFixed(4),
-            nz: n.nz.toFixed(4)
-          }))
+            nz: n.nz.toFixed(4),
+          })),
         };
         break;
       }
@@ -1442,7 +1497,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
         const stats = {
           min: Math.min(...curvatures),
           max: Math.max(...curvatures),
-          mean: curvatures.reduce((a, b) => a + b, 0) / curvatures.length
+          mean: curvatures.reduce((a, b) => a + b, 0) / curvatures.length,
         };
 
         result = {
@@ -1452,9 +1507,9 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           statistics: {
             min: stats.min.toFixed(4),
             max: stats.max.toFixed(4),
-            mean: stats.mean.toFixed(4)
+            mean: stats.mean.toFixed(4),
           },
-          sampleCurvatures: curvatures.slice(0, 20).map(c => c.toFixed(4))
+          sampleCurvatures: curvatures.slice(0, 20).map((c) => c.toFixed(4)),
         };
         break;
       }
@@ -1476,12 +1531,12 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           targetPoints: target.points.length,
           iterations: registration.iterations,
           error: registration.error.toFixed(6),
-          rotation: registration.rotation.map(row => row.map(v => v.toFixed(4))),
+          rotation: registration.rotation.map((row) => row.map((v) => v.toFixed(4))),
           translation: {
             x: registration.translation.x.toFixed(4),
             y: registration.translation.y.toFixed(4),
-            z: registration.translation.z.toFixed(4)
-          }
+            z: registration.translation.z.toFixed(4),
+          },
         };
         break;
       }
@@ -1505,14 +1560,14 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
             radiusSearchTest: {
               query: { x: query.x.toFixed(3), y: query.y.toFixed(3), z: query.z.toFixed(3) },
               radius,
-              neighborsFound: neighbors.length
-            }
+              neighborsFound: neighbors.length,
+            },
           };
         } else {
           result = {
             operation: 'build_octree',
             numPoints: 0,
-            octreeStats: stats
+            octreeStats: stats,
           };
         }
         break;
@@ -1531,7 +1586,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
         const { plane, inliers, outliers } = ransac.fit(filtered);
 
         // Cluster non-ground points
-        const nonGroundPoints: Point3D[] = outliers.map(i => filtered.points[i]);
+        const nonGroundPoints: Point3D[] = outliers.map((i) => filtered.points[i]);
         const dbscan = new DBSCANClustering(0.3, 5);
         const clusters = dbscan.cluster({ points: nonGroundPoints });
 
@@ -1543,7 +1598,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
             {
               step: 'Voxel Grid Filter',
               leafSize: 0.2,
-              outputPoints: filtered.points.length
+              outputPoints: filtered.points.length,
             },
             {
               step: 'Ground Detection (RANSAC)',
@@ -1553,15 +1608,15 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
                 a: plane.a.toFixed(4),
                 b: plane.b.toFixed(4),
                 c: plane.c.toFixed(4),
-                d: plane.d.toFixed(4)
-              }
+                d: plane.d.toFixed(4),
+              },
             },
             {
               step: 'Object Clustering (DBSCAN)',
               numClusters: clusters.length,
-              clusterSizes: clusters.map(c => c.points.length)
-            }
-          ]
+              clusterSizes: clusters.map((c) => c.points.length),
+            },
+          ],
         };
         break;
       }
@@ -1576,7 +1631,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
   "operation": "voxel_filter",
   "cloud": { "points": [{ "x": 1, "y": 2, "z": 3 }, ...] },
   "params": { "leafSize": 0.1 }
-}`
+}`,
             },
             {
               name: 'Ground plane detection',
@@ -1584,7 +1639,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
   "operation": "ground_detection",
   "cloud": { "points": [...] },
   "params": { "distanceThreshold": 0.02 }
-}`
+}`,
             },
             {
               name: 'DBSCAN clustering',
@@ -1592,7 +1647,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
   "operation": "clustering_dbscan",
   "cloud": { "points": [...] },
   "params": { "eps": 0.5, "minPts": 10 }
-}`
+}`,
             },
             {
               name: 'ICP registration',
@@ -1601,7 +1656,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
   "cloud": { "points": [...] },
   "target": { "points": [...] },
   "params": { "maxIterations": 50 }
-}`
+}`,
             },
             {
               name: 'Normal estimation',
@@ -1609,7 +1664,7 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
   "operation": "estimate_normals",
   "cloud": { "points": [...] },
   "params": { "k": 20 }
-}`
+}`,
             },
             {
               name: 'Demo pipeline',
@@ -1617,9 +1672,9 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
   "operation": "demo",
   "testPattern": "scene",
   "numPoints": 1000
-}`
-            }
-          ]
+}`,
+            },
+          ],
         };
         break;
       }
@@ -1631,52 +1686,48 @@ export async function executelidarprocessing(toolCall: UnifiedToolCall): Promise
           tool: 'lidar_processing',
           description: 'LiDAR point cloud processing algorithms',
           capabilities: {
-            filtering: [
-              'Voxel grid downsampling',
-              'Statistical outlier removal'
-            ],
+            filtering: ['Voxel grid downsampling', 'Statistical outlier removal'],
             segmentation: [
               'RANSAC ground plane detection',
               'DBSCAN clustering',
-              'Euclidean clustering'
+              'Euclidean clustering',
             ],
-            features: [
-              'Normal estimation (PCA)',
-              'Curvature estimation'
-            ],
-            registration: [
-              'Iterative Closest Point (ICP)'
-            ],
-            indexing: [
-              'Octree spatial index',
-              'Radius search'
-            ]
+            features: ['Normal estimation (PCA)', 'Curvature estimation'],
+            registration: ['Iterative Closest Point (ICP)'],
+            indexing: ['Octree spatial index', 'Radius search'],
           },
           pointCloudFormat: {
             required: ['x', 'y', 'z'],
-            optional: ['intensity', 'r', 'g', 'b']
+            optional: ['intensity', 'r', 'g', 'b'],
           },
           operations: [
-            'voxel_filter', 'outlier_removal', 'ground_detection',
-            'clustering_dbscan', 'clustering_euclidean',
-            'estimate_normals', 'estimate_curvature',
-            'register_icp', 'build_octree', 'demo', 'info', 'examples'
-          ]
+            'voxel_filter',
+            'outlier_removal',
+            'ground_detection',
+            'clustering_dbscan',
+            'clustering_euclidean',
+            'estimate_normals',
+            'estimate_curvature',
+            'register_icp',
+            'build_octree',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
       }
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error in lidar_processing: ${error}`,
-      isError: true
+      isError: true,
     };
   }
 }

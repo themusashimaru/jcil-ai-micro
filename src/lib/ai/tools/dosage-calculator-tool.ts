@@ -43,7 +43,11 @@ class BodyMetrics {
       case 'boyd':
         // Boyd formula
         const weightGrams = weight * 1000;
-        return 0.0003207 * Math.pow(weightGrams, 0.7285 - 0.0188 * Math.log10(weightGrams)) * Math.pow(height, 0.3);
+        return (
+          0.0003207 *
+          Math.pow(weightGrams, 0.7285 - 0.0188 * Math.log10(weightGrams)) *
+          Math.pow(height, 0.3)
+        );
 
       default:
         return Math.sqrt((weight * height) / 3600);
@@ -109,11 +113,7 @@ class RenalFunction {
   }
 
   // Calculate eGFR using CKD-EPI equation (2021)
-  static ckdEpi(
-    serumCreatinine: number,
-    age: number,
-    gender: 'male' | 'female'
-  ): number {
+  static ckdEpi(serumCreatinine: number, age: number, gender: 'male' | 'female'): number {
     const kappa = gender === 'female' ? 0.7 : 0.9;
     const alpha = gender === 'female' ? -0.241 : -0.302;
     const female_mult = gender === 'female' ? 1.012 : 1.0;
@@ -122,8 +122,13 @@ class RenalFunction {
     const min_ratio = Math.min(cr_ratio, 1);
     const max_ratio = Math.max(cr_ratio, 1);
 
-    return 142 * Math.pow(min_ratio, alpha) * Math.pow(max_ratio, -1.200) *
-           Math.pow(0.9938, age) * female_mult;
+    return (
+      142 *
+      Math.pow(min_ratio, alpha) *
+      Math.pow(max_ratio, -1.2) *
+      Math.pow(0.9938, age) *
+      female_mult
+    );
   }
 
   // Calculate eGFR using MDRD equation
@@ -140,7 +145,7 @@ class RenalFunction {
   }
 
   // Determine CKD stage from eGFR
-  static getCKDStage(egfr: number): { stage: string; description: string; } {
+  static getCKDStage(egfr: number): { stage: string; description: string } {
     if (egfr >= 90) {
       return { stage: 'G1', description: 'Normal or high kidney function' };
     } else if (egfr >= 60) {
@@ -157,7 +162,7 @@ class RenalFunction {
   }
 
   // Get renal dose adjustment factor
-  static getRenalAdjustment(crcl: number): { factor: number; description: string; } {
+  static getRenalAdjustment(crcl: number): { factor: number; description: string } {
     if (crcl >= 50) {
       return { factor: 1.0, description: 'No adjustment needed' };
     } else if (crcl >= 30) {
@@ -208,7 +213,7 @@ class PediatricDosing {
     minDosePerKg: number,
     maxDosePerKg: number,
     weight: number
-  ): { isSafe: boolean; minDose: number; maxDose: number; message: string; } {
+  ): { isSafe: boolean; minDose: number; maxDose: number; message: string } {
     const minDose = minDosePerKg * weight;
     const maxDose = maxDosePerKg * weight;
 
@@ -217,14 +222,14 @@ class PediatricDosing {
         isSafe: false,
         minDose,
         maxDose,
-        message: `Dose is below minimum safe range (${minDose.toFixed(2)} mg)`
+        message: `Dose is below minimum safe range (${minDose.toFixed(2)} mg)`,
       };
     } else if (calculatedDose > maxDose) {
       return {
         isSafe: false,
         minDose,
         maxDose,
-        message: `Dose exceeds maximum safe range (${maxDose.toFixed(2)} mg)`
+        message: `Dose exceeds maximum safe range (${maxDose.toFixed(2)} mg)`,
       };
     }
 
@@ -232,7 +237,7 @@ class PediatricDosing {
       isSafe: true,
       minDose,
       maxDose,
-      message: 'Dose is within safe range'
+      message: 'Dose is within safe range',
     };
   }
 }
@@ -267,7 +272,7 @@ class IVCalculations {
     concentrationMgPerMl: number,
     flowRateMlPerHr: number,
     weightKg: number
-  ): { mgPerMin: number; mcgPerKgPerMin: number; } {
+  ): { mgPerMin: number; mcgPerKgPerMin: number } {
     const mlPerMin = flowRateMlPerHr / 60;
     const mgPerMin = concentrationMgPerMl * mlPerMin;
     const mcgPerKgPerMin = (mgPerMin * 1000) / weightKg;
@@ -291,10 +296,10 @@ class IVCalculations {
 
   // Common drop factors
   static readonly dropFactors = {
-    standard: 15,      // Standard adult tubing (15 gtts/mL)
-    macro: 10,         // Macro drip (10 gtts/mL)
-    micro: 60,         // Micro/pediatric (60 gtts/mL)
-    blood: 10          // Blood administration set (10 gtts/mL)
+    standard: 15, // Standard adult tubing (15 gtts/mL)
+    macro: 10, // Macro drip (10 gtts/mL)
+    micro: 60, // Micro/pediatric (60 gtts/mL)
+    blood: 10, // Blood administration set (10 gtts/mL)
   };
 }
 
@@ -374,7 +379,7 @@ class Pharmacokinetics {
     ke: number,
     dosingInterval: number,
     infusionTime: number = 0
-  ): { peak: number; trough: number; } {
+  ): { peak: number; trough: number } {
     const accumFactor = 1 / (1 - Math.exp(-ke * dosingInterval));
     const peak = (dose / vd) * accumFactor;
     const trough = peak * Math.exp(-ke * (dosingInterval - infusionTime));
@@ -389,36 +394,72 @@ class Pharmacokinetics {
 
 class UnitConverter {
   // Weight conversions
-  static kgToLb(kg: number): number { return kg * 2.205; }
-  static lbToKg(lb: number): number { return lb / 2.205; }
+  static kgToLb(kg: number): number {
+    return kg * 2.205;
+  }
+  static lbToKg(lb: number): number {
+    return lb / 2.205;
+  }
 
   // Height conversions
-  static cmToIn(cm: number): number { return cm / 2.54; }
-  static inToCm(inches: number): number { return inches * 2.54; }
+  static cmToIn(cm: number): number {
+    return cm / 2.54;
+  }
+  static inToCm(inches: number): number {
+    return inches * 2.54;
+  }
 
   // Dose conversions
-  static mgToMcg(mg: number): number { return mg * 1000; }
-  static mcgToMg(mcg: number): number { return mcg / 1000; }
-  static gToMg(g: number): number { return g * 1000; }
-  static mgToG(mg: number): number { return mg / 1000; }
+  static mgToMcg(mg: number): number {
+    return mg * 1000;
+  }
+  static mcgToMg(mcg: number): number {
+    return mcg / 1000;
+  }
+  static gToMg(g: number): number {
+    return g * 1000;
+  }
+  static mgToG(mg: number): number {
+    return mg / 1000;
+  }
 
   // Volume conversions
-  static mlToL(ml: number): number { return ml / 1000; }
-  static lToMl(l: number): number { return l * 1000; }
-  static mlToOz(ml: number): number { return ml / 29.574; }
-  static ozToMl(oz: number): number { return oz * 29.574; }
+  static mlToL(ml: number): number {
+    return ml / 1000;
+  }
+  static lToMl(l: number): number {
+    return l * 1000;
+  }
+  static mlToOz(ml: number): number {
+    return ml / 29.574;
+  }
+  static ozToMl(oz: number): number {
+    return oz * 29.574;
+  }
 
   // Concentration conversions
-  static percentToMgPerMl(percent: number): number { return percent * 10; }
-  static mgPerMlToPercent(mgPerMl: number): number { return mgPerMl / 10; }
+  static percentToMgPerMl(percent: number): number {
+    return percent * 10;
+  }
+  static mgPerMlToPercent(mgPerMl: number): number {
+    return mgPerMl / 10;
+  }
 
   // Temperature conversions
-  static celsiusToFahrenheit(c: number): number { return (c * 9/5) + 32; }
-  static fahrenheitToCelsius(f: number): number { return (f - 32) * 5/9; }
+  static celsiusToFahrenheit(c: number): number {
+    return (c * 9) / 5 + 32;
+  }
+  static fahrenheitToCelsius(f: number): number {
+    return ((f - 32) * 5) / 9;
+  }
 
   // Creatinine conversions
-  static mgDlToUmolL(mgDl: number): number { return mgDl * 88.4; }
-  static umolLToMgDl(umolL: number): number { return umolL / 88.4; }
+  static mgDlToUmolL(mgDl: number): number {
+    return mgDl * 88.4;
+  }
+  static umolLToMgDl(umolL: number): number {
+    return umolL / 88.4;
+  }
 }
 
 // ============================================================================
@@ -438,7 +479,7 @@ interface DrugInfo {
 }
 
 const drugDatabase: Record<string, DrugInfo> = {
-  'amoxicillin': {
+  amoxicillin: {
     name: 'Amoxicillin',
     class: 'Antibiotic (Penicillin)',
     standardDose: '500mg PO q8h or 875mg PO q12h',
@@ -447,9 +488,9 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: false,
     halfLife: '1-1.3 hours',
-    notes: ['Reduce dose if CrCl < 30', 'Check for penicillin allergy']
+    notes: ['Reduce dose if CrCl < 30', 'Check for penicillin allergy'],
   },
-  'vancomycin': {
+  vancomycin: {
     name: 'Vancomycin',
     class: 'Antibiotic (Glycopeptide)',
     standardDose: '15-20 mg/kg IV q8-12h',
@@ -458,9 +499,13 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: false,
     halfLife: '4-6 hours (normal renal function)',
-    notes: ['Target trough 15-20 mg/L for serious infections', 'Monitor renal function', 'Adjust based on levels']
+    notes: [
+      'Target trough 15-20 mg/L for serious infections',
+      'Monitor renal function',
+      'Adjust based on levels',
+    ],
   },
-  'gentamicin': {
+  gentamicin: {
     name: 'Gentamicin',
     class: 'Antibiotic (Aminoglycoside)',
     standardDose: '5-7 mg/kg IV q24h (extended interval)',
@@ -469,9 +514,13 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: false,
     halfLife: '2-3 hours',
-    notes: ['Nephrotoxic and ototoxic', 'Monitor levels and renal function', 'Extended interval dosing preferred']
+    notes: [
+      'Nephrotoxic and ototoxic',
+      'Monitor levels and renal function',
+      'Extended interval dosing preferred',
+    ],
   },
-  'metformin': {
+  metformin: {
     name: 'Metformin',
     class: 'Antidiabetic (Biguanide)',
     standardDose: '500-1000mg PO BID',
@@ -479,9 +528,13 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: true,
     halfLife: '4-8.7 hours',
-    notes: ['Contraindicated if eGFR < 30', 'Hold before contrast procedures', 'Reduce dose if eGFR 30-45']
+    notes: [
+      'Contraindicated if eGFR < 30',
+      'Hold before contrast procedures',
+      'Reduce dose if eGFR 30-45',
+    ],
   },
-  'lisinopril': {
+  lisinopril: {
     name: 'Lisinopril',
     class: 'Antihypertensive (ACE Inhibitor)',
     standardDose: '10-40mg PO daily',
@@ -489,9 +542,13 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: false,
     halfLife: '12 hours',
-    notes: ['Monitor potassium and creatinine', 'Start low in renal impairment', 'Avoid in pregnancy']
+    notes: [
+      'Monitor potassium and creatinine',
+      'Start low in renal impairment',
+      'Avoid in pregnancy',
+    ],
   },
-  'warfarin': {
+  warfarin: {
     name: 'Warfarin',
     class: 'Anticoagulant (Vitamin K Antagonist)',
     standardDose: '2-5mg PO daily (INR guided)',
@@ -499,9 +556,9 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: false,
     hepaticAdjustment: true,
     halfLife: '36-42 hours',
-    notes: ['Multiple drug interactions', 'Monitor INR regularly', 'Vitamin K is antidote']
+    notes: ['Multiple drug interactions', 'Monitor INR regularly', 'Vitamin K is antidote'],
   },
-  'morphine': {
+  morphine: {
     name: 'Morphine',
     class: 'Opioid Analgesic',
     standardDose: '2.5-10mg IV q3-4h PRN',
@@ -509,9 +566,13 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: true,
     halfLife: '2-4 hours',
-    notes: ['Active metabolite accumulates in renal impairment', 'Reduce dose in hepatic impairment', 'Risk of respiratory depression']
+    notes: [
+      'Active metabolite accumulates in renal impairment',
+      'Reduce dose in hepatic impairment',
+      'Risk of respiratory depression',
+    ],
   },
-  'furosemide': {
+  furosemide: {
     name: 'Furosemide',
     class: 'Diuretic (Loop)',
     standardDose: '20-80mg PO/IV daily-BID',
@@ -520,8 +581,12 @@ const drugDatabase: Record<string, DrugInfo> = {
     renalAdjustment: true,
     hepaticAdjustment: false,
     halfLife: '2 hours',
-    notes: ['Higher doses needed in renal impairment', 'Monitor electrolytes', 'Ototoxic at high doses']
-  }
+    notes: [
+      'Higher doses needed in renal impairment',
+      'Monitor electrolytes',
+      'Ototoxic at high doses',
+    ],
+  },
 };
 
 // ============================================================================
@@ -552,7 +617,9 @@ class DosageCalculator {
     const warnings: string[] = [];
 
     if (maxSingleDose && singleDose > maxSingleDose) {
-      adjustments.push(`Single dose capped at ${maxSingleDose}mg (calculated: ${singleDose.toFixed(2)}mg)`);
+      adjustments.push(
+        `Single dose capped at ${maxSingleDose}mg (calculated: ${singleDose.toFixed(2)}mg)`
+      );
       singleDose = maxSingleDose;
     }
 
@@ -570,16 +637,12 @@ class DosageCalculator {
       frequency: `${frequency}x daily`,
       adjustments,
       warnings,
-      method: 'Weight-based (mg/kg)'
+      method: 'Weight-based (mg/kg)',
     };
   }
 
   // BSA-based dosing (for chemotherapy, etc.)
-  calculateBSADose(
-    dosePerM2: number,
-    bsa: number,
-    maxDose?: number
-  ): DoseCalculationResult {
+  calculateBSADose(dosePerM2: number, bsa: number, maxDose?: number): DoseCalculationResult {
     let dose = dosePerM2 * bsa;
     const adjustments: string[] = [];
     const warnings: string[] = [];
@@ -594,7 +657,7 @@ class DosageCalculator {
       doseUnit: 'mg',
       adjustments,
       warnings,
-      method: `BSA-based (${dosePerM2} mg/m²)`
+      method: `BSA-based (${dosePerM2} mg/m²)`,
     };
   }
 
@@ -602,7 +665,7 @@ class DosageCalculator {
   calculateRenalAdjustedDose(
     normalDose: number,
     crcl: number,
-    adjustmentTable?: { minCrCl: number; maxCrCl: number; factor: number; }[]
+    adjustmentTable?: { minCrCl: number; maxCrCl: number; factor: number }[]
   ): DoseCalculationResult {
     const adjustments: string[] = [];
     const warnings: string[] = [];
@@ -636,7 +699,7 @@ class DosageCalculator {
       doseUnit: 'mg',
       adjustments,
       warnings,
-      method: 'Renal-adjusted dosing'
+      method: 'Renal-adjusted dosing',
     };
   }
 }
@@ -682,8 +745,21 @@ and consult appropriate references before clinical use.`,
     properties: {
       operation: {
         type: 'string',
-        enum: ['weight_based', 'bsa_dose', 'renal_adjust', 'pediatric', 'iv_rate', 'pharmacokinetics', 'creatinine_clearance', 'body_metrics', 'convert', 'drug_info', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'weight_based',
+          'bsa_dose',
+          'renal_adjust',
+          'pediatric',
+          'iv_rate',
+          'pharmacokinetics',
+          'creatinine_clearance',
+          'body_metrics',
+          'convert',
+          'drug_info',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       dose_per_kg: { type: 'number', description: 'Dose per kg body weight (mg/kg)' },
       dose_per_m2: { type: 'number', description: 'Dose per m² BSA (mg/m²)' },
@@ -712,14 +788,24 @@ and consult appropriate references before clinical use.`,
       to_unit: { type: 'string', description: 'Unit to convert to' },
       value: { type: 'number', description: 'Value to convert' },
       drug_name: { type: 'string', description: 'Drug name for lookup' },
-      bsa_formula: { type: 'string', enum: ['mosteller', 'dubois', 'haycock', 'gehan', 'boyd'], description: 'BSA calculation formula' },
-      crcl_formula: { type: 'string', enum: ['cockcroft_gault', 'ckd_epi', 'mdrd'], description: 'CrCl/eGFR calculation formula' }
+      bsa_formula: {
+        type: 'string',
+        enum: ['mosteller', 'dubois', 'haycock', 'gehan', 'boyd'],
+        description: 'BSA calculation formula',
+      },
+      crcl_formula: {
+        type: 'string',
+        enum: ['cockcroft_gault', 'ckd_epi', 'mdrd'],
+        description: 'CrCl/eGFR calculation formula',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executedosagecalculator(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executedosagecalculator(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -733,7 +819,11 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const weight = args.weight;
 
         if (!dosePerKg || !weight) {
-          return { toolCallId: id, content: 'Error: dose_per_kg and weight are required', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: dose_per_kg and weight are required',
+            isError: true,
+          };
         }
 
         const result = calculator.calculateWeightBasedDose(
@@ -746,22 +836,26 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'weight_based',
-            input: {
-              dosePerKg: dosePerKg + ' mg/kg',
-              weight: weight + ' kg',
-              frequency: args.frequency || 1
+          content: JSON.stringify(
+            {
+              operation: 'weight_based',
+              input: {
+                dosePerKg: dosePerKg + ' mg/kg',
+                weight: weight + ' kg',
+                frequency: args.frequency || 1,
+              },
+              result: {
+                singleDose: result.calculatedDose.toFixed(2) + ' mg',
+                dailyDose: (result.calculatedDose * (args.frequency || 1)).toFixed(2) + ' mg',
+                frequency: result.frequency,
+              },
+              adjustments: result.adjustments,
+              warnings: result.warnings,
+              method: result.method,
             },
-            result: {
-              singleDose: result.calculatedDose.toFixed(2) + ' mg',
-              dailyDose: (result.calculatedDose * (args.frequency || 1)).toFixed(2) + ' mg',
-              frequency: result.frequency
-            },
-            adjustments: result.adjustments,
-            warnings: result.warnings,
-            method: result.method
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -771,7 +865,11 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const height = args.height;
 
         if (!dosePerM2 || !weight || !height) {
-          return { toolCallId: id, content: 'Error: dose_per_m2, weight, and height are required', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: dose_per_m2, weight, and height are required',
+            isError: true,
+          };
         }
 
         const bsa = BodyMetrics.calculateBSA(weight, height, args.bsa_formula || 'mosteller');
@@ -779,24 +877,28 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'bsa_dose',
-            input: {
-              dosePerM2: dosePerM2 + ' mg/m²',
-              weight: weight + ' kg',
-              height: height + ' cm'
+          content: JSON.stringify(
+            {
+              operation: 'bsa_dose',
+              input: {
+                dosePerM2: dosePerM2 + ' mg/m²',
+                weight: weight + ' kg',
+                height: height + ' cm',
+              },
+              bodyMetrics: {
+                bsa: bsa.toFixed(2) + ' m²',
+                formula: args.bsa_formula || 'mosteller',
+              },
+              result: {
+                calculatedDose: result.calculatedDose.toFixed(2) + ' mg',
+              },
+              adjustments: result.adjustments,
+              warnings: result.warnings,
+              method: result.method,
             },
-            bodyMetrics: {
-              bsa: bsa.toFixed(2) + ' m²',
-              formula: args.bsa_formula || 'mosteller'
-            },
-            result: {
-              calculatedDose: result.calculatedDose.toFixed(2) + ' mg'
-            },
-            adjustments: result.adjustments,
-            warnings: result.warnings,
-            method: result.method
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -808,7 +910,11 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const serumCreatinine = args.serum_creatinine;
 
         if (!normalDose || !weight || !age || !gender || !serumCreatinine) {
-          return { toolCallId: id, content: 'Error: normal_dose, weight, age, gender, and serum_creatinine are required', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: normal_dose, weight, age, gender, and serum_creatinine are required',
+            isError: true,
+          };
         }
 
         const crcl = RenalFunction.cockcroftGault(age, weight, serumCreatinine, gender);
@@ -818,28 +924,32 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'renal_adjust',
-            input: {
-              normalDose: normalDose + ' mg',
-              weight: weight + ' kg',
-              age: age + ' years',
-              gender,
-              serumCreatinine: serumCreatinine + ' mg/dL'
+          content: JSON.stringify(
+            {
+              operation: 'renal_adjust',
+              input: {
+                normalDose: normalDose + ' mg',
+                weight: weight + ' kg',
+                age: age + ' years',
+                gender,
+                serumCreatinine: serumCreatinine + ' mg/dL',
+              },
+              renalFunction: {
+                crclCockcroftGault: crcl.toFixed(1) + ' mL/min',
+                egfrCkdEpi: egfr.toFixed(1) + ' mL/min/1.73m²',
+                ckdStage: ckdStage.stage,
+                ckdDescription: ckdStage.description,
+              },
+              result: {
+                adjustedDose: result.calculatedDose.toFixed(2) + ' mg',
+              },
+              adjustments: result.adjustments,
+              warnings: result.warnings,
+              method: result.method,
             },
-            renalFunction: {
-              crclCockcroftGault: crcl.toFixed(1) + ' mL/min',
-              egfrCkdEpi: egfr.toFixed(1) + ' mL/min/1.73m²',
-              ckdStage: ckdStage.stage,
-              ckdDescription: ckdStage.description
-            },
-            result: {
-              adjustedDose: result.calculatedDose.toFixed(2) + ' mg'
-            },
-            adjustments: result.adjustments,
-            warnings: result.warnings,
-            method: result.method
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -862,7 +972,8 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         if (age !== undefined) {
           if (age < 1 && args.age_months) {
-            results.friedsRule = PediatricDosing.friedsRule(args.age_months, adultDose).toFixed(2) + ' mg';
+            results.friedsRule =
+              PediatricDosing.friedsRule(args.age_months, adultDose).toFixed(2) + ' mg';
           } else {
             results.youngsRule = PediatricDosing.youngsRule(age, adultDose).toFixed(2) + ' mg';
             results.webstersRule = PediatricDosing.webstersRule(age, adultDose).toFixed(2) + ' mg';
@@ -877,18 +988,23 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'pediatric',
-            input: {
-              adultDose: adultDose + ' mg',
-              weight: weight ? weight + ' kg' : 'not provided',
-              age: age !== undefined ? age + ' years' : 'not provided',
-              height: height ? height + ' cm' : 'not provided'
+          content: JSON.stringify(
+            {
+              operation: 'pediatric',
+              input: {
+                adultDose: adultDose + ' mg',
+                weight: weight ? weight + ' kg' : 'not provided',
+                age: age !== undefined ? age + ' years' : 'not provided',
+                height: height ? height + ' cm' : 'not provided',
+              },
+              calculatedDoses: results,
+              recommendation:
+                'BSA-based dosing is most accurate when height and weight are available',
+              note: 'Always verify against established pediatric dosing guidelines',
             },
-            calculatedDoses: results,
-            recommendation: 'BSA-based dosing is most accurate when height and weight are available',
-            note: 'Always verify against established pediatric dosing guidelines'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -901,7 +1017,7 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const targetDose = args.target_dose;
 
         const result: Record<string, string | number | Record<string, string | number>> = {
-          operation: 'iv_rate'
+          operation: 'iv_rate',
         };
 
         if (volumeMl && timeHours) {
@@ -913,17 +1029,21 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
             time: timeHours + ' hours',
             dropFactor: dropFactor + ' gtts/mL',
             flowRate: flowRate.toFixed(1) + ' mL/hr',
-            dripRate: Math.round(dripRate) + ' gtts/min'
+            dripRate: Math.round(dripRate) + ' gtts/min',
           };
         }
 
         if (targetDose && concentration && weight) {
-          const flowRate = IVCalculations.calculateFlowRateForDose(targetDose, concentration, weight);
+          const flowRate = IVCalculations.calculateFlowRateForDose(
+            targetDose,
+            concentration,
+            weight
+          );
           result.doseBasedCalculation = {
             targetDose: targetDose + ' mcg/kg/min',
             concentration: concentration + ' mg/mL',
             weight: weight + ' kg',
-            requiredFlowRate: flowRate.toFixed(1) + ' mL/hr'
+            requiredFlowRate: flowRate.toFixed(1) + ' mL/hr',
           };
         }
 
@@ -931,19 +1051,20 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
           'Standard adult (15 gtts/mL)': 15,
           'Macro drip (10 gtts/mL)': 10,
           'Micro/Pediatric (60 gtts/mL)': 60,
-          'Blood set (10 gtts/mL)': 10
+          'Blood set (10 gtts/mL)': 10,
         };
 
         return {
           toolCallId: id,
-          content: JSON.stringify(result, null, 2)
+          content: JSON.stringify(result, null, 2),
         };
       }
 
       case 'pharmacokinetics': {
+        const calculations: Record<string, string> = {};
         const result: Record<string, string | Record<string, string>> = {
           operation: 'pharmacokinetics',
-          calculations: {}
+          calculations,
         };
 
         const halfLife = args.half_life;
@@ -957,37 +1078,53 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
           const ke = Pharmacokinetics.calculateKe(halfLife);
           const timeToSS = Pharmacokinetics.calculateTimeToSteadyState(halfLife);
 
-          result.calculations.eliminationRate = ke.toFixed(4) + ' /hr';
-          result.calculations.timeToSteadyState = timeToSS.toFixed(1) + ' hours (' + (timeToSS/24).toFixed(1) + ' days)';
+          calculations.eliminationRate = ke.toFixed(4) + ' /hr';
+          calculations.timeToSteadyState =
+            timeToSS.toFixed(1) + ' hours (' + (timeToSS / 24).toFixed(1) + ' days)';
         }
 
         if (targetConc && vd) {
-          const loadingDose = Pharmacokinetics.calculateLoadingDose(targetConc, vd, bioavailability);
-          result.calculations.loadingDose = loadingDose.toFixed(2) + ' mg';
+          const loadingDose = Pharmacokinetics.calculateLoadingDose(
+            targetConc,
+            vd,
+            bioavailability
+          );
+          calculations.loadingDose = loadingDose.toFixed(2) + ' mg';
         }
 
         if (targetConc && clearance && dosingInterval) {
-          const maintenanceDose = Pharmacokinetics.calculateMaintenanceDose(targetConc, clearance, dosingInterval, bioavailability);
-          result.calculations.maintenanceDose = maintenanceDose.toFixed(2) + ' mg every ' + dosingInterval + ' hours';
+          const maintenanceDose = Pharmacokinetics.calculateMaintenanceDose(
+            targetConc,
+            clearance,
+            dosingInterval,
+            bioavailability
+          );
+          calculations.maintenanceDose =
+            maintenanceDose.toFixed(2) + ' mg every ' + dosingInterval + ' hours';
         }
 
         if (vd && halfLife && args.normal_dose && dosingInterval) {
           const ke = Pharmacokinetics.calculateKe(halfLife);
-          const peakTrough = Pharmacokinetics.calculatePeakTrough(args.normal_dose, vd, ke, dosingInterval);
-          result.calculations.predictedPeak = peakTrough.peak.toFixed(2);
-          result.calculations.predictedTrough = peakTrough.trough.toFixed(2);
+          const peakTrough = Pharmacokinetics.calculatePeakTrough(
+            args.normal_dose,
+            vd,
+            ke,
+            dosingInterval
+          );
+          calculations.predictedPeak = peakTrough.peak.toFixed(2);
+          calculations.predictedTrough = peakTrough.trough.toFixed(2);
         }
 
         result.parameters = {
           halfLife: halfLife ? halfLife + ' hours' : 'not provided',
           vd: vd ? vd + ' L' : 'not provided',
           clearance: clearance ? clearance + ' L/hr' : 'not provided',
-          bioavailability: (bioavailability * 100) + '%'
+          bioavailability: bioavailability * 100 + '%',
         };
 
         return {
           toolCallId: id,
-          content: JSON.stringify(result, null, 2)
+          content: JSON.stringify(result, null, 2),
         };
       }
 
@@ -998,7 +1135,11 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const gender = args.gender;
 
         if (!age || !weight || !serumCreatinine || !gender) {
-          return { toolCallId: id, content: 'Error: age, weight, serum_creatinine, and gender are required', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: age, weight, serum_creatinine, and gender are required',
+            isError: true,
+          };
         }
 
         const crclCG = RenalFunction.cockcroftGault(age, weight, serumCreatinine, gender);
@@ -1009,31 +1150,35 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'creatinine_clearance',
-            input: {
-              age: age + ' years',
-              weight: weight + ' kg',
-              serumCreatinine: serumCreatinine + ' mg/dL',
-              gender
+          content: JSON.stringify(
+            {
+              operation: 'creatinine_clearance',
+              input: {
+                age: age + ' years',
+                weight: weight + ' kg',
+                serumCreatinine: serumCreatinine + ' mg/dL',
+                gender,
+              },
+              results: {
+                cockcroftGault: crclCG.toFixed(1) + ' mL/min',
+                ckdEpi: egfrCKD.toFixed(1) + ' mL/min/1.73m²',
+                mdrd: egfrMDRD.toFixed(1) + ' mL/min/1.73m²',
+              },
+              interpretation: {
+                ckdStage: ckdStage.stage,
+                description: ckdStage.description,
+                doseAdjustment: renalAdj.description,
+                adjustmentFactor: renalAdj.factor * 100 + '%',
+              },
+              notes: [
+                'Cockcroft-Gault: Used for drug dosing adjustments',
+                'CKD-EPI: Most accurate for staging CKD',
+                'MDRD: Less accurate at higher GFR values',
+              ],
             },
-            results: {
-              cockcroftGault: crclCG.toFixed(1) + ' mL/min',
-              ckdEpi: egfrCKD.toFixed(1) + ' mL/min/1.73m²',
-              mdrd: egfrMDRD.toFixed(1) + ' mL/min/1.73m²'
-            },
-            interpretation: {
-              ckdStage: ckdStage.stage,
-              description: ckdStage.description,
-              doseAdjustment: renalAdj.description,
-              adjustmentFactor: (renalAdj.factor * 100) + '%'
-            },
-            notes: [
-              'Cockcroft-Gault: Used for drug dosing adjustments',
-              'CKD-EPI: Most accurate for staging CKD',
-              'MDRD: Less accurate at higher GFR values'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1043,7 +1188,11 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const gender = args.gender;
 
         if (!weight || !height) {
-          return { toolCallId: id, content: 'Error: weight and height are required', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: weight and height are required',
+            isError: true,
+          };
         }
 
         const bsaMosteller = BodyMetrics.calculateBSA(weight, height, 'mosteller');
@@ -1055,18 +1204,17 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
           input: {
             weight: weight + ' kg',
             height: height + ' cm',
-            gender: gender || 'not specified'
+            gender: gender || 'not specified',
           },
           bsa: {
             mosteller: bsaMosteller.toFixed(2) + ' m²',
-            dubois: bsaDubois.toFixed(2) + ' m²'
+            dubois: bsaDubois.toFixed(2) + ' m²',
           },
           bmi: {
             value: bmi.toFixed(1) + ' kg/m²',
-            category: bmi < 18.5 ? 'Underweight' :
-                     bmi < 25 ? 'Normal' :
-                     bmi < 30 ? 'Overweight' : 'Obese'
-          }
+            category:
+              bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese',
+          },
         };
 
         if (gender) {
@@ -1085,7 +1233,7 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify(result, null, 2)
+          content: JSON.stringify(result, null, 2),
         };
       }
 
@@ -1095,29 +1243,33 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         const toUnit = args.to_unit?.toLowerCase();
 
         if (value === undefined || !fromUnit || !toUnit) {
-          return { toolCallId: id, content: 'Error: value, from_unit, and to_unit are required', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: value, from_unit, and to_unit are required',
+            isError: true,
+          };
         }
 
         let converted: number | null = null;
         const conversionKey = `${fromUnit}_to_${toUnit}`;
 
         const conversions: Record<string, (v: number) => number> = {
-          'kg_to_lb': UnitConverter.kgToLb,
-          'lb_to_kg': UnitConverter.lbToKg,
-          'cm_to_in': UnitConverter.cmToIn,
-          'in_to_cm': UnitConverter.inToCm,
-          'mg_to_mcg': UnitConverter.mgToMcg,
-          'mcg_to_mg': UnitConverter.mcgToMg,
-          'g_to_mg': UnitConverter.gToMg,
-          'mg_to_g': UnitConverter.mgToG,
-          'ml_to_l': UnitConverter.mlToL,
-          'l_to_ml': UnitConverter.lToMl,
-          'c_to_f': UnitConverter.celsiusToFahrenheit,
-          'f_to_c': UnitConverter.fahrenheitToCelsius,
-          'mgdl_to_umoll': UnitConverter.mgDlToUmolL,
-          'umoll_to_mgdl': UnitConverter.umolLToMgDl,
+          kg_to_lb: UnitConverter.kgToLb,
+          lb_to_kg: UnitConverter.lbToKg,
+          cm_to_in: UnitConverter.cmToIn,
+          in_to_cm: UnitConverter.inToCm,
+          mg_to_mcg: UnitConverter.mgToMcg,
+          mcg_to_mg: UnitConverter.mcgToMg,
+          g_to_mg: UnitConverter.gToMg,
+          mg_to_g: UnitConverter.mgToG,
+          ml_to_l: UnitConverter.mlToL,
+          l_to_ml: UnitConverter.lToMl,
+          c_to_f: UnitConverter.celsiusToFahrenheit,
+          f_to_c: UnitConverter.fahrenheitToCelsius,
+          mgdl_to_umoll: UnitConverter.mgDlToUmolL,
+          umoll_to_mgdl: UnitConverter.umolLToMgDl,
           'percent_to_mg/ml': UnitConverter.percentToMgPerMl,
-          'mg/ml_to_percent': UnitConverter.mgPerMlToPercent
+          'mg/ml_to_percent': UnitConverter.mgPerMlToPercent,
         };
 
         const converter = conversions[conversionKey];
@@ -1128,22 +1280,30 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         if (converted === null) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: `Unknown conversion: ${fromUnit} to ${toUnit}`,
-              availableConversions: Object.keys(conversions).map(k => k.replace('_to_', ' → '))
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: `Unknown conversion: ${fromUnit} to ${toUnit}`,
+                availableConversions: Object.keys(conversions).map((k) => k.replace('_to_', ' → ')),
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'convert',
-            input: { value, fromUnit, toUnit },
-            result: converted,
-            display: `${value} ${fromUnit} = ${converted.toFixed(4)} ${toUnit}`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'convert',
+              input: { value, fromUnit, toUnit },
+              result: converted,
+              display: `${value} ${fromUnit} = ${converted.toFixed(4)} ${toUnit}`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1153,11 +1313,15 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         if (!drugName) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'drug_info',
-              availableDrugs: Object.keys(drugDatabase),
-              note: 'Provide drug_name parameter to look up specific drug information'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'drug_info',
+                availableDrugs: Object.keys(drugDatabase),
+                note: 'Provide drug_name parameter to look up specific drug information',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -1165,115 +1329,139 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         if (!drug) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: `Drug "${drugName}" not found in database`,
-              availableDrugs: Object.keys(drugDatabase),
-              note: 'Database contains common drugs for reference only'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: `Drug "${drugName}" not found in database`,
+                availableDrugs: Object.keys(drugDatabase),
+                note: 'Database contains common drugs for reference only',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'drug_info',
-            drug: drug,
-            disclaimer: 'This is reference information only. Always consult current prescribing information and clinical guidelines.'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'drug_info',
+              drug: drug,
+              disclaimer:
+                'This is reference information only. Always consult current prescribing information and clinical guidelines.',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'dosage_calculator',
-            version: '1.0.0',
-            description: 'Comprehensive medication dosage calculator',
-            capabilities: {
-              dosing: ['Weight-based', 'BSA-based', 'Renal-adjusted', 'Pediatric'],
-              renalFunction: ['Cockcroft-Gault CrCl', 'CKD-EPI eGFR', 'MDRD eGFR'],
-              ivCalculations: ['Drip rates', 'Flow rates', 'Dose-based rates'],
-              pharmacokinetics: ['Loading dose', 'Maintenance dose', 'Half-life', 'Peak/trough'],
-              bodyMetrics: ['BSA', 'IBW', 'ABW', 'BMI', 'LBM'],
-              drugDatabase: Object.keys(drugDatabase).length + ' common drugs'
+          content: JSON.stringify(
+            {
+              tool: 'dosage_calculator',
+              version: '1.0.0',
+              description: 'Comprehensive medication dosage calculator',
+              capabilities: {
+                dosing: ['Weight-based', 'BSA-based', 'Renal-adjusted', 'Pediatric'],
+                renalFunction: ['Cockcroft-Gault CrCl', 'CKD-EPI eGFR', 'MDRD eGFR'],
+                ivCalculations: ['Drip rates', 'Flow rates', 'Dose-based rates'],
+                pharmacokinetics: ['Loading dose', 'Maintenance dose', 'Half-life', 'Peak/trough'],
+                bodyMetrics: ['BSA', 'IBW', 'ABW', 'BMI', 'LBM'],
+                drugDatabase: Object.keys(drugDatabase).length + ' common drugs',
+              },
+              formulas: {
+                bsa: ['Mosteller', 'DuBois', 'Haycock', 'Gehan', 'Boyd'],
+                pediatric: [
+                  "Clark's rule",
+                  "Young's rule",
+                  "Fried's rule",
+                  "Webster's rule",
+                  'BSA-based',
+                ],
+              },
+              disclaimer:
+                'This tool is for educational and reference purposes only. All calculations should be verified by qualified healthcare professionals before clinical use.',
             },
-            formulas: {
-              bsa: ['Mosteller', 'DuBois', 'Haycock', 'Gehan', 'Boyd'],
-              pediatric: ["Clark's rule", "Young's rule", "Fried's rule", "Webster's rule", 'BSA-based']
-            },
-            disclaimer: 'This tool is for educational and reference purposes only. All calculations should be verified by qualified healthcare professionals before clinical use.'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Weight-based dosing',
-                call: {
-                  operation: 'weight_based',
-                  dose_per_kg: 10,
-                  weight: 70,
-                  frequency: 3,
-                  max_daily_dose: 3000
-                }
-              },
-              {
-                name: 'BSA-based chemotherapy dosing',
-                call: {
-                  operation: 'bsa_dose',
-                  dose_per_m2: 75,
-                  weight: 70,
-                  height: 170
-                }
-              },
-              {
-                name: 'Renal dose adjustment',
-                call: {
-                  operation: 'renal_adjust',
-                  normal_dose: 500,
-                  weight: 70,
-                  age: 65,
-                  gender: 'male',
-                  serum_creatinine: 1.8
-                }
-              },
-              {
-                name: 'Pediatric dose calculation',
-                call: {
-                  operation: 'pediatric',
-                  adult_dose: 500,
-                  weight: 20,
-                  age: 6,
-                  height: 115
-                }
-              },
-              {
-                name: 'IV drip rate calculation',
-                call: {
-                  operation: 'iv_rate',
-                  volume_ml: 1000,
-                  time_hours: 8,
-                  drop_factor: 15
-                }
-              },
-              {
-                name: 'Creatinine clearance',
-                call: {
-                  operation: 'creatinine_clearance',
-                  age: 70,
-                  weight: 80,
-                  serum_creatinine: 1.5,
-                  gender: 'male'
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Weight-based dosing',
+                  call: {
+                    operation: 'weight_based',
+                    dose_per_kg: 10,
+                    weight: 70,
+                    frequency: 3,
+                    max_daily_dose: 3000,
+                  },
+                },
+                {
+                  name: 'BSA-based chemotherapy dosing',
+                  call: {
+                    operation: 'bsa_dose',
+                    dose_per_m2: 75,
+                    weight: 70,
+                    height: 170,
+                  },
+                },
+                {
+                  name: 'Renal dose adjustment',
+                  call: {
+                    operation: 'renal_adjust',
+                    normal_dose: 500,
+                    weight: 70,
+                    age: 65,
+                    gender: 'male',
+                    serum_creatinine: 1.8,
+                  },
+                },
+                {
+                  name: 'Pediatric dose calculation',
+                  call: {
+                    operation: 'pediatric',
+                    adult_dose: 500,
+                    weight: 20,
+                    age: 6,
+                    height: 115,
+                  },
+                },
+                {
+                  name: 'IV drip rate calculation',
+                  call: {
+                    operation: 'iv_rate',
+                    volume_ml: 1000,
+                    time_hours: 8,
+                    drop_factor: 15,
+                  },
+                },
+                {
+                  name: 'Creatinine clearance',
+                  call: {
+                    operation: 'creatinine_clearance',
+                    age: 70,
+                    weight: 80,
+                    serum_creatinine: 1.5,
+                    gender: 'male',
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1281,7 +1469,7 @@ export async function executedosagecalculator(toolCall: UnifiedToolCall): Promis
         return {
           toolCallId: id,
           content: `Error: Unknown operation '${operation}'. Valid operations: weight_based, bsa_dose, renal_adjust, pediatric, iv_rate, pharmacokinetics, creatinine_clearance, body_metrics, convert, drug_info, info, examples`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

@@ -6,7 +6,14 @@
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // Token types for lexer
-type TokenType = 'NUMBER' | 'STRING' | 'IDENTIFIER' | 'OPERATOR' | 'KEYWORD' | 'PUNCTUATION' | 'EOF';
+type TokenType =
+  | 'NUMBER'
+  | 'STRING'
+  | 'IDENTIFIER'
+  | 'OPERATOR'
+  | 'KEYWORD'
+  | 'PUNCTUATION'
+  | 'EOF';
 
 interface Token {
   type: TokenType;
@@ -16,9 +23,22 @@ interface Token {
 }
 
 // AST node types
-type ASTNodeType = 'Program' | 'BinaryExpr' | 'UnaryExpr' | 'Literal' | 'Identifier' |
-  'Assignment' | 'VarDecl' | 'FunctionDecl' | 'FunctionCall' | 'IfStatement' |
-  'WhileLoop' | 'ForLoop' | 'Return' | 'Block' | 'Print';
+type ASTNodeType =
+  | 'Program'
+  | 'BinaryExpr'
+  | 'UnaryExpr'
+  | 'Literal'
+  | 'Identifier'
+  | 'Assignment'
+  | 'VarDecl'
+  | 'FunctionDecl'
+  | 'FunctionCall'
+  | 'IfStatement'
+  | 'WhileLoop'
+  | 'ForLoop'
+  | 'Return'
+  | 'Block'
+  | 'Print';
 
 interface ASTNode {
   type: ASTNodeType;
@@ -38,9 +58,30 @@ interface ASTNode {
 }
 
 // Bytecode instruction types
-type Opcode = 'LOAD_CONST' | 'LOAD_VAR' | 'STORE_VAR' | 'ADD' | 'SUB' | 'MUL' | 'DIV' |
-  'EQ' | 'NE' | 'LT' | 'GT' | 'LE' | 'GE' | 'AND' | 'OR' | 'NOT' |
-  'JUMP' | 'JUMP_IF_FALSE' | 'CALL' | 'RETURN' | 'PRINT' | 'POP' | 'HALT';
+type Opcode =
+  | 'LOAD_CONST'
+  | 'LOAD_VAR'
+  | 'STORE_VAR'
+  | 'ADD'
+  | 'SUB'
+  | 'MUL'
+  | 'DIV'
+  | 'EQ'
+  | 'NE'
+  | 'LT'
+  | 'GT'
+  | 'LE'
+  | 'GE'
+  | 'AND'
+  | 'OR'
+  | 'NOT'
+  | 'JUMP'
+  | 'JUMP_IF_FALSE'
+  | 'CALL'
+  | 'RETURN'
+  | 'PRINT'
+  | 'POP'
+  | 'HALT';
 
 interface Instruction {
   opcode: Opcode;
@@ -65,39 +106,78 @@ interface VMState {
 
 // Language keywords
 const KEYWORDS = new Set([
-  'var', 'let', 'const', 'function', 'if', 'else', 'while', 'for',
-  'return', 'true', 'false', 'null', 'print', 'and', 'or', 'not'
+  'var',
+  'let',
+  'const',
+  'function',
+  'if',
+  'else',
+  'while',
+  'for',
+  'return',
+  'true',
+  'false',
+  'null',
+  'print',
+  'and',
+  'or',
+  'not',
 ]);
 
 // Operator precedence
 const PRECEDENCE: Record<string, number> = {
-  'or': 1, 'and': 2,
-  '==': 3, '!=': 3, '<': 3, '>': 3, '<=': 3, '>=': 3,
-  '+': 4, '-': 4,
-  '*': 5, '/': 5, '%': 5,
-  'not': 6
+  or: 1,
+  and: 2,
+  '==': 3,
+  '!=': 3,
+  '<': 3,
+  '>': 3,
+  '<=': 3,
+  '>=': 3,
+  '+': 4,
+  '-': 4,
+  '*': 5,
+  '/': 5,
+  '%': 5,
+  not: 6,
 };
 
 export const interpreterTool: UnifiedTool = {
   name: 'interpreter',
-  description: 'Language interpreter simulation with tree-walking and bytecode execution, lexer, parser, and runtime evaluation',
+  description:
+    'Language interpreter simulation with tree-walking and bytecode execution, lexer, parser, and runtime evaluation',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['execute', 'step', 'eval', 'repl', 'tokenize', 'parse', 'compile', 'disassemble', 'info', 'examples'],
-        description: 'Operation type'
+        enum: [
+          'execute',
+          'step',
+          'eval',
+          'repl',
+          'tokenize',
+          'parse',
+          'compile',
+          'disassemble',
+          'info',
+          'examples',
+        ],
+        description: 'Operation type',
       },
       code: { type: 'string', description: 'Source code to interpret' },
-      mode: { type: 'string', enum: ['tree_walking', 'bytecode', 'JIT'], description: 'Execution mode' },
+      mode: {
+        type: 'string',
+        enum: ['tree_walking', 'bytecode', 'JIT'],
+        description: 'Execution mode',
+      },
       expression: { type: 'string', description: 'Single expression to evaluate' },
       max_steps: { type: 'number', description: 'Maximum execution steps (for debugging)' },
       show_ast: { type: 'boolean', description: 'Show AST in output' },
-      show_bytecode: { type: 'boolean', description: 'Show bytecode in output' }
+      show_bytecode: { type: 'boolean', description: 'Show bytecode in output' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeinterpreter(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -170,8 +250,12 @@ function tokenize(source: string): Token[] {
 
     // Skip whitespace
     if (/\s/.test(char)) {
-      if (char === '\n') { line++; column = 1; }
-      else { column++; }
+      if (char === '\n') {
+        line++;
+        column = 1;
+      } else {
+        column++;
+      }
       pos++;
       continue;
     }
@@ -201,7 +285,7 @@ function tokenize(source: string): Token[] {
       while (pos < source.length && source[pos] !== quote) {
         if (source[pos] === '\\') {
           pos++;
-          const escapes: Record<string, string> = { 'n': '\n', 't': '\t', 'r': '\r', '\\': '\\' };
+          const escapes: Record<string, string> = { n: '\n', t: '\t', r: '\r', '\\': '\\' };
           str += escapes[source[pos]] || source[pos];
         } else {
           str += source[pos];
@@ -512,11 +596,11 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
         return evalUnaryOp(node.operator!, evaluate(node.right!));
 
       case 'VarDecl':
-        env.variables.set(node.name!, evaluate(node.value!));
+        env.variables.set(node.name!, evaluate(node.value as ASTNode));
         return undefined;
 
       case 'Assignment': {
-        const value = evaluate(node.value!);
+        const value = evaluate(node.value as ASTNode);
         setVar(env, node.name!, value);
         return value;
       }
@@ -526,7 +610,10 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
         return undefined;
 
       case 'FunctionCall':
-        return callFunction(node.name!, (node.arguments || []).map(a => evaluate(a)));
+        return callFunction(
+          node.name!,
+          (node.arguments || []).map((a) => evaluate(a))
+        );
 
       case 'IfStatement':
         if (evaluate(node.condition!)) {
@@ -555,7 +642,7 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
         return undefined;
 
       case 'Return':
-        return node.value ? evaluate(node.value) : undefined;
+        return node.value ? evaluate(node.value as ASTNode) : undefined;
 
       case 'Block': {
         // Block scope environment would be: { variables: new Map(), functions: new Map(), parent: env }
@@ -567,7 +654,7 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
       }
 
       case 'Print': {
-        const printVal = evaluate(node.value!);
+        const printVal = evaluate(node.value as ASTNode);
         output.push(String(printVal));
         return printVal;
       }
@@ -579,28 +666,48 @@ function interpret(ast: ASTNode, env: Environment): { value: unknown; output: st
 
   function evalBinaryOp(op: string, left: unknown, right: unknown): unknown {
     switch (op) {
-      case '+': return (left as number) + (right as number);
-      case '-': return (left as number) - (right as number);
-      case '*': return (left as number) * (right as number);
-      case '/': return (left as number) / (right as number);
-      case '%': return (left as number) % (right as number);
-      case '==': return left === right;
-      case '!=': return left !== right;
-      case '<': return (left as number) < (right as number);
-      case '>': return (left as number) > (right as number);
-      case '<=': return (left as number) <= (right as number);
-      case '>=': return (left as number) >= (right as number);
-      case 'and': case '&&': return left && right;
-      case 'or': case '||': return left || right;
-      default: throw new Error(`Unknown operator: ${op}`);
+      case '+':
+        return (left as number) + (right as number);
+      case '-':
+        return (left as number) - (right as number);
+      case '*':
+        return (left as number) * (right as number);
+      case '/':
+        return (left as number) / (right as number);
+      case '%':
+        return (left as number) % (right as number);
+      case '==':
+        return left === right;
+      case '!=':
+        return left !== right;
+      case '<':
+        return (left as number) < (right as number);
+      case '>':
+        return (left as number) > (right as number);
+      case '<=':
+        return (left as number) <= (right as number);
+      case '>=':
+        return (left as number) >= (right as number);
+      case 'and':
+      case '&&':
+        return left && right;
+      case 'or':
+      case '||':
+        return left || right;
+      default:
+        throw new Error(`Unknown operator: ${op}`);
     }
   }
 
   function evalUnaryOp(op: string, operand: unknown): unknown {
     switch (op) {
-      case '-': return -(operand as number);
-      case 'not': case '!': return !operand;
-      default: throw new Error(`Unknown unary operator: ${op}`);
+      case '-':
+        return -(operand as number);
+      case 'not':
+      case '!':
+        return !operand;
+      default:
+        throw new Error(`Unknown unary operator: ${op}`);
     }
   }
 
@@ -679,9 +786,18 @@ function compile(ast: ASTNode): Instruction[] {
         compileNode(node.left!);
         compileNode(node.right!);
         const opMap: Record<string, Opcode> = {
-          '+': 'ADD', '-': 'SUB', '*': 'MUL', '/': 'DIV',
-          '==': 'EQ', '!=': 'NE', '<': 'LT', '>': 'GT', '<=': 'LE', '>=': 'GE',
-          'and': 'AND', 'or': 'OR'
+          '+': 'ADD',
+          '-': 'SUB',
+          '*': 'MUL',
+          '/': 'DIV',
+          '==': 'EQ',
+          '!=': 'NE',
+          '<': 'LT',
+          '>': 'GT',
+          '<=': 'LE',
+          '>=': 'GE',
+          and: 'AND',
+          or: 'OR',
         };
         emit(opMap[node.operator!] || 'ADD');
         break;
@@ -697,17 +813,17 @@ function compile(ast: ASTNode): Instruction[] {
         break;
 
       case 'VarDecl':
-        compileNode(node.value!);
+        compileNode(node.value as ASTNode);
         emit('STORE_VAR', node.name);
         break;
 
       case 'Assignment':
-        compileNode(node.value!);
+        compileNode(node.value as ASTNode);
         emit('STORE_VAR', node.name);
         break;
 
       case 'Print':
-        compileNode(node.value!);
+        compileNode(node.value as ASTNode);
         emit('PRINT');
         break;
 
@@ -746,7 +862,7 @@ function compile(ast: ASTNode): Instruction[] {
         break;
 
       case 'Return':
-        if (node.value) compileNode(node.value);
+        if (node.value) compileNode(node.value as ASTNode);
         else emit('LOAD_CONST', undefined);
         emit('RETURN');
         break;
@@ -766,7 +882,7 @@ function runBytecode(instructions: Instruction[]): { value: unknown; output: str
     stack: [],
     pc: 0,
     fp: 0,
-    callStack: []
+    callStack: [],
   };
   const variables: Map<string, unknown> = new Map();
   const output: string[] = [];
@@ -931,13 +1047,13 @@ function executeCode(args: Record<string, unknown>): Record<string, unknown> {
         parse_ms: parseTime,
         compile_ms: compileTime,
         execute_ms: execTime,
-        total_ms: lexTime + parseTime + compileTime + execTime
+        total_ms: lexTime + parseTime + compileTime + execTime,
       },
       statistics: {
         tokens: tokens.length - 1,
         ast_nodes: countNodes(ast),
-        bytecode_instructions: bytecode.length
-      }
+        bytecode_instructions: bytecode.length,
+      },
     };
   }
 
@@ -958,12 +1074,12 @@ function executeCode(args: Record<string, unknown>): Record<string, unknown> {
       lex_ms: lexTime,
       parse_ms: parseTime,
       execute_ms: execTime,
-      total_ms: lexTime + parseTime + execTime
+      total_ms: lexTime + parseTime + execTime,
     },
     statistics: {
       tokens: tokens.length - 1,
-      ast_nodes: countNodes(ast)
-    }
+      ast_nodes: countNodes(ast),
+    },
   };
 }
 
@@ -975,7 +1091,13 @@ function stepExecution(args: Record<string, unknown>): Record<string, unknown> {
   const ast = parse(tokens);
   const bytecode = compile(ast);
 
-  const steps: { step: number; pc: number; instruction: string; stack: unknown[]; variables: Record<string, unknown> }[] = [];
+  const steps: {
+    step: number;
+    pc: number;
+    instruction: string;
+    stack: unknown[];
+    variables: Record<string, unknown>;
+  }[] = [];
   const variables: Map<string, unknown> = new Map();
   const stack: unknown[] = [];
   let pc = 0;
@@ -988,18 +1110,31 @@ function stepExecution(args: Record<string, unknown>): Record<string, unknown> {
       pc,
       instruction: formatInstruction(instr),
       stack: [...stack],
-      variables: Object.fromEntries(variables)
+      variables: Object.fromEntries(variables),
     });
 
     // Execute instruction (simplified)
     switch (instr.opcode) {
-      case 'LOAD_CONST': stack.push(instr.operand); break;
-      case 'LOAD_VAR': stack.push(variables.get(instr.operand as string)); break;
-      case 'STORE_VAR': variables.set(instr.operand as string, stack.pop()); break;
-      case 'ADD': stack.push((stack.pop() as number) + (stack.pop() as number)); break;
-      case 'PRINT': stack.pop(); break;
-      case 'HALT': pc = bytecode.length; continue;
-      default: break;
+      case 'LOAD_CONST':
+        stack.push(instr.operand);
+        break;
+      case 'LOAD_VAR':
+        stack.push(variables.get(instr.operand as string));
+        break;
+      case 'STORE_VAR':
+        variables.set(instr.operand as string, stack.pop());
+        break;
+      case 'ADD':
+        stack.push((stack.pop() as number) + (stack.pop() as number));
+        break;
+      case 'PRINT':
+        stack.pop();
+        break;
+      case 'HALT':
+        pc = bytecode.length;
+        continue;
+      default:
+        break;
     }
 
     pc++;
@@ -1013,8 +1148,8 @@ function stepExecution(args: Record<string, unknown>): Record<string, unknown> {
     steps,
     final_state: {
       variables: Object.fromEntries(variables),
-      stack
-    }
+      stack,
+    },
   };
 }
 
@@ -1030,7 +1165,7 @@ function evaluateExpression(args: Record<string, unknown>): Record<string, unkno
     operation: 'eval',
     expression,
     result: result.value,
-    ast: simplifyAST(ast)
+    ast: simplifyAST(ast),
   };
 }
 
@@ -1040,7 +1175,7 @@ function simulateREPL(_args: Record<string, unknown>): Record<string, unknown> {
     'var y = 20',
     'print(x + y)',
     'function double(n) { return n * 2 }',
-    'print(double(x))'
+    'print(double(x))',
   ];
 
   const env: Environment = { variables: new Map(), functions: new Map() };
@@ -1054,13 +1189,13 @@ function simulateREPL(_args: Record<string, unknown>): Record<string, unknown> {
       history.push({
         input: cmd,
         output: result.output.join('\n'),
-        result: result.value
+        result: result.value,
       });
     } catch (e) {
       history.push({
         input: cmd,
         output: `Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-        result: undefined
+        result: undefined,
       });
     }
   }
@@ -1070,8 +1205,8 @@ function simulateREPL(_args: Record<string, unknown>): Record<string, unknown> {
     session: history,
     final_environment: {
       variables: Object.fromEntries(env.variables),
-      functions: [...env.functions.keys()]
-    }
+      functions: [...env.functions.keys()],
+    },
   };
 }
 
@@ -1082,15 +1217,15 @@ function tokenizeCode(args: Record<string, unknown>): Record<string, unknown> {
   return {
     operation: 'tokenize',
     code,
-    tokens: tokens.map(t => ({
+    tokens: tokens.map((t) => ({
       type: t.type,
       value: t.value,
-      position: `${t.line}:${t.column}`
+      position: `${t.line}:${t.column}`,
     })),
     statistics: {
       total_tokens: tokens.length,
-      by_type: countTokenTypes(tokens)
-    }
+      by_type: countTokenTypes(tokens),
+    },
   };
 }
 
@@ -1105,8 +1240,8 @@ function parseCode(args: Record<string, unknown>): Record<string, unknown> {
     ast: simplifyAST(ast),
     statistics: {
       total_nodes: countNodes(ast),
-      depth: astDepth(ast)
-    }
+      depth: astDepth(ast),
+    },
   };
 }
 
@@ -1122,8 +1257,8 @@ function compileCode(args: Record<string, unknown>): Record<string, unknown> {
     bytecode: formatBytecode(bytecode),
     statistics: {
       instructions: bytecode.length,
-      by_opcode: countOpcodes(bytecode)
-    }
+      by_opcode: countOpcodes(bytecode),
+    },
   };
 }
 
@@ -1142,7 +1277,7 @@ function disassembleCode(args: Record<string, unknown>): Record<string, unknown>
     operation: 'disassemble',
     code,
     disassembly: disassembly.join('\n'),
-    jump_targets: findJumpTargets(bytecode)
+    jump_targets: findJumpTargets(bytecode),
   };
 }
 
@@ -1207,8 +1342,9 @@ function countOpcodes(bytecode: Instruction[]): Record<string, number> {
 }
 
 function formatBytecode(bytecode: Instruction[]): string[] {
-  return bytecode.map((instr, i) =>
-    `${i}: ${instr.opcode}${instr.operand !== undefined ? ' ' + JSON.stringify(instr.operand) : ''}`
+  return bytecode.map(
+    (instr, i) =>
+      `${i}: ${instr.opcode}${instr.operand !== undefined ? ' ' + JSON.stringify(instr.operand) : ''}`
   );
 }
 
@@ -1219,7 +1355,10 @@ function formatInstruction(instr: Instruction): string {
 function findJumpTargets(bytecode: Instruction[]): number[] {
   const targets: number[] = [];
   for (const instr of bytecode) {
-    if ((instr.opcode === 'JUMP' || instr.opcode === 'JUMP_IF_FALSE') && typeof instr.operand === 'number') {
+    if (
+      (instr.opcode === 'JUMP' || instr.opcode === 'JUMP_IF_FALSE') &&
+      typeof instr.operand === 'number'
+    ) {
       targets.push(instr.operand);
     }
   }
@@ -1232,29 +1371,34 @@ function getExamples(): Record<string, unknown> {
     examples: [
       {
         name: 'Execute code',
-        call: { operation: 'execute', code: 'var x = 10; print(x * 2)', mode: 'tree_walking' }
+        call: { operation: 'execute', code: 'var x = 10; print(x * 2)', mode: 'tree_walking' },
       },
       {
         name: 'Execute with bytecode',
-        call: { operation: 'execute', code: 'var sum = 0; var i = 1; while (i <= 5) { sum = sum + i; i = i + 1 }; print(sum)', mode: 'bytecode', show_bytecode: true }
+        call: {
+          operation: 'execute',
+          code: 'var sum = 0; var i = 1; while (i <= 5) { sum = sum + i; i = i + 1 }; print(sum)',
+          mode: 'bytecode',
+          show_bytecode: true,
+        },
       },
       {
         name: 'Evaluate expression',
-        call: { operation: 'eval', expression: '(10 + 5) * 2 - 3' }
+        call: { operation: 'eval', expression: '(10 + 5) * 2 - 3' },
       },
       {
         name: 'Tokenize code',
-        call: { operation: 'tokenize', code: 'function add(a, b) { return a + b }' }
+        call: { operation: 'tokenize', code: 'function add(a, b) { return a + b }' },
       },
       {
         name: 'Parse to AST',
-        call: { operation: 'parse', code: 'if (x > 0) { print(x) }' }
+        call: { operation: 'parse', code: 'if (x > 0) { print(x) }' },
       },
       {
         name: 'Step through execution',
-        call: { operation: 'step', code: 'var x = 5; x = x + 1', max_steps: 10 }
-      }
-    ]
+        call: { operation: 'step', code: 'var x = 5; x = x + 1', max_steps: 10 },
+      },
+    ],
   };
 }
 
@@ -1271,7 +1415,7 @@ function getInfo(): Record<string, unknown> {
       'Bytecode compilation',
       'Stack-based virtual machine',
       'Step-by-step debugging',
-      'REPL simulation'
+      'REPL simulation',
     ],
     language_features: [
       'Variables (var, let, const)',
@@ -1281,19 +1425,19 @@ function getInfo(): Record<string, unknown> {
       'Control flow (if/else, while, for)',
       'Functions with parameters',
       'Print statements',
-      'Comments (// single line)'
+      'Comments (// single line)',
     ],
     execution_modes: {
       tree_walking: 'Directly interprets the AST, simpler but slower',
       bytecode: 'Compiles to bytecode then runs on VM, faster execution',
-      JIT: 'Just-in-time compilation simulation'
+      JIT: 'Just-in-time compilation simulation',
     },
     built_in_functions: ['sqrt', 'abs', 'floor', 'ceil', 'round', 'min', 'max', 'len'],
     references: [
       'Crafting Interpreters by Robert Nystrom',
       'SICP (Structure and Interpretation of Computer Programs)',
-      'Dragon Book (Compilers: Principles, Techniques, and Tools)'
-    ]
+      'Dragon Book (Compilers: Principles, Techniques, and Tools)',
+    ],
   };
 }
 

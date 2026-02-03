@@ -18,13 +18,12 @@ interface Grammar {
 }
 
 interface Production {
-  lhs: string;        // Left-hand side (non-terminal)
-  rhs: string[];      // Right-hand side symbols
-  index: number;      // Production number
+  lhs: string; // Left-hand side (non-terminal)
+  rhs: string[]; // Right-hand side symbols
+  index: number; // Production number
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface FirstFollowSets {
+export interface FirstFollowSets {
   first: Map<string, Set<string>>;
   follow: Map<string, Set<string>>;
 }
@@ -80,7 +79,10 @@ const END_MARKER = '$';
  * Parse grammar from string notation
  */
 function parseGrammar(grammarText: string): Grammar {
-  const lines = grammarText.trim().split('\n').filter(l => l.trim() && !l.trim().startsWith('//'));
+  const lines = grammarText
+    .trim()
+    .split('\n')
+    .filter((l) => l.trim() && !l.trim().startsWith('//'));
   const productions: Production[] = [];
   const nonTerminals = new Set<string>();
   const allSymbols = new Set<string>();
@@ -91,25 +93,25 @@ function parseGrammar(grammarText: string): Grammar {
     if (!match) return;
 
     const lhs = match[1];
-    const rhsAlternatives = match[2].split('|').map(s => s.trim());
+    const rhsAlternatives = match[2].split('|').map((s) => s.trim());
 
     if (!startSymbol) startSymbol = lhs;
     nonTerminals.add(lhs);
 
-    rhsAlternatives.forEach(alt => {
-      const rhs = alt === EPSILON ? [] : alt.split(/\s+/).filter(s => s);
+    rhsAlternatives.forEach((alt) => {
+      const rhs = alt === EPSILON ? [] : alt.split(/\s+/).filter((s) => s);
       productions.push({ lhs, rhs, index: productions.length });
-      rhs.forEach(s => allSymbols.add(s));
+      rhs.forEach((s) => allSymbols.add(s));
     });
   });
 
-  const terminals = [...allSymbols].filter(s => !nonTerminals.has(s) && s !== EPSILON);
+  const terminals = [...allSymbols].filter((s) => !nonTerminals.has(s) && s !== EPSILON);
 
   return {
     terminals,
     nonTerminals: [...nonTerminals],
     startSymbol,
-    productions
+    productions,
   };
 }
 
@@ -120,10 +122,10 @@ function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
   const first = new Map<string, Set<string>>();
 
   // Initialize FIRST sets
-  grammar.terminals.forEach(t => {
+  grammar.terminals.forEach((t) => {
     first.set(t, new Set([t]));
   });
-  grammar.nonTerminals.forEach(nt => {
+  grammar.nonTerminals.forEach((nt) => {
     first.set(nt, new Set());
   });
 
@@ -144,7 +146,7 @@ function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
         for (const symbol of prod.rhs) {
           const symbolFirst = first.get(symbol);
           if (symbolFirst) {
-            symbolFirst.forEach(s => {
+            symbolFirst.forEach((s) => {
               if (s !== EPSILON) lhsFirst.add(s);
             });
             if (!symbolFirst.has(EPSILON)) {
@@ -173,11 +175,14 @@ function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
 /**
  * Compute FOLLOW sets for all non-terminals
  */
-function computeFollowSets(grammar: Grammar, first: Map<string, Set<string>>): Map<string, Set<string>> {
+function computeFollowSets(
+  grammar: Grammar,
+  first: Map<string, Set<string>>
+): Map<string, Set<string>> {
   const follow = new Map<string, Set<string>>();
 
   // Initialize FOLLOW sets
-  grammar.nonTerminals.forEach(nt => {
+  grammar.nonTerminals.forEach((nt) => {
     follow.set(nt, new Set());
   });
 
@@ -201,17 +206,17 @@ function computeFollowSets(grammar: Grammar, first: Map<string, Set<string>>): M
 
         if (beta.length === 0) {
           // Symbol at end: add FOLLOW(lhs)
-          follow.get(prod.lhs)!.forEach(s => symbolFollow.add(s));
+          follow.get(prod.lhs)!.forEach((s) => symbolFollow.add(s));
         } else {
           // Add FIRST(beta) - epsilon
           const betaFirst = computeFirstOfString(beta, first);
-          betaFirst.forEach(s => {
+          betaFirst.forEach((s) => {
             if (s !== EPSILON) symbolFollow.add(s);
           });
 
           // If beta can derive epsilon, add FOLLOW(lhs)
           if (betaFirst.has(EPSILON)) {
-            follow.get(prod.lhs)!.forEach(s => symbolFollow.add(s));
+            follow.get(prod.lhs)!.forEach((s) => symbolFollow.add(s));
           }
         }
 
@@ -238,7 +243,7 @@ function computeFirstOfString(symbols: string[], first: Map<string, Set<string>>
   for (const symbol of symbols) {
     const symbolFirst = first.get(symbol);
     if (symbolFirst) {
-      symbolFirst.forEach(s => {
+      symbolFirst.forEach((s) => {
         if (s !== EPSILON) result.add(s);
       });
       if (!symbolFirst.has(EPSILON)) {
@@ -262,14 +267,18 @@ function computeFirstOfString(symbols: string[], first: Map<string, Set<string>>
 /**
  * Build LL(1) parse table
  */
-function buildParseTable(grammar: Grammar, first: Map<string, Set<string>>, follow: Map<string, Set<string>>): ParseTable {
+function buildParseTable(
+  grammar: Grammar,
+  first: Map<string, Set<string>>,
+  follow: Map<string, Set<string>>
+): ParseTable {
   const table = new Map<string, Map<string, Production | null>>();
   const conflicts: ParseConflict[] = [];
 
   // Initialize table
-  grammar.nonTerminals.forEach(nt => {
+  grammar.nonTerminals.forEach((nt) => {
     table.set(nt, new Map());
-    grammar.terminals.forEach(t => table.get(nt)!.set(t, null));
+    grammar.terminals.forEach((t) => table.get(nt)!.set(t, null));
     table.get(nt)!.set(END_MARKER, null);
   });
 
@@ -278,7 +287,7 @@ function buildParseTable(grammar: Grammar, first: Map<string, Set<string>>, foll
     const rhsFirst = computeFirstOfString(prod.rhs, first);
 
     // For each terminal in FIRST(rhs)
-    rhsFirst.forEach(terminal => {
+    rhsFirst.forEach((terminal) => {
       if (terminal !== EPSILON) {
         const existing = table.get(prod.lhs)!.get(terminal);
         if (existing !== null && existing !== undefined) {
@@ -287,7 +296,7 @@ function buildParseTable(grammar: Grammar, first: Map<string, Set<string>>, foll
             nonTerminal: prod.lhs,
             terminal,
             productions: [existing, prod],
-            type: 'first-first'
+            type: 'first-first',
           });
         } else {
           table.get(prod.lhs)!.set(terminal, prod);
@@ -298,14 +307,14 @@ function buildParseTable(grammar: Grammar, first: Map<string, Set<string>>, foll
     // If epsilon in FIRST(rhs), add for all terminals in FOLLOW(lhs)
     if (rhsFirst.has(EPSILON)) {
       const lhsFollow = follow.get(prod.lhs)!;
-      lhsFollow.forEach(terminal => {
+      lhsFollow.forEach((terminal) => {
         const existing = table.get(prod.lhs)!.get(terminal);
         if (existing !== null && existing !== undefined) {
           conflicts.push({
             nonTerminal: prod.lhs,
             terminal,
             productions: [existing, prod],
-            type: 'first-follow'
+            type: 'first-follow',
           });
         } else {
           table.get(prod.lhs)!.set(terminal, prod);
@@ -320,11 +329,7 @@ function buildParseTable(grammar: Grammar, first: Map<string, Set<string>>, foll
 /**
  * Parse input using LL(1) table
  */
-function parseWithTable(
-  input: string[],
-  grammar: Grammar,
-  parseTable: ParseTable
-): ParseResult {
+function parseWithTable(input: string[], grammar: Grammar, parseTable: ParseTable): ParseResult {
   const stack: (string | ParseTree)[] = [END_MARKER, grammar.startSymbol];
   const tokens = [...input, END_MARKER];
   let tokenIndex = 0;
@@ -352,7 +357,7 @@ function parseWithTable(
             success: false,
             error: `Expected '${top}', found '${currentToken}'`,
             position: tokenIndex,
-            derivation
+            derivation,
           };
         }
       } else {
@@ -363,7 +368,7 @@ function parseWithTable(
             success: false,
             error: `Unknown non-terminal: ${top}`,
             position: tokenIndex,
-            derivation
+            derivation,
           };
         }
 
@@ -376,14 +381,16 @@ function parseWithTable(
             success: false,
             error: `No production for ${top} with lookahead '${currentToken}'. Expected: ${expected.join(', ')}`,
             position: tokenIndex,
-            derivation
+            derivation,
           };
         }
 
         stack.pop();
         const currentNode = nodeStack.pop()!;
 
-        derivation.push(`${top} -> ${production.rhs.length > 0 ? production.rhs.join(' ') : EPSILON}`);
+        derivation.push(
+          `${top} -> ${production.rhs.length > 0 ? production.rhs.join(' ') : EPSILON}`
+        );
 
         // Push RHS in reverse order
         const newNodes: ParseTree[] = [];
@@ -405,7 +412,7 @@ function parseWithTable(
       success: false,
       error: `Unexpected tokens remaining: ${tokens.slice(tokenIndex, -1).join(' ')}`,
       position: tokenIndex,
-      derivation
+      derivation,
     };
   }
 
@@ -415,7 +422,11 @@ function parseWithTable(
 /**
  * Recursive descent parser generator
  */
-function generateRecursiveDescentCode(grammar: Grammar, first: Map<string, Set<string>>, follow: Map<string, Set<string>>): string {
+function generateRecursiveDescentCode(
+  grammar: Grammar,
+  first: Map<string, Set<string>>,
+  follow: Map<string, Set<string>>
+): string {
   const lines: string[] = [];
 
   lines.push('// Auto-generated Recursive Descent Parser');
@@ -441,7 +452,7 @@ function generateRecursiveDescentCode(grammar: Grammar, first: Map<string, Set<s
     lines.push('');
     lines.push(`  private ${nt}(): boolean {`);
 
-    const ntProductions = grammar.productions.filter(p => p.lhs === nt);
+    const ntProductions = grammar.productions.filter((p) => p.lhs === nt);
 
     if (ntProductions.length === 1 && ntProductions[0].rhs.length === 0) {
       // Only epsilon production
@@ -456,7 +467,7 @@ function generateRecursiveDescentCode(grammar: Grammar, first: Map<string, Set<s
         const rhsFirst = computeFirstOfString(prod.rhs, first);
 
         const cases: string[] = [];
-        rhsFirst.forEach(t => {
+        rhsFirst.forEach((t) => {
           if (t !== EPSILON && !caseHandled.has(t)) {
             cases.push(t);
             caseHandled.add(t);
@@ -464,7 +475,7 @@ function generateRecursiveDescentCode(grammar: Grammar, first: Map<string, Set<s
         });
 
         if (rhsFirst.has(EPSILON)) {
-          follow.get(nt)!.forEach(t => {
+          follow.get(nt)!.forEach((t) => {
             if (!caseHandled.has(t)) {
               cases.push(t);
               caseHandled.add(t);
@@ -473,12 +484,12 @@ function generateRecursiveDescentCode(grammar: Grammar, first: Map<string, Set<s
         }
 
         if (cases.length > 0) {
-          cases.forEach(c => lines.push(`      case "${c}":`));
+          cases.forEach((c) => lines.push(`      case "${c}":`));
 
           if (prod.rhs.length === 0) {
             lines.push('        return true; // epsilon');
           } else {
-            const checks = prod.rhs.map(s => {
+            const checks = prod.rhs.map((s) => {
               if (grammar.terminals.includes(s)) {
                 return `this.match("${s}")`;
               } else {
@@ -512,9 +523,7 @@ function analyzeGrammar(grammar: Grammar): LLAnalysis {
   const parseTable = buildParseTable(grammar, first, follow);
 
   // Find nullable symbols
-  const nullableSymbols = grammar.nonTerminals.filter(nt =>
-    first.get(nt)?.has(EPSILON)
-  );
+  const nullableSymbols = grammar.nonTerminals.filter((nt) => first.get(nt)?.has(EPSILON));
 
   // Convert sets to arrays for output
   const firstSets: Record<string, string[]> = {};
@@ -545,7 +554,7 @@ function analyzeGrammar(grammar: Grammar): LLAnalysis {
     nullableSymbols,
     firstSets,
     followSets,
-    parseTable: tableObj
+    parseTable: tableObj,
   };
 }
 
@@ -557,13 +566,13 @@ function eliminateLeftRecursion(grammar: Grammar): Grammar {
   let prodIndex = 0;
 
   for (const A of grammar.nonTerminals) {
-    const aProductions = grammar.productions.filter(p => p.lhs === A);
-    const leftRecursive = aProductions.filter(p => p.rhs[0] === A);
-    const nonLeftRecursive = aProductions.filter(p => p.rhs[0] !== A);
+    const aProductions = grammar.productions.filter((p) => p.lhs === A);
+    const leftRecursive = aProductions.filter((p) => p.rhs[0] === A);
+    const nonLeftRecursive = aProductions.filter((p) => p.rhs[0] !== A);
 
     if (leftRecursive.length === 0) {
       // No left recursion
-      aProductions.forEach(p => {
+      aProductions.forEach((p) => {
         newProductions.push({ ...p, index: prodIndex++ });
       });
     } else {
@@ -571,11 +580,11 @@ function eliminateLeftRecursion(grammar: Grammar): Grammar {
       const aPrime = `${A}'`;
 
       // A -> β A'
-      nonLeftRecursive.forEach(p => {
+      nonLeftRecursive.forEach((p) => {
         newProductions.push({
           lhs: A,
           rhs: [...p.rhs, aPrime],
-          index: prodIndex++
+          index: prodIndex++,
         });
       });
 
@@ -584,16 +593,16 @@ function eliminateLeftRecursion(grammar: Grammar): Grammar {
         newProductions.push({
           lhs: A,
           rhs: [aPrime],
-          index: prodIndex++
+          index: prodIndex++,
         });
       }
 
       // A' -> α A'
-      leftRecursive.forEach(p => {
+      leftRecursive.forEach((p) => {
         newProductions.push({
           lhs: aPrime,
           rhs: [...p.rhs.slice(1), aPrime],
-          index: prodIndex++
+          index: prodIndex++,
         });
       });
 
@@ -601,18 +610,18 @@ function eliminateLeftRecursion(grammar: Grammar): Grammar {
       newProductions.push({
         lhs: aPrime,
         rhs: [],
-        index: prodIndex++
+        index: prodIndex++,
       });
     }
   }
 
   // Collect new non-terminals
-  const newNonTerminals = [...new Set(newProductions.map(p => p.lhs))];
+  const newNonTerminals = [...new Set(newProductions.map((p) => p.lhs))];
 
   return {
     ...grammar,
     nonTerminals: newNonTerminals,
-    productions: newProductions
+    productions: newProductions,
   };
 }
 
@@ -625,7 +634,7 @@ function leftFactor(grammar: Grammar): Grammar {
   let factorCount = 0;
 
   for (const A of grammar.nonTerminals) {
-    const aProductions = grammar.productions.filter(p => p.lhs === A);
+    const aProductions = grammar.productions.filter((p) => p.lhs === A);
 
     // Group by common prefix
     const groups = new Map<string, Production[]>();
@@ -639,7 +648,7 @@ function leftFactor(grammar: Grammar): Grammar {
     for (const [prefix, prods] of groups) {
       if (prods.length === 1 || prefix === EPSILON) {
         // No common prefix
-        prods.forEach(p => {
+        prods.forEach((p) => {
           newProductions.push({ ...p, index: prodIndex++ });
         });
       } else {
@@ -650,7 +659,7 @@ function leftFactor(grammar: Grammar): Grammar {
         newProductions.push({
           lhs: A,
           rhs: [prefix, aFactor],
-          index: prodIndex++
+          index: prodIndex++,
         });
 
         // A_f -> rest of each production
@@ -659,19 +668,19 @@ function leftFactor(grammar: Grammar): Grammar {
           newProductions.push({
             lhs: aFactor,
             rhs: rest.length > 0 ? rest : [],
-            index: prodIndex++
+            index: prodIndex++,
           });
         }
       }
     }
   }
 
-  const newNonTerminals = [...new Set(newProductions.map(p => p.lhs))];
+  const newNonTerminals = [...new Set(newProductions.map((p) => p.lhs))];
 
   return {
     ...grammar,
     nonTerminals: newNonTerminals,
-    productions: newProductions
+    productions: newProductions,
   };
 }
 
@@ -726,32 +735,43 @@ function formatParseTree(tree: ParseTree, indent: string = ''): string {
 
 export const llparserTool: UnifiedTool = {
   name: 'll_parser',
-  description: 'Comprehensive LL parser generator with FIRST/FOLLOW computation, parse table construction, recursive descent generation, and grammar transformations',
+  description:
+    'Comprehensive LL parser generator with FIRST/FOLLOW computation, parse table construction, recursive descent generation, and grammar transformations',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['analyze', 'parse', 'first_follow', 'generate', 'transform', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'analyze',
+          'parse',
+          'first_follow',
+          'generate',
+          'transform',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       grammar: {
         type: 'string',
-        description: 'Grammar in BNF-like notation (e.g., "E -> E + T | T\\nT -> T * F | F\\nF -> ( E ) | id")'
+        description:
+          'Grammar in BNF-like notation (e.g., "E -> E + T | T\\nT -> T * F | F\\nF -> ( E ) | id")',
       },
       input: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Input tokens to parse'
+        description: 'Input tokens to parse',
       },
       transformation: {
         type: 'string',
         enum: ['eliminate_left_recursion', 'left_factor', 'both'],
-        description: 'Grammar transformation to apply'
-      }
+        description: 'Grammar transformation to apply',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -769,61 +789,78 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'LL Parser Generator',
-            description: 'Comprehensive LL(1) parser tools',
-            capabilities: [
-              'FIRST and FOLLOW set computation',
-              'LL(1) parse table construction',
-              'Conflict detection (FIRST-FIRST, FIRST-FOLLOW)',
-              'Predictive parsing with derivation trace',
-              'Parse tree construction',
-              'Recursive descent code generation',
-              'Left recursion elimination',
-              'Left factoring'
-            ],
-            concepts: {
-              LL1: 'Top-down parser that reads input Left-to-right, produces Leftmost derivation, using 1 token lookahead',
-              FIRST: 'Set of terminals that can begin strings derived from a symbol',
-              FOLLOW: 'Set of terminals that can appear after a non-terminal',
-              predictiveParsing: 'Parsing without backtracking using lookahead',
-              recursiveDescent: 'Implementation using mutually recursive functions'
+          content: JSON.stringify(
+            {
+              tool: 'LL Parser Generator',
+              description: 'Comprehensive LL(1) parser tools',
+              capabilities: [
+                'FIRST and FOLLOW set computation',
+                'LL(1) parse table construction',
+                'Conflict detection (FIRST-FIRST, FIRST-FOLLOW)',
+                'Predictive parsing with derivation trace',
+                'Parse tree construction',
+                'Recursive descent code generation',
+                'Left recursion elimination',
+                'Left factoring',
+              ],
+              concepts: {
+                LL1: 'Top-down parser that reads input Left-to-right, produces Leftmost derivation, using 1 token lookahead',
+                FIRST: 'Set of terminals that can begin strings derived from a symbol',
+                FOLLOW: 'Set of terminals that can appear after a non-terminal',
+                predictiveParsing: 'Parsing without backtracking using lookahead',
+                recursiveDescent: 'Implementation using mutually recursive functions',
+              },
+              operations: [
+                'analyze',
+                'parse',
+                'first_follow',
+                'generate',
+                'transform',
+                'demo',
+                'examples',
+              ],
             },
-            operations: ['analyze', 'parse', 'first_follow', 'generate', 'transform', 'demo', 'examples']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Analyze Grammar',
-                params: {
-                  operation: 'analyze',
-                  grammar: 'E -> T E\'\nE\' -> + T E\' | ε\nT -> F T\'\nT\' -> * F T\' | ε\nF -> ( E ) | id'
-                }
-              },
-              {
-                name: 'Parse Input',
-                params: {
-                  operation: 'parse',
-                  grammar: 'S -> a S b | ε',
-                  input: ['a', 'a', 'b', 'b']
-                }
-              },
-              {
-                name: 'Eliminate Left Recursion',
-                params: {
-                  operation: 'transform',
-                  grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
-                  transformation: 'eliminate_left_recursion'
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Analyze Grammar',
+                  params: {
+                    operation: 'analyze',
+                    grammar:
+                      "E -> T E'\nE' -> + T E' | ε\nT -> F T'\nT' -> * F T' | ε\nF -> ( E ) | id",
+                  },
+                },
+                {
+                  name: 'Parse Input',
+                  params: {
+                    operation: 'parse',
+                    grammar: 'S -> a S b | ε',
+                    input: ['a', 'a', 'b', 'b'],
+                  },
+                },
+                {
+                  name: 'Eliminate Left Recursion',
+                  params: {
+                    operation: 'transform',
+                    grammar: 'E -> E + T | T\nT -> T * F | F\nF -> ( E ) | id',
+                    transformation: 'eliminate_left_recursion',
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -837,33 +874,37 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            grammar: {
-              terminals: grammar.terminals,
-              nonTerminals: grammar.nonTerminals,
-              startSymbol: grammar.startSymbol,
-              productionCount: grammar.productions.length,
-              formatted: formatGrammar(grammar)
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              grammar: {
+                terminals: grammar.terminals,
+                nonTerminals: grammar.nonTerminals,
+                startSymbol: grammar.startSymbol,
+                productionCount: grammar.productions.length,
+                formatted: formatGrammar(grammar),
+              },
+              analysis: {
+                isLL1: analysis.isLL1,
+                reason: analysis.isLL1
+                  ? 'Grammar has no FIRST-FIRST or FIRST-FOLLOW conflicts'
+                  : `Grammar has ${analysis.conflicts.length} conflict(s)`,
+                conflicts: analysis.conflicts.map((c) => ({
+                  type: c.type,
+                  location: `M[${c.nonTerminal}, ${c.terminal}]`,
+                  conflictingProductions: c.productions.map(
+                    (p) => `${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`
+                  ),
+                })),
+                nullableSymbols: analysis.nullableSymbols,
+                firstSets: analysis.firstSets,
+                followSets: analysis.followSets,
+              },
+              parseTable: analysis.parseTable,
             },
-            analysis: {
-              isLL1: analysis.isLL1,
-              reason: analysis.isLL1
-                ? 'Grammar has no FIRST-FIRST or FIRST-FOLLOW conflicts'
-                : `Grammar has ${analysis.conflicts.length} conflict(s)`,
-              conflicts: analysis.conflicts.map(c => ({
-                type: c.type,
-                location: `M[${c.nonTerminal}, ${c.terminal}]`,
-                conflictingProductions: c.productions.map(p =>
-                  `${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`
-                )
-              })),
-              nullableSymbols: analysis.nullableSymbols,
-              firstSets: analysis.firstSets,
-              followSets: analysis.followSets
-            },
-            parseTable: analysis.parseTable
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -879,31 +920,36 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
         const firstSets: Record<string, string[]> = {};
         const followSets: Record<string, string[]> = {};
 
-        grammar.nonTerminals.forEach(nt => {
+        grammar.nonTerminals.forEach((nt) => {
           firstSets[nt] = [...(first.get(nt) || [])].sort();
           followSets[nt] = [...(follow.get(nt) || [])].sort();
         });
 
         // Compute FIRST for each production's RHS
-        const productionFirsts = grammar.productions.map(p => ({
+        const productionFirsts = grammar.productions.map((p) => ({
           production: `${p.lhs} -> ${p.rhs.join(' ') || EPSILON}`,
-          first: [...computeFirstOfString(p.rhs, first)].sort()
+          first: [...computeFirstOfString(p.rhs, first)].sort(),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'first_follow',
-            grammar: formatGrammar(grammar),
-            firstSets,
-            followSets,
-            productionFirstSets: productionFirsts,
-            explanation: {
-              first: 'FIRST(X) = set of terminals that begin strings derivable from X',
-              follow: 'FOLLOW(A) = set of terminals that can appear immediately to the right of A',
-              epsilon: `${EPSILON} in FIRST means the symbol can derive empty string`
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'first_follow',
+              grammar: formatGrammar(grammar),
+              firstSets,
+              followSets,
+              productionFirstSets: productionFirsts,
+              explanation: {
+                first: 'FIRST(X) = set of terminals that begin strings derivable from X',
+                follow:
+                  'FOLLOW(A) = set of terminals that can appear immediately to the right of A',
+                epsilon: `${EPSILON} in FIRST means the symbol can derive empty string`,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -923,15 +969,19 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
         if (parseTable.conflicts.length > 0) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'parse',
-              error: 'Grammar is not LL(1) - has conflicts',
-              conflicts: parseTable.conflicts.map(c => ({
-                type: c.type,
-                location: `M[${c.nonTerminal}, ${c.terminal}]`
-              })),
-              suggestion: 'Try transforming the grammar first'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'parse',
+                error: 'Grammar is not LL(1) - has conflicts',
+                conflicts: parseTable.conflicts.map((c) => ({
+                  type: c.type,
+                  location: `M[${c.nonTerminal}, ${c.terminal}]`,
+                })),
+                suggestion: 'Try transforming the grammar first',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -939,19 +989,25 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'parse',
-            input: input.join(' '),
-            success: result.success,
-            ...(result.success ? {
-              parseTree: formatParseTree(result.tree!),
-              derivation: result.derivation
-            } : {
-              error: result.error,
-              position: result.position,
-              partialDerivation: result.derivation
-            })
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'parse',
+              input: input.join(' '),
+              success: result.success,
+              ...(result.success
+                ? {
+                    parseTree: formatParseTree(result.tree!),
+                    derivation: result.derivation,
+                  }
+                : {
+                    error: result.error,
+                    position: result.position,
+                    partialDerivation: result.derivation,
+                  }),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -966,12 +1022,16 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
         if (!analysis.isLL1) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'generate',
-              error: 'Cannot generate parser - grammar is not LL(1)',
-              conflicts: analysis.conflicts.length,
-              suggestion: 'Transform grammar first using eliminate_left_recursion or left_factor'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'generate',
+                error: 'Cannot generate parser - grammar is not LL(1)',
+                conflicts: analysis.conflicts.length,
+                suggestion: 'Transform grammar first using eliminate_left_recursion or left_factor',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -981,12 +1041,17 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate',
-            grammar: formatGrammar(grammar),
-            generatedCode: code,
-            usage: 'const parser = new Parser();\nconst success = parser.parse(["id", "+", "id"]);'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'generate',
+              grammar: formatGrammar(grammar),
+              generatedCode: code,
+              usage:
+                'const parser = new Parser();\nconst success = parser.parse(["id", "+", "id"]);',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1015,16 +1080,20 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'transform',
-            originalGrammar,
-            transformationsApplied: transformations,
-            transformedGrammar: formatGrammar(grammar),
-            analysis: {
-              isLL1: analysis.isLL1,
-              conflicts: analysis.conflicts.length
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'transform',
+              originalGrammar,
+              transformationsApplied: transformations,
+              transformedGrammar: formatGrammar(grammar),
+              analysis: {
+                isLL1: analysis.isLL1,
+                conflicts: analysis.conflicts.length,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1046,33 +1115,37 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            title: 'LL(1) Parser Generation Demo',
-            step1_original: {
-              grammar: formatGrammar(original),
-              isLL1: originalAnalysis.isLL1,
-              problem: 'Left recursion prevents LL(1) parsing'
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              title: 'LL(1) Parser Generation Demo',
+              step1_original: {
+                grammar: formatGrammar(original),
+                isLL1: originalAnalysis.isLL1,
+                problem: 'Left recursion prevents LL(1) parsing',
+              },
+              step2_transformed: {
+                grammar: formatGrammar(transformed),
+                isLL1: transformedAnalysis.isLL1,
+                firstSets: transformedAnalysis.firstSets,
+                followSets: transformedAnalysis.followSets,
+              },
+              step3_parsing: {
+                input: 'id + id * id',
+                success: parseResult.success,
+                derivation: parseResult.derivation?.slice(0, 10),
+                note: 'Showing first 10 derivation steps',
+              },
+              concepts: [
+                'LL(1) requires no left recursion',
+                'FIRST sets determine which production to use',
+                'FOLLOW sets handle nullable productions',
+                'Conflicts indicate grammar is not LL(1)',
+              ],
             },
-            step2_transformed: {
-              grammar: formatGrammar(transformed),
-              isLL1: transformedAnalysis.isLL1,
-              firstSets: transformedAnalysis.firstSets,
-              followSets: transformedAnalysis.followSets
-            },
-            step3_parsing: {
-              input: 'id + id * id',
-              success: parseResult.success,
-              derivation: parseResult.derivation?.slice(0, 10),
-              note: 'Showing first 10 derivation steps'
-            },
-            concepts: [
-              'LL(1) requires no left recursion',
-              'FIRST sets determine which production to use',
-              'FOLLOW sets handle nullable productions',
-              'Conflicts indicate grammar is not LL(1)'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1080,7 +1153,7 @@ export async function executellparser(toolCall: UnifiedToolCall): Promise<Unifie
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

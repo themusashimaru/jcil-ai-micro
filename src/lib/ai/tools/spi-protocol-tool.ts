@@ -27,7 +27,7 @@ type SlaveDeviceType = 'generic' | 'flash' | 'adc' | 'dac' | 'display' | 'eeprom
 
 interface SPIConfig {
   mode: SPIMode;
-  clockFrequency: number;      // Hz
+  clockFrequency: number; // Hz
   bitOrder: BitOrder;
   wordSize: WordSize;
   csActiveLevel: CSActiveLevel;
@@ -49,7 +49,7 @@ interface SPISlave {
 }
 
 interface SPISignal {
-  time: number;       // nanoseconds
+  time: number; // nanoseconds
   mosi: number | null;
   miso: number | null;
   clk: number;
@@ -62,26 +62,26 @@ interface SPITransaction {
   slaveId: string;
   mosiData: number[];
   misoData: number[];
-  duration: number;   // nanoseconds
+  duration: number; // nanoseconds
   clockCycles: number;
   signals: SPISignal[];
 }
 
 interface SPITimingAnalysis {
-  clockPeriod: number;        // ns
-  setupTime: number;          // ns
-  holdTime: number;           // ns
-  csSetupTime: number;        // ns
-  csHoldTime: number;         // ns
-  transferDuration: number;   // ns
-  effectiveBitrate: number;   // bps
-  efficiency: number;         // percentage
+  clockPeriod: number; // ns
+  setupTime: number; // ns
+  holdTime: number; // ns
+  csSetupTime: number; // ns
+  csHoldTime: number; // ns
+  transferDuration: number; // ns
+  effectiveBitrate: number; // bps
+  efficiency: number; // percentage
 }
 
 interface FlashDevice {
   manufacturer: number;
   deviceId: number;
-  capacity: number;         // bytes
+  capacity: number; // bytes
   pageSize: number;
   sectorSize: number;
   memory: Uint8Array;
@@ -105,7 +105,7 @@ const SPI_MODES: Record<SPIMode, { cpol: number; cpha: number; description: stri
   0: { cpol: 0, cpha: 0, description: 'Clock idle LOW, data sampled on RISING edge' },
   1: { cpol: 0, cpha: 1, description: 'Clock idle LOW, data sampled on FALLING edge' },
   2: { cpol: 1, cpha: 0, description: 'Clock idle HIGH, data sampled on FALLING edge' },
-  3: { cpol: 1, cpha: 1, description: 'Clock idle HIGH, data sampled on RISING edge' }
+  3: { cpol: 1, cpha: 1, description: 'Clock idle HIGH, data sampled on RISING edge' },
 };
 
 // ============================================================================
@@ -119,20 +119,18 @@ class SPIBus {
   private transactions: SPITransaction[] = [];
   private transactionCounter: number = 0;
   private flashDevices: Map<string, FlashDevice> = new Map();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private dmaConfig: DMAConfig | null = null;
   private collisionDetected: boolean = false;
 
   constructor(config?: Partial<SPIConfig>) {
     this.config = {
       mode: 0,
-      clockFrequency: 1000000,  // 1 MHz default
+      clockFrequency: 1000000, // 1 MHz default
       bitOrder: 'MSB',
       wordSize: 8,
       csActiveLevel: 'low',
       dmaEnabled: false,
       daisyChainEnabled: false,
-      ...config
+      ...config,
     };
   }
 
@@ -150,7 +148,7 @@ class SPIBus {
       ...slave,
       selected: false,
       memory: slave.memory || new Uint8Array(256),
-      registers: slave.registers || new Map()
+      registers: slave.registers || new Map(),
     };
     this.slaves.set(slave.id, fullSlave);
 
@@ -178,7 +176,7 @@ class SPIBus {
         this.collisionDetected = true;
         return {
           success: false,
-          error: `Bus collision detected! Slave ${this.selectedSlave} already selected.`
+          error: `Bus collision detected! Slave ${this.selectedSlave} already selected.`,
         };
       }
     }
@@ -192,7 +190,7 @@ class SPIBus {
     if (this.config.clockFrequency > slave.maxClockFrequency) {
       return {
         success: false,
-        error: `Clock frequency ${this.config.clockFrequency} Hz exceeds slave max ${slave.maxClockFrequency} Hz`
+        error: `Clock frequency ${this.config.clockFrequency} Hz exceeds slave max ${slave.maxClockFrequency} Hz`,
       };
     }
 
@@ -200,7 +198,7 @@ class SPIBus {
     if (!slave.supportedModes.includes(this.config.mode)) {
       return {
         success: false,
-        error: `SPI mode ${this.config.mode} not supported by slave. Supported: ${slave.supportedModes.join(', ')}`
+        error: `SPI mode ${this.config.mode} not supported by slave. Supported: ${slave.supportedModes.join(', ')}`,
       };
     }
 
@@ -245,7 +243,7 @@ class SPIBus {
     // Generate CS setup signal
     const csMap = new Map<string, number>();
     for (const [id, s] of this.slaves) {
-      csMap.set(id, s.csActiveLevel === 'low' ? (s.selected ? 0 : 1) : (s.selected ? 1 : 0));
+      csMap.set(id, s.csActiveLevel === 'low' ? (s.selected ? 0 : 1) : s.selected ? 1 : 0);
     }
 
     // CS setup time
@@ -254,7 +252,7 @@ class SPIBus {
       mosi: null,
       miso: null,
       clk: SPI_MODES[this.config.mode].cpol,
-      cs: new Map(csMap)
+      cs: new Map(csMap),
     });
     currentTime += 10; // 10ns CS setup
 
@@ -265,9 +263,7 @@ class SPIBus {
 
       // Generate bit-level signals
       for (let bit = 0; bit < this.config.wordSize; bit++) {
-        const bitIndex = this.config.bitOrder === 'MSB'
-          ? this.config.wordSize - 1 - bit
-          : bit;
+        const bitIndex = this.config.bitOrder === 'MSB' ? this.config.wordSize - 1 - bit : bit;
 
         const mosiBit = (mosiByte >> bitIndex) & 1;
         const misoBit = (misoByte >> bitIndex) & 1;
@@ -278,7 +274,7 @@ class SPIBus {
           mosi: mosiBit,
           miso: misoBit,
           clk: SPI_MODES[this.config.mode].cpol,
-          cs: new Map(csMap)
+          cs: new Map(csMap),
         });
         currentTime += clockPeriod / 2;
 
@@ -288,7 +284,7 @@ class SPIBus {
           mosi: mosiBit,
           miso: misoBit,
           clk: 1 - SPI_MODES[this.config.mode].cpol,
-          cs: new Map(csMap)
+          cs: new Map(csMap),
         });
         currentTime += clockPeriod / 2;
       }
@@ -301,7 +297,7 @@ class SPIBus {
       mosi: null,
       miso: null,
       clk: SPI_MODES[this.config.mode].cpol,
-      cs: new Map(csMap)
+      cs: new Map(csMap),
     });
 
     const transaction: SPITransaction = {
@@ -312,7 +308,7 @@ class SPIBus {
       misoData,
       duration: currentTime,
       clockCycles: mosiData.length * this.config.wordSize,
-      signals
+      signals,
     };
 
     this.transactions.push(transaction);
@@ -331,8 +327,6 @@ class SPIBus {
     duration: number;
     efficiency: number;
   } {
-    this.dmaConfig = config;
-
     const bytesTransferred = config.transferSize;
     const cycles = Math.ceil(bytesTransferred / config.burstSize) * config.burstSize;
     const clockPeriod = 1e9 / this.config.clockFrequency;
@@ -344,7 +338,7 @@ class SPIBus {
       bytesTransferred,
       cycles,
       duration,
-      efficiency
+      efficiency,
     };
   }
 
@@ -365,7 +359,7 @@ class SPIBus {
         return this.processSensor(slave, mosiByte);
       default:
         // Generic slave: echo with transformation
-        return mosiByte ^ 0xFF;
+        return mosiByte ^ 0xff;
     }
   }
 
@@ -374,27 +368,30 @@ class SPIBus {
    */
   private createFlashDevice(capacity: number): FlashDevice {
     return {
-      manufacturer: 0xEF,   // Winbond
-      deviceId: 0x4017,     // W25Q64
+      manufacturer: 0xef, // Winbond
+      deviceId: 0x4017, // W25Q64
       capacity,
       pageSize: 256,
       sectorSize: 4096,
       memory: new Uint8Array(capacity),
       writeEnabled: false,
-      statusRegister: 0x00
+      statusRegister: 0x00,
     };
   }
 
   // Flash command state machine
-  private flashCommandState: Map<string, {
-    state: 'idle' | 'read' | 'write' | 'erase';
-    address: number;
-    bytesRemaining: number;
-  }> = new Map();
+  private flashCommandState: Map<
+    string,
+    {
+      state: 'idle' | 'read' | 'write' | 'erase';
+      address: number;
+      bytesRemaining: number;
+    }
+  > = new Map();
 
   private processFlashCommand(slaveId: string, command: number): number {
     const flash = this.flashDevices.get(slaveId);
-    if (!flash) return 0xFF;
+    if (!flash) return 0xff;
 
     let state = this.flashCommandState.get(slaveId);
     if (!state) {
@@ -421,7 +418,7 @@ class SPIBus {
 
     // Process new commands
     switch (command) {
-      case 0x9F: // JEDEC ID
+      case 0x9f: // JEDEC ID
         return flash.manufacturer;
       case 0x06: // Write Enable
         flash.writeEnabled = true;
@@ -447,7 +444,7 @@ class SPIBus {
         if (flash.writeEnabled) {
           const sectorStart = state.address & ~(flash.sectorSize - 1);
           for (let i = 0; i < flash.sectorSize; i++) {
-            flash.memory[sectorStart + i] = 0xFF;
+            flash.memory[sectorStart + i] = 0xff;
           }
         }
         return 0x00;
@@ -461,7 +458,6 @@ class SPIBus {
   /**
    * ADC emulation - returns simulated analog readings
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private processADC(_slave: SPISlave, command: number): number {
     const channel = (command >> 4) & 0x07;
     // Simulate ADC reading with some variation
@@ -471,9 +467,9 @@ class SPIBus {
 
     // Return as 12-bit ADC value
     if ((command & 0x01) === 0) {
-      return (value >> 8) & 0x0F; // High byte
+      return (value >> 8) & 0x0f; // High byte
     } else {
-      return value & 0xFF; // Low byte
+      return value & 0xff; // Low byte
     }
   }
 
@@ -483,8 +479,8 @@ class SPIBus {
   private processDAC(slave: SPISlave, command: number): number {
     // Store DAC value in slave registers
     const channel = (command >> 4) & 0x03;
-    const value = command & 0x0F;
-    slave.registers?.set(channel, (slave.registers?.get(channel) || 0) << 4 | value);
+    const value = command & 0x0f;
+    slave.registers?.set(channel, ((slave.registers?.get(channel) || 0) << 4) | value);
     return 0x00; // DAC doesn't send data back
   }
 
@@ -496,7 +492,7 @@ class SPIBus {
     // 0x36=MemAccess, 0x3A=PixelFormat, 0x11=SleepOut, 0x29=DisplayON
 
     // Store command in registers
-    slave.registers?.set(0xFF, command);
+    slave.registers?.set(0xff, command);
 
     // Display doesn't typically send meaningful data back
     return 0x00;
@@ -505,12 +501,11 @@ class SPIBus {
   /**
    * Generic sensor emulation
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private processSensor(_slave: SPISlave, command: number): number {
     // Simulate sensor registers
     const registerMap: Record<number, number> = {
-      0x00: 0x68,  // WHO_AM_I
-      0x01: 0x00,  // Status
+      0x00: 0x68, // WHO_AM_I
+      0x01: 0x00, // Status
       0x02: Math.floor(Math.random() * 256), // Temp high
       0x03: Math.floor(Math.random() * 256), // Temp low
       0x04: Math.floor(Math.random() * 256), // Accel X
@@ -520,7 +515,7 @@ class SPIBus {
 
     // If read bit is set (0x80), return register value
     if (command & 0x80) {
-      const reg = command & 0x7F;
+      const reg = command & 0x7f;
       return registerMap[reg] ?? 0x00;
     }
 
@@ -537,13 +532,13 @@ class SPIBus {
 
     return {
       clockPeriod,
-      setupTime: clockPeriod * 0.25,  // 25% of clock period
+      setupTime: clockPeriod * 0.25, // 25% of clock period
       holdTime: clockPeriod * 0.25,
-      csSetupTime: 10,  // 10ns
+      csSetupTime: 10, // 10ns
       csHoldTime: 10,
       transferDuration: transaction.duration,
       effectiveBitrate: (bitsTransferred * 1e9) / transaction.duration,
-      efficiency: (theoreticalDuration / transaction.duration) * 100
+      efficiency: (theoreticalDuration / transaction.duration) * 100,
     };
   }
 
@@ -581,7 +576,10 @@ class SPIBus {
   /**
    * Daisy chain transfer
    */
-  daisyChainTransfer(data: number[]): { outputs: Map<string, number[]>; timing: SPITimingAnalysis } {
+  daisyChainTransfer(data: number[]): {
+    outputs: Map<string, number[]>;
+    timing: SPITimingAnalysis;
+  } {
     if (!this.config.daisyChainEnabled) {
       throw new Error('Daisy chain mode not enabled');
     }
@@ -610,9 +608,10 @@ class SPIBus {
       holdTime: 10,
       csSetupTime: 10,
       csHoldTime: 10,
-      transferDuration: data.length * this.config.wordSize * (1e9 / this.config.clockFrequency) * slaveIds.length,
+      transferDuration:
+        data.length * this.config.wordSize * (1e9 / this.config.clockFrequency) * slaveIds.length,
       effectiveBitrate: this.config.clockFrequency,
-      efficiency: 100 / slaveIds.length
+      efficiency: 100 / slaveIds.length,
     };
 
     return { outputs, timing };
@@ -653,7 +652,11 @@ class SPIBus {
   /**
    * Write to flash device
    */
-  writeFlash(slaveId: string, address: number, data: number[]): { success: boolean; bytesWritten: number } {
+  writeFlash(
+    slaveId: string,
+    address: number,
+    data: number[]
+  ): { success: boolean; bytesWritten: number } {
     const flash = this.flashDevices.get(slaveId);
     if (!flash) {
       throw new Error(`Flash device not found: ${slaveId}`);
@@ -690,101 +693,114 @@ function getBus(): SPIBus {
 
 export const spiprotocolTool: UnifiedTool = {
   name: 'spi_protocol',
-  description: 'Full SPI bus protocol analyzer/simulator with multi-slave support, timing analysis, DMA, and device emulation',
+  description:
+    'Full SPI bus protocol analyzer/simulator with multi-slave support, timing analysis, DMA, and device emulation',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'configure', 'transfer', 'add_slave', 'select_slave', 'analyze_timing',
-          'emulate_device', 'read_flash', 'write_flash', 'display_command',
-          'dma_transfer', 'daisy_chain', 'visualize', 'get_status', 'info', 'examples'
+          'configure',
+          'transfer',
+          'add_slave',
+          'select_slave',
+          'analyze_timing',
+          'emulate_device',
+          'read_flash',
+          'write_flash',
+          'display_command',
+          'dma_transfer',
+          'daisy_chain',
+          'visualize',
+          'get_status',
+          'info',
+          'examples',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       mode: {
         type: 'number',
         enum: ['0', '1', '2', '3'],
-        description: 'SPI mode (0-3) based on CPOL/CPHA'
+        description: 'SPI mode (0-3) based on CPOL/CPHA',
       },
       clockFrequency: {
         type: 'number',
-        description: 'Clock frequency in Hz (e.g., 1000000 for 1MHz)'
+        description: 'Clock frequency in Hz (e.g., 1000000 for 1MHz)',
       },
       bitOrder: {
         type: 'string',
         enum: ['MSB', 'LSB'],
-        description: 'Bit order (MSB or LSB first)'
+        description: 'Bit order (MSB or LSB first)',
       },
       wordSize: {
         type: 'number',
         enum: ['8', '16', '32'],
-        description: 'Word size in bits'
+        description: 'Word size in bits',
       },
       csActiveLevel: {
         type: 'string',
         enum: ['low', 'high'],
-        description: 'Chip select active level'
+        description: 'Chip select active level',
       },
       dmaEnabled: {
         type: 'boolean',
-        description: 'Enable DMA transfers'
+        description: 'Enable DMA transfers',
       },
       daisyChainEnabled: {
         type: 'boolean',
-        description: 'Enable daisy chain mode'
+        description: 'Enable daisy chain mode',
       },
       slaveId: {
         type: 'string',
-        description: 'Slave device identifier'
+        description: 'Slave device identifier',
       },
       slaveName: {
         type: 'string',
-        description: 'Slave device name'
+        description: 'Slave device name',
       },
       deviceType: {
         type: 'string',
         enum: ['generic', 'flash', 'adc', 'dac', 'display', 'eeprom', 'sensor'],
-        description: 'Type of slave device to emulate'
+        description: 'Type of slave device to emulate',
       },
       csPin: {
         type: 'number',
-        description: 'Chip select pin number'
+        description: 'Chip select pin number',
       },
       maxClockFrequency: {
         type: 'number',
-        description: 'Maximum clock frequency supported by slave'
+        description: 'Maximum clock frequency supported by slave',
       },
       supportedModes: {
         type: 'array',
         items: { type: 'number' },
-        description: 'SPI modes supported by slave'
+        description: 'SPI modes supported by slave',
       },
       data: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Data bytes to transfer'
+        description: 'Data bytes to transfer',
       },
       address: {
         type: 'number',
-        description: 'Memory address for flash operations'
+        description: 'Memory address for flash operations',
       },
       length: {
         type: 'number',
-        description: 'Number of bytes to read/write'
+        description: 'Number of bytes to read/write',
       },
       command: {
         type: 'number',
-        description: 'Command byte for device'
+        description: 'Command byte for device',
       },
       dmaConfig: {
         type: 'object',
-        description: 'DMA configuration object'
-      }
+        description: 'DMA configuration object',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -804,28 +820,32 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           wordSize: args.wordSize,
           csActiveLevel: args.csActiveLevel,
           dmaEnabled: args.dmaEnabled,
-          daisyChainEnabled: args.daisyChainEnabled
+          daisyChainEnabled: args.daisyChainEnabled,
         });
 
         const modeInfo = SPI_MODES[config.mode];
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'configure',
-            config,
-            modeDetails: {
-              mode: config.mode,
-              cpol: modeInfo.cpol,
-              cpha: modeInfo.cpha,
-              description: modeInfo.description
+          content: JSON.stringify(
+            {
+              operation: 'configure',
+              config,
+              modeDetails: {
+                mode: config.mode,
+                cpol: modeInfo.cpol,
+                cpha: modeInfo.cpha,
+                description: modeInfo.description,
+              },
+              timing: {
+                clockPeriodNs: (1e9 / config.clockFrequency).toFixed(2),
+                maxBitrateMbps: (config.clockFrequency / 1e6).toFixed(2),
+                bitsPerWord: config.wordSize,
+              },
             },
-            timing: {
-              clockPeriodNs: (1e9 / config.clockFrequency).toFixed(2),
-              maxBitrateMbps: (config.clockFrequency / 1e6).toFixed(2),
-              bitsPerWord: config.wordSize
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -837,24 +857,28 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           csPin: args.csPin ?? 0,
           csActiveLevel: args.csActiveLevel || 'low',
           maxClockFrequency: args.maxClockFrequency || 10000000,
-          supportedModes: args.supportedModes || [0, 1, 2, 3]
+          supportedModes: args.supportedModes || [0, 1, 2, 3],
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'add_slave',
-            slave: {
-              id: slave.id,
-              name: slave.name,
-              deviceType: slave.deviceType,
-              csPin: slave.csPin,
-              csActiveLevel: slave.csActiveLevel,
-              maxClockFrequency: slave.maxClockFrequency,
-              supportedModes: slave.supportedModes
+          content: JSON.stringify(
+            {
+              operation: 'add_slave',
+              slave: {
+                id: slave.id,
+                name: slave.name,
+                deviceType: slave.deviceType,
+                csPin: slave.csPin,
+                csActiveLevel: slave.csActiveLevel,
+                maxClockFrequency: slave.maxClockFrequency,
+                supportedModes: slave.supportedModes,
+              },
+              totalSlaves: bus.getSlaves().length,
             },
-            totalSlaves: bus.getSlaves().length
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -863,51 +887,69 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'select_slave',
-            slaveId: args.slaveId,
-            success: result.success,
-            error: result.error,
-            selectedSlave: result.slave ? {
-              id: result.slave.id,
-              name: result.slave.name,
-              deviceType: result.slave.deviceType
-            } : null
-          }, null, 2),
-          isError: !result.success
+          content: JSON.stringify(
+            {
+              operation: 'select_slave',
+              slaveId: args.slaveId,
+              success: result.success,
+              error: result.error,
+              selectedSlave: result.slave
+                ? {
+                    id: result.slave.id,
+                    name: result.slave.name,
+                    deviceType: result.slave.deviceType,
+                  }
+                : null,
+            },
+            null,
+            2
+          ),
+          isError: !result.success,
         };
       }
 
       case 'transfer': {
-        const data = args.data || [0x9F, 0x00, 0x00]; // Default: JEDEC ID read
+        const data = args.data || [0x9f, 0x00, 0x00]; // Default: JEDEC ID read
 
         try {
           const result = bus.transfer(data);
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'transfer',
-              transactionId: result.transaction.id,
-              mosiData: result.transaction.mosiData.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
-              misoData: result.misoData.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
-              timing: {
-                durationNs: result.timing.transferDuration.toFixed(2),
-                clockCycles: result.transaction.clockCycles,
-                effectiveBitrateMbps: (result.timing.effectiveBitrate / 1e6).toFixed(2),
-                efficiency: `${result.timing.efficiency.toFixed(1)}%`
+            content: JSON.stringify(
+              {
+                operation: 'transfer',
+                transactionId: result.transaction.id,
+                mosiData: result.transaction.mosiData.map(
+                  (b: number) => `0x${b.toString(16).padStart(2, '0')}`
+                ),
+                misoData: result.misoData.map(
+                  (b: number) => `0x${b.toString(16).padStart(2, '0')}`
+                ),
+                timing: {
+                  durationNs: result.timing.transferDuration.toFixed(2),
+                  clockCycles: result.transaction.clockCycles,
+                  effectiveBitrateMbps: (result.timing.effectiveBitrate / 1e6).toFixed(2),
+                  efficiency: `${result.timing.efficiency.toFixed(1)}%`,
+                },
+                signalVisualization: bus.visualizeSignals(result.transaction),
               },
-              signalVisualization: bus.visualizeSignals(result.transaction)
-            }, null, 2)
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'transfer',
-              error: e instanceof Error ? e.message : 'Transfer failed'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'transfer',
+                error: e instanceof Error ? e.message : 'Transfer failed',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
       }
@@ -917,11 +959,15 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
         if (transactions.length === 0) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'analyze_timing',
-              error: 'No transactions to analyze'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'analyze_timing',
+                error: 'No transactions to analyze',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -931,25 +977,33 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze_timing',
-            transactionId: lastTransaction.id,
-            timing: {
-              clockPeriodNs: timing.clockPeriod.toFixed(2),
-              setupTimeNs: timing.setupTime.toFixed(2),
-              holdTimeNs: timing.holdTime.toFixed(2),
-              csSetupTimeNs: timing.csSetupTime,
-              csHoldTimeNs: timing.csHoldTime,
-              totalDurationNs: timing.transferDuration.toFixed(2),
-              effectiveBitrateMbps: (timing.effectiveBitrate / 1e6).toFixed(2),
-              efficiency: `${timing.efficiency.toFixed(1)}%`
+          content: JSON.stringify(
+            {
+              operation: 'analyze_timing',
+              transactionId: lastTransaction.id,
+              timing: {
+                clockPeriodNs: timing.clockPeriod.toFixed(2),
+                setupTimeNs: timing.setupTime.toFixed(2),
+                holdTimeNs: timing.holdTime.toFixed(2),
+                csSetupTimeNs: timing.csSetupTime,
+                csHoldTimeNs: timing.csHoldTime,
+                totalDurationNs: timing.transferDuration.toFixed(2),
+                effectiveBitrateMbps: (timing.effectiveBitrate / 1e6).toFixed(2),
+                efficiency: `${timing.efficiency.toFixed(1)}%`,
+              },
+              recommendations: [
+                timing.efficiency < 90 ? 'Consider reducing CS setup/hold times' : null,
+                config.clockFrequency < 1e6
+                  ? 'Clock frequency could be increased for faster transfers'
+                  : null,
+                config.wordSize === 8 && lastTransaction.mosiData.length > 4
+                  ? 'Consider using 16 or 32-bit word size for bulk transfers'
+                  : null,
+              ].filter(Boolean),
             },
-            recommendations: [
-              timing.efficiency < 90 ? 'Consider reducing CS setup/hold times' : null,
-              config.clockFrequency < 1e6 ? 'Clock frequency could be increased for faster transfers' : null,
-              config.wordSize === 8 && lastTransaction.mosiData.length > 4 ? 'Consider using 16 or 32-bit word size for bulk transfers' : null
-            ].filter(Boolean)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -962,31 +1016,35 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           flash: {
             name: 'W25Q64 Flash',
             maxClockFrequency: 104000000,
-            supportedModes: [0, 3]
+            supportedModes: [0, 3],
           },
           adc: {
             name: 'MCP3008 ADC',
             maxClockFrequency: 3600000,
-            supportedModes: [0, 3]
+            supportedModes: [0, 3],
           },
           dac: {
             name: 'MCP4921 DAC',
             maxClockFrequency: 20000000,
-            supportedModes: [0, 3]
+            supportedModes: [0, 3],
           },
           display: {
             name: 'ILI9341 Display',
             maxClockFrequency: 10000000,
-            supportedModes: [0]
+            supportedModes: [0],
           },
           sensor: {
             name: 'MPU6500 IMU',
             maxClockFrequency: 20000000,
-            supportedModes: [0, 3]
-          }
+            supportedModes: [0, 3],
+          },
         };
 
-        const profile = deviceProfiles[deviceType] || { name: 'Generic Device', maxClockFrequency: 10000000, supportedModes: [0, 1, 2, 3] };
+        const profile = deviceProfiles[deviceType] || {
+          name: 'Generic Device',
+          maxClockFrequency: 10000000,
+          supportedModes: [0, 1, 2, 3],
+        };
 
         const slave = bus.addSlave({
           id: slaveId,
@@ -995,42 +1053,66 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           csPin: args.csPin ?? bus.getSlaves().length,
           csActiveLevel: args.csActiveLevel || 'low',
           maxClockFrequency: profile.maxClockFrequency!,
-          supportedModes: profile.supportedModes as SPIMode[]
+          supportedModes: profile.supportedModes as SPIMode[],
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'emulate_device',
-            device: {
-              id: slave.id,
-              name: slave.name,
-              type: slave.deviceType,
-              csPin: slave.csPin,
-              maxClockMHz: slave.maxClockFrequency / 1e6,
-              supportedModes: slave.supportedModes
+          content: JSON.stringify(
+            {
+              operation: 'emulate_device',
+              device: {
+                id: slave.id,
+                name: slave.name,
+                type: slave.deviceType,
+                csPin: slave.csPin,
+                maxClockMHz: slave.maxClockFrequency / 1e6,
+                supportedModes: slave.supportedModes,
+              },
+              capabilities:
+                deviceType === 'flash'
+                  ? {
+                      commands: [
+                        'Read (0x03)',
+                        'Write Enable (0x06)',
+                        'Page Program (0x02)',
+                        'Sector Erase (0x20)',
+                        'JEDEC ID (0x9F)',
+                      ],
+                      capacity: '1MB',
+                      pageSize: 256,
+                      sectorSize: 4096,
+                    }
+                  : deviceType === 'adc'
+                    ? {
+                        channels: 8,
+                        resolution: '12-bit',
+                        sampleRate: '200ksps',
+                      }
+                    : deviceType === 'dac'
+                      ? {
+                          channels: 1,
+                          resolution: '12-bit',
+                          outputRange: '0-VREF',
+                        }
+                      : deviceType === 'display'
+                        ? {
+                            resolution: '320x240',
+                            colorDepth: '16-bit RGB565',
+                            commands: [
+                              'Clear (0x01)',
+                              'Column Set (0x2A)',
+                              'Row Set (0x2B)',
+                              'Memory Write (0x2C)',
+                            ],
+                          }
+                        : {
+                            type: 'Generic register-based device',
+                          },
             },
-            capabilities: deviceType === 'flash' ? {
-              commands: ['Read (0x03)', 'Write Enable (0x06)', 'Page Program (0x02)', 'Sector Erase (0x20)', 'JEDEC ID (0x9F)'],
-              capacity: '1MB',
-              pageSize: 256,
-              sectorSize: 4096
-            } : deviceType === 'adc' ? {
-              channels: 8,
-              resolution: '12-bit',
-              sampleRate: '200ksps'
-            } : deviceType === 'dac' ? {
-              channels: 1,
-              resolution: '12-bit',
-              outputRange: '0-VREF'
-            } : deviceType === 'display' ? {
-              resolution: '320x240',
-              colorDepth: '16-bit RGB565',
-              commands: ['Clear (0x01)', 'Column Set (0x2A)', 'Row Set (0x2B)', 'Memory Write (0x2C)']
-            } : {
-              type: 'Generic register-based device'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1042,11 +1124,15 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
         if (!slaveId) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'read_flash',
-              error: 'slaveId is required'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'read_flash',
+                error: 'slaveId is required',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1055,23 +1141,31 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'read_flash',
-              slaveId,
-              address: `0x${address.toString(16).padStart(6, '0')}`,
-              length,
-              data: data.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
-              hexDump: formatHexDump(data, address)
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'read_flash',
+                slaveId,
+                address: `0x${address.toString(16).padStart(6, '0')}`,
+                length,
+                data: data.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
+                hexDump: formatHexDump(data, address),
+              },
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'read_flash',
-              error: e instanceof Error ? e.message : 'Read failed'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'read_flash',
+                error: e instanceof Error ? e.message : 'Read failed',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
       }
@@ -1079,16 +1173,20 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
       case 'write_flash': {
         const slaveId = args.slaveId;
         const address = args.address ?? 0;
-        const data = args.data || [0x48, 0x65, 0x6C, 0x6C, 0x6F]; // "Hello"
+        const data = args.data || [0x48, 0x65, 0x6c, 0x6c, 0x6f]; // "Hello"
 
         if (!slaveId) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'write_flash',
-              error: 'slaveId is required'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'write_flash',
+                error: 'slaveId is required',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1106,23 +1204,31 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'write_flash',
-              slaveId,
-              address: `0x${address.toString(16).padStart(6, '0')}`,
-              bytesWritten: result.bytesWritten,
-              success: result.success,
-              data: data.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`)
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'write_flash',
+                slaveId,
+                address: `0x${address.toString(16).padStart(6, '0')}`,
+                bytesWritten: result.bytesWritten,
+                success: result.success,
+                data: data.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
+              },
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'write_flash',
-              error: e instanceof Error ? e.message : 'Write failed'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'write_flash',
+                error: e instanceof Error ? e.message : 'Write failed',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
       }
@@ -1134,11 +1240,15 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
         if (!slaveId) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'display_command',
-              error: 'slaveId is required'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'display_command',
+                error: 'slaveId is required',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1147,11 +1257,11 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           0x11: { name: 'SLPOUT', description: 'Sleep Out' },
           0x29: { name: 'DISPON', description: 'Display ON' },
           0x28: { name: 'DISPOFF', description: 'Display OFF' },
-          0x2A: { name: 'CASET', description: 'Column Address Set' },
-          0x2B: { name: 'RASET', description: 'Row Address Set' },
-          0x2C: { name: 'RAMWR', description: 'Memory Write' },
+          0x2a: { name: 'CASET', description: 'Column Address Set' },
+          0x2b: { name: 'RASET', description: 'Row Address Set' },
+          0x2c: { name: 'RAMWR', description: 'Memory Write' },
           0x36: { name: 'MADCTL', description: 'Memory Access Control' },
-          0x3A: { name: 'COLMOD', description: 'Pixel Format Set' }
+          0x3a: { name: 'COLMOD', description: 'Pixel Format Set' },
         };
 
         try {
@@ -1161,27 +1271,38 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           }
 
           bus.transfer([command]);
-          const cmdInfo = displayCommands[command] || { name: 'Unknown', description: 'Custom command' };
+          const cmdInfo = displayCommands[command] || {
+            name: 'Unknown',
+            description: 'Custom command',
+          };
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'display_command',
-              slaveId,
-              command: `0x${command.toString(16).padStart(2, '0')}`,
-              commandName: cmdInfo.name,
-              description: cmdInfo.description,
-              sent: true
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'display_command',
+                slaveId,
+                command: `0x${command.toString(16).padStart(2, '0')}`,
+                commandName: cmdInfo.name,
+                description: cmdInfo.description,
+                sent: true,
+              },
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'display_command',
-              error: e instanceof Error ? e.message : 'Command failed'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'display_command',
+                error: e instanceof Error ? e.message : 'Command failed',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
       }
@@ -1192,40 +1313,44 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
           destAddress: 0x40013000,
           transferSize: 256,
           burstSize: 4,
-          circular: false
+          circular: false,
         };
 
         const result = bus.dmaTransfer(dmaConfig);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'dma_transfer',
-            config: {
-              source: `0x${dmaConfig.sourceAddress.toString(16)}`,
-              destination: `0x${dmaConfig.destAddress.toString(16)}`,
-              size: dmaConfig.transferSize,
-              burstSize: dmaConfig.burstSize,
-              circular: dmaConfig.circular
+          content: JSON.stringify(
+            {
+              operation: 'dma_transfer',
+              config: {
+                source: `0x${dmaConfig.sourceAddress.toString(16)}`,
+                destination: `0x${dmaConfig.destAddress.toString(16)}`,
+                size: dmaConfig.transferSize,
+                burstSize: dmaConfig.burstSize,
+                circular: dmaConfig.circular,
+              },
+              result: {
+                bytesTransferred: result.bytesTransferred,
+                clockCycles: result.cycles,
+                durationNs: result.duration.toFixed(2),
+                efficiency: `${result.efficiency.toFixed(1)}%`,
+              },
+              advantages: [
+                'CPU free during transfer',
+                'Continuous data streaming',
+                'Reduced interrupt overhead',
+                dmaConfig.circular ? 'Circular buffer enables continuous sampling' : null,
+              ].filter(Boolean),
             },
-            result: {
-              bytesTransferred: result.bytesTransferred,
-              clockCycles: result.cycles,
-              durationNs: result.duration.toFixed(2),
-              efficiency: `${result.efficiency.toFixed(1)}%`
-            },
-            advantages: [
-              'CPU free during transfer',
-              'Continuous data streaming',
-              'Reduced interrupt overhead',
-              dmaConfig.circular ? 'Circular buffer enables continuous sampling' : null
-            ].filter(Boolean)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'daisy_chain': {
-        const data = args.data || [0xAA, 0xBB, 0xCC];
+        const data = args.data || [0xaa, 0xbb, 0xcc];
         const config = bus.getConfig();
 
         if (!config.daisyChainEnabled) {
@@ -1235,11 +1360,15 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
         if (bus.getSlaves().length < 2) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'daisy_chain',
-              error: 'Daisy chain requires at least 2 slaves'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'daisy_chain',
+                error: 'Daisy chain requires at least 2 slaves',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1251,16 +1380,23 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'daisy_chain',
-            inputData: data.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
-            slaveOutputs: outputs,
-            timing: {
-              totalDurationNs: result.timing.transferDuration.toFixed(2),
-              efficiency: `${result.timing.efficiency.toFixed(1)}%`
+          content: JSON.stringify(
+            {
+              operation: 'daisy_chain',
+              inputData: data.map((b: number) => `0x${b.toString(16).padStart(2, '0')}`),
+              slaveOutputs: outputs,
+              timing: {
+                totalDurationNs: result.timing.transferDuration.toFixed(2),
+                efficiency: `${result.timing.efficiency.toFixed(1)}%`,
+              },
+              topology: bus
+                .getSlaves()
+                .map((s) => s.name)
+                .join(' -> '),
             },
-            topology: bus.getSlaves().map(s => s.name).join(' -> ')
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1269,11 +1405,15 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
         if (transactions.length === 0) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'visualize',
-              error: 'No transactions to visualize'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'visualize',
+                error: 'No transactions to visualize',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1283,22 +1423,26 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'visualize',
-            transactionId: lastTransaction.id,
-            config: {
-              mode: config.mode,
-              clockFrequency: `${config.clockFrequency / 1e6} MHz`,
-              bitOrder: config.bitOrder
+          content: JSON.stringify(
+            {
+              operation: 'visualize',
+              transactionId: lastTransaction.id,
+              config: {
+                mode: config.mode,
+                clockFrequency: `${config.clockFrequency / 1e6} MHz`,
+                bitOrder: config.bitOrder,
+              },
+              signals: visualization,
+              legend: {
+                CLK: 'Clock signal (-=low, _=high)',
+                MOSI: 'Master Out Slave In (0/1/-)',
+                MISO: 'Master In Slave Out (0/1/-)',
+                CS: 'Chip Select (-=active low, _=inactive)',
+              },
             },
-            signals: visualization,
-            legend: {
-              'CLK': 'Clock signal (-=low, _=high)',
-              'MOSI': 'Master Out Slave In (0/1/-)',
-              'MISO': 'Master In Slave Out (0/1/-)',
-              'CS': 'Chip Select (-=active low, _=inactive)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1309,124 +1453,156 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'get_status',
-            busConfig: {
-              mode: config.mode,
-              modeDescription: SPI_MODES[config.mode].description,
-              clockFrequency: `${config.clockFrequency / 1e6} MHz`,
-              bitOrder: config.bitOrder,
-              wordSize: config.wordSize,
-              csActiveLevel: config.csActiveLevel,
-              dmaEnabled: config.dmaEnabled,
-              daisyChainEnabled: config.daisyChainEnabled
+          content: JSON.stringify(
+            {
+              operation: 'get_status',
+              busConfig: {
+                mode: config.mode,
+                modeDescription: SPI_MODES[config.mode].description,
+                clockFrequency: `${config.clockFrequency / 1e6} MHz`,
+                bitOrder: config.bitOrder,
+                wordSize: config.wordSize,
+                csActiveLevel: config.csActiveLevel,
+                dmaEnabled: config.dmaEnabled,
+                daisyChainEnabled: config.daisyChainEnabled,
+              },
+              slaves: slaves.map((s) => ({
+                id: s.id,
+                name: s.name,
+                type: s.deviceType,
+                selected: s.selected,
+                csPin: s.csPin,
+              })),
+              statistics: {
+                totalSlaves: slaves.length,
+                totalTransactions: transactions.length,
+                busCollisionDetected: bus.hasCollision(),
+              },
             },
-            slaves: slaves.map(s => ({
-              id: s.id,
-              name: s.name,
-              type: s.deviceType,
-              selected: s.selected,
-              csPin: s.csPin
-            })),
-            statistics: {
-              totalSlaves: slaves.length,
-              totalTransactions: transactions.length,
-              busCollisionDetected: bus.hasCollision()
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'SPI Protocol Analyzer/Simulator',
-            description: 'Full-featured SPI bus protocol tool for embedded/IoT development',
-            features: {
-              communication: [
-                'Full-duplex transfers',
-                'All 4 SPI modes (CPOL/CPHA combinations)',
-                'Configurable clock frequency',
-                'MSB/LSB first bit ordering',
-                '8/16/32-bit word sizes'
+          content: JSON.stringify(
+            {
+              tool: 'SPI Protocol Analyzer/Simulator',
+              description: 'Full-featured SPI bus protocol tool for embedded/IoT development',
+              features: {
+                communication: [
+                  'Full-duplex transfers',
+                  'All 4 SPI modes (CPOL/CPHA combinations)',
+                  'Configurable clock frequency',
+                  'MSB/LSB first bit ordering',
+                  '8/16/32-bit word sizes',
+                ],
+                busManagement: [
+                  'Multi-slave topology',
+                  'Chip select management',
+                  'Bus collision detection',
+                  'Daisy chain configuration',
+                ],
+                deviceEmulation: [
+                  'Flash memory (W25Q series)',
+                  'ADC (MCP3008)',
+                  'DAC (MCP4921)',
+                  'Display (ILI9341)',
+                  'IMU sensors (MPU6500)',
+                ],
+                analysis: [
+                  'Transaction timing analysis',
+                  'Signal visualization',
+                  'Efficiency metrics',
+                  'DMA transfer simulation',
+                ],
+              },
+              spiModes: Object.entries(SPI_MODES).map(([mode, info]) => ({
+                mode: parseInt(mode),
+                cpol: info.cpol,
+                cpha: info.cpha,
+                description: info.description,
+              })),
+              typicalApplications: [
+                'Flash memory programming',
+                'Sensor interfacing',
+                'Display controllers',
+                'ADC/DAC data acquisition',
+                'Inter-processor communication',
               ],
-              busManagement: [
-                'Multi-slave topology',
-                'Chip select management',
-                'Bus collision detection',
-                'Daisy chain configuration'
-              ],
-              deviceEmulation: [
-                'Flash memory (W25Q series)',
-                'ADC (MCP3008)',
-                'DAC (MCP4921)',
-                'Display (ILI9341)',
-                'IMU sensors (MPU6500)'
-              ],
-              analysis: [
-                'Transaction timing analysis',
-                'Signal visualization',
-                'Efficiency metrics',
-                'DMA transfer simulation'
-              ]
             },
-            spiModes: Object.entries(SPI_MODES).map(([mode, info]) => ({
-              mode: parseInt(mode),
-              cpol: info.cpol,
-              cpha: info.cpha,
-              description: info.description
-            })),
-            typicalApplications: [
-              'Flash memory programming',
-              'Sensor interfacing',
-              'Display controllers',
-              'ADC/DAC data acquisition',
-              'Inter-processor communication'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Configure SPI bus',
-                call: { operation: 'configure', mode: 0, clockFrequency: 1000000, bitOrder: 'MSB', wordSize: 8 }
-              },
-              {
-                name: 'Add flash slave device',
-                call: { operation: 'emulate_device', deviceType: 'flash', slaveId: 'flash0' }
-              },
-              {
-                name: 'Select slave',
-                call: { operation: 'select_slave', slaveId: 'flash0' }
-              },
-              {
-                name: 'Read JEDEC ID',
-                call: { operation: 'transfer', data: [0x9F, 0x00, 0x00, 0x00] }
-              },
-              {
-                name: 'Write to flash',
-                call: { operation: 'write_flash', slaveId: 'flash0', address: 0, data: [0x48, 0x65, 0x6C, 0x6C, 0x6F] }
-              },
-              {
-                name: 'Read from flash',
-                call: { operation: 'read_flash', slaveId: 'flash0', address: 0, length: 16 }
-              },
-              {
-                name: 'Analyze timing',
-                call: { operation: 'analyze_timing' }
-              },
-              {
-                name: 'DMA transfer',
-                call: { operation: 'dma_transfer', dmaConfig: { sourceAddress: 0x20000000, destAddress: 0x40013000, transferSize: 256, burstSize: 4, circular: false } }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Configure SPI bus',
+                  call: {
+                    operation: 'configure',
+                    mode: 0,
+                    clockFrequency: 1000000,
+                    bitOrder: 'MSB',
+                    wordSize: 8,
+                  },
+                },
+                {
+                  name: 'Add flash slave device',
+                  call: { operation: 'emulate_device', deviceType: 'flash', slaveId: 'flash0' },
+                },
+                {
+                  name: 'Select slave',
+                  call: { operation: 'select_slave', slaveId: 'flash0' },
+                },
+                {
+                  name: 'Read JEDEC ID',
+                  call: { operation: 'transfer', data: [0x9f, 0x00, 0x00, 0x00] },
+                },
+                {
+                  name: 'Write to flash',
+                  call: {
+                    operation: 'write_flash',
+                    slaveId: 'flash0',
+                    address: 0,
+                    data: [0x48, 0x65, 0x6c, 0x6c, 0x6f],
+                  },
+                },
+                {
+                  name: 'Read from flash',
+                  call: { operation: 'read_flash', slaveId: 'flash0', address: 0, length: 16 },
+                },
+                {
+                  name: 'Analyze timing',
+                  call: { operation: 'analyze_timing' },
+                },
+                {
+                  name: 'DMA transfer',
+                  call: {
+                    operation: 'dma_transfer',
+                    dmaConfig: {
+                      sourceAddress: 0x20000000,
+                      destAddress: 0x40013000,
+                      transferSize: 256,
+                      burstSize: 4,
+                      circular: false,
+                    },
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1434,7 +1610,7 @@ export async function executespiprotocol(toolCall: UnifiedToolCall): Promise<Uni
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1450,11 +1626,19 @@ function formatHexDump(data: number[], baseAddress: number): string[] {
   const lines: string[] = [];
   for (let i = 0; i < data.length; i += 16) {
     const addr = (baseAddress + i).toString(16).padStart(6, '0');
-    const hex = data.slice(i, i + 16).map((b: number) => b.toString(16).padStart(2, '0')).join(' ');
-    const ascii = data.slice(i, i + 16).map((b: number) => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join('');
+    const hex = data
+      .slice(i, i + 16)
+      .map((b: number) => b.toString(16).padStart(2, '0'))
+      .join(' ');
+    const ascii = data
+      .slice(i, i + 16)
+      .map((b: number) => (b >= 32 && b < 127 ? String.fromCharCode(b) : '.'))
+      .join('');
     lines.push(`${addr}: ${hex.padEnd(48)} |${ascii}|`);
   }
   return lines;
 }
 
-export function isspiprotocolAvailable(): boolean { return true; }
+export function isspiprotocolAvailable(): boolean {
+  return true;
+}

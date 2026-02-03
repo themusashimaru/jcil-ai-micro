@@ -31,21 +31,19 @@ interface ColorImage {
 }
 
 interface SegmentationResult {
-  labels: number[][];       // Label map
-  numSegments: number;      // Number of segments
-  segmentSizes: number[];   // Size of each segment
+  labels: number[][]; // Label map
+  numSegments: number; // Number of segments
+  segmentSizes: number[]; // Size of each segment
   segmentColors?: number[][]; // Representative color for each segment
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Pixel {
+export interface Pixel {
   x: number;
   y: number;
   value: number | number[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Region {
+export interface Region {
   id: number;
   pixels: Pixel[];
   centroid: { x: number; y: number };
@@ -73,16 +71,16 @@ function rgbToLab(r: number, g: number, b: number): [number, number, number] {
 
   // Linear RGB to XYZ
   let X = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
-  let Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
-  let Z = R * 0.0193339 + G * 0.1191920 + B * 0.9503041;
+  let Y = R * 0.2126729 + G * 0.7151522 + B * 0.072175;
+  let Z = R * 0.0193339 + G * 0.119192 + B * 0.9503041;
 
   // Normalize for D65 illuminant
   X /= 0.95047;
-  Y /= 1.00000;
+  Y /= 1.0;
   Z /= 1.08883;
 
   // XYZ to LAB
-  const f = (t: number) => t > 0.008856 ? Math.pow(t, 1/3) : 7.787 * t + 16/116;
+  const f = (t: number) => (t > 0.008856 ? Math.pow(t, 1 / 3) : 7.787 * t + 16 / 116);
 
   const L = 116 * f(Y) - 16;
   const a = 500 * (f(X) - f(Y));
@@ -105,8 +103,7 @@ function colorDistance(c1: number[], c2: number[]): number {
 /**
  * Create grayscale image from color
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function toGrayscale(color: ColorImage): GrayscaleImage {
+export function toGrayscale(color: ColorImage): GrayscaleImage {
   const data: number[][] = [];
   for (let y = 0; y < color.height; y++) {
     data[y] = [];
@@ -210,7 +207,7 @@ class KMeansSegmenter {
       labels,
       numSegments: this.k,
       segmentSizes,
-      segmentColors: centroids.map(c => [c, c, c])
+      segmentColors: centroids.map((c) => [c, c, c]),
     };
   }
 
@@ -324,7 +321,7 @@ class KMeansSegmenter {
       labels,
       numSegments: this.k,
       segmentSizes,
-      segmentColors
+      segmentColors,
     };
   }
 }
@@ -362,7 +359,6 @@ class MeanShiftSegmenter {
    * Segment grayscale image using mean shift
    */
   segment(image: GrayscaleImage): SegmentationResult {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { width, height, data: _data } = image;
 
     // For each pixel, find the mode
@@ -407,7 +403,7 @@ class MeanShiftSegmenter {
     return {
       labels,
       numSegments,
-      segmentSizes
+      segmentSizes,
     };
   }
 
@@ -422,7 +418,10 @@ class MeanShiftSegmenter {
     let cValue = data[startY][startX];
 
     for (let iter = 0; iter < this.maxIterations; iter++) {
-      let sumX = 0, sumY = 0, sumValue = 0, sumWeight = 0;
+      let sumX = 0,
+        sumY = 0,
+        sumValue = 0,
+        sumWeight = 0;
 
       // Search in spatial window
       const minY = Math.max(0, Math.floor(cy - this.spatialBandwidth));
@@ -436,8 +435,9 @@ class MeanShiftSegmenter {
           const colorDist = Math.abs(data[y][x] - cValue);
 
           if (spatialDist <= this.spatialBandwidth && colorDist <= this.colorBandwidth) {
-            const weight = this.kernel(spatialDist, this.spatialBandwidth) *
-                          this.kernel(colorDist, this.colorBandwidth);
+            const weight =
+              this.kernel(spatialDist, this.spatialBandwidth) *
+              this.kernel(colorDist, this.colorBandwidth);
 
             sumX += x * weight;
             sumY += y * weight;
@@ -633,7 +633,7 @@ class WatershedSegmenter {
     return {
       labels,
       numSegments: numLabels,
-      segmentSizes
+      segmentSizes,
     };
   }
 
@@ -660,7 +660,8 @@ class WatershedSegmenter {
           }
         }
 
-        if (isMinimum && value < 50) { // Threshold for minima
+        if (isMinimum && value < 50) {
+          // Threshold for minima
           labels[y][x] = labelCount++;
         }
       }
@@ -756,7 +757,7 @@ class RegionGrowingSegmenter {
     return {
       labels,
       numSegments: labelCount,
-      segmentSizes
+      segmentSizes,
     };
   }
 
@@ -945,7 +946,7 @@ class GraphSegmenter {
     return {
       labels,
       numSegments: labelCount,
-      segmentSizes
+      segmentSizes,
     };
   }
 }
@@ -959,11 +960,7 @@ class SuperpixelSegmenter {
   private compactness: number;
   private maxIterations: number;
 
-  constructor(
-    numSuperpixels: number = 100,
-    compactness: number = 10,
-    maxIterations: number = 10
-  ) {
+  constructor(numSuperpixels: number = 100, compactness: number = 10, maxIterations: number = 10) {
     this.numSuperpixels = numSuperpixels;
     this.compactness = compactness;
     this.maxIterations = maxIterations;
@@ -988,7 +985,7 @@ class SuperpixelSegmenter {
         centers.push({
           x: cx,
           y: cy,
-          value: data[cy][cx]
+          value: data[cy][cx],
         });
       }
     }
@@ -1102,7 +1099,7 @@ class SuperpixelSegmenter {
     return {
       labels,
       numSegments,
-      segmentSizes
+      segmentSizes,
     };
   }
 
@@ -1190,8 +1187,14 @@ function connectedComponents(binaryImage: number[][]): SegmentationResult {
             const nx = cx + dx[d];
             const ny = cy + dy[d];
 
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height &&
-                binaryImage[ny][nx] > 0 && labels[ny][nx] === 0) {
+            if (
+              nx >= 0 &&
+              nx < width &&
+              ny >= 0 &&
+              ny < height &&
+              binaryImage[ny][nx] > 0 &&
+              labels[ny][nx] === 0
+            ) {
               labels[ny][nx] = currentLabel;
               queue.push({ x: nx, y: ny });
             }
@@ -1212,7 +1215,7 @@ function connectedComponents(binaryImage: number[][]): SegmentationResult {
   return {
     labels,
     numSegments: currentLabel + 1,
-    segmentSizes
+    segmentSizes,
   };
 }
 
@@ -1240,7 +1243,7 @@ function generateTestImage(
         { cx: width * 0.25, cy: height * 0.25, r: 30, value: 50 },
         { cx: width * 0.75, cy: height * 0.25, r: 40, value: 200 },
         { cx: width * 0.5, cy: height * 0.6, r: 50, value: 100 },
-        { cx: width * 0.3, cy: height * 0.75, r: 25, value: 220 }
+        { cx: width * 0.3, cy: height * 0.75, r: 25, value: 220 },
       ];
 
       for (const blob of blobs) {
@@ -1271,7 +1274,7 @@ function generateTestImage(
         for (let x = 0; x < width; x++) {
           const sx = Math.floor(x / squareSize);
           const sy = Math.floor(y / squareSize);
-          data[y][x] = ((sx + sy) % 2 === 0) ? 200 : 50;
+          data[y][x] = (sx + sy) % 2 === 0 ? 200 : 50;
         }
       }
       break;
@@ -1299,64 +1302,62 @@ function generateTestImage(
 
 export const imagesegmentationTool: UnifiedTool = {
   name: 'image_segmentation',
-  description: 'Image segmentation using k-means, mean shift, watershed, region growing, graph-based, and superpixels',
+  description:
+    'Image segmentation using k-means, mean shift, watershed, region growing, graph-based, and superpixels',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'kmeans', 'mean_shift', 'watershed', 'region_growing',
-          'graph_based', 'superpixels', 'connected_components',
-          'demo', 'info', 'examples'
+          'kmeans',
+          'mean_shift',
+          'watershed',
+          'region_growing',
+          'graph_based',
+          'superpixels',
+          'connected_components',
+          'demo',
+          'info',
+          'examples',
         ],
-        description: 'Segmentation algorithm to use'
+        description: 'Segmentation algorithm to use',
       },
       image: {
         type: 'object',
-        description: 'Grayscale image { width, height, data: number[][] }',
-        properties: {
-          width: { type: 'number' },
-          height: { type: 'number' },
-          data: { type: 'array' }
-        }
+        description:
+          'Grayscale image with properties: width (number), height (number), data (2D number array)',
       },
       params: {
         type: 'object',
-        description: 'Algorithm-specific parameters',
-        properties: {
-          k: { type: 'number', description: 'Number of clusters for k-means' },
-          spatialBandwidth: { type: 'number', description: 'Spatial bandwidth for mean shift' },
-          colorBandwidth: { type: 'number', description: 'Color bandwidth for mean shift' },
-          threshold: { type: 'number', description: 'Threshold for region growing' },
-          minSize: { type: 'number', description: 'Minimum segment size for graph-based' },
-          numSuperpixels: { type: 'number', description: 'Number of superpixels' },
-          compactness: { type: 'number', description: 'Compactness for superpixels' }
-        }
+        description:
+          'Algorithm parameters: k (clusters), spatialBandwidth, colorBandwidth, threshold, minSize, numSuperpixels, compactness',
       },
       seeds: {
         type: 'array',
-        description: 'Seed points for region growing [{x, y}, ...]'
+        description: 'Seed points for region growing [{x, y}, ...]',
       },
       markers: {
         type: 'array',
-        description: 'Marker image for watershed'
+        description: 'Marker image for watershed',
       },
       testPattern: {
         type: 'string',
         enum: ['blobs', 'gradient', 'checkerboard', 'circles'],
-        description: 'Test pattern for demo'
-      }
+        description: 'Test pattern for demo',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
 // EXECUTOR
 // ============================================================================
 
-export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeimagesegmentation(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -1378,8 +1379,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           k,
           numSegments: segResult.numSegments,
           segmentSizes: segResult.segmentSizes,
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1399,8 +1401,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           colorBandwidth: params?.colorBandwidth ?? 30,
           numSegments: segResult.numSegments,
           segmentSizes: segResult.segmentSizes.slice(0, 20),
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1415,8 +1418,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           operation: 'watershed',
           numSegments: segResult.numSegments,
           segmentSizes: segResult.segmentSizes.slice(0, 20),
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1433,8 +1437,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           numSeeds: seeds?.length ?? 'auto-generated',
           numSegments: segResult.numSegments,
           segmentSizes: segResult.segmentSizes,
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1442,10 +1447,7 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
       case 'graph_based': {
         if (!image) throw new Error('Image required');
 
-        const segmenter = new GraphSegmenter(
-          params?.k ?? 300,
-          params?.minSize ?? 50
-        );
+        const segmenter = new GraphSegmenter(params?.k ?? 300, params?.minSize ?? 50);
         const segResult = segmenter.segment(image);
 
         result = {
@@ -1454,8 +1456,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           minSize: params?.minSize ?? 50,
           numSegments: segResult.numSegments,
           segmentSizes: segResult.segmentSizes.slice(0, 20),
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1475,8 +1478,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           compactness: params?.compactness ?? 10,
           actualNumSegments: segResult.numSegments,
           segmentSizes: segResult.segmentSizes.slice(0, 20),
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1486,7 +1490,7 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
 
         // Threshold to binary
         const binary: number[][] = image.data.map((row: number[]) =>
-          row.map((v: number) => v > 128 ? 1 : 0)
+          row.map((v: number) => (v > 128 ? 1 : 0))
         );
 
         const segResult = connectedComponents(binary);
@@ -1495,8 +1499,9 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
           operation: 'connected_components',
           numComponents: segResult.numSegments - 1, // Subtract background
           componentSizes: segResult.segmentSizes.slice(1),
-          labelMapSample: segResult.labels.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0))
+          labelMapSample: segResult.labels
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) => row.filter((_: number, j: number) => j % 4 === 0)),
         };
         break;
       }
@@ -1518,17 +1523,17 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
             kmeans: {
               k: 4,
               numSegments: kmeansResult.numSegments,
-              segmentSizes: kmeansResult.segmentSizes
+              segmentSizes: kmeansResult.segmentSizes,
             },
             graphBased: {
               numSegments: graphResult.numSegments,
-              segmentSizes: graphResult.segmentSizes.slice(0, 10)
+              segmentSizes: graphResult.segmentSizes.slice(0, 10),
             },
             superpixels: {
               numSegments: superpixelResult.numSegments,
-              avgSegmentSize: Math.round(10000 / superpixelResult.numSegments)
-            }
-          }
+              avgSegmentSize: Math.round(10000 / superpixelResult.numSegments),
+            },
+          },
         };
         break;
       }
@@ -1543,7 +1548,7 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
   "operation": "kmeans",
   "image": { "width": 100, "height": 100, "data": [[...]] },
   "params": { "k": 5 }
-}`
+}`,
             },
             {
               name: 'Mean shift segmentation',
@@ -1551,14 +1556,14 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
   "operation": "mean_shift",
   "image": { ... },
   "params": { "spatialBandwidth": 20, "colorBandwidth": 30 }
-}`
+}`,
             },
             {
               name: 'Watershed segmentation',
               code: `{
   "operation": "watershed",
   "image": { ... }
-}`
+}`,
             },
             {
               name: 'Region growing',
@@ -1567,7 +1572,7 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
   "image": { ... },
   "seeds": [{ "x": 50, "y": 50 }, { "x": 150, "y": 100 }],
   "params": { "threshold": 25 }
-}`
+}`,
             },
             {
               name: 'Graph-based (Felzenszwalb)',
@@ -1575,7 +1580,7 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
   "operation": "graph_based",
   "image": { ... },
   "params": { "k": 300, "minSize": 50 }
-}`
+}`,
             },
             {
               name: 'Superpixels',
@@ -1583,16 +1588,16 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
   "operation": "superpixels",
   "image": { ... },
   "params": { "numSuperpixels": 100, "compactness": 10 }
-}`
+}`,
             },
             {
               name: 'Demo with test pattern',
               code: `{
   "operation": "demo",
   "testPattern": "blobs"
-}`
-            }
-          ]
+}`,
+            },
+          ],
         };
         break;
       }
@@ -1607,59 +1612,65 @@ export async function executeimagesegmentation(toolCall: UnifiedToolCall): Promi
             kmeans: {
               description: 'Partition pixels into k clusters by color similarity',
               parameters: ['k: number of clusters'],
-              complexity: 'O(n*k*iterations)'
+              complexity: 'O(n*k*iterations)',
             },
             mean_shift: {
               description: 'Find modes in feature space using kernel density estimation',
               parameters: ['spatialBandwidth', 'colorBandwidth'],
-              complexity: 'O(n²) per iteration'
+              complexity: 'O(n²) per iteration',
             },
             watershed: {
               description: 'Treat gradient as topographic surface and flood from markers',
               parameters: ['markers (optional)'],
-              complexity: 'O(n log n)'
+              complexity: 'O(n log n)',
             },
             region_growing: {
               description: 'Grow regions from seeds based on similarity criterion',
               parameters: ['threshold', 'seeds'],
-              complexity: 'O(n)'
+              complexity: 'O(n)',
             },
             graph_based: {
               description: 'Felzenszwalb algorithm using minimum spanning tree',
               parameters: ['k: scale parameter', 'minSize'],
-              complexity: 'O(n log n)'
+              complexity: 'O(n log n)',
             },
             superpixels: {
               description: 'SLIC-like algorithm for compact superpixel generation',
               parameters: ['numSuperpixels', 'compactness'],
-              complexity: 'O(n*iterations)'
+              complexity: 'O(n*iterations)',
             },
             connected_components: {
               description: 'Label connected regions in binary image',
               parameters: ['binary threshold'],
-              complexity: 'O(n)'
-            }
+              complexity: 'O(n)',
+            },
           },
           operations: [
-            'kmeans', 'mean_shift', 'watershed', 'region_growing',
-            'graph_based', 'superpixels', 'connected_components',
-            'demo', 'info', 'examples'
-          ]
+            'kmeans',
+            'mean_shift',
+            'watershed',
+            'region_growing',
+            'graph_based',
+            'superpixels',
+            'connected_components',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
       }
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error in image_segmentation: ${error}`,
-      isError: true
+      isError: true,
     };
   }
 }

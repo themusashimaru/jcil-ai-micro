@@ -24,23 +24,22 @@ interface RGBPixel {
   b: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface DepthPixel extends RGBPixel {
-  depth: number;  // 0 = near, 1 = far
+export interface DepthPixel extends RGBPixel {
+  depth: number; // 0 = near, 1 = far
 }
 
 interface DOFSettings {
-  focalDistance: number;      // Focus distance (0-1 in normalized depth)
-  focalLength: number;        // Lens focal length in mm (for CoC calculation)
-  aperture: number;           // f-stop (f/1.4, f/2.8, etc.)
-  sensorSize: number;         // Sensor width in mm (36 for full frame)
-  nearBlurMax: number;        // Maximum blur for near objects (pixels)
-  farBlurMax: number;         // Maximum blur for far objects (pixels)
+  focalDistance: number; // Focus distance (0-1 in normalized depth)
+  focalLength: number; // Lens focal length in mm (for CoC calculation)
+  aperture: number; // f-stop (f/1.4, f/2.8, etc.)
+  sensorSize: number; // Sensor width in mm (36 for full frame)
+  nearBlurMax: number; // Maximum blur for near objects (pixels)
+  farBlurMax: number; // Maximum blur for far objects (pixels)
   bokehShape: 'circular' | 'hexagonal' | 'octagonal' | 'anamorphic';
-  bokehRotation: number;      // Rotation of bokeh shape (degrees)
-  bokehHighlightThreshold: number;  // Brightness threshold for bokeh highlights
-  bokehHighlightGain: number;       // Intensity boost for highlights
-  catEyeStrength: number;     // Cat's eye vignetting effect (0-1)
+  bokehRotation: number; // Rotation of bokeh shape (degrees)
+  bokehHighlightThreshold: number; // Brightness threshold for bokeh highlights
+  bokehHighlightGain: number; // Intensity boost for highlights
+  catEyeStrength: number; // Cat's eye vignetting effect (0-1)
 }
 
 interface BokehKernel {
@@ -53,7 +52,7 @@ interface DOFResult {
   width: number;
   height: number;
   blurredImage: RGBPixel[][];
-  cocMap: number[][];  // Circle of confusion per pixel
+  cocMap: number[][]; // Circle of confusion per pixel
 }
 
 // ============================================================================
@@ -79,8 +78,8 @@ class CircleOfConfusion {
   ): number {
     // Convert normalized depth to approximate world distance
     // Using exponential mapping for more realistic depth perception
-    const minDist = focalLength * 2;  // Minimum focus distance (2x focal length)
-    const maxDist = 10000;  // Maximum distance (10m = infinity for practical purposes)
+    const minDist = focalLength * 2; // Minimum focus distance (2x focal length)
+    const maxDist = 10000; // Maximum distance (10m = infinity for practical purposes)
 
     const subjectDistance = minDist + Math.pow(depth, 2) * (maxDist - minDist);
     const focusDistance = minDist + Math.pow(focalDistance, 2) * (maxDist - minDist);
@@ -104,11 +103,7 @@ class CircleOfConfusion {
   /**
    * Calculate blur radius from CoC for given image dimensions
    */
-  static cocToBlurRadius(
-    coc: number,
-    imageWidth: number,
-    maxBlur: number
-  ): number {
+  static cocToBlurRadius(coc: number, imageWidth: number, maxBlur: number): number {
     const blurPixels = coc * imageWidth;
     return Math.min(blurPixels, maxBlur);
   }
@@ -116,10 +111,7 @@ class CircleOfConfusion {
   /**
    * Generate CoC map for depth buffer
    */
-  static generateCoCMap(
-    depthBuffer: number[][],
-    settings: DOFSettings
-  ): number[][] {
+  static generateCoCMap(depthBuffer: number[][], settings: DOFSettings): number[][] {
     const height = depthBuffer.length;
     const width = depthBuffer[0]?.length || 0;
     const cocMap: number[][] = [];
@@ -171,7 +163,7 @@ class BokehKernelGenerator {
 
         // Sharp circular cutoff with slight feathering
         if (dist <= radius) {
-          const feather = dist > radius - 1 ? (radius - dist) : 1;
+          const feather = dist > radius - 1 ? radius - dist : 1;
           weights[y][x] = feather;
           totalWeight += feather;
         } else {
@@ -199,7 +191,7 @@ class BokehKernelGenerator {
     const weights: number[][] = [];
     let totalWeight = 0;
 
-    const rotRad = rotation * Math.PI / 180;
+    const rotRad = (rotation * Math.PI) / 180;
     const sides = 6;
 
     for (let y = 0; y < size; y++) {
@@ -213,11 +205,11 @@ class BokehKernelGenerator {
         // Hexagon distance calculation
         const sectorAngle = (2 * Math.PI) / sides;
         const sectorIndex = Math.floor((angle + Math.PI) / sectorAngle);
-        const localAngle = (angle + Math.PI) - sectorIndex * sectorAngle - sectorAngle / 2;
+        const localAngle = angle + Math.PI - sectorIndex * sectorAngle - sectorAngle / 2;
         const hexRadius = radius / Math.cos(localAngle);
 
         if (dist <= hexRadius) {
-          const feather = dist > hexRadius - 1 ? (hexRadius - dist) : 1;
+          const feather = dist > hexRadius - 1 ? hexRadius - dist : 1;
           weights[y][x] = Math.max(0, feather);
           totalWeight += weights[y][x];
         } else {
@@ -247,7 +239,7 @@ class BokehKernelGenerator {
     const weights: number[][] = [];
     let totalWeight = 0;
 
-    const rotRad = rotation * Math.PI / 180;
+    const rotRad = (rotation * Math.PI) / 180;
     const sides = 8;
 
     for (let y = 0; y < size; y++) {
@@ -260,11 +252,11 @@ class BokehKernelGenerator {
 
         const sectorAngle = (2 * Math.PI) / sides;
         const sectorIndex = Math.floor((angle + Math.PI) / sectorAngle);
-        const localAngle = (angle + Math.PI) - sectorIndex * sectorAngle - sectorAngle / 2;
+        const localAngle = angle + Math.PI - sectorIndex * sectorAngle - sectorAngle / 2;
         const octRadius = radius / Math.cos(localAngle);
 
         if (dist <= octRadius) {
-          const feather = dist > octRadius - 1 ? (octRadius - dist) : 1;
+          const feather = dist > octRadius - 1 ? octRadius - dist : 1;
           weights[y][x] = Math.max(0, feather);
           totalWeight += weights[y][x];
         } else {
@@ -296,7 +288,7 @@ class BokehKernelGenerator {
     const weights: number[][] = [];
     let totalWeight = 0;
 
-    const rotRad = rotation * Math.PI / 180;
+    const rotRad = (rotation * Math.PI) / 180;
     const cos = Math.cos(rotRad);
     const sin = Math.sin(rotRad);
 
@@ -408,9 +400,7 @@ class CatEyeEffect {
         const projection = kx * cos + ky * sin;
 
         // Clip based on projection (simulate aperture vignetting)
-        const clipFactor = projection > 0
-          ? Math.max(0, 1 - projection * catEyeAmount * 0.3)
-          : 1;
+        const clipFactor = projection > 0 ? Math.max(0, 1 - projection * catEyeAmount * 0.3) : 1;
 
         newWeights[y][x] = kernel.weights[y][x] * clipFactor;
         totalWeight += newWeights[y][x];
@@ -439,11 +429,7 @@ class BokehHighlights {
    * Apply highlight boost for bright areas
    * Creates characteristic bright bokeh circles
    */
-  static process(
-    pixel: RGBPixel,
-    threshold: number,
-    gain: number
-  ): RGBPixel {
+  static process(pixel: RGBPixel, threshold: number, gain: number): RGBPixel {
     const luminance = 0.2126 * pixel.r + 0.7152 * pixel.g + 0.0722 * pixel.b;
 
     if (luminance > threshold) {
@@ -451,7 +437,7 @@ class BokehHighlights {
       return {
         r: Math.min(1, pixel.r * boost),
         g: Math.min(1, pixel.g * boost),
-        b: Math.min(1, pixel.b * boost)
+        b: Math.min(1, pixel.b * boost),
       };
     }
 
@@ -488,15 +474,12 @@ class DOFProcessor {
     let kernel = BokehKernelGenerator.generate(centerCOC, settings);
 
     // Apply cat's eye effect
-    kernel = CatEyeEffect.apply(
-      kernel,
-      x, y,
-      width, height,
-      settings.catEyeStrength
-    );
+    kernel = CatEyeEffect.apply(kernel, x, y, width, height, settings.catEyeStrength);
 
     const halfSize = Math.floor(kernel.size / 2);
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+      g = 0,
+      b = 0;
     let totalWeight = 0;
 
     for (let ky = -halfSize; ky <= halfSize; ky++) {
@@ -517,7 +500,7 @@ class DOFProcessor {
           const sampleKernelRadius = sampleCOC;
           const dist = Math.sqrt(kx * kx + ky * ky);
           if (dist > sampleKernelRadius) {
-            weight *= 0.1;  // Greatly reduce contribution from far foreground
+            weight *= 0.1; // Greatly reduce contribution from far foreground
           }
         }
 
@@ -543,7 +526,7 @@ class DOFProcessor {
       return {
         r: r / totalWeight,
         g: g / totalWeight,
-        b: b / totalWeight
+        b: b / totalWeight,
       };
     }
 
@@ -553,11 +536,7 @@ class DOFProcessor {
   /**
    * Process full image with DOF effect
    */
-  static process(
-    image: RGBPixel[][],
-    depthBuffer: number[][],
-    settings: DOFSettings
-  ): DOFResult {
+  static process(image: RGBPixel[][], depthBuffer: number[][], settings: DOFSettings): DOFResult {
     const height = image.length;
     const width = image[0]?.length || 0;
 
@@ -570,13 +549,7 @@ class DOFProcessor {
     for (let y = 0; y < height; y++) {
       blurredImage[y] = [];
       for (let x = 0; x < width; x++) {
-        blurredImage[y][x] = this.blurPixelGather(
-          image,
-          depthBuffer,
-          cocMap,
-          x, y,
-          settings
-        );
+        blurredImage[y][x] = this.blurPixelGather(image, depthBuffer, cocMap, x, y, settings);
       }
     }
 
@@ -584,7 +557,7 @@ class DOFProcessor {
       width,
       height,
       blurredImage,
-      cocMap
+      cocMap,
     };
   }
 
@@ -616,12 +589,15 @@ class DOFProcessor {
         }
 
         const radius = Math.ceil(coc);
-        let r = 0, g = 0, b = 0, w = 0;
+        let r = 0,
+          g = 0,
+          b = 0,
+          w = 0;
 
         for (let kx = -radius; kx <= radius; kx++) {
           const sampleX = Math.min(Math.max(x + kx, 0), width - 1);
           const dist = Math.abs(kx) / coc;
-          const weight = dist <= 1 ? (1 - dist * dist) : 0;
+          const weight = dist <= 1 ? 1 - dist * dist : 0;
 
           if (weight > 0) {
             r += image[y][sampleX].r * weight;
@@ -631,9 +607,7 @@ class DOFProcessor {
           }
         }
 
-        horizontalBlur[y][x] = w > 0
-          ? { r: r / w, g: g / w, b: b / w }
-          : image[y][x];
+        horizontalBlur[y][x] = w > 0 ? { r: r / w, g: g / w, b: b / w } : image[y][x];
       }
     }
 
@@ -650,12 +624,15 @@ class DOFProcessor {
         }
 
         const radius = Math.ceil(coc);
-        let r = 0, g = 0, b = 0, w = 0;
+        let r = 0,
+          g = 0,
+          b = 0,
+          w = 0;
 
         for (let ky = -radius; ky <= radius; ky++) {
           const sampleY = Math.min(Math.max(y + ky, 0), height - 1);
           const dist = Math.abs(ky) / coc;
-          const weight = dist <= 1 ? (1 - dist * dist) : 0;
+          const weight = dist <= 1 ? 1 - dist * dist : 0;
 
           if (weight > 0) {
             r += horizontalBlur[sampleY][x].r * weight;
@@ -665,9 +642,7 @@ class DOFProcessor {
           }
         }
 
-        blurredImage[y][x] = w > 0
-          ? { r: r / w, g: g / w, b: b / w }
-          : horizontalBlur[y][x];
+        blurredImage[y][x] = w > 0 ? { r: r / w, g: g / w, b: b / w } : horizontalBlur[y][x];
       }
     }
 
@@ -675,7 +650,7 @@ class DOFProcessor {
       width,
       height,
       blurredImage,
-      cocMap
+      cocMap,
     };
   }
 
@@ -696,9 +671,12 @@ class DOFProcessor {
         depth[y][x] = y / height;
 
         // Create some objects at different depths
-        const cx1 = width * 0.3, cy1 = height * 0.3;  // Near object
-        const cx2 = width * 0.5, cy2 = height * 0.5;  // Mid object (in focus)
-        const cx3 = width * 0.7, cy3 = height * 0.7;  // Far object
+        const cx1 = width * 0.3,
+          cy1 = height * 0.3; // Near object
+        const cx2 = width * 0.5,
+          cy2 = height * 0.5; // Mid object (in focus)
+        const cx3 = width * 0.7,
+          cy3 = height * 0.7; // Far object
 
         const dist1 = Math.sqrt((x - cx1) ** 2 + (y - cy1) ** 2);
         const dist2 = Math.sqrt((x - cx2) ** 2 + (y - cy2) ** 2);
@@ -721,7 +699,7 @@ class DOFProcessor {
           image[y][x] = {
             r: 0.3 + depth[y][x] * 0.2,
             g: 0.3 + depth[y][x] * 0.1,
-            b: 0.4 + depth[y][x] * 0.3
+            b: 0.4 + depth[y][x] * 0.3,
           };
         }
 
@@ -742,51 +720,48 @@ class DOFProcessor {
 
 export const dofeffectTool: UnifiedTool = {
   name: 'dof_effect',
-  description: 'Depth of Field effect simulation with physically-based optics. Supports Circle of Confusion calculation, various bokeh shapes (circular, hexagonal, anamorphic), highlight bloom, and cat\'s eye vignetting.',
+  description:
+    "Depth of Field effect simulation with physically-based optics. Supports Circle of Confusion calculation, various bokeh shapes (circular, hexagonal, anamorphic), highlight bloom, and cat's eye vignetting.",
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['apply', 'apply_fast', 'calculate_coc', 'generate_kernel', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'apply',
+          'apply_fast',
+          'calculate_coc',
+          'generate_kernel',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       image: {
         type: 'array',
-        description: 'Input image as 2D array of {r, g, b} pixels'
+        description: 'Input image as 2D array of {r, g, b} pixels',
       },
       depthBuffer: {
         type: 'array',
-        description: 'Depth buffer as 2D array of values 0-1 (0=near, 1=far)'
+        description: 'Depth buffer as 2D array of values 0-1 (0=near, 1=far)',
       },
       settings: {
         type: 'object',
-        properties: {
-          focalDistance: { type: 'number', description: 'Focus distance (0-1, default: 0.5)' },
-          focalLength: { type: 'number', description: 'Lens focal length in mm (default: 50)' },
-          aperture: { type: 'number', description: 'f-stop (default: 2.8)' },
-          sensorSize: { type: 'number', description: 'Sensor width in mm (default: 36)' },
-          nearBlurMax: { type: 'number', description: 'Max near blur radius (default: 15)' },
-          farBlurMax: { type: 'number', description: 'Max far blur radius (default: 20)' },
-          bokehShape: { type: 'string', enum: ['circular', 'hexagonal', 'octagonal', 'anamorphic'] },
-          bokehRotation: { type: 'number', description: 'Bokeh rotation in degrees' },
-          bokehHighlightThreshold: { type: 'number', description: 'Highlight threshold (0-1)' },
-          bokehHighlightGain: { type: 'number', description: 'Highlight intensity boost' },
-          catEyeStrength: { type: 'number', description: 'Cat\'s eye effect (0-1)' }
-        },
-        description: 'DOF settings'
+        description:
+          'DOF settings with properties: focalDistance (0-1), focalLength (mm), aperture (f-stop), sensorSize (mm), nearBlurMax, farBlurMax, bokehShape, bokehRotation, bokehHighlightThreshold, bokehHighlightGain, catEyeStrength',
       },
       depth: {
         type: 'number',
-        description: 'Single depth value for CoC calculation'
+        description: 'Single depth value for CoC calculation',
       },
       radius: {
         type: 'number',
-        description: 'Kernel radius for generation'
-      }
+        description: 'Kernel radius for generation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -812,7 +787,7 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
       bokehRotation: settings?.bokehRotation ?? 0,
       bokehHighlightThreshold: settings?.bokehHighlightThreshold ?? 0.8,
       bokehHighlightGain: settings?.bokehHighlightGain ?? 2,
-      catEyeStrength: settings?.catEyeStrength ?? 0.3
+      catEyeStrength: settings?.catEyeStrength ?? 0.3,
     };
 
     let result: Record<string, unknown>;
@@ -826,7 +801,7 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
             cocCalculation: 'Thin lens equation for accurate Circle of Confusion',
             bokehShapes: ['circular', 'hexagonal', 'octagonal', 'anamorphic'],
             effects: ['highlight_bloom', 'cat_eye_vignetting', 'depth_aware_blur'],
-            algorithms: ['gather_blur', 'separable_fast_blur']
+            algorithms: ['gather_blur', 'separable_fast_blur'],
           },
           parameters: {
             focalDistance: 'Focus distance in normalized depth (0-1)',
@@ -834,9 +809,17 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
             aperture: 'f-stop number (lower = more blur)',
             sensorSize: 'Camera sensor width in mm (36 for full frame)',
             bokehShape: 'Shape of out-of-focus highlights',
-            catEyeStrength: 'Edge vignetting of bokeh shapes'
+            catEyeStrength: 'Edge vignetting of bokeh shapes',
           },
-          operations: ['apply', 'apply_fast', 'calculate_coc', 'generate_kernel', 'demo', 'info', 'examples']
+          operations: [
+            'apply',
+            'apply_fast',
+            'calculate_coc',
+            'generate_kernel',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
         break;
       }
@@ -850,9 +833,9 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
                 focalDistance: 0.3,
                 aperture: 1.4,
                 focalLength: 85,
-                bokehShape: 'circular'
+                bokehShape: 'circular',
               },
-              description: 'Classic portrait with subject in focus, smooth background blur'
+              description: 'Classic portrait with subject in focus, smooth background blur',
             },
             {
               name: 'Landscape (deep)',
@@ -860,9 +843,9 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
                 focalDistance: 0.6,
                 aperture: 11,
                 focalLength: 24,
-                bokehShape: 'octagonal'
+                bokehShape: 'octagonal',
               },
-              description: 'Landscape with most of scene in focus'
+              description: 'Landscape with most of scene in focus',
             },
             {
               name: 'Cinematic (anamorphic)',
@@ -871,9 +854,9 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
                 aperture: 2.0,
                 focalLength: 50,
                 bokehShape: 'anamorphic',
-                bokehHighlightGain: 3
+                bokehHighlightGain: 3,
               },
-              description: 'Cinematic look with oval bokeh and bright highlights'
+              description: 'Cinematic look with oval bokeh and bright highlights',
             },
             {
               name: 'Vintage lens',
@@ -883,11 +866,11 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
                 focalLength: 50,
                 bokehShape: 'hexagonal',
                 catEyeStrength: 0.6,
-                bokehRotation: 30
+                bokehRotation: 30,
               },
-              description: 'Vintage lens look with cat\'s eye effect'
-            }
-          ]
+              description: "Vintage lens look with cat's eye effect",
+            },
+          ],
         };
         break;
       }
@@ -904,19 +887,20 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
           objects: {
             near: { color: 'red', depth: 0.2, blur: 'visible' },
             mid: { color: 'green', depth: 0.5, blur: 'in_focus' },
-            far: { color: 'blue', depth: 0.8, blur: 'visible' }
+            far: { color: 'blue', depth: 0.8, blur: 'visible' },
           },
           sampleCoC: {
             nearObject: dofResult.cocMap[Math.floor(0.3 * 32)][Math.floor(0.3 * 32)].toFixed(2),
             midObject: dofResult.cocMap[Math.floor(0.5 * 32)][Math.floor(0.5 * 32)].toFixed(2),
-            farObject: dofResult.cocMap[Math.floor(0.7 * 32)][Math.floor(0.7 * 32)].toFixed(2)
+            farObject: dofResult.cocMap[Math.floor(0.7 * 32)][Math.floor(0.7 * 32)].toFixed(2),
           },
           sampleOutput: {
             center: dofResult.blurredImage[16]?.[16] || null,
-            nearObject: dofResult.blurredImage[Math.floor(0.3 * 32)]?.[Math.floor(0.3 * 32)] || null,
-            farObject: dofResult.blurredImage[Math.floor(0.7 * 32)]?.[Math.floor(0.7 * 32)] || null
+            nearObject:
+              dofResult.blurredImage[Math.floor(0.3 * 32)]?.[Math.floor(0.3 * 32)] || null,
+            farObject: dofResult.blurredImage[Math.floor(0.7 * 32)]?.[Math.floor(0.7 * 32)] || null,
           },
-          message: 'DOF effect applied - mid-distance objects in focus, near/far blurred'
+          message: 'DOF effect applied - mid-distance objects in focus, near/far blurred',
         };
         break;
       }
@@ -933,7 +917,7 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
           inputSize: { width: dofResult.width, height: dofResult.height },
           settings: dofSettings,
           output: dofResult.blurredImage.length <= 16 ? dofResult.blurredImage : 'Output truncated',
-          cocMap: dofResult.cocMap.length <= 16 ? dofResult.cocMap : 'CoC map truncated'
+          cocMap: dofResult.cocMap.length <= 16 ? dofResult.cocMap : 'CoC map truncated',
         };
         break;
       }
@@ -951,7 +935,7 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
           settings: dofSettings,
           method: 'separable_blur',
           output: dofResult.blurredImage.length <= 16 ? dofResult.blurredImage : 'Output truncated',
-          cocMap: dofResult.cocMap.length <= 16 ? dofResult.cocMap : 'CoC map truncated'
+          cocMap: dofResult.cocMap.length <= 16 ? dofResult.cocMap : 'CoC map truncated',
         };
         break;
       }
@@ -971,7 +955,7 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
 
         const blurRadius = CircleOfConfusion.cocToBlurRadius(
           coc,
-          1920,  // Assume HD resolution
+          1920, // Assume HD resolution
           depth > dofSettings.focalDistance ? dofSettings.farBlurMax : dofSettings.nearBlurMax
         );
 
@@ -982,12 +966,12 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
             focalDistance: dofSettings.focalDistance,
             focalLength: dofSettings.focalLength,
             aperture: dofSettings.aperture,
-            sensorSize: dofSettings.sensorSize
+            sensorSize: dofSettings.sensorSize,
           },
           cocNormalized: coc,
           blurRadiusAt1080p: blurRadius.toFixed(2),
           inFocus: coc < 0.001,
-          position: depth < dofSettings.focalDistance ? 'foreground' : 'background'
+          position: depth < dofSettings.focalDistance ? 'foreground' : 'background',
         };
         break;
       }
@@ -997,9 +981,9 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
         const kernel = BokehKernelGenerator.generate(kernelRadius, dofSettings);
 
         // Create visualization
-        const visualization = kernel.weights.map(row =>
-          row.map(w => w > 0.001 ? (w > 0.01 ? '#' : '.') : ' ').join('')
-        ).join('\n');
+        const visualization = kernel.weights
+          .map((row) => row.map((w) => (w > 0.001 ? (w > 0.01 ? '#' : '.') : ' ')).join(''))
+          .join('\n');
 
         result = {
           operation: 'generate_kernel',
@@ -1007,9 +991,9 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
           radius: kernelRadius,
           rotation: dofSettings.bokehRotation,
           kernelSize: kernel.size,
-          nonZeroElements: kernel.weights.flat().filter(w => w > 0).length,
+          nonZeroElements: kernel.weights.flat().filter((w) => w > 0).length,
           visualization,
-          weights: kernel.size <= 15 ? kernel.weights : 'Weights truncated (kernel too large)'
+          weights: kernel.size <= 15 ? kernel.weights : 'Weights truncated (kernel too large)',
         };
         break;
       }
@@ -1019,7 +1003,6 @@ export async function executedofeffect(toolCall: UnifiedToolCall): Promise<Unifi
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${error}`, isError: true };

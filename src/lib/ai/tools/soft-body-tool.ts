@@ -123,7 +123,7 @@ function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   return {
     x: a.y * b.z - a.z * b.y,
     y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x
+    z: a.x * b.y - a.y * b.x,
   };
 }
 
@@ -135,8 +135,7 @@ function vec3LengthSq(v: Vector3): number {
   return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Normalize(v: Vector3): Vector3 {
+export function vec3Normalize(v: Vector3): Vector3 {
   const len = vec3Length(v);
   if (len < 1e-10) return { x: 0, y: 0, z: 0 };
   return vec3Scale(v, 1 / len);
@@ -146,12 +145,11 @@ function vec3Distance(a: Vector3, b: Vector3): number {
   return vec3Length(vec3Sub(a, b));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Lerp(a: Vector3, b: Vector3, t: number): Vector3 {
+export function vec3Lerp(a: Vector3, b: Vector3, t: number): Vector3 {
   return {
     x: a.x + (b.x - a.x) * t,
     y: a.y + (b.y - a.y) * t,
-    z: a.z + (b.z - a.z) * t
+    z: a.z + (b.z - a.z) * t,
   };
 }
 
@@ -184,7 +182,7 @@ function createCubeSoftBody(params: {
         const position: Vector3 = {
           x: center.x - halfSize + x * spacing,
           y: center.y - halfSize + y * spacing,
-          z: center.z - halfSize + z * spacing
+          z: center.z - halfSize + z * spacing,
         };
 
         particles.push({
@@ -195,7 +193,7 @@ function createCubeSoftBody(params: {
           acceleration: vec3Zero(),
           mass: particleMass,
           isFixed: false,
-          restPosition: { ...position }
+          restPosition: { ...position },
         });
       }
     }
@@ -212,7 +210,7 @@ function createCubeSoftBody(params: {
       restLength: vec3Distance(pa.position, pb.position),
       stiffness: config.stiffness,
       damping: config.damping,
-      type
+      type,
     });
   };
 
@@ -260,7 +258,7 @@ function createCubeSoftBody(params: {
           [p100, p110, p010, p111],
           [p010, p011, p001, p111],
           [p100, p101, p001, p111],
-          [p001, p010, p100, p111]
+          [p001, p010, p100, p111],
         ];
 
         for (const tet of tets) {
@@ -272,7 +270,7 @@ function createCubeSoftBody(params: {
           );
           tetrahedra.push({
             particles: tet,
-            restVolume: Math.abs(vol)
+            restVolume: Math.abs(vol),
           });
         }
       }
@@ -290,7 +288,7 @@ function createCubeSoftBody(params: {
     gravity: { x: 0, y: -GRAVITY, z: 0 },
     restCenterOfMass,
     restVolume,
-    config
+    config,
   };
 }
 
@@ -316,7 +314,7 @@ function createSphereSoftBody(params: {
     acceleration: vec3Zero(),
     mass: config.mass * 0.1,
     isFixed: false,
-    restPosition: { ...center }
+    restPosition: { ...center },
   };
   particles.push(centerParticle);
 
@@ -336,7 +334,7 @@ function createSphereSoftBody(params: {
       const position: Vector3 = {
         x: center.x + radius * sinTheta * Math.cos(phi),
         y: center.y + radius * cosTheta,
-        z: center.z + radius * sinTheta * Math.sin(phi)
+        z: center.z + radius * sinTheta * Math.sin(phi),
       };
 
       particles.push({
@@ -345,9 +343,9 @@ function createSphereSoftBody(params: {
         previousPosition: { ...position },
         velocity: vec3Zero(),
         acceleration: vec3Zero(),
-        mass: config.mass * 0.9 / (latSteps * lonSteps),
+        mass: (config.mass * 0.9) / (latSteps * lonSteps),
         isFixed: false,
-        restPosition: { ...position }
+        restPosition: { ...position },
       });
     }
   }
@@ -364,7 +362,7 @@ function createSphereSoftBody(params: {
     acceleration: vec3Zero(),
     mass: config.mass * 0.005,
     isFixed: false,
-    restPosition: { ...northPole }
+    restPosition: { ...northPole },
   });
 
   particles.push({
@@ -375,7 +373,7 @@ function createSphereSoftBody(params: {
     acceleration: vec3Zero(),
     mass: config.mass * 0.005,
     isFixed: false,
-    restPosition: { ...southPole }
+    restPosition: { ...southPole },
   });
 
   // Create springs from center to all surface particles
@@ -386,7 +384,7 @@ function createSphereSoftBody(params: {
       restLength: vec3Distance(particles[0].position, particles[i].position),
       stiffness: config.stiffness,
       damping: config.damping,
-      type: 'structural'
+      type: 'structural',
     });
   }
 
@@ -401,7 +399,7 @@ function createSphereSoftBody(params: {
           restLength: dist,
           stiffness: config.stiffness * 0.5,
           damping: config.damping,
-          type: 'shear'
+          type: 'shear',
         });
       }
     }
@@ -411,7 +409,7 @@ function createSphereSoftBody(params: {
   const tetrahedra: Tetrahedron[] = [];
 
   const restCenterOfMass = calculateCenterOfMass(particles);
-  const restVolume = (4/3) * Math.PI * radius * radius * radius;
+  const restVolume = (4 / 3) * Math.PI * radius * radius * radius;
 
   return {
     particles,
@@ -421,7 +419,7 @@ function createSphereSoftBody(params: {
     gravity: { x: 0, y: -GRAVITY, z: 0 },
     restCenterOfMass,
     restVolume,
-    config
+    config,
   };
 }
 
@@ -439,12 +437,14 @@ function calculateTetrahedronVolume(p0: Vector3, p1: Vector3, p2: Vector3, p3: V
 function calculateTotalVolume(particles: Particle[], tetrahedra: Tetrahedron[]): number {
   let volume = 0;
   for (const tet of tetrahedra) {
-    volume += Math.abs(calculateTetrahedronVolume(
-      particles[tet.particles[0]].position,
-      particles[tet.particles[1]].position,
-      particles[tet.particles[2]].position,
-      particles[tet.particles[3]].position
-    ));
+    volume += Math.abs(
+      calculateTetrahedronVolume(
+        particles[tet.particles[0]].position,
+        particles[tet.particles[1]].position,
+        particles[tet.particles[2]].position,
+        particles[tet.particles[3]].position
+      )
+    );
   }
   return volume;
 }
@@ -506,7 +506,8 @@ function applyPressureForce(state: SoftBodyState): void {
   const volumeRatio = currentVolume / state.restVolume;
 
   // Pressure force inversely proportional to volume
-  const pressureMultiplier = state.config.pressure * (1 - volumeRatio) * state.config.volumeConservation;
+  const pressureMultiplier =
+    state.config.pressure * (1 - volumeRatio) * state.config.volumeConservation;
 
   // Apply pressure to surface particles (simplified - push outward from center)
   const com = calculateCenterOfMass(state.particles);
@@ -590,7 +591,11 @@ function integrateParticles(state: SoftBodyState, dt: number): void {
 // Collision Handling
 // ============================================================================
 
-function handlePlaneCollision(particle: Particle, plane: CollisionPlane, restitution: number): void {
+function handlePlaneCollision(
+  particle: Particle,
+  plane: CollisionPlane,
+  restitution: number
+): void {
   if (particle.isFixed) return;
 
   const dist = vec3Dot(particle.position, plane.normal) - plane.distance;
@@ -607,7 +612,10 @@ function handlePlaneCollision(particle: Particle, plane: CollisionPlane, restitu
       particle.velocity = vec3Add(particle.velocity, reflection);
 
       // Apply friction
-      const tangentVel = vec3Sub(particle.velocity, vec3Scale(plane.normal, vec3Dot(particle.velocity, plane.normal)));
+      const tangentVel = vec3Sub(
+        particle.velocity,
+        vec3Scale(plane.normal, vec3Dot(particle.velocity, plane.normal))
+      );
       particle.velocity = vec3Sub(particle.velocity, vec3Scale(tangentVel, plane.friction));
     }
 
@@ -616,7 +624,11 @@ function handlePlaneCollision(particle: Particle, plane: CollisionPlane, restitu
   }
 }
 
-function handleSphereCollision(particle: Particle, sphere: CollisionSphere, restitution: number): void {
+function handleSphereCollision(
+  particle: Particle,
+  sphere: CollisionSphere,
+  restitution: number
+): void {
   if (particle.isFixed) return;
 
   const toParticle = vec3Sub(particle.position, sphere.center);
@@ -636,7 +648,10 @@ function handleSphereCollision(particle: Particle, sphere: CollisionSphere, rest
       particle.velocity = vec3Add(particle.velocity, reflection);
 
       // Apply friction
-      const tangentVel = vec3Sub(particle.velocity, vec3Scale(normal, vec3Dot(particle.velocity, normal)));
+      const tangentVel = vec3Sub(
+        particle.velocity,
+        vec3Scale(normal, vec3Dot(particle.velocity, normal))
+      );
       particle.velocity = vec3Sub(particle.velocity, vec3Scale(tangentVel, sphere.friction));
     }
 
@@ -660,7 +675,7 @@ function solveDistanceConstraints(state: SoftBodyState, iterations: number): voi
       if (currentLength < 1e-10) continue;
 
       const error = currentLength - spring.restLength;
-      const correction = vec3Scale(diff, error / currentLength * spring.stiffness * 0.5);
+      const correction = vec3Scale(diff, (error / currentLength) * spring.stiffness * 0.5);
 
       if (!pa.isFixed) {
         pa.position = vec3Add(pa.position, correction);
@@ -732,14 +747,14 @@ function simulateSoftBody(params: {
       center: params.center,
       radius: params.radius || 1,
       resolution: params.resolution || 8,
-      config: params.config
+      config: params.config,
     });
   } else {
     state = createCubeSoftBody({
       center: params.center,
       size: params.size || 1,
       resolution: params.resolution || 4,
-      config: params.config
+      config: params.config,
     });
   }
 
@@ -755,13 +770,13 @@ function simulateSoftBody(params: {
 
   // Default collision plane (ground)
   const collisionPlanes: CollisionPlane[] = params.collisionPlanes || [
-    { normal: { x: 0, y: 1, z: 0 }, distance: 0, friction: 0.3 }
+    { normal: { x: 0, y: 1, z: 0 }, distance: 0, friction: 0.3 },
   ];
   const collisionSpheres: CollisionSphere[] = params.collisionSpheres || [];
 
-  const dt = params.timestep || 1/120;
+  const dt = params.timestep || 1 / 120;
   const steps = Math.floor(params.duration / dt);
-  const recordInterval = Math.max(1, Math.floor(1/60 / dt));
+  const recordInterval = Math.max(1, Math.floor(1 / 60 / dt));
 
   const frames: SimulationResult['frames'] = [];
   const initialVolume = state.restVolume;
@@ -795,35 +810,37 @@ function simulateSoftBody(params: {
 
     // Record frame
     if (step % recordInterval === 0) {
-      const currentVolume = state.tetrahedra.length > 0 ?
-        calculateTotalVolume(state.particles, state.tetrahedra) :
-        state.restVolume; // Approximate for sphere
+      const currentVolume =
+        state.tetrahedra.length > 0
+          ? calculateTotalVolume(state.particles, state.tetrahedra)
+          : state.restVolume; // Approximate for sphere
 
       frames.push({
         time: state.time,
-        particles: state.particles.map(p => ({
+        particles: state.particles.map((p) => ({
           id: p.id,
           position: { ...p.position },
-          velocity: { ...p.velocity }
+          velocity: { ...p.velocity },
         })),
         volume: currentVolume,
         energy: {
           kinetic: calculateKineticEnergy(state),
           potential: calculatePotentialEnergy(state),
-          elastic: calculateElasticEnergy(state)
-        }
+          elastic: calculateElasticEnergy(state),
+        },
       });
     }
   }
 
-  const finalVolume = state.tetrahedra.length > 0 ?
-    calculateTotalVolume(state.particles, state.tetrahedra) :
-    state.restVolume;
+  const finalVolume =
+    state.tetrahedra.length > 0
+      ? calculateTotalVolume(state.particles, state.tetrahedra)
+      : state.restVolume;
 
   return {
     frames,
     finalState: state,
-    volumeConservation: (finalVolume / initialVolume) * 100
+    volumeConservation: (finalVolume / initialVolume) * 100,
   };
 }
 
@@ -833,75 +850,58 @@ function simulateSoftBody(params: {
 
 export const softbodyTool: UnifiedTool = {
   name: 'soft_body',
-  description: 'Comprehensive soft body dynamics simulation. Features mass-spring system, pressure-based soft body, volume conservation, shape matching, collision handling, and material properties.',
+  description:
+    'Comprehensive soft body dynamics simulation. Features mass-spring system, pressure-based soft body, volume conservation, shape matching, collision handling, and material properties.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['simulate', 'analyze', 'info'],
-        description: 'Operation type'
+        description: 'Operation type',
       },
       shape: {
         type: 'string',
         enum: ['cube', 'sphere'],
-        description: 'Shape of soft body'
+        description: 'Shape of soft body',
       },
       center: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Center position with x, y, z coordinates',
       },
       size: { type: 'number', description: 'Size for cube shape' },
       radius: { type: 'number', description: 'Radius for sphere shape' },
       resolution: { type: 'number', description: 'Particle resolution' },
       config: {
         type: 'object',
-        properties: {
-          mass: { type: 'number' },
-          stiffness: { type: 'number', description: '0-1' },
-          damping: { type: 'number', description: '0-1' },
-          pressure: { type: 'number', description: 'Internal pressure' },
-          volumeConservation: { type: 'number', description: '0-1' },
-          shapeMatchingStiffness: { type: 'number', description: '0-1' },
-          friction: { type: 'number' },
-          restitution: { type: 'number' }
-        }
+        description:
+          'Configuration with: mass, stiffness (0-1), damping (0-1), pressure, volumeConservation (0-1), shapeMatchingStiffness (0-1), friction, restitution',
       },
       duration: { type: 'number', description: 'Simulation duration in seconds' },
       timestep: { type: 'number', description: 'Physics timestep' },
       gravity: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Gravity vector with x, y, z coordinates',
       },
       initialVelocity: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Initial velocity vector with x, y, z coordinates',
       },
       collisionPlanes: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            normal: { type: 'object' },
-            distance: { type: 'number' },
-            friction: { type: 'number' }
-          }
-        }
+        items: { type: 'object' },
+        description:
+          'Collision planes. Each plane has: normal (object with x/y/z), distance (number), friction (number)',
       },
       collisionSpheres: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            center: { type: 'object' },
-            radius: { type: 'number' },
-            friction: { type: 'number' }
-          }
-        }
-      }
+        items: { type: 'object' },
+        description:
+          'Collision spheres. Each sphere has: center (object with x/y/z), radius (number), friction (number)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executesoftbody(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -919,7 +919,7 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
       volumeConservation: args.config?.volumeConservation || 0.5,
       shapeMatchingStiffness: args.config?.shapeMatchingStiffness || 0.1,
       friction: args.config?.friction || 0.3,
-      restitution: args.config?.restitution || 0.3
+      restitution: args.config?.restitution || 0.3,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -935,11 +935,11 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
           resolution: args.resolution,
           config: defaultConfig,
           duration: args.duration || 3,
-          timestep: args.timestep || 1/120,
+          timestep: args.timestep || 1 / 120,
           collisionPlanes: args.collisionPlanes,
           collisionSpheres: args.collisionSpheres,
           gravity: args.gravity,
-          initialVelocity: args.initialVelocity
+          initialVelocity: args.initialVelocity,
         });
         break;
       }
@@ -953,9 +953,9 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
           resolution: args.resolution,
           config: defaultConfig,
           duration: args.duration || 3,
-          timestep: args.timestep || 1/120,
+          timestep: args.timestep || 1 / 120,
           gravity: args.gravity,
-          initialVelocity: args.initialVelocity
+          initialVelocity: args.initialVelocity,
         });
 
         const finalFrame = simResult.frames[simResult.frames.length - 1];
@@ -971,10 +971,10 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
           finalVolume: finalFrame?.volume || 0,
           energy: {
             initial: initialFrame?.energy,
-            final: finalFrame?.energy
+            final: finalFrame?.energy,
           },
           centerOfMass: calculateCenterOfMass(simResult.finalState.particles),
-          isAtRest: (finalFrame?.energy.kinetic || 0) < 0.001
+          isAtRest: (finalFrame?.energy.kinetic || 0) < 0.001,
         };
         break;
       }
@@ -992,19 +992,19 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
             'Plane and sphere collision',
             'Cube and sphere shapes',
             'Tetrahedral mesh for volume calculation',
-            'Energy tracking'
+            'Energy tracking',
           ],
           springTypes: {
             structural: 'Direct neighbor connections',
             shear: 'Diagonal connections for rigidity',
-            bend: 'Skip-one connections for bending resistance'
+            bend: 'Skip-one connections for bending resistance',
           },
           defaultConfig,
           constants: {
             GRAVITY,
-            CONSTRAINT_ITERATIONS
+            CONSTRAINT_ITERATIONS,
           },
-          operations: ['simulate', 'analyze', 'info']
+          operations: ['simulate', 'analyze', 'info'],
         };
       }
     }
@@ -1016,4 +1016,6 @@ export async function executesoftbody(toolCall: UnifiedToolCall): Promise<Unifie
   }
 }
 
-export function issoftbodyAvailable(): boolean { return true; }
+export function issoftbodyAvailable(): boolean {
+  return true;
+}

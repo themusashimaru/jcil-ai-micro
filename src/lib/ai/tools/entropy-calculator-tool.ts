@@ -17,59 +17,71 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const entropycalculatorTool: UnifiedTool = {
   name: 'entropy_calculator',
-  description: 'Calculate Shannon entropy, mutual information, KL divergence, and other information-theoretic measures',
+  description:
+    'Calculate Shannon entropy, mutual information, KL divergence, and other information-theoretic measures',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['entropy', 'joint_entropy', 'conditional_entropy', 'mutual_info', 'kl_divergence', 'cross_entropy', 'channel_capacity', 'compression_bound', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'entropy',
+          'joint_entropy',
+          'conditional_entropy',
+          'mutual_info',
+          'kl_divergence',
+          'cross_entropy',
+          'channel_capacity',
+          'compression_bound',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       distribution: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Probability distribution P(X) for entropy calculations'
+        description: 'Probability distribution P(X) for entropy calculations',
       },
       distribution_q: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Second distribution Q(X) for KL divergence or cross entropy'
+        description: 'Second distribution Q(X) for KL divergence or cross entropy',
       },
       joint_distribution: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Joint probability distribution P(X,Y) as 2D array'
+        items: { type: 'array' },
+        description: 'Joint probability distribution P(X,Y) as 2D array of numbers',
       },
       data: {
         type: 'string',
-        description: 'String data to analyze for entropy estimation'
+        description: 'String data to analyze for entropy estimation',
       },
       base: {
         type: 'string',
         enum: ['2', 'e', '10'],
-        description: 'Logarithm base: 2 (bits), e (nats), 10 (dits). Default: 2'
+        description: 'Logarithm base: 2 (bits), e (nats), 10 (dits). Default: 2',
       },
       noise_probability: {
         type: 'number',
-        description: 'Error probability for binary symmetric channel'
-      }
+        description: 'Error probability for binary symmetric channel',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Logarithm function with specified base
 function logBase(x: number, base: '2' | 'e' | '10'): number {
   if (x <= 0) return 0;
   switch (base) {
-    case '2': return Math.log2(x);
-    case 'e': return Math.log(x);
-    case '10': return Math.log10(x);
-    default: return Math.log2(x);
+    case '2':
+      return Math.log2(x);
+    case 'e':
+      return Math.log(x);
+    case '10':
+      return Math.log10(x);
+    default:
+      return Math.log2(x);
   }
 }
 
@@ -81,7 +93,10 @@ function validateDistribution(dist: number[]): { valid: boolean; error?: string 
 
   for (let i = 0; i < dist.length; i++) {
     if (dist[i] < 0 || dist[i] > 1) {
-      return { valid: false, error: `Probability at index ${i} (${dist[i]}) must be between 0 and 1` };
+      return {
+        valid: false,
+        error: `Probability at index ${i} (${dist[i]}) must be between 0 and 1`,
+      };
     }
   }
 
@@ -204,7 +219,10 @@ function bscChannelCapacity(errorProb: number, base: '2' | 'e' | '10' = '2'): nu
 }
 
 // Estimate entropy from data
-function estimateEntropyFromData(data: string, base: '2' | 'e' | '10' = '2'): {
+function estimateEntropyFromData(
+  data: string,
+  base: '2' | 'e' | '10' = '2'
+): {
   entropy: number;
   entropyRate: number;
   distribution: Record<string, number>;
@@ -238,12 +256,15 @@ function estimateEntropyFromData(data: string, base: '2' | 'e' | '10' = '2'): {
     entropyRate,
     distribution,
     symbolCount: total,
-    uniqueSymbols: Object.keys(counts).length
+    uniqueSymbols: Object.keys(counts).length,
   };
 }
 
 // Compression bound based on entropy
-function compressionBound(data: string, _base: '2' | 'e' | '10' = '2'): {
+function compressionBound(
+  data: string,
+  _base: '2' | 'e' | '10' = '2'
+): {
   originalBits: number;
   entropyBits: number;
   compressionRatio: number;
@@ -264,11 +285,13 @@ function compressionBound(data: string, _base: '2' | 'e' | '10' = '2'): {
     entropyBits,
     compressionRatio,
     redundancy,
-    minBytesNeeded: Math.ceil(entropyBits / 8)
+    minBytesNeeded: Math.ceil(entropyBits / 8),
   };
 }
 
-export async function executeentropycalculator(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeentropycalculator(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
@@ -278,42 +301,46 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'entropy_calculator',
-          description: 'Information theory calculations based on Shannon entropy',
-          operations: {
-            entropy: 'Calculate Shannon entropy H(X) of a probability distribution',
-            joint_entropy: 'Calculate joint entropy H(X,Y) from joint distribution',
-            conditional_entropy: 'Calculate conditional entropy H(Y|X)',
-            mutual_info: 'Calculate mutual information I(X;Y)',
-            kl_divergence: 'Calculate Kullback-Leibler divergence D_KL(P||Q)',
-            cross_entropy: 'Calculate cross entropy H(P,Q)',
-            channel_capacity: 'Calculate capacity of binary symmetric channel',
-            compression_bound: 'Estimate theoretical compression limit for data'
+        content: JSON.stringify(
+          {
+            tool: 'entropy_calculator',
+            description: 'Information theory calculations based on Shannon entropy',
+            operations: {
+              entropy: 'Calculate Shannon entropy H(X) of a probability distribution',
+              joint_entropy: 'Calculate joint entropy H(X,Y) from joint distribution',
+              conditional_entropy: 'Calculate conditional entropy H(Y|X)',
+              mutual_info: 'Calculate mutual information I(X;Y)',
+              kl_divergence: 'Calculate Kullback-Leibler divergence D_KL(P||Q)',
+              cross_entropy: 'Calculate cross entropy H(P,Q)',
+              channel_capacity: 'Calculate capacity of binary symmetric channel',
+              compression_bound: 'Estimate theoretical compression limit for data',
+            },
+            parameters: {
+              distribution: 'Probability distribution P(X) as array summing to 1',
+              distribution_q: 'Second distribution Q(X) for divergence calculations',
+              joint_distribution: '2D array for joint probability P(X,Y)',
+              data: 'String data for entropy estimation',
+              base: "Logarithm base: '2' (bits), 'e' (nats), '10' (dits)",
+              noise_probability: 'Error probability p for BSC channel',
+            },
+            formulas: {
+              entropy: 'H(X) = -Σ P(x) log P(x)',
+              joint_entropy: 'H(X,Y) = -Σ P(x,y) log P(x,y)',
+              conditional: 'H(Y|X) = H(X,Y) - H(X)',
+              mutual_info: 'I(X;Y) = H(X) + H(Y) - H(X,Y)',
+              kl_divergence: 'D_KL(P||Q) = Σ P(x) log(P(x)/Q(x))',
+              cross_entropy: 'H(P,Q) = -Σ P(x) log Q(x) = H(P) + D_KL(P||Q)',
+              bsc_capacity: 'C = 1 - H_b(p) where H_b is binary entropy',
+            },
+            units: {
+              bits: "base 2 (most common, unit = 'bit')",
+              nats: "base e (natural, unit = 'nat')",
+              dits: "base 10 (decimal, unit = 'dit' or 'hartley')",
+            },
           },
-          parameters: {
-            distribution: 'Probability distribution P(X) as array summing to 1',
-            distribution_q: 'Second distribution Q(X) for divergence calculations',
-            joint_distribution: '2D array for joint probability P(X,Y)',
-            data: 'String data for entropy estimation',
-            base: "Logarithm base: '2' (bits), 'e' (nats), '10' (dits)",
-            noise_probability: 'Error probability p for BSC channel'
-          },
-          formulas: {
-            entropy: 'H(X) = -Σ P(x) log P(x)',
-            joint_entropy: 'H(X,Y) = -Σ P(x,y) log P(x,y)',
-            conditional: 'H(Y|X) = H(X,Y) - H(X)',
-            mutual_info: 'I(X;Y) = H(X) + H(Y) - H(X,Y)',
-            kl_divergence: 'D_KL(P||Q) = Σ P(x) log(P(x)/Q(x))',
-            cross_entropy: 'H(P,Q) = -Σ P(x) log Q(x) = H(P) + D_KL(P||Q)',
-            bsc_capacity: 'C = 1 - H_b(p) where H_b is binary entropy'
-          },
-          units: {
-            bits: "base 2 (most common, unit = 'bit')",
-            nats: "base e (natural, unit = 'nat')",
-            dits: "base 10 (decimal, unit = 'dit' or 'hartley')"
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -331,7 +358,7 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
             distribution: estimated.distribution,
             unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
             max_entropy: logBase(estimated.uniqueSymbols, base),
-            efficiency: estimated.entropy / logBase(estimated.uniqueSymbols, base)
+            efficiency: estimated.entropy / logBase(estimated.uniqueSymbols, base),
           };
         } else {
           const dist = args.distribution as number[];
@@ -349,7 +376,7 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
             efficiency: entropy / maxEntropy,
             redundancy: 1 - entropy / maxEntropy,
             unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
-            perplexity: Math.pow(base === '2' ? 2 : base === 'e' ? Math.E : 10, entropy)
+            perplexity: Math.pow(base === '2' ? 2 : base === 'e' ? Math.E : 10, entropy),
           };
         }
         break;
@@ -372,7 +399,7 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
           marginal_y_entropy: Hy,
           marginal_x: px,
           marginal_y: py,
-          unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits'
+          unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
         };
         break;
       }
@@ -399,7 +426,7 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
           'H(X)': Hx,
           'H(Y)': Hy,
           unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
-          note: 'H(Y|X) = H(X,Y) - H(X), always <= H(Y)'
+          note: 'H(Y|X) = H(X,Y) - H(X), always <= H(Y)',
         };
         break;
       }
@@ -421,8 +448,11 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
           'H(Y)': Hy,
           normalized_mi: mi / Math.min(Hx, Hy),
           unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
-          interpretation: mi > 0.1 ? 'Variables share significant information' : 'Variables are nearly independent',
-          note: 'I(X;Y) = H(X) + H(Y) - H(X,Y) = H(X) - H(X|Y)'
+          interpretation:
+            mi > 0.1
+              ? 'Variables share significant information'
+              : 'Variables are nearly independent',
+          note: 'I(X;Y) = H(X) + H(Y) - H(X,Y) = H(X) - H(X|Y)',
         };
         break;
       }
@@ -443,16 +473,27 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
 
         const klPQ = klDivergence(p, q, base);
         const klQP = klDivergence(q, p, base);
-        const jsDivergence = 0.5 * klDivergence(p, p.map((pi, i) => (pi + q[i]) / 2), base) +
-                            0.5 * klDivergence(q, p.map((pi, i) => (pi + q[i]) / 2), base);
+        const jsDivergence =
+          0.5 *
+            klDivergence(
+              p,
+              p.map((pi, i) => (pi + q[i]) / 2),
+              base
+            ) +
+          0.5 *
+            klDivergence(
+              q,
+              p.map((pi, i) => (pi + q[i]) / 2),
+              base
+            );
 
         result = {
           'D_KL(P||Q)': klPQ,
           'D_KL(Q||P)': klQP,
-          'JS_divergence': jsDivergence,
+          JS_divergence: jsDivergence,
           asymmetric: Math.abs(klPQ - klQP) > 0.001,
           unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
-          note: 'KL divergence is asymmetric. JS divergence is symmetric.'
+          note: 'KL divergence is asymmetric. JS divergence is symmetric.',
         };
         break;
       }
@@ -481,7 +522,7 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
           kl_divergence: kl,
           verification: Math.abs(ce - (hp + kl)) < 0.0001,
           unit: base === '2' ? 'bits' : base === 'e' ? 'nats' : 'dits',
-          note: 'Cross entropy H(P,Q) = H(P) + D_KL(P||Q)'
+          note: 'Cross entropy H(P,Q) = H(P) + D_KL(P||Q)',
         };
         break;
       }
@@ -504,7 +545,8 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
           max_capacity: base === '2' ? 1 : logBase(2, base),
           efficiency: capacity / (base === '2' ? 1 : logBase(2, base)),
           unit: base === '2' ? 'bits per channel use' : base === 'e' ? 'nats' : 'dits',
-          note: noiseProb === 0.5 ? 'Channel capacity is 0 at p=0.5 (maximum uncertainty)' : undefined
+          note:
+            noiseProb === 0.5 ? 'Channel capacity is 0 at p=0.5 (maximum uncertainty)' : undefined,
         };
         break;
       }
@@ -527,7 +569,7 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
           entropy_per_symbol: entropy,
           alphabet_size: uniqueSymbols,
           max_entropy_per_symbol: logBase(uniqueSymbols, base),
-          note: 'No lossless compressor can compress below the entropy bound on average'
+          note: 'No lossless compressor can compress below the entropy bound on average',
         };
         break;
       }
@@ -538,17 +580,22 @@ export async function executeentropycalculator(toolCall: UnifiedToolCall): Promi
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        operation,
-        base,
-        ...result
-      }, null, 2)
+      content: JSON.stringify(
+        {
+          operation,
+          base,
+          ...result,
+        },
+        null,
+        2
+      ),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function isentropycalculatorAvailable(): boolean { return true; }
+export function isentropycalculatorAvailable(): boolean {
+  return true;
+}

@@ -26,7 +26,7 @@ function vecSub(a: Vector, b: Vector): Vector {
 }
 
 function vecScale(v: Vector, s: number): Vector {
-  return v.map(x => x * s);
+  return v.map((x) => x * s);
 }
 
 function vecDot(a: Vector, b: Vector): number {
@@ -37,17 +37,17 @@ function vecNorm(v: Vector): number {
   return Math.sqrt(vecDot(v, v));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function matVecMul(A: Matrix, x: Vector): Vector {
-  return A.map(row => vecDot(row, x));
+export function matVecMul(A: Matrix, x: Vector): Vector {
+  return A.map((row) => vecDot(row, x));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function matMul(A: Matrix, B: Matrix): Matrix {
+export function matMul(A: Matrix, B: Matrix): Matrix {
   const n = A.length;
   const m = B[0].length;
   const p = B.length;
-  const result: Matrix = Array(n).fill(0).map(() => Array(m).fill(0));
+  const result: Matrix = Array(n)
+    .fill(0)
+    .map(() => Array(m).fill(0));
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < m; j++) {
       for (let k = 0; k < p; k++) {
@@ -58,14 +58,18 @@ function matMul(A: Matrix, B: Matrix): Matrix {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function transpose(A: Matrix): Matrix {
-  return A[0].map((_, i) => A.map(row => row[i]));
+export function transpose(A: Matrix): Matrix {
+  return A[0].map((_, i) => A.map((row) => row[i]));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function identity(n: number): Matrix {
-  return Array(n).fill(0).map((_, i) => Array(n).fill(0).map((__, j) => i === j ? 1 : 0));
+export function identity(n: number): Matrix {
+  return Array(n)
+    .fill(0)
+    .map((_, i) =>
+      Array(n)
+        .fill(0)
+        .map((__, j) => (i === j ? 1 : 0))
+    );
 }
 
 // Solve Ax = b using Gaussian elimination with partial pivoting
@@ -121,15 +125,24 @@ function numericalGradient(f: (x: Vector) => number, x: Vector, h: number = 1e-6
 // Numerical Hessian
 function numericalHessian(f: (x: Vector) => number, x: Vector, h: number = 1e-5): Matrix {
   const n = x.length;
-  const H: Matrix = Array(n).fill(0).map(() => Array(n).fill(0));
+  const H: Matrix = Array(n)
+    .fill(0)
+    .map(() => Array(n).fill(0));
 
   for (let i = 0; i < n; i++) {
     for (let j = i; j < n; j++) {
-      const xpp = [...x], xpm = [...x], xmp = [...x], xmm = [...x];
-      xpp[i] += h; xpp[j] += h;
-      xpm[i] += h; xpm[j] -= h;
-      xmp[i] -= h; xmp[j] += h;
-      xmm[i] -= h; xmm[j] -= h;
+      const xpp = [...x],
+        xpm = [...x],
+        xmp = [...x],
+        xmm = [...x];
+      xpp[i] += h;
+      xpp[j] += h;
+      xpm[i] += h;
+      xpm[j] -= h;
+      xmp[i] -= h;
+      xmp[j] += h;
+      xmm[i] -= h;
+      xmm[j] -= h;
 
       H[i][j] = (f(xpp) - f(xpm) - f(xmp) + f(xmm)) / (4 * h * h);
       H[j][i] = H[i][j];
@@ -155,11 +168,14 @@ const testProblems: Record<string, OptimizationProblem> = {
     name: 'Quadratic f(x) = x^T A x + b^T x',
     f: (x) => x[0] * x[0] + 2 * x[1] * x[1] - 2 * x[0] - 4 * x[1] + 5,
     grad: (x) => [2 * x[0] - 2, 4 * x[1] - 4],
-    hess: () => [[2, 0], [0, 4]],
+    hess: () => [
+      [2, 0],
+      [0, 4],
+    ],
     x0: [0, 0],
     optimal: [1, 1],
     optimalValue: 2,
-    isConvex: true
+    isConvex: true,
   },
   rosenbrock: {
     name: 'Rosenbrock function (banana)',
@@ -167,17 +183,17 @@ const testProblems: Record<string, OptimizationProblem> = {
     x0: [-1, 1],
     optimal: [1, 1],
     optimalValue: 0,
-    isConvex: false // Non-convex but has unique minimum
+    isConvex: false, // Non-convex but has unique minimum
   },
   sphere: {
     name: 'Sphere function (sum of squares)',
     f: (x) => x.reduce((sum, xi) => sum + xi * xi, 0),
-    grad: (x) => x.map(xi => 2 * xi),
-    hess: (x) => identity(x.length).map(row => row.map(v => v * 2)),
+    grad: (x) => x.map((xi) => 2 * xi),
+    hess: (x) => identity(x.length).map((row) => row.map((v) => v * 2)),
     x0: [1, 2, 3],
     optimal: [0, 0, 0],
     optimalValue: 0,
-    isConvex: true
+    isConvex: true,
   },
   booth: {
     name: 'Booth function',
@@ -185,27 +201,29 @@ const testProblems: Record<string, OptimizationProblem> = {
     x0: [0, 0],
     optimal: [1, 3],
     optimalValue: 0,
-    isConvex: true
+    isConvex: true,
   },
   beale: {
     name: 'Beale function',
     f: (x) => {
       const [a, b] = [x[0], x[1]];
-      return Math.pow(1.5 - a + a * b, 2) +
-             Math.pow(2.25 - a + a * b * b, 2) +
-             Math.pow(2.625 - a + a * b * b * b, 2);
+      return (
+        Math.pow(1.5 - a + a * b, 2) +
+        Math.pow(2.25 - a + a * b * b, 2) +
+        Math.pow(2.625 - a + a * b * b * b, 2)
+      );
     },
     x0: [0, 0],
     optimal: [3, 0.5],
     optimalValue: 0,
-    isConvex: false
+    isConvex: false,
   },
   logSumExp: {
     name: 'Log-sum-exp (soft max)',
     f: (x) => Math.log(x.reduce((sum, xi) => sum + Math.exp(xi), 0)),
     x0: [1, 2, 3],
-    isConvex: true
-  }
+    isConvex: true,
+  },
 };
 
 // Gradient Descent
@@ -213,7 +231,7 @@ interface GDOptions {
   maxIter: number;
   tol: number;
   stepSize: number | 'backtracking' | 'diminishing';
-  beta?: number;  // Backtracking parameter
+  beta?: number; // Backtracking parameter
   alpha?: number; // Backtracking decrease factor
 }
 
@@ -260,7 +278,8 @@ function gradientDescent(
         t *= beta;
         if (t < 1e-10) break;
       }
-    } else { // diminishing
+    } else {
+      // diminishing
       t = 1 / (iter + 1);
     }
 
@@ -333,7 +352,7 @@ function interiorPoint(
   const muFactor = options.muFactor || 0.5;
 
   // Check initial feasibility
-  const isFeasible = (x: Vector) => constraints.every(g => g(x) < 0);
+  const isFeasible = (x: Vector) => constraints.every((g) => g(x) < 0);
 
   if (!isFeasible(x0)) {
     return {
@@ -342,7 +361,7 @@ function interiorPoint(
       iterations: 0,
       converged: false,
       feasible: false,
-      history: []
+      history: [],
     };
   }
 
@@ -387,7 +406,7 @@ function interiorPoint(
 // Proximal gradient for L1 regularization (LASSO)
 function proximalGradient(
   f: (x: Vector) => number,
-  lambda: number,  // L1 regularization parameter
+  lambda: number, // L1 regularization parameter
   x0: Vector,
   options: { maxIter?: number; tol?: number; stepSize?: number } = {}
 ): OptimizationResult {
@@ -400,7 +419,7 @@ function proximalGradient(
 
   // Soft thresholding (proximal operator for L1)
   const softThreshold = (v: Vector, thresh: number): Vector =>
-    v.map(vi => Math.sign(vi) * Math.max(0, Math.abs(vi) - thresh));
+    v.map((vi) => Math.sign(vi) * Math.max(0, Math.abs(vi) - thresh));
 
   for (let iter = 0; iter < maxIter; iter++) {
     const fVal = f(x);
@@ -420,11 +439,23 @@ function proximalGradient(
     x = xNew;
 
     if (diff < tol) {
-      return { x, fValue: f(x) + lambda * x.reduce((s, xi) => s + Math.abs(xi), 0), iterations: iter, converged: true, history };
+      return {
+        x,
+        fValue: f(x) + lambda * x.reduce((s, xi) => s + Math.abs(xi), 0),
+        iterations: iter,
+        converged: true,
+        history,
+      };
     }
   }
 
-  return { x, fValue: f(x) + lambda * x.reduce((s, xi) => s + Math.abs(xi), 0), iterations: maxIter, converged: false, history };
+  return {
+    x,
+    fValue: f(x) + lambda * x.reduce((s, xi) => s + Math.abs(xi), 0),
+    iterations: maxIter,
+    converged: false,
+    history,
+  };
 }
 
 // Simple LP solver using revised simplex (for small problems)
@@ -436,8 +467,8 @@ interface LPResult {
 }
 
 function simplexLP(
-  c: Vector,      // minimize c^T x
-  A: Matrix,      // Ax <= b
+  c: Vector, // minimize c^T x
+  A: Matrix, // Ax <= b
   b: Vector
 ): LPResult {
   // Convert to standard form with slack variables
@@ -456,7 +487,7 @@ function simplexLP(
   }
 
   // Objective row
-  const objRow = [...c.map(x => -x)];
+  const objRow = [...c.map((x) => -x)];
   for (let j = 0; j < m; j++) objRow.push(0);
   objRow.push(0);
   tableau.push(objRow);
@@ -539,14 +570,25 @@ function simplexLP(
 
 export const convexoptimizationTool: UnifiedTool = {
   name: 'convex_optimization',
-  description: 'Convex optimization algorithms - gradient descent, Newton method, interior point, proximal gradient, LP',
+  description:
+    'Convex optimization algorithms - gradient descent, Newton method, interior point, proximal gradient, LP',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['gradient_descent', 'newton', 'interior_point', 'proximal', 'lp', 'compare', 'problems', 'info', 'examples'],
-        description: 'Optimization method to use'
+        enum: [
+          'gradient_descent',
+          'newton',
+          'interior_point',
+          'proximal',
+          'lp',
+          'compare',
+          'problems',
+          'info',
+          'examples',
+        ],
+        description: 'Optimization method to use',
       },
       problem: { type: 'string', description: 'Predefined problem name' },
       x0: { type: 'array', items: { type: 'number' }, description: 'Initial point' },
@@ -556,13 +598,15 @@ export const convexoptimizationTool: UnifiedTool = {
       lambda: { type: 'number', description: 'L1 regularization parameter for proximal' },
       c: { type: 'array', items: { type: 'number' }, description: 'LP objective coefficients' },
       A: { type: 'array', description: 'LP constraint matrix' },
-      b: { type: 'array', items: { type: 'number' }, description: 'LP constraint bounds' }
+      b: { type: 'array', items: { type: 'number' }, description: 'LP constraint bounds' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executeconvexoptimization(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeconvexoptimization(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -572,53 +616,80 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'convex-optimization',
-          description: 'Convex optimization algorithms and solvers',
-          methods: {
-            gradient_descent: 'First-order method using gradient information',
-            newton: "Second-order method using Hessian (Newton's method)",
-            interior_point: 'Barrier method for constrained optimization',
-            proximal: 'Proximal gradient for L1-regularized problems (LASSO)',
-            lp: 'Linear programming via simplex method'
+        content: JSON.stringify(
+          {
+            tool: 'convex-optimization',
+            description: 'Convex optimization algorithms and solvers',
+            methods: {
+              gradient_descent: 'First-order method using gradient information',
+              newton: "Second-order method using Hessian (Newton's method)",
+              interior_point: 'Barrier method for constrained optimization',
+              proximal: 'Proximal gradient for L1-regularized problems (LASSO)',
+              lp: 'Linear programming via simplex method',
+            },
+            concepts: {
+              convergence: 'Gradient descent: O(1/k), Newton: quadratic near optimum',
+              stepSize: 'Fixed, backtracking line search, or diminishing',
+              regularization: 'L1 (sparsity), L2 (ridge)',
+            },
+            operations: [
+              'gradient_descent',
+              'newton',
+              'interior_point',
+              'proximal',
+              'lp',
+              'compare',
+              'problems',
+              'info',
+              'examples',
+            ],
           },
-          concepts: {
-            convergence: 'Gradient descent: O(1/k), Newton: quadratic near optimum',
-            stepSize: 'Fixed, backtracking line search, or diminishing',
-            regularization: 'L1 (sparsity), L2 (ridge)'
-          },
-          operations: ['gradient_descent', 'newton', 'interior_point', 'proximal', 'lp', 'compare', 'problems', 'info', 'examples']
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'examples') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          examples: [
-            {
-              description: 'Gradient descent on quadratic function',
-              call: { operation: 'gradient_descent', problem: 'quadratic' }
-            },
-            {
-              description: "Newton's method on Rosenbrock",
-              call: { operation: 'newton', problem: 'rosenbrock' }
-            },
-            {
-              description: 'Compare methods on Booth function',
-              call: { operation: 'compare', problem: 'booth' }
-            },
-            {
-              description: 'Solve linear program',
-              call: { operation: 'lp', c: [-3, -5], A: [[1, 0], [0, 2], [3, 2]], b: [4, 12, 18] }
-            },
-            {
-              description: 'Proximal gradient with L1 regularization',
-              call: { operation: 'proximal', problem: 'sphere', lambda: 0.5 }
-            }
-          ]
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            examples: [
+              {
+                description: 'Gradient descent on quadratic function',
+                call: { operation: 'gradient_descent', problem: 'quadratic' },
+              },
+              {
+                description: "Newton's method on Rosenbrock",
+                call: { operation: 'newton', problem: 'rosenbrock' },
+              },
+              {
+                description: 'Compare methods on Booth function',
+                call: { operation: 'compare', problem: 'booth' },
+              },
+              {
+                description: 'Solve linear program',
+                call: {
+                  operation: 'lp',
+                  c: [-3, -5],
+                  A: [
+                    [1, 0],
+                    [0, 2],
+                    [3, 2],
+                  ],
+                  b: [4, 12, 18],
+                },
+              },
+              {
+                description: 'Proximal gradient with L1 regularization',
+                call: { operation: 'proximal', problem: 'sphere', lambda: 0.5 },
+              },
+            ],
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -628,7 +699,7 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
         description: prob.name,
         dimension: prob.x0.length,
         isConvex: prob.isConvex,
-        knownOptimal: prob.optimal ? { x: prob.optimal, f: prob.optimalValue } : null
+        knownOptimal: prob.optimal ? { x: prob.optimal, f: prob.optimalValue } : null,
       }));
       return { toolCallId: id, content: JSON.stringify({ problems: problemList }, null, 2) };
     }
@@ -640,8 +711,11 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
       if (!problem) {
         return {
           toolCallId: id,
-          content: JSON.stringify({ error: `Unknown problem: ${problemName}`, available: Object.keys(testProblems) }),
-          isError: true
+          content: JSON.stringify({
+            error: `Unknown problem: ${problemName}`,
+            available: Object.keys(testProblems),
+          }),
+          isError: true,
         };
       }
 
@@ -649,41 +723,51 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
       const options = {
         maxIter: args.maxIter || 100,
         tol: args.tol || 1e-6,
-        stepSize: args.stepSize || (operation === 'gradient_descent' ? 'backtracking' : undefined)
+        stepSize: args.stepSize || (operation === 'gradient_descent' ? 'backtracking' : undefined),
       };
 
-      const result = operation === 'gradient_descent'
-        ? gradientDescent(problem.f, x0, options)
-        : newtonsMethod(problem.f, x0, options);
+      const result =
+        operation === 'gradient_descent'
+          ? gradientDescent(problem.f, x0, options)
+          : newtonsMethod(problem.f, x0, options);
 
-      const sampleHistory = result.history.filter((_, i) =>
-        i === 0 || i === result.iterations - 1 || i % Math.max(1, Math.floor(result.iterations / 5)) === 0
+      const sampleHistory = result.history.filter(
+        (_, i) =>
+          i === 0 ||
+          i === result.iterations - 1 ||
+          i % Math.max(1, Math.floor(result.iterations / 5)) === 0
       );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          method: operation,
-          problem: problemName,
-          problemDescription: problem.name,
-          initialPoint: x0,
-          result: {
-            x: result.x.map(v => v.toFixed(8)),
-            fValue: result.fValue.toFixed(10),
-            iterations: result.iterations,
-            converged: result.converged
+        content: JSON.stringify(
+          {
+            method: operation,
+            problem: problemName,
+            problemDescription: problem.name,
+            initialPoint: x0,
+            result: {
+              x: result.x.map((v) => v.toFixed(8)),
+              fValue: result.fValue.toFixed(10),
+              iterations: result.iterations,
+              converged: result.converged,
+            },
+            knownOptimal: problem.optimal
+              ? {
+                  x: problem.optimal,
+                  f: problem.optimalValue,
+                  error: vecNorm(vecSub(result.x, problem.optimal)).toFixed(10),
+                }
+              : null,
+            history: sampleHistory.map((h) => ({
+              iter: h.iter,
+              f: h.f.toFixed(8),
+              gradNorm: h.gradNorm.toFixed(8),
+            })),
           },
-          knownOptimal: problem.optimal ? {
-            x: problem.optimal,
-            f: problem.optimalValue,
-            error: vecNorm(vecSub(result.x, problem.optimal)).toFixed(10)
-          } : null,
-          history: sampleHistory.map(h => ({
-            iter: h.iter,
-            f: h.f.toFixed(8),
-            gradNorm: h.gradNorm.toFixed(8)
-          }))
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -696,28 +780,32 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
 
       const result = interiorPoint(f, constraints, x0, {
         maxIter: args.maxIter || 50,
-        tol: args.tol || 1e-6
+        tol: args.tol || 1e-6,
       });
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          method: 'interior_point',
-          problem: 'minimize x^2 + y^2 subject to x + y >= 1',
-          initialPoint: x0,
-          result: {
-            x: result.x.map(v => v.toFixed(8)),
-            fValue: result.fValue.toFixed(10),
-            iterations: result.iterations,
-            converged: result.converged,
-            feasible: result.feasible
+        content: JSON.stringify(
+          {
+            method: 'interior_point',
+            problem: 'minimize x^2 + y^2 subject to x + y >= 1',
+            initialPoint: x0,
+            result: {
+              x: result.x.map((v) => v.toFixed(8)),
+              fValue: result.fValue.toFixed(10),
+              iterations: result.iterations,
+              converged: result.converged,
+              feasible: result.feasible,
+            },
+            analyticalSolution: {
+              x: [0.5, 0.5],
+              f: 0.5,
+              note: 'By symmetry and Lagrange multipliers',
+            },
           },
-          analyticalSolution: {
-            x: [0.5, 0.5],
-            f: 0.5,
-            note: 'By symmetry and Lagrange multipliers'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -728,8 +816,11 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
       if (!problem) {
         return {
           toolCallId: id,
-          content: JSON.stringify({ error: `Unknown problem: ${problemName}`, available: Object.keys(testProblems) }),
-          isError: true
+          content: JSON.stringify({
+            error: `Unknown problem: ${problemName}`,
+            available: Object.keys(testProblems),
+          }),
+          isError: true,
         };
       }
 
@@ -739,59 +830,72 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
       const result = proximalGradient(problem.f, lambda, x0, {
         maxIter: args.maxIter || 500,
         tol: args.tol || 1e-6,
-        stepSize: args.stepSize || 0.01
+        stepSize: args.stepSize || 0.01,
       });
 
       const l1Norm = result.x.reduce((s, xi) => s + Math.abs(xi), 0);
-      const sparsity = result.x.filter(xi => Math.abs(xi) < 1e-6).length / result.x.length;
+      const sparsity = result.x.filter((xi) => Math.abs(xi) < 1e-6).length / result.x.length;
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          method: 'proximal_gradient',
-          problem: problemName,
-          lambda,
-          result: {
-            x: result.x.map(v => v.toFixed(8)),
-            smoothPart: problem.f(result.x).toFixed(10),
-            l1Norm: l1Norm.toFixed(10),
-            totalObjective: result.fValue.toFixed(10),
-            iterations: result.iterations,
-            converged: result.converged
+        content: JSON.stringify(
+          {
+            method: 'proximal_gradient',
+            problem: problemName,
+            lambda,
+            result: {
+              x: result.x.map((v) => v.toFixed(8)),
+              smoothPart: problem.f(result.x).toFixed(10),
+              l1Norm: l1Norm.toFixed(10),
+              totalObjective: result.fValue.toFixed(10),
+              iterations: result.iterations,
+              converged: result.converged,
+            },
+            sparsityAnalysis: {
+              sparsity: (sparsity * 100).toFixed(1) + '%',
+              nonzeroComponents: result.x.filter((xi) => Math.abs(xi) >= 1e-6).length,
+            },
           },
-          sparsityAnalysis: {
-            sparsity: (sparsity * 100).toFixed(1) + '%',
-            nonzeroComponents: result.x.filter(xi => Math.abs(xi) >= 1e-6).length
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'lp') {
       const c = args.c || [-3, -5];
-      const A = args.A || [[1, 0], [0, 2], [3, 2]];
+      const A = args.A || [
+        [1, 0],
+        [0, 2],
+        [3, 2],
+      ];
       const b = args.b || [4, 12, 18];
 
       const result = simplexLP(c, A, b);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          method: 'simplex',
-          problem: {
-            objective: `minimize ${c.map((ci, i) => `${ci}*x${i + 1}`).join(' + ')}`,
-            constraints: A.map((row, i) =>
-              `${row.map((aij, j) => `${aij}*x${j + 1}`).join(' + ')} <= ${b[i]}`
-            ),
-            bounds: 'x >= 0'
+        content: JSON.stringify(
+          {
+            method: 'simplex',
+            problem: {
+              objective: `minimize ${c.map((ci: number, i: number) => `${ci}*x${i + 1}`).join(' + ')}`,
+              constraints: A.map(
+                (row: number[], i: number) =>
+                  `${row.map((aij: number, j: number) => `${aij}*x${j + 1}`).join(' + ')} <= ${b[i]}`
+              ),
+              bounds: 'x >= 0',
+            },
+            result: {
+              x: result.x.map((v) => v.toFixed(6)),
+              optimalValue: result.optimal.toFixed(6),
+              status: result.status,
+              iterations: result.iterations,
+            },
           },
-          result: {
-            x: result.x.map(v => v.toFixed(6)),
-            optimalValue: result.optimal.toFixed(6),
-            status: result.status,
-            iterations: result.iterations
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -802,15 +906,22 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
       if (!problem) {
         return {
           toolCallId: id,
-          content: JSON.stringify({ error: `Unknown problem: ${problemName}`, available: Object.keys(testProblems) }),
-          isError: true
+          content: JSON.stringify({
+            error: `Unknown problem: ${problemName}`,
+            available: Object.keys(testProblems),
+          }),
+          isError: true,
         };
       }
 
       const maxIter = args.maxIter || 100;
       const tol = args.tol || 1e-8;
 
-      const gdResult = gradientDescent(problem.f, problem.x0, { maxIter, tol, stepSize: 'backtracking' });
+      const gdResult = gradientDescent(problem.f, problem.x0, {
+        maxIter,
+        tol,
+        stepSize: 'backtracking',
+      });
       const newtonResult = newtonsMethod(problem.f, problem.x0, { maxIter, tol });
 
       const comparison = {
@@ -819,21 +930,27 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
         initialPoint: problem.x0,
         knownOptimal: problem.optimal,
         gradientDescent: {
-          x: gdResult.x.map(v => v.toFixed(8)),
+          x: gdResult.x.map((v) => v.toFixed(8)),
           fValue: gdResult.fValue.toFixed(10),
           iterations: gdResult.iterations,
           converged: gdResult.converged,
-          error: problem.optimal ? vecNorm(vecSub(gdResult.x, problem.optimal)).toFixed(10) : 'N/A'
+          error: problem.optimal ? vecNorm(vecSub(gdResult.x, problem.optimal)).toFixed(10) : 'N/A',
         },
         newton: {
-          x: newtonResult.x.map(v => v.toFixed(8)),
+          x: newtonResult.x.map((v) => v.toFixed(8)),
           fValue: newtonResult.fValue.toFixed(10),
           iterations: newtonResult.iterations,
           converged: newtonResult.converged,
-          error: problem.optimal ? vecNorm(vecSub(newtonResult.x, problem.optimal)).toFixed(10) : 'N/A'
+          error: problem.optimal
+            ? vecNorm(vecSub(newtonResult.x, problem.optimal)).toFixed(10)
+            : 'N/A',
         },
-        winner: newtonResult.iterations < gdResult.iterations ? 'Newton (fewer iterations)' :
-          gdResult.iterations < newtonResult.iterations ? 'Gradient Descent (fewer iterations)' : 'Tie'
+        winner:
+          newtonResult.iterations < gdResult.iterations
+            ? 'Newton (fewer iterations)'
+            : gdResult.iterations < newtonResult.iterations
+              ? 'Gradient Descent (fewer iterations)'
+              : 'Tie',
       };
 
       return { toolCallId: id, content: JSON.stringify(comparison, null, 2) };
@@ -842,13 +959,14 @@ export async function executeconvexoptimization(toolCall: UnifiedToolCall): Prom
     return {
       toolCallId: id,
       content: JSON.stringify({ error: `Unknown operation: ${operation}` }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function isconvexoptimizationAvailable(): boolean { return true; }
+export function isconvexoptimizationAvailable(): boolean {
+  return true;
+}

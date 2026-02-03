@@ -14,9 +14,9 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 interface Ballot {
   voter: string;
-  ranking: string[];  // Ordered list of candidates (first = most preferred)
-  approvals?: string[];  // For approval voting
-  scores?: Record<string, number>;  // For score voting
+  ranking: string[]; // Ordered list of candidates (first = most preferred)
+  approvals?: string[]; // For approval voting
+  scores?: Record<string, number>; // For score voting
 }
 
 interface Election {
@@ -34,7 +34,7 @@ interface ElectionResult {
 
 interface PairwiseMatrix {
   candidates: string[];
-  matrix: number[][];  // matrix[i][j] = voters preferring candidate i over j
+  matrix: number[][]; // matrix[i][j] = voters preferring candidate i over j
 }
 
 interface CondorcetAnalysis {
@@ -62,7 +62,9 @@ interface ParadoxAnalysis {
 function createPairwiseMatrix(election: Election): PairwiseMatrix {
   const { candidates, ballots } = election;
   const n = candidates.length;
-  const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+  const matrix: number[][] = Array(n)
+    .fill(null)
+    .map(() => Array(n).fill(0));
 
   for (const ballot of ballots) {
     for (let i = 0; i < candidates.length; i++) {
@@ -93,7 +95,7 @@ function createPairwiseMatrix(election: Election): PairwiseMatrix {
 
 function floydWarshall(matrix: number[][], candidates: string[]): number[][] {
   const n = candidates.length;
-  const dist: number[][] = matrix.map(row => [...row]);
+  const dist: number[][] = matrix.map((row) => [...row]);
 
   // Initialize paths
   for (let i = 0; i < n; i++) {
@@ -157,9 +159,10 @@ function plurality(election: Election): ElectionResult {
     details: {
       totalVotes,
       winnerVotes: counts[winner || ''] || 0,
-      winnerPercentage: totalVotes > 0 ? ((counts[winner || ''] || 0) / totalVotes * 100).toFixed(2) + '%' : '0%',
-      description: 'Simple plurality: candidate with most first-choice votes wins'
-    }
+      winnerPercentage:
+        totalVotes > 0 ? (((counts[winner || ''] || 0) / totalVotes) * 100).toFixed(2) + '%' : '0%',
+      description: 'Simple plurality: candidate with most first-choice votes wins',
+    },
   };
 }
 
@@ -167,7 +170,7 @@ function plurality(election: Election): ElectionResult {
 function rankedChoice(election: Election): ElectionResult {
   const rounds: { round: number; counts: Record<string, number>; eliminated?: string }[] = [];
   let remaining = [...election.candidates];
-  const ballots = election.ballots.map(b => ({ ...b, ranking: [...b.ranking] }));
+  const ballots = election.ballots.map((b) => ({ ...b, ranking: [...b.ranking] }));
   const majority = Math.floor(ballots.length / 2) + 1;
 
   while (remaining.length > 1) {
@@ -200,16 +203,17 @@ function rankedChoice(election: Election): ElectionResult {
     const eliminated = toEliminate[toEliminate.length - 1][0]; // Alphabetically last among ties
 
     rounds.push({ round: rounds.length + 1, counts, eliminated });
-    remaining = remaining.filter(c => c !== eliminated);
+    remaining = remaining.filter((c) => c !== eliminated);
   }
 
   const winner = remaining.length > 0 ? remaining[0] : null;
-  const finalRanking = rounds.length > 0
-    ? Object.entries(rounds[rounds.length - 1].counts)
-        .filter(([c]) => remaining.includes(c))
-        .map(([candidate, score]) => ({ candidate, score }))
-        .sort((a, b) => b.score - a.score)
-    : [];
+  const finalRanking =
+    rounds.length > 0
+      ? Object.entries(rounds[rounds.length - 1].counts)
+          .filter(([c]) => remaining.includes(c))
+          .map(([candidate, score]) => ({ candidate, score }))
+          .sort((a, b) => b.score - a.score)
+      : [];
 
   return {
     method: 'ranked_choice',
@@ -219,8 +223,8 @@ function rankedChoice(election: Election): ElectionResult {
       rounds,
       totalRounds: rounds.length,
       majorityThreshold: majority,
-      description: 'Instant runoff: eliminate lowest candidate until majority achieved'
-    }
+      description: 'Instant runoff: eliminate lowest candidate until majority achieved',
+    },
   };
 }
 
@@ -238,7 +242,7 @@ function bordaCount(election: Election): ElectionResult {
       const candidate = ballot.ranking[i];
       if (candidate in scores) {
         // Standard Borda: n-1 points for first, n-2 for second, etc.
-        scores[candidate] += (n - 1 - i);
+        scores[candidate] += n - 1 - i;
       }
     }
 
@@ -258,8 +262,8 @@ function bordaCount(election: Election): ElectionResult {
     details: {
       pointsPerRank: Array.from({ length: n }, (_, i) => ({ rank: i + 1, points: n - 1 - i })),
       maxPossibleScore: maxScore,
-      description: 'Borda count: points awarded based on ranking position'
-    }
+      description: 'Borda count: points awarded based on ranking position',
+    },
   };
 }
 
@@ -273,8 +277,8 @@ function approvalVoting(election: Election): ElectionResult {
 
   for (const ballot of election.ballots) {
     // Use explicit approvals if provided, otherwise use top half of ranking
-    const approved = ballot.approvals ||
-      ballot.ranking.slice(0, Math.ceil(ballot.ranking.length / 2));
+    const approved =
+      ballot.approvals || ballot.ranking.slice(0, Math.ceil(ballot.ranking.length / 2));
 
     for (const candidate of approved) {
       if (candidate in approvals) {
@@ -294,10 +298,13 @@ function approvalVoting(election: Election): ElectionResult {
     details: {
       totalVoters: election.ballots.length,
       approvalRates: Object.fromEntries(
-        Object.entries(approvals).map(([c, v]) => [c, (v / election.ballots.length * 100).toFixed(1) + '%'])
+        Object.entries(approvals).map(([c, v]) => [
+          c,
+          ((v / election.ballots.length) * 100).toFixed(1) + '%',
+        ])
       ),
-      description: 'Approval voting: voters approve multiple candidates, most approvals wins'
-    }
+      description: 'Approval voting: voters approve multiple candidates, most approvals wins',
+    },
   };
 }
 
@@ -325,7 +332,7 @@ function scoreVoting(election: Election, maxScore: number = 10): ElectionResult 
       for (let i = 0; i < n; i++) {
         const candidate = ballot.ranking[i];
         if (candidate in totals) {
-          const score = Math.round(maxScore * (n - i) / n);
+          const score = Math.round((maxScore * (n - i)) / n);
           totals[candidate] += score;
           counts[candidate]++;
         }
@@ -350,8 +357,8 @@ function scoreVoting(election: Election, maxScore: number = 10): ElectionResult 
       maxScore,
       totalScores: totals,
       averageScores: averages,
-      description: 'Score/range voting: candidates rated on scale, highest total wins'
-    }
+      description: 'Score/range voting: candidates rated on scale, highest total wins',
+    },
   };
 }
 
@@ -395,7 +402,7 @@ function condorcetAnalysis(election: Election): CondorcetAnalysis {
     smithSet,
     schwartzSet,
     pairwiseMatrix: pairwise,
-    beatPath
+    beatPath,
   };
 }
 
@@ -444,7 +451,7 @@ function computeSmithSet(candidates: string[], matrix: number[][]): string[] {
     }
   }
 
-  return Array.from(smithSet).map(i => candidates[i]);
+  return Array.from(smithSet).map((i) => candidates[i]);
 }
 
 function computeSchwartzSet(candidates: string[], matrix: number[][]): string[] {
@@ -509,10 +516,10 @@ function schulzeMethod(election: Election): ElectionResult {
       smithSet: analysis.smithSet,
       beatpathStrengths: candidates.map((c, i) => ({
         candidate: c,
-        strengths: candidates.map((_, j) => beatPath[i][j])
+        strengths: candidates.map((_, j) => beatPath[i][j]),
       })),
-      description: 'Schulze method: beatpath/widest path winner determination'
-    }
+      description: 'Schulze method: beatpath/widest path winner determination',
+    },
   };
 }
 
@@ -529,9 +536,9 @@ function copelandMethod(election: Election): ElectionResult {
     for (let j = 0; j < n; j++) {
       if (i !== j) {
         if (matrix[i][j] > matrix[j][i]) {
-          score += 1;  // Win
+          score += 1; // Win
         } else if (matrix[i][j] === matrix[j][i]) {
-          score += 0.5;  // Tie
+          score += 0.5; // Tie
         }
         // Loss: 0 points
       }
@@ -551,12 +558,18 @@ function copelandMethod(election: Election): ElectionResult {
       maxScore: n - 1,
       headToHead: candidates.map((c, i) => ({
         candidate: c,
-        record: candidates.map((opp, j) => i === j ? '-' :
-          matrix[i][j] > matrix[j][i] ? 'W' :
-          matrix[i][j] < matrix[j][i] ? 'L' : 'T')
+        record: candidates.map((opp, j) =>
+          i === j
+            ? '-'
+            : matrix[i][j] > matrix[j][i]
+              ? 'W'
+              : matrix[i][j] < matrix[j][i]
+                ? 'L'
+                : 'T'
+        ),
       })),
-      description: 'Copeland method: +1 for pairwise win, +0.5 for tie'
-    }
+      description: 'Copeland method: +1 for pairwise win, +0.5 for tie',
+    },
   };
 }
 
@@ -572,7 +585,7 @@ function minimaxMethod(election: Election): ElectionResult {
     let worst = 0;
     for (let j = 0; j < n; j++) {
       if (i !== j) {
-        const margin = matrix[j][i] - matrix[i][j];  // Opponent's margin
+        const margin = matrix[j][i] - matrix[i][j]; // Opponent's margin
         if (margin > worst) {
           worst = margin;
         }
@@ -583,21 +596,21 @@ function minimaxMethod(election: Election): ElectionResult {
 
   // Lower worst defeat is better
   const ranking = Object.entries(worstDefeat)
-    .map(([candidate, score]) => ({ candidate, score: -score }))  // Negate for sorting
+    .map(([candidate, score]) => ({ candidate, score: -score })) // Negate for sorting
     .sort((a, b) => b.score - a.score);
 
   return {
     method: 'minimax',
     winner: ranking[0]?.candidate || null,
-    ranking: ranking.map(r => ({ ...r, score: -r.score })),  // Restore original scores
+    ranking: ranking.map((r) => ({ ...r, score: -r.score })), // Restore original scores
     details: {
       worstDefeats: worstDefeat,
       pairwiseMargins: candidates.map((c, i) => ({
         candidate: c,
-        margins: candidates.map((_, j) => i === j ? 0 : matrix[i][j] - matrix[j][i])
+        margins: candidates.map((_, j) => (i === j ? 0 : matrix[i][j] - matrix[j][i])),
       })),
-      description: 'Minimax: winner is candidate with smallest worst pairwise defeat'
-    }
+      description: 'Minimax: winner is candidate with smallest worst pairwise defeat',
+    },
   };
 }
 
@@ -633,7 +646,7 @@ function kemenyYoung(election: Election): ElectionResult {
 
   const ranking = bestPerm.map((i, rank) => ({
     candidate: candidates[i],
-    score: n - rank
+    score: n - rank,
   }));
 
   return {
@@ -642,9 +655,9 @@ function kemenyYoung(election: Election): ElectionResult {
     ranking,
     details: {
       optimalScore: bestScore,
-      optimalRanking: bestPerm.map(i => candidates[i]),
-      description: 'Kemeny-Young: find ranking maximizing pairwise agreement'
-    }
+      optimalRanking: bestPerm.map((i) => candidates[i]),
+      description: 'Kemeny-Young: find ranking maximizing pairwise agreement',
+    },
   };
 }
 
@@ -665,7 +678,7 @@ function* getPermutations<T>(arr: T[]): Generator<T[]> {
 function starVoting(election: Election, maxScore: number = 5): ElectionResult {
   // First round: score voting to find top 2
   const scoreResult = scoreVoting(election, maxScore);
-  const top2 = scoreResult.ranking.slice(0, 2).map(r => r.candidate);
+  const top2 = scoreResult.ranking.slice(0, 2).map((r) => r.candidate);
 
   if (top2.length < 2) {
     return {
@@ -674,8 +687,8 @@ function starVoting(election: Election, maxScore: number = 5): ElectionResult {
       ranking: scoreResult.ranking,
       details: {
         scoreRound: scoreResult.ranking,
-        description: 'STAR voting: not enough candidates for runoff'
-      }
+        description: 'STAR voting: not enough candidates for runoff',
+      },
     };
   }
 
@@ -713,8 +726,8 @@ function starVoting(election: Election, maxScore: number = 5): ElectionResult {
       scoreRound: scoreResult.ranking,
       runoffCandidates: top2,
       runoffVotes: votes,
-      description: 'STAR: Score round to find top 2, then automatic runoff'
-    }
+      description: 'STAR: Score round to find top 2, then automatic runoff',
+    },
   };
 }
 
@@ -727,8 +740,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
   const details: Record<string, unknown> = {};
 
   // Condorcet cycle: no Condorcet winner despite pairwise comparisons
-  const condorcetCycle = analysis.condorcetWinner === null &&
-    election.candidates.length >= 3;
+  const condorcetCycle = analysis.condorcetWinner === null && election.candidates.length >= 3;
 
   if (condorcetCycle) {
     details.cycle = 'No Condorcet winner exists - pairwise preferences form a cycle';
@@ -740,7 +752,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
   const condorcetWinner = analysis.condorcetWinner;
 
   const arrowParadox =
-    (pluralityResult.winner !== bordaResult.winner) ||
+    pluralityResult.winner !== bordaResult.winner ||
     (condorcetWinner && pluralityResult.winner !== condorcetWinner);
 
   if (arrowParadox) {
@@ -748,7 +760,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
       plurality: pluralityResult.winner,
       borda: bordaResult.winner,
       condorcet: condorcetWinner,
-      explanation: 'Different methods produce different winners'
+      explanation: 'Different methods produce different winners',
     };
   }
 
@@ -760,11 +772,11 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
     if (candidate === originalWinner) continue;
 
     const reducedElection: Election = {
-      candidates: election.candidates.filter(c => c !== candidate),
-      ballots: election.ballots.map(b => ({
+      candidates: election.candidates.filter((c) => c !== candidate),
+      ballots: election.ballots.map((b) => ({
         ...b,
-        ranking: b.ranking.filter(c => c !== candidate)
-      }))
+        ranking: b.ranking.filter((c) => c !== candidate),
+      })),
     };
 
     const reducedResult = plurality(reducedElection);
@@ -773,7 +785,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
       details.spoiler = {
         removedCandidate: candidate,
         originalWinner,
-        newWinner: reducedResult.winner
+        newWinner: reducedResult.winner,
       };
       break;
     }
@@ -794,7 +806,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
 
     const reducedElection: Election = {
       candidates: election.candidates,
-      ballots: reducedBallots
+      ballots: reducedBallots,
     };
 
     const reducedRCV = rankedChoice(reducedElection);
@@ -807,13 +819,13 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
         voter: voter.voter,
         withVote: rcvResult.winner,
         withoutVote: reducedRCV.winner,
-        explanation: 'Voter would get better outcome by not voting'
+        explanation: 'Voter would get better outcome by not voting',
       };
     }
   }
 
   // Alabama paradox (for apportionment - simplified)
-  const alabamaParadox = false;  // Would need seat allocation data
+  const alabamaParadox = false; // Would need seat allocation data
 
   return {
     arrowParadox,
@@ -821,7 +833,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
     alabamaParadox,
     noShowParadox,
     spoilerEffect,
-    details
+    details,
   };
 }
 
@@ -840,7 +852,7 @@ function compareAllMethods(election: Election): Record<string, ElectionResult> {
     copeland: copelandMethod(election),
     minimax: minimaxMethod(election),
     kemeny_young: kemenyYoung(election),
-    star: starVoting(election)
+    star: starVoting(election),
   };
 }
 
@@ -855,32 +867,32 @@ function analyzeStrategicVoting(election: Election): {
   vulnerabilities.plurality = [
     'Vote splitting among similar candidates',
     'Encourages insincere "lesser evil" voting',
-    'Spoiler effect from third-party candidates'
+    'Spoiler effect from third-party candidates',
   ];
 
   // RCV vulnerabilities
   vulnerabilities.ranked_choice = [
     'Center squeeze: moderate candidates eliminated early',
     'Non-monotonicity: ranking higher can hurt a candidate',
-    'Potential no-show paradox'
+    'Potential no-show paradox',
   ];
 
   // Borda vulnerabilities
   vulnerabilities.borda_count = [
     'Vulnerable to cloning: adding similar candidates',
     'Rewards candidates with broad support over deep support',
-    'Strategic burial of main competitor'
+    'Strategic burial of main competitor',
   ];
 
   // Approval vulnerabilities
   vulnerabilities.approval = [
     'Chicken dilemma between cooperating groups',
     'Unclear optimal approval threshold',
-    'May elect candidates no one loves'
+    'May elect candidates no one loves',
   ];
 
   // Determine consensus or divergence
-  const winners = new Set(Object.values(results).map(r => r.winner));
+  const winners = new Set(Object.values(results).map((r) => r.winner));
   const recommendations: string[] = [];
 
   if (winners.size === 1) {
@@ -918,8 +930,8 @@ function generateSampleElection(scenario: string): Election {
           { voter: 'V6', ranking: ['B', 'C', 'A'] },
           { voter: 'V7', ranking: ['C', 'A', 'B'] },
           { voter: 'V8', ranking: ['C', 'A', 'B'] },
-          { voter: 'V9', ranking: ['C', 'A', 'B'] }
-        ]
+          { voter: 'V9', ranking: ['C', 'A', 'B'] },
+        ],
       };
 
     case 'spoiler':
@@ -929,8 +941,8 @@ function generateSampleElection(scenario: string): Election {
         ballots: [
           ...Array(40).fill({ voter: 'D', ranking: ['Democrat', 'Green', 'Republican'] }),
           ...Array(35).fill({ voter: 'R', ranking: ['Republican', 'Democrat', 'Green'] }),
-          ...Array(25).fill({ voter: 'G', ranking: ['Green', 'Democrat', 'Republican'] })
-        ].map((b, i) => ({ ...b, voter: `V${i}` }))
+          ...Array(25).fill({ voter: 'G', ranking: ['Green', 'Democrat', 'Republican'] }),
+        ].map((b, i) => ({ ...b, voter: `V${i}` })),
       };
 
     case 'center_squeeze':
@@ -940,8 +952,8 @@ function generateSampleElection(scenario: string): Election {
         ballots: [
           ...Array(35).fill({ ranking: ['Left', 'Center', 'Right'] }),
           ...Array(30).fill({ ranking: ['Center', 'Left', 'Right'] }),
-          ...Array(35).fill({ ranking: ['Right', 'Center', 'Left'] })
-        ].map((b, i) => ({ voter: `V${i}`, ...b }))
+          ...Array(35).fill({ ranking: ['Right', 'Center', 'Left'] }),
+        ].map((b, i) => ({ voter: `V${i}`, ...b })),
       };
 
     default:
@@ -955,8 +967,8 @@ function generateSampleElection(scenario: string): Election {
           { voter: 'V4', ranking: ['Alice', 'Bob', 'Carol', 'Dave'] },
           { voter: 'V5', ranking: ['Dave', 'Carol', 'Bob', 'Alice'] },
           { voter: 'V6', ranking: ['Bob', 'Carol', 'Alice', 'Dave'] },
-          { voter: 'V7', ranking: ['Alice', 'Dave', 'Carol', 'Bob'] }
-        ]
+          { voter: 'V7', ranking: ['Alice', 'Dave', 'Carol', 'Bob'] },
+        ],
       };
   }
 }
@@ -967,53 +979,61 @@ function generateSampleElection(scenario: string): Election {
 
 export const votingsystemTool: UnifiedTool = {
   name: 'voting_system',
-  description: 'Voting systems - plurality, ranked choice, approval, Condorcet, Borda, Schulze, STAR',
+  description:
+    'Voting systems - plurality, ranked choice, approval, Condorcet, Borda, Schulze, STAR',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'count', 'compare', 'analyze', 'paradox',
-          'condorcet_analysis', 'strategic_analysis',
-          'generate_sample', 'info'
+          'count',
+          'compare',
+          'analyze',
+          'paradox',
+          'condorcet_analysis',
+          'strategic_analysis',
+          'generate_sample',
+          'info',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       method: {
         type: 'string',
         enum: [
-          'plurality', 'ranked_choice', 'borda_count', 'approval', 'score',
-          'condorcet', 'schulze', 'copeland', 'minimax', 'kemeny_young', 'star'
+          'plurality',
+          'ranked_choice',
+          'borda_count',
+          'approval',
+          'score',
+          'condorcet',
+          'schulze',
+          'copeland',
+          'minimax',
+          'kemeny_young',
+          'star',
         ],
-        description: 'Voting method to use'
+        description: 'Voting method to use',
       },
       candidates: {
         type: 'array',
         items: { type: 'string' },
-        description: 'List of candidates'
+        description: 'List of candidates',
       },
       ballots: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            voter: { type: 'string' },
-            ranking: { type: 'array', items: { type: 'string' } },
-            approvals: { type: 'array', items: { type: 'string' } },
-            scores: { type: 'object' }
-          }
-        },
-        description: 'Array of ballots with voter preferences'
+        items: { type: 'object' },
+        description:
+          'Array of ballots with voter preferences. Each ballot has: voter (string), ranking (array of strings), approvals (optional array of strings), scores (optional object)',
       },
       scenario: {
         type: 'string',
         enum: ['condorcet_cycle', 'spoiler', 'center_squeeze', 'default'],
-        description: 'Predefined scenario for sample generation'
-      }
+        description: 'Predefined scenario for sample generation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -1029,7 +1049,7 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
     if (args.candidates && args.ballots) {
       election = {
         candidates: args.candidates,
-        ballots: args.ballots
+        ballots: args.ballots,
       };
     } else {
       election = generateSampleElection(args.scenario || 'default');
@@ -1041,29 +1061,54 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
         let result: ElectionResult;
 
         switch (method) {
-          case 'plurality': result = plurality(election); break;
-          case 'ranked_choice': result = rankedChoice(election); break;
-          case 'borda_count': result = bordaCount(election); break;
-          case 'approval': result = approvalVoting(election); break;
-          case 'score': result = scoreVoting(election); break;
-          case 'schulze': result = schulzeMethod(election); break;
-          case 'copeland': result = copelandMethod(election); break;
-          case 'minimax': result = minimaxMethod(election); break;
-          case 'kemeny_young': result = kemenyYoung(election); break;
-          case 'star': result = starVoting(election); break;
-          default: result = plurality(election);
+          case 'plurality':
+            result = plurality(election);
+            break;
+          case 'ranked_choice':
+            result = rankedChoice(election);
+            break;
+          case 'borda_count':
+            result = bordaCount(election);
+            break;
+          case 'approval':
+            result = approvalVoting(election);
+            break;
+          case 'score':
+            result = scoreVoting(election);
+            break;
+          case 'schulze':
+            result = schulzeMethod(election);
+            break;
+          case 'copeland':
+            result = copelandMethod(election);
+            break;
+          case 'minimax':
+            result = minimaxMethod(election);
+            break;
+          case 'kemeny_young':
+            result = kemenyYoung(election);
+            break;
+          case 'star':
+            result = starVoting(election);
+            break;
+          default:
+            result = plurality(election);
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'count',
-            election: {
-              candidates: election.candidates,
-              numBallots: election.ballots.length
+          content: JSON.stringify(
+            {
+              operation: 'count',
+              election: {
+                candidates: election.candidates,
+                numBallots: election.ballots.length,
+              },
+              result,
             },
-            result
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1071,7 +1116,7 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
         const results = compareAllMethods(election);
         const winners = Object.entries(results).map(([method, result]) => ({
           method,
-          winner: result.winner
+          winner: result.winner,
         }));
 
         const winnerCounts: Record<string, number> = {};
@@ -1083,19 +1128,24 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            election: {
-              candidates: election.candidates,
-              numBallots: election.ballots.length
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              election: {
+                candidates: election.candidates,
+                numBallots: election.ballots.length,
+              },
+              winners,
+              winnerConsensus: winnerCounts,
+              methodAgreement:
+                new Set(winners.map((w) => w.winner)).size === 1
+                  ? 'All methods agree'
+                  : 'Methods disagree on winner',
+              fullResults: results,
             },
-            winners,
-            winnerConsensus: winnerCounts,
-            methodAgreement: new Set(winners.map(w => w.winner)).size === 1
-              ? 'All methods agree'
-              : 'Methods disagree on winner',
-            fullResults: results
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1104,20 +1154,24 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'condorcet_analysis',
-            condorcetWinner: analysis.condorcetWinner,
-            condorcetLoser: analysis.condorcetLoser,
-            smithSet: analysis.smithSet,
-            schwartzSet: analysis.schwartzSet,
-            pairwiseMatrix: {
-              candidates: analysis.pairwiseMatrix.candidates,
-              matrix: analysis.pairwiseMatrix.matrix
+          content: JSON.stringify(
+            {
+              operation: 'condorcet_analysis',
+              condorcetWinner: analysis.condorcetWinner,
+              condorcetLoser: analysis.condorcetLoser,
+              smithSet: analysis.smithSet,
+              schwartzSet: analysis.schwartzSet,
+              pairwiseMatrix: {
+                candidates: analysis.pairwiseMatrix.candidates,
+                matrix: analysis.pairwiseMatrix.matrix,
+              },
+              interpretation: analysis.condorcetWinner
+                ? `${analysis.condorcetWinner} beats all other candidates head-to-head`
+                : 'No Condorcet winner - preferences form a cycle',
             },
-            interpretation: analysis.condorcetWinner
-              ? `${analysis.condorcetWinner} beats all other candidates head-to-head`
-              : 'No Condorcet winner - preferences form a cycle'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1126,26 +1180,30 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'paradox',
-            election: {
-              candidates: election.candidates,
-              numBallots: election.ballots.length
+          content: JSON.stringify(
+            {
+              operation: 'paradox',
+              election: {
+                candidates: election.candidates,
+                numBallots: election.ballots.length,
+              },
+              paradoxesDetected: {
+                condorcetCycle: paradoxes.condorcetCycle,
+                arrowParadox: paradoxes.arrowParadox,
+                spoilerEffect: paradoxes.spoilerEffect,
+                noShowParadox: paradoxes.noShowParadox,
+              },
+              details: paradoxes.details,
+              explanation: {
+                condorcetCycle: 'No candidate beats all others pairwise',
+                arrowParadox: 'Different methods produce different winners',
+                spoilerEffect: 'Removing a losing candidate changes the winner',
+                noShowParadox: 'A voter could improve outcome by not voting',
+              },
             },
-            paradoxesDetected: {
-              condorcetCycle: paradoxes.condorcetCycle,
-              arrowParadox: paradoxes.arrowParadox,
-              spoilerEffect: paradoxes.spoilerEffect,
-              noShowParadox: paradoxes.noShowParadox
-            },
-            details: paradoxes.details,
-            explanation: {
-              condorcetCycle: 'No candidate beats all others pairwise',
-              arrowParadox: 'Different methods produce different winners',
-              spoilerEffect: 'Removing a losing candidate changes the winner',
-              noShowParadox: 'A voter could improve outcome by not voting'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1154,11 +1212,15 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'strategic_analysis',
-            vulnerabilities: strategic.vulnerabilities,
-            recommendations: strategic.recommendations
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'strategic_analysis',
+              vulnerabilities: strategic.vulnerabilities,
+              recommendations: strategic.recommendations,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1168,22 +1230,26 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate_sample',
-            scenario,
-            election: {
-              title: sample.title,
-              candidates: sample.candidates,
-              ballots: sample.ballots.slice(0, 10),
-              totalBallots: sample.ballots.length
+          content: JSON.stringify(
+            {
+              operation: 'generate_sample',
+              scenario,
+              election: {
+                title: sample.title,
+                candidates: sample.candidates,
+                ballots: sample.ballots.slice(0, 10),
+                totalBallots: sample.ballots.length,
+              },
+              description: {
+                condorcet_cycle: 'Three candidates with circular preferences (A>B>C>A)',
+                spoiler: 'Third-party candidate splitting vote from major party',
+                center_squeeze: 'Moderate candidate eliminated despite broad appeal',
+                default: 'Standard four-candidate election',
+              }[scenario],
             },
-            description: {
-              condorcet_cycle: 'Three candidates with circular preferences (A>B>C>A)',
-              spoiler: 'Third-party candidate splitting vote from major party',
-              center_squeeze: 'Moderate candidate eliminated despite broad appeal',
-              default: 'Standard four-candidate election'
-            }[scenario]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1195,25 +1261,29 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            election: {
-              candidates: election.candidates,
-              numBallots: election.ballots.length
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              election: {
+                candidates: election.candidates,
+                numBallots: election.ballots.length,
+              },
+              summary: {
+                condorcetWinner: condorcet.condorcetWinner,
+                pluralityWinner: allResults.plurality.winner,
+                bordaWinner: allResults.borda_count.winner,
+                schulzeWinner: allResults.schulze.winner,
+              },
+              paradoxes: {
+                found: Object.entries(paradoxes)
+                  .filter(([k, v]) => k !== 'details' && v === true)
+                  .map(([k]) => k),
+              },
+              recommendations: strategic.recommendations,
             },
-            summary: {
-              condorcetWinner: condorcet.condorcetWinner,
-              pluralityWinner: allResults.plurality.winner,
-              bordaWinner: allResults.borda_count.winner,
-              schulzeWinner: allResults.schulze.winner
-            },
-            paradoxes: {
-              found: Object.entries(paradoxes)
-                .filter(([k, v]) => k !== 'details' && v === true)
-                .map(([k]) => k)
-            },
-            recommendations: strategic.recommendations
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1221,49 +1291,66 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
       default: {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'voting_system',
-            description: 'Comprehensive voting system analysis and comparison',
-            methods: {
-              plurality: {
-                description: 'Candidate with most first-choice votes wins',
-                pros: ['Simple', 'Easy to understand'],
-                cons: ['Spoiler effect', 'Vote splitting', 'Two-party dominance']
+          content: JSON.stringify(
+            {
+              tool: 'voting_system',
+              description: 'Comprehensive voting system analysis and comparison',
+              methods: {
+                plurality: {
+                  description: 'Candidate with most first-choice votes wins',
+                  pros: ['Simple', 'Easy to understand'],
+                  cons: ['Spoiler effect', 'Vote splitting', 'Two-party dominance'],
+                },
+                ranked_choice: {
+                  description: 'Instant runoff - eliminate last place until majority',
+                  pros: ['No spoiler effect', 'Encourages sincere voting'],
+                  cons: ['Non-monotonic', 'Center squeeze', 'Complex counting'],
+                },
+                borda_count: {
+                  description: 'Points based on ranking position',
+                  pros: ['Rewards consensus', 'Simple to count'],
+                  cons: ['Vulnerable to clones', 'Strategic burial'],
+                },
+                approval: {
+                  description: 'Vote for as many candidates as you approve',
+                  pros: ['Simple', 'No spoiler effect'],
+                  cons: ['Chicken dilemma', 'Unclear threshold'],
+                },
+                score: {
+                  description: 'Rate each candidate on a scale',
+                  pros: ['Expressive', 'Strategy-resistant'],
+                  cons: ['More complex ballots', 'Normalization issues'],
+                },
+                schulze: {
+                  description: 'Beatpath/widest path Condorcet method',
+                  pros: ['Always picks Condorcet winner if exists', 'Clone-proof'],
+                  cons: ['Complex to explain', 'Computational overhead'],
+                },
+                star: {
+                  description: 'Score round then automatic runoff',
+                  pros: ['Combines score and runoff benefits', 'Resists strategic voting'],
+                  cons: ['Two-phase process', 'Novel method'],
+                },
               },
-              ranked_choice: {
-                description: 'Instant runoff - eliminate last place until majority',
-                pros: ['No spoiler effect', 'Encourages sincere voting'],
-                cons: ['Non-monotonic', 'Center squeeze', 'Complex counting']
-              },
-              borda_count: {
-                description: 'Points based on ranking position',
-                pros: ['Rewards consensus', 'Simple to count'],
-                cons: ['Vulnerable to clones', 'Strategic burial']
-              },
-              approval: {
-                description: 'Vote for as many candidates as you approve',
-                pros: ['Simple', 'No spoiler effect'],
-                cons: ['Chicken dilemma', 'Unclear threshold']
-              },
-              score: {
-                description: 'Rate each candidate on a scale',
-                pros: ['Expressive', 'Strategy-resistant'],
-                cons: ['More complex ballots', 'Normalization issues']
-              },
-              schulze: {
-                description: 'Beatpath/widest path Condorcet method',
-                pros: ['Always picks Condorcet winner if exists', 'Clone-proof'],
-                cons: ['Complex to explain', 'Computational overhead']
-              },
-              star: {
-                description: 'Score round then automatic runoff',
-                pros: ['Combines score and runoff benefits', 'Resists strategic voting'],
-                cons: ['Two-phase process', 'Novel method']
-              }
+              operations: [
+                'count',
+                'compare',
+                'condorcet_analysis',
+                'paradox',
+                'strategic_analysis',
+                'generate_sample',
+                'analyze',
+              ],
+              paradoxes: [
+                'Condorcet cycle',
+                "Arrow's impossibility",
+                'Spoiler effect',
+                'No-show paradox',
+              ],
             },
-            operations: ['count', 'compare', 'condorcet_analysis', 'paradox', 'strategic_analysis', 'generate_sample', 'analyze'],
-            paradoxes: ['Condorcet cycle', "Arrow's impossibility", 'Spoiler effect', 'No-show paradox']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
     }

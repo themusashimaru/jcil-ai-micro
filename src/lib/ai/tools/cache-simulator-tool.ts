@@ -14,17 +14,16 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 type ReplacementPolicy = 'LRU' | 'FIFO' | 'Random' | 'LFU' | 'PLRU';
 type WritePolicy = 'write_back' | 'write_through';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type CacheLevel = 'L1' | 'L2' | 'L3';
+export type CacheLevel = 'L1' | 'L2' | 'L3';
 
 interface CacheConfig {
-  size: number;           // Total cache size in bytes
-  lineSize: number;       // Cache line size in bytes
-  associativity: number;  // Number of ways (1 = direct mapped)
+  size: number; // Total cache size in bytes
+  lineSize: number; // Cache line size in bytes
+  associativity: number; // Number of ways (1 = direct mapped)
   policy: ReplacementPolicy;
   writePolicy: WritePolicy;
-  hitLatency: number;     // Cycles for cache hit
-  missLatency: number;    // Cycles for cache miss
+  hitLatency: number; // Cycles for cache hit
+  missLatency: number; // Cycles for cache miss
 }
 
 interface CacheLine {
@@ -32,10 +31,10 @@ interface CacheLine {
   dirty: boolean;
   tag: number;
   data: Uint8Array;
-  lastAccess: number;  // For LRU
+  lastAccess: number; // For LRU
   insertOrder: number; // For FIFO
-  frequency: number;   // For LFU
-  plruBit?: boolean;   // For PLRU
+  frequency: number; // For LFU
+  plruBit?: boolean; // For PLRU
 }
 
 interface CacheSet {
@@ -130,14 +129,13 @@ function createCache(config: CacheConfig): CacheState {
         data: new Uint8Array(config.lineSize),
         lastAccess: 0,
         insertOrder: 0,
-        frequency: 0
+        frequency: 0,
       });
     }
 
     // For PLRU tree (needs 2^(ways-1) - 1 bits for power-of-2 ways)
-    const plruTree = config.policy === 'PLRU'
-      ? new Array(config.associativity - 1).fill(false)
-      : undefined;
+    const plruTree =
+      config.policy === 'PLRU' ? new Array(config.associativity - 1).fill(false) : undefined;
 
     sets.push({ lines, plruTree });
   }
@@ -158,11 +156,14 @@ function createCache(config: CacheConfig): CacheState {
     writeMisses: 0,
     evictions: 0,
     writebacks: 0,
-    totalLatency: 0
+    totalLatency: 0,
   };
 }
 
-function getAddressParts(cache: CacheState, address: number): { tag: number; setIndex: number; offset: number } {
+function getAddressParts(
+  cache: CacheState,
+  address: number
+): { tag: number; setIndex: number; offset: number } {
   const offset = address & ((1 << cache.offsetBits) - 1);
   const setIndex = (address >> cache.offsetBits) & ((1 << cache.indexBits) - 1);
   const tag = address >> (cache.offsetBits + cache.indexBits);
@@ -303,7 +304,7 @@ function accessCache(cache: CacheState, address: number, isWrite: boolean): Acce
       offset,
       evicted: false,
       writeback: false,
-      latency: cache.config.hitLatency
+      latency: cache.config.hitLatency,
     };
   }
 
@@ -356,7 +357,7 @@ function accessCache(cache: CacheState, address: number, isWrite: boolean): Acce
     evicted,
     evictedTag,
     writeback,
-    latency
+    latency,
   };
 }
 
@@ -398,12 +399,13 @@ function getCacheStats(cache: CacheState): Record<string, unknown> {
     config: {
       size: `${cache.config.size} bytes`,
       lineSize: `${cache.config.lineSize} bytes`,
-      associativity: cache.config.associativity === 1
-        ? 'Direct mapped'
-        : `${cache.config.associativity}-way set associative`,
+      associativity:
+        cache.config.associativity === 1
+          ? 'Direct mapped'
+          : `${cache.config.associativity}-way set associative`,
       sets: cache.numSets,
       policy: cache.config.policy,
-      writePolicy: cache.config.writePolicy
+      writePolicy: cache.config.writePolicy,
     },
     statistics: {
       totalAccesses: cache.accessCount,
@@ -417,13 +419,14 @@ function getCacheStats(cache: CacheState): Record<string, unknown> {
       writeMisses: cache.writeMisses,
       evictions: cache.evictions,
       writebacks: cache.writebacks,
-      averageLatency: avgLatency.toFixed(2) + ' cycles'
+      averageLatency: avgLatency.toFixed(2) + ' cycles',
     },
     state: {
       validLines,
       dirtyLines,
-      utilization: ((validLines / (cache.numSets * cache.config.associativity)) * 100).toFixed(2) + '%'
-    }
+      utilization:
+        ((validLines / (cache.numSets * cache.config.associativity)) * 100).toFixed(2) + '%',
+    },
   };
 }
 
@@ -434,25 +437,25 @@ function getCacheStats(cache: CacheState): Record<string, unknown> {
 function createCacheHierarchy(withL2: boolean = true, withL3: boolean = true): CacheHierarchy {
   const hierarchy: CacheHierarchy = {
     L1: createCache({
-      size: 32 * 1024,      // 32 KB
+      size: 32 * 1024, // 32 KB
       lineSize: 64,
       associativity: 8,
       policy: 'LRU',
       writePolicy: 'write_back',
       hitLatency: 1,
-      missLatency: 10
-    })
+      missLatency: 10,
+    }),
   };
 
   if (withL2) {
     hierarchy.L2 = createCache({
-      size: 256 * 1024,     // 256 KB
+      size: 256 * 1024, // 256 KB
       lineSize: 64,
       associativity: 8,
       policy: 'LRU',
       writePolicy: 'write_back',
       hitLatency: 10,
-      missLatency: 50
+      missLatency: 50,
     });
   }
 
@@ -464,14 +467,18 @@ function createCacheHierarchy(withL2: boolean = true, withL3: boolean = true): C
       policy: 'PLRU',
       writePolicy: 'write_back',
       hitLatency: 50,
-      missLatency: 200
+      missLatency: 200,
     });
   }
 
   return hierarchy;
 }
 
-function accessHierarchy(hierarchy: CacheHierarchy, address: number, isWrite: boolean): {
+function accessHierarchy(
+  hierarchy: CacheHierarchy,
+  address: number,
+  isWrite: boolean
+): {
   level: string;
   latency: number;
   results: Record<string, AccessResult>;
@@ -509,7 +516,7 @@ function accessHierarchy(hierarchy: CacheHierarchy, address: number, isWrite: bo
       return {
         level: l3Result.hit ? 'L3' : 'Memory',
         latency: l1Result.latency + l2Result.latency + l3Result.latency,
-        results
+        results,
       };
     }
 
@@ -534,15 +541,17 @@ function getHierarchyStats(hierarchy: CacheHierarchy): HierarchyStats {
     L1HitRate: hierarchy.L1.accessCount > 0 ? hierarchy.L1.hits / hierarchy.L1.accessCount : 0,
     averageLatency: totalAccesses > 0 ? totalLatency / totalAccesses : 0,
     totalLatency,
-    cpi: totalAccesses > 0 ? 1 + (totalLatency / totalAccesses) : 1
+    cpi: totalAccesses > 0 ? 1 + totalLatency / totalAccesses : 1,
   };
 
   if (hierarchy.L2) {
-    stats.L2HitRate = hierarchy.L2.accessCount > 0 ? hierarchy.L2.hits / hierarchy.L2.accessCount : 0;
+    stats.L2HitRate =
+      hierarchy.L2.accessCount > 0 ? hierarchy.L2.hits / hierarchy.L2.accessCount : 0;
   }
 
   if (hierarchy.L3) {
-    stats.L3HitRate = hierarchy.L3.accessCount > 0 ? hierarchy.L3.hits / hierarchy.L3.accessCount : 0;
+    stats.L3HitRate =
+      hierarchy.L3.accessCount > 0 ? hierarchy.L3.hits / hierarchy.L3.accessCount : 0;
   }
 
   return stats;
@@ -560,7 +569,7 @@ function createTLB(size: number = 64, pageSize: number = 4096): TLBState {
       virtualPage: 0,
       physicalFrame: 0,
       lastAccess: 0,
-      accessRights: 'RWX'
+      accessRights: 'RWX',
     });
   }
 
@@ -569,11 +578,15 @@ function createTLB(size: number = 64, pageSize: number = 4096): TLBState {
     size,
     pageSize,
     hits: 0,
-    misses: 0
+    misses: 0,
   };
 }
 
-function lookupTLB(tlb: TLBState, virtualAddress: number, accessCount: number): {
+function lookupTLB(
+  tlb: TLBState,
+  virtualAddress: number,
+  accessCount: number
+): {
   hit: boolean;
   physicalAddress?: number;
   entry?: TLBEntry;
@@ -594,7 +607,12 @@ function lookupTLB(tlb: TLBState, virtualAddress: number, accessCount: number): 
   return { hit: false };
 }
 
-function insertTLB(tlb: TLBState, virtualPage: number, physicalFrame: number, accessCount: number): {
+function insertTLB(
+  tlb: TLBState,
+  virtualPage: number,
+  physicalFrame: number,
+  accessCount: number
+): {
   evicted: boolean;
   evictedPage?: number;
 } {
@@ -621,7 +639,7 @@ function insertTLB(tlb: TLBState, virtualPage: number, physicalFrame: number, ac
     virtualPage,
     physicalFrame,
     lastAccess: accessCount,
-    accessRights: 'RWX'
+    accessRights: 'RWX',
   };
 
   return { evicted, evictedPage };
@@ -631,11 +649,15 @@ function insertTLB(tlb: TLBState, virtualPage: number, physicalFrame: number, ac
 // ACCESS PATTERN GENERATORS
 // ============================================================================
 
-function generateAccessPattern(pattern: string, count: number, config: {
-  baseAddr?: number;
-  stride?: number;
-  arraySize?: number;
-}): number[] {
+function generateAccessPattern(
+  pattern: string,
+  count: number,
+  config: {
+    baseAddr?: number;
+    stride?: number;
+    arraySize?: number;
+  }
+): number[] {
   const addresses: number[] = [];
   const baseAddr = config.baseAddr || 0x1000;
   const stride = config.stride || 64;
@@ -644,13 +666,13 @@ function generateAccessPattern(pattern: string, count: number, config: {
   switch (pattern) {
     case 'sequential':
       for (let i = 0; i < count; i++) {
-        addresses.push(baseAddr + (i * 4));
+        addresses.push(baseAddr + i * 4);
       }
       break;
 
     case 'strided':
       for (let i = 0; i < count; i++) {
-        addresses.push(baseAddr + (i * stride));
+        addresses.push(baseAddr + i * stride);
       }
       break;
 
@@ -702,7 +724,7 @@ function generateAccessPattern(pattern: string, count: number, config: {
     default:
       // Default to sequential
       for (let i = 0; i < count; i++) {
-        addresses.push(baseAddr + (i * 4));
+        addresses.push(baseAddr + i * 4);
       }
   }
 
@@ -721,47 +743,62 @@ export const cachesimulatorTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['access', 'stats', 'configure', 'flush', 'simulate', 'pattern', 'hierarchy', 'tlb', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'access',
+          'stats',
+          'configure',
+          'flush',
+          'simulate',
+          'pattern',
+          'hierarchy',
+          'tlb',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       policy: {
         type: 'string',
         enum: ['LRU', 'FIFO', 'Random', 'LFU', 'PLRU'],
-        description: 'Cache replacement policy'
+        description: 'Cache replacement policy',
       },
       address: {
         type: 'number',
-        description: 'Memory address to access'
+        description: 'Memory address to access',
       },
       addresses: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Array of addresses to access'
+        description: 'Array of addresses to access',
       },
       is_write: {
         type: 'boolean',
-        description: 'Whether access is a write'
+        description: 'Whether access is a write',
       },
       cache_config: {
         type: 'object',
-        properties: {
-          size: { type: 'number' },
-          lineSize: { type: 'number' },
-          associativity: { type: 'number' }
-        }
+        description:
+          'Cache configuration: { size: number, lineSize: number, associativity: number }',
       },
       pattern: {
         type: 'string',
-        enum: ['sequential', 'strided', 'random', 'temporal', 'thrashing', 'matrix_row', 'matrix_col'],
-        description: 'Access pattern to simulate'
+        enum: [
+          'sequential',
+          'strided',
+          'random',
+          'temporal',
+          'thrashing',
+          'matrix_row',
+          'matrix_col',
+        ],
+        description: 'Access pattern to simulate',
       },
       count: {
         type: 'number',
-        description: 'Number of accesses to simulate'
-      }
+        description: 'Number of accesses to simulate',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Global state for persistent simulation
@@ -785,30 +822,35 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
           policy: args.policy || 'LRU',
           writePolicy: args.write_policy || 'write_back',
           hitLatency: args.cache_config?.hitLatency || 1,
-          missLatency: args.cache_config?.missLatency || 10
+          missLatency: args.cache_config?.missLatency || 10,
         };
 
         globalCache = createCache(config);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'configure',
-            message: 'Cache configured successfully',
-            config: {
-              size: `${config.size / 1024} KB`,
-              lineSize: `${config.lineSize} bytes`,
-              associativity: config.associativity === 1 ? 'Direct mapped' : `${config.associativity}-way`,
-              sets: globalCache.numSets,
-              policy: config.policy,
-              writePolicy: config.writePolicy,
-              addressBits: {
-                tag: globalCache.tagBits,
-                index: globalCache.indexBits,
-                offset: globalCache.offsetBits
-              }
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'configure',
+              message: 'Cache configured successfully',
+              config: {
+                size: `${config.size / 1024} KB`,
+                lineSize: `${config.lineSize} bytes`,
+                associativity:
+                  config.associativity === 1 ? 'Direct mapped' : `${config.associativity}-way`,
+                sets: globalCache.numSets,
+                policy: config.policy,
+                writePolicy: config.writePolicy,
+                addressBits: {
+                  tag: globalCache.tagBits,
+                  index: globalCache.indexBits,
+                  offset: globalCache.offsetBits,
+                },
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -821,7 +863,7 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
             policy: args.policy || 'LRU',
             writePolicy: 'write_back',
             hitLatency: 1,
-            missLatency: 10
+            missLatency: 10,
           });
         }
 
@@ -831,25 +873,29 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'access',
-            address: `0x${address.toString(16)}`,
-            type: isWrite ? 'write' : 'read',
-            result: {
-              hit: result.hit,
-              tag: `0x${result.tag.toString(16)}`,
-              setIndex: result.setIndex,
-              offset: result.offset,
-              evicted: result.evicted,
-              evictedTag: result.evictedTag ? `0x${result.evictedTag.toString(16)}` : undefined,
-              writeback: result.writeback,
-              latency: `${result.latency} cycles`
+          content: JSON.stringify(
+            {
+              operation: 'access',
+              address: `0x${address.toString(16)}`,
+              type: isWrite ? 'write' : 'read',
+              result: {
+                hit: result.hit,
+                tag: `0x${result.tag.toString(16)}`,
+                setIndex: result.setIndex,
+                offset: result.offset,
+                evicted: result.evicted,
+                evictedTag: result.evictedTag ? `0x${result.evictedTag.toString(16)}` : undefined,
+                writeback: result.writeback,
+                latency: `${result.latency} cycles`,
+              },
+              currentStats: {
+                accesses: globalCache.accessCount,
+                hitRate: ((globalCache.hits / globalCache.accessCount) * 100).toFixed(2) + '%',
+              },
             },
-            currentStats: {
-              accesses: globalCache.accessCount,
-              hitRate: ((globalCache.hits / globalCache.accessCount) * 100).toFixed(2) + '%'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -862,14 +908,14 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
           policy: policy as ReplacementPolicy,
           writePolicy: 'write_back',
           hitLatency: 1,
-          missLatency: 10
+          missLatency: 10,
         });
 
-        const addresses: number[] = args.addresses || generateAccessPattern(
-          args.pattern || 'sequential',
-          args.count || 100,
-          { baseAddr: 0x1000 }
-        );
+        const addresses: number[] =
+          args.addresses ||
+          generateAccessPattern(args.pattern || 'sequential', args.count || 100, {
+            baseAddr: 0x1000,
+          });
 
         const trace: { address: string; hit: boolean }[] = [];
 
@@ -878,26 +924,38 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
           if (i < 20) {
             trace.push({
               address: `0x${addresses[i].toString(16)}`,
-              hit: result.hit
+              hit: result.hit,
             });
           }
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            pattern: args.pattern || 'custom',
-            accessCount: addresses.length,
-            policy,
-            results: getCacheStats(cache),
-            trace: trace.length > 0 ? trace : undefined
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              pattern: args.pattern || 'custom',
+              accessCount: addresses.length,
+              policy,
+              results: getCacheStats(cache),
+              trace: trace.length > 0 ? trace : undefined,
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'pattern': {
-        const patterns = ['sequential', 'strided', 'random', 'temporal', 'thrashing', 'matrix_row', 'matrix_col'];
+        const patterns = [
+          'sequential',
+          'strided',
+          'random',
+          'temporal',
+          'thrashing',
+          'matrix_row',
+          'matrix_col',
+        ];
         const count = args.count || 1000;
         const results: Record<string, unknown> = {};
 
@@ -909,7 +967,7 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
             policy: 'LRU',
             writePolicy: 'write_back',
             hitLatency: 1,
-            missLatency: 10
+            missLatency: 10,
           });
 
           const addresses = generateAccessPattern(pattern, count, { baseAddr: 0x1000 });
@@ -920,34 +978,39 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
           results[pattern] = {
             hitRate: ((cache.hits / cache.accessCount) * 100).toFixed(2) + '%',
             missRate: ((cache.misses / cache.accessCount) * 100).toFixed(2) + '%',
-            evictions: cache.evictions
+            evictions: cache.evictions,
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'pattern',
-            accessCount: count,
-            cacheSize: '32 KB',
-            results,
-            analysis: {
-              best: 'temporal (repeated access to hot set)',
-              worst: 'thrashing (working set > cache size)',
-              rowVsCol: 'Row-major much better due to spatial locality'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'pattern',
+              accessCount: count,
+              cacheSize: '32 KB',
+              results,
+              analysis: {
+                best: 'temporal (repeated access to hot set)',
+                worst: 'thrashing (working set > cache size)',
+                rowVsCol: 'Row-major much better due to spatial locality',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'hierarchy': {
         globalHierarchy = createCacheHierarchy(true, true);
 
-        const addresses = args.addresses || generateAccessPattern(
-          args.pattern || 'random',
-          args.count || 1000,
-          { baseAddr: 0x1000, arraySize: 100000 }
-        );
+        const addresses =
+          args.addresses ||
+          generateAccessPattern(args.pattern || 'random', args.count || 1000, {
+            baseAddr: 0x1000,
+            arraySize: 100000,
+          });
 
         const trace: { address: string; level: string; latency: number }[] = [];
 
@@ -957,7 +1020,7 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
             trace.push({
               address: `0x${addresses[i].toString(16)}`,
               level: result.level,
-              latency: result.latency
+              latency: result.latency,
             });
           }
         }
@@ -966,23 +1029,27 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'hierarchy',
-            levels: {
-              L1: getCacheStats(globalHierarchy.L1),
-              L2: globalHierarchy.L2 ? getCacheStats(globalHierarchy.L2) : undefined,
-              L3: globalHierarchy.L3 ? getCacheStats(globalHierarchy.L3) : undefined
+          content: JSON.stringify(
+            {
+              operation: 'hierarchy',
+              levels: {
+                L1: getCacheStats(globalHierarchy.L1),
+                L2: globalHierarchy.L2 ? getCacheStats(globalHierarchy.L2) : undefined,
+                L3: globalHierarchy.L3 ? getCacheStats(globalHierarchy.L3) : undefined,
+              },
+              hierarchyStats: {
+                totalAccesses: stats.totalAccesses,
+                L1HitRate: (stats.L1HitRate * 100).toFixed(2) + '%',
+                L2HitRate: stats.L2HitRate ? (stats.L2HitRate * 100).toFixed(2) + '%' : undefined,
+                L3HitRate: stats.L3HitRate ? (stats.L3HitRate * 100).toFixed(2) + '%' : undefined,
+                averageLatency: stats.averageLatency.toFixed(2) + ' cycles',
+                effectiveCPI: stats.cpi.toFixed(2),
+              },
+              trace: trace.length > 0 ? trace : undefined,
             },
-            hierarchyStats: {
-              totalAccesses: stats.totalAccesses,
-              L1HitRate: (stats.L1HitRate * 100).toFixed(2) + '%',
-              L2HitRate: stats.L2HitRate ? (stats.L2HitRate * 100).toFixed(2) + '%' : undefined,
-              L3HitRate: stats.L3HitRate ? (stats.L3HitRate * 100).toFixed(2) + '%' : undefined,
-              averageLatency: stats.averageLatency.toFixed(2) + ' cycles',
-              effectiveCPI: stats.cpi.toFixed(2)
-            },
-            trace: trace.length > 0 ? trace : undefined
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1017,27 +1084,34 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
             trace.push({
               virtualAddr: `0x${vaddr.toString(16)}`,
               hit: result.hit,
-              physicalAddr: result.physicalAddress ? `0x${result.physicalAddress.toString(16)}` : undefined
+              physicalAddr: result.physicalAddress
+                ? `0x${result.physicalAddress.toString(16)}`
+                : undefined,
             });
           }
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'tlb',
-            config: {
-              entries: globalTLB.size,
-              pageSize: `${globalTLB.pageSize} bytes`
+          content: JSON.stringify(
+            {
+              operation: 'tlb',
+              config: {
+                entries: globalTLB.size,
+                pageSize: `${globalTLB.pageSize} bytes`,
+              },
+              statistics: {
+                accesses: globalTLB.hits + globalTLB.misses,
+                hits: globalTLB.hits,
+                misses: globalTLB.misses,
+                hitRate:
+                  ((globalTLB.hits / (globalTLB.hits + globalTLB.misses)) * 100).toFixed(2) + '%',
+              },
+              trace: trace.length > 0 ? trace : undefined,
             },
-            statistics: {
-              accesses: globalTLB.hits + globalTLB.misses,
-              hits: globalTLB.hits,
-              misses: globalTLB.misses,
-              hitRate: (globalTLB.hits / (globalTLB.hits + globalTLB.misses) * 100).toFixed(2) + '%'
-            },
-            trace: trace.length > 0 ? trace : undefined
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1045,19 +1119,27 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
         if (!globalCache) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'stats',
-              error: 'No cache configured. Use configure or access operation first.'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'stats',
+                error: 'No cache configured. Use configure or access operation first.',
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'stats',
-            ...getCacheStats(globalCache)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'stats',
+              ...getCacheStats(globalCache),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1065,10 +1147,14 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
         if (!globalCache) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'flush',
-              error: 'No cache to flush'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'flush',
+                error: 'No cache to flush',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -1076,11 +1162,15 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'flush',
-            writebacks: result.writebacks,
-            linesCleared: result.linesCleared
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'flush',
+              writebacks: result.writebacks,
+              linesCleared: result.linesCleared,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1088,42 +1178,55 @@ export async function executecachesimulator(toolCall: UnifiedToolCall): Promise<
       default: {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'cache_simulator',
-            description: 'CPU cache hierarchy simulation and analysis',
-            replacementPolicies: {
-              LRU: 'Least Recently Used - evict line accessed longest ago',
-              FIFO: 'First In First Out - evict oldest line',
-              Random: 'Random replacement - simple but unpredictable',
-              LFU: 'Least Frequently Used - evict line with fewest accesses',
-              PLRU: 'Pseudo-LRU - tree-based approximation of LRU'
+          content: JSON.stringify(
+            {
+              tool: 'cache_simulator',
+              description: 'CPU cache hierarchy simulation and analysis',
+              replacementPolicies: {
+                LRU: 'Least Recently Used - evict line accessed longest ago',
+                FIFO: 'First In First Out - evict oldest line',
+                Random: 'Random replacement - simple but unpredictable',
+                LFU: 'Least Frequently Used - evict line with fewest accesses',
+                PLRU: 'Pseudo-LRU - tree-based approximation of LRU',
+              },
+              cacheTypes: {
+                directMapped: 'Each address maps to exactly one line (fast, high conflict)',
+                setAssociative: 'N-way: N possible locations per address (balanced)',
+                fullyAssociative: 'Any line can hold any address (flexible, slow lookup)',
+              },
+              writePolicies: {
+                writeBack: 'Update memory only on eviction (faster, needs dirty bit)',
+                writeThrough: 'Update memory immediately (simpler, more traffic)',
+              },
+              hierarchyLevels: {
+                L1: '32KB, 8-way, 1 cycle hit',
+                L2: '256KB, 8-way, 10 cycle hit',
+                L3: '8MB, 16-way, 50 cycle hit',
+                Memory: '~200 cycles',
+              },
+              accessPatterns: [
+                'sequential - Linear traversal (best spatial locality)',
+                'strided - Fixed stride access',
+                'random - Random addresses (worst case)',
+                'temporal - Hot set repeated access',
+                'thrashing - Working set exceeds cache',
+                'matrix_row - Row-major traversal',
+                'matrix_col - Column-major traversal (poor locality)',
+              ],
+              operations: [
+                'access',
+                'stats',
+                'configure',
+                'flush',
+                'simulate',
+                'pattern',
+                'hierarchy',
+                'tlb',
+              ],
             },
-            cacheTypes: {
-              directMapped: 'Each address maps to exactly one line (fast, high conflict)',
-              setAssociative: 'N-way: N possible locations per address (balanced)',
-              fullyAssociative: 'Any line can hold any address (flexible, slow lookup)'
-            },
-            writePolicies: {
-              writeBack: 'Update memory only on eviction (faster, needs dirty bit)',
-              writeThrough: 'Update memory immediately (simpler, more traffic)'
-            },
-            hierarchyLevels: {
-              L1: '32KB, 8-way, 1 cycle hit',
-              L2: '256KB, 8-way, 10 cycle hit',
-              L3: '8MB, 16-way, 50 cycle hit',
-              Memory: '~200 cycles'
-            },
-            accessPatterns: [
-              'sequential - Linear traversal (best spatial locality)',
-              'strided - Fixed stride access',
-              'random - Random addresses (worst case)',
-              'temporal - Hot set repeated access',
-              'thrashing - Working set exceeds cache',
-              'matrix_row - Row-major traversal',
-              'matrix_col - Column-major traversal (poor locality)'
-            ],
-            operations: ['access', 'stats', 'configure', 'flush', 'simulate', 'pattern', 'hierarchy', 'tlb']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
     }

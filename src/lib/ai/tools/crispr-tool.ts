@@ -13,11 +13,11 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 interface GuideRNA {
-  sequence: string;      // 20nt guide sequence
-  pam: string;           // PAM sequence (NGG for SpCas9)
-  position: number;      // Position in target sequence
-  strand: '+' | '-';     // Target strand
-  gcContent: number;     // GC content percentage
+  sequence: string; // 20nt guide sequence
+  pam: string; // PAM sequence (NGG for SpCas9)
+  position: number; // Position in target sequence
+  strand: '+' | '-'; // Target strand
+  gcContent: number; // GC content percentage
   efficiencyScore: number;
   specifityScore: number;
   offTargets: OffTarget[];
@@ -30,7 +30,7 @@ interface OffTarget {
   chromosome?: string;
   position?: number;
   gene?: string;
-  score: number;  // Lower is worse (more likely off-target)
+  score: number; // Lower is worse (more likely off-target)
 }
 
 interface EditingOutcome {
@@ -44,7 +44,7 @@ interface CRISPRSystem {
   name: string;
   pam: string;
   guideLength: number;
-  cutPosition: number;  // Position relative to PAM (negative = upstream)
+  cutPosition: number; // Position relative to PAM (negative = upstream)
   description: string;
 }
 
@@ -58,36 +58,36 @@ const CRISPR_SYSTEMS: Record<string, CRISPRSystem> = {
     pam: 'NGG',
     guideLength: 20,
     cutPosition: -3,
-    description: 'Streptococcus pyogenes Cas9 - most widely used'
+    description: 'Streptococcus pyogenes Cas9 - most widely used',
   },
   SaCas9: {
     name: 'SaCas9',
     pam: 'NNGRRT',
     guideLength: 21,
     cutPosition: -3,
-    description: 'Staphylococcus aureus Cas9 - smaller, good for AAV delivery'
+    description: 'Staphylococcus aureus Cas9 - smaller, good for AAV delivery',
   },
   Cas12a: {
     name: 'Cas12a (Cpf1)',
     pam: 'TTTV',
     guideLength: 23,
-    cutPosition: 18,  // Downstream of PAM
-    description: 'Cas12a creates staggered cuts, T-rich PAM'
+    cutPosition: 18, // Downstream of PAM
+    description: 'Cas12a creates staggered cuts, T-rich PAM',
   },
   CasX: {
     name: 'CasX',
     pam: 'TTCN',
     guideLength: 20,
     cutPosition: -3,
-    description: 'Compact system, good for base editing'
+    description: 'Compact system, good for base editing',
   },
   Cas13: {
     name: 'Cas13',
-    pam: '',  // RNA targeting, no PAM
+    pam: '', // RNA targeting, no PAM
     guideLength: 28,
     cutPosition: 0,
-    description: 'RNA targeting - does not edit DNA'
-  }
+    description: 'RNA targeting - does not edit DNA',
+  },
 };
 
 // ============================================================================
@@ -95,7 +95,7 @@ const CRISPR_SYSTEMS: Record<string, CRISPRSystem> = {
 // ============================================================================
 
 function complement(base: string): string {
-  const complements: Record<string, string> = { 'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N' };
+  const complements: Record<string, string> = { A: 'T', T: 'A', G: 'C', C: 'G', N: 'N' };
   return complements[base.toUpperCase()] || 'N';
 }
 
@@ -219,7 +219,7 @@ function createGuideRNA(
     gcContent: gcContent(sequence),
     efficiencyScore: calculateEfficiencyScore(sequence),
     specifityScore: calculateSpecificityScore(sequence),
-    offTargets: []  // Filled in separately
+    offTargets: [], // Filled in separately
   };
 }
 
@@ -229,7 +229,7 @@ function createGuideRNA(
 
 // Doench et al. 2016 rule set 2 (simplified)
 function calculateEfficiencyScore(sequence: string): number {
-  let score = 50;  // Base score
+  let score = 50; // Base score
 
   // GC content contribution
   const gc = gcContent(sequence);
@@ -286,22 +286,22 @@ function calculateSpecificityScore(sequence: string): number {
 
 // Off-target scoring (CFD score simplified)
 function calculateOffTargetScore(
-  guideSeq: string,
-  offTargetSeq: string,
+  _guideSeq: string,
+  _offTargetSeq: string,
   mismatchPositions: number[]
 ): number {
   // Position-dependent mismatch penalties
   // Mismatches in seed region (positions 1-12 from PAM) are more tolerated
   const positionWeights: number[] = [
-    0.0, 0.0, 0.014, 0.0, 0.0, 0.395, 0.317, 0.0, 0.389, 0.079,
-    0.445, 0.508, 0.613, 0.851, 0.732, 0.828, 0.615, 0.804, 0.685, 0.583
+    0.0, 0.0, 0.014, 0.0, 0.0, 0.395, 0.317, 0.0, 0.389, 0.079, 0.445, 0.508, 0.613, 0.851, 0.732,
+    0.828, 0.615, 0.804, 0.685, 0.583,
   ];
 
   let score = 1.0;
 
   for (const pos of mismatchPositions) {
     if (pos < positionWeights.length) {
-      score *= (1 - positionWeights[pos]);
+      score *= 1 - positionWeights[pos];
     } else {
       score *= 0.5;
     }
@@ -318,18 +318,14 @@ function calculateOffTargetScore(
 // OFF-TARGET ANALYSIS
 // ============================================================================
 
-function findOffTargets(
-  guideSeq: string,
-  genome: string,
-  maxMismatches: number = 4
-): OffTarget[] {
+function findOffTargets(guideSeq: string, genome: string, maxMismatches: number = 4): OffTarget[] {
   const offTargets: OffTarget[] = [];
   const guideLen = guideSeq.length;
 
   // Search both strands
   const sequences = [
     { seq: genome, strand: '+' },
-    { seq: reverseComplement(genome), strand: '-' }
+    { seq: reverseComplement(genome), strand: '-' },
   ];
 
   for (const { seq } of sequences) {
@@ -348,7 +344,7 @@ function findOffTargets(
             mismatches: count,
             mismatchPositions: positions,
             position: i,
-            score
+            score,
           });
         }
       }
@@ -387,7 +383,7 @@ function simulateEditing(
     type: 'no_edit',
     probability: noEditProb,
     sequence: targetSequence,
-    description: 'No editing occurs'
+    description: 'No editing occurs',
   });
 
   // NHEJ outcomes (small indels)
@@ -399,7 +395,7 @@ function simulateEditing(
     type: 'NHEJ',
     probability: nhejProb * 0.4,
     sequence: del1Seq,
-    description: '1bp deletion at cut site'
+    description: '1bp deletion at cut site',
   });
   editedSequences.push({ name: '1bp_deletion', sequence: del1Seq });
 
@@ -411,7 +407,7 @@ function simulateEditing(
     type: 'NHEJ',
     probability: nhejProb * 0.3,
     sequence: ins1Seq,
-    description: `1bp insertion (${insertBase})`
+    description: `1bp insertion (${insertBase})`,
   });
   editedSequences.push({ name: '1bp_insertion', sequence: ins1Seq });
 
@@ -423,7 +419,7 @@ function simulateEditing(
     type: 'NHEJ',
     probability: nhejProb * 0.3,
     sequence: delSeq,
-    description: `${delSize}bp deletion`
+    description: `${delSize}bp deletion`,
   });
   editedSequences.push({ name: 'larger_deletion', sequence: delSeq });
 
@@ -431,19 +427,22 @@ function simulateEditing(
   if (donorTemplate) {
     const hdrProb = 25;
     // Simple HDR: replace sequence around cut site with donor
-    const hdrSeq = targetSequence.slice(0, cutSite - 20) + donorTemplate + targetSequence.slice(cutSite + 20);
+    const hdrSeq =
+      targetSequence.slice(0, cutSite - 20) + donorTemplate + targetSequence.slice(cutSite + 20);
     outcomes.push({
       type: 'HDR',
       probability: hdrProb,
       sequence: hdrSeq,
-      description: 'Homology-directed repair with donor template'
+      description: 'Homology-directed repair with donor template',
     });
     editedSequences.push({ name: 'HDR', sequence: hdrSeq });
   }
 
   // Normalize probabilities
   const total = outcomes.reduce((sum, o) => sum + o.probability, 0);
-  outcomes.forEach(o => { o.probability = (o.probability / total) * 100; });
+  outcomes.forEach((o) => {
+    o.probability = (o.probability / total) * 100;
+  });
 
   return { outcomes, cutSite, editedSequences };
 }
@@ -452,7 +451,10 @@ function simulateEditing(
 // PRIMER DESIGN
 // ============================================================================
 
-function designPrimers(targetSequence: string, cutSite: number): {
+function designPrimers(
+  targetSequence: string,
+  cutSite: number
+): {
   forward: { sequence: string; tm: number; position: number };
   reverse: { sequence: string; tm: number; position: number };
   productSize: number;
@@ -474,7 +476,7 @@ function designPrimers(targetSequence: string, cutSite: number): {
   return {
     forward: { sequence: fwdSeq, tm: fwdTm, position: fwdStart },
     reverse: { sequence: revSeq, tm: revTm, position: revEnd - primerLength },
-    productSize: revEnd - fwdStart
+    productSize: revEnd - fwdStart,
   };
 }
 
@@ -490,7 +492,7 @@ function calculateTm(sequence: string): number {
   }
 
   // Nearest-neighbor approximation for longer primers
-  return 64.9 + 41 * (g + c - 16.4) / sequence.length;
+  return 64.9 + (41 * (g + c - 16.4)) / sequence.length;
 }
 
 // ============================================================================
@@ -501,24 +503,28 @@ function getSampleSequence(gene: string): { name: string; sequence: string; desc
   const samples: Record<string, { name: string; sequence: string; description: string }> = {
     EGFP: {
       name: 'EGFP',
-      sequence: 'ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA',
-      description: 'Enhanced Green Fluorescent Protein - reporter gene'
+      sequence:
+        'ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA',
+      description: 'Enhanced Green Fluorescent Protein - reporter gene',
     },
     TP53: {
       name: 'TP53 exon 5',
-      sequence: 'TGTTCACTTGTGCCCTGACTTTCAACTCTGTCTCCTTCCTCTTCCTACAGTACTCCCCTGCCCTCAACAAGATGTTTTGCCAACTGGCCAAGACCTGCCCTGTGCAGCTGTGGGTTGATTCCACACCCCCGCCCGGCACCCGCGTCCGCGCCATGGCCATCTACAAGCAGTCACAGCACATGACGGAGGTTGTGAGGCGCTGCCCCCACCATGAGCGCTGCTCAGATAGCGATGGTCTGGCCCCTCCTCAGCATCTTATCCGAGTGGAAGGAAATTTGCGTGTGGAGTATTTGGATGACAGAAACACTTTTCGACATAGTGTGGTGGTGCCCTATGAGCCGCCTGAGGTTGGCTCTGACTGTACCACCATCCACTACAACTACATGTGTAACAGTTCCTGCATGGGCGGCATGAACCGGAGGCCCATCCTCACCATCATCACACTGGAAGACTCCAG',
-      description: 'TP53 tumor suppressor gene exon 5'
+      sequence:
+        'TGTTCACTTGTGCCCTGACTTTCAACTCTGTCTCCTTCCTCTTCCTACAGTACTCCCCTGCCCTCAACAAGATGTTTTGCCAACTGGCCAAGACCTGCCCTGTGCAGCTGTGGGTTGATTCCACACCCCCGCCCGGCACCCGCGTCCGCGCCATGGCCATCTACAAGCAGTCACAGCACATGACGGAGGTTGTGAGGCGCTGCCCCCACCATGAGCGCTGCTCAGATAGCGATGGTCTGGCCCCTCCTCAGCATCTTATCCGAGTGGAAGGAAATTTGCGTGTGGAGTATTTGGATGACAGAAACACTTTTCGACATAGTGTGGTGGTGCCCTATGAGCCGCCTGAGGTTGGCTCTGACTGTACCACCATCCACTACAACTACATGTGTAACAGTTCCTGCATGGGCGGCATGAACCGGAGGCCCATCCTCACCATCATCACACTGGAAGACTCCAG',
+      description: 'TP53 tumor suppressor gene exon 5',
     },
     CCR5: {
       name: 'CCR5',
-      sequence: 'ATGGATTATCAAGTGTCAAGTCCAATCTATGACATCAATTATTATACATCGGAGCCCTGCCAAAAAATCAATGTGAAGCAAATCGCAGCCCGCCTCCTGCCTCCGCTCTACTCACTGGTGTTCATCTTTGGTTTTGTGGGCAACATGCTGGTCATCCTCATCCTGATAAACTGCAAAAGGCTGAAGAGCATGACTGACATCTACCTGCTCAACCTGGCCATCTCTGACCTGTTTTTCCTTCTTACTGTCCCCTTCTGGGCTCACTATGCTGCCGCCCAGTGGGACTTTGGAAATACAATGTGTCAACTCTTGACAGGGCTCTATTTTATAGGCTTCTTCTCTGGAATCTTCTTCATCATCCTCCTGACAATCGATAGGTACCTGGCTGTCGTCCATGCTGTGTTTGCTTTAAAAGCCAGGACGGTCACCTTTGGGGTGGTGACAAGTGTGATCACTTGGGTGGTGGCTGTGTTTGCGTCTCTCCCAGGAATCATCTTTACCAGATCTCAAAAAGAAGGTCTTCATTACACCTGCAGCTCTCATTTTCCATACAGTCAGTATCAATTCTGGAAGAATTTCCAGACATTAAAGATAGTCATCTTGGGGCTGGTCCTGCCGCTGCTTGTCATGGTCATCTGCTACTCGGGAATCCTAAAAACTCTGCTTCGGTGTCGAAATGAGAAGAAGAGGCACAGGGCTGTGAGGCTTATCTTCACCATCATGATTGTTTATTTTCTCTTCTGGGCTCCCTACAACATTGTCCTTCTCCTGAACACCTTCCAGGAATTCTTTGGCCTGAATAATTGCAGTAGCTCTAACAGGTTGGACCAAGCTATGCAGGTGACAGAGACTCTTGGGATGACGCACTGCTGCATCAACCCCATCATCTATGCCTTTGTCGGGGAGAAGTTCAGAAACTACCTCTTAGTCTTCTTCCAAAAGCACATTGCCAAACGCTTCTGCAAATGCTGTTCTATTTTCCAGCAAGAGGCTCCCGAGCGAGCAAGCTCAGTTTACACCCGATCCACTGGGGAGCAGGAAATATCTGTGGGCTTGTGA',
-      description: 'CCR5 gene - HIV co-receptor, knockout confers HIV resistance'
+      sequence:
+        'ATGGATTATCAAGTGTCAAGTCCAATCTATGACATCAATTATTATACATCGGAGCCCTGCCAAAAAATCAATGTGAAGCAAATCGCAGCCCGCCTCCTGCCTCCGCTCTACTCACTGGTGTTCATCTTTGGTTTTGTGGGCAACATGCTGGTCATCCTCATCCTGATAAACTGCAAAAGGCTGAAGAGCATGACTGACATCTACCTGCTCAACCTGGCCATCTCTGACCTGTTTTTCCTTCTTACTGTCCCCTTCTGGGCTCACTATGCTGCCGCCCAGTGGGACTTTGGAAATACAATGTGTCAACTCTTGACAGGGCTCTATTTTATAGGCTTCTTCTCTGGAATCTTCTTCATCATCCTCCTGACAATCGATAGGTACCTGGCTGTCGTCCATGCTGTGTTTGCTTTAAAAGCCAGGACGGTCACCTTTGGGGTGGTGACAAGTGTGATCACTTGGGTGGTGGCTGTGTTTGCGTCTCTCCCAGGAATCATCTTTACCAGATCTCAAAAAGAAGGTCTTCATTACACCTGCAGCTCTCATTTTCCATACAGTCAGTATCAATTCTGGAAGAATTTCCAGACATTAAAGATAGTCATCTTGGGGCTGGTCCTGCCGCTGCTTGTCATGGTCATCTGCTACTCGGGAATCCTAAAAACTCTGCTTCGGTGTCGAAATGAGAAGAAGAGGCACAGGGCTGTGAGGCTTATCTTCACCATCATGATTGTTTATTTTCTCTTCTGGGCTCCCTACAACATTGTCCTTCTCCTGAACACCTTCCAGGAATTCTTTGGCCTGAATAATTGCAGTAGCTCTAACAGGTTGGACCAAGCTATGCAGGTGACAGAGACTCTTGGGATGACGCACTGCTGCATCAACCCCATCATCTATGCCTTTGTCGGGGAGAAGTTCAGAAACTACCTCTTAGTCTTCTTCCAAAAGCACATTGCCAAACGCTTCTGCAAATGCTGTTCTATTTTCCAGCAAGAGGCTCCCGAGCGAGCAAGCTCAGTTTACACCCGATCCACTGGGGAGCAGGAAATATCTGTGGGCTTGTGA',
+      description: 'CCR5 gene - HIV co-receptor, knockout confers HIV resistance',
     },
     default: {
       name: 'Sample target',
-      sequence: 'ATGGCTGAGCTGCAGCGCGAGGACTTCGCGGGCGTGGGCGAGGTGCTGCAGCGCGCGGCGCTGCTGCAGCGCGAGCTGCAGCGCGAGGACTTCGCGGGCGTGGGCGAGGTGCTGCAGCGCGCGGCGCTGCTGCAGCGCGAGCTGCAGCGCGAGGACTTCGCGGGCGTGGGCGAGGTGCTGCAGCGCGCGGCGCTGCTGCAG',
-      description: 'Sample DNA sequence for guide design'
-    }
+      sequence:
+        'ATGGCTGAGCTGCAGCGCGAGGACTTCGCGGGCGTGGGCGAGGTGCTGCAGCGCGCGGCGCTGCTGCAGCGCGAGCTGCAGCGCGAGGACTTCGCGGGCGTGGGCGAGGTGCTGCAGCGCGCGGCGCTGCTGCAGCGCGAGCTGCAGCGCGAGGACTTCGCGGGCGTGGGCGAGGTGCTGCAGCGCGCGGCGCTGCTGCAG',
+      description: 'Sample DNA sequence for guide design',
+    },
   };
 
   return samples[gene] || samples.default;
@@ -530,44 +536,53 @@ function getSampleSequence(gene: string): { name: string; sequence: string; desc
 
 export const crisprTool: UnifiedTool = {
   name: 'crispr',
-  description: 'CRISPR-Cas9 gene editing - guide RNA design, off-target analysis, editing simulation',
+  description:
+    'CRISPR-Cas9 gene editing - guide RNA design, off-target analysis, editing simulation',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['design_guide', 'off_target', 'edit_simulate', 'efficiency', 'primers', 'compare_systems', 'info'],
-        description: 'CRISPR operation'
+        enum: [
+          'design_guide',
+          'off_target',
+          'edit_simulate',
+          'efficiency',
+          'primers',
+          'compare_systems',
+          'info',
+        ],
+        description: 'CRISPR operation',
       },
       sequence: {
         type: 'string',
-        description: 'Target DNA sequence'
+        description: 'Target DNA sequence',
       },
       gene: {
         type: 'string',
         enum: ['EGFP', 'TP53', 'CCR5'],
-        description: 'Predefined gene for analysis'
+        description: 'Predefined gene for analysis',
       },
       guide_sequence: {
         type: 'string',
-        description: 'Specific guide RNA sequence'
+        description: 'Specific guide RNA sequence',
       },
       system: {
         type: 'string',
         enum: ['SpCas9', 'SaCas9', 'Cas12a', 'CasX', 'Cas13'],
-        description: 'CRISPR system to use'
+        description: 'CRISPR system to use',
       },
       donor_template: {
         type: 'string',
-        description: 'Donor DNA template for HDR'
+        description: 'Donor DNA template for HDR',
       },
       max_guides: {
         type: 'number',
-        description: 'Maximum number of guides to return'
-      }
+        description: 'Maximum number of guides to return',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -599,44 +614,51 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'design_guide',
-            target: {
-              name: targetName,
-              length: targetSequence.length,
-              gcContent: gcContent(targetSequence).toFixed(1) + '%'
+          content: JSON.stringify(
+            {
+              operation: 'design_guide',
+              target: {
+                name: targetName,
+                length: targetSequence.length,
+                gcContent: gcContent(targetSequence).toFixed(1) + '%',
+              },
+              system: system.name,
+              pamPattern: system.pam,
+              guidesFound: guides.length,
+              guides: guides.map((g, i) => ({
+                rank: i + 1,
+                sequence: g.sequence,
+                pam: g.pam,
+                position: g.position,
+                strand: g.strand,
+                gcContent: g.gcContent.toFixed(1) + '%',
+                efficiencyScore: g.efficiencyScore.toFixed(1),
+                specificityScore: g.specifityScore.toFixed(1),
+                overallScore: ((g.efficiencyScore + g.specifityScore) / 2).toFixed(1),
+              })),
+              bestGuide: guides[0]
+                ? {
+                    sequence: guides[0].sequence,
+                    fullTarget: guides[0].sequence + guides[0].pam,
+                    why: 'Highest combined efficiency and specificity score',
+                  }
+                : null,
             },
-            system: system.name,
-            pamPattern: system.pam,
-            guidesFound: guides.length,
-            guides: guides.map((g, i) => ({
-              rank: i + 1,
-              sequence: g.sequence,
-              pam: g.pam,
-              position: g.position,
-              strand: g.strand,
-              gcContent: g.gcContent.toFixed(1) + '%',
-              efficiencyScore: g.efficiencyScore.toFixed(1),
-              specificityScore: g.specifityScore.toFixed(1),
-              overallScore: ((g.efficiencyScore + g.specifityScore) / 2).toFixed(1)
-            })),
-            bestGuide: guides[0] ? {
-              sequence: guides[0].sequence,
-              fullTarget: guides[0].sequence + guides[0].pam,
-              why: 'Highest combined efficiency and specificity score'
-            } : null
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'off_target': {
-        const guideSeq = args.guide_sequence || findGuideRNAs(targetSequence, system, 1)[0]?.sequence;
+        const guideSeq =
+          args.guide_sequence || findGuideRNAs(targetSequence, system, 1)[0]?.sequence;
 
         if (!guideSeq) {
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'No guide sequence provided or found' }, null, 2),
-            isError: true
+            isError: true,
           };
         }
 
@@ -645,26 +667,31 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'off_target',
-            guide: guideSeq,
-            offTargetsFound: offTargets.length,
-            offTargets: offTargets.map(ot => ({
-              sequence: ot.sequence,
-              mismatches: ot.mismatches,
-              positions: ot.mismatchPositions,
-              riskScore: ot.score.toFixed(1),
-              riskLevel: ot.score > 50 ? 'HIGH' : ot.score > 20 ? 'MEDIUM' : 'LOW'
-            })),
-            summary: {
-              highRisk: offTargets.filter(ot => ot.score > 50).length,
-              mediumRisk: offTargets.filter(ot => ot.score > 20 && ot.score <= 50).length,
-              lowRisk: offTargets.filter(ot => ot.score <= 20).length
+          content: JSON.stringify(
+            {
+              operation: 'off_target',
+              guide: guideSeq,
+              offTargetsFound: offTargets.length,
+              offTargets: offTargets.map((ot) => ({
+                sequence: ot.sequence,
+                mismatches: ot.mismatches,
+                positions: ot.mismatchPositions,
+                riskScore: ot.score.toFixed(1),
+                riskLevel: ot.score > 50 ? 'HIGH' : ot.score > 20 ? 'MEDIUM' : 'LOW',
+              })),
+              summary: {
+                highRisk: offTargets.filter((ot) => ot.score > 50).length,
+                mediumRisk: offTargets.filter((ot) => ot.score > 20 && ot.score <= 50).length,
+                lowRisk: offTargets.filter((ot) => ot.score <= 20).length,
+              },
+              recommendation:
+                offTargets.filter((ot) => ot.score > 50).length > 0
+                  ? 'Consider choosing a different guide RNA with fewer high-risk off-targets'
+                  : 'Guide appears to have acceptable specificity',
             },
-            recommendation: offTargets.filter(ot => ot.score > 50).length > 0
-              ? 'Consider choosing a different guide RNA with fewer high-risk off-targets'
-              : 'Guide appears to have acceptable specificity'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -676,7 +703,7 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'No valid guide found in sequence' }, null, 2),
-            isError: true
+            isError: true,
           };
         }
 
@@ -684,31 +711,42 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'edit_simulate',
-            guide: {
-              sequence: guide.sequence,
-              position: guide.position,
-              strand: guide.strand
+          content: JSON.stringify(
+            {
+              operation: 'edit_simulate',
+              guide: {
+                sequence: guide.sequence,
+                position: guide.position,
+                strand: guide.strand,
+              },
+              cutSite: simulation.cutSite,
+              donorProvided: !!args.donor_template,
+              predictedOutcomes: simulation.outcomes.map((o) => ({
+                type: o.type,
+                probability: o.probability.toFixed(1) + '%',
+                description: o.description,
+              })),
+              editedSequences: simulation.editedSequences.slice(0, 3).map((s) => ({
+                name: s.name,
+                lengthChange: s.sequence.length - targetSequence.length,
+                preview: s.sequence.slice(
+                  Math.max(0, simulation.cutSite - 30),
+                  simulation.cutSite + 30
+                ),
+              })),
+              recommendations: args.donor_template
+                ? [
+                    'Use cell cycle synchronization to increase HDR efficiency',
+                    'Consider using Cas9 nickase for reduced off-target effects',
+                  ]
+                : [
+                    'Add donor template for precise editing via HDR',
+                    'NHEJ creates variable indels - screen multiple clones',
+                  ],
             },
-            cutSite: simulation.cutSite,
-            donorProvided: !!args.donor_template,
-            predictedOutcomes: simulation.outcomes.map(o => ({
-              type: o.type,
-              probability: o.probability.toFixed(1) + '%',
-              description: o.description
-            })),
-            editedSequences: simulation.editedSequences.slice(0, 3).map(s => ({
-              name: s.name,
-              lengthChange: s.sequence.length - targetSequence.length,
-              preview: s.sequence.slice(Math.max(0, simulation.cutSite - 30), simulation.cutSite + 30)
-            })),
-            recommendations: args.donor_template
-              ? ['Use cell cycle synchronization to increase HDR efficiency',
-                 'Consider using Cas9 nickase for reduced off-target effects']
-              : ['Add donor template for precise editing via HDR',
-                 'NHEJ creates variable indels - screen multiple clones']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -719,32 +757,43 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'efficiency',
-            guide: guideSeq,
-            scores: {
-              efficiency: efficiency.toFixed(1),
-              specificity: specificity.toFixed(1),
-              overall: ((efficiency + specificity) / 2).toFixed(1)
+          content: JSON.stringify(
+            {
+              operation: 'efficiency',
+              guide: guideSeq,
+              scores: {
+                efficiency: efficiency.toFixed(1),
+                specificity: specificity.toFixed(1),
+                overall: ((efficiency + specificity) / 2).toFixed(1),
+              },
+              analysis: {
+                gcContent: gcContent(guideSeq).toFixed(1) + '%',
+                gcOptimal: gcContent(guideSeq) >= 40 && gcContent(guideSeq) <= 70,
+                hasPolyT: /TTTT/i.test(guideSeq),
+                hasPolyG: /GGG/i.test(guideSeq),
+                terminalG: guideSeq.slice(-1) === 'G',
+              },
+              interpretation:
+                efficiency >= 70
+                  ? 'High efficiency guide - good candidate'
+                  : efficiency >= 50
+                    ? 'Moderate efficiency - may work but consider alternatives'
+                    : 'Low efficiency - likely to have poor editing rates',
+              suggestions: [
+                efficiency < 70 && gcContent(guideSeq) < 40
+                  ? 'GC content is low - prefer guides with 40-70% GC'
+                  : null,
+                efficiency < 70 && guideSeq.slice(-1) !== 'G'
+                  ? 'Consider guides ending in G (adjacent to PAM)'
+                  : null,
+                /TTTT/i.test(guideSeq)
+                  ? 'Contains TTTT - may cause early termination with U6 promoter'
+                  : null,
+              ].filter(Boolean),
             },
-            analysis: {
-              gcContent: gcContent(guideSeq).toFixed(1) + '%',
-              gcOptimal: gcContent(guideSeq) >= 40 && gcContent(guideSeq) <= 70,
-              hasPolyT: /TTTT/i.test(guideSeq),
-              hasPolyG: /GGG/i.test(guideSeq),
-              terminalG: guideSeq.slice(-1) === 'G'
-            },
-            interpretation: efficiency >= 70
-              ? 'High efficiency guide - good candidate'
-              : efficiency >= 50
-                ? 'Moderate efficiency - may work but consider alternatives'
-                : 'Low efficiency - likely to have poor editing rates',
-            suggestions: [
-              efficiency < 70 && gcContent(guideSeq) < 40 ? 'GC content is low - prefer guides with 40-70% GC' : null,
-              efficiency < 70 && guideSeq.slice(-1) !== 'G' ? 'Consider guides ending in G (adjacent to PAM)' : null,
-              /TTTT/i.test(guideSeq) ? 'Contains TTTT - may cause early termination with U6 promoter' : null
-            ].filter(Boolean)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -756,7 +805,7 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'No valid guide found in sequence' }, null, 2),
-            isError: true
+            isError: true,
           };
         }
 
@@ -765,34 +814,38 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'primers',
-            guide: guide.sequence,
-            cutSite,
-            primers: {
-              forward: {
-                sequence: primers.forward.sequence,
-                tm: primers.forward.tm.toFixed(1) + '°C',
-                position: primers.forward.position
+          content: JSON.stringify(
+            {
+              operation: 'primers',
+              guide: guide.sequence,
+              cutSite,
+              primers: {
+                forward: {
+                  sequence: primers.forward.sequence,
+                  tm: primers.forward.tm.toFixed(1) + '°C',
+                  position: primers.forward.position,
+                },
+                reverse: {
+                  sequence: primers.reverse.sequence,
+                  tm: primers.reverse.tm.toFixed(1) + '°C',
+                  position: primers.reverse.position,
+                },
+                productSize: primers.productSize + 'bp',
               },
-              reverse: {
-                sequence: primers.reverse.sequence,
-                tm: primers.reverse.tm.toFixed(1) + '°C',
-                position: primers.reverse.position
+              applications: {
+                genotyping: 'Use for PCR to detect indels (T7E1 assay, sequencing)',
+                hdpScreening: 'Product size change indicates successful large deletion/insertion',
+                sequencing: 'Amplify region for Sanger or NGS analysis',
               },
-              productSize: primers.productSize + 'bp'
             },
-            applications: {
-              genotyping: 'Use for PCR to detect indels (T7E1 assay, sequencing)',
-              hdpScreening: 'Product size change indicates successful large deletion/insertion',
-              sequencing: 'Amplify region for Sanger or NGS analysis'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'compare_systems': {
-        const comparison = Object.values(CRISPR_SYSTEMS).map(sys => {
+        const comparison = Object.values(CRISPR_SYSTEMS).map((sys) => {
           const guides = findGuideRNAs(targetSequence, sys, 5);
           return {
             system: sys.name,
@@ -801,20 +854,25 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
             description: sys.description,
             guidesFound: guides.length,
             bestEfficiency: guides[0]?.efficiencyScore.toFixed(1) || 'N/A',
-            pamSitesInTarget: guides.length
+            pamSitesInTarget: guides.length,
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare_systems',
-            targetLength: targetSequence.length,
-            systems: comparison,
-            recommendation: comparison.reduce((best, curr) =>
-              (curr.guidesFound > best.guidesFound) ? curr : best
-            ).system + ' has the most PAM sites in your target'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'compare_systems',
+              targetLength: targetSequence.length,
+              systems: comparison,
+              recommendation:
+                comparison.reduce((best, curr) =>
+                  curr.guidesFound > best.guidesFound ? curr : best
+                ).system + ' has the most PAM sites in your target',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -822,33 +880,44 @@ export async function executecrispr(toolCall: UnifiedToolCall): Promise<UnifiedT
       default: {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'crispr',
-            description: 'CRISPR-Cas9 gene editing design and analysis',
-            systems: Object.values(CRISPR_SYSTEMS).map(s => ({
-              name: s.name,
-              pam: s.pam,
-              guideLength: s.guideLength,
-              description: s.description
-            })),
-            designConsiderations: {
-              gcContent: '40-70% optimal for guide efficiency',
-              avoidPolyT: 'TTTT causes early U6 promoter termination',
-              seedRegion: 'Last 12bp (PAM-proximal) most critical for specificity',
-              terminalG: 'G at position 20 improves efficiency'
+          content: JSON.stringify(
+            {
+              tool: 'crispr',
+              description: 'CRISPR-Cas9 gene editing design and analysis',
+              systems: Object.values(CRISPR_SYSTEMS).map((s) => ({
+                name: s.name,
+                pam: s.pam,
+                guideLength: s.guideLength,
+                description: s.description,
+              })),
+              designConsiderations: {
+                gcContent: '40-70% optimal for guide efficiency',
+                avoidPolyT: 'TTTT causes early U6 promoter termination',
+                seedRegion: 'Last 12bp (PAM-proximal) most critical for specificity',
+                terminalG: 'G at position 20 improves efficiency',
+              },
+              editingOutcomes: {
+                NHEJ: 'Non-homologous end joining - creates small indels (knockouts)',
+                HDR: 'Homology-directed repair - precise edits with donor template',
+                ratios: 'NHEJ dominates (~70-95%) without cell cycle manipulation',
+              },
+              scoringMethods: {
+                efficiency: 'Based on Doench et al. 2016 Rule Set 2',
+                specificity: 'MIT specificity score / CFD score',
+              },
+              operations: [
+                'design_guide',
+                'off_target',
+                'edit_simulate',
+                'efficiency',
+                'primers',
+                'compare_systems',
+              ],
+              sampleGenes: ['EGFP', 'TP53', 'CCR5'],
             },
-            editingOutcomes: {
-              NHEJ: 'Non-homologous end joining - creates small indels (knockouts)',
-              HDR: 'Homology-directed repair - precise edits with donor template',
-              ratios: 'NHEJ dominates (~70-95%) without cell cycle manipulation'
-            },
-            scoringMethods: {
-              efficiency: 'Based on Doench et al. 2016 Rule Set 2',
-              specificity: 'MIT specificity score / CFD score'
-            },
-            operations: ['design_guide', 'off_target', 'edit_simulate', 'efficiency', 'primers', 'compare_systems'],
-            sampleGenes: ['EGFP', 'TP53', 'CCR5']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
     }

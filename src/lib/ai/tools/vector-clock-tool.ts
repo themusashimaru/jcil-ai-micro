@@ -77,7 +77,7 @@ class VectorClockManager {
       id: `${this.nodeId}-${this.clock[this.nodeId]}`,
       nodeId: this.nodeId,
       clock: this.getClock(),
-      type: 'local'
+      type: 'local',
     };
     this.history.push(event);
 
@@ -95,7 +95,7 @@ class VectorClockManager {
       from: this.nodeId,
       to: '', // Will be set by caller
       clock,
-      data
+      data,
     };
 
     const event: Event = {
@@ -103,7 +103,7 @@ class VectorClockManager {
       nodeId: this.nodeId,
       clock,
       type: 'send',
-      data
+      data,
     };
     this.history.push(event);
 
@@ -125,7 +125,7 @@ class VectorClockManager {
       nodeId: this.nodeId,
       clock: this.getClock(),
       type: 'receive',
-      data: message.data
+      data: message.data,
     };
     this.history.push(event);
 
@@ -139,9 +139,9 @@ class VectorClockManager {
 
   // Get event history
   getHistory(): Event[] {
-    return this.history.map(e => ({
+    return this.history.map((e) => ({
       ...e,
-      clock: { ...e.clock }
+      clock: { ...e.clock },
     }));
   }
 
@@ -211,8 +211,7 @@ function merge(a: VectorClock, b: VectorClock): VectorClock {
 }
 
 // Check if a clock dominates another (>=)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function dominates(a: VectorClock, b: VectorClock): boolean {
+export function dominates(a: VectorClock, b: VectorClock): boolean {
   for (const [key, value] of Object.entries(b)) {
     if ((a[key] || 0) < value) {
       return false;
@@ -264,7 +263,7 @@ class VersionVectorStore {
       return {
         hasConflict: false,
         relation: 'happens_before',
-        winner: existingVersions[0]
+        winner: existingVersions[0],
       };
     }
 
@@ -279,7 +278,7 @@ class VersionVectorStore {
       return {
         hasConflict: true,
         relation: 'concurrent',
-        conflictingVersions: existingVersions.map(v => ({ ...v, clock: { ...v.clock } }))
+        conflictingVersions: existingVersions.map((v) => ({ ...v, clock: { ...v.clock } })),
       };
     }
 
@@ -290,7 +289,7 @@ class VersionVectorStore {
   get(key: string): VersionVector[] {
     const versions = this.versions.get(key);
     if (!versions) return [];
-    return versions.map(v => ({ ...v, clock: { ...v.clock } }));
+    return versions.map((v) => ({ ...v, clock: { ...v.clock } }));
   }
 
   // Resolve conflict by merging clocks
@@ -313,7 +312,7 @@ class VersionVectorStore {
     const resolvedVersion: VersionVector = {
       nodeId,
       clock: mergedClock,
-      value: resolvedValue
+      value: resolvedValue,
     };
 
     this.versions.set(key, [resolvedVersion]);
@@ -330,8 +329,7 @@ class VersionVectorStore {
 // DISTRIBUTED SYSTEM SIMULATOR
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface SimulationConfig {
+export interface SimulationConfig {
   nodes: string[];
   events: SimulationEvent[];
 }
@@ -363,7 +361,7 @@ class DistributedSystemSimulator {
     this.messageLog = [];
 
     for (const id of nodeIds) {
-      const peers = nodeIds.filter(n => n !== id);
+      const peers = nodeIds.filter((n) => n !== id);
       this.nodes.set(id, new VectorClockManager(id, peers));
       this.pendingMessages.set(id, []);
     }
@@ -422,7 +420,7 @@ class DistributedSystemSimulator {
         causalOrder.push({
           event1: allEvents[i].id,
           event2: allEvents[j].id,
-          relation
+          relation,
         });
       }
     }
@@ -437,7 +435,7 @@ class DistributedSystemSimulator {
       finalClocks,
       eventHistory: allEvents,
       messageLog: this.messageLog,
-      causalOrder
+      causalOrder,
     };
   }
 }
@@ -490,22 +488,33 @@ class LamportClock {
 
 export const vectorclockTool: UnifiedTool = {
   name: 'vector_clock',
-  description: 'Vector clock and Lamport timestamp implementations for distributed systems ordering, conflict detection, and causality tracking',
+  description:
+    'Vector clock and Lamport timestamp implementations for distributed systems ordering, conflict detection, and causality tracking',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'compare', 'merge', 'simulate', 'version_vector', 'lamport', 'info', 'examples', 'demo'],
-        description: 'Vector clock operation to perform'
+        enum: [
+          'create',
+          'compare',
+          'merge',
+          'simulate',
+          'version_vector',
+          'lamport',
+          'info',
+          'examples',
+          'demo',
+        ],
+        description: 'Vector clock operation to perform',
       },
       parameters: {
         type: 'object',
-        description: 'Operation-specific parameters'
-      }
+        description: 'Operation-specific parameters',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -527,64 +536,72 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
 
         // Perform some operations to demonstrate
         manager.tick();
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { clock: _sendClock, message } = manager.send({ type: 'hello' });
         manager.tick();
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'create',
-            nodeId,
-            peers,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            initialClock: { [nodeId]: 0, ...peers.reduce((acc: any, p: string) => ({ ...acc, [p]: 0 }), {}) },
-            afterOperations: {
-              finalClock: manager.getClock(),
-              history: manager.getHistory(),
-              sentMessage: message
+          content: JSON.stringify(
+            {
+              operation: 'create',
+              nodeId,
+              peers,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              initialClock: {
+                [nodeId]: 0,
+                ...peers.reduce((acc: any, p: string) => ({ ...acc, [p]: 0 }), {}),
+              },
+              afterOperations: {
+                finalClock: manager.getClock(),
+                history: manager.getHistory(),
+                sentMessage: message,
+              },
+              description:
+                'Created vector clock and performed local event, send, and another local event',
             },
-            description: 'Created vector clock and performed local event, send, and another local event'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'compare': {
-        const {
-          clock1 = { 'A': 2, 'B': 3 },
-          clock2 = { 'A': 3, 'B': 2 }
-        } = parameters;
+        const { clock1 = { A: 2, B: 3 }, clock2 = { A: 3, B: 2 } } = parameters;
 
         const relation = compare(clock1, clock2);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            clock1,
-            clock2,
-            result: {
-              relation,
-              happensBefore: happensBefore(clock1, clock2),
-              happensAfter: happensAfter(clock1, clock2),
-              concurrent: areConcurrent(clock1, clock2)
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              clock1,
+              clock2,
+              result: {
+                relation,
+                happensBefore: happensBefore(clock1, clock2),
+                happensAfter: happensAfter(clock1, clock2),
+                concurrent: areConcurrent(clock1, clock2),
+              },
+              explanation: {
+                happens_before: 'All components of clock1 <= clock2 and at least one <',
+                happens_after: 'All components of clock1 >= clock2 and at least one >',
+                concurrent: 'Neither clock dominates the other',
+              },
+              description: 'Compared two vector clocks to determine causal relationship',
             },
-            explanation: {
-              happens_before: 'All components of clock1 <= clock2 and at least one <',
-              happens_after: 'All components of clock1 >= clock2 and at least one >',
-              concurrent: 'Neither clock dominates the other'
-            },
-            description: 'Compared two vector clocks to determine causal relationship'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'merge': {
         const {
           clocks = [
-            { 'A': 2, 'B': 3, 'C': 1 },
-            { 'A': 1, 'B': 4, 'C': 2 }
-          ]
+            { A: 2, B: 3, C: 1 },
+            { A: 1, B: 4, C: 2 },
+          ],
         } = parameters;
 
         let merged: VectorClock = {};
@@ -594,15 +611,19 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'merge',
-            inputClocks: clocks,
-            result: {
-              mergedClock: merged
+          content: JSON.stringify(
+            {
+              operation: 'merge',
+              inputClocks: clocks,
+              result: {
+                mergedClock: merged,
+              },
+              explanation: 'Merged clocks take the maximum value for each component',
+              description: 'Merged multiple vector clocks by taking component-wise maximum',
             },
-            explanation: 'Merged clocks take the maximum value for each component',
-            description: 'Merged multiple vector clocks by taking component-wise maximum'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -615,8 +636,8 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
             { tick: 3, type: 'local', node: 'B' },
             { tick: 4, type: 'send', node: 'B', target: 'C', data: 'msg2' },
             { tick: 5, type: 'local', node: 'C' },
-            { tick: 6, type: 'send', node: 'C', target: 'A', data: 'msg3' }
-          ]
+            { tick: 6, type: 'send', node: 'C', target: 'A', data: 'msg3' },
+          ],
         } = parameters;
 
         const simulator = new DistributedSystemSimulator(nodes);
@@ -629,32 +650,36 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
         }
 
         // Find concurrent events
-        const concurrentPairs = result.causalOrder.filter(c => c.relation === 'concurrent');
+        const concurrentPairs = result.causalOrder.filter((c) => c.relation === 'concurrent');
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            configuration: { nodes, eventCount: events.length },
-            result: {
-              finalClocks: finalClocksObj,
-              eventHistory: result.eventHistory,
-              messages: result.messageLog,
-              concurrentEventPairs: concurrentPairs.length,
-              causalOrderSample: result.causalOrder.slice(0, 10)
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              configuration: { nodes, eventCount: events.length },
+              result: {
+                finalClocks: finalClocksObj,
+                eventHistory: result.eventHistory,
+                messages: result.messageLog,
+                concurrentEventPairs: concurrentPairs.length,
+                causalOrderSample: result.causalOrder.slice(0, 10),
+              },
+              description: 'Simulated distributed system with vector clocks tracking causality',
             },
-            description: 'Simulated distributed system with vector clocks tracking causality'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'version_vector': {
         const {
           operations = [
-            { type: 'put', key: 'x', value: 1, node: 'A', clock: { 'A': 1 } },
-            { type: 'put', key: 'x', value: 2, node: 'B', clock: { 'B': 1 } },
-            { type: 'get', key: 'x' }
-          ]
+            { type: 'put', key: 'x', value: 1, node: 'A', clock: { A: 1 } },
+            { type: 'put', key: 'x', value: 2, node: 'B', clock: { B: 1 } },
+            { type: 'get', key: 'x' },
+          ],
         } = parameters;
 
         const store = new VersionVectorStore();
@@ -673,23 +698,23 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
               result: {
                 hasConflict: result.hasConflict,
                 relation: result.relation,
-                conflictingVersions: result.conflictingVersions?.map(v => ({
+                conflictingVersions: result.conflictingVersions?.map((v) => ({
                   node: v.nodeId,
                   value: v.value,
-                  clock: v.clock
-                }))
-              }
+                  clock: v.clock,
+                })),
+              },
             });
           } else if (op.type === 'get') {
             const versions = store.get(op.key);
             results.push({
               operation: 'get',
               key: op.key,
-              versions: versions.map(v => ({
+              versions: versions.map((v) => ({
                 node: v.nodeId,
                 value: v.value,
-                clock: v.clock
-              }))
+                clock: v.clock,
+              })),
             });
           } else if (op.type === 'resolve') {
             const resolved = store.resolve(op.key, op.resolvedValue, op.node);
@@ -700,24 +725,28 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
               finalVersion: {
                 node: resolved.nodeId,
                 value: resolved.value,
-                clock: resolved.clock
-              }
+                clock: resolved.clock,
+              },
             });
           }
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'version_vector',
-            operationLog: results,
-            explanation: {
-              versionVectors: 'Track multiple concurrent versions of data',
-              conflictDetection: 'Detect when updates are concurrent (neither dominates)',
-              conflictResolution: 'Merge clocks and pick/merge values'
+          content: JSON.stringify(
+            {
+              operation: 'version_vector',
+              operationLog: results,
+              explanation: {
+                versionVectors: 'Track multiple concurrent versions of data',
+                conflictDetection: 'Detect when updates are concurrent (neither dominates)',
+                conflictResolution: 'Merge clocks and pick/merge values',
+              },
+              description: 'Version vector store for conflict detection and resolution',
             },
-            description: 'Version vector store for conflict detection and resolution'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -730,8 +759,8 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
             { node: 'B', type: 'receive', timestamp: 2 },
             { node: 'B', type: 'local' },
             { node: 'B', type: 'send', target: 'A' },
-            { node: 'A', type: 'receive', timestamp: 4 }
-          ]
+            { node: 'A', type: 'receive', timestamp: 4 },
+          ],
         } = parameters;
 
         const clocks = new Map<string, LamportClock>();
@@ -761,7 +790,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
             node: event.node,
             type: event.type,
             timestamp,
-            ...(event.target && { target: event.target })
+            ...(event.target && { target: event.target }),
           });
         }
 
@@ -772,92 +801,130 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'lamport',
-            algorithm: 'Lamport Timestamps',
-            events: eventLog,
-            finalTimestamps,
-            properties: {
-              property1: 'If a happens-before b, then L(a) < L(b)',
-              property2: 'Converse not necessarily true (timestamps only partial order)',
-              difference: 'Simpler than vector clocks but cannot detect concurrency'
+          content: JSON.stringify(
+            {
+              operation: 'lamport',
+              algorithm: 'Lamport Timestamps',
+              events: eventLog,
+              finalTimestamps,
+              properties: {
+                property1: 'If a happens-before b, then L(a) < L(b)',
+                property2: 'Converse not necessarily true (timestamps only partial order)',
+                difference: 'Simpler than vector clocks but cannot detect concurrency',
+              },
+              description: 'Lamport timestamps for partial ordering of events',
             },
-            description: 'Lamport timestamps for partial ordering of events'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'vector_clock',
-            description: 'Vector clocks and timestamps for distributed systems',
-            concepts: {
-              vectorClock: {
-                description: 'Array of logical timestamps, one per process',
-                operations: ['tick (local event)', 'send (increment and attach)', 'receive (merge and increment)'],
-                properties: ['Captures causality', 'Detects concurrency']
+          content: JSON.stringify(
+            {
+              tool: 'vector_clock',
+              description: 'Vector clocks and timestamps for distributed systems',
+              concepts: {
+                vectorClock: {
+                  description: 'Array of logical timestamps, one per process',
+                  operations: [
+                    'tick (local event)',
+                    'send (increment and attach)',
+                    'receive (merge and increment)',
+                  ],
+                  properties: ['Captures causality', 'Detects concurrency'],
+                },
+                lamportTimestamp: {
+                  description: 'Single logical timestamp per event',
+                  operations: ['tick', 'send', 'receive (max + 1)'],
+                  properties: ['Partial ordering', 'Cannot detect concurrency'],
+                },
+                versionVector: {
+                  description: 'Vector clocks for data versioning',
+                  useCase: 'Conflict detection in distributed databases',
+                  examples: ['Amazon Dynamo', 'Riak', 'Cassandra'],
+                },
               },
-              lamportTimestamp: {
-                description: 'Single logical timestamp per event',
-                operations: ['tick', 'send', 'receive (max + 1)'],
-                properties: ['Partial ordering', 'Cannot detect concurrency']
+              causalRelations: {
+                happensBefore: 'All components <=, at least one <',
+                happensAfter: 'All components >=, at least one >',
+                concurrent: 'Neither dominates the other',
               },
-              versionVector: {
-                description: 'Vector clocks for data versioning',
-                useCase: 'Conflict detection in distributed databases',
-                examples: ['Amazon Dynamo', 'Riak', 'Cassandra']
-              }
+              operations: [
+                'create',
+                'compare',
+                'merge',
+                'simulate',
+                'version_vector',
+                'lamport',
+                'info',
+                'examples',
+                'demo',
+              ],
             },
-            causalRelations: {
-              happensBefore: 'All components <=, at least one <',
-              happensAfter: 'All components >=, at least one >',
-              concurrent: 'Neither dominates the other'
-            },
-            operations: ['create', 'compare', 'merge', 'simulate', 'version_vector', 'lamport', 'info', 'examples', 'demo']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Compare two clocks',
-                operation: 'compare',
-                parameters: {
-                  clock1: { 'A': 2, 'B': 3 },
-                  clock2: { 'A': 3, 'B': 2 }
-                }
-              },
-              {
-                name: 'Simulate message passing',
-                operation: 'simulate',
-                parameters: {
-                  nodes: ['Alice', 'Bob', 'Carol'],
-                  events: [
-                    { tick: 1, type: 'send', node: 'Alice', target: 'Bob', data: 'Hello' },
-                    { tick: 2, type: 'send', node: 'Bob', target: 'Carol', data: 'Hi' },
-                    { tick: 3, type: 'send', node: 'Carol', target: 'Alice', data: 'Hey' }
-                  ]
-                }
-              },
-              {
-                name: 'Version conflict detection',
-                operation: 'version_vector',
-                parameters: {
-                  operations: [
-                    { type: 'put', key: 'cart', value: ['item1'], node: 'server1', clock: { 'server1': 1 } },
-                    { type: 'put', key: 'cart', value: ['item2'], node: 'server2', clock: { 'server2': 1 } },
-                    { type: 'get', key: 'cart' }
-                  ]
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Compare two clocks',
+                  operation: 'compare',
+                  parameters: {
+                    clock1: { A: 2, B: 3 },
+                    clock2: { A: 3, B: 2 },
+                  },
+                },
+                {
+                  name: 'Simulate message passing',
+                  operation: 'simulate',
+                  parameters: {
+                    nodes: ['Alice', 'Bob', 'Carol'],
+                    events: [
+                      { tick: 1, type: 'send', node: 'Alice', target: 'Bob', data: 'Hello' },
+                      { tick: 2, type: 'send', node: 'Bob', target: 'Carol', data: 'Hi' },
+                      { tick: 3, type: 'send', node: 'Carol', target: 'Alice', data: 'Hey' },
+                    ],
+                  },
+                },
+                {
+                  name: 'Version conflict detection',
+                  operation: 'version_vector',
+                  parameters: {
+                    operations: [
+                      {
+                        type: 'put',
+                        key: 'cart',
+                        value: ['item1'],
+                        node: 'server1',
+                        clock: { server1: 1 },
+                      },
+                      {
+                        type: 'put',
+                        key: 'cart',
+                        value: ['item2'],
+                        node: 'server2',
+                        clock: { server2: 1 },
+                      },
+                      { type: 'get', key: 'cart' },
+                    ],
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -878,7 +945,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
           // A sends to C (concurrent path)
           { tick: 4, type: 'send', node: 'Server-A', target: 'Server-C', data: 'update-3' },
           // C does final processing
-          { tick: 5, type: 'local', node: 'Server-C' }
+          { tick: 5, type: 'local', node: 'Server-C' },
         ];
 
         const simulator = new DistributedSystemSimulator(nodes);
@@ -893,55 +960,79 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
         // Version vector demo
         const store = new VersionVectorStore();
         store.put('config', { setting: 'value-A' }, { 'Server-A': 1 }, 'Server-A');
-        const conflictResult = store.put('config', { setting: 'value-B' }, { 'Server-B': 1 }, 'Server-B');
+        const conflictResult = store.put(
+          'config',
+          { setting: 'value-B' },
+          { 'Server-B': 1 },
+          'Server-B'
+        );
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            demo: 'Distributed System Causality Tracking',
-            description: 'Three servers exchanging messages with vector clocks',
-            scenario: {
-              nodes,
-              eventSequence: events.map(e => ({
-                tick: e.tick,
-                node: e.node,
-                action: e.type === 'send' ? `send to ${e.target}` : 'local event'
-              }))
-            },
-            vectorClocks: {
-              finalState: finalClocksObj,
-              eventCount: result.eventHistory.length,
-              messageCount: result.messageLog.length,
-              concurrentEventPairs: result.causalOrder.filter(c => c.relation === 'concurrent').length
-            },
-            versionVectorDemo: {
-              scenario: 'Two servers update same key concurrently',
-              result: {
-                hasConflict: conflictResult.hasConflict,
-                conflictingVersions: conflictResult.conflictingVersions?.map(v => ({
-                  server: v.nodeId,
-                  value: v.value
-                }))
+          content: JSON.stringify(
+            {
+              demo: 'Distributed System Causality Tracking',
+              description: 'Three servers exchanging messages with vector clocks',
+              scenario: {
+                nodes,
+                eventSequence: events.map((e) => ({
+                  tick: e.tick,
+                  node: e.node,
+                  action: e.type === 'send' ? `send to ${e.target}` : 'local event',
+                })),
               },
-              resolution: 'Application must merge or choose winning value'
+              vectorClocks: {
+                finalState: finalClocksObj,
+                eventCount: result.eventHistory.length,
+                messageCount: result.messageLog.length,
+                concurrentEventPairs: result.causalOrder.filter((c) => c.relation === 'concurrent')
+                  .length,
+              },
+              versionVectorDemo: {
+                scenario: 'Two servers update same key concurrently',
+                result: {
+                  hasConflict: conflictResult.hasConflict,
+                  conflictingVersions: conflictResult.conflictingVersions?.map((v) => ({
+                    server: v.nodeId,
+                    value: v.value,
+                  })),
+                },
+                resolution: 'Application must merge or choose winning value',
+              },
+              keyInsights: [
+                'Vector clocks capture causal relationships completely',
+                'Concurrent events have incomparable clocks',
+                'Version vectors enable conflict detection in replicated data',
+              ],
             },
-            keyInsights: [
-              'Vector clocks capture causal relationships completely',
-              'Concurrent events have incomparable clocks',
-              'Version vectors enable conflict detection in replicated data'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            availableOperations: ['create', 'compare', 'merge', 'simulate', 'version_vector', 'lamport', 'info', 'examples', 'demo']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              availableOperations: [
+                'create',
+                'compare',
+                'merge',
+                'simulate',
+                'version_vector',
+                'lamport',
+                'info',
+                'examples',
+                'demo',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -949,7 +1040,7 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
     return {
       toolCallId: id,
       content: JSON.stringify({ error: errorMessage }, null, 2),
-      isError: true
+      isError: true,
     };
   }
 }

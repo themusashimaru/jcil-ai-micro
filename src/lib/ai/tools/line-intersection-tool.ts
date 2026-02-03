@@ -39,10 +39,12 @@ function crossProduct(p1: Point, p2: Point, p3: Point): number {
 
 // Check if point q lies on segment pr
 function onSegment(p: Point, q: Point, r: Point): boolean {
-  return q.x <= Math.max(p.x, r.x) + EPSILON &&
-         q.x >= Math.min(p.x, r.x) - EPSILON &&
-         q.y <= Math.max(p.y, r.y) + EPSILON &&
-         q.y >= Math.min(p.y, r.y) - EPSILON;
+  return (
+    q.x <= Math.max(p.x, r.x) + EPSILON &&
+    q.x >= Math.min(p.x, r.x) - EPSILON &&
+    q.y <= Math.max(p.y, r.y) + EPSILON &&
+    q.y >= Math.min(p.y, r.y) - EPSILON
+  );
 }
 
 // Get orientation of triplet (p, q, r)
@@ -55,8 +57,10 @@ function orientation(p: Point, q: Point, r: Point): number {
 
 // Check if two segments intersect
 function segmentsIntersect(s1: Segment, s2: Segment): boolean {
-  const p1 = s1.p1, q1 = s1.p2;
-  const p2 = s2.p1, q2 = s2.p2;
+  const p1 = s1.p1,
+    q1 = s1.p2;
+  const p2 = s2.p1,
+    q2 = s2.p2;
 
   const o1 = orientation(p1, q1, p2);
   const o2 = orientation(p1, q1, q2);
@@ -77,10 +81,14 @@ function segmentsIntersect(s1: Segment, s2: Segment): boolean {
 
 // Calculate intersection point of two segments (assumes they intersect)
 function getIntersectionPoint(s1: Segment, s2: Segment): Point | null {
-  const x1 = s1.p1.x, y1 = s1.p1.y;
-  const x2 = s1.p2.x, y2 = s1.p2.y;
-  const x3 = s2.p1.x, y3 = s2.p1.y;
-  const x4 = s2.p2.x, y4 = s2.p2.y;
+  const x1 = s1.p1.x,
+    y1 = s1.p1.y;
+  const x2 = s1.p2.x,
+    y2 = s1.p2.y;
+  const x3 = s2.p1.x,
+    y3 = s2.p1.y;
+  const x4 = s2.p2.x,
+    y4 = s2.p2.y;
 
   const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
@@ -95,7 +103,7 @@ function getIntersectionPoint(s1: Segment, s2: Segment): Point | null {
   if (t >= -EPSILON && t <= 1 + EPSILON && u >= -EPSILON && u <= 1 + EPSILON) {
     return {
       x: x1 + t * (x2 - x1),
-      y: y1 + t * (y2 - y1)
+      y: y1 + t * (y2 - y1),
     };
   }
 
@@ -113,7 +121,7 @@ function findAllIntersectionsSimple(segments: Segment[]): Intersection[] {
         if (point) {
           intersections.push({
             point,
-            segments: [segments[i].id, segments[j].id]
+            segments: [segments[i].id, segments[j].id],
           });
         }
       }
@@ -161,23 +169,23 @@ class StatusStructure {
   }
 
   remove(segment: Segment): void {
-    const idx = this.segments.findIndex(s => s.id === segment.id);
+    const idx = this.segments.findIndex((s) => s.id === segment.id);
     if (idx >= 0) {
       this.segments.splice(idx, 1);
     }
   }
 
   getNeighbors(segment: Segment): { above: Segment | null; below: Segment | null } {
-    const idx = this.segments.findIndex(s => s.id === segment.id);
+    const idx = this.segments.findIndex((s) => s.id === segment.id);
     return {
       above: idx < this.segments.length - 1 ? this.segments[idx + 1] : null,
-      below: idx > 0 ? this.segments[idx - 1] : null
+      below: idx > 0 ? this.segments[idx - 1] : null,
     };
   }
 
   swap(s1: Segment, s2: Segment): void {
-    const idx1 = this.segments.findIndex(s => s.id === s1.id);
-    const idx2 = this.segments.findIndex(s => s.id === s2.id);
+    const idx1 = this.segments.findIndex((s) => s.id === s1.id);
+    const idx2 = this.segments.findIndex((s) => s.id === s2.id);
     if (idx1 >= 0 && idx2 >= 0) {
       [this.segments[idx1], this.segments[idx2]] = [this.segments[idx2], this.segments[idx1]];
     }
@@ -193,9 +201,8 @@ function bentleyOttmann(segments: Segment[]): Intersection[] {
   const events: SweepEvent[] = [];
 
   for (const segment of segments) {
-    const [left, right] = segment.p1.x <= segment.p2.x
-      ? [segment.p1, segment.p2]
-      : [segment.p2, segment.p1];
+    const [left, right] =
+      segment.p1.x <= segment.p2.x ? [segment.p1, segment.p2] : [segment.p2, segment.p1];
 
     events.push({ x: left.x, y: left.y, type: 'left', segment });
     events.push({ x: right.x, y: right.y, type: 'right', segment });
@@ -234,7 +241,13 @@ function bentleyOttmann(segments: Segment[]): Intersection[] {
       const neighbors = status.getNeighbors(s);
 
       if (neighbors.above && neighbors.below) {
-        checkAndAddIntersection(neighbors.above, neighbors.below, event.x, intersections, processedPairs);
+        checkAndAddIntersection(
+          neighbors.above,
+          neighbors.below,
+          event.x,
+          intersections,
+          processedPairs
+        );
       }
 
       status.remove(s);
@@ -259,7 +272,7 @@ function checkAndAddIntersection(
     if (point && point.x >= currentX - EPSILON) {
       intersections.push({
         point,
-        segments: [s1.id, s2.id]
+        segments: [s1.id, s2.id],
       });
       processedPairs.add(pairKey);
     }
@@ -267,8 +280,7 @@ function checkAndAddIntersection(
 }
 
 // Check if a point is to the left of a line
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isLeftOf(p: Point, lineStart: Point, lineEnd: Point): boolean {
+export function isLeftOf(p: Point, lineStart: Point, lineEnd: Point): boolean {
   return crossProduct(lineStart, lineEnd, p) > 0;
 }
 
@@ -299,7 +311,7 @@ function segmentLength(s: Segment): number {
 
 // Calculate angle of line segment (in degrees)
 function segmentAngle(s: Segment): number {
-  return Math.atan2(s.p2.y - s.p1.y, s.p2.x - s.p1.x) * 180 / Math.PI;
+  return (Math.atan2(s.p2.y - s.p1.y, s.p2.x - s.p1.x) * 180) / Math.PI;
 }
 
 // Generate example segments
@@ -308,7 +320,7 @@ function createExampleSegments(type: string): Segment[] {
     case 'simple':
       return [
         { id: 's1', p1: { x: 0, y: 0 }, p2: { x: 10, y: 10 } },
-        { id: 's2', p1: { x: 0, y: 10 }, p2: { x: 10, y: 0 } }
+        { id: 's2', p1: { x: 0, y: 10 }, p2: { x: 10, y: 0 } },
       ];
 
     case 'grid':
@@ -319,7 +331,7 @@ function createExampleSegments(type: string): Segment[] {
         { id: 'h2', p1: { x: 0, y: 2 }, p2: { x: 3, y: 2 } },
         // Vertical
         { id: 'v1', p1: { x: 1, y: 0 }, p2: { x: 1, y: 3 } },
-        { id: 'v2', p1: { x: 2, y: 0 }, p2: { x: 2, y: 3 } }
+        { id: 'v2', p1: { x: 2, y: 0 }, p2: { x: 2, y: 3 } },
       ];
 
     case 'star':
@@ -327,10 +339,10 @@ function createExampleSegments(type: string): Segment[] {
       const center: Point = { x: 5, y: 5 };
       const segments: Segment[] = [];
       for (let i = 0; i < 5; i++) {
-        const angle = (i * 72 - 90) * Math.PI / 180;
+        const angle = ((i * 72 - 90) * Math.PI) / 180;
         const endPoint: Point = {
           x: center.x + 5 * Math.cos(angle),
-          y: center.y + 5 * Math.sin(angle)
+          y: center.y + 5 * Math.sin(angle),
         };
         segments.push({ id: `ray${i}`, p1: center, p2: endPoint });
       }
@@ -343,7 +355,7 @@ function createExampleSegments(type: string): Segment[] {
         random.push({
           id: `r${i}`,
           p1: { x: Math.random() * 10, y: Math.random() * 10 },
-          p2: { x: Math.random() * 10, y: Math.random() * 10 }
+          p2: { x: Math.random() * 10, y: Math.random() * 10 },
         });
       }
       return random;
@@ -352,7 +364,7 @@ function createExampleSegments(type: string): Segment[] {
       return [
         { id: 'p1', p1: { x: 0, y: 0 }, p2: { x: 10, y: 0 } },
         { id: 'p2', p1: { x: 0, y: 2 }, p2: { x: 10, y: 2 } },
-        { id: 'p3', p1: { x: 0, y: 4 }, p2: { x: 10, y: 4 } }
+        { id: 'p3', p1: { x: 0, y: 4 }, p2: { x: 10, y: 4 } },
       ];
 
     default:
@@ -361,10 +373,17 @@ function createExampleSegments(type: string): Segment[] {
 }
 
 // Visualize segments as ASCII
-function visualizeSegments(segments: Segment[], intersections: Intersection[], width: number = 40, height: number = 20): string {
+function visualizeSegments(
+  segments: Segment[],
+  intersections: Intersection[],
+  width: number = 40,
+  height: number = 20
+): string {
   // Find bounds
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity;
 
   for (const s of segments) {
     minX = Math.min(minX, s.p1.x, s.p2.x);
@@ -376,19 +395,25 @@ function visualizeSegments(segments: Segment[], intersections: Intersection[], w
   // Add padding
   const padX = (maxX - minX) * 0.1 || 1;
   const padY = (maxY - minY) * 0.1 || 1;
-  minX -= padX; maxX += padX;
-  minY -= padY; maxY += padY;
+  minX -= padX;
+  maxX += padX;
+  minY -= padY;
+  maxY += padY;
 
   // Create grid
-  const grid: string[][] = Array(height).fill(null).map(() => Array(width).fill(' '));
+  const grid: string[][] = Array(height)
+    .fill(null)
+    .map(() => Array(width).fill(' '));
 
-  const toGridX = (x: number) => Math.round((x - minX) / (maxX - minX) * (width - 1));
-  const toGridY = (y: number) => Math.round((maxY - y) / (maxY - minY) * (height - 1));
+  const toGridX = (x: number) => Math.round(((x - minX) / (maxX - minX)) * (width - 1));
+  const toGridY = (y: number) => Math.round(((maxY - y) / (maxY - minY)) * (height - 1));
 
   // Draw segments using Bresenham's line algorithm (simplified)
   for (const s of segments) {
-    const x1 = toGridX(s.p1.x), y1 = toGridY(s.p1.y);
-    const x2 = toGridX(s.p2.x), y2 = toGridY(s.p2.y);
+    const x1 = toGridX(s.p1.x),
+      y1 = toGridY(s.p1.y);
+    const x2 = toGridX(s.p2.x),
+      y2 = toGridY(s.p2.y);
 
     const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
     for (let i = 0; i <= steps; i++) {
@@ -448,44 +473,39 @@ Features:
       operation: {
         type: 'string',
         enum: ['detect', 'find_all', 'sweep_line', 'analyze', 'visualize', 'examples', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       example: {
         type: 'string',
         enum: ['simple', 'grid', 'star', 'random', 'parallel'],
-        description: 'Example segment set'
+        description: 'Example segment set',
       },
       segments: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            p1: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } },
-            p2: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } }
-          }
-        },
-        description: 'Custom segments as [{id, p1: {x,y}, p2: {x,y}}, ...]'
+        items: { type: 'object' },
+        description:
+          'Custom segments. Each segment has: id (string), p1 (object with x, y), p2 (object with x, y)',
       },
       segment1: {
         type: 'object',
-        description: 'First segment for pairwise detection'
+        description: 'First segment for pairwise detection',
       },
       segment2: {
         type: 'object',
-        description: 'Second segment for pairwise detection'
+        description: 'Second segment for pairwise detection',
       },
       point: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' } },
-        description: 'Point for distance calculation'
-      }
+        description: 'Point for distance calculation: { x: number, y: number }',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executelineintersection(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executelineintersection(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -512,15 +532,21 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              segment1: s1,
-              segment2: s2,
-              intersects,
-              intersection_point: intersectionPoint ? {
-                x: intersectionPoint.x.toFixed(6),
-                y: intersectionPoint.y.toFixed(6)
-              } : null
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                segment1: s1,
+                segment2: s2,
+                intersects,
+                intersection_point: intersectionPoint
+                  ? {
+                      x: intersectionPoint.x.toFixed(6),
+                      y: intersectionPoint.y.toFixed(6),
+                    }
+                  : null,
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -530,27 +556,33 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
         for (let i = 0; i < segments.length; i++) {
           for (let j = i + 1; j < segments.length; j++) {
             const intersects = segmentsIntersect(segments[i], segments[j]);
-            const point = intersects ? getIntersectionPoint(segments[i], segments[j]) : undefined;
+            const point = intersects
+              ? (getIntersectionPoint(segments[i], segments[j]) ?? undefined)
+              : undefined;
             pairs.push({
               s1: segments[i].id,
               s2: segments[j].id,
               intersects,
-              point
+              point,
             });
           }
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            num_segments: segments.length,
-            num_pairs: pairs.length,
-            intersecting_pairs: pairs.filter(p => p.intersects).length,
-            pairs: pairs.map(p => ({
-              ...p,
-              point: p.point ? { x: p.point.x.toFixed(6), y: p.point.y.toFixed(6) } : null
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              num_segments: segments.length,
+              num_pairs: pairs.length,
+              intersecting_pairs: pairs.filter((p) => p.intersects).length,
+              pairs: pairs.map((p) => ({
+                ...p,
+                point: p.point ? { x: p.point.x.toFixed(6), y: p.point.y.toFixed(6) } : null,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -559,20 +591,24 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: 'Brute Force O(n²)',
-            num_segments: segments.length,
-            num_intersections: intersections.length,
-            intersections: intersections.map(i => ({
-              segments: i.segments,
-              point: { x: i.point.x.toFixed(6), y: i.point.y.toFixed(6) }
-            })),
-            segments: segments.map(s => ({
-              id: s.id,
-              p1: s.p1,
-              p2: s.p2
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              algorithm: 'Brute Force O(n²)',
+              num_segments: segments.length,
+              num_intersections: intersections.length,
+              intersections: intersections.map((i) => ({
+                segments: i.segments,
+                point: { x: i.point.x.toFixed(6), y: i.point.y.toFixed(6) },
+              })),
+              segments: segments.map((s) => ({
+                id: s.id,
+                p1: s.p1,
+                p2: s.p2,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -581,58 +617,70 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: 'Bentley-Ottmann Sweep Line',
-            complexity: 'O((n + k) log n) where k = intersections',
-            num_segments: segments.length,
-            num_intersections: intersections.length,
-            intersections: intersections.map(i => ({
-              segments: i.segments,
-              point: { x: i.point.x.toFixed(6), y: i.point.y.toFixed(6) }
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              algorithm: 'Bentley-Ottmann Sweep Line',
+              complexity: 'O((n + k) log n) where k = intersections',
+              num_segments: segments.length,
+              num_intersections: intersections.length,
+              intersections: intersections.map((i) => ({
+                segments: i.segments,
+                point: { x: i.point.x.toFixed(6), y: i.point.y.toFixed(6) },
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'analyze': {
-        const analysis = segments.map(s => ({
+        const analysis = segments.map((s) => ({
           id: s.id,
           length: segmentLength(s).toFixed(6),
           angle_degrees: segmentAngle(s).toFixed(2),
           midpoint: {
             x: ((s.p1.x + s.p2.x) / 2).toFixed(6),
-            y: ((s.p1.y + s.p2.y) / 2).toFixed(6)
+            y: ((s.p1.y + s.p2.y) / 2).toFixed(6),
           },
           bounding_box: {
             minX: Math.min(s.p1.x, s.p2.x).toFixed(6),
             maxX: Math.max(s.p1.x, s.p2.x).toFixed(6),
             minY: Math.min(s.p1.y, s.p2.y).toFixed(6),
-            maxY: Math.max(s.p1.y, s.p2.y).toFixed(6)
-          }
+            maxY: Math.max(s.p1.y, s.p2.y).toFixed(6),
+          },
         }));
 
         // If point provided, calculate distances
         let pointDistances: { segment: string; distance: number }[] | undefined;
         if (point) {
-          pointDistances = segments.map(s => ({
-            segment: s.id,
-            distance: pointToSegmentDistance(point, s)
-          })).sort((a, b) => a.distance - b.distance);
+          pointDistances = segments
+            .map((s) => ({
+              segment: s.id,
+              distance: pointToSegmentDistance(point, s),
+            }))
+            .sort((a, b) => a.distance - b.distance);
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            num_segments: segments.length,
-            segment_analysis: analysis,
-            point_distances: pointDistances ? {
-              query_point: point,
-              distances: pointDistances.map(d => ({
-                ...d,
-                distance: d.distance.toFixed(6)
-              }))
-            } : undefined
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              num_segments: segments.length,
+              segment_analysis: analysis,
+              point_distances: pointDistances
+                ? {
+                    query_point: point,
+                    distances: pointDistances.map((d) => ({
+                      ...d,
+                      distance: d.distance.toFixed(6),
+                    })),
+                  }
+                : undefined,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -642,76 +690,93 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            example: example || 'custom',
-            num_segments: segments.length,
-            num_intersections: intersections.length,
-            ascii_visualization: visualization,
-            segments: segments.map(s => ({
-              id: s.id,
-              from: `(${s.p1.x.toFixed(2)}, ${s.p1.y.toFixed(2)})`,
-              to: `(${s.p2.x.toFixed(2)}, ${s.p2.y.toFixed(2)})`
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              example: example || 'custom',
+              num_segments: segments.length,
+              num_intersections: intersections.length,
+              ascii_visualization: visualization,
+              segments: segments.map((s) => ({
+                id: s.id,
+                from: `(${s.p1.x.toFixed(2)}, ${s.p1.y.toFixed(2)})`,
+                to: `(${s.p2.x.toFixed(2)}, ${s.p2.y.toFixed(2)})`,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
-        const examples = ['simple', 'grid', 'star', 'random', 'parallel'].map(type => {
+        const examples = ['simple', 'grid', 'star', 'random', 'parallel'].map((type) => {
           const segs = createExampleSegments(type);
           const inters = findAllIntersectionsSimple(segs);
           return {
             name: type,
             num_segments: segs.length,
             num_intersections: inters.length,
-            description: type === 'simple' ? 'Two crossing diagonals'
-              : type === 'grid' ? '2 horizontal + 2 vertical lines'
-              : type === 'star' ? '5 rays from center'
-              : type === 'random' ? '6 random segments'
-              : '3 parallel horizontal lines'
+            description:
+              type === 'simple'
+                ? 'Two crossing diagonals'
+                : type === 'grid'
+                  ? '2 horizontal + 2 vertical lines'
+                  : type === 'star'
+                    ? '5 rays from center'
+                    : type === 'random'
+                      ? '6 random segments'
+                      : '3 parallel horizontal lines',
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            example_sets: examples,
-            usage: 'Use example parameter to select these segment sets'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              example_sets: examples,
+              usage: 'Use example parameter to select these segment sets',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'line_intersection',
-            description: 'Line segment intersection detection',
-            algorithms: {
-              brute_force: {
-                complexity: 'O(n²)',
-                description: 'Check all pairs of segments'
+          content: JSON.stringify(
+            {
+              tool: 'line_intersection',
+              description: 'Line segment intersection detection',
+              algorithms: {
+                brute_force: {
+                  complexity: 'O(n²)',
+                  description: 'Check all pairs of segments',
+                },
+                bentley_ottmann: {
+                  complexity: 'O((n+k) log n)',
+                  description: 'Sweep line algorithm, k = number of intersections',
+                },
               },
-              bentley_ottmann: {
-                complexity: 'O((n+k) log n)',
-                description: 'Sweep line algorithm, k = number of intersections'
-              }
+              operations: {
+                detect: 'Check if segments intersect (pairwise or all)',
+                find_all: 'Find all intersection points (brute force)',
+                sweep_line: 'Find intersections using Bentley-Ottmann',
+                analyze: 'Compute segment properties (length, angle, etc.)',
+                visualize: 'ASCII visualization of segments and intersections',
+                examples: 'List example segment sets',
+              },
+              applications: [
+                'Collision detection in graphics',
+                'Map overlay in GIS',
+                'Circuit routing validation',
+                'CAD/CAM applications',
+              ],
             },
-            operations: {
-              detect: 'Check if segments intersect (pairwise or all)',
-              find_all: 'Find all intersection points (brute force)',
-              sweep_line: 'Find intersections using Bentley-Ottmann',
-              analyze: 'Compute segment properties (length, angle, etc.)',
-              visualize: 'ASCII visualization of segments and intersections',
-              examples: 'List example segment sets'
-            },
-            applications: [
-              'Collision detection in graphics',
-              'Map overlay in GIS',
-              'Circuit routing validation',
-              'CAD/CAM applications'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -719,7 +784,7 @@ export async function executelineintersection(toolCall: UnifiedToolCall): Promis
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

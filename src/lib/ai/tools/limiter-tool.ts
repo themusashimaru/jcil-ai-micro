@@ -6,6 +6,19 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
+interface BrickwallAnalysis {
+  type: string;
+  ceiling: string;
+  release: string;
+  lookahead: string;
+  guarantee: string;
+  statistics: {
+    maxGainReduction: string;
+    inputPeak: string;
+    outputPeak: string;
+  };
+}
+
 export const limiterTool: UnifiedTool = {
   name: 'limiter',
   description: 'Audio limiter with lookahead, true peak detection, and brickwall modes',
@@ -14,45 +27,55 @@ export const limiterTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['info', 'examples', 'demo', 'limit', 'brickwall', 'truepeak', 'multiband', 'analyze', 'maximize'],
-        description: 'Operation to perform'
+        enum: [
+          'info',
+          'examples',
+          'demo',
+          'limit',
+          'brickwall',
+          'truepeak',
+          'multiband',
+          'analyze',
+          'maximize',
+        ],
+        description: 'Operation to perform',
       },
       signal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Input audio signal samples'
+        description: 'Input audio signal samples',
       },
       sampleRate: {
         type: 'number',
-        description: 'Sample rate in Hz (default: 44100)'
+        description: 'Sample rate in Hz (default: 44100)',
       },
       ceiling: {
         type: 'number',
-        description: 'Output ceiling in dBFS (default: -0.1)'
+        description: 'Output ceiling in dBFS (default: -0.1)',
       },
       threshold: {
         type: 'number',
-        description: 'Limiting threshold in dB (default: -1.0)'
+        description: 'Limiting threshold in dB (default: -1.0)',
       },
       release: {
         type: 'number',
-        description: 'Release time in milliseconds (default: 100)'
+        description: 'Release time in milliseconds (default: 100)',
       },
       lookahead: {
         type: 'number',
-        description: 'Lookahead time in milliseconds (default: 5)'
+        description: 'Lookahead time in milliseconds (default: 5)',
       },
       truePeak: {
         type: 'boolean',
-        description: 'Enable true peak detection (default: true)'
+        description: 'Enable true peak detection (default: true)',
       },
       targetLUFS: {
         type: 'number',
-        description: 'Target loudness in LUFS for maximize operation'
-      }
+        description: 'Target loudness in LUFS for maximize operation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Convert linear to dB
@@ -72,8 +95,8 @@ class EnvelopeFollower {
   private releaseCoeff: number;
 
   constructor(attackMs: number, releaseMs: number, sampleRate: number) {
-    this.attackCoeff = Math.exp(-1 / (attackMs * sampleRate / 1000));
-    this.releaseCoeff = Math.exp(-1 / (releaseMs * sampleRate / 1000));
+    this.attackCoeff = Math.exp(-1 / ((attackMs * sampleRate) / 1000));
+    this.releaseCoeff = Math.exp(-1 / ((releaseMs * sampleRate) / 1000));
   }
 
   process(input: number): number {
@@ -144,7 +167,7 @@ function peakLimiter(
   const thresholdLin = dbToLinear(thresholdDb);
   const ceilingLin = dbToLinear(ceilingDb);
 
-  const lookaheadSamples = Math.floor(lookaheadMs * sampleRate / 1000);
+  const lookaheadSamples = Math.floor((lookaheadMs * sampleRate) / 1000);
   const lookahead = new LookaheadBuffer(lookaheadSamples);
 
   // Gain smoothing envelope
@@ -201,9 +224,9 @@ function peakLimiter(
         maxGainReduction: linearToDb(1 - maxGainReduction).toFixed(2) + ' dB',
         limitingActivity: ((samplesLimited / signal.length) * 100).toFixed(1) + '%',
         inputPeak: linearToDb(Math.max(...signal.map(Math.abs))).toFixed(2) + ' dBFS',
-        outputPeak: linearToDb(Math.max(...output.map(Math.abs))).toFixed(2) + ' dBFS'
-      }
-    }
+        outputPeak: linearToDb(Math.max(...output.map(Math.abs))).toFixed(2) + ' dBFS',
+      },
+    },
   };
 }
 
@@ -214,9 +237,9 @@ function brickwallLimiter(
   ceilingDb: number,
   releaseMs: number,
   lookaheadMs: number
-): { output: number[]; analysis: object } {
+): { output: number[]; analysis: BrickwallAnalysis } {
   const ceilingLin = dbToLinear(ceilingDb);
-  const lookaheadSamples = Math.max(1, Math.floor(lookaheadMs * sampleRate / 1000));
+  const lookaheadSamples = Math.max(1, Math.floor((lookaheadMs * sampleRate) / 1000));
 
   const output: number[] = new Array(signal.length);
 
@@ -239,7 +262,7 @@ function brickwallLimiter(
   }
 
   // Smooth gain envelope (release only, attack is instant)
-  const releaseCoeff = Math.exp(-1 / (releaseMs * sampleRate / 1000));
+  const releaseCoeff = Math.exp(-1 / ((releaseMs * sampleRate) / 1000));
   let currentGain = 1.0;
 
   for (let i = 0; i < signal.length; i++) {
@@ -285,9 +308,9 @@ function brickwallLimiter(
       statistics: {
         maxGainReduction: linearToDb(1 - maxGainReduction).toFixed(2) + ' dB',
         inputPeak: linearToDb(Math.max(...signal.map(Math.abs))).toFixed(2) + ' dBFS',
-        outputPeak: linearToDb(Math.max(...output.map(Math.abs))).toFixed(2) + ' dBFS'
-      }
-    }
+        outputPeak: linearToDb(Math.max(...output.map(Math.abs))).toFixed(2) + ' dBFS',
+      },
+    },
   };
 }
 
@@ -320,7 +343,7 @@ function truePeakLimiter(
   }
 
   // Smooth gain envelope
-  const releaseCoeff = Math.exp(-1 / (releaseMs * sampleRate / 1000));
+  const releaseCoeff = Math.exp(-1 / ((releaseMs * sampleRate) / 1000));
   let currentGain = 1.0;
 
   for (let i = 0; i < signal.length; i++) {
@@ -353,10 +376,10 @@ function truePeakLimiter(
         inputSamplePeak: linearToDb(Math.max(...signal.map(Math.abs))).toFixed(2) + ' dBFS',
         inputTruePeak: linearToDb(detectTruePeak(signal, oversampleFactor)).toFixed(2) + ' dBTP',
         outputSamplePeak: linearToDb(Math.max(...output.map(Math.abs))).toFixed(2) + ' dBFS',
-        outputTruePeak: linearToDb(outputTruePeak).toFixed(2) + ' dBTP'
+        outputTruePeak: linearToDb(outputTruePeak).toFixed(2) + ' dBTP',
       },
-      compliance: outputTruePeak <= ceilingLin ? 'Meets target' : 'May need adjustment'
-    }
+      compliance: outputTruePeak <= ceilingLin ? 'Meets target' : 'May need adjustment',
+    },
   };
 }
 
@@ -392,7 +415,7 @@ function maximizeLoudness(
   const gainLinear = dbToLinear(gainNeeded);
 
   // Apply gain
-  const gained = signal.map(s => s * gainLinear);
+  const gained = signal.map((s) => s * gainLinear);
 
   // Apply brickwall limiter
   const result = brickwallLimiter(gained, sampleRate, ceilingDb, 100, 5);
@@ -409,8 +432,8 @@ function maximizeLoudness(
       inputLoudness: currentLufs.toFixed(1) + ' LUFS (approx)',
       appliedGain: gainNeeded.toFixed(1) + ' dB',
       outputLoudness: outputLufs.toFixed(1) + ' LUFS (approx)',
-      limiterStatistics: result.analysis.statistics
-    }
+      limiterStatistics: result.analysis.statistics,
+    },
   };
 }
 
@@ -432,7 +455,8 @@ function analyzeLimiting(signal: number[], sampleRate: number): object {
   }
 
   if (crestFactor < 6) {
-    recommendations.dynamics = 'Signal is already heavily limited, further limiting may cause pumping';
+    recommendations.dynamics =
+      'Signal is already heavily limited, further limiting may cause pumping';
   } else if (crestFactor > 15) {
     recommendations.dynamics = 'High dynamic range - use gentle limiting with longer release';
   }
@@ -442,21 +466,21 @@ function analyzeLimiting(signal: number[], sampleRate: number): object {
       samplePeak: linearToDb(peak).toFixed(2) + ' dBFS',
       truePeak: linearToDb(truePeak).toFixed(2) + ' dBTP',
       loudness: loudness.toFixed(1) + ' LUFS (approx)',
-      crestFactor: crestFactor.toFixed(1) + ' dB'
+      crestFactor: crestFactor.toFixed(1) + ' dB',
     },
     streamingTargets: {
       spotify: '-14 LUFS, -1.0 dBTP',
       youtube: '-14 LUFS, -1.0 dBTP',
       appleMusic: '-16 LUFS, -1.0 dBTP',
-      amazonMusic: '-14 LUFS, -2.0 dBTP'
+      amazonMusic: '-14 LUFS, -2.0 dBTP',
     },
     recommendations,
     suggestedSettings: {
       ceiling: '-1.0 dBTP',
       threshold: Math.min(-1, linearToDb(peak) - 3).toFixed(1) + ' dBFS',
       release: crestFactor > 12 ? '150-200 ms' : '50-100 ms',
-      lookahead: '5-10 ms'
-    }
+      lookahead: '5-10 ms',
+    },
   };
 }
 
@@ -473,9 +497,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
       threshold = -1.0,
       release = 100,
       lookahead = 5,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      _truePeak = true,
-      targetLUFS = -14
+      targetLUFS = -14,
     } = args;
 
     let result: object;
@@ -490,20 +512,20 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
             brickwall: 'Guaranteed ceiling with no overshoot',
             truepeak: 'True peak limiting for streaming compliance',
             multiband: 'Frequency-dependent limiting',
-            maximize: 'Loudness maximization to target LUFS'
+            maximize: 'Loudness maximization to target LUFS',
           },
           parameters: {
             ceiling: 'Maximum output level in dBFS/dBTP',
             threshold: 'Level at which limiting begins',
             release: 'Time to recover from gain reduction',
             lookahead: 'Anticipation time for transients',
-            truePeak: 'Enable intersample peak detection'
+            truePeak: 'Enable intersample peak detection',
           },
           standards: {
             streamingServices: '-14 to -16 LUFS, -1.0 to -2.0 dBTP',
             broadcast: '-23 to -24 LUFS',
-            CD: 'No standard, typically -8 to -12 LUFS'
-          }
+            CD: 'No standard, typically -8 to -12 LUFS',
+          },
         };
         break;
 
@@ -515,25 +537,25 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
               operation: 'brickwall',
               ceiling: -0.3,
               release: 100,
-              lookahead: 5
-            }
+              lookahead: 5,
+            },
           },
           streamingMaster: {
             description: 'Streaming-compliant limiter',
             parameters: {
               operation: 'truepeak',
               ceiling: -1.0,
-              release: 150
-            }
+              release: 150,
+            },
           },
           loudnessMaximize: {
             description: 'Maximize to Spotify target',
             parameters: {
               operation: 'maximize',
               targetLUFS: -14,
-              ceiling: -1.0
-            }
-          }
+              ceiling: -1.0,
+            },
+          },
         };
         break;
 
@@ -541,10 +563,10 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
         const demoSignal: number[] = [];
         // Create signal with transients
         for (let i = 0; i < 4410; i++) {
-          let sample = Math.sin(2 * Math.PI * 440 * i / sampleRate) * 0.3;
+          let sample = Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 0.3;
           // Add transient spikes
           if (i % 1000 < 50) {
-            sample += (1 - i % 1000 / 50) * 0.8;
+            sample += (1 - (i % 1000) / 50) * 0.8;
           }
           demoSignal.push(sample);
         }
@@ -555,15 +577,15 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
           demo: 'Brickwall limiter on signal with transients',
           inputSignal: {
             type: '440Hz tone with periodic transients',
-            length: 4410
+            length: 4410,
           },
           settings: {
             ceiling: '-0.3 dBFS',
             release: '100 ms',
-            lookahead: '5 ms'
+            lookahead: '5 ms',
           },
-          outputPreview: demoResult.output.slice(0, 100).map(v => v.toFixed(4)),
-          analysis: demoResult.analysis
+          outputPreview: demoResult.output.slice(0, 100).map((v) => v.toFixed(4)),
+          analysis: demoResult.analysis,
         };
         break;
 
@@ -578,7 +600,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
           operation: 'limit',
           inputLength: signal.length,
           output: limitResult.output.slice(0, 100),
-          analysis: limitResult.analysis
+          analysis: limitResult.analysis,
         };
         break;
 
@@ -593,7 +615,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
           operation: 'brickwall',
           inputLength: signal.length,
           output: bwResult.output.slice(0, 100),
-          analysis: bwResult.analysis
+          analysis: bwResult.analysis,
         };
         break;
 
@@ -608,7 +630,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
           operation: 'truepeak',
           inputLength: signal.length,
           output: tpResult.output.slice(0, 100),
-          analysis: tpResult.analysis
+          analysis: tpResult.analysis,
         };
         break;
 
@@ -623,7 +645,7 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
           operation: 'maximize',
           inputLength: signal.length,
           output: maxResult.output.slice(0, 100),
-          analysis: maxResult.analysis
+          analysis: maxResult.analysis,
         };
         break;
 
@@ -635,28 +657,37 @@ export async function executelimiter(toolCall: UnifiedToolCall): Promise<Unified
         result = {
           operation: 'analyze',
           signalLength: signal.length,
-          analysis: analyzeLimiting(signal, sampleRate)
+          analysis: analyzeLimiting(signal, sampleRate),
         };
         break;
 
       default:
         result = {
           error: `Unknown operation: ${operation}`,
-          availableOperations: ['info', 'examples', 'demo', 'limit', 'brickwall', 'truepeak', 'multiband', 'maximize', 'analyze']
+          availableOperations: [
+            'info',
+            'examples',
+            'demo',
+            'limit',
+            'brickwall',
+            'truepeak',
+            'multiband',
+            'maximize',
+            'analyze',
+          ],
         };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

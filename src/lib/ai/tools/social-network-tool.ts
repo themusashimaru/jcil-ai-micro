@@ -67,7 +67,10 @@ function degreeCentrality(graph: Graph): Map<string, number> {
 }
 
 // BFS to find shortest paths from source
-function bfsShortestPaths(adj: Map<string, { neighbors: string[] }>, source: string): Map<string, number> {
+function bfsShortestPaths(
+  adj: Map<string, { neighbors: string[] }>,
+  source: string
+): Map<string, number> {
   const distances = new Map<string, number>();
   const queue: string[] = [source];
   distances.set(source, 0);
@@ -359,7 +362,7 @@ function calculateNetworkStats(graph: Graph): {
   const m = graph.edges.length;
 
   // Density
-  const maxEdges = graph.directed ? n * (n - 1) : n * (n - 1) / 2;
+  const maxEdges = graph.directed ? n * (n - 1) : (n * (n - 1)) / 2;
   const density = m / maxEdges;
 
   // Average degree
@@ -421,7 +424,7 @@ function calculateNetworkStats(graph: Graph): {
       }
     }
 
-    const possibleTriangles = k * (k - 1) / 2;
+    const possibleTriangles = (k * (k - 1)) / 2;
     totalClustering += triangles / possibleTriangles;
   }
   const avgClustering = totalClustering / n;
@@ -438,9 +441,7 @@ function simulateDiffusion(
 ): { step: number; active: string[] }[] {
   const adj = buildAdjacencyList(graph);
   const active = new Set<string>(seeds);
-  const history: { step: number; active: string[] }[] = [
-    { step: 0, active: Array.from(active) }
-  ];
+  const history: { step: number; active: string[] }[] = [{ step: 0, active: Array.from(active) }];
 
   for (let step = 1; step <= steps; step++) {
     const newlyActive = new Set<string>();
@@ -476,14 +477,21 @@ function createExampleNetwork(type: string): Graph {
         directed: false,
         nodes: Array.from({ length: 10 }, (_, i) => ({ id: `n${i + 1}` })),
         edges: [
-          { source: 'n1', target: 'n2' }, { source: 'n1', target: 'n3' },
-          { source: 'n1', target: 'n4' }, { source: 'n2', target: 'n3' },
-          { source: 'n2', target: 'n5' }, { source: 'n3', target: 'n4' },
-          { source: 'n4', target: 'n5' }, { source: 'n5', target: 'n6' },
-          { source: 'n6', target: 'n7' }, { source: 'n6', target: 'n8' },
-          { source: 'n7', target: 'n8' }, { source: 'n7', target: 'n9' },
-          { source: 'n8', target: 'n10' }, { source: 'n9', target: 'n10' }
-        ]
+          { source: 'n1', target: 'n2' },
+          { source: 'n1', target: 'n3' },
+          { source: 'n1', target: 'n4' },
+          { source: 'n2', target: 'n3' },
+          { source: 'n2', target: 'n5' },
+          { source: 'n3', target: 'n4' },
+          { source: 'n4', target: 'n5' },
+          { source: 'n5', target: 'n6' },
+          { source: 'n6', target: 'n7' },
+          { source: 'n6', target: 'n8' },
+          { source: 'n7', target: 'n8' },
+          { source: 'n7', target: 'n9' },
+          { source: 'n8', target: 'n10' },
+          { source: 'n9', target: 'n10' },
+        ],
       };
 
     case 'star':
@@ -491,8 +499,9 @@ function createExampleNetwork(type: string): Graph {
         directed: false,
         nodes: Array.from({ length: 6 }, (_, i) => ({ id: `n${i}` })),
         edges: Array.from({ length: 5 }, (_, i) => ({
-          source: 'n0', target: `n${i + 1}`
-        }))
+          source: 'n0',
+          target: `n${i + 1}`,
+        })),
       };
 
     case 'ring':
@@ -501,8 +510,9 @@ function createExampleNetwork(type: string): Graph {
         directed: false,
         nodes: ringNodes,
         edges: Array.from({ length: 8 }, (_, i) => ({
-          source: `n${i}`, target: `n${(i + 1) % 8}`
-        }))
+          source: `n${i}`,
+          target: `n${(i + 1) % 8}`,
+        })),
       };
 
     case 'complete':
@@ -541,43 +551,49 @@ Features:
     properties: {
       operation: {
         type: 'string',
-        enum: ['centrality', 'community', 'statistics', 'diffusion', 'pagerank', 'create', 'examples', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'centrality',
+          'community',
+          'statistics',
+          'diffusion',
+          'pagerank',
+          'create',
+          'examples',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       metric: {
         type: 'string',
         enum: ['degree', 'betweenness', 'closeness', 'eigenvector', 'pagerank', 'all'],
-        description: 'Centrality metric (default: all)'
+        description: 'Centrality metric (default: all)',
       },
       network: {
         type: 'string',
         enum: ['karate', 'star', 'ring', 'complete'],
-        description: 'Example network to use'
+        description: 'Example network to use',
       },
       nodes: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Custom node IDs'
+        description: 'Custom node IDs',
       },
       edges: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'string' }
-        },
-        description: 'Custom edges as [[source, target], ...]'
+        items: { type: 'array' },
+        description: 'Custom edges as 2D array of strings [[source, target], ...]',
       },
       directed: { type: 'boolean', description: 'Is the graph directed? (default: false)' },
       seeds: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Seed nodes for diffusion'
+        description: 'Seed nodes for diffusion',
       },
       probability: { type: 'number', description: 'Diffusion probability (default: 0.1)' },
-      damping: { type: 'number', description: 'PageRank damping factor (default: 0.85)' }
+      damping: { type: 'number', description: 'PageRank damping factor (default: 0.85)' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -585,7 +601,17 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { operation, metric = 'all', network: networkType, nodes: customNodes, edges: customEdges, directed = false, seeds, probability = 0.1, damping = 0.85 } = args;
+    const {
+      operation,
+      metric = 'all',
+      network: networkType,
+      nodes: customNodes,
+      edges: customEdges,
+      directed = false,
+      seeds,
+      probability = 0.1,
+      damping = 0.85,
+    } = args;
 
     // Get or create graph
     let graph: Graph;
@@ -594,7 +620,7 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
       graph = {
         directed,
         nodes: customNodes.map((id: string) => ({ id })),
-        edges: customEdges.map(([source, target]: [string, string]) => ({ source, target }))
+        edges: customEdges.map(([source, target]: [string, string]) => ({ source, target })),
       };
     } else {
       graph = createExampleNetwork(networkType || 'karate');
@@ -645,13 +671,17 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkType || 'custom',
-            nodes: graph.nodes.length,
-            edges: graph.edges.length,
-            centrality_scores: results,
-            most_central: mostCentral
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              network: networkType || 'custom',
+              nodes: graph.nodes.length,
+              edges: graph.edges.length,
+              centrality_scores: results,
+              most_central: mostCentral,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -662,18 +692,22 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
         const communityList = Array.from(communities.entries()).map(([label, members]) => ({
           community_id: label,
           size: members.length,
-          members
+          members,
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkType || 'custom',
-            algorithm: 'Label Propagation',
-            num_communities: communities.size,
-            communities: communityList,
-            modularity_note: 'Communities detected by iterative label voting'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              network: networkType || 'custom',
+              algorithm: 'Label Propagation',
+              num_communities: communities.size,
+              communities: communityList,
+              modularity_note: 'Communities detected by iterative label voting',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -682,23 +716,27 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkType || 'custom',
-            statistics: {
-              nodes: stats.nodes,
-              edges: stats.edges,
-              density: stats.density.toFixed(4),
-              average_degree: stats.avgDegree.toFixed(4),
-              connected_components: stats.components,
-              diameter: stats.diameter ?? 'N/A (disconnected)',
-              average_clustering_coefficient: stats.avgClustering.toFixed(4)
+          content: JSON.stringify(
+            {
+              network: networkType || 'custom',
+              statistics: {
+                nodes: stats.nodes,
+                edges: stats.edges,
+                density: stats.density.toFixed(4),
+                average_degree: stats.avgDegree.toFixed(4),
+                connected_components: stats.components,
+                diameter: stats.diameter ?? 'N/A (disconnected)',
+                average_clustering_coefficient: stats.avgClustering.toFixed(4),
+              },
+              interpretation: {
+                density: 'Fraction of possible edges present',
+                clustering: 'Tendency of neighbors to be connected',
+                diameter: 'Longest shortest path in network',
+              },
             },
-            interpretation: {
-              density: 'Fraction of possible edges present',
-              clustering: 'Tendency of neighbors to be connected',
-              diameter: 'Longest shortest path in network'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -715,20 +753,24 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkType || 'custom',
-            model: 'Independent Cascade',
-            parameters: {
-              seed_nodes: seedNodes,
-              transmission_probability: probability
+          content: JSON.stringify(
+            {
+              network: networkType || 'custom',
+              model: 'Independent Cascade',
+              parameters: {
+                seed_nodes: seedNodes,
+                transmission_probability: probability,
+              },
+              diffusion_history: history,
+              summary: {
+                total_steps: history.length - 1,
+                total_activated: finalActive.size,
+                coverage: (finalActive.size / graph.nodes.length).toFixed(4),
+              },
             },
-            diffusion_history: history,
-            summary: {
-              total_steps: history.length - 1,
-              total_activated: finalActive.size,
-              coverage: (finalActive.size / graph.nodes.length).toFixed(4)
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -741,88 +783,108 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
           .map(([node, score], rank) => ({
             rank: rank + 1,
             node,
-            score: score.toFixed(6)
+            score: score.toFixed(6),
           }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkType || 'custom',
-            algorithm: 'PageRank',
-            damping_factor: damping,
-            rankings: ranked,
-            interpretation: 'Higher score = more important node in random walk sense'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              network: networkType || 'custom',
+              algorithm: 'PageRank',
+              damping_factor: damping,
+              rankings: ranked,
+              interpretation: 'Higher score = more important node in random walk sense',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'create': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkType || 'custom',
-            graph: {
-              directed: graph.directed,
-              nodes: graph.nodes.map(n => n.id),
-              edges: graph.edges.map(e => [e.source, e.target])
+          content: JSON.stringify(
+            {
+              network: networkType || 'custom',
+              graph: {
+                directed: graph.directed,
+                nodes: graph.nodes.map((n) => n.id),
+                edges: graph.edges.map((e) => [e.source, e.target]),
+              },
+              visualization: createAsciiGraph(graph),
             },
-            visualization: createAsciiGraph(graph)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
-        const examples = ['karate', 'star', 'ring', 'complete'].map(type => {
+        const examples = ['karate', 'star', 'ring', 'complete'].map((type) => {
           const g = createExampleNetwork(type);
           return {
             name: type,
             nodes: g.nodes.length,
             edges: g.edges.length,
-            description: type === 'karate' ? 'Social network of karate club members'
-              : type === 'star' ? 'Central hub connected to all others'
-              : type === 'ring' ? 'Circular connection pattern'
-              : 'Every node connected to every other'
+            description:
+              type === 'karate'
+                ? 'Social network of karate club members'
+                : type === 'star'
+                  ? 'Central hub connected to all others'
+                  : type === 'ring'
+                    ? 'Circular connection pattern'
+                    : 'Every node connected to every other',
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            example_networks: examples,
-            usage: 'Use network parameter to select these networks'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              example_networks: examples,
+              usage: 'Use network parameter to select these networks',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'social_network',
-            description: 'Social network analysis and graph metrics',
-            centrality_measures: {
-              degree: 'Number of direct connections (normalized)',
-              closeness: 'Inverse of average distance to all nodes',
-              betweenness: 'Fraction of shortest paths passing through node',
-              eigenvector: 'Centrality from connections to central nodes',
-              pagerank: 'Random walk probability of visiting node'
+          content: JSON.stringify(
+            {
+              tool: 'social_network',
+              description: 'Social network analysis and graph metrics',
+              centrality_measures: {
+                degree: 'Number of direct connections (normalized)',
+                closeness: 'Inverse of average distance to all nodes',
+                betweenness: 'Fraction of shortest paths passing through node',
+                eigenvector: 'Centrality from connections to central nodes',
+                pagerank: 'Random walk probability of visiting node',
+              },
+              operations: {
+                centrality: 'Compute centrality measures',
+                community: 'Detect communities using label propagation',
+                statistics: 'Calculate network-level statistics',
+                diffusion: 'Simulate information spread',
+                pagerank: 'Compute PageRank rankings',
+                create: 'Display network structure',
+                examples: 'List example networks',
+              },
+              applications: [
+                'Identifying influential users',
+                'Detecting communities/groups',
+                'Analyzing information spread',
+                'Finding bridge nodes',
+              ],
             },
-            operations: {
-              centrality: 'Compute centrality measures',
-              community: 'Detect communities using label propagation',
-              statistics: 'Calculate network-level statistics',
-              diffusion: 'Simulate information spread',
-              pagerank: 'Compute PageRank rankings',
-              create: 'Display network structure',
-              examples: 'List example networks'
-            },
-            applications: [
-              'Identifying influential users',
-              'Detecting communities/groups',
-              'Analyzing information spread',
-              'Finding bridge nodes'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -830,7 +892,7 @@ export async function executesocialnetwork(toolCall: UnifiedToolCall): Promise<U
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

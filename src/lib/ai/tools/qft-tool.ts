@@ -32,7 +32,7 @@ function cAdd(a: Complex, b: Complex): Complex {
 function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -80,14 +80,12 @@ function createBasisState(n: number, value: number): StateVector {
   return state;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalize(state: StateVector): StateVector {
+export function normalize(state: StateVector): StateVector {
   const norm = Math.sqrt(state.reduce((sum, a) => sum + cAbs(a) ** 2, 0));
-  return state.map(a => cScale(a, 1 / norm));
+  return state.map((a) => cScale(a, 1 / norm));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function innerProduct(a: StateVector, b: StateVector): Complex {
+export function innerProduct(a: StateVector, b: StateVector): Complex {
   let result = complex(0);
   for (let i = 0; i < a.length; i++) {
     result = cAdd(result, cMul(cConj(a[i]), b[i]));
@@ -96,7 +94,7 @@ function innerProduct(a: StateVector, b: StateVector): Complex {
 }
 
 function measureProbabilities(state: StateVector): number[] {
-  return state.map(a => cAbs(a) ** 2);
+  return state.map((a) => cAbs(a) ** 2);
 }
 
 // ============================================================================
@@ -126,9 +124,13 @@ function applyHadamard(state: StateVector, target: number, nQubits: number): Sta
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function applyPhaseRotation(state: StateVector, target: number, theta: number, nQubits: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+export function applyPhaseRotation(
+  state: StateVector,
+  target: number,
+  theta: number,
+  nQubits: number
+): StateVector {
+  const result: StateVector = state.map((c) => ({ ...c }));
   const mask = 1 << (nQubits - 1 - target);
 
   for (let i = 0; i < state.length; i++) {
@@ -140,13 +142,19 @@ function applyPhaseRotation(state: StateVector, target: number, theta: number, n
   return result;
 }
 
-function applyControlledPhase(state: StateVector, control: number, target: number, theta: number, nQubits: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+function applyControlledPhase(
+  state: StateVector,
+  control: number,
+  target: number,
+  theta: number,
+  nQubits: number
+): StateVector {
+  const result: StateVector = state.map((c) => ({ ...c }));
   const controlMask = 1 << (nQubits - 1 - control);
   const targetMask = 1 << (nQubits - 1 - target);
 
   for (let i = 0; i < state.length; i++) {
-    if ((i & controlMask) && (i & targetMask)) {
+    if (i & controlMask && i & targetMask) {
       result[i] = cMul(result[i], cExp(theta));
     }
   }
@@ -154,14 +162,19 @@ function applyControlledPhase(state: StateVector, control: number, target: numbe
   return result;
 }
 
-function applySwap(state: StateVector, qubit1: number, qubit2: number, nQubits: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+function applySwap(
+  state: StateVector,
+  qubit1: number,
+  qubit2: number,
+  nQubits: number
+): StateVector {
+  const result: StateVector = state.map((c) => ({ ...c }));
   const mask1 = 1 << (nQubits - 1 - qubit1);
   const mask2 = 1 << (nQubits - 1 - qubit2);
 
   for (let i = 0; i < state.length; i++) {
-    const bit1 = (i & mask1) ? 1 : 0;
-    const bit2 = (i & mask2) ? 1 : 0;
+    const bit1 = i & mask1 ? 1 : 0;
+    const bit2 = i & mask2 ? 1 : 0;
 
     if (bit1 !== bit2) {
       const j = i ^ mask1 ^ mask2;
@@ -180,8 +193,7 @@ function applySwap(state: StateVector, qubit1: number, qubit2: number, nQubits: 
 // QUANTUM FOURIER TRANSFORM
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface QFTResult {
+export interface QFTResult {
   inputState: string[];
   outputState: string[];
   probabilities: number[];
@@ -190,11 +202,15 @@ interface QFTResult {
   inverse: boolean;
 }
 
-function performQFT(inputState: StateVector, nQubits: number, inverse: boolean = false): {
+function performQFT(
+  inputState: StateVector,
+  nQubits: number,
+  inverse: boolean = false
+): {
   outputState: StateVector;
   circuit: string[];
 } {
-  let state = inputState.map(c => ({ ...c }));
+  let state = inputState.map((c) => ({ ...c }));
   const circuit: string[] = [];
 
   if (!inverse) {
@@ -322,7 +338,7 @@ function performPhaseEstimation(
     estimatedEigenvalue,
     probabilities,
     nPrecisionQubits,
-    circuit
+    circuit,
   };
 }
 
@@ -376,8 +392,10 @@ function findPeriod(a: number, N: number): PeriodFindingResult {
     const fraction = measuredPhase / Q;
 
     // Simple continued fraction expansion
-    let h1 = 1, h2 = 0;
-    let k1 = 0, k2 = 1;
+    let h1 = 1,
+      h2 = 0;
+    let k1 = 0,
+      k2 = 1;
     let x = fraction;
 
     for (let i = 0; i < 10 && x !== 0; i++) {
@@ -389,8 +407,10 @@ function findPeriod(a: number, N: number): PeriodFindingResult {
         convergents.push({ numerator: h, denominator: k });
       }
 
-      h2 = h1; h1 = h;
-      k2 = k1; k1 = k;
+      h2 = h1;
+      h1 = h;
+      k2 = k1;
+      k1 = k;
 
       if (x - a_i === 0) break;
       x = 1 / (x - a_i);
@@ -403,7 +423,7 @@ function findPeriod(a: number, N: number): PeriodFindingResult {
     period: classicalPeriod,
     probablePeriods,
     nQubits,
-    convergents
+    convergents,
   };
 }
 
@@ -438,31 +458,31 @@ Operations:
       operation: {
         type: 'string',
         enum: ['forward', 'inverse', 'phase_estimation', 'period_finding', 'info', 'examples'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       num_qubits: {
         type: 'number',
-        description: 'Number of qubits (1-10)'
+        description: 'Number of qubits (1-10)',
       },
       input_state: {
         type: 'string',
-        description: 'Input computational basis state (e.g., "0101" or decimal number)'
+        description: 'Input computational basis state (e.g., "0101" or decimal number)',
       },
       eigenphase: {
         type: 'number',
-        description: 'Eigenphase for phase estimation (0-1)'
+        description: 'Eigenphase for phase estimation (0-1)',
       },
       a: {
         type: 'number',
-        description: 'Base for period finding (a^x mod N)'
+        description: 'Base for period finding (a^x mod N)',
       },
       N: {
         type: 'number',
-        description: 'Modulus for period finding'
-      }
+        description: 'Modulus for period finding',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -519,19 +539,23 @@ export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedTool
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: inverse ? 'inverse_qft' : 'forward_qft',
-            nQubits,
-            inputState: formatState(inputState),
-            outputState: formatState(outputState),
-            measurementProbabilities: significantProbs.map(p => ({
-              state: p.state,
-              probability: (p.probability * 100).toFixed(2) + '%'
-            })),
-            circuit: circuit,
-            gateCount: circuit.length,
-            complexity: `O(n²) = O(${nQubits}²) = ${nQubits * nQubits} gates`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: inverse ? 'inverse_qft' : 'forward_qft',
+              nQubits,
+              inputState: formatState(inputState),
+              outputState: formatState(outputState),
+              measurementProbabilities: significantProbs.map((p) => ({
+                state: p.state,
+                probability: (p.probability * 100).toFixed(2) + '%',
+              })),
+              circuit: circuit,
+              gateCount: circuit.length,
+              complexity: `O(n²) = O(${nQubits}²) = ${nQubits * nQubits} gates`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -540,20 +564,29 @@ export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedTool
         const nPrecisionQubits = Math.min(Math.max(args.num_qubits || 4, 2), 10);
 
         if (eigenphase < 0 || eigenphase > 1) {
-          return { toolCallId: id, content: 'Error: eigenphase must be between 0 and 1', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: eigenphase must be between 0 and 1',
+            isError: true,
+          };
         }
 
         const result = performPhaseEstimation(eigenphase, nPrecisionQubits);
 
         // Find top probable measurements
-        const topMeasurements: { value: number; binary: string; phase: number; probability: number }[] = [];
+        const topMeasurements: {
+          value: number;
+          binary: string;
+          phase: number;
+          probability: number;
+        }[] = [];
         for (let i = 0; i < result.probabilities.length; i++) {
           if (result.probabilities[i] > 0.01) {
             topMeasurements.push({
               value: i,
               binary: i.toString(2).padStart(nPrecisionQubits, '0'),
               phase: i / (1 << nPrecisionQubits),
-              probability: result.probabilities[i]
+              probability: result.probabilities[i],
             });
           }
         }
@@ -561,23 +594,27 @@ export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedTool
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'phase_estimation',
-            truePhase: eigenphase,
-            trueEigenvalue: `e^(2πi × ${eigenphase}) = ${cToString(cExp(2 * Math.PI * eigenphase))}`,
-            nPrecisionQubits,
-            estimatedPhase: result.estimatedPhase,
-            estimatedEigenvalue: cToString(result.estimatedEigenvalue),
-            phaseError: Math.abs(eigenphase - result.estimatedPhase).toFixed(6),
-            precision: `±${(1 / (1 << nPrecisionQubits)).toFixed(6)}`,
-            topMeasurements: topMeasurements.slice(0, 5).map(m => ({
-              measurement: m.binary,
-              decimalValue: m.value,
-              estimatedPhase: m.phase.toFixed(6),
-              probability: (m.probability * 100).toFixed(2) + '%'
-            })),
-            circuit: result.circuit
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'phase_estimation',
+              truePhase: eigenphase,
+              trueEigenvalue: `e^(2πi × ${eigenphase}) = ${cToString(cExp(2 * Math.PI * eigenphase))}`,
+              nPrecisionQubits,
+              estimatedPhase: result.estimatedPhase,
+              estimatedEigenvalue: cToString(result.estimatedEigenvalue),
+              phaseError: Math.abs(eigenphase - result.estimatedPhase).toFixed(6),
+              precision: `±${(1 / (1 << nPrecisionQubits)).toFixed(6)}`,
+              topMeasurements: topMeasurements.slice(0, 5).map((m) => ({
+                measurement: m.binary,
+                decimalValue: m.value,
+                estimatedPhase: m.phase.toFixed(6),
+                probability: (m.probability * 100).toFixed(2) + '%',
+              })),
+              circuit: result.circuit,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -594,18 +631,22 @@ export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedTool
         }
 
         // Check if gcd(a,N) = 1
-        const gcd = (x: number, y: number): number => y === 0 ? x : gcd(y, x % y);
+        const gcd = (x: number, y: number): number => (y === 0 ? x : gcd(y, x % y));
         if (gcd(a, N) !== 1) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'period_finding',
-              a,
-              N,
-              note: `gcd(${a}, ${N}) = ${gcd(a, N)} ≠ 1`,
-              trivialFactor: gcd(a, N),
-              message: 'Non-trivial factor found without quantum computation!'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'period_finding',
+                a,
+                N,
+                note: `gcd(${a}, ${N}) = ${gcd(a, N)} ≠ 1`,
+                trivialFactor: gcd(a, N),
+                message: 'Non-trivial factor found without quantum computation!',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -620,99 +661,116 @@ export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedTool
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'period_finding',
-            function: `f(x) = ${a}^x mod ${N}`,
-            a,
-            N,
-            nQubitsRequired: result.nQubits,
-            period: result.period,
-            verification,
-            firstFewValues: Array.from({ length: Math.min(result.period || 10, 10) }, (_, i) =>
-              ({ x: i, value: Math.pow(a, i) % N })
-            ),
-            quantumMeasurements: result.probablePeriods.slice(0, 5),
-            continuedFractionConvergents: result.convergents.slice(0, 5),
-            application: result.period !== null && result.period % 2 === 0 ? {
-              note: 'Period is even - can attempt factorization',
-              attempt: `gcd(${a}^(${result.period}/2) ± 1, ${N})`,
-              factor1: gcd(Math.pow(a, result.period / 2) - 1, N),
-              factor2: gcd(Math.pow(a, result.period / 2) + 1, N)
-            } : {
-              note: 'Period is odd - try different value of a'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'period_finding',
+              function: `f(x) = ${a}^x mod ${N}`,
+              a,
+              N,
+              nQubitsRequired: result.nQubits,
+              period: result.period,
+              verification,
+              firstFewValues: Array.from({ length: Math.min(result.period || 10, 10) }, (_, i) => ({
+                x: i,
+                value: Math.pow(a, i) % N,
+              })),
+              quantumMeasurements: result.probablePeriods.slice(0, 5),
+              continuedFractionConvergents: result.convergents.slice(0, 5),
+              application:
+                result.period !== null && result.period % 2 === 0
+                  ? {
+                      note: 'Period is even - can attempt factorization',
+                      attempt: `gcd(${a}^(${result.period}/2) ± 1, ${N})`,
+                      factor1: gcd(Math.pow(a, result.period / 2) - 1, N),
+                      factor2: gcd(Math.pow(a, result.period / 2) + 1, N),
+                    }
+                  : {
+                      note: 'Period is odd - try different value of a',
+                    },
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'qft',
-            name: 'Quantum Fourier Transform',
-            description: 'The QFT transforms a quantum state into its frequency domain representation',
-            mathematicalDefinition: {
-              forward: 'QFT|j⟩ = (1/√N) Σₖ e^(2πijk/N) |k⟩',
-              inverse: 'QFT†|k⟩ = (1/√N) Σⱼ e^(-2πijk/N) |j⟩'
+          content: JSON.stringify(
+            {
+              tool: 'qft',
+              name: 'Quantum Fourier Transform',
+              description:
+                'The QFT transforms a quantum state into its frequency domain representation',
+              mathematicalDefinition: {
+                forward: 'QFT|j⟩ = (1/√N) Σₖ e^(2πijk/N) |k⟩',
+                inverse: 'QFT†|k⟩ = (1/√N) Σⱼ e^(-2πijk/N) |j⟩',
+              },
+              gateDecomposition: {
+                Hadamard: 'Creates superposition',
+                controlledPhase: 'CR_k applies e^(2πi/2^k) phase when control is |1⟩',
+                swap: 'Reverses qubit order at the end',
+              },
+              complexity: {
+                gates: 'O(n²) where n is number of qubits',
+                depth: 'O(n) with parallelization',
+              },
+              applications: [
+                'Quantum phase estimation',
+                "Shor's factoring algorithm",
+                'Quantum simulation',
+                'Quantum machine learning',
+                'Hidden subgroup problems',
+              ],
+              comparisonToClassical: {
+                classicalFFT: 'O(N log N) where N = 2^n',
+                quantumQFT: 'O(n²) gates on n qubits',
+                advantage: 'Exponential speedup in certain applications',
+              },
             },
-            gateDecomposition: {
-              Hadamard: 'Creates superposition',
-              controlledPhase: 'CR_k applies e^(2πi/2^k) phase when control is |1⟩',
-              swap: 'Reverses qubit order at the end'
-            },
-            complexity: {
-              gates: 'O(n²) where n is number of qubits',
-              depth: 'O(n) with parallelization'
-            },
-            applications: [
-              'Quantum phase estimation',
-              "Shor's factoring algorithm",
-              'Quantum simulation',
-              'Quantum machine learning',
-              'Hidden subgroup problems'
-            ],
-            comparisonToClassical: {
-              classicalFFT: 'O(N log N) where N = 2^n',
-              quantumQFT: 'O(n²) gates on n qubits',
-              advantage: 'Exponential speedup in certain applications'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Forward QFT on |000⟩',
-                call: { operation: 'forward', num_qubits: 3, input_state: '000' },
-                description: 'Creates uniform superposition of all basis states'
-              },
-              {
-                name: 'Forward QFT on |101⟩',
-                call: { operation: 'forward', num_qubits: 3, input_state: '101' },
-                description: 'Transform basis state to frequency domain'
-              },
-              {
-                name: 'Inverse QFT',
-                call: { operation: 'inverse', num_qubits: 4, input_state: '0000' },
-                description: 'Apply inverse QFT'
-              },
-              {
-                name: 'Phase estimation',
-                call: { operation: 'phase_estimation', eigenphase: 0.125, num_qubits: 5 },
-                description: 'Estimate phase φ = 1/8 = 0.125'
-              },
-              {
-                name: 'Period finding for factoring 15',
-                call: { operation: 'period_finding', a: 7, N: 15 },
-                description: "Find period of 7^x mod 15 (Shor's algorithm component)"
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Forward QFT on |000⟩',
+                  call: { operation: 'forward', num_qubits: 3, input_state: '000' },
+                  description: 'Creates uniform superposition of all basis states',
+                },
+                {
+                  name: 'Forward QFT on |101⟩',
+                  call: { operation: 'forward', num_qubits: 3, input_state: '101' },
+                  description: 'Transform basis state to frequency domain',
+                },
+                {
+                  name: 'Inverse QFT',
+                  call: { operation: 'inverse', num_qubits: 4, input_state: '0000' },
+                  description: 'Apply inverse QFT',
+                },
+                {
+                  name: 'Phase estimation',
+                  call: { operation: 'phase_estimation', eigenphase: 0.125, num_qubits: 5 },
+                  description: 'Estimate phase φ = 1/8 = 0.125',
+                },
+                {
+                  name: 'Period finding for factoring 15',
+                  call: { operation: 'period_finding', a: 7, N: 15 },
+                  description: "Find period of 7^x mod 15 (Shor's algorithm component)",
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -720,7 +778,7 @@ export async function executeqft(toolCall: UnifiedToolCall): Promise<UnifiedTool
         return {
           toolCallId: id,
           content: `Error: Unknown operation '${operation}'. Valid: forward, inverse, phase_estimation, period_finding, info, examples`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

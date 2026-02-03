@@ -15,53 +15,51 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const kdtreeTool: UnifiedTool = {
   name: 'kd_tree',
-  description: 'k-d tree for spatial searching, nearest neighbor queries, and range searches in multi-dimensional spaces',
+  description:
+    'k-d tree for spatial searching, nearest neighbor queries, and range searches in multi-dimensional spaces',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['build', 'nearest', 'knn', 'range_search', 'ball_query', 'analyze', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       points: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Array of points (each point is array of coordinates)'
+        items: { type: 'array' },
+        description: 'Array of points (2D array of numbers, each inner array is coordinates)',
       },
       query_point: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Query point for nearest neighbor searches'
+        description: 'Query point for nearest neighbor searches',
       },
       k: {
         type: 'number',
-        description: 'Number of nearest neighbors for knn search'
+        description: 'Number of nearest neighbors for knn search',
       },
       min_bounds: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Minimum bounds for range query'
+        description: 'Minimum bounds for range query',
       },
       max_bounds: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Maximum bounds for range query'
+        description: 'Maximum bounds for range query',
       },
       radius: {
         type: 'number',
-        description: 'Radius for ball query'
+        description: 'Radius for ball query',
       },
       dimensions: {
         type: 'number',
-        description: 'Number of dimensions (inferred from points if not specified)'
-      }
+        description: 'Number of dimensions (inferred from points if not specified)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // K-d tree node
@@ -103,7 +101,7 @@ function buildKDTree(
     index: medianPointIdx,
     splitDimension: axis,
     left: buildKDTree(points, indices.slice(0, medianIdx), depth + 1, dimensions),
-    right: buildKDTree(points, indices.slice(medianIdx + 1), depth + 1, dimensions)
+    right: buildKDTree(points, indices.slice(medianIdx + 1), depth + 1, dimensions),
   };
 }
 
@@ -118,8 +116,7 @@ function distanceSquared(a: number[], b: number[]): number {
 }
 
 // Manhattan distance
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function manhattanDistance(a: number[], b: number[]): number {
+export function manhattanDistance(a: number[], b: number[]): number {
   let sum = 0;
   for (let i = 0; i < a.length; i++) {
     sum += Math.abs(a[i] - b[i]);
@@ -301,8 +298,10 @@ function balanceFactor(node: KDNode | null): number {
 }
 
 // Get all points from tree (in-order traversal)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getAllPoints(node: KDNode | null, points: { point: number[]; index: number }[]): void {
+export function getAllPoints(
+  node: KDNode | null,
+  points: { point: number[]; index: number }[]
+): void {
   if (node === null) return;
   getAllPoints(node.left, points);
   points.push({ point: node.point, index: node.index });
@@ -337,15 +336,19 @@ function visualizeTree(node: KDNode | null, prefix: string = '', isLast: boolean
   const connector = isLast ? '└── ' : '├── ';
   const extension = isLast ? '    ' : '│   ';
 
-  lines.push(`${prefix}${connector}[d${node.splitDimension}] (${node.point.map(v => v.toFixed(2)).join(', ')})`);
+  lines.push(
+    `${prefix}${connector}[d${node.splitDimension}] (${node.point.map((v) => v.toFixed(2)).join(', ')})`
+  );
 
   const children: (KDNode | null)[] = [node.left, node.right];
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const childLabels = ['L', 'R'];
 
   for (let i = 0; i < children.length; i++) {
     if (children[i] !== null) {
-      const childLines = visualizeTree(children[i], prefix + extension, i === children.length - 1 || children[i + 1] === null);
+      const childLines = visualizeTree(
+        children[i],
+        prefix + extension,
+        i === children.length - 1 || children[i + 1] === null
+      );
       lines.push(...childLines);
     }
   }
@@ -403,7 +406,7 @@ function analyzeDistribution(points: number[][]): {
       const stdI = Math.sqrt(variance[i]);
       const stdJ = Math.sqrt(variance[j]);
 
-      correlations[i][j] = stdI > 0 && stdJ > 0 ? cov / (stdI * stdJ) : (i === j ? 1 : 0);
+      correlations[i][j] = stdI > 0 && stdJ > 0 ? cov / (stdI * stdJ) : i === j ? 1 : 0;
     }
   }
 
@@ -510,48 +513,58 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'kd_tree',
-          description: 'K-dimensional tree for efficient spatial searching',
-          operations: {
-            build: 'Construct k-d tree from points with median splitting',
-            nearest: 'Find single nearest neighbor to query point',
-            knn: 'Find k nearest neighbors to query point',
-            range_search: 'Find all points within axis-aligned bounding box',
-            ball_query: 'Find all points within radius of center point',
-            analyze: 'Analyze tree structure and point distribution'
+        content: JSON.stringify(
+          {
+            tool: 'kd_tree',
+            description: 'K-dimensional tree for efficient spatial searching',
+            operations: {
+              build: 'Construct k-d tree from points with median splitting',
+              nearest: 'Find single nearest neighbor to query point',
+              knn: 'Find k nearest neighbors to query point',
+              range_search: 'Find all points within axis-aligned bounding box',
+              ball_query: 'Find all points within radius of center point',
+              analyze: 'Analyze tree structure and point distribution',
+            },
+            features: [
+              'Median-based balanced tree construction',
+              'O(log n) average nearest neighbor search',
+              'K-nearest neighbors with max-heap pruning',
+              'Range queries for axis-aligned boxes',
+              'Ball queries (radius search)',
+              'Support for arbitrary dimensions',
+              'Tree structure analysis and visualization',
+            ],
+            complexity: {
+              build: 'O(n log n)',
+              nearest: 'O(log n) average, O(n) worst case',
+              knn: 'O(k log n) average',
+              range: 'O(√n + m) where m is result size',
+              ball: 'O(√n + m) where m is result size',
+            },
+            applications: [
+              'Spatial databases and GIS',
+              'Computer graphics (ray tracing)',
+              'Machine learning (k-NN classification)',
+              'Collision detection',
+              'Point cloud processing',
+              'Nearest neighbor interpolation',
+            ],
+            example: {
+              operation: 'knn',
+              points: [
+                [1, 2],
+                [3, 4],
+                [5, 6],
+                [7, 8],
+                [2, 3],
+              ],
+              query_point: [4, 5],
+              k: 3,
+            },
           },
-          features: [
-            'Median-based balanced tree construction',
-            'O(log n) average nearest neighbor search',
-            'K-nearest neighbors with max-heap pruning',
-            'Range queries for axis-aligned boxes',
-            'Ball queries (radius search)',
-            'Support for arbitrary dimensions',
-            'Tree structure analysis and visualization'
-          ],
-          complexity: {
-            build: 'O(n log n)',
-            nearest: 'O(log n) average, O(n) worst case',
-            knn: 'O(k log n) average',
-            range: 'O(√n + m) where m is result size',
-            ball: 'O(√n + m) where m is result size'
-          },
-          applications: [
-            'Spatial databases and GIS',
-            'Computer graphics (ray tracing)',
-            'Machine learning (k-NN classification)',
-            'Collision detection',
-            'Point cloud processing',
-            'Nearest neighbor interpolation'
-          ],
-          example: {
-            operation: 'knn',
-            points: [[1,2], [3,4], [5,6], [7,8], [2,3]],
-            query_point: [4, 5],
-            k: 3
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -586,25 +599,32 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'build',
-          num_points: points.length,
-          dimensions: dims,
-          tree_statistics: {
-            depth,
-            node_count: nodeCount,
-            balance_factor: balance,
-            optimal_depth: Math.ceil(Math.log2(points.length + 1)),
-            is_balanced: Math.abs(balance) <= 1
+        content: JSON.stringify(
+          {
+            operation: 'build',
+            num_points: points.length,
+            dimensions: dims,
+            tree_statistics: {
+              depth,
+              node_count: nodeCount,
+              balance_factor: balance,
+              optimal_depth: Math.ceil(Math.log2(points.length + 1)),
+              is_balanced: Math.abs(balance) <= 1,
+            },
+            bounding_box: {
+              min: bbox.min,
+              max: bbox.max,
+              size: bbox.max.map((v, i) => v - bbox.min[i]),
+            },
+            points_sample: points
+              .slice(0, 10)
+              .map((p: number[], i: number) => ({ index: i, coords: p })),
+            visualization:
+              visualization.length > 0 ? visualization.slice(0, 20) : 'Tree too large to visualize',
           },
-          bounding_box: {
-            min: bbox.min,
-            max: bbox.max,
-            size: bbox.max.map((v, i) => v - bbox.min[i])
-          },
-          points_sample: points.slice(0, 10).map((p: number[], i: number) => ({ index: i, coords: p })),
-          visualization: visualization.length > 0 ? visualization.slice(0, 20) : 'Tree too large to visualize'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -628,17 +648,23 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'nearest',
-          query_point: queryPoint,
-          nearest_neighbor: best.node ? {
-            point: best.node.point,
-            index: best.node.index,
-            distance: Math.sqrt(best.distSq),
-            distance_squared: best.distSq
-          } : null,
-          num_points_searched: points.length
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'nearest',
+            query_point: queryPoint,
+            nearest_neighbor: best.node
+              ? {
+                  point: best.node.point,
+                  index: best.node.index,
+                  distance: Math.sqrt(best.distSq),
+                  distance_squared: best.distSq,
+                }
+              : null,
+            num_points_searched: points.length,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -663,23 +689,28 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
 
       // Sort by distance
       const neighbors = heap
-        .map(e => ({
+        .map((e) => ({
           point: e.point,
           index: e.index,
-          distance: Math.sqrt(e.distance)
+          distance: Math.sqrt(e.distance),
         }))
         .sort((a, b) => a.distance - b.distance);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'knn',
-          query_point: queryPoint,
-          k,
-          neighbors,
-          num_found: neighbors.length,
-          farthest_distance: neighbors.length > 0 ? neighbors[neighbors.length - 1].distance : null
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'knn',
+            query_point: queryPoint,
+            k,
+            neighbors,
+            num_found: neighbors.length,
+            farthest_distance:
+              neighbors.length > 0 ? neighbors[neighbors.length - 1].distance : null,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -692,7 +723,11 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
         return { toolCallId: id, content: 'Error: points array required', isError: true };
       }
       if (!minBounds || !maxBounds) {
-        return { toolCallId: id, content: 'Error: min_bounds and max_bounds required', isError: true };
+        return {
+          toolCallId: id,
+          content: 'Error: min_bounds and max_bounds required',
+          isError: true,
+        };
       }
 
       const dims = points[0].length;
@@ -704,20 +739,27 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'range_search',
-          query_bounds: {
-            min: minBounds,
-            max: maxBounds,
-            volume: minBounds.reduce((v, min, i) => v * (maxBounds[i] - min), 1)
+        content: JSON.stringify(
+          {
+            operation: 'range_search',
+            query_bounds: {
+              min: minBounds,
+              max: maxBounds,
+              volume: minBounds.reduce(
+                (v: number, min: number, i: number) => v * (maxBounds[i] - min),
+                1
+              ),
+            },
+            points_found: results.length,
+            results: results.slice(0, 50).map((r) => ({
+              index: r.index,
+              point: r.point,
+            })),
+            truncated: results.length > 50,
           },
-          points_found: results.length,
-          results: results.slice(0, 50).map(r => ({
-            index: r.index,
-            point: r.point
-          })),
-          truncated: results.length > 50
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -748,19 +790,23 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'ball_query',
-          center,
-          radius,
-          points_found: results.length,
-          results: results.slice(0, 50).map(r => ({
-            index: r.index,
-            point: r.point,
-            distance: r.distance
-          })),
-          truncated: results.length > 50,
-          density: results.length / (Math.PI * Math.pow(radius, dims))
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'ball_query',
+            center,
+            radius,
+            points_found: results.length,
+            results: results.slice(0, 50).map((r) => ({
+              index: r.index,
+              point: r.point,
+              distance: r.distance,
+            })),
+            truncated: results.length > 50,
+            density: results.length / (Math.PI * Math.pow(radius, dims)),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -799,52 +845,69 @@ export async function executekdtree(toolCall: UnifiedToolCall): Promise<UnifiedT
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          point_statistics: {
-            count: points.length,
-            dimensions: dims,
-            mean: distribution.mean.map(v => parseFloat(v.toFixed(4))),
-            variance: distribution.variance.map(v => parseFloat(v.toFixed(4))),
-            std_dev: distribution.variance.map(v => parseFloat(Math.sqrt(v).toFixed(4)))
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            point_statistics: {
+              count: points.length,
+              dimensions: dims,
+              mean: distribution.mean.map((v) => parseFloat(v.toFixed(4))),
+              variance: distribution.variance.map((v) => parseFloat(v.toFixed(4))),
+              std_dev: distribution.variance.map((v) => parseFloat(Math.sqrt(v).toFixed(4))),
+            },
+            spatial_extent: {
+              bounding_box: bbox,
+              diagonal: Math.sqrt(
+                bbox.max.reduce((s, v, i) => s + Math.pow(v - bbox.min[i], 2), 0)
+              ),
+            },
+            tree_analysis: {
+              depth,
+              optimal_depth: Math.ceil(Math.log2(points.length + 1)),
+              efficiency: Math.ceil(Math.log2(points.length + 1)) / depth,
+              balance_factor: balanceFactor(root),
+            },
+            distribution_analysis: {
+              avg_nearest_neighbor_distance: avgNearestDist,
+              correlation_matrix: distribution.correlations.map((row) =>
+                row.map((v) => parseFloat(v.toFixed(4)))
+              ),
+            },
+            recommendations: [
+              depth > 2 * Math.ceil(Math.log2(points.length + 1))
+                ? 'Consider rebalancing tree'
+                : 'Tree is well-balanced',
+              avgNearestDist < 1
+                ? 'Points are densely clustered'
+                : 'Points have good spatial distribution',
+            ],
           },
-          spatial_extent: {
-            bounding_box: bbox,
-            diagonal: Math.sqrt(bbox.max.reduce((s, v, i) => s + Math.pow(v - bbox.min[i], 2), 0))
-          },
-          tree_analysis: {
-            depth,
-            optimal_depth: Math.ceil(Math.log2(points.length + 1)),
-            efficiency: Math.ceil(Math.log2(points.length + 1)) / depth,
-            balance_factor: balanceFactor(root)
-          },
-          distribution_analysis: {
-            avg_nearest_neighbor_distance: avgNearestDist,
-            correlation_matrix: distribution.correlations.map(row =>
-              row.map(v => parseFloat(v.toFixed(4)))
-            )
-          },
-          recommendations: [
-            depth > 2 * Math.ceil(Math.log2(points.length + 1))
-              ? 'Consider rebalancing tree'
-              : 'Tree is well-balanced',
-            avgNearestDist < 1
-              ? 'Points are densely clustered'
-              : 'Points have good spatial distribution'
-          ]
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: `Unknown operation: ${operation}`,
-        available_operations: ['build', 'nearest', 'knn', 'range_search', 'ball_query', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: `Unknown operation: ${operation}`,
+          available_operations: [
+            'build',
+            'nearest',
+            'knn',
+            'range_search',
+            'ball_query',
+            'analyze',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

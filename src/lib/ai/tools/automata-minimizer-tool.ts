@@ -15,46 +15,41 @@ export const automataminimizerTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['minimize', 'nfa_to_dfa', 'regex_to_nfa', 'test', 'equivalent', 'visualize', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'minimize',
+          'nfa_to_dfa',
+          'regex_to_nfa',
+          'test',
+          'equivalent',
+          'visualize',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       dfa: {
         type: 'object',
-        properties: {
-          states: { type: 'array', items: { type: 'string' }, description: 'State names' },
-          alphabet: { type: 'array', items: { type: 'string' }, description: 'Input alphabet' },
-          transitions: {
-            type: 'object',
-            description: 'Transition function: { "state": { "symbol": "next_state" } }'
-          },
-          start: { type: 'string', description: 'Start state' },
-          accept: { type: 'array', items: { type: 'string' }, description: 'Accepting states' }
-        },
-        description: 'DFA specification'
+        description:
+          'DFA specification: { states: string[], alphabet: string[], transitions: {state: {symbol: nextState}}, start: string, accept: string[] }',
       },
       nfa: {
         type: 'object',
-        properties: {
-          states: { type: 'array', items: { type: 'string' } },
-          alphabet: { type: 'array', items: { type: 'string' } },
-          transitions: {
-            type: 'object',
-            description: 'NFA transitions: { "state": { "symbol": ["next_states"] } }'
-          },
-          start: { type: 'string' },
-          accept: { type: 'array', items: { type: 'string' } }
-        },
-        description: 'NFA specification'
+        description:
+          'NFA specification: { states: string[], alphabet: string[], transitions: {state: {symbol: [nextStates]}}, start: string, accept: string[] }',
       },
-      regex: { type: 'string', description: 'Regular expression (supports: |, *, +, ?, (), concatenation)' },
+      regex: {
+        type: 'string',
+        description: 'Regular expression (supports: |, *, +, ?, (), concatenation)',
+      },
       test_strings: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Strings to test against the automaton'
-      }
+        description: 'Strings to test against the automaton',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // DFA type
@@ -77,13 +72,19 @@ interface NFA {
 
 // Parse DFA from input
 function parseDFA(input: unknown): DFA {
-  const dfaInput = input as { states: string[]; alphabet: string[]; transitions: Record<string, Record<string, string>>; start: string; accept: string[] };
+  const dfaInput = input as {
+    states: string[];
+    alphabet: string[];
+    transitions: Record<string, Record<string, string>>;
+    start: string;
+    accept: string[];
+  };
   const dfa: DFA = {
     states: new Set(dfaInput.states),
     alphabet: new Set(dfaInput.alphabet),
     transitions: new Map(),
     start: dfaInput.start,
-    accept: new Set(dfaInput.accept)
+    accept: new Set(dfaInput.accept),
   };
 
   for (const [state, trans] of Object.entries(dfaInput.transitions)) {
@@ -99,13 +100,19 @@ function parseDFA(input: unknown): DFA {
 
 // Parse NFA from input
 function parseNFA(input: unknown): NFA {
-  const nfaInput = input as { states: string[]; alphabet: string[]; transitions: Record<string, Record<string, string[]>>; start: string; accept: string[] };
+  const nfaInput = input as {
+    states: string[];
+    alphabet: string[];
+    transitions: Record<string, Record<string, string[]>>;
+    start: string;
+    accept: string[];
+  };
   const nfa: NFA = {
     states: new Set(nfaInput.states),
     alphabet: new Set(nfaInput.alphabet),
     transitions: new Map(),
     start: nfaInput.start,
-    accept: new Set(nfaInput.accept)
+    accept: new Set(nfaInput.accept),
   };
 
   for (const [state, trans] of Object.entries(nfaInput.transitions)) {
@@ -216,7 +223,7 @@ function nfaToDFA(nfa: NFA): { dfa: DFA; stateMapping: Map<string, Set<string>> 
   }
 
   // Filter alphabet (remove epsilon)
-  const dfaAlphabet = new Set([...nfa.alphabet].filter(s => s !== 'ε' && s !== 'epsilon'));
+  const dfaAlphabet = new Set([...nfa.alphabet].filter((s) => s !== 'ε' && s !== 'epsilon'));
 
   return {
     dfa: {
@@ -224,9 +231,9 @@ function nfaToDFA(nfa: NFA): { dfa: DFA; stateMapping: Map<string, Set<string>> 
       alphabet: dfaAlphabet,
       transitions: dfaTransitions,
       start: startName,
-      accept: dfaAccept
+      accept: dfaAccept,
     },
-    stateMapping
+    stateMapping,
   };
 }
 
@@ -237,7 +244,11 @@ function setToStateName(states: Set<string>): string {
 }
 
 // DFA minimization using Hopcroft's algorithm (partition refinement)
-function minimizeDFA(dfa: DFA): { minimized: DFA; partition: Map<string, string>; steps: string[] } {
+function minimizeDFA(dfa: DFA): {
+  minimized: DFA;
+  partition: Map<string, string>;
+  steps: string[];
+} {
   const steps: string[] = [];
 
   // Remove unreachable states
@@ -276,7 +287,7 @@ function minimizeDFA(dfa: DFA): { minimized: DFA; partition: Map<string, string>
   if (accepting.size > 0) partitions.push(accepting);
   if (nonAccepting.size > 0) partitions.push(nonAccepting);
 
-  steps.push(`Initial partition: [${partitions.map(p => `{${[...p].join(',')}}`).join(', ')}]`);
+  steps.push(`Initial partition: [${partitions.map((p) => `{${[...p].join(',')}}`).join(', ')}]`);
 
   // Refine partitions
   let changed = true;
@@ -305,7 +316,7 @@ function minimizeDFA(dfa: DFA): { minimized: DFA; partition: Map<string, string>
 
           if (next) {
             // Find which partition the next state belongs to
-            const partIdx = partitions.findIndex(p => p.has(next));
+            const partIdx = partitions.findIndex((p) => p.has(next));
             signature.push(`${symbol}:${partIdx}`);
           } else {
             signature.push(`${symbol}:-1`);
@@ -332,11 +343,13 @@ function minimizeDFA(dfa: DFA): { minimized: DFA; partition: Map<string, string>
     partitions = newPartitions;
 
     if (changed) {
-      steps.push(`Iteration ${iteration}: [${partitions.map(p => `{${[...p].join(',')}}`).join(', ')}]`);
+      steps.push(
+        `Iteration ${iteration}: [${partitions.map((p) => `{${[...p].join(',')}}`).join(', ')}]`
+      );
     }
   }
 
-  steps.push(`Final partition: [${partitions.map(p => `{${[...p].join(',')}}`).join(', ')}]`);
+  steps.push(`Final partition: [${partitions.map((p) => `{${[...p].join(',')}}`).join(', ')}]`);
 
   // Build minimized DFA
   const stateToPartition = new Map<string, string>();
@@ -390,10 +403,10 @@ function minimizeDFA(dfa: DFA): { minimized: DFA; partition: Map<string, string>
       alphabet: dfa.alphabet,
       transitions: minimizedTransitions,
       start: minimizedStart,
-      accept: minimizedAccept
+      accept: minimizedAccept,
     },
     partition: stateToPartition,
-    steps
+    steps,
   };
 }
 
@@ -421,11 +434,13 @@ function testDFA(dfa: DFA, input: string): { accepted: boolean; path: string[] }
 function dfaEquivalent(dfa1: DFA, dfa2: DFA): { equivalent: boolean; counterexample?: string } {
   // Build product automaton and check for accepting differences
   const visited = new Set<string>();
-  const queue: Array<{ s1: string; s2: string; path: string }> = [{
-    s1: dfa1.start,
-    s2: dfa2.start,
-    path: ''
-  }];
+  const queue: Array<{ s1: string; s2: string; path: string }> = [
+    {
+      s1: dfa1.start,
+      s2: dfa2.start,
+      path: '',
+    },
+  ];
 
   while (queue.length > 0) {
     const { s1, s2, path } = queue.shift()!;
@@ -476,7 +491,7 @@ function dfaToObject(dfa: DFA): object {
     alphabet: [...dfa.alphabet],
     transitions,
     start: dfa.start,
-    accept: [...dfa.accept]
+    accept: [...dfa.accept],
   };
 }
 
@@ -502,7 +517,7 @@ function regexToNFA(regex: string): NFA {
       start,
       accept,
       transitions,
-      states: new Set([start, accept])
+      states: new Set([start, accept]),
     };
   }
 
@@ -516,7 +531,7 @@ function regexToNFA(regex: string): NFA {
       start,
       accept,
       transitions,
-      states: new Set([start, accept])
+      states: new Set([start, accept]),
     };
   }
 
@@ -540,7 +555,7 @@ function regexToNFA(regex: string): NFA {
       start: a.start,
       accept: b.accept,
       transitions,
-      states: new Set([...a.states, ...b.states])
+      states: new Set([...a.states, ...b.states]),
     };
   }
 
@@ -582,7 +597,7 @@ function regexToNFA(regex: string): NFA {
       start,
       accept,
       transitions,
-      states: new Set([start, accept, ...a.states, ...b.states])
+      states: new Set([start, accept, ...a.states, ...b.states]),
     };
   }
 
@@ -610,7 +625,7 @@ function regexToNFA(regex: string): NFA {
       start,
       accept,
       transitions,
-      states: new Set([start, accept, ...a.states])
+      states: new Set([start, accept, ...a.states]),
     };
   }
 
@@ -705,11 +720,13 @@ function regexToNFA(regex: string): NFA {
     alphabet,
     transitions: fragment.transitions,
     start: fragment.start,
-    accept: new Set([fragment.accept])
+    accept: new Set([fragment.accept]),
   };
 }
 
-export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeautomataminimizer(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -730,24 +747,29 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'minimize',
-            original: {
-              num_states: originalSize,
-              ...dfaToObject(dfa)
+          content: JSON.stringify(
+            {
+              operation: 'minimize',
+              original: {
+                num_states: originalSize,
+                ...dfaToObject(dfa),
+              },
+              minimized: {
+                num_states: minimizedSize,
+                ...dfaToObject(minimized),
+              },
+              reduction: {
+                states_removed: originalSize - minimizedSize,
+                reduction_percent:
+                  (((originalSize - minimizedSize) / originalSize) * 100).toFixed(1) + '%',
+              },
+              state_equivalence: Object.fromEntries(partition),
+              algorithm: 'Hopcroft partition refinement',
+              steps,
             },
-            minimized: {
-              num_states: minimizedSize,
-              ...dfaToObject(minimized)
-            },
-            reduction: {
-              states_removed: originalSize - minimizedSize,
-              reduction_percent: ((originalSize - minimizedSize) / originalSize * 100).toFixed(1) + '%'
-            },
-            state_equivalence: Object.fromEntries(partition),
-            algorithm: 'Hopcroft partition refinement',
-            steps
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -766,23 +788,27 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'nfa_to_dfa',
-            nfa: {
-              num_states: nfa.states.size,
-              states: [...nfa.states],
-              alphabet: [...nfa.alphabet],
-              start: nfa.start,
-              accept: [...nfa.accept]
+          content: JSON.stringify(
+            {
+              operation: 'nfa_to_dfa',
+              nfa: {
+                num_states: nfa.states.size,
+                states: [...nfa.states],
+                alphabet: [...nfa.alphabet],
+                start: nfa.start,
+                accept: [...nfa.accept],
+              },
+              dfa: {
+                num_states: dfa.states.size,
+                ...dfaToObject(dfa),
+              },
+              state_mapping: mapping,
+              algorithm: 'Subset construction (powerset)',
+              note: 'DFA states represent sets of NFA states',
             },
-            dfa: {
-              num_states: dfa.states.size,
-              ...dfaToObject(dfa)
-            },
-            state_mapping: mapping,
-            algorithm: 'Subset construction (powerset)',
-            note: 'DFA states represent sets of NFA states'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -801,20 +827,24 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'regex_to_nfa',
-            regex,
-            nfa: {
-              num_states: nfa.states.size,
-              states: [...nfa.states],
-              alphabet: [...nfa.alphabet].filter(s => s !== 'ε'),
-              transitions,
-              start: nfa.start,
-              accept: [...nfa.accept]
+          content: JSON.stringify(
+            {
+              operation: 'regex_to_nfa',
+              regex,
+              nfa: {
+                num_states: nfa.states.size,
+                states: [...nfa.states],
+                alphabet: [...nfa.alphabet].filter((s) => s !== 'ε'),
+                transitions,
+                start: nfa.start,
+                accept: [...nfa.accept],
+              },
+              algorithm: "Thompson's construction",
+              supported_operators: ['|', '*', '+', '?', '()', 'concatenation'],
             },
-            algorithm: "Thompson's construction",
-            supported_operators: ['|', '*', '+', '?', '()', 'concatenation']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -843,19 +873,23 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
           return {
             input: str || '(empty string)',
             accepted,
-            path: path.join(' → ')
+            path: path.join(' → '),
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'test',
-            automaton_type: automatonType,
-            results,
-            accepted_count: results.filter((r: { accepted: boolean }) => r.accepted).length,
-            rejected_count: results.filter((r: { accepted: boolean }) => !r.accepted).length
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'test',
+              automaton_type: automatonType,
+              results,
+              accepted_count: results.filter((r: { accepted: boolean }) => r.accepted).length,
+              rejected_count: results.filter((r: { accepted: boolean }) => !r.accepted).length,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -877,14 +911,18 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'equivalent',
-            equivalent: result.equivalent,
-            counterexample: result.counterexample,
-            explanation: result.equivalent
-              ? 'Both DFAs accept exactly the same language'
-              : `DFAs differ on string "${result.counterexample}"`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'equivalent',
+              equivalent: result.equivalent,
+              counterexample: result.counterexample,
+              explanation: result.equivalent
+                ? 'Both DFAs accept exactly the same language'
+                : `DFAs differ on string "${result.counterexample}"`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -894,15 +932,15 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
           states: ['a', 'b', 'c', 'd', 'e', 'f'],
           alphabet: ['0', '1'],
           transitions: {
-            'a': { '0': 'b', '1': 'c' },
-            'b': { '0': 'a', '1': 'd' },
-            'c': { '0': 'e', '1': 'f' },
-            'd': { '0': 'e', '1': 'f' },
-            'e': { '0': 'e', '1': 'f' },
-            'f': { '0': 'f', '1': 'f' }
+            a: { '0': 'b', '1': 'c' },
+            b: { '0': 'a', '1': 'd' },
+            c: { '0': 'e', '1': 'f' },
+            d: { '0': 'e', '1': 'f' },
+            e: { '0': 'e', '1': 'f' },
+            f: { '0': 'f', '1': 'f' },
           },
           start: 'a',
-          accept: ['c', 'd', 'e']
+          accept: ['c', 'd', 'e'],
         };
 
         const dfa = parseDFA(exampleDFA);
@@ -910,120 +948,132 @@ export async function executeautomataminimizer(toolCall: UnifiedToolCall): Promi
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            description: 'DFA minimization example showing state equivalence',
-            original_dfa: exampleDFA,
-            minimization_steps: steps,
-            minimized_dfa: dfaToObject(minimized),
-            explanation: [
-              'States b and c are not equivalent (different accepting status reachable)',
-              'States c and d are equivalent (same future behavior)',
-              'States e and f are equivalent (both accepting, same transitions)',
-              'Minimization merges equivalent states'
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              description: 'DFA minimization example showing state equivalence',
+              original_dfa: exampleDFA,
+              minimization_steps: steps,
+              minimized_dfa: dfaToObject(minimized),
+              explanation: [
+                'States b and c are not equivalent (different accepting status reachable)',
+                'States c and d are equivalent (same future behavior)',
+                'States e and f are equivalent (both accepting, same transitions)',
+                'Minimization merges equivalent states',
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'automata_minimizer',
-            description: 'DFA minimization and automata operations',
-            operations: {
-              minimize: 'Minimize DFA using Hopcroft partition refinement',
-              nfa_to_dfa: 'Convert NFA to DFA using subset construction',
-              regex_to_nfa: "Convert regex to NFA using Thompson's construction",
-              test: 'Test strings against an automaton',
-              equivalent: 'Check if two DFAs are equivalent'
-            },
-            algorithms: {
-              hopcroft: {
-                name: 'Hopcroft\'s Algorithm',
-                complexity: 'O(n log n) with proper implementation',
-                description: 'Partition refinement to find equivalent states'
+          content: JSON.stringify(
+            {
+              tool: 'automata_minimizer',
+              description: 'DFA minimization and automata operations',
+              operations: {
+                minimize: 'Minimize DFA using Hopcroft partition refinement',
+                nfa_to_dfa: 'Convert NFA to DFA using subset construction',
+                regex_to_nfa: "Convert regex to NFA using Thompson's construction",
+                test: 'Test strings against an automaton',
+                equivalent: 'Check if two DFAs are equivalent',
               },
-              subset_construction: {
-                name: 'Subset (Powerset) Construction',
-                complexity: 'O(2^n) worst case',
-                description: 'Each DFA state represents a set of NFA states'
+              algorithms: {
+                hopcroft: {
+                  name: "Hopcroft's Algorithm",
+                  complexity: 'O(n log n) with proper implementation',
+                  description: 'Partition refinement to find equivalent states',
+                },
+                subset_construction: {
+                  name: 'Subset (Powerset) Construction',
+                  complexity: 'O(2^n) worst case',
+                  description: 'Each DFA state represents a set of NFA states',
+                },
+                thompson: {
+                  name: "Thompson's Construction",
+                  complexity: 'O(m) where m is regex length',
+                  description: 'Build NFA with ε-transitions for each regex operator',
+                },
               },
-              thompson: {
-                name: "Thompson's Construction",
-                complexity: 'O(m) where m is regex length',
-                description: 'Build NFA with ε-transitions for each regex operator'
-              }
+              dfa_format: {
+                states: 'Array of state names',
+                alphabet: 'Array of input symbols',
+                transitions: '{ state: { symbol: next_state } }',
+                start: 'Start state name',
+                accept: 'Array of accepting state names',
+              },
             },
-            dfa_format: {
-              states: 'Array of state names',
-              alphabet: 'Array of input symbols',
-              transitions: '{ state: { symbol: next_state } }',
-              start: 'Start state name',
-              accept: 'Array of accepting state names'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                description: 'Minimize a DFA',
-                call: {
-                  operation: 'minimize',
-                  dfa: {
-                    states: ['q0', 'q1', 'q2', 'q3'],
-                    alphabet: ['a', 'b'],
-                    transitions: {
-                      q0: { a: 'q1', b: 'q2' },
-                      q1: { a: 'q1', b: 'q3' },
-                      q2: { a: 'q1', b: 'q2' },
-                      q3: { a: 'q1', b: 'q2' }
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  description: 'Minimize a DFA',
+                  call: {
+                    operation: 'minimize',
+                    dfa: {
+                      states: ['q0', 'q1', 'q2', 'q3'],
+                      alphabet: ['a', 'b'],
+                      transitions: {
+                        q0: { a: 'q1', b: 'q2' },
+                        q1: { a: 'q1', b: 'q3' },
+                        q2: { a: 'q1', b: 'q2' },
+                        q3: { a: 'q1', b: 'q2' },
+                      },
+                      start: 'q0',
+                      accept: ['q3'],
                     },
-                    start: 'q0',
-                    accept: ['q3']
-                  }
-                }
-              },
-              {
-                description: 'Convert regex to NFA',
-                call: {
-                  operation: 'regex_to_nfa',
-                  regex: '(a|b)*abb'
-                }
-              },
-              {
-                description: 'Test strings against regex',
-                call: {
-                  operation: 'test',
-                  regex: 'a*b+',
-                  test_strings: ['b', 'ab', 'aab', 'abb', 'a', '']
-                }
-              },
-              {
-                description: 'NFA to DFA conversion',
-                call: {
-                  operation: 'nfa_to_dfa',
-                  nfa: {
-                    states: ['q0', 'q1', 'q2'],
-                    alphabet: ['a', 'b', 'ε'],
-                    transitions: {
-                      q0: { a: ['q0', 'q1'], ε: ['q2'] },
-                      q1: { b: ['q2'] },
-                      q2: { a: ['q2'] }
+                  },
+                },
+                {
+                  description: 'Convert regex to NFA',
+                  call: {
+                    operation: 'regex_to_nfa',
+                    regex: '(a|b)*abb',
+                  },
+                },
+                {
+                  description: 'Test strings against regex',
+                  call: {
+                    operation: 'test',
+                    regex: 'a*b+',
+                    test_strings: ['b', 'ab', 'aab', 'abb', 'a', ''],
+                  },
+                },
+                {
+                  description: 'NFA to DFA conversion',
+                  call: {
+                    operation: 'nfa_to_dfa',
+                    nfa: {
+                      states: ['q0', 'q1', 'q2'],
+                      alphabet: ['a', 'b', 'ε'],
+                      transitions: {
+                        q0: { a: ['q0', 'q1'], ε: ['q2'] },
+                        q1: { b: ['q2'] },
+                        q2: { a: ['q2'] },
+                      },
+                      start: 'q0',
+                      accept: ['q2'],
                     },
-                    start: 'q0',
-                    accept: ['q2']
-                  }
-                }
-              }
-            ]
-          }, null, 2)
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 

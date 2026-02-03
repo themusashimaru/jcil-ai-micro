@@ -15,30 +15,61 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const climatemodelTool: UnifiedTool = {
   name: 'climate_model',
-  description: 'Climate system modeling - energy balance, carbon cycle, temperature projections, sea level rise. Supports RCP and SSP scenarios.',
+  description:
+    'Climate system modeling - energy balance, carbon cycle, temperature projections, sea level rise. Supports RCP and SSP scenarios.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['simulate', 'project', 'forcing', 'carbon_cycle', 'sea_level', 'feedback', 'sensitivity', 'info'],
-        description: 'Operation: simulate (run EBM), project (future temps), forcing (radiative forcing), carbon_cycle (CO2 dynamics), sea_level (rise projection), feedback (analyze feedbacks), sensitivity (climate sensitivity)'
+        enum: [
+          'simulate',
+          'project',
+          'forcing',
+          'carbon_cycle',
+          'sea_level',
+          'feedback',
+          'sensitivity',
+          'info',
+        ],
+        description:
+          'Operation: simulate (run EBM), project (future temps), forcing (radiative forcing), carbon_cycle (CO2 dynamics), sea_level (rise projection), feedback (analyze feedbacks), sensitivity (climate sensitivity)',
       },
       scenario: {
         type: 'string',
-        enum: ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5', 'SSP1-1.9', 'SSP1-2.6', 'SSP2-4.5', 'SSP3-7.0', 'SSP5-8.5'],
-        description: 'Climate scenario (RCP = Representative Concentration Pathway, SSP = Shared Socioeconomic Pathway)'
+        enum: [
+          'RCP2.6',
+          'RCP4.5',
+          'RCP6.0',
+          'RCP8.5',
+          'SSP1-1.9',
+          'SSP1-2.6',
+          'SSP2-4.5',
+          'SSP3-7.0',
+          'SSP5-8.5',
+        ],
+        description:
+          'Climate scenario (RCP = Representative Concentration Pathway, SSP = Shared Socioeconomic Pathway)',
       },
       base_year: { type: 'integer', description: 'Starting year for projections (default 2020)' },
       end_year: { type: 'integer', description: 'Ending year for projections (default 2100)' },
       co2_ppm: { type: 'number', description: 'CO2 concentration in ppm (default current ~420)' },
       emissions_gtc: { type: 'number', description: 'Annual CO2 emissions in GtC' },
-      initial_temp_anomaly: { type: 'number', description: 'Initial temperature anomaly above pre-industrial (°C)' },
-      climate_sensitivity: { type: 'number', description: 'Equilibrium climate sensitivity (°C per CO2 doubling, default 3.0)' },
-      ocean_heat_capacity: { type: 'number', description: 'Effective ocean heat capacity (W·yr/m²/K)' }
+      initial_temp_anomaly: {
+        type: 'number',
+        description: 'Initial temperature anomaly above pre-industrial (°C)',
+      },
+      climate_sensitivity: {
+        type: 'number',
+        description: 'Equilibrium climate sensitivity (°C per CO2 doubling, default 3.0)',
+      },
+      ocean_heat_capacity: {
+        type: 'number',
+        description: 'Effective ocean heat capacity (W·yr/m²/K)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -53,7 +84,7 @@ const CONSTANTS = {
   SOLAR_CONSTANT: 1361,
 
   // Earth's albedo (fraction reflected)
-  EARTH_ALBEDO: 0.30,
+  EARTH_ALBEDO: 0.3,
 
   // Pre-industrial CO2 (ppm)
   CO2_PREINDUSTRIAL: 280,
@@ -89,7 +120,7 @@ const CONSTANTS = {
   ATMOSPHERE_CARBON: 850,
 
   // Airborne fraction (fraction of emissions staying in atmosphere)
-  AIRBORNE_FRACTION: 0.45
+  AIRBORNE_FRACTION: 0.45,
 };
 
 // ============================================================================
@@ -118,7 +149,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
       return 10 * Math.exp(-0.05 * 30) * Math.exp(-0.1 * (year - 2050));
     },
     warming_2100_low: 0.9,
-    warming_2100_high: 2.3
+    warming_2100_high: 2.3,
   },
   'RCP4.5': {
     name: 'RCP4.5',
@@ -130,7 +161,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
       return 12 * Math.exp(-0.02 * (year - 2040));
     },
     warming_2100_low: 1.7,
-    warming_2100_high: 3.2
+    warming_2100_high: 3.2,
   },
   'RCP6.0': {
     name: 'RCP6.0',
@@ -142,7 +173,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
       return 16 * Math.exp(-0.03 * (year - 2060));
     },
     warming_2100_low: 2.0,
-    warming_2100_high: 3.7
+    warming_2100_high: 3.7,
   },
   'RCP8.5': {
     name: 'RCP8.5',
@@ -151,7 +182,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
     forcing_2100: 8.5,
     emissions_pathway: (year: number) => 10 + 0.3 * (year - 2020),
     warming_2100_low: 3.2,
-    warming_2100_high: 5.4
+    warming_2100_high: 5.4,
   },
   'SSP1-1.9': {
     name: 'SSP1-1.9',
@@ -163,7 +194,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
       return 10 * Math.exp(-0.03 * 10) * Math.exp(-0.15 * (year - 2030));
     },
     warming_2100_low: 1.0,
-    warming_2100_high: 1.8
+    warming_2100_high: 1.8,
   },
   'SSP1-2.6': {
     name: 'SSP1-2.6',
@@ -175,7 +206,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
       return 10 * Math.exp(-0.04 * 30) * Math.exp(-0.08 * (year - 2050));
     },
     warming_2100_low: 1.3,
-    warming_2100_high: 2.4
+    warming_2100_high: 2.4,
   },
   'SSP2-4.5': {
     name: 'SSP2-4.5',
@@ -187,7 +218,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
       return 11.5 * Math.exp(-0.025 * (year - 2050));
     },
     warming_2100_low: 2.1,
-    warming_2100_high: 3.5
+    warming_2100_high: 3.5,
   },
   'SSP3-7.0': {
     name: 'SSP3-7.0',
@@ -196,7 +227,7 @@ const SCENARIOS: Record<string, ScenarioData> = {
     forcing_2100: 7.0,
     emissions_pathway: (year: number) => 10 + 0.2 * (year - 2020),
     warming_2100_low: 2.8,
-    warming_2100_high: 4.6
+    warming_2100_high: 4.6,
   },
   'SSP5-8.5': {
     name: 'SSP5-8.5',
@@ -205,8 +236,8 @@ const SCENARIOS: Record<string, ScenarioData> = {
     forcing_2100: 8.5,
     emissions_pathway: (year: number) => 10 + 0.35 * (year - 2020),
     warming_2100_low: 3.3,
-    warming_2100_high: 5.7
-  }
+    warming_2100_high: 5.7,
+  },
 };
 
 // ============================================================================
@@ -225,8 +256,7 @@ function co2Forcing(co2_ppm: number): number {
  * Calculate radiative forcing from CH4 concentration
  * Simplified: ΔF ≈ 0.036 * (√M - √M₀) W/m²
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ch4Forcing(ch4_ppb: number, ch4_preindustrial: number = 722): number {
+export function ch4Forcing(ch4_ppb: number, ch4_preindustrial: number = 722): number {
   return 0.036 * (Math.sqrt(ch4_ppb) - Math.sqrt(ch4_preindustrial));
 }
 
@@ -234,8 +264,7 @@ function ch4Forcing(ch4_ppb: number, ch4_preindustrial: number = 722): number {
  * Calculate radiative forcing from N2O concentration
  * Simplified: ΔF ≈ 0.12 * (√N - √N₀) W/m²
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function n2oForcing(n2o_ppb: number, n2o_preindustrial: number = 270): number {
+export function n2oForcing(n2o_ppb: number, n2o_preindustrial: number = 270): number {
   return 0.12 * (Math.sqrt(n2o_ppb) - Math.sqrt(n2o_preindustrial));
 }
 
@@ -289,10 +318,11 @@ function runEBM(
 
   // Effective heat capacity (W·yr/m²/K)
   // Represents ocean thermal inertia
-  const heatCapacity = CONSTANTS.OCEAN_MIXED_LAYER *
-    CONSTANTS.WATER_DENSITY *
-    CONSTANTS.WATER_HEAT_CAPACITY *
-    CONSTANTS.OCEAN_FRACTION /
+  const heatCapacity =
+    (CONSTANTS.OCEAN_MIXED_LAYER *
+      CONSTANTS.WATER_DENSITY *
+      CONSTANTS.WATER_HEAT_CAPACITY *
+      CONSTANTS.OCEAN_FRACTION) /
     CONSTANTS.SECONDS_PER_YEAR;
 
   let state = { ...initialState };
@@ -304,14 +334,14 @@ function runEBM(
     const imbalance = forcing - lambda * state.temp_anomaly;
 
     // Temperature change: dT = (F - λT) * dt / C
-    const dT = imbalance * dt / heatCapacity;
+    const dT = (imbalance * dt) / heatCapacity;
 
     state = {
       temperature: CONSTANTS.TEMP_PREINDUSTRIAL + state.temp_anomaly + dT,
       temp_anomaly: state.temp_anomaly + dT,
       forcing,
       co2_ppm: state.co2_ppm, // Updated separately
-      heat_uptake: imbalance
+      heat_uptake: imbalance,
     };
 
     states.push({ ...state });
@@ -346,7 +376,7 @@ function runCarbonCycle(
   const times: number[] = [0];
 
   // Transfer rates (1/year)
-  const k_atm_ocean = 0.10; // Atmosphere to ocean surface
+  const k_atm_ocean = 0.1; // Atmosphere to ocean surface
   const k_ocean_atm = 0.08; // Ocean surface to atmosphere
   const k_ocean_deep = 0.02; // Ocean surface to deep
   const k_deep_ocean = 0.005; // Deep to ocean surface
@@ -380,7 +410,7 @@ function runCarbonCycle(
       ocean_surface: state.ocean_surface + dOceanSurface * dt,
       ocean_deep: state.ocean_deep + dOceanDeep * dt,
       land_biosphere: state.land_biosphere + dLand * dt,
-      co2_ppm: CONSTANTS.CO2_PREINDUSTRIAL + gtcToPpm(state.atmosphere + dAtm * dt - 590) // 590 GtC pre-industrial
+      co2_ppm: CONSTANTS.CO2_PREINDUSTRIAL + gtcToPpm(state.atmosphere + dAtm * dt - 590), // 590 GtC pre-industrial
     };
 
     states.push({ ...state });
@@ -439,7 +469,7 @@ function projectSeaLevel(
       glacier_ice: glacier,
       greenland_ice: greenland,
       antarctic_ice: antarctic,
-      total: thermal + glacier + greenland + antarctic
+      total: thermal + glacier + greenland + antarctic,
     });
   }
 
@@ -471,32 +501,32 @@ function analyzeClimateFeedbacks(climateSensitivity: number): FeedbackAnalysis[]
       name: 'Planck (blackbody)',
       value: planck,
       contribution: planck / (planck - netFeedback),
-      description: 'Increased thermal radiation as Earth warms - fundamental stabilizing feedback'
+      description: 'Increased thermal radiation as Earth warms - fundamental stabilizing feedback',
     },
     {
       name: 'Water vapor',
       value: 1.8,
-      contribution: 1.8 / netFeedback * (netFeedback / (-planck + netFeedback)),
-      description: 'Warmer air holds more water vapor (greenhouse gas) - strong positive feedback'
+      contribution: (1.8 / netFeedback) * (netFeedback / (-planck + netFeedback)),
+      description: 'Warmer air holds more water vapor (greenhouse gas) - strong positive feedback',
     },
     {
       name: 'Lapse rate',
       value: -0.6,
-      contribution: -0.6 / netFeedback * (netFeedback / (-planck + netFeedback)),
-      description: 'Changes in atmospheric temperature profile - weak negative feedback'
+      contribution: (-0.6 / netFeedback) * (netFeedback / (-planck + netFeedback)),
+      description: 'Changes in atmospheric temperature profile - weak negative feedback',
     },
     {
       name: 'Ice-albedo',
       value: 0.35,
-      contribution: 0.35 / netFeedback * (netFeedback / (-planck + netFeedback)),
-      description: 'Melting ice exposes darker surface - positive feedback'
+      contribution: (0.35 / netFeedback) * (netFeedback / (-planck + netFeedback)),
+      description: 'Melting ice exposes darker surface - positive feedback',
     },
     {
       name: 'Cloud',
       value: 0.45,
-      contribution: 0.45 / netFeedback * (netFeedback / (-planck + netFeedback)),
-      description: 'Changes in cloud cover and properties - uncertain positive feedback'
-    }
+      contribution: (0.45 / netFeedback) * (netFeedback / (-planck + netFeedback)),
+      description: 'Changes in cloud cover and properties - uncertain positive feedback',
+    },
   ];
 
   return feedbacks;
@@ -523,9 +553,10 @@ function computeClimateSensitivity(
   return {
     ecs,
     tcr,
-    description: `ECS = ${ecs.toFixed(2)}°C per CO2 doubling. ` +
+    description:
+      `ECS = ${ecs.toFixed(2)}°C per CO2 doubling. ` +
       `TCR = ${tcr.toFixed(2)}°C (transient response). ` +
-      `IPCC likely range: ECS 2.5-4.0°C, TCR 1.4-2.2°C.`
+      `IPCC likely range: ECS 2.5-4.0°C, TCR 1.4-2.2°C.`,
   };
 }
 
@@ -547,8 +578,7 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
       emissions_gtc = 10,
       initial_temp_anomaly = CONSTANTS.CURRENT_ANOMALY,
       climate_sensitivity = 3.0,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      ocean_heat_capacity
+      ocean_heat_capacity: _ocean_heat_capacity,
     } = args;
 
     const scenarioData = SCENARIOS[scenario] || SCENARIOS['SSP2-4.5'];
@@ -565,7 +595,7 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           temp_anomaly: initial_temp_anomaly,
           forcing: co2Forcing(co2_ppm),
           co2_ppm,
-          heat_uptake: 0.8 // Current imbalance
+          heat_uptake: 0.8, // Current imbalance
         };
 
         // Create forcing function from scenario
@@ -580,8 +610,9 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
         // Sample output
         const sampleInterval = Math.max(1, Math.floor(ebmResult.states.length / 20));
         const sampledStates = ebmResult.states.filter((_, i) => i % sampleInterval === 0);
-        const sampledTimes = ebmResult.times.filter((_, i) => i % sampleInterval === 0)
-          .map(t => base_year + t);
+        const sampledTimes = ebmResult.times
+          .filter((_, i) => i % sampleInterval === 0)
+          .map((t) => base_year + t);
 
         const finalState = ebmResult.states[ebmResult.states.length - 1];
 
@@ -594,22 +625,23 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           initial_conditions: {
             temp_anomaly: initial_temp_anomaly,
             co2_ppm,
-            forcing: co2Forcing(co2_ppm)
+            forcing: co2Forcing(co2_ppm),
           },
           final_state: {
             year: end_year,
             temp_anomaly: finalState.temp_anomaly,
             temperature: finalState.temperature,
-            forcing: finalState.forcing
+            forcing: finalState.forcing,
           },
           trajectory: sampledTimes.map((year, i) => ({
             year,
             temp_anomaly: sampledStates[i].temp_anomaly,
-            forcing: sampledStates[i].forcing
+            forcing: sampledStates[i].forcing,
           })),
           warming_rate: (finalState.temp_anomaly - initial_temp_anomaly) / years,
-          description: `EBM simulation under ${scenario}. ` +
-            `Warming from ${initial_temp_anomaly.toFixed(2)}°C to ${finalState.temp_anomaly.toFixed(2)}°C by ${end_year}.`
+          description:
+            `EBM simulation under ${scenario}. ` +
+            `Warming from ${initial_temp_anomaly.toFixed(2)}°C to ${finalState.temp_anomaly.toFixed(2)}°C by ${end_year}.`,
         };
         break;
       }
@@ -624,22 +656,31 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           warming_range: {
             low: scenarioData.warming_2100_low,
             high: scenarioData.warming_2100_high,
-            central: (scenarioData.warming_2100_low + scenarioData.warming_2100_high) / 2
+            central: (scenarioData.warming_2100_low + scenarioData.warming_2100_high) / 2,
           },
-          current_anomaly: initial_temp_anomaly
+          current_anomaly: initial_temp_anomaly,
         };
 
         // Generate yearly projections
-        const trajectory: { year: number; anomaly_low: number; anomaly_central: number; anomaly_high: number }[] = [];
+        const trajectory: {
+          year: number;
+          anomaly_low: number;
+          anomaly_central: number;
+          anomaly_high: number;
+        }[] = [];
         for (let year = base_year; year <= end_year; year += 5) {
           const progress = (year - base_year) / years;
-          const low = initial_temp_anomaly + progress * (projectedWarming.warming_range.low - initial_temp_anomaly);
-          const high = initial_temp_anomaly + progress * (projectedWarming.warming_range.high - initial_temp_anomaly);
+          const low =
+            initial_temp_anomaly +
+            progress * (projectedWarming.warming_range.low - initial_temp_anomaly);
+          const high =
+            initial_temp_anomaly +
+            progress * (projectedWarming.warming_range.high - initial_temp_anomaly);
           trajectory.push({
             year,
             anomaly_low: low,
             anomaly_central: (low + high) / 2,
-            anomaly_high: high
+            anomaly_high: high,
           });
         }
 
@@ -648,11 +689,12 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           ...projectedWarming,
           trajectory,
           remaining_carbon_budget: {
-            '1.5C': Math.max(0, 400 - (initial_temp_anomaly - 1.1) * 400 / 0.4),
-            '2.0C': Math.max(0, 1150 - (initial_temp_anomaly - 1.1) * 1150 / 0.9)
+            '1.5C': Math.max(0, 400 - ((initial_temp_anomaly - 1.1) * 400) / 0.4),
+            '2.0C': Math.max(0, 1150 - ((initial_temp_anomaly - 1.1) * 1150) / 0.9),
           },
-          description: `${scenarioData.name}: ${scenarioData.description}. ` +
-            `Projects ${projectedWarming.warming_range.low.toFixed(1)}-${projectedWarming.warming_range.high.toFixed(1)}°C warming by 2100.`
+          description:
+            `${scenarioData.name}: ${scenarioData.description}. ` +
+            `Projects ${projectedWarming.warming_range.low.toFixed(1)}-${projectedWarming.warming_range.high.toFixed(1)}°C warming by 2100.`,
         };
         break;
       }
@@ -664,7 +706,7 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           ch4: ch4Forcing(1900),
           n2o: n2oForcing(330),
           aerosols: -0.9,
-          total: totalForcing(co2_ppm)
+          total: totalForcing(co2_ppm),
         };
 
         // Forcing for CO2 doubling scenarios
@@ -677,13 +719,14 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           pre_industrial_co2_ppm: CONSTANTS.CO2_PREINDUSTRIAL,
           radiative_forcing: forcing,
           reference_forcings: {
-            'co2_doubling': forcingDoubled,
-            'co2_tripling': forcingTripled
+            co2_doubling: forcingDoubled,
+            co2_tripling: forcingTripled,
           },
           formula: 'ΔF_CO2 = 5.35 × ln(C/C₀) W/m²',
           equilibrium_temp_change: forcing.total / (CONSTANTS.FORCING_2XCO2 / climate_sensitivity),
-          description: `Current forcing: ${forcing.total.toFixed(2)} W/m² (CO2: ${forcing.co2.toFixed(2)}, ` +
-            `CH4: ${forcing.ch4.toFixed(2)}, N2O: ${forcing.n2o.toFixed(2)}, aerosols: ${forcing.aerosols})`
+          description:
+            `Current forcing: ${forcing.total.toFixed(2)} W/m² (CO2: ${forcing.co2.toFixed(2)}, ` +
+            `CH4: ${forcing.ch4.toFixed(2)}, N2O: ${forcing.n2o.toFixed(2)}, aerosols: ${forcing.aerosols})`,
         };
         break;
       }
@@ -695,7 +738,7 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           ocean_surface: 900,
           ocean_deep: 37000,
           land_biosphere: 2000,
-          co2_ppm
+          co2_ppm,
         };
 
         const carbonResult = runCarbonCycle(
@@ -708,8 +751,9 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
         // Sample output
         const sampleInterval = Math.max(1, Math.floor(carbonResult.states.length / 20));
         const sampledStates = carbonResult.states.filter((_, i) => i % sampleInterval === 0);
-        const sampledTimes = carbonResult.times.filter((_, i) => i % sampleInterval === 0)
-          .map(t => base_year + t);
+        const sampledTimes = carbonResult.times
+          .filter((_, i) => i % sampleInterval === 0)
+          .map((t) => base_year + t);
 
         const finalCarbon = carbonResult.states[carbonResult.states.length - 1];
 
@@ -719,17 +763,18 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           initial_state: initialCarbon,
           final_state: {
             year: end_year,
-            ...finalCarbon
+            ...finalCarbon,
           },
           trajectory: sampledTimes.map((year, i) => ({
             year,
             co2_ppm: sampledStates[i].co2_ppm,
-            atmosphere_gtc: sampledStates[i].atmosphere
+            atmosphere_gtc: sampledStates[i].atmosphere,
           })),
           cumulative_emissions: years * emissions_gtc, // Simplified
           airborne_fraction: CONSTANTS.AIRBORNE_FRACTION,
-          description: `Carbon cycle under ${scenario}. ` +
-            `CO2 rises from ${co2_ppm.toFixed(0)} to ${finalCarbon.co2_ppm.toFixed(0)} ppm by ${end_year}.`
+          description:
+            `Carbon cycle under ${scenario}. ` +
+            `CO2 rises from ${co2_ppm.toFixed(0)} to ${finalCarbon.co2_ppm.toFixed(0)} ppm by ${end_year}.`,
         };
         break;
       }
@@ -741,8 +786,11 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
 
         for (let year = base_year; year <= end_year; year++) {
           const progress = (year - base_year) / years;
-          const warming = initial_temp_anomaly +
-            progress * ((scenarioData.warming_2100_low + scenarioData.warming_2100_high) / 2 - initial_temp_anomaly);
+          const warming =
+            initial_temp_anomaly +
+            progress *
+              ((scenarioData.warming_2100_low + scenarioData.warming_2100_high) / 2 -
+                initial_temp_anomaly);
           tempTrajectory.push(warming);
           yearTrajectory.push(year);
         }
@@ -766,18 +814,18 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
               thermal_expansion_m: finalSLR.thermal_expansion,
               glacier_melt_m: finalSLR.glacier_ice,
               greenland_m: finalSLR.greenland_ice,
-              antarctic_m: finalSLR.antarctic_ice
-            }
+              antarctic_m: finalSLR.antarctic_ice,
+            },
           },
           trajectory: sampledYears.map((year, i) => ({
             year,
-            total_cm: sampledSLR[i].total * 100
+            total_cm: sampledSLR[i].total * 100,
           })),
           impacts: {
             coastal_flooding: finalSLR.total > 0.5 ? 'Significant increase' : 'Moderate increase',
-            affected_population: `~${Math.round(finalSLR.total * 200)} million at risk`
+            affected_population: `~${Math.round(finalSLR.total * 200)} million at risk`,
           },
-          description: `Sea level rise under ${scenario}: ${(finalSLR.total * 100).toFixed(1)} cm by ${end_year}.`
+          description: `Sea level rise under ${scenario}: ${(finalSLR.total * 100).toFixed(1)} cm by ${end_year}.`,
         };
         break;
       }
@@ -790,10 +838,15 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           climate_sensitivity,
           feedback_parameter: CONSTANTS.FORCING_2XCO2 / climate_sensitivity,
           feedbacks,
-          net_positive_feedback: feedbacks.filter(f => f.value > 0).reduce((s, f) => s + f.value, 0),
-          net_negative_feedback: feedbacks.filter(f => f.value < 0).reduce((s, f) => s + f.value, 0),
-          description: `Climate feedbacks for ECS=${climate_sensitivity}°C. ` +
-            `Water vapor (+1.8 W/m²/K) is the strongest positive feedback.`
+          net_positive_feedback: feedbacks
+            .filter((f) => f.value > 0)
+            .reduce((s, f) => s + f.value, 0),
+          net_negative_feedback: feedbacks
+            .filter((f) => f.value < 0)
+            .reduce((s, f) => s + f.value, 0),
+          description:
+            `Climate feedbacks for ECS=${climate_sensitivity}°C. ` +
+            `Water vapor (+1.8 W/m²/K) is the strongest positive feedback.`,
         };
         break;
       }
@@ -810,17 +863,17 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
           default_estimate: sensitivity,
           range: {
             low: { ecs: lowSensitivity.ecs, tcr: lowSensitivity.tcr },
-            high: { ecs: highSensitivity.ecs, tcr: highSensitivity.tcr }
+            high: { ecs: highSensitivity.ecs, tcr: highSensitivity.tcr },
           },
           ipcc_ar6_range: {
             ecs: { likely: [2.5, 4.0], very_likely: [2.0, 5.0] },
-            tcr: { likely: [1.4, 2.2], very_likely: [1.0, 2.5] }
+            tcr: { likely: [1.4, 2.2], very_likely: [1.0, 2.5] },
           },
           definitions: {
             ecs: 'Equilibrium Climate Sensitivity - warming after CO2 doubles and system reaches equilibrium',
-            tcr: 'Transient Climate Response - warming at time of CO2 doubling (70 years at 1%/yr increase)'
+            tcr: 'Transient Climate Response - warming at time of CO2 doubling (70 years at 1%/yr increase)',
           },
-          description: sensitivity.description
+          description: sensitivity.description,
         };
         break;
       }
@@ -830,18 +883,19 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
         result = {
           operation: 'info',
           tool: 'climate_model',
-          description: 'Climate system modeling tool implementing energy balance models, carbon cycle dynamics, and scenario projections',
+          description:
+            'Climate system modeling tool implementing energy balance models, carbon cycle dynamics, and scenario projections',
           scenarios: Object.entries(SCENARIOS).map(([key, s]) => ({
             name: key,
             description: s.description,
             warming_2100: `${s.warming_2100_low}-${s.warming_2100_high}°C`,
-            co2_2100: `${s.co2_2100} ppm`
+            co2_2100: `${s.co2_2100} ppm`,
           })),
           physics: {
             energy_balance: 'C dT/dt = F - λT (ocean thermal inertia delays warming)',
             radiative_forcing: 'ΔF = 5.35 × ln(CO2/280) W/m²',
             climate_sensitivity: 'ECS = F_2x / λ (typically 2.5-4°C per doubling)',
-            carbon_cycle: 'Multi-box model with atmosphere, ocean, and land reservoirs'
+            carbon_cycle: 'Multi-box model with atmosphere, ocean, and land reservoirs',
           },
           operations: {
             simulate: 'Run energy balance model',
@@ -850,29 +904,32 @@ export async function executeclimatemodel(toolCall: UnifiedToolCall): Promise<Un
             carbon_cycle: 'Model CO2 concentration changes',
             sea_level: 'Project sea level rise',
             feedback: 'Analyze climate feedbacks',
-            sensitivity: 'Climate sensitivity analysis'
+            sensitivity: 'Climate sensitivity analysis',
           },
           current_state: {
             co2_ppm: CONSTANTS.CO2_CURRENT,
             temp_anomaly: `${CONSTANTS.CURRENT_ANOMALY}°C above pre-industrial`,
-            forcing: `${totalForcing(CONSTANTS.CO2_CURRENT).toFixed(2)} W/m²`
-          }
+            forcing: `${totalForcing(CONSTANTS.CO2_CURRENT).toFixed(2)} W/m²`,
+          },
         };
       }
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: errorMessage,
-        tool: 'climate_model',
-        hint: 'Use operation="info" for documentation'
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: errorMessage,
+          tool: 'climate_model',
+          hint: 'Use operation="info" for documentation',
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
   }
 }

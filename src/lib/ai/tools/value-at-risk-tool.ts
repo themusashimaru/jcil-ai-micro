@@ -33,7 +33,7 @@ interface VaRResult {
   horizon: number;
   var: number;
   varPercent: number;
-  cvar?: number;  // Conditional VaR / Expected Shortfall
+  cvar?: number; // Conditional VaR / Expected Shortfall
   cvarPercent?: number;
   details: Record<string, unknown>;
 }
@@ -59,8 +59,7 @@ interface BacktestResult {
 // ============================================================================
 
 // Standard normal CDF approximation (Abramowitz and Stegun)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalCDF(x: number): number {
+export function normalCDF(x: number): number {
   const a1 = 0.254829592;
   const a2 = -0.284496736;
   const a3 = 1.421413741;
@@ -72,7 +71,7 @@ function normalCDF(x: number): number {
   x = Math.abs(x) / Math.sqrt(2);
 
   const t = 1.0 / (1.0 + p * x);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
   return 0.5 * (1.0 + sign * y);
 }
@@ -83,24 +82,18 @@ function normalInverseCDF(p: number): number {
   if (p >= 1) return Infinity;
 
   const a = [
-    -3.969683028665376e+01, 2.209460984245205e+02,
-    -2.759285104469687e+02, 1.383577518672690e+02,
-    -3.066479806614716e+01, 2.506628277459239e+00
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
   ];
   const b = [
-    -5.447609879822406e+01, 1.615858368580409e+02,
-    -1.556989798598866e+02, 6.680131188771972e+01,
-    -1.328068155288572e+01
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
   ];
   const c = [
-    -7.784894002430293e-03, -3.223964580411365e-01,
-    -2.400758277161838e+00, -2.549732539343734e+00,
-    4.374664141464968e+00, 2.938163982698783e+00
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
   ];
-  const d = [
-    7.784695709041462e-03, 3.224671290700398e-01,
-    2.445134137142996e+00, 3.754408661907416e+00
-  ];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
 
   const pLow = 0.02425;
   const pHigh = 1 - pLow;
@@ -109,17 +102,23 @@ function normalInverseCDF(p: number): number {
 
   if (p < pLow) {
     q = Math.sqrt(-2 * Math.log(p));
-    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-           ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    return (
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
   } else if (p <= pHigh) {
     q = p - 0.5;
     r = q * q;
-    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
-           (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+    return (
+      ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+    );
   } else {
     q = Math.sqrt(-2 * Math.log(1 - p));
-    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    return (
+      -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
   }
 }
 
@@ -150,8 +149,7 @@ function percentile(values: number[], p: number): number {
 }
 
 // Calculate covariance
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function covariance(x: number[], y: number[]): number {
+export function covariance(x: number[], y: number[]): number {
   if (x.length !== y.length || x.length < 2) return 0;
   const mx = mean(x);
   const my = mean(y);
@@ -163,8 +161,7 @@ function covariance(x: number[], y: number[]): number {
 }
 
 // Calculate correlation
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function correlation(x: number[], y: number[]): number {
+export function correlation(x: number[], y: number[]): number {
   const cov = covariance(x, y);
   const sx = stdDev(x);
   const sy = stdDev(y);
@@ -173,10 +170,11 @@ function correlation(x: number[], y: number[]): number {
 }
 
 // Cholesky decomposition for correlation matrix
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function choleskyDecomposition(matrix: number[][]): number[][] {
+export function choleskyDecomposition(matrix: number[][]): number[][] {
   const n = matrix.length;
-  const L: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+  const L: number[][] = Array(n)
+    .fill(null)
+    .map(() => Array(n).fill(0));
 
   for (let i = 0; i < n; i++) {
     for (let j = 0; j <= i; j++) {
@@ -210,7 +208,7 @@ function randomNormal(): number {
 // Historical VaR - uses actual historical returns
 function historicalVaR(portfolio: Portfolio, confidence: number, horizon: number = 1): VaRResult {
   const returns = portfolio.historicalReturns || generateSampleReturns(portfolio);
-  const adjustedReturns = returns.map(r => r * Math.sqrt(horizon));
+  const adjustedReturns = returns.map((r) => r * Math.sqrt(horizon));
 
   // Sort returns (losses are negative)
   const sorted = [...adjustedReturns].sort((a, b) => a - b);
@@ -240,8 +238,8 @@ function historicalVaR(portfolio: Portfolio, confidence: number, horizon: number
       bestReturn: sorted[sorted.length - 1],
       meanReturn: mean(returns),
       stdDev: stdDev(returns),
-      description: 'Historical simulation using actual past returns'
-    }
+      description: 'Historical simulation using actual past returns',
+    },
   };
 }
 
@@ -262,8 +260,8 @@ function parametricVaR(portfolio: Portfolio, confidence: number, horizon: number
   const varAmount = varReturn * portfolio.value;
 
   // CVaR for normal distribution
-  const phi = Math.exp(-zScore * zScore / 2) / Math.sqrt(2 * Math.PI);
-  const cvarReturn = -scaledReturn + scaledVolatility * phi / (1 - confidence);
+  const phi = Math.exp((-zScore * zScore) / 2) / Math.sqrt(2 * Math.PI);
+  const cvarReturn = -scaledReturn + (scaledVolatility * phi) / (1 - confidence);
   const cvarAmount = cvarReturn * portfolio.value;
 
   return {
@@ -280,8 +278,8 @@ function parametricVaR(portfolio: Portfolio, confidence: number, horizon: number
       portfolioVolatility: portfolioVolatility * 100,
       scaledVolatility: scaledVolatility * 100,
       assumptions: 'Normal distribution of returns',
-      description: 'Variance-covariance method assuming normality'
-    }
+      description: 'Variance-covariance method assuming normality',
+    },
   };
 }
 
@@ -334,13 +332,17 @@ function monteCarloVaR(
       percentile5: percentile(sorted, 5) * 100,
       percentile95: percentile(sorted, 95) * 100,
       model: 'Geometric Brownian Motion',
-      description: 'Monte Carlo simulation with GBM model'
-    }
+      description: 'Monte Carlo simulation with GBM model',
+    },
   };
 }
 
 // Cornish-Fisher VaR (adjusts for skewness and kurtosis)
-function cornishFisherVaR(portfolio: Portfolio, confidence: number, horizon: number = 1): VaRResult {
+function cornishFisherVaR(
+  portfolio: Portfolio,
+  confidence: number,
+  horizon: number = 1
+): VaRResult {
   const returns = portfolio.historicalReturns || generateSampleReturns(portfolio);
 
   const mu = mean(returns) * horizon;
@@ -349,7 +351,8 @@ function cornishFisherVaR(portfolio: Portfolio, confidence: number, horizon: num
   // Calculate skewness and excess kurtosis
   const m = mean(returns);
   const s = stdDev(returns);
-  let skew = 0, kurt = 0;
+  let skew = 0,
+    kurt = 0;
 
   if (s > 0) {
     for (const r of returns) {
@@ -358,15 +361,16 @@ function cornishFisherVaR(portfolio: Portfolio, confidence: number, horizon: num
       kurt += z * z * z * z;
     }
     skew /= returns.length;
-    kurt = kurt / returns.length - 3;  // Excess kurtosis
+    kurt = kurt / returns.length - 3; // Excess kurtosis
   }
 
   // Cornish-Fisher expansion
   const z = normalInverseCDF(1 - confidence);
-  const zCF = z +
-    (z * z - 1) * skew / 6 +
-    (z * z * z - 3 * z) * kurt / 24 -
-    (2 * z * z * z - 5 * z) * skew * skew / 36;
+  const zCF =
+    z +
+    ((z * z - 1) * skew) / 6 +
+    ((z * z * z - 3 * z) * kurt) / 24 -
+    ((2 * z * z * z - 5 * z) * skew * skew) / 36;
 
   const varReturn = -(mu + zCF * sigma);
   const varAmount = varReturn * portfolio.value;
@@ -382,13 +386,16 @@ function cornishFisherVaR(portfolio: Portfolio, confidence: number, horizon: num
       excessKurtosis: kurt,
       normalZScore: z,
       adjustedZScore: zCF,
-      description: 'Cornish-Fisher expansion adjusting for non-normality'
-    }
+      description: 'Cornish-Fisher expansion adjusting for non-normality',
+    },
   };
 }
 
 // Component VaR - contribution of each asset
-function componentVaR(portfolio: Portfolio, confidence: number): {
+function componentVaR(
+  portfolio: Portfolio,
+  confidence: number
+): {
   totalVaR: number;
   componentVaRs: { asset: string; contribution: number; percent: number }[];
 } {
@@ -397,7 +404,7 @@ function componentVaR(portfolio: Portfolio, confidence: number): {
   const totalVaR = portfolioVolatility * Math.abs(zScore) * portfolio.value;
 
   // Marginal VaR for each asset
-  const componentVaRs = portfolio.assets.map(asset => {
+  const componentVaRs = portfolio.assets.map((asset) => {
     const assetVol = asset.volatility || 0.2;
     const weight = asset.weight;
 
@@ -408,7 +415,7 @@ function componentVaR(portfolio: Portfolio, confidence: number): {
     return {
       asset: asset.symbol,
       contribution: componentContribution,
-      percent: totalVaR > 0 ? (componentContribution / totalVaR) * 100 : 0
+      percent: totalVaR > 0 ? (componentContribution / totalVaR) * 100 : 0,
     };
   });
 
@@ -432,12 +439,14 @@ function incrementalVaR(
   const newPortfolio: Portfolio = {
     ...portfolio,
     assets: [...portfolio.assets, newAsset],
-    value: portfolio.value
+    value: portfolio.value,
   };
 
   // Renormalize weights
   const totalWeight = newPortfolio.assets.reduce((sum, a) => sum + a.weight, 0);
-  newPortfolio.assets.forEach(a => { a.weight /= totalWeight; });
+  newPortfolio.assets.forEach((a) => {
+    a.weight /= totalWeight;
+  });
 
   const newResult = parametricVaR(newPortfolio, confidence);
 
@@ -445,7 +454,7 @@ function incrementalVaR(
     currentVaR: currentResult.var,
     newVaR: newResult.var,
     incrementalVaR: newResult.var - currentResult.var,
-    percentChange: ((newResult.var - currentResult.var) / currentResult.var) * 100
+    percentChange: ((newResult.var - currentResult.var) / currentResult.var) * 100,
   };
 }
 
@@ -453,7 +462,10 @@ function incrementalVaR(
 // STRESS TESTING
 // ============================================================================
 
-function stressTest(portfolio: Portfolio, scenarios: Record<string, Record<string, number>>): StressTestResult[] {
+function stressTest(
+  portfolio: Portfolio,
+  scenarios: Record<string, Record<string, number>>
+): StressTestResult[] {
   const results: StressTestResult[] = [];
 
   for (const [scenarioName, shocks] of Object.entries(scenarios)) {
@@ -472,7 +484,7 @@ function stressTest(portfolio: Portfolio, scenarios: Record<string, Record<strin
       scenario: scenarioName,
       portfolioLoss: totalLoss,
       lossPercent: (totalLoss / portfolio.value) * 100,
-      assetImpacts
+      assetImpacts,
     });
   }
 
@@ -481,37 +493,37 @@ function stressTest(portfolio: Portfolio, scenarios: Record<string, Record<strin
 
 function predefinedScenarios(): Record<string, Record<string, number>> {
   return {
-    'market_crash_2008': {
-      market: -0.40,
+    market_crash_2008: {
+      market: -0.4,
       bonds: 0.05,
-      gold: 0.20,
-      real_estate: -0.30
+      gold: 0.2,
+      real_estate: -0.3,
     },
-    'covid_march_2020': {
+    covid_march_2020: {
       market: -0.34,
       bonds: 0.03,
       gold: 0.08,
-      oil: -0.60
+      oil: -0.6,
     },
-    'interest_rate_shock': {
-      market: -0.10,
+    interest_rate_shock: {
+      market: -0.1,
       bonds: -0.15,
       tech: -0.15,
-      utilities: -0.08
+      utilities: -0.08,
     },
-    'inflation_surge': {
+    inflation_surge: {
       market: -0.05,
-      bonds: -0.20,
+      bonds: -0.2,
       gold: 0.15,
       commodities: 0.25,
-      tips: 0.05
+      tips: 0.05,
     },
-    'tech_bubble_burst': {
-      tech: -0.50,
-      market: -0.20,
-      bonds: 0.10,
-      value: -0.10
-    }
+    tech_bubble_burst: {
+      tech: -0.5,
+      market: -0.2,
+      bonds: 0.1,
+      value: -0.1,
+    },
   };
 }
 
@@ -529,7 +541,7 @@ function backtestVaR(
   const violationIndicators: number[] = [];
 
   for (let i = 0; i < n; i++) {
-    const loss = -historicalReturns[i];  // Convert return to loss
+    const loss = -historicalReturns[i]; // Convert return to loss
     const exceeded = loss > varEstimates[i] ? 1 : 0;
     violationIndicators.push(exceeded);
     violations += exceeded;
@@ -540,14 +552,19 @@ function backtestVaR(
   const expectedRate = 1 - confidence;
 
   // Kupiec POF test (proportion of failures)
-  const kupiecLR = -2 * Math.log(
-    Math.pow(1 - expectedRate, n - violations) * Math.pow(expectedRate, violations) /
-    (Math.pow(1 - violationRate, n - violations) * Math.pow(violationRate, violations))
-  );
+  const kupiecLR =
+    -2 *
+    Math.log(
+      (Math.pow(1 - expectedRate, n - violations) * Math.pow(expectedRate, violations)) /
+        (Math.pow(1 - violationRate, n - violations) * Math.pow(violationRate, violations))
+    );
   const kupiecPValue = 1 - chiSquaredCDF(kupiecLR, 1);
 
   // Christoffersen independence test (simplified)
-  let n00 = 0, n01 = 0, n10 = 0, n11 = 0;
+  let n00 = 0,
+    n01 = 0,
+    n10 = 0,
+    n11 = 0;
   for (let i = 1; i < violationIndicators.length; i++) {
     const prev = violationIndicators[i - 1];
     const curr = violationIndicators[i];
@@ -557,16 +574,21 @@ function backtestVaR(
     else n11++;
   }
 
-  const pi0 = (n00 + n01) > 0 ? n01 / (n00 + n01) : 0;
-  const pi1 = (n10 + n11) > 0 ? n11 / (n10 + n11) : 0;
+  const pi0 = n00 + n01 > 0 ? n01 / (n00 + n01) : 0;
+  const pi1 = n10 + n11 > 0 ? n11 / (n10 + n11) : 0;
   const pi = (n01 + n11) / (n00 + n01 + n10 + n11);
 
   let christoffersenLR = 0;
   if (pi > 0 && pi < 1 && pi0 > 0 && pi0 < 1 && pi1 > 0 && pi1 < 1) {
-    christoffersenLR = -2 * Math.log(
-      (Math.pow(1 - pi, n00 + n10) * Math.pow(pi, n01 + n11)) /
-      (Math.pow(1 - pi0, n00) * Math.pow(pi0, n01) * Math.pow(1 - pi1, n10) * Math.pow(pi1, n11))
-    );
+    christoffersenLR =
+      -2 *
+      Math.log(
+        (Math.pow(1 - pi, n00 + n10) * Math.pow(pi, n01 + n11)) /
+          (Math.pow(1 - pi0, n00) *
+            Math.pow(pi0, n01) *
+            Math.pow(1 - pi1, n10) *
+            Math.pow(pi1, n11))
+      );
   }
   const christoffersenPValue = 1 - chiSquaredCDF(christoffersenLR, 1);
 
@@ -584,8 +606,8 @@ function backtestVaR(
       expectedRate: expectedRate * 100,
       excessViolations: violations - expectedViolations,
       kupiecStatistic: kupiecLR,
-      christoffersenStatistic: christoffersenLR
-    }
+      christoffersenStatistic: christoffersenLR,
+    },
   };
 }
 
@@ -621,15 +643,9 @@ function gamma(z: number): number {
   // Lanczos approximation
   const g = 7;
   const c = [
-    0.99999999999980993,
-    676.5203681218851,
-    -1259.1392167224028,
-    771.32342877765313,
-    -176.61502916214059,
-    12.507343278686905,
-    -0.13857109526572012,
-    9.9843695780195716e-6,
-    1.5056327351493116e-7
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
+    1.5056327351493116e-7,
   ];
 
   if (z < 0.5) {
@@ -661,7 +677,7 @@ function calculatePortfolioStats(portfolio: Portfolio): {
 
   // Expected return
   for (const asset of portfolio.assets) {
-    portfolioReturn += asset.weight * (asset.expectedReturn || 0.08);  // Default 8%
+    portfolioReturn += asset.weight * (asset.expectedReturn || 0.08); // Default 8%
   }
 
   // Portfolio variance (using correlation if available)
@@ -697,7 +713,7 @@ function calculatePortfolioStats(portfolio: Portfolio): {
 
   return {
     portfolioReturn,
-    portfolioVolatility: Math.sqrt(Math.max(0, portfolioVariance))
+    portfolioVolatility: Math.sqrt(Math.max(0, portfolioVariance)),
   };
 }
 
@@ -718,18 +734,18 @@ function generateSampleReturns(portfolio: Portfolio, days: number = 252): number
 function generateSamplePortfolio(): Portfolio {
   return {
     assets: [
-      { symbol: 'SPY', weight: 0.4, expectedReturn: 0.10, volatility: 0.18 },
+      { symbol: 'SPY', weight: 0.4, expectedReturn: 0.1, volatility: 0.18 },
       { symbol: 'BND', weight: 0.3, expectedReturn: 0.04, volatility: 0.05 },
       { symbol: 'GLD', weight: 0.15, expectedReturn: 0.05, volatility: 0.15 },
-      { symbol: 'QQQ', weight: 0.15, expectedReturn: 0.12, volatility: 0.22 }
+      { symbol: 'QQQ', weight: 0.15, expectedReturn: 0.12, volatility: 0.22 },
     ],
     value: 1000000,
     correlationMatrix: [
       [1.0, 0.1, 0.05, 0.85],
       [0.1, 1.0, -0.1, 0.05],
       [0.05, -0.1, 1.0, 0.1],
-      [0.85, 0.05, 0.1, 1.0]
-    ]
+      [0.85, 0.05, 0.1, 1.0],
+    ],
   };
 }
 
@@ -739,59 +755,68 @@ function generateSamplePortfolio(): Portfolio {
 
 export const valueatriskTool: UnifiedTool = {
   name: 'value_at_risk',
-  description: 'Value at Risk (VaR) calculation - Historical, Parametric, Monte Carlo, CVaR, stress testing',
+  description:
+    'Value at Risk (VaR) calculation - Historical, Parametric, Monte Carlo, CVaR, stress testing',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'calculate', 'historical', 'parametric', 'monte_carlo',
-          'cornish_fisher', 'component', 'incremental',
-          'stress_test', 'backtest', 'compare', 'info'
+          'calculate',
+          'historical',
+          'parametric',
+          'monte_carlo',
+          'cornish_fisher',
+          'component',
+          'incremental',
+          'stress_test',
+          'backtest',
+          'compare',
+          'info',
         ],
-        description: 'VaR operation to perform'
+        description: 'VaR operation to perform',
       },
       confidence: {
         type: 'number',
-        description: 'Confidence level (e.g., 0.95, 0.99)'
+        description: 'Confidence level (e.g., 0.95, 0.99)',
       },
       horizon: {
         type: 'number',
-        description: 'Holding period in days'
+        description: 'Holding period in days',
       },
       portfolio: {
         type: 'object',
         properties: {
           assets: {
             type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                symbol: { type: 'string' },
-                weight: { type: 'number' },
-                expectedReturn: { type: 'number' },
-                volatility: { type: 'number' }
-              }
-            }
+            items: { type: 'object' },
+            description:
+              'Portfolio assets. Each asset has: symbol (string), weight (number), expectedReturn (number), volatility (number)',
           },
           value: { type: 'number' },
-          historicalReturns: { type: 'array', items: { type: 'number' } }
+          historicalReturns: { type: 'array', items: { type: 'number' } },
         },
-        description: 'Portfolio definition'
+        description: 'Portfolio definition',
       },
       simulations: {
         type: 'number',
-        description: 'Number of Monte Carlo simulations'
+        description: 'Number of Monte Carlo simulations',
       },
       scenario: {
         type: 'string',
-        enum: ['market_crash_2008', 'covid_march_2020', 'interest_rate_shock', 'inflation_surge', 'tech_bubble_burst'],
-        description: 'Predefined stress scenario'
-      }
+        enum: [
+          'market_crash_2008',
+          'covid_march_2020',
+          'interest_rate_shock',
+          'inflation_surge',
+          'tech_bubble_burst',
+        ],
+        description: 'Predefined stress scenario',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -811,11 +836,15 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const result = historicalVaR(portfolio, confidence, horizon);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'historical_var',
-            portfolioValue: portfolio.value,
-            result
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'historical_var',
+              portfolioValue: portfolio.value,
+              result,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -823,11 +852,15 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const result = parametricVaR(portfolio, confidence, horizon);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'parametric_var',
-            portfolioValue: portfolio.value,
-            result
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'parametric_var',
+              portfolioValue: portfolio.value,
+              result,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -836,11 +869,15 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const result = monteCarloVaR(portfolio, confidence, horizon, simulations);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'monte_carlo_var',
-            portfolioValue: portfolio.value,
-            result
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'monte_carlo_var',
+              portfolioValue: portfolio.value,
+              result,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -848,11 +885,15 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const result = cornishFisherVaR(portfolio, confidence, horizon);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'cornish_fisher_var',
-            portfolioValue: portfolio.value,
-            result
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'cornish_fisher_var',
+              portfolioValue: portfolio.value,
+              result,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -860,13 +901,17 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const result = componentVaR(portfolio, confidence);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'component_var',
-            portfolioValue: portfolio.value,
-            totalVaR: result.totalVaR,
-            components: result.componentVaRs,
-            interpretation: 'Shows risk contribution of each asset to total VaR'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'component_var',
+              portfolioValue: portfolio.value,
+              totalVaR: result.totalVaR,
+              components: result.componentVaRs,
+              interpretation: 'Shows risk contribution of each asset to total VaR',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -874,18 +919,22 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const newAsset = args.new_asset || {
           symbol: 'CRYPTO',
           weight: 0.1,
-          expectedReturn: 0.20,
-          volatility: 0.60
+          expectedReturn: 0.2,
+          volatility: 0.6,
         };
         const result = incrementalVaR(portfolio, newAsset, confidence);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'incremental_var',
-            newAsset,
-            result,
-            interpretation: 'Shows how adding a position changes portfolio VaR'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'incremental_var',
+              newAsset,
+              result,
+              interpretation: 'Shows how adding a position changes portfolio VaR',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -898,13 +947,19 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const results = stressTest(portfolio, scenarios);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'stress_test',
-            portfolioValue: portfolio.value,
-            scenarios: results,
-            worstCase: results.reduce((worst, r) =>
-              r.portfolioLoss > worst.portfolioLoss ? r : worst, results[0])
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'stress_test',
+              portfolioValue: portfolio.value,
+              scenarios: results,
+              worstCase: results.reduce(
+                (worst, r) => (r.portfolioLoss > worst.portfolioLoss ? r : worst),
+                results[0]
+              ),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -919,14 +974,18 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
         const result = backtestVaR(returns, varEstimates, confidence);
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'backtest',
-            confidence,
-            result,
-            interpretation: result.passed
-              ? 'VaR model passed backtesting'
-              : 'VaR model failed backtesting - consider revising'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'backtest',
+              confidence,
+              result,
+              interpretation: result.passed
+                ? 'VaR model passed backtesting'
+                : 'VaR model failed backtesting - consider revising',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -939,38 +998,43 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            portfolioValue: portfolio.value,
-            confidence,
-            horizon,
-            methods: {
-              historical: {
-                var: historical.var,
-                varPercent: historical.varPercent,
-                cvar: historical.cvar
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              portfolioValue: portfolio.value,
+              confidence,
+              horizon,
+              methods: {
+                historical: {
+                  var: historical.var,
+                  varPercent: historical.varPercent,
+                  cvar: historical.cvar,
+                },
+                parametric: {
+                  var: parametric.var,
+                  varPercent: parametric.varPercent,
+                  cvar: parametric.cvar,
+                },
+                monte_carlo: {
+                  var: monteCarlo.var,
+                  varPercent: monteCarlo.varPercent,
+                  cvar: monteCarlo.cvar,
+                },
+                cornish_fisher: {
+                  var: cornishFisher.var,
+                  varPercent: cornishFisher.varPercent,
+                },
               },
-              parametric: {
-                var: parametric.var,
-                varPercent: parametric.varPercent,
-                cvar: parametric.cvar
+              summary: {
+                averageVaR:
+                  (historical.var + parametric.var + monteCarlo.var + cornishFisher.var) / 4,
+                maxVaR: Math.max(historical.var, parametric.var, monteCarlo.var, cornishFisher.var),
+                minVaR: Math.min(historical.var, parametric.var, monteCarlo.var, cornishFisher.var),
               },
-              monte_carlo: {
-                var: monteCarlo.var,
-                varPercent: monteCarlo.varPercent,
-                cvar: monteCarlo.cvar
-              },
-              cornish_fisher: {
-                var: cornishFisher.var,
-                varPercent: cornishFisher.varPercent
-              }
             },
-            summary: {
-              averageVaR: (historical.var + parametric.var + monteCarlo.var + cornishFisher.var) / 4,
-              maxVaR: Math.max(historical.var, parametric.var, monteCarlo.var, cornishFisher.var),
-              minVaR: Math.min(historical.var, parametric.var, monteCarlo.var, cornishFisher.var)
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -978,48 +1042,60 @@ export async function executevalueatrisk(toolCall: UnifiedToolCall): Promise<Uni
       default: {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'value_at_risk',
-            description: 'Comprehensive Value at Risk (VaR) analysis for portfolio risk management',
-            methods: {
-              historical: {
-                description: 'Uses actual historical returns distribution',
-                pros: ['No distributional assumptions', 'Captures fat tails'],
-                cons: ['Requires extensive data', 'Past may not predict future']
+          content: JSON.stringify(
+            {
+              tool: 'value_at_risk',
+              description:
+                'Comprehensive Value at Risk (VaR) analysis for portfolio risk management',
+              methods: {
+                historical: {
+                  description: 'Uses actual historical returns distribution',
+                  pros: ['No distributional assumptions', 'Captures fat tails'],
+                  cons: ['Requires extensive data', 'Past may not predict future'],
+                },
+                parametric: {
+                  description: 'Assumes normal distribution (variance-covariance)',
+                  pros: ['Fast computation', 'Easy to implement'],
+                  cons: ['Assumes normality', 'Underestimates tail risk'],
+                },
+                monte_carlo: {
+                  description: 'Simulates random paths using stochastic models',
+                  pros: ['Flexible', 'Can model complex instruments'],
+                  cons: ['Computationally intensive', 'Model-dependent'],
+                },
+                cornish_fisher: {
+                  description: 'Adjusts for skewness and kurtosis',
+                  pros: ['Better for non-normal returns', 'Semi-parametric'],
+                  cons: ['Requires higher moments estimation'],
+                },
               },
-              parametric: {
-                description: 'Assumes normal distribution (variance-covariance)',
-                pros: ['Fast computation', 'Easy to implement'],
-                cons: ['Assumes normality', 'Underestimates tail risk']
+              relatedMeasures: {
+                cvar: 'Conditional VaR (Expected Shortfall) - average loss beyond VaR',
+                componentVaR: 'Risk contribution of each portfolio component',
+                incrementalVaR: 'Change in VaR from adding a new position',
+                marginalVaR: 'Rate of change of VaR with respect to position size',
               },
-              monte_carlo: {
-                description: 'Simulates random paths using stochastic models',
-                pros: ['Flexible', 'Can model complex instruments'],
-                cons: ['Computationally intensive', 'Model-dependent']
-              },
-              cornish_fisher: {
-                description: 'Adjusts for skewness and kurtosis',
-                pros: ['Better for non-normal returns', 'Semi-parametric'],
-                cons: ['Requires higher moments estimation']
-              }
+              regulatoryFrameworks: [
+                'Basel III/IV - banks use VaR for market risk capital',
+                'Solvency II - insurers use VaR for capital requirements',
+                'SEC Rule 15c3-1 - broker-dealers report VaR',
+              ],
+              operations: [
+                'calculate',
+                'historical',
+                'parametric',
+                'monte_carlo',
+                'cornish_fisher',
+                'component',
+                'incremental',
+                'stress_test',
+                'backtest',
+                'compare',
+              ],
             },
-            relatedMeasures: {
-              cvar: 'Conditional VaR (Expected Shortfall) - average loss beyond VaR',
-              componentVaR: 'Risk contribution of each portfolio component',
-              incrementalVaR: 'Change in VaR from adding a new position',
-              marginalVaR: 'Rate of change of VaR with respect to position size'
-            },
-            regulatoryFrameworks: [
-              'Basel III/IV - banks use VaR for market risk capital',
-              'Solvency II - insurers use VaR for capital requirements',
-              'SEC Rule 15c3-1 - broker-dealers report VaR'
-            ],
-            operations: [
-              'calculate', 'historical', 'parametric', 'monte_carlo',
-              'cornish_fisher', 'component', 'incremental',
-              'stress_test', 'backtest', 'compare'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
     }

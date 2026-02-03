@@ -29,11 +29,10 @@ function cAdd(a: Complex, b: Complex): Complex {
   return { re: a.re + b.re, im: a.im + b.im };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cMul(a: Complex, b: Complex): Complex {
+export function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -59,12 +58,14 @@ function createUniformSuperposition(numQubits: number): QuantumState {
   const amp = 1 / Math.sqrt(dim);
   return {
     numQubits,
-    amplitudes: Array(dim).fill(null).map(() => complex(amp))
+    amplitudes: Array(dim)
+      .fill(null)
+      .map(() => complex(amp)),
   };
 }
 
 function getProbabilities(state: QuantumState): number[] {
-  return state.amplitudes.map(a => cAbsSq(a));
+  return state.amplitudes.map((a) => cAbsSq(a));
 }
 
 function measureState(state: QuantumState): number {
@@ -90,7 +91,7 @@ function measureState(state: QuantumState): number {
 function applyOracle(state: QuantumState, markedStates: number[]): QuantumState {
   const newAmplitudes = state.amplitudes.map((amp, idx) => {
     if (markedStates.includes(idx)) {
-      return cScale(amp, -1);  // Flip sign
+      return cScale(amp, -1); // Flip sign
     }
     return amp;
   });
@@ -113,7 +114,7 @@ function applyDiffusion(state: QuantumState): QuantumState {
   mean = cScale(mean, 1 / dim);
 
   // Apply inversion about mean: 2*mean - amplitude
-  const newAmplitudes = state.amplitudes.map(amp => {
+  const newAmplitudes = state.amplitudes.map((amp) => {
     return cAdd(cScale(mean, 2), cScale(amp, -1));
   });
 
@@ -142,7 +143,11 @@ function optimalIterations(searchSpaceSize: number, numSolutions: number): numbe
 /**
  * Calculate success probability after k iterations
  */
-function successProbability(searchSpaceSize: number, numSolutions: number, iterations: number): number {
+function successProbability(
+  searchSpaceSize: number,
+  numSolutions: number,
+  iterations: number
+): number {
   if (numSolutions === 0) return 0;
   if (numSolutions >= searchSpaceSize) return 1;
 
@@ -219,7 +224,7 @@ function runGrover(
     finalState: state,
     stateHistory,
     measurements,
-    successCount
+    successCount,
   };
 }
 
@@ -230,7 +235,10 @@ function runGrover(
 /**
  * Create oracle for single marked state
  */
-function createSingleOracle(numQubits: number, target: number): {
+function createSingleOracle(
+  numQubits: number,
+  target: number
+): {
   description: string;
   circuit: string[];
 } {
@@ -258,7 +266,7 @@ function createSingleOracle(numQubits: number, target: number): {
 
   return {
     description: `Oracle marks state |${targetBits}⟩`,
-    circuit
+    circuit,
   };
 }
 
@@ -271,7 +279,7 @@ function createDiffusionCircuit(numQubits: number): string[] {
     `X on all ${numQubits} qubits`,
     `Multi-controlled Z`,
     `X on all ${numQubits} qubits`,
-    `H on all ${numQubits} qubits`
+    `H on all ${numQubits} qubits`,
   ];
 }
 
@@ -279,7 +287,10 @@ function createDiffusionCircuit(numQubits: number): string[] {
 // ANALYSIS FUNCTIONS
 // ============================================================================
 
-function analyzeGrover(searchSpaceSize: number, numSolutions: number): {
+function analyzeGrover(
+  searchSpaceSize: number,
+  numSolutions: number
+): {
   classicalComplexity: string;
   quantumComplexity: string;
   speedup: number;
@@ -299,7 +310,7 @@ function analyzeGrover(searchSpaceSize: number, numSolutions: number): {
   for (let k = 0; k <= maxK; k++) {
     iterations.push({
       k,
-      probability: successProbability(N, M, k)
+      probability: successProbability(N, M, k),
     });
   }
 
@@ -309,7 +320,7 @@ function analyzeGrover(searchSpaceSize: number, numSolutions: number): {
     speedup: Math.sqrt(N / M),
     optimalIterations: optIter,
     expectedSuccessProbability: successProbability(N, M, optIter),
-    iterations
+    iterations,
   };
 }
 
@@ -326,23 +337,25 @@ export const groveralgorithmTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['search', 'simulate', 'analyze', 'circuit', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       search_space_size: { type: 'number', description: 'Size of search space (power of 2)' },
       num_qubits: { type: 'number', description: 'Number of qubits' },
       marked_states: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Indices of marked/target states'
+        description: 'Indices of marked/target states',
       },
       iterations: { type: 'number', description: 'Number of Grover iterations (default: optimal)' },
-      show_history: { type: 'boolean', description: 'Show state evolution history' }
+      show_history: { type: 'boolean', description: 'Show state evolution history' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executegroveralgorithm(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -353,47 +366,52 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'grover_algorithm',
-            description: "Grover's quantum search algorithm - finds marked items in O(√N) queries",
-            operations: {
-              search: {
-                description: 'Run Grover search and return measurement results',
-                parameters: ['num_qubits', 'marked_states', 'iterations']
+          content: JSON.stringify(
+            {
+              tool: 'grover_algorithm',
+              description:
+                "Grover's quantum search algorithm - finds marked items in O(√N) queries",
+              operations: {
+                search: {
+                  description: 'Run Grover search and return measurement results',
+                  parameters: ['num_qubits', 'marked_states', 'iterations'],
+                },
+                simulate: {
+                  description: 'Full simulation with state evolution tracking',
+                  parameters: ['num_qubits', 'marked_states', 'show_history'],
+                },
+                analyze: {
+                  description: 'Analyze complexity and optimal parameters',
+                  parameters: ['search_space_size', 'marked_states.length'],
+                },
+                circuit: {
+                  description: 'Generate circuit description',
+                  parameters: ['num_qubits', 'marked_states'],
+                },
               },
-              simulate: {
-                description: 'Full simulation with state evolution tracking',
-                parameters: ['num_qubits', 'marked_states', 'show_history']
+              algorithm: {
+                steps: [
+                  '1. Initialize: |ψ⟩ = H^⊗n|0⟩^⊗n = uniform superposition',
+                  '2. Apply Oracle: O_f flips sign of marked states',
+                  '3. Apply Diffusion: D = 2|s⟩⟨s| - I (inversion about mean)',
+                  '4. Repeat steps 2-3 for O(√N/M) iterations',
+                  '5. Measure to obtain marked state with high probability',
+                ],
+                complexity: {
+                  classical: 'O(N) expected queries',
+                  quantum: 'O(√N) queries',
+                  speedup: 'Quadratic',
+                },
               },
-              analyze: {
-                description: 'Analyze complexity and optimal parameters',
-                parameters: ['search_space_size', 'marked_states.length']
+              formulas: {
+                optimalIterations: 'k = floor(π/4 × √(N/M))',
+                successProbability: 'P(success) = sin²((2k+1)θ) where θ = arcsin(√(M/N))',
+                amplitudeEvolution: 'After k iterations: marked amplitude ≈ sin((2k+1)θ)',
               },
-              circuit: {
-                description: 'Generate circuit description',
-                parameters: ['num_qubits', 'marked_states']
-              }
             },
-            algorithm: {
-              steps: [
-                '1. Initialize: |ψ⟩ = H^⊗n|0⟩^⊗n = uniform superposition',
-                '2. Apply Oracle: O_f flips sign of marked states',
-                '3. Apply Diffusion: D = 2|s⟩⟨s| - I (inversion about mean)',
-                '4. Repeat steps 2-3 for O(√N/M) iterations',
-                '5. Measure to obtain marked state with high probability'
-              ],
-              complexity: {
-                classical: 'O(N) expected queries',
-                quantum: 'O(√N) queries',
-                speedup: 'Quadratic'
-              }
-            },
-            formulas: {
-              optimalIterations: 'k = floor(π/4 × √(N/M))',
-              successProbability: 'P(success) = sin²((2k+1)θ) where θ = arcsin(√(M/N))',
-              amplitudeEvolution: 'After k iterations: marked amplitude ≈ sin((2k+1)θ)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -434,28 +452,35 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'search',
-            parameters: {
-              numQubits,
-              searchSpaceSize,
-              markedStates: markedStates.map((s: number) => s.toString(2).padStart(numQubits, '0')),
-              iterations: args.iterations ?? optimalIterations(searchSpaceSize, markedStates.length)
-            },
-            result: {
-              mostLikelyOutcome: mostLikely.toString(2).padStart(numQubits, '0'),
-              isCorrect: markedStates.includes(mostLikely),
-              successRate: result.successCount / result.measurements.length,
-              measurementDistribution: outcomeCounts
-            },
-            theory: {
-              expectedSuccessProbability: successProbability(
+          content: JSON.stringify(
+            {
+              operation: 'search',
+              parameters: {
+                numQubits,
                 searchSpaceSize,
-                markedStates.length,
-                args.iterations ?? optimalIterations(searchSpaceSize, markedStates.length)
-              )
-            }
-          }, null, 2)
+                markedStates: markedStates.map((s: number) =>
+                  s.toString(2).padStart(numQubits, '0')
+                ),
+                iterations:
+                  args.iterations ?? optimalIterations(searchSpaceSize, markedStates.length),
+              },
+              result: {
+                mostLikelyOutcome: mostLikely.toString(2).padStart(numQubits, '0'),
+                isCorrect: markedStates.includes(mostLikely),
+                successRate: result.successCount / result.measurements.length,
+                measurementDistribution: outcomeCounts,
+              },
+              theory: {
+                expectedSuccessProbability: successProbability(
+                  searchSpaceSize,
+                  markedStates.length,
+                  args.iterations ?? optimalIterations(searchSpaceSize, markedStates.length)
+                ),
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -465,7 +490,7 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
         let markedStates = args.marked_states;
 
         if (!markedStates || markedStates.length === 0) {
-          markedStates = [3];  // Mark |0011⟩ by default
+          markedStates = [3]; // Mark |0011⟩ by default
         }
 
         markedStates = markedStates.filter((s: number) => s >= 0 && s < searchSpaceSize);
@@ -475,7 +500,10 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
         const showHistory = args.show_history !== false;
 
         const finalProbs = getProbabilities(result.finalState);
-        const markedProbability = markedStates.reduce((sum: number, idx: number) => sum + finalProbs[idx], 0);
+        const markedProbability = markedStates.reduce(
+          (sum: number, idx: number) => sum + finalProbs[idx],
+          0
+        );
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response: any = {
@@ -485,31 +513,35 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
             searchSpaceSize,
             markedStates: markedStates.map((s: number) => ({
               decimal: s,
-              binary: s.toString(2).padStart(numQubits, '0')
+              binary: s.toString(2).padStart(numQubits, '0'),
             })),
-            iterations: result.stateHistory.length - 1
+            iterations: result.stateHistory.length - 1,
           },
           result: {
             markedStateProbability: markedProbability,
             finalProbabilities: Object.fromEntries(
-              finalProbs.map((p, i) => [i.toString(2).padStart(numQubits, '0'), p]).filter(([_, p]) => (p as number) > 1e-6)
+              finalProbs
+                .map((p, i) => [i.toString(2).padStart(numQubits, '0'), p])
+                .filter(([_, p]) => (p as number) > 1e-6)
             ),
-            amplification: markedProbability / (markedStates.length / searchSpaceSize)
-          }
+            amplification: markedProbability / (markedStates.length / searchSpaceSize),
+          },
         };
 
         if (showHistory) {
-          response.evolution = result.stateHistory.map(h => ({
+          response.evolution = result.stateHistory.map((h) => ({
             iteration: h.iteration,
             markedProbability: Object.entries(h.probabilities)
-              .filter(([key]) => markedStates.some((s: number) => s.toString(2).padStart(numQubits, '0') === key))
-              .reduce((sum, [_, prob]) => sum + (prob as number), 0)
+              .filter(([key]) =>
+                markedStates.some((s: number) => s.toString(2).padStart(numQubits, '0') === key)
+              )
+              .reduce((sum, [_, prob]) => sum + (prob as number), 0),
           }));
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify(response, null, 2)
+          content: JSON.stringify(response, null, 2),
         };
       }
 
@@ -521,35 +553,40 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            parameters: {
-              searchSpaceSize,
-              numSolutions,
-              numQubits: Math.ceil(Math.log2(searchSpaceSize))
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              parameters: {
+                searchSpaceSize,
+                numSolutions,
+                numQubits: Math.ceil(Math.log2(searchSpaceSize)),
+              },
+              complexity: {
+                classical: analysis.classicalComplexity,
+                quantum: analysis.quantumComplexity,
+                speedup: `${analysis.speedup.toFixed(2)}x (quadratic)`,
+              },
+              optimalParameters: {
+                iterations: analysis.optimalIterations,
+                successProbability: analysis.expectedSuccessProbability,
+              },
+              probabilityByIteration: analysis.iterations.map(({ k, probability }) => ({
+                iteration: k,
+                probability: probability,
+                isOptimal: k === analysis.optimalIterations,
+              })),
+              insights: {
+                tooFewIterations: 'Under-amplification: marked state not sufficiently amplified',
+                tooManyIterations: 'Over-rotation: probability decreases past optimal point',
+                multipleSolutions:
+                  numSolutions > 1
+                    ? `With ${numSolutions} solutions, fewer iterations needed (${analysis.optimalIterations} vs ${optimalIterations(searchSpaceSize, 1)} for single solution)`
+                    : 'Single solution search',
+              },
             },
-            complexity: {
-              classical: analysis.classicalComplexity,
-              quantum: analysis.quantumComplexity,
-              speedup: `${analysis.speedup.toFixed(2)}x (quadratic)`
-            },
-            optimalParameters: {
-              iterations: analysis.optimalIterations,
-              successProbability: analysis.expectedSuccessProbability
-            },
-            probabilityByIteration: analysis.iterations.map(({ k, probability }) => ({
-              iteration: k,
-              probability: probability,
-              isOptimal: k === analysis.optimalIterations
-            })),
-            insights: {
-              tooFewIterations: 'Under-amplification: marked state not sufficiently amplified',
-              tooManyIterations: 'Over-rotation: probability decreases past optimal point',
-              multipleSolutions: numSolutions > 1
-                ? `With ${numSolutions} solutions, fewer iterations needed (${analysis.optimalIterations} vs ${optimalIterations(searchSpaceSize, 1)} for single solution)`
-                : 'Single solution search'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -567,35 +604,38 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'circuit',
-            parameters: {
-              numQubits,
-              markedState: markedStates[0].toString(2).padStart(numQubits, '0'),
-              iterations: optIter
-            },
-            circuit: {
-              initialization: [
-                `Initialize ${numQubits} qubits to |0⟩`,
-                `Apply H gate to all qubits (create uniform superposition)`
-              ],
-              groverIteration: {
-                oracle: oracle.circuit,
-                diffusion: diffusion,
-                note: `Repeat ${optIter} times`
+          content: JSON.stringify(
+            {
+              operation: 'circuit',
+              parameters: {
+                numQubits,
+                markedState: markedStates[0].toString(2).padStart(numQubits, '0'),
+                iterations: optIter,
               },
-              measurement: [
-                `Measure all ${numQubits} qubits in computational basis`
-              ]
+              circuit: {
+                initialization: [
+                  `Initialize ${numQubits} qubits to |0⟩`,
+                  `Apply H gate to all qubits (create uniform superposition)`,
+                ],
+                groverIteration: {
+                  oracle: oracle.circuit,
+                  diffusion: diffusion,
+                  note: `Repeat ${optIter} times`,
+                },
+                measurement: [`Measure all ${numQubits} qubits in computational basis`],
+              },
+              gateCount: {
+                hadamard: numQubits + 2 * numQubits * optIter,
+                pauliX:
+                  2 * (numQubits - markedStates[0].toString(2).split('1').length + 1) * optIter,
+                multiControlledZ: 2 * optIter,
+                total: 'O(n × √N) gates',
+              },
+              circuitDiagram: generateCircuitDiagram(numQubits, optIter),
             },
-            gateCount: {
-              hadamard: numQubits + 2 * numQubits * optIter,
-              pauliX: 2 * (numQubits - markedStates[0].toString(2).split('1').length + 1) * optIter,
-              multiControlledZ: 2 * optIter,
-              total: 'O(n × √N) gates'
-            },
-            circuitDiagram: generateCircuitDiagram(numQubits, optIter)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -604,9 +644,9 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown operation: ${operation}`,
-            availableOperations: ['search', 'simulate', 'analyze', 'circuit', 'info']
+            availableOperations: ['search', 'simulate', 'analyze', 'circuit', 'info'],
           }),
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -614,7 +654,7 @@ export async function executegroveralgorithm(toolCall: UnifiedToolCall): Promise
     return {
       toolCallId: id,
       content: `Error in Grover's algorithm: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }
@@ -624,7 +664,9 @@ function generateCircuitDiagram(numQubits: number, iterations: number): string[]
   diagram.push('Circuit Structure:');
   diagram.push('');
 
-  const qLines = Array(numQubits).fill(0).map((_, i) => `q${i}: `);
+  const qLines = Array(numQubits)
+    .fill(0)
+    .map((_, i) => `q${i}: `);
 
   // Initial H gates
   for (let i = 0; i < numQubits; i++) {

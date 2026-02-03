@@ -136,7 +136,7 @@ function initCluster(config: {
     crdtState: new Map(),
     messageLog: [],
     partitions: [],
-    convergenceHistory: []
+    convergenceHistory: [],
   };
 
   // Add self node
@@ -149,7 +149,7 @@ function initCluster(config: {
     metadata: {},
     version: 1,
     suspicionLevel: 0,
-    incarnation: 0
+    incarnation: 0,
   });
 
   // Add initial nodes
@@ -164,7 +164,7 @@ function initCluster(config: {
         metadata: node.metadata || {},
         version: 1,
         suspicionLevel: 0,
-        incarnation: 0
+        incarnation: 0,
       });
     }
   }
@@ -177,9 +177,7 @@ function selectGossipTargets(cluster: Cluster, excludeNodes?: Set<string>): stri
   const candidates: string[] = [];
 
   for (const [nodeId, node] of cluster.nodes) {
-    if (nodeId !== cluster.selfId &&
-        node.status === 'alive' &&
-        !excludeNodes?.has(nodeId)) {
+    if (nodeId !== cluster.selfId && node.status === 'alive' && !excludeNodes?.has(nodeId)) {
       candidates.push(nodeId);
     }
   }
@@ -200,12 +198,15 @@ function shuffleArray<T>(arr: T[]): void {
 // GOSSIP OPERATIONS
 // ============================================================================
 
-function gossip(clusterId: string, options?: {
-  rumorId?: string;
-  content?: unknown;
-  mode?: GossipMode;
-  targetNodes?: string[];
-}): {
+function gossip(
+  clusterId: string,
+  options?: {
+    rumorId?: string;
+    content?: unknown;
+    mode?: GossipMode;
+    targetNodes?: string[];
+  }
+): {
   messagesSent: number;
   targets: string[];
   mode: GossipMode;
@@ -237,7 +238,7 @@ function gossip(clusterId: string, options?: {
       originNode: cluster.selfId,
       createdAt: Date.now(),
       infectedNodes: new Set([cluster.selfId]),
-      version: 1
+      version: 1,
     });
   }
 
@@ -253,11 +254,11 @@ function gossip(clusterId: string, options?: {
       payload: {
         membership: serializeMembership(cluster),
         rumorId,
-        rumorContent: rumorId ? cluster.rumors.get(rumorId)?.content : undefined
+        rumorContent: rumorId ? cluster.rumors.get(rumorId)?.content : undefined,
       },
       timestamp: Date.now(),
       ttl: 10,
-      version: selfNode.version
+      version: selfNode.version,
     };
 
     cluster.messageLog.push(message);
@@ -291,7 +292,7 @@ function gossip(clusterId: string, options?: {
         rumorId,
         coveredNodes: rumor.infectedNodes.size,
         totalNodes: cluster.nodes.size,
-        percentage: (rumor.infectedNodes.size / cluster.nodes.size) * 100
+        percentage: (rumor.infectedNodes.size / cluster.nodes.size) * 100,
       });
     }
   }
@@ -301,16 +302,25 @@ function gossip(clusterId: string, options?: {
     targets,
     mode,
     rumorId,
-    responses
+    responses,
   };
 }
 
-function receiveGossip(clusterId: string, message: {
-  senderId: string;
-  membership?: Array<{ id: string; status: NodeStatus; heartbeat: number; version: number; incarnation: number }>;
-  rumorId?: string;
-  rumorContent?: unknown;
-}): {
+function receiveGossip(
+  clusterId: string,
+  message: {
+    senderId: string;
+    membership?: Array<{
+      id: string;
+      status: NodeStatus;
+      heartbeat: number;
+      version: number;
+      incarnation: number;
+    }>;
+    rumorId?: string;
+    rumorContent?: unknown;
+  }
+): {
   accepted: boolean;
   updates: Array<{ nodeId: string; change: string }>;
   newRumor: boolean;
@@ -348,14 +358,16 @@ function receiveGossip(clusterId: string, message: {
           metadata: {},
           version: memberInfo.version,
           suspicionLevel: 0,
-          incarnation: memberInfo.incarnation
+          incarnation: memberInfo.incarnation,
         });
         updates.push({ nodeId: memberInfo.id, change: 'discovered' });
       } else {
         // Update existing node if newer information
-        if (memberInfo.incarnation > existingNode.incarnation ||
-            (memberInfo.incarnation === existingNode.incarnation &&
-             memberInfo.version > existingNode.version)) {
+        if (
+          memberInfo.incarnation > existingNode.incarnation ||
+          (memberInfo.incarnation === existingNode.incarnation &&
+            memberInfo.version > existingNode.version)
+        ) {
           existingNode.status = memberInfo.status;
           existingNode.heartbeat = memberInfo.heartbeat;
           existingNode.version = memberInfo.version;
@@ -377,7 +389,7 @@ function receiveGossip(clusterId: string, message: {
         originNode: message.senderId,
         createdAt: Date.now(),
         infectedNodes: new Set([message.senderId, cluster.selfId]),
-        version: 1
+        version: 1,
       };
       cluster.rumors.set(message.rumorId, rumor);
       newRumor = true;
@@ -389,7 +401,7 @@ function receiveGossip(clusterId: string, message: {
   return {
     accepted: true,
     updates,
-    newRumor
+    newRumor,
   };
 }
 
@@ -397,10 +409,13 @@ function receiveGossip(clusterId: string, message: {
 // FAILURE DETECTION
 // ============================================================================
 
-function detectFailures(clusterId: string, options?: {
-  phiThreshold?: number;
-  usePhiAccrual?: boolean;
-}): FailureDetectionResult {
+function detectFailures(
+  clusterId: string,
+  options?: {
+    phiThreshold?: number;
+    usePhiAccrual?: boolean;
+  }
+): FailureDetectionResult {
   const cluster = clusters.get(clusterId);
   if (!cluster) {
     throw new Error(`Cluster ${clusterId} not found`);
@@ -484,7 +499,7 @@ function erf(x: number): number {
   x = Math.abs(x);
 
   const t = 1 / (1 + p * x);
-  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
   return sign * y;
 }
@@ -493,7 +508,10 @@ function erf(x: number): number {
 // ANTI-ENTROPY
 // ============================================================================
 
-function runAntiEntropy(clusterId: string, targetNodeId?: string): {
+function runAntiEntropy(
+  clusterId: string,
+  targetNodeId?: string
+): {
   synchronized: boolean;
   differences: Array<{ key: string; action: 'added' | 'updated' | 'removed' }>;
   messagesExchanged: number;
@@ -512,13 +530,13 @@ function runAntiEntropy(clusterId: string, targetNodeId?: string): {
   const differences: Array<{ key: string; action: 'added' | 'updated' | 'removed' }> = [];
 
   // Compare membership state
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const [nodeId, _node] of cluster.nodes) {
     // Simulate detecting differences
-    if (Math.random() < 0.1) { // 10% chance of difference
+    if (Math.random() < 0.1) {
+      // 10% chance of difference
       differences.push({
         key: `node:${nodeId}`,
-        action: Math.random() < 0.5 ? 'updated' : 'added'
+        action: Math.random() < 0.5 ? 'updated' : 'added',
       });
     }
   }
@@ -537,7 +555,7 @@ function runAntiEntropy(clusterId: string, targetNodeId?: string): {
     payload: { differences },
     timestamp: Date.now(),
     ttl: 1,
-    version: 1
+    version: 1,
   };
 
   cluster.messageLog.push(message);
@@ -545,7 +563,7 @@ function runAntiEntropy(clusterId: string, targetNodeId?: string): {
   return {
     synchronized: differences.length === 0,
     differences,
-    messagesExchanged: 2 // Request + response
+    messagesExchanged: 2, // Request + response
   };
 }
 
@@ -553,12 +571,15 @@ function runAntiEntropy(clusterId: string, targetNodeId?: string): {
 // PROPAGATION SIMULATION
 // ============================================================================
 
-function simulatePropagation(clusterId: string, options?: {
-  rumorId?: string;
-  content?: unknown;
-  maxRounds?: number;
-  mode?: GossipMode;
-}): PropagationSimulation {
+function simulatePropagation(
+  clusterId: string,
+  options?: {
+    rumorId?: string;
+    content?: unknown;
+    maxRounds?: number;
+    mode?: GossipMode;
+  }
+): PropagationSimulation {
   const cluster = clusters.get(clusterId);
   if (!cluster) {
     throw new Error(`Cluster ${clusterId} not found`);
@@ -586,7 +607,7 @@ function simulatePropagation(clusterId: string, options?: {
     const infectedList = Array.from(infected);
     for (const nodeId of infectedList) {
       // Select random targets
-      const candidates = nodeIds.filter(n => n !== nodeId);
+      const candidates = nodeIds.filter((n) => n !== nodeId);
       shuffleArray(candidates);
       const targets = candidates.slice(0, fanout);
 
@@ -617,7 +638,7 @@ function simulatePropagation(clusterId: string, options?: {
       infectedCount: infected.size,
       newInfections: newlyInfected,
       messages: roundMessages,
-      coverage
+      coverage,
     });
 
     // Check for convergence
@@ -636,7 +657,7 @@ function simulatePropagation(clusterId: string, options?: {
     rounds,
     convergenceRound,
     totalMessages,
-    convergenceTime: convergenceRound ? convergenceRound * cluster.gossipInterval : -1
+    convergenceTime: convergenceRound ? convergenceRound * cluster.gossipInterval : -1,
   };
 }
 
@@ -660,7 +681,7 @@ function analyzeConvergence(clusterId: string): {
   const theoreticalBound = Math.ceil(Math.log(n) / Math.log(f + 1));
 
   // Calculate average from history
-  const completedConvergence = cluster.convergenceHistory.filter(c => c.percentage >= 99);
+  const completedConvergence = cluster.convergenceHistory.filter((c) => c.percentage >= 99);
   let avgRounds = theoreticalBound;
 
   if (completedConvergence.length >= 2) {
@@ -683,7 +704,7 @@ function analyzeConvergence(clusterId: string): {
     fanout: f,
     nodeCount: n,
     convergenceHistory: cluster.convergenceHistory,
-    efficiency
+    efficiency,
   };
 }
 
@@ -728,7 +749,7 @@ function getMembership(clusterId: string): {
       status: node.status,
       address: node.address,
       lastUpdate: node.lastUpdate,
-      incarnation: node.incarnation
+      incarnation: node.incarnation,
     });
 
     switch (node.status) {
@@ -751,15 +772,18 @@ function getMembership(clusterId: string): {
     aliveNodes: aliveCount,
     suspectedNodes: suspectedCount,
     deadNodes: deadCount,
-    members
+    members,
   };
 }
 
-function joinCluster(clusterId: string, newNode: {
-  id: string;
-  address: string;
-  metadata?: Record<string, unknown>;
-}): { success: boolean; acknowledged: string[] } {
+function joinCluster(
+  clusterId: string,
+  newNode: {
+    id: string;
+    address: string;
+    metadata?: Record<string, unknown>;
+  }
+): { success: boolean; acknowledged: string[] } {
   const cluster = clusters.get(clusterId);
   if (!cluster) {
     throw new Error(`Cluster ${clusterId} not found`);
@@ -778,18 +802,21 @@ function joinCluster(clusterId: string, newNode: {
     metadata: newNode.metadata || {},
     version: 1,
     suspicionLevel: 0,
-    incarnation: 0
+    incarnation: 0,
   });
 
   // Notify other nodes via gossip
   const { targets } = gossip(clusterId, {
-    content: { type: 'join', nodeId: newNode.id }
+    content: { type: 'join', nodeId: newNode.id },
   });
 
   return { success: true, acknowledged: targets };
 }
 
-function leaveCluster(clusterId: string, nodeId: string): {
+function leaveCluster(
+  clusterId: string,
+  nodeId: string
+): {
   success: boolean;
   notified: string[];
 } {
@@ -808,7 +835,7 @@ function leaveCluster(clusterId: string, nodeId: string): {
 
   // Notify via gossip
   const { targets } = gossip(clusterId, {
-    content: { type: 'leave', nodeId }
+    content: { type: 'leave', nodeId },
   });
 
   return { success: true, notified: targets };
@@ -818,11 +845,16 @@ function leaveCluster(clusterId: string, nodeId: string): {
 // CRDT SYNCHRONIZATION
 // ============================================================================
 
-function syncCRDT(clusterId: string, key: string, crdtType: CRDTValue['type'], operation: {
-  op: 'increment' | 'decrement' | 'set' | 'add' | 'remove';
-  value?: unknown;
-  nodeId?: string;
-}): {
+function syncCRDT(
+  clusterId: string,
+  key: string,
+  crdtType: CRDTValue['type'],
+  operation: {
+    op: 'increment' | 'decrement' | 'set' | 'add' | 'remove';
+    value?: unknown;
+    nodeId?: string;
+  }
+): {
   key: string;
   newValue: unknown;
   merged: boolean;
@@ -840,7 +872,7 @@ function syncCRDT(clusterId: string, key: string, crdtType: CRDTValue['type'], o
       type: crdtType,
       value: initCRDTValue(crdtType),
       vectorClock: new Map([[cluster.selfId, 0]]),
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
     };
     cluster.crdtState.set(key, crdt);
   }
@@ -867,10 +899,16 @@ function syncCRDT(clusterId: string, key: string, crdtType: CRDTValue['type'], o
       const pnCounter = crdt.value as { p: Map<string, number>; n: Map<string, number> };
       if (operation.op === 'increment') {
         const current = pnCounter.p.get(nodeId) || 0;
-        pnCounter.p.set(nodeId, current + (typeof operation.value === 'number' ? operation.value : 1));
+        pnCounter.p.set(
+          nodeId,
+          current + (typeof operation.value === 'number' ? operation.value : 1)
+        );
       } else if (operation.op === 'decrement') {
         const current = pnCounter.n.get(nodeId) || 0;
-        pnCounter.n.set(nodeId, current + (typeof operation.value === 'number' ? operation.value : 1));
+        pnCounter.n.set(
+          nodeId,
+          current + (typeof operation.value === 'number' ? operation.value : 1)
+        );
       }
       break;
     }
@@ -902,7 +940,7 @@ function syncCRDT(clusterId: string, key: string, crdtType: CRDTValue['type'], o
     key,
     newValue: getCRDTDisplayValue(crdt),
     merged: false,
-    vectorClock: Object.fromEntries(crdt.vectorClock)
+    vectorClock: Object.fromEntries(crdt.vectorClock),
   };
 }
 
@@ -931,7 +969,8 @@ function getCRDTDisplayValue(crdt: CRDTValue): unknown {
     }
     case 'pn-counter': {
       const pn = crdt.value as { p: Map<string, number>; n: Map<string, number> };
-      let pSum = 0, nSum = 0;
+      let pSum = 0,
+        nSum = 0;
       for (const v of pn.p.values()) pSum += v;
       for (const v of pn.n.values()) nSum += v;
       return { total: pSum - nSum, increments: pSum, decrements: nSum };
@@ -953,7 +992,11 @@ function getCRDTDisplayValue(crdt: CRDTValue): unknown {
 // NETWORK PARTITION HANDLING
 // ============================================================================
 
-function simulatePartition(clusterId: string, partitionA: string[], partitionB: string[]): {
+function simulatePartition(
+  clusterId: string,
+  partitionA: string[],
+  partitionB: string[]
+): {
   success: boolean;
   partitionCount: number;
   partitions: string[][];
@@ -968,7 +1011,7 @@ function simulatePartition(clusterId: string, partitionA: string[], partitionB: 
   return {
     success: true,
     partitionCount: 2,
-    partitions: [partitionA, partitionB]
+    partitions: [partitionA, partitionB],
   };
 }
 
@@ -993,7 +1036,7 @@ function healPartition(clusterId: string): {
   return {
     success: true,
     mergedNodes,
-    conflictsDetected: conflicts
+    conflictsDetected: conflicts,
   };
 }
 
@@ -1015,7 +1058,7 @@ function serializeMembership(cluster: Cluster): Array<{
       status: node.status,
       heartbeat: node.heartbeat,
       version: node.version,
-      incarnation: node.incarnation
+      incarnation: node.incarnation,
     });
   }
   return result;
@@ -1027,19 +1070,29 @@ function serializeMembership(cluster: Cluster): Array<{
 
 export const gossipprotocolTool: UnifiedTool = {
   name: 'gossip_protocol',
-  description: 'Gossip/epidemic protocol for distributed systems with failure detection and CRDT sync',
+  description:
+    'Gossip/epidemic protocol for distributed systems with failure detection and CRDT sync',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'init_cluster', 'gossip', 'receive_gossip', 'detect_failures',
-          'get_membership', 'simulate_propagation', 'analyze_convergence',
-          'anti_entropy', 'join_cluster', 'leave_cluster',
-          'sync_crdt', 'simulate_partition', 'heal_partition'
+          'init_cluster',
+          'gossip',
+          'receive_gossip',
+          'detect_failures',
+          'get_membership',
+          'simulate_propagation',
+          'analyze_convergence',
+          'anti_entropy',
+          'join_cluster',
+          'leave_cluster',
+          'sync_crdt',
+          'simulate_partition',
+          'heal_partition',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       clusterId: { type: 'string', description: 'Cluster identifier' },
       selfId: { type: 'string', description: 'Self node identifier' },
@@ -1047,16 +1100,14 @@ export const gossipprotocolTool: UnifiedTool = {
       nodeId: { type: 'string', description: 'Target node identifier' },
       nodes: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            address: { type: 'string' }
-          }
-        },
-        description: 'Node list'
+        items: { type: 'object' },
+        description: 'Node list. Each node has: id (string), address (string)',
       },
-      gossipMode: { type: 'string', enum: ['push', 'pull', 'push-pull'], description: 'Gossip mode' },
+      gossipMode: {
+        type: 'string',
+        enum: ['push', 'pull', 'push-pull'],
+        description: 'Gossip mode',
+      },
       fanout: { type: 'number', description: 'Fanout factor' },
       content: { type: 'object', description: 'Rumor content' },
       rumorId: { type: 'string', description: 'Rumor identifier' },
@@ -1065,13 +1116,17 @@ export const gossipprotocolTool: UnifiedTool = {
       phiThreshold: { type: 'number', description: 'Phi accrual threshold' },
       usePhiAccrual: { type: 'boolean', description: 'Use phi accrual detector' },
       crdtKey: { type: 'string', description: 'CRDT key' },
-      crdtType: { type: 'string', enum: ['g-counter', 'pn-counter', 'lww-register', 'or-set'], description: 'CRDT type' },
+      crdtType: {
+        type: 'string',
+        enum: ['g-counter', 'pn-counter', 'lww-register', 'or-set'],
+        description: 'CRDT type',
+      },
       crdtOperation: { type: 'object', description: 'CRDT operation' },
       partitionA: { type: 'array', items: { type: 'string' }, description: 'Partition A nodes' },
-      partitionB: { type: 'array', items: { type: 'string' }, description: 'Partition B nodes' }
+      partitionB: { type: 'array', items: { type: 'string' }, description: 'Partition B nodes' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -1101,7 +1156,7 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
           fanout: args.fanout,
           gossipInterval: args.gossipInterval,
           suspicionTimeout: args.suspicionTimeout,
-          deadTimeout: args.deadTimeout
+          deadTimeout: args.deadTimeout,
         });
 
         result = {
@@ -1109,7 +1164,7 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
           selfId: cluster.selfId,
           nodeCount: cluster.nodes.size,
           gossipMode: cluster.gossipMode,
-          fanout: cluster.fanout
+          fanout: cluster.fanout,
         };
         break;
       }
@@ -1120,7 +1175,7 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
           rumorId: args.rumorId,
           content: args.content,
           mode: args.gossipMode,
-          targetNodes: args.targetNodes
+          targetNodes: args.targetNodes,
         });
         break;
       }
@@ -1136,11 +1191,11 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
         if (!args.clusterId) throw new Error('clusterId required');
         const detection = detectFailures(args.clusterId, {
           phiThreshold: args.phiThreshold,
-          usePhiAccrual: args.usePhiAccrual
+          usePhiAccrual: args.usePhiAccrual,
         });
         result = {
           ...detection,
-          phiValues: Object.fromEntries(detection.phiValues)
+          phiValues: Object.fromEntries(detection.phiValues),
         };
         break;
       }
@@ -1157,7 +1212,7 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
           rumorId: args.rumorId,
           content: args.content,
           maxRounds: args.maxRounds,
-          mode: args.gossipMode
+          mode: args.gossipMode,
         });
         break;
       }
@@ -1180,7 +1235,7 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
         result = joinCluster(args.clusterId, {
           id: args.nodeId,
           address: args.address || `${args.nodeId}.local`,
-          metadata: args.metadata
+          metadata: args.metadata,
         });
         break;
       }
@@ -1221,9 +1276,8 @@ export async function executegossipprotocol(toolCall: UnifiedToolCall): Promise<
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

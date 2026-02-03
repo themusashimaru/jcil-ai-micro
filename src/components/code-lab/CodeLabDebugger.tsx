@@ -132,7 +132,8 @@ const DebugToolbar = React.memo(function DebugToolbar({
   onRestart,
 }: DebugToolbarProps) {
   const isPaused = state === 'paused';
-  // isRunning = state === 'running' available for status indicator styling
+  const _isRunning = state === 'running';
+  void _isRunning; // Used for status indicator styling
   const isStopped = state === 'idle' || state === 'stopped';
 
   return (

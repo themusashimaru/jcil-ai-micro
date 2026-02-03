@@ -3,7 +3,13 @@
  * Scale-Invariant Feature Transform for robust feature detection and matching
  */
 
-import { UnifiedTool, ToolResult } from './types';
+import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
+
+interface ToolResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -154,10 +160,11 @@ class ImageOperations {
 
       for (let x = 0; x < width; x++) {
         // Compute gradients using central differences
-        const gx = (x < width - 1 ? image[y][x + 1] : image[y][x]) -
-                   (x > 0 ? image[y][x - 1] : image[y][x]);
-        const gy = (y < height - 1 ? image[y + 1][x] : image[y][x]) -
-                   (y > 0 ? image[y - 1][x] : image[y][x]);
+        const gx =
+          (x < width - 1 ? image[y][x + 1] : image[y][x]) - (x > 0 ? image[y][x - 1] : image[y][x]);
+        const gy =
+          (y < height - 1 ? image[y + 1][x] : image[y][x]) -
+          (y > 0 ? image[y - 1][x] : image[y][x]);
 
         const mag = Math.sqrt(gx * gx + gy * gy);
         let ori = Math.atan2(gy, gx) * (180 / Math.PI);
@@ -310,7 +317,12 @@ class KeypointDetector {
             if (this.isExtremum(value, x, y, current, below, above)) {
               // Localize keypoint with sub-pixel accuracy
               const keypoint = this.localizeKeypoint(
-                x, y, s, o, octave, gaussianPyramid.sigmas[o][s]
+                x,
+                y,
+                s,
+                o,
+                octave,
+                gaussianPyramid.sigmas[o][s]
               );
 
               if (keypoint) {
@@ -394,23 +406,28 @@ class KeypointDetector {
       const dxx = current[yi][xi + 1] - 2 * current[yi][xi] + current[yi][xi - 1];
       const dyy = current[yi + 1][xi] - 2 * current[yi][xi] + current[yi - 1][xi];
       const dss = above[yi][xi] - 2 * current[yi][xi] + below[yi][xi];
-      const dxy = (current[yi + 1][xi + 1] - current[yi + 1][xi - 1] -
-                   current[yi - 1][xi + 1] + current[yi - 1][xi - 1]) / 4;
-      const dxs = (above[yi][xi + 1] - above[yi][xi - 1] -
-                   below[yi][xi + 1] + below[yi][xi - 1]) / 4;
-      const dys = (above[yi + 1][xi] - above[yi - 1][xi] -
-                   below[yi + 1][xi] + below[yi - 1][xi]) / 4;
+      const dxy =
+        (current[yi + 1][xi + 1] -
+          current[yi + 1][xi - 1] -
+          current[yi - 1][xi + 1] +
+          current[yi - 1][xi - 1]) /
+        4;
+      const dxs =
+        (above[yi][xi + 1] - above[yi][xi - 1] - below[yi][xi + 1] + below[yi][xi - 1]) / 4;
+      const dys =
+        (above[yi + 1][xi] - above[yi - 1][xi] - below[yi + 1][xi] + below[yi - 1][xi]) / 4;
 
       // Solve 3x3 linear system (simplified)
-      const det = dxx * (dyy * dss - dys * dys) -
-                  dxy * (dxy * dss - dys * dxs) +
-                  dxs * (dxy * dys - dyy * dxs);
+      const det =
+        dxx * (dyy * dss - dys * dys) -
+        dxy * (dxy * dss - dys * dxs) +
+        dxs * (dxy * dys - dyy * dxs);
 
       if (Math.abs(det) < 1e-10) return null;
 
-      const offsetX = -(dyy * dss - dys * dys) * dx / det;
-      const offsetY = -(dxx * dss - dxs * dxs) * dy / det;
-      const offsetS = -(dxx * dyy - dxy * dxy) * ds / det;
+      const offsetX = (-(dyy * dss - dys * dys) * dx) / det;
+      const offsetY = (-(dxx * dss - dxs * dxs) * dy) / det;
+      const offsetS = (-(dxx * dyy - dxy * dxy) * ds) / det;
 
       // Check convergence
       if (Math.abs(offsetX) < 0.5 && Math.abs(offsetY) < 0.5 && Math.abs(offsetS) < 0.5) {
@@ -422,7 +439,7 @@ class KeypointDetector {
         // Edge response check
         const trace = dxx + dyy;
         const det2d = dxx * dyy - dxy * dxy;
-        const edgeResponse = trace * trace / det2d;
+        const edgeResponse = (trace * trace) / det2d;
         const edgeThresholdSq = (this.edgeThreshold + 1) ** 2 / this.edgeThreshold;
 
         if (det2d < 0 || edgeResponse > edgeThresholdSq) return null;
@@ -437,7 +454,7 @@ class KeypointDetector {
           octave: o,
           layer: si,
           orientation: 0, // Will be assigned later
-          response: Math.abs(contrast)
+          response: Math.abs(contrast),
         };
       }
 
@@ -461,10 +478,7 @@ class OrientationAssigner {
   /**
    * Assign orientations to keypoints
    */
-  assignOrientations(
-    keypoints: SIFTKeypoint[],
-    gaussianPyramid: GaussianPyramid
-  ): SIFTKeypoint[] {
+  assignOrientations(keypoints: SIFTKeypoint[], gaussianPyramid: GaussianPyramid): SIFTKeypoint[] {
     const orientedKeypoints: SIFTKeypoint[] = [];
 
     for (const kp of keypoints) {
@@ -478,9 +492,7 @@ class OrientationAssigner {
       const localY = Math.round(kp.y / scale);
 
       // Compute gradient histogram
-      const histogram = this.computeOrientationHistogram(
-        image, localX, localY, kp.scale
-      );
+      const histogram = this.computeOrientationHistogram(image, localX, localY, kp.scale);
 
       // Smooth histogram
       this.smoothHistogram(histogram);
@@ -492,7 +504,7 @@ class OrientationAssigner {
       for (const peak of peaks) {
         orientedKeypoints.push({
           ...kp,
-          orientation: peak.orientation
+          orientation: peak.orientation,
         });
       }
     }
@@ -588,15 +600,11 @@ class OrientationAssigner {
 class DescriptorComputer {
   private descriptorWidth: number = 4; // 4x4 grid
   private numBins: number = 8;
-  private descriptorSize: number = 128; // 4x4x8
 
   /**
    * Compute 128-dimensional SIFT descriptors
    */
-  computeDescriptors(
-    keypoints: SIFTKeypoint[],
-    gaussianPyramid: GaussianPyramid
-  ): SIFTKeypoint[] {
+  computeDescriptors(keypoints: SIFTKeypoint[], gaussianPyramid: GaussianPyramid): SIFTKeypoint[] {
     const result: SIFTKeypoint[] = [];
 
     for (const kp of keypoints) {
@@ -604,7 +612,7 @@ class DescriptorComputer {
       if (descriptor) {
         result.push({
           ...kp,
-          descriptor
+          descriptor,
         });
       }
     }
@@ -615,10 +623,7 @@ class DescriptorComputer {
   /**
    * Compute descriptor for single keypoint
    */
-  private computeDescriptor(
-    kp: SIFTKeypoint,
-    gaussianPyramid: GaussianPyramid
-  ): number[] | null {
+  private computeDescriptor(kp: SIFTKeypoint, gaussianPyramid: GaussianPyramid): number[] | null {
     const octave = kp.octave;
     const layer = kp.layer;
     const image = gaussianPyramid.octaves[octave][layer];
@@ -637,8 +642,8 @@ class DescriptorComputer {
     const sigma = windowSize / 2;
 
     // Rotation for dominant orientation
-    const cos = Math.cos(kp.orientation * Math.PI / 180);
-    const sin = Math.sin(kp.orientation * Math.PI / 180);
+    const cos = Math.cos((kp.orientation * Math.PI) / 180);
+    const sin = Math.sin((kp.orientation * Math.PI) / 180);
 
     // Initialize histogram grid
     const histograms: number[][][] = [];
@@ -731,10 +736,7 @@ class FeatureMatcher {
   /**
    * Match keypoints using Lowe's ratio test
    */
-  matchFeatures(
-    keypoints1: SIFTKeypoint[],
-    keypoints2: SIFTKeypoint[]
-  ): KeypointMatch[] {
+  matchFeatures(keypoints1: SIFTKeypoint[], keypoints2: SIFTKeypoint[]): KeypointMatch[] {
     const matches: KeypointMatch[] = [];
 
     for (const kp1 of keypoints1) {
@@ -765,7 +767,7 @@ class FeatureMatcher {
             keypoint1: kp1,
             keypoint2: best1.keypoint,
             distance: best1.distance,
-            ratio
+            ratio,
           });
         }
       }
@@ -789,10 +791,7 @@ class FeatureMatcher {
   /**
    * Cross-check matches (bidirectional consistency)
    */
-  crossCheckMatches(
-    matches12: KeypointMatch[],
-    matches21: KeypointMatch[]
-  ): KeypointMatch[] {
+  crossCheckMatches(matches12: KeypointMatch[], matches21: KeypointMatch[]): KeypointMatch[] {
     const consistent: KeypointMatch[] = [];
 
     for (const m12 of matches12) {
@@ -869,7 +868,7 @@ class SIFTDetector {
         gaussianInfo.push({
           octave: o,
           layer: l,
-          size: `${img[0].length}x${img.length}`
+          size: `${img[0].length}x${img.length}`,
         });
       }
     }
@@ -880,14 +879,14 @@ class SIFTDetector {
         dogInfo.push({
           octave: o,
           layer: l,
-          size: `${img[0].length}x${img.length}`
+          size: `${img[0].length}x${img.length}`,
         });
       }
     }
 
     return {
       gaussianPyramid: gaussianInfo,
-      dogPyramid: dogInfo
+      dogPyramid: dogInfo,
     };
   }
 }
@@ -898,9 +897,7 @@ class SIFTDetector {
 
 function generateTestImage(): GrayscaleImage {
   const size = 128;
-  const image: GrayscaleImage = Array.from({ length: size }, () =>
-    Array(size).fill(128)
-  );
+  const image: GrayscaleImage = Array.from({ length: size }, () => Array(size).fill(128));
 
   // Create corner-like features
   for (let i = 0; i < 5; i++) {
@@ -931,7 +928,7 @@ function generateTestImage(): GrayscaleImage {
           const py = cy + dy;
           if (px >= 0 && px < size && py >= 0 && py < size) {
             const dist = Math.sqrt(dx * dx + dy * dy);
-            image[py][px] = Math.round(255 * Math.exp(-dist * dist / (2 * (radius / 2) ** 2)));
+            image[py][px] = Math.round(255 * Math.exp((-dist * dist) / (2 * (radius / 2) ** 2)));
           }
         }
       }
@@ -970,7 +967,7 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
             keypoint_detection: 'Scale-space extrema detection with subpixel localization',
             orientation: '36-bin gradient histogram with parabolic interpolation',
             descriptor: '128-dimensional (4x4 grid x 8 orientation bins)',
-            matching: "Lowe's ratio test with optional cross-checking"
+            matching: "Lowe's ratio test with optional cross-checking",
           },
           operations: [
             'detect_keypoints',
@@ -981,16 +978,16 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
             'visualize_dog',
             'demo',
             'info',
-            'examples'
+            'examples',
           ],
           parameters: {
             num_octaves: 'Number of octaves in scale space (default: 4)',
             num_scales: 'Number of scales per octave (default: 3)',
             contrast_threshold: 'Contrast threshold for keypoint filtering (default: 0.04)',
             edge_threshold: 'Edge response threshold (default: 10)',
-            ratio_threshold: 'Ratio test threshold for matching (default: 0.75)'
-          }
-        }
+            ratio_threshold: 'Ratio test threshold for matching (default: 0.75)',
+          },
+        },
       };
     }
 
@@ -1019,32 +1016,32 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
           demonstration: 'SIFT feature detection and description',
           input: {
             image_size: `${image[0].length}x${image.length}`,
-            features: 'Cross patterns, Gaussian blobs, and edges'
+            features: 'Cross patterns, Gaussian blobs, and edges',
           },
           scale_space: {
             gaussian_pyramid: scaleSpaceInfo.gaussianPyramid,
-            dog_pyramid: scaleSpaceInfo.dogPyramid
+            dog_pyramid: scaleSpaceInfo.dogPyramid,
           },
           results: {
             total_keypoints: keypoints.length,
             keypoints_by_octave: Array.from(byOctave.entries()).map(([o, kps]) => ({
               octave: o,
-              count: kps.length
+              count: kps.length,
             })),
-            sample_keypoints: keypoints.slice(0, 5).map(kp => ({
+            sample_keypoints: keypoints.slice(0, 5).map((kp) => ({
               position: { x: kp.x.toFixed(2), y: kp.y.toFixed(2) },
               scale: kp.scale.toFixed(3),
               orientation: kp.orientation.toFixed(1),
               response: kp.response.toFixed(4),
-              descriptor_length: kp.descriptor?.length || 0
+              descriptor_length: kp.descriptor?.length || 0,
             })),
             descriptor_stats: {
               dimension: 128,
               grid_size: '4x4',
-              orientation_bins: 8
-            }
-          }
-        }
+              orientation_bins: 8,
+            },
+          },
+        },
       };
     }
 
@@ -1073,29 +1070,31 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
         data: {
           operation: 'detect_keypoints',
           num_keypoints: keypoints.length,
-          keypoints: keypoints.map(kp => ({
+          keypoints: keypoints.map((kp) => ({
             x: kp.x,
             y: kp.y,
             scale: kp.scale,
             orientation: kp.orientation,
             response: kp.response,
             octave: kp.octave,
-            layer: kp.layer
-          }))
-        }
+            layer: kp.layer,
+          })),
+        },
       };
     }
 
     case 'compute_descriptors': {
       const image = params.image as number[][] | undefined;
-      const keypoints = params.keypoints as Array<{
-        x: number;
-        y: number;
-        scale: number;
-        orientation: number;
-        octave: number;
-        layer: number;
-      }> | undefined;
+      const keypoints = params.keypoints as
+        | Array<{
+            x: number;
+            y: number;
+            scale: number;
+            orientation: number;
+            octave: number;
+            layer: number;
+          }>
+        | undefined;
 
       if (!image || !keypoints) {
         return { success: false, error: 'Image and keypoints required' };
@@ -1109,9 +1108,9 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
 
       const gaussianPyramid = scaleSpace.buildGaussianPyramid(image);
 
-      const siftKeypoints: SIFTKeypoint[] = keypoints.map(kp => ({
+      const siftKeypoints: SIFTKeypoint[] = keypoints.map((kp) => ({
         ...kp,
-        response: 1
+        response: 1,
       }));
 
       const withDescriptors = descriptorComputer.computeDescriptors(siftKeypoints, gaussianPyramid);
@@ -1122,12 +1121,12 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
           operation: 'compute_descriptors',
           num_descriptors: withDescriptors.length,
           descriptor_dimension: 128,
-          descriptors: withDescriptors.map(kp => ({
+          descriptors: withDescriptors.map((kp) => ({
             x: kp.x,
             y: kp.y,
-            descriptor: kp.descriptor
-          }))
-        }
+            descriptor: kp.descriptor,
+          })),
+        },
       };
     }
 
@@ -1150,15 +1149,15 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
         data: {
           operation: 'detect_and_compute',
           num_keypoints: keypoints.length,
-          keypoints: keypoints.map(kp => ({
+          keypoints: keypoints.map((kp) => ({
             x: kp.x,
             y: kp.y,
             scale: kp.scale,
             orientation: kp.orientation,
             response: kp.response,
-            descriptor: kp.descriptor
-          }))
-        }
+            descriptor: kp.descriptor,
+          })),
+        },
       };
     }
 
@@ -1187,13 +1186,13 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
           num_matches: matches.length,
           ratio_threshold: ratioThreshold,
           cross_checked: crossCheck,
-          matches: matches.map(m => ({
+          matches: matches.map((m) => ({
             point1: { x: m.keypoint1.x, y: m.keypoint1.y },
             point2: { x: m.keypoint2.x, y: m.keypoint2.y },
             distance: m.distance.toFixed(4),
-            ratio: m.ratio.toFixed(4)
-          }))
-        }
+            ratio: m.ratio.toFixed(4),
+          })),
+        },
       };
     }
 
@@ -1216,8 +1215,8 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
           num_octaves: numOctaves,
           scales_per_octave: numScales,
           gaussian_pyramid: info.gaussianPyramid,
-          dog_pyramid: info.dogPyramid
-        }
+          dog_pyramid: info.dogPyramid,
+        },
       };
     }
 
@@ -1229,37 +1228,37 @@ async function executesiftfeatures(params: Record<string, unknown>): Promise<Too
             {
               title: 'Detect and Compute SIFT Features',
               code: 'executesiftfeatures({ operation: "detect_and_compute", image: grayscaleImage })',
-              description: 'Detects keypoints and computes 128-dim descriptors'
+              description: 'Detects keypoints and computes 128-dim descriptors',
             },
             {
               title: 'Custom Detection Parameters',
               code: 'executesiftfeatures({ operation: "detect_and_compute", image: img, num_octaves: 5, contrast_threshold: 0.03 })',
-              description: 'Detect with custom scale space and thresholds'
+              description: 'Detect with custom scale space and thresholds',
             },
             {
               title: 'Match Features Between Images',
               code: 'executesiftfeatures({ operation: "match_features", keypoints1: kp1, keypoints2: kp2, ratio_threshold: 0.7, cross_check: true })',
-              description: 'Match with ratio test and cross-checking'
+              description: 'Match with ratio test and cross-checking',
             },
             {
               title: 'Visualize Scale Space',
               code: 'executesiftfeatures({ operation: "build_scale_space", image: img, num_octaves: 4 })',
-              description: 'Get Gaussian and DoG pyramid information'
+              description: 'Get Gaussian and DoG pyramid information',
             },
             {
               title: 'Detect Keypoints Only',
               code: 'executesiftfeatures({ operation: "detect_keypoints", image: img })',
-              description: 'Detect keypoints without computing descriptors'
-            }
-          ]
-        }
+              description: 'Detect keypoints without computing descriptors',
+            },
+          ],
+        },
       };
     }
 
     default:
       return {
         success: false,
-        error: `Unknown operation: ${operation}. Use "info" to see available operations.`
+        error: `Unknown operation: ${operation}. Use "info" to see available operations.`,
       };
   }
 }
@@ -1301,52 +1300,73 @@ PARAMETERS:
     properties: {
       operation: {
         type: 'string',
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       image: {
         type: 'array',
-        description: '2D grayscale image array'
+        description: '2D grayscale image array',
       },
       keypoints: {
         type: 'array',
-        description: 'Array of keypoints'
+        description: 'Array of keypoints',
       },
       keypoints1: {
         type: 'array',
-        description: 'First set of keypoints for matching'
+        description: 'First set of keypoints for matching',
       },
       keypoints2: {
         type: 'array',
-        description: 'Second set of keypoints for matching'
+        description: 'Second set of keypoints for matching',
       },
       num_octaves: {
         type: 'number',
-        description: 'Number of octaves in scale space'
+        description: 'Number of octaves in scale space',
       },
       num_scales: {
         type: 'number',
-        description: 'Number of scales per octave'
+        description: 'Number of scales per octave',
       },
       contrast_threshold: {
         type: 'number',
-        description: 'Contrast threshold for keypoint filtering'
+        description: 'Contrast threshold for keypoint filtering',
       },
       edge_threshold: {
         type: 'number',
-        description: 'Edge response threshold'
+        description: 'Edge response threshold',
       },
       ratio_threshold: {
         type: 'number',
-        description: 'Ratio test threshold for matching'
+        description: 'Ratio test threshold for matching',
       },
       cross_check: {
         type: 'boolean',
-        description: 'Enable bidirectional match verification'
-      }
+        description: 'Enable bidirectional match verification',
+      },
     },
-    required: []
+    required: [],
   },
-  execute: executesiftfeatures
 };
 
-export { executesiftfeatures, issiftfeaturesAvailable };
+// Wrapper for UnifiedToolCall signature
+export async function executesiftfeaturesUnified(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
+  const { id, arguments: rawArgs } = toolCall;
+  try {
+    const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
+    const result = await executesiftfeatures(args as Record<string, unknown>);
+    return {
+      toolCallId: id,
+      content: JSON.stringify(result.data || result, null, 2),
+      isError: !result.success,
+    };
+  } catch (error) {
+    return {
+      toolCallId: id,
+      content: `SIFT Features Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      isError: true,
+    };
+  }
+}
+
+export { executesiftfeaturesUnified as executesiftfeatures, issiftfeaturesAvailable };

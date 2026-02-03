@@ -14,7 +14,12 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // SUPPLY AND DEMAND
 // ============================================================================
 
-function equilibrium(demandSlope: number, demandIntercept: number, supplySlope: number, supplyIntercept: number): { price: number; quantity: number } {
+function equilibrium(
+  demandSlope: number,
+  demandIntercept: number,
+  supplySlope: number,
+  supplyIntercept: number
+): { price: number; quantity: number } {
   // Qd = a - bP (demand)
   // Qs = c + dP (supply)
   // At equilibrium: Qd = Qs
@@ -23,7 +28,10 @@ function equilibrium(demandSlope: number, demandIntercept: number, supplySlope: 
   return { price, quantity };
 }
 
-function priceElasticity(percentChangeQuantity: number, percentChangePrice: number): { elasticity: number; type: string } {
+function priceElasticity(
+  percentChangeQuantity: number,
+  percentChangePrice: number
+): { elasticity: number; type: string } {
   const e = Math.abs(percentChangeQuantity / percentChangePrice);
   let type = 'Unit elastic';
   if (e > 1) type = 'Elastic';
@@ -32,7 +40,10 @@ function priceElasticity(percentChangeQuantity: number, percentChangePrice: numb
   return { elasticity: Math.round(e * 100) / 100, type };
 }
 
-export function crossElasticity(percentChangeQa: number, percentChangePb: number): { elasticity: number; relationship: string } {
+export function crossElasticity(
+  percentChangeQa: number,
+  percentChangePb: number
+): { elasticity: number; relationship: string } {
   const e = percentChangeQa / percentChangePb;
   let relationship = 'Independent';
   if (e > 0) relationship = 'Substitutes';
@@ -124,7 +135,11 @@ function termsOfTrade(exportPriceIndex: number, importPriceIndex: number): numbe
   return (exportPriceIndex / importPriceIndex) * 100;
 }
 
-function realExchangeRate(nominalRate: number, domesticPrice: number, foreignPrice: number): number {
+function realExchangeRate(
+  nominalRate: number,
+  domesticPrice: number,
+  foreignPrice: number
+): number {
   return nominalRate * (foreignPrice / domesticPrice);
 }
 
@@ -195,8 +210,14 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
 
     switch (operation) {
       case 'supply_demand': {
-        const { demand_slope = 2, demand_intercept = 100, supply_slope = 1, supply_intercept = 10,
-                percent_change_quantity, percent_change_price } = args;
+        const {
+          demand_slope = 2,
+          demand_intercept = 100,
+          supply_slope = 1,
+          supply_intercept = 10,
+          percent_change_quantity,
+          percent_change_price,
+        } = args;
 
         if (percent_change_quantity !== undefined && percent_change_price !== undefined) {
           const elasticity = priceElasticity(percent_change_quantity, percent_change_price);
@@ -207,11 +228,12 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
             percent_change_price: percent_change_price,
             price_elasticity: elasticity.elasticity,
             elasticity_type: elasticity.type,
-            interpretation: elasticity.type === 'Elastic' ?
-              'Quantity responds more than proportionally to price changes' :
-              elasticity.type === 'Inelastic' ?
-              'Quantity responds less than proportionally to price changes' :
-              'Quantity responds proportionally to price changes',
+            interpretation:
+              elasticity.type === 'Elastic'
+                ? 'Quantity responds more than proportionally to price changes'
+                : elasticity.type === 'Inelastic'
+                  ? 'Quantity responds less than proportionally to price changes'
+                  : 'Quantity responds proportionally to price changes',
           };
         } else {
           const eq = equilibrium(demand_slope, demand_intercept, supply_slope, supply_intercept);
@@ -257,7 +279,13 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
       }
 
       case 'inflation': {
-        const { cpi_current = 280, cpi_previous = 270, nominal_rate = 5, amount = 1000, years = 10 } = args;
+        const {
+          cpi_current = 280,
+          cpi_previous = 270,
+          nominal_rate = 5,
+          amount = 1000,
+          years = 10,
+        } = args;
         const inflation = inflationRate(cpi_current, cpi_previous);
         const realRate = realInterestRate(nominal_rate, inflation);
         const futurePurchasing = purchasingPower(amount, inflation, years);
@@ -272,7 +300,8 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
             amount_today: amount,
             years: years,
             value_in_future_dollars: Math.round(futurePurchasing * 100) / 100,
-            purchasing_power_lost_percent: Math.round((1 - futurePurchasing / amount) * 10000) / 100,
+            purchasing_power_lost_percent:
+              Math.round((1 - futurePurchasing / amount) * 10000) / 100,
           },
           fisher_equation: 'Real rate ≈ Nominal rate - Inflation rate',
         };
@@ -280,7 +309,13 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
       }
 
       case 'money': {
-        const { reserve_ratio = 0.1, deposit = 1000, amount = 1000, nominal_rate = 5, years = 10 } = args;
+        const {
+          reserve_ratio = 0.1,
+          deposit = 1000,
+          amount = 1000,
+          nominal_rate = 5,
+          years = 10,
+        } = args;
         const multiplier = moneyMultiplier(reserve_ratio);
         const maxMoneyCreation = moneySupplyChange(deposit, reserve_ratio);
         const rate = nominal_rate / 100;
@@ -316,7 +351,14 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
           labor_force: labor_force,
           unemployment_rate_percent: Math.round(uRate * 100) / 100,
           employed: labor_force - unemployed,
-          classification: uRate < 4 ? 'Low (full employment)' : uRate < 6 ? 'Natural rate' : uRate < 10 ? 'Elevated' : 'High',
+          classification:
+            uRate < 4
+              ? 'Low (full employment)'
+              : uRate < 6
+                ? 'Natural rate'
+                : uRate < 10
+                  ? 'Elevated'
+                  : 'High',
         };
 
         if (actual_gdp !== undefined && potential_gdp !== undefined) {
@@ -335,7 +377,13 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
       }
 
       case 'trade': {
-        const { export_price_index: _export_price_index = 105, import_price_index: _import_price_index = 100, nominal_exchange = 1.2, domestic_price = 100, foreign_price = 95 } = args;
+        const {
+          export_price_index: _export_price_index = 105,
+          import_price_index: _import_price_index = 100,
+          nominal_exchange = 1.2,
+          domestic_price = 100,
+          foreign_price = 95,
+        } = args;
         const tot = termsOfTrade(args.export_price_index ?? 105, args.import_price_index ?? 100);
         const rer = realExchangeRate(nominal_exchange, domestic_price, foreign_price);
 
@@ -345,14 +393,20 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
             export_price_index: args.export_price_index ?? 105,
             import_price_index: args.import_price_index ?? 100,
             terms_of_trade_index: Math.round(tot * 100) / 100,
-            interpretation: tot > 100 ? 'Favorable (exports buy more imports)' : tot < 100 ? 'Unfavorable' : 'Neutral',
+            interpretation:
+              tot > 100
+                ? 'Favorable (exports buy more imports)'
+                : tot < 100
+                  ? 'Unfavorable'
+                  : 'Neutral',
           },
           exchange_rate: {
             nominal_rate: nominal_exchange,
             domestic_price_level: domestic_price,
             foreign_price_level: foreign_price,
             real_exchange_rate: Math.round(rer * 1000) / 1000,
-            competitiveness: rer > 1 ? 'Domestic goods relatively expensive' : 'Domestic goods relatively cheap',
+            competitiveness:
+              rer > 1 ? 'Domestic goods relatively expensive' : 'Domestic goods relatively cheap',
           },
         };
         break;
@@ -364,9 +418,14 @@ export async function executeEconomics(toolCall: UnifiedToolCall): Promise<Unifi
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Economics Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Economics Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isEconomicsAvailable(): boolean { return true; }
-void _crossElasticity; void _gdpGrowthRate; void _laborForceParticipation;
+export function isEconomicsAvailable(): boolean {
+  return true;
+}

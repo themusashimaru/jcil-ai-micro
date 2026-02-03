@@ -135,12 +135,11 @@ function vec3Distance(a: Vector3, b: Vector3): number {
   return vec3Length(vec3Sub(a, b));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Cross(a: Vector3, b: Vector3): Vector3 {
+export function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   return {
     x: a.y * b.z - a.z * b.y,
     y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x
+    z: a.x * b.y - a.y * b.x,
   };
 }
 
@@ -148,7 +147,7 @@ function vec3Lerp(a: Vector3, b: Vector3, t: number): Vector3 {
   return {
     x: a.x + (b.x - a.x) * t,
     y: a.y + (b.y - a.y) * t,
-    z: a.z + (b.z - a.z) * t
+    z: a.z + (b.z - a.z) * t,
   };
 }
 
@@ -196,9 +195,10 @@ function createRope(params: {
       position = vec3Add(startPoint, vec3Scale(direction, i * segmentLength));
     }
 
-    const isFixed = (params.fixedStart && i === 0) ||
-                   (params.fixedEnd && i === nodeCount - 1) ||
-                   (params.fixedIndices?.includes(i) ?? false);
+    const isFixed =
+      (params.fixedStart && i === 0) ||
+      (params.fixedEnd && i === nodeCount - 1) ||
+      (params.fixedIndices?.includes(i) ?? false);
 
     nodes.push({
       id: i,
@@ -207,7 +207,7 @@ function createRope(params: {
       acceleration: vec3Zero(),
       mass: nodeMass,
       isFixed,
-      fixedPosition: isFixed ? { ...position } : undefined
+      fixedPosition: isFixed ? { ...position } : undefined,
     });
   }
 
@@ -220,7 +220,7 @@ function createRope(params: {
       restLength: segmentLength,
       stiffness: config.stiffness,
       maxTension: config.breakingTension,
-      isBroken: false
+      isBroken: false,
     });
   }
 
@@ -233,8 +233,8 @@ function createRope(params: {
     collisionSpheres: [],
     collisionPlanes: [
       // Default ground plane
-      { normal: { x: 0, y: 1, z: 0 }, distance: 0, friction: 0.5 }
-    ]
+      { normal: { x: 0, y: 1, z: 0 }, distance: 0, friction: 0.5 },
+    ],
   };
 }
 
@@ -299,7 +299,7 @@ function solveDistanceConstraint(
   const error = currentLength - constraint.restLength;
 
   // Calculate tension (force = stiffness * displacement)
-  const tension = Math.abs(error) * constraint.stiffness / dt / dt;
+  const tension = (Math.abs(error) * constraint.stiffness) / dt / dt;
 
   // Check for breaking
   if (constraint.maxTension > 0 && tension > constraint.maxTension) {
@@ -344,7 +344,7 @@ function solveConstraints(state: RopeState, iterations: number, dt: number): Ten
           constraintIndex: i,
           tension,
           stretchRatio: currentLength / constraint.restLength,
-          isBroken: constraint.isBroken
+          isBroken: constraint.isBroken,
         });
       }
     }
@@ -514,7 +514,7 @@ function simulateRope(params: {
     config: params.config,
     fixedStart: params.fixedStart ?? true,
     fixedEnd: params.fixedEnd,
-    fixedIndices: params.fixedIndices
+    fixedIndices: params.fixedIndices,
   });
 
   // Set custom parameters
@@ -527,13 +527,13 @@ function simulateRope(params: {
     state.collisionPlanes = params.collisionPlanes;
   }
 
-  const dt = params.timestep || 1/120;
+  const dt = params.timestep || 1 / 120;
   const iterations = params.constraintIterations || CONSTRAINT_ITERATIONS;
   const steps = Math.floor(params.duration / dt);
   const damping = 1 - params.config.damping * 0.1; // Convert to velocity retention
 
   const frames: SimulationResult['frames'] = [];
-  const recordInterval = Math.max(1, Math.floor(1/60 / dt)); // ~60 FPS
+  const recordInterval = Math.max(1, Math.floor(1 / 60 / dt)); // ~60 FPS
 
   let maxTension = 0;
 
@@ -558,28 +558,26 @@ function simulateRope(params: {
     if (step % recordInterval === 0) {
       frames.push({
         time: state.time,
-        nodes: state.nodes.map(n => ({
+        nodes: state.nodes.map((n) => ({
           id: n.id,
           position: { ...n.position },
-          velocity: getNodeVelocity(n, dt)
+          velocity: getNodeVelocity(n, dt),
         })),
         tensions,
-        brokenSegments: state.constraints
-          .filter(c => c.isBroken)
-          .map((_, i) => i)
+        brokenSegments: state.constraints.filter((c) => c.isBroken).map((_, i) => i),
       });
     }
   }
 
   // Count broken segments
-  const brokenCount = state.constraints.filter(c => c.isBroken).length;
+  const brokenCount = state.constraints.filter((c) => c.isBroken).length;
 
   return {
     frames,
     finalState: state,
     totalLength: calculateTotalLength(state),
     maxTension,
-    brokenCount
+    brokenCount,
   };
 }
 
@@ -587,8 +585,7 @@ function simulateRope(params: {
 // Rope Manipulation
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function moveFixedPoint(state: RopeState, nodeIndex: number, newPosition: Vector3): void {
+export function moveFixedPoint(state: RopeState, nodeIndex: number, newPosition: Vector3): void {
   const node = state.nodes[nodeIndex];
   if (node && node.isFixed) {
     node.fixedPosition = { ...newPosition };
@@ -597,18 +594,21 @@ function moveFixedPoint(state: RopeState, nodeIndex: number, newPosition: Vector
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function applyForceToNode(state: RopeState, nodeIndex: number, force: Vector3, dt: number): void {
+export function applyForceToNode(
+  state: RopeState,
+  nodeIndex: number,
+  force: Vector3,
+  dt: number
+): void {
   const node = state.nodes[nodeIndex];
   if (node && !node.isFixed) {
     // Apply impulse as position change
-    const impulse = vec3Scale(force, dt * dt / node.mass);
+    const impulse = vec3Scale(force, (dt * dt) / node.mass);
     node.position = vec3Add(node.position, impulse);
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cutRope(state: RopeState, constraintIndex: number): void {
+export function cutRope(state: RopeState, constraintIndex: number): void {
   if (constraintIndex >= 0 && constraintIndex < state.constraints.length) {
     state.constraints[constraintIndex].isBroken = true;
   }
@@ -652,12 +652,12 @@ function calculateCatenary(params: {
   // Solve for catenary parameter 'a' using Newton-Raphson
   // This is the characteristic shape parameter
   const slack = ropeLength - straightDist;
-  let a = Math.sqrt(3 * slack / horizontalDist) * horizontalDist; // Initial guess
+  let a = Math.sqrt((3 * slack) / horizontalDist) * horizontalDist; // Initial guess
 
   for (let iter = 0; iter < 20; iter++) {
     const sinh_val = Math.sinh(horizontalDist / (2 * a));
     const f = 2 * a * sinh_val - ropeLength;
-    const df = 2 * sinh_val - horizontalDist * Math.cosh(horizontalDist / (2 * a)) / a;
+    const df = 2 * sinh_val - (horizontalDist * Math.cosh(horizontalDist / (2 * a))) / a;
 
     if (Math.abs(df) < 1e-10) break;
     a = a - f / df;
@@ -685,7 +685,7 @@ function calculateCatenary(params: {
     points.push({
       x: xOffset + t * dx,
       y,
-      z: zOffset + t * dz
+      z: zOffset + t * dz,
     });
   }
 
@@ -698,78 +698,66 @@ function calculateCatenary(params: {
 
 export const ropephysicsTool: UnifiedTool = {
   name: 'rope_physics',
-  description: 'Comprehensive rope and chain physics simulation using Verlet integration. Features distance constraints, multiple attachment points, tension calculation, breaking threshold, collision with environment, and stiffness parameters.',
+  description:
+    'Comprehensive rope and chain physics simulation using Verlet integration. Features distance constraints, multiple attachment points, tension calculation, breaking threshold, collision with environment, and stiffness parameters.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['simulate', 'catenary', 'analyze', 'info'],
-        description: 'Operation type'
+        description: 'Operation type',
       },
       startPoint: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Starting point: { x: number, y: number, z: number }',
       },
       endPoint: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Ending point: { x: number, y: number, z: number }',
       },
       direction: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Direction vector: { x: number, y: number, z: number }',
       },
       config: {
         type: 'object',
-        properties: {
-          length: { type: 'number', description: 'Total rope length in meters' },
-          nodeCount: { type: 'number', description: 'Number of simulation nodes' },
-          mass: { type: 'number', description: 'Total rope mass in kg' },
-          stiffness: { type: 'number', description: 'Stiffness (0-1)' },
-          damping: { type: 'number', description: 'Damping (0-1)' },
-          breakingTension: { type: 'number', description: 'Breaking force threshold' },
-          thickness: { type: 'number', description: 'Rope thickness in meters' }
-        }
+        description:
+          'Rope configuration: length (m), nodeCount, mass (kg), stiffness (0-1), damping (0-1), breakingTension, thickness (m)',
       },
       fixedStart: { type: 'boolean', description: 'Fix the starting point' },
       fixedEnd: { type: 'boolean', description: 'Fix the ending point' },
-      fixedIndices: { type: 'array', items: { type: 'number' }, description: 'Additional fixed node indices' },
+      fixedIndices: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Additional fixed node indices',
+      },
       duration: { type: 'number', description: 'Simulation duration in seconds' },
       timestep: { type: 'number', description: 'Simulation timestep' },
       constraintIterations: { type: 'number', description: 'Constraint solver iterations' },
       gravity: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Gravity vector: { x: number, y: number, z: number }',
       },
       wind: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Wind force vector: { x: number, y: number, z: number }',
       },
       collisionSpheres: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            center: { type: 'object' },
-            radius: { type: 'number' },
-            friction: { type: 'number' }
-          }
-        }
+        items: { type: 'object' },
+        description:
+          'Collision spheres. Each sphere has: center (object with x/y/z), radius (number), friction (number)',
       },
       collisionPlanes: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            normal: { type: 'object' },
-            distance: { type: 'number' },
-            friction: { type: 'number' }
-          }
-        }
-      }
+        items: { type: 'object' },
+        description:
+          'Collision planes. Each plane has: normal (object with x/y/z), distance (number), friction (number)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeropephysics(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -787,7 +775,7 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
       stiffness: args.config?.stiffness || 0.9,
       damping: args.config?.damping || 0.1,
       breakingTension: args.config?.breakingTension || 1000,
-      thickness: args.config?.thickness || 0.02
+      thickness: args.config?.thickness || 0.02,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -807,12 +795,12 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
           fixedEnd: args.fixedEnd ?? false,
           fixedIndices: args.fixedIndices,
           duration: args.duration || 5,
-          timestep: args.timestep || 1/120,
+          timestep: args.timestep || 1 / 120,
           constraintIterations: args.constraintIterations,
           collisionSpheres: args.collisionSpheres,
           collisionPlanes: args.collisionPlanes,
           wind: args.wind,
-          gravity: args.gravity
+          gravity: args.gravity,
         });
         break;
       }
@@ -825,7 +813,7 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
           pointA: args.startPoint,
           pointB: args.endPoint,
           ropeLength: defaultConfig.length,
-          nodeCount: defaultConfig.nodeCount
+          nodeCount: defaultConfig.nodeCount,
         });
 
         const straightDist = vec3Distance(args.startPoint, args.endPoint);
@@ -837,8 +825,8 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
           straightDistance: straightDist,
           slack: Math.max(0, slack),
           isTaut: slack <= 0,
-          lowestPoint: Math.min(...points.map(p => p.y)),
-          sagAmount: args.startPoint.y - Math.min(...points.map(p => p.y))
+          lowestPoint: Math.min(...points.map((p) => p.y)),
+          sagAmount: args.startPoint.y - Math.min(...points.map((p) => p.y)),
         };
         break;
       }
@@ -855,10 +843,10 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
           fixedStart: args.fixedStart ?? true,
           fixedEnd: args.fixedEnd ?? false,
           duration: args.duration || 5,
-          timestep: args.timestep || 1/120
+          timestep: args.timestep || 1 / 120,
         });
 
-        const dt = args.timestep || 1/120;
+        const dt = args.timestep || 1 / 120;
         const finalState = simResult.finalState;
 
         result = {
@@ -872,7 +860,7 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
           centerOfMass: calculateCenterOfMass(finalState),
           kineticEnergy: calculateKineticEnergy(finalState, dt),
           potentialEnergy: calculatePotentialEnergy(finalState),
-          isAtRest: calculateKineticEnergy(finalState, dt) < 0.001
+          isAtRest: calculateKineticEnergy(finalState, dt) < 0.001,
         };
         break;
       }
@@ -890,20 +878,20 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
             'Sphere and plane collision',
             'Friction modeling',
             'Wind force effects',
-            'Catenary curve calculation'
+            'Catenary curve calculation',
           ],
           physicsModel: {
             integration: 'Verlet',
             constraintSolver: 'Position-based iterative',
-            collisionResponse: 'Impulse with friction'
+            collisionResponse: 'Impulse with friction',
           },
           defaultConfig,
           constants: {
             GRAVITY,
             CONSTRAINT_ITERATIONS,
-            VELOCITY_DAMPING
+            VELOCITY_DAMPING,
           },
-          operations: ['simulate', 'catenary', 'analyze', 'info']
+          operations: ['simulate', 'catenary', 'analyze', 'info'],
         };
       }
     }
@@ -915,4 +903,6 @@ export async function executeropephysics(toolCall: UnifiedToolCall): Promise<Uni
   }
 }
 
-export function isropephysicsAvailable(): boolean { return true; }
+export function isropephysicsAvailable(): boolean {
+  return true;
+}

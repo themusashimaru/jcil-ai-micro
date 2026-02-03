@@ -59,53 +59,239 @@ interface PronounInfo {
 
 const PRONOUNS: Record<string, PronounInfo> = {
   // First person
-  'i': { gender: 'unknown', number: 'singular', person: '1', case: 'nominative', animacy: 'animate' },
-  'me': { gender: 'unknown', number: 'singular', person: '1', case: 'accusative', animacy: 'animate' },
-  'my': { gender: 'unknown', number: 'singular', person: '1', case: 'possessive', animacy: 'animate' },
-  'mine': { gender: 'unknown', number: 'singular', person: '1', case: 'possessive', animacy: 'animate' },
-  'myself': { gender: 'unknown', number: 'singular', person: '1', case: 'reflexive', animacy: 'animate' },
-  'we': { gender: 'unknown', number: 'plural', person: '1', case: 'nominative', animacy: 'animate' },
-  'us': { gender: 'unknown', number: 'plural', person: '1', case: 'accusative', animacy: 'animate' },
-  'our': { gender: 'unknown', number: 'plural', person: '1', case: 'possessive', animacy: 'animate' },
-  'ours': { gender: 'unknown', number: 'plural', person: '1', case: 'possessive', animacy: 'animate' },
-  'ourselves': { gender: 'unknown', number: 'plural', person: '1', case: 'reflexive', animacy: 'animate' },
+  i: { gender: 'unknown', number: 'singular', person: '1', case: 'nominative', animacy: 'animate' },
+  me: {
+    gender: 'unknown',
+    number: 'singular',
+    person: '1',
+    case: 'accusative',
+    animacy: 'animate',
+  },
+  my: {
+    gender: 'unknown',
+    number: 'singular',
+    person: '1',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  mine: {
+    gender: 'unknown',
+    number: 'singular',
+    person: '1',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  myself: {
+    gender: 'unknown',
+    number: 'singular',
+    person: '1',
+    case: 'reflexive',
+    animacy: 'animate',
+  },
+  we: { gender: 'unknown', number: 'plural', person: '1', case: 'nominative', animacy: 'animate' },
+  us: { gender: 'unknown', number: 'plural', person: '1', case: 'accusative', animacy: 'animate' },
+  our: { gender: 'unknown', number: 'plural', person: '1', case: 'possessive', animacy: 'animate' },
+  ours: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '1',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  ourselves: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '1',
+    case: 'reflexive',
+    animacy: 'animate',
+  },
 
   // Second person
-  'you': { gender: 'unknown', number: 'unknown', person: '2', case: 'nominative', animacy: 'animate' },
-  'your': { gender: 'unknown', number: 'unknown', person: '2', case: 'possessive', animacy: 'animate' },
-  'yours': { gender: 'unknown', number: 'unknown', person: '2', case: 'possessive', animacy: 'animate' },
-  'yourself': { gender: 'unknown', number: 'singular', person: '2', case: 'reflexive', animacy: 'animate' },
-  'yourselves': { gender: 'unknown', number: 'plural', person: '2', case: 'reflexive', animacy: 'animate' },
+  you: {
+    gender: 'unknown',
+    number: 'unknown',
+    person: '2',
+    case: 'nominative',
+    animacy: 'animate',
+  },
+  your: {
+    gender: 'unknown',
+    number: 'unknown',
+    person: '2',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  yours: {
+    gender: 'unknown',
+    number: 'unknown',
+    person: '2',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  yourself: {
+    gender: 'unknown',
+    number: 'singular',
+    person: '2',
+    case: 'reflexive',
+    animacy: 'animate',
+  },
+  yourselves: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '2',
+    case: 'reflexive',
+    animacy: 'animate',
+  },
 
   // Third person masculine
-  'he': { gender: 'masculine', number: 'singular', person: '3', case: 'nominative', animacy: 'animate' },
-  'him': { gender: 'masculine', number: 'singular', person: '3', case: 'accusative', animacy: 'animate' },
-  'his': { gender: 'masculine', number: 'singular', person: '3', case: 'possessive', animacy: 'animate' },
-  'himself': { gender: 'masculine', number: 'singular', person: '3', case: 'reflexive', animacy: 'animate' },
+  he: {
+    gender: 'masculine',
+    number: 'singular',
+    person: '3',
+    case: 'nominative',
+    animacy: 'animate',
+  },
+  him: {
+    gender: 'masculine',
+    number: 'singular',
+    person: '3',
+    case: 'accusative',
+    animacy: 'animate',
+  },
+  his: {
+    gender: 'masculine',
+    number: 'singular',
+    person: '3',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  himself: {
+    gender: 'masculine',
+    number: 'singular',
+    person: '3',
+    case: 'reflexive',
+    animacy: 'animate',
+  },
 
   // Third person feminine
-  'she': { gender: 'feminine', number: 'singular', person: '3', case: 'nominative', animacy: 'animate' },
-  'her': { gender: 'feminine', number: 'singular', person: '3', case: 'accusative', animacy: 'animate' },
-  'hers': { gender: 'feminine', number: 'singular', person: '3', case: 'possessive', animacy: 'animate' },
-  'herself': { gender: 'feminine', number: 'singular', person: '3', case: 'reflexive', animacy: 'animate' },
+  she: {
+    gender: 'feminine',
+    number: 'singular',
+    person: '3',
+    case: 'nominative',
+    animacy: 'animate',
+  },
+  her: {
+    gender: 'feminine',
+    number: 'singular',
+    person: '3',
+    case: 'accusative',
+    animacy: 'animate',
+  },
+  hers: {
+    gender: 'feminine',
+    number: 'singular',
+    person: '3',
+    case: 'possessive',
+    animacy: 'animate',
+  },
+  herself: {
+    gender: 'feminine',
+    number: 'singular',
+    person: '3',
+    case: 'reflexive',
+    animacy: 'animate',
+  },
 
   // Third person neutral
-  'it': { gender: 'neutral', number: 'singular', person: '3', case: 'nominative', animacy: 'inanimate' },
-  'its': { gender: 'neutral', number: 'singular', person: '3', case: 'possessive', animacy: 'inanimate' },
-  'itself': { gender: 'neutral', number: 'singular', person: '3', case: 'reflexive', animacy: 'inanimate' },
+  it: {
+    gender: 'neutral',
+    number: 'singular',
+    person: '3',
+    case: 'nominative',
+    animacy: 'inanimate',
+  },
+  its: {
+    gender: 'neutral',
+    number: 'singular',
+    person: '3',
+    case: 'possessive',
+    animacy: 'inanimate',
+  },
+  itself: {
+    gender: 'neutral',
+    number: 'singular',
+    person: '3',
+    case: 'reflexive',
+    animacy: 'inanimate',
+  },
 
   // Third person plural
-  'they': { gender: 'unknown', number: 'plural', person: '3', case: 'nominative', animacy: 'unknown' },
-  'them': { gender: 'unknown', number: 'plural', person: '3', case: 'accusative', animacy: 'unknown' },
-  'their': { gender: 'unknown', number: 'plural', person: '3', case: 'possessive', animacy: 'unknown' },
-  'theirs': { gender: 'unknown', number: 'plural', person: '3', case: 'possessive', animacy: 'unknown' },
-  'themselves': { gender: 'unknown', number: 'plural', person: '3', case: 'reflexive', animacy: 'unknown' },
+  they: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '3',
+    case: 'nominative',
+    animacy: 'unknown',
+  },
+  them: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '3',
+    case: 'accusative',
+    animacy: 'unknown',
+  },
+  their: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '3',
+    case: 'possessive',
+    animacy: 'unknown',
+  },
+  theirs: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '3',
+    case: 'possessive',
+    animacy: 'unknown',
+  },
+  themselves: {
+    gender: 'unknown',
+    number: 'plural',
+    person: '3',
+    case: 'reflexive',
+    animacy: 'unknown',
+  },
 
   // Demonstratives (as pronouns)
-  'this': { gender: 'neutral', number: 'singular', person: '3', case: 'nominative', animacy: 'unknown' },
-  'that': { gender: 'neutral', number: 'singular', person: '3', case: 'nominative', animacy: 'unknown' },
-  'these': { gender: 'neutral', number: 'plural', person: '3', case: 'nominative', animacy: 'unknown' },
-  'those': { gender: 'neutral', number: 'plural', person: '3', case: 'nominative', animacy: 'unknown' }
+  this: {
+    gender: 'neutral',
+    number: 'singular',
+    person: '3',
+    case: 'nominative',
+    animacy: 'unknown',
+  },
+  that: {
+    gender: 'neutral',
+    number: 'singular',
+    person: '3',
+    case: 'nominative',
+    animacy: 'unknown',
+  },
+  these: {
+    gender: 'neutral',
+    number: 'plural',
+    person: '3',
+    case: 'nominative',
+    animacy: 'unknown',
+  },
+  those: {
+    gender: 'neutral',
+    number: 'plural',
+    person: '3',
+    case: 'nominative',
+    animacy: 'unknown',
+  },
 };
 
 // =============================================================================
@@ -113,25 +299,138 @@ const PRONOUNS: Record<string, PronounInfo> = {
 // =============================================================================
 
 const MASCULINE_NAMES = new Set([
-  'john', 'james', 'robert', 'michael', 'david', 'william', 'richard', 'joseph',
-  'thomas', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'mark',
-  'donald', 'steven', 'paul', 'andrew', 'joshua', 'kenneth', 'kevin', 'brian',
-  'george', 'timothy', 'ronald', 'edward', 'jason', 'jeffrey', 'ryan', 'jacob',
-  'gary', 'nicholas', 'eric', 'jonathan', 'stephen', 'larry', 'justin', 'scott',
-  'brandon', 'benjamin', 'samuel', 'raymond', 'gregory', 'frank', 'alexander',
-  'patrick', 'jack', 'dennis', 'jerry', 'tyler', 'aaron', 'henry', 'adam', 'peter',
-  'bob', 'tom', 'bill', 'jim', 'joe', 'mike', 'steve', 'dave', 'dan', 'matt', 'chris'
+  'john',
+  'james',
+  'robert',
+  'michael',
+  'david',
+  'william',
+  'richard',
+  'joseph',
+  'thomas',
+  'charles',
+  'christopher',
+  'daniel',
+  'matthew',
+  'anthony',
+  'mark',
+  'donald',
+  'steven',
+  'paul',
+  'andrew',
+  'joshua',
+  'kenneth',
+  'kevin',
+  'brian',
+  'george',
+  'timothy',
+  'ronald',
+  'edward',
+  'jason',
+  'jeffrey',
+  'ryan',
+  'jacob',
+  'gary',
+  'nicholas',
+  'eric',
+  'jonathan',
+  'stephen',
+  'larry',
+  'justin',
+  'scott',
+  'brandon',
+  'benjamin',
+  'samuel',
+  'raymond',
+  'gregory',
+  'frank',
+  'alexander',
+  'patrick',
+  'jack',
+  'dennis',
+  'jerry',
+  'tyler',
+  'aaron',
+  'henry',
+  'adam',
+  'peter',
+  'bob',
+  'tom',
+  'bill',
+  'jim',
+  'joe',
+  'mike',
+  'steve',
+  'dave',
+  'dan',
+  'matt',
+  'chris',
 ]);
 
 const FEMININE_NAMES = new Set([
-  'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan',
-  'jessica', 'sarah', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra',
-  'ashley', 'kimberly', 'emily', 'donna', 'michelle', 'dorothy', 'carol', 'amanda',
-  'melissa', 'deborah', 'stephanie', 'rebecca', 'sharon', 'laura', 'cynthia',
-  'kathleen', 'amy', 'angela', 'shirley', 'anna', 'brenda', 'pamela', 'emma',
-  'nicole', 'helen', 'samantha', 'katherine', 'christine', 'debra', 'rachel',
-  'carolyn', 'janet', 'catherine', 'maria', 'heather', 'diane', 'ruth', 'julie',
-  'jane', 'kate', 'jenny', 'sue', 'ann', 'anne', 'marie', 'alice', 'sophie', 'hannah'
+  'mary',
+  'patricia',
+  'jennifer',
+  'linda',
+  'elizabeth',
+  'barbara',
+  'susan',
+  'jessica',
+  'sarah',
+  'karen',
+  'lisa',
+  'nancy',
+  'betty',
+  'margaret',
+  'sandra',
+  'ashley',
+  'kimberly',
+  'emily',
+  'donna',
+  'michelle',
+  'dorothy',
+  'carol',
+  'amanda',
+  'melissa',
+  'deborah',
+  'stephanie',
+  'rebecca',
+  'sharon',
+  'laura',
+  'cynthia',
+  'kathleen',
+  'amy',
+  'angela',
+  'shirley',
+  'anna',
+  'brenda',
+  'pamela',
+  'emma',
+  'nicole',
+  'helen',
+  'samantha',
+  'katherine',
+  'christine',
+  'debra',
+  'rachel',
+  'carolyn',
+  'janet',
+  'catherine',
+  'maria',
+  'heather',
+  'diane',
+  'ruth',
+  'julie',
+  'jane',
+  'kate',
+  'jenny',
+  'sue',
+  'ann',
+  'anne',
+  'marie',
+  'alice',
+  'sophie',
+  'hannah',
 ]);
 
 // =============================================================================
@@ -146,60 +445,60 @@ interface NounInfo {
 
 const COMMON_NOUNS: Record<string, NounInfo> = {
   // Animate nouns
-  'man': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'men': { gender: 'masculine', animacy: 'animate', typicalNumber: 'plural' },
-  'boy': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'boys': { gender: 'masculine', animacy: 'animate', typicalNumber: 'plural' },
-  'father': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'brother': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'son': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'uncle': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'husband': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'king': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'actor': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
-  'waiter': { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  man: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  men: { gender: 'masculine', animacy: 'animate', typicalNumber: 'plural' },
+  boy: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  boys: { gender: 'masculine', animacy: 'animate', typicalNumber: 'plural' },
+  father: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  brother: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  son: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  uncle: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  husband: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  king: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  actor: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
+  waiter: { gender: 'masculine', animacy: 'animate', typicalNumber: 'singular' },
 
-  'woman': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'women': { gender: 'feminine', animacy: 'animate', typicalNumber: 'plural' },
-  'girl': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'girls': { gender: 'feminine', animacy: 'animate', typicalNumber: 'plural' },
-  'mother': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'sister': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'daughter': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'aunt': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'wife': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'queen': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'actress': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
-  'waitress': { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  woman: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  women: { gender: 'feminine', animacy: 'animate', typicalNumber: 'plural' },
+  girl: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  girls: { gender: 'feminine', animacy: 'animate', typicalNumber: 'plural' },
+  mother: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  sister: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  daughter: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  aunt: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  wife: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  queen: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  actress: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
+  waitress: { gender: 'feminine', animacy: 'animate', typicalNumber: 'singular' },
 
-  'person': { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
-  'people': { gender: 'unknown', animacy: 'animate', typicalNumber: 'plural' },
-  'child': { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
-  'children': { gender: 'unknown', animacy: 'animate', typicalNumber: 'plural' },
-  'student': { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
-  'teacher': { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
-  'doctor': { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
-  'friend': { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
+  person: { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
+  people: { gender: 'unknown', animacy: 'animate', typicalNumber: 'plural' },
+  child: { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
+  children: { gender: 'unknown', animacy: 'animate', typicalNumber: 'plural' },
+  student: { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
+  teacher: { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
+  doctor: { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
+  friend: { gender: 'unknown', animacy: 'animate', typicalNumber: 'singular' },
 
   // Inanimate nouns
-  'book': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'car': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'house': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'table': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'computer': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'phone': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'city': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'company': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'country': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'idea': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'problem': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
-  'solution': { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  book: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  car: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  house: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  table: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  computer: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  phone: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  city: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  company: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  country: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  idea: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  problem: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
+  solution: { gender: 'neutral', animacy: 'inanimate', typicalNumber: 'singular' },
 
   // Animals (can be gendered or neutral)
-  'dog': { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
-  'cat': { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
-  'horse': { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
-  'bird': { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' }
+  dog: { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
+  cat: { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
+  horse: { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
+  bird: { gender: 'neutral', animacy: 'animate', typicalNumber: 'singular' },
 };
 
 // =============================================================================
@@ -233,7 +532,7 @@ function tokenize(text: string): Array<{ word: string; start: number; end: numbe
     tokens.push({
       word: match[0],
       start: match.index,
-      end: match.index + match[0].length
+      end: match.index + match[0].length,
     });
   }
 
@@ -244,7 +543,7 @@ function tokenize(text: string): Array<{ word: string; start: number; end: numbe
 // Mention detection
 // =============================================================================
 
-function detectMentions(text: string, sentences: string[]): Mention[] {
+function detectMentions(_text: string, sentences: string[]): Mention[] {
   const mentions: Mention[] = [];
   let mentionId = 0;
   let sentenceOffset = 0;
@@ -273,13 +572,14 @@ function detectMentions(text: string, sentences: string[]): Mention[] {
           person: pronounInfo.person,
           animacy: pronounInfo.animacy,
           sentence: sentIdx,
-          headWord: token.word
+          headWord: token.word,
         });
       }
       // Check for proper nouns (capitalized words not at sentence start)
-      else if (token.word[0] === token.word[0].toUpperCase() &&
-               token.word[0] !== token.word[0].toLowerCase()) {
-
+      else if (
+        token.word[0] === token.word[0].toUpperCase() &&
+        token.word[0] !== token.word[0].toLowerCase()
+      ) {
         // Try to get a multi-word proper noun
         let fullName = token.word;
         let endIdx = i;
@@ -287,9 +587,11 @@ function detectMentions(text: string, sentences: string[]): Mention[] {
         // Look ahead for additional capitalized words
         while (endIdx + 1 < tokens.length) {
           const nextToken = tokens[endIdx + 1];
-          if (nextToken.word[0] === nextToken.word[0].toUpperCase() &&
-              nextToken.word[0] !== nextToken.word[0].toLowerCase() &&
-              nextToken.start === tokens[endIdx].end + 1) {
+          if (
+            nextToken.word[0] === nextToken.word[0].toUpperCase() &&
+            nextToken.word[0] !== nextToken.word[0].toLowerCase() &&
+            nextToken.start === tokens[endIdx].end + 1
+          ) {
             fullName += ' ' + nextToken.word;
             endIdx++;
           } else {
@@ -317,16 +619,31 @@ function detectMentions(text: string, sentences: string[]): Mention[] {
           person: '3',
           animacy: 'animate',
           sentence: sentIdx,
-          headWord: fullName
+          headWord: fullName,
         });
 
         i = endIdx; // Skip processed tokens
       }
       // Check for common nouns with determiners
-      else if (i > 0 &&
-               ['the', 'a', 'an', 'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their']
-                 .includes(tokens[i - 1].word.toLowerCase())) {
-
+      else if (
+        i > 0 &&
+        [
+          'the',
+          'a',
+          'an',
+          'this',
+          'that',
+          'these',
+          'those',
+          'my',
+          'your',
+          'his',
+          'her',
+          'its',
+          'our',
+          'their',
+        ].includes(tokens[i - 1].word.toLowerCase())
+      ) {
         const nounInfo = COMMON_NOUNS[wordLower];
         if (nounInfo) {
           // Look for noun phrase (det + adj* + noun)
@@ -344,7 +661,7 @@ function detectMentions(text: string, sentences: string[]): Mention[] {
             person: '3',
             animacy: nounInfo.animacy,
             sentence: sentIdx,
-            headWord: token.word
+            headWord: token.word,
           });
         }
       }
@@ -362,26 +679,38 @@ function detectMentions(text: string, sentences: string[]): Mention[] {
 
 function featuresCompatible(mention1: Mention, mention2: Mention): boolean {
   // Check gender compatibility
-  if (mention1.gender !== 'unknown' && mention2.gender !== 'unknown' &&
-      mention1.gender !== mention2.gender) {
+  if (
+    mention1.gender !== 'unknown' &&
+    mention2.gender !== 'unknown' &&
+    mention1.gender !== mention2.gender
+  ) {
     return false;
   }
 
   // Check number compatibility
-  if (mention1.number !== 'unknown' && mention2.number !== 'unknown' &&
-      mention1.number !== mention2.number) {
+  if (
+    mention1.number !== 'unknown' &&
+    mention2.number !== 'unknown' &&
+    mention1.number !== mention2.number
+  ) {
     return false;
   }
 
   // Check animacy compatibility
-  if (mention1.animacy !== 'unknown' && mention2.animacy !== 'unknown' &&
-      mention1.animacy !== mention2.animacy) {
+  if (
+    mention1.animacy !== 'unknown' &&
+    mention2.animacy !== 'unknown' &&
+    mention1.animacy !== mention2.animacy
+  ) {
     return false;
   }
 
   // Check person compatibility
-  if (mention1.person !== 'unknown' && mention2.person !== 'unknown' &&
-      mention1.person !== mention2.person) {
+  if (
+    mention1.person !== 'unknown' &&
+    mention2.person !== 'unknown' &&
+    mention1.person !== mention2.person
+  ) {
     return false;
   }
 
@@ -396,7 +725,8 @@ function calculateSalience(mention: Mention, currentSentence: number): number {
   score += Math.max(0, 10 - sentenceDistance * 2);
 
   // Grammatical role (rough heuristic based on position)
-  if (mention.start < 20) { // Early in sentence = likely subject
+  if (mention.start < 20) {
+    // Early in sentence = likely subject
     score += 5;
   }
 
@@ -413,7 +743,10 @@ function calculateSalience(mention: Mention, currentSentence: number): number {
   return score;
 }
 
-function resolveCoreferences(mentions: Mention[]): { chains: CoreferenceChain[]; singletons: Mention[] } {
+function resolveCoreferences(mentions: Mention[]): {
+  chains: CoreferenceChain[];
+  singletons: Mention[];
+} {
   const chains: CoreferenceChain[] = [];
   const mentionToChain = new Map<number, number>();
   let chainId = 0;
@@ -459,7 +792,7 @@ function resolveCoreferences(mentions: Mention[]): { chains: CoreferenceChain[];
             id: chainId,
             mentions: [bestAntecedent, mention],
             representative: bestAntecedent,
-            entity: bestAntecedent.text
+            entity: bestAntecedent.text,
           };
           chains.push(newChain);
           mentionToChain.set(bestAntecedent.id, chainId);
@@ -479,9 +812,10 @@ function resolveCoreferences(mentions: Mention[]): { chains: CoreferenceChain[];
         const thisHead = mention.headWord?.toLowerCase() || mention.text.toLowerCase();
         const prevHead = prevMention.headWord?.toLowerCase() || prevMention.text.toLowerCase();
 
-        if (thisHead === prevHead ||
-            mention.text.toLowerCase() === prevMention.text.toLowerCase()) {
-
+        if (
+          thisHead === prevHead ||
+          mention.text.toLowerCase() === prevMention.text.toLowerCase()
+        ) {
           // Check feature compatibility
           if (!featuresCompatible(mention, prevMention)) continue;
 
@@ -496,7 +830,7 @@ function resolveCoreferences(mentions: Mention[]): { chains: CoreferenceChain[];
               id: chainId,
               mentions: [prevMention, mention],
               representative: prevMention,
-              entity: prevMention.text
+              entity: prevMention.text,
             };
             chains.push(newChain);
             mentionToChain.set(prevMention.id, chainId);
@@ -510,7 +844,7 @@ function resolveCoreferences(mentions: Mention[]): { chains: CoreferenceChain[];
   }
 
   // Collect singletons (mentions not in any chain)
-  const singletons = mentions.filter(m => !mentionToChain.has(m.id));
+  const singletons = mentions.filter((m) => !mentionToChain.has(m.id));
 
   return { chains, singletons };
 }
@@ -529,7 +863,7 @@ function resolveText(text: string): CoreferenceResult {
     sentences,
     mentions,
     chains,
-    singletons
+    singletons,
   };
 }
 
@@ -541,7 +875,7 @@ function visualizeCoreferences(result: CoreferenceResult): string {
   const lines: string[] = [];
 
   lines.push('COREFERENCE ANALYSIS');
-  lines.push('=' .repeat(50));
+  lines.push('='.repeat(50));
   lines.push('');
 
   // Original text
@@ -561,8 +895,8 @@ function visualizeCoreferences(result: CoreferenceResult): string {
   if (result.chains.length === 0) {
     lines.push('  (no chains found)');
   } else {
-    result.chains.forEach(chain => {
-      const mentionTexts = chain.mentions.map(m => `"${m.text}" (sent ${m.sentence})`);
+    result.chains.forEach((chain) => {
+      const mentionTexts = chain.mentions.map((m) => `"${m.text}" (sent ${m.sentence})`);
       lines.push(`  Chain ${chain.id} [${chain.entity}]: ${mentionTexts.join(' <- ')}`);
     });
   }
@@ -573,7 +907,7 @@ function visualizeCoreferences(result: CoreferenceResult): string {
   if (result.singletons.length === 0) {
     lines.push('  (none)');
   } else {
-    result.singletons.forEach(m => {
+    result.singletons.forEach((m) => {
       lines.push(`  "${m.text}" (${m.type}, sent ${m.sentence})`);
     });
   }
@@ -587,10 +921,10 @@ function visualizeCoreferences(result: CoreferenceResult): string {
 
 function getMentionTypeInfo(): Record<string, string> {
   return {
-    'pronoun': 'Personal pronouns (I, you, he, she, it, we, they) and their forms',
-    'proper_noun': 'Names of specific entities (people, places, organizations)',
-    'common_noun': 'General nouns with determiners (the book, a man)',
-    'demonstrative': 'Demonstrative pronouns (this, that, these, those)'
+    pronoun: 'Personal pronouns (I, you, he, she, it, we, they) and their forms',
+    proper_noun: 'Names of specific entities (people, places, organizations)',
+    common_noun: 'General nouns with determiners (the book, a man)',
+    demonstrative: 'Demonstrative pronouns (this, that, these, those)',
   };
 }
 
@@ -598,28 +932,29 @@ function getResolutionStrategies(): Array<{ name: string; description: string }>
   return [
     {
       name: 'Feature Agreement',
-      description: 'Ensures gender, number, person, and animacy match between pronoun and antecedent'
+      description:
+        'Ensures gender, number, person, and animacy match between pronoun and antecedent',
     },
     {
       name: 'Recency',
-      description: 'Prefers antecedents that are closer to the pronoun in the text'
+      description: 'Prefers antecedents that are closer to the pronoun in the text',
     },
     {
       name: 'Grammatical Role',
-      description: 'Subjects are preferred over objects as antecedents'
+      description: 'Subjects are preferred over objects as antecedents',
     },
     {
       name: 'Salience',
-      description: 'More prominent/important entities are preferred as antecedents'
+      description: 'More prominent/important entities are preferred as antecedents',
     },
     {
       name: 'String Match',
-      description: 'Identical or similar mentions are linked together'
+      description: 'Identical or similar mentions are linked together',
     },
     {
       name: 'Semantic Compatibility',
-      description: 'Ensures the antecedent makes sense semantically in context'
-    }
+      description: 'Ensures the antecedent makes sense semantically in context',
+    },
   ];
 }
 
@@ -652,19 +987,19 @@ Features:
       operation: {
         type: 'string',
         enum: ['resolve', 'cluster', 'mentions', 'visualize', 'pronouns', 'strategies', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       text: {
         type: 'string',
-        description: 'Text to analyze for coreference'
+        description: 'Text to analyze for coreference',
       },
       pronoun: {
         type: 'string',
-        description: 'Specific pronoun to get info about'
-      }
+        description: 'Specific pronoun to get info about',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executecoreference(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -691,22 +1026,22 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
           mentionCount: resolution.mentions.length,
           chainCount: resolution.chains.length,
           singletonCount: resolution.singletons.length,
-          chains: resolution.chains.map(chain => ({
+          chains: resolution.chains.map((chain) => ({
             id: chain.id,
             entity: chain.entity,
-            mentions: chain.mentions.map(m => ({
+            mentions: chain.mentions.map((m) => ({
               text: m.text,
               type: m.type,
               position: m.start,
-              sentence: m.sentence
-            }))
+              sentence: m.sentence,
+            })),
           })),
-          singletons: resolution.singletons.map(m => ({
+          singletons: resolution.singletons.map((m) => ({
             text: m.text,
             type: m.type,
             position: m.start,
-            sentence: m.sentence
-          }))
+            sentence: m.sentence,
+          })),
         };
         break;
       }
@@ -719,16 +1054,16 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
         const resolution = resolveText(text);
 
         // Format as simple clusters
-        const clusters = resolution.chains.map(chain => ({
+        const clusters = resolution.chains.map((chain) => ({
           representative: chain.entity,
-          mentions: chain.mentions.map(m => m.text)
+          mentions: chain.mentions.map((m) => m.text),
         }));
 
         result = {
           operation: 'cluster',
           input: text,
           clusterCount: clusters.length,
-          clusters
+          clusters,
         };
         break;
       }
@@ -744,7 +1079,7 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'mentions',
           input: text,
           mentionCount: resolution.mentions.length,
-          mentions: resolution.mentions.map(m => ({
+          mentions: resolution.mentions.map((m) => ({
             text: m.text,
             type: m.type,
             position: { start: m.start, end: m.end },
@@ -752,16 +1087,16 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
               gender: m.gender,
               number: m.number,
               person: m.person,
-              animacy: m.animacy
+              animacy: m.animacy,
             },
-            sentence: m.sentence
+            sentence: m.sentence,
           })),
           byType: {
-            pronouns: resolution.mentions.filter(m => m.type === 'pronoun').length,
-            proper_nouns: resolution.mentions.filter(m => m.type === 'proper_noun').length,
-            common_nouns: resolution.mentions.filter(m => m.type === 'common_noun').length,
-            demonstratives: resolution.mentions.filter(m => m.type === 'demonstrative').length
-          }
+            pronouns: resolution.mentions.filter((m) => m.type === 'pronoun').length,
+            proper_nouns: resolution.mentions.filter((m) => m.type === 'proper_noun').length,
+            common_nouns: resolution.mentions.filter((m) => m.type === 'common_noun').length,
+            demonstratives: resolution.mentions.filter((m) => m.type === 'demonstrative').length,
+          },
         };
         break;
       }
@@ -782,8 +1117,8 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
             sentences: resolution.sentences.length,
             mentions: resolution.mentions.length,
             chains: resolution.chains.length,
-            singletons: resolution.singletons.length
-          }
+            singletons: resolution.singletons.length,
+          },
         };
         break;
       }
@@ -797,13 +1132,13 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
             result = {
               operation: 'pronouns',
               error: `Unknown pronoun: ${pronoun}`,
-              availablePronouns: Object.keys(PRONOUNS)
+              availablePronouns: Object.keys(PRONOUNS),
             };
           } else {
             result = {
               operation: 'pronouns',
               pronoun: pronounLower,
-              ...pronounInfo
+              ...pronounInfo,
             };
           }
         } else {
@@ -817,7 +1152,7 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
             operation: 'pronouns',
             totalPronouns: Object.keys(PRONOUNS).length,
             byPerson,
-            features: ['gender', 'number', 'person', 'case', 'animacy']
+            features: ['gender', 'number', 'person', 'case', 'animacy'],
           };
         }
         break;
@@ -828,7 +1163,7 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'strategies',
           description: 'Coreference resolution strategies used to link mentions',
           strategies: getResolutionStrategies(),
-          mentionTypes: getMentionTypeInfo()
+          mentionTypes: getMentionTypeInfo(),
         };
         break;
       }
@@ -845,24 +1180,24 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
             mentions: 'Detect all mentions with their features',
             visualize: 'Get visual representation of coreferences',
             pronouns: 'Get pronoun feature information',
-            strategies: 'Get information about resolution strategies'
+            strategies: 'Get information about resolution strategies',
           },
           capabilities: [
             'Pronoun resolution',
             'Entity mention detection',
             'Feature agreement checking',
             'Coreference chain building',
-            'Salience-based ranking'
+            'Salience-based ranking',
           ],
           stats: {
             pronouns: Object.keys(PRONOUNS).length,
             knownNames: MASCULINE_NAMES.size + FEMININE_NAMES.size,
-            commonNouns: Object.keys(COMMON_NOUNS).length
+            commonNouns: Object.keys(COMMON_NOUNS).length,
           },
           example: {
             text: 'John went to the store. He bought some milk.',
-            expectedChain: '["John", "He"] -> same entity'
-          }
+            expectedChain: '["John", "He"] -> same entity',
+          },
         };
       }
     }
@@ -874,4 +1209,6 @@ export async function executecoreference(toolCall: UnifiedToolCall): Promise<Uni
   }
 }
 
-export function iscoreferenceAvailable(): boolean { return true; }
+export function iscoreferenceAvailable(): boolean {
+  return true;
+}

@@ -23,10 +23,9 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // GRAMMAR TYPES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface GrammarRule {
-  lhs: string;  // Left-hand side (non-terminal)
-  rhs: string[][];  // Right-hand side alternatives (each is array of symbols)
+export interface GrammarRule {
+  lhs: string; // Left-hand side (non-terminal)
+  rhs: string[][]; // Right-hand side alternatives (each is array of symbols)
 }
 
 interface Grammar {
@@ -56,7 +55,7 @@ function parseBNFGrammar(grammarText: string): Grammar {
   const terminals = new Set<string>();
   const nonTerminals = new Set<string>();
 
-  const lines = grammarText.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+  const lines = grammarText.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'));
 
   for (const line of lines) {
     // Support both -> and ::= notations
@@ -74,10 +73,16 @@ function parseBNFGrammar(grammarText: string): Grammar {
 
     for (const alt of alternatives) {
       // Split symbols by whitespace
-      const symbols = alt.trim().split(/\s+/).filter(s => s);
+      const symbols = alt
+        .trim()
+        .split(/\s+/)
+        .filter((s) => s);
 
       // Handle epsilon/empty production
-      if (symbols.length === 1 && (symbols[0] === 'ε' || symbols[0] === 'epsilon' || symbols[0] === '')) {
+      if (
+        symbols.length === 1 &&
+        (symbols[0] === 'ε' || symbols[0] === 'epsilon' || symbols[0] === '')
+      ) {
         productions.push([]);
       } else {
         productions.push(symbols);
@@ -202,14 +207,17 @@ function computeFirstSets(grammar: Grammar): Map<string, Set<string>> {
   return first;
 }
 
-function computeFollowSets(grammar: Grammar, first: Map<string, Set<string>>): Map<string, Set<string>> {
+function computeFollowSets(
+  grammar: Grammar,
+  first: Map<string, Set<string>>
+): Map<string, Set<string>> {
   const follow = new Map<string, Set<string>>();
 
   // Initialize
   for (const nt of grammar.nonTerminals) {
     follow.set(nt, new Set());
   }
-  follow.get(grammar.startSymbol)!.add('$');  // End marker
+  follow.get(grammar.startSymbol)!.add('$'); // End marker
 
   // Fixed-point iteration
   let changed = true;
@@ -273,7 +281,11 @@ interface ParsingTable {
   productions: string[][];
 }
 
-function buildLL1Table(grammar: Grammar, first: Map<string, Set<string>>, follow: Map<string, Set<string>>): { table: ParsingTable; conflicts: string[] } {
+function buildLL1Table(
+  grammar: Grammar,
+  first: Map<string, Set<string>>,
+  follow: Map<string, Set<string>>
+): { table: ParsingTable; conflicts: string[] } {
   const table = new Map<string, Map<string, number>>();
   const productions: string[][] = [];
   const conflicts: string[] = [];
@@ -325,7 +337,9 @@ function buildLL1Table(grammar: Grammar, first: Map<string, Set<string>>, follow
       for (const terminal of prodFirst) {
         if (terminal !== 'ε') {
           if (ntTable.has(terminal)) {
-            conflicts.push(`Conflict at [${lhs}, ${terminal}]: productions ${ntTable.get(terminal)} and ${prodIndex}`);
+            conflicts.push(
+              `Conflict at [${lhs}, ${terminal}]: productions ${ntTable.get(terminal)} and ${prodIndex}`
+            );
           } else {
             ntTable.set(terminal, prodIndex);
           }
@@ -338,7 +352,9 @@ function buildLL1Table(grammar: Grammar, first: Map<string, Set<string>>, follow
         if (lhsFollow) {
           for (const terminal of lhsFollow) {
             if (ntTable.has(terminal)) {
-              conflicts.push(`Conflict at [${lhs}, ${terminal}]: productions ${ntTable.get(terminal)} and ${prodIndex}`);
+              conflicts.push(
+                `Conflict at [${lhs}, ${terminal}]: productions ${ntTable.get(terminal)} and ${prodIndex}`
+              );
             } else {
               ntTable.set(terminal, prodIndex);
             }
@@ -357,7 +373,11 @@ function buildLL1Table(grammar: Grammar, first: Map<string, Set<string>>, follow
 // LL(1) PARSER
 // ============================================================================
 
-function parseLL1(input: string[], grammar: Grammar, parsingTable: ParsingTable): { tree: ParseTreeNode | null; error?: string } {
+function parseLL1(
+  input: string[],
+  grammar: Grammar,
+  parsingTable: ParsingTable
+): { tree: ParseTreeNode | null; error?: string } {
   const { table, productions } = parsingTable;
 
   const tokens = [...input, '$'];
@@ -367,7 +387,7 @@ function parseLL1(input: string[], grammar: Grammar, parsingTable: ParsingTable)
   const root: ParseTreeNode = {
     symbol: grammar.startSymbol,
     children: [],
-    isTerminal: false
+    isTerminal: false,
   };
   stack.push({ symbol: '$', node: { symbol: '$', children: [], isTerminal: true } });
   stack.push({ symbol: grammar.startSymbol, node: root });
@@ -387,7 +407,7 @@ function parseLL1(input: string[], grammar: Grammar, parsingTable: ParsingTable)
       } else {
         return {
           tree: null,
-          error: `Expected '${top.symbol}', got '${currentToken}' at position ${tokenIndex}`
+          error: `Expected '${top.symbol}', got '${currentToken}' at position ${tokenIndex}`,
         };
       }
     } else {
@@ -401,7 +421,7 @@ function parseLL1(input: string[], grammar: Grammar, parsingTable: ParsingTable)
       if (prodIndex === undefined) {
         return {
           tree: null,
-          error: `No production for [${top.symbol}, ${currentToken}] at position ${tokenIndex}`
+          error: `No production for [${top.symbol}, ${currentToken}] at position ${tokenIndex}`,
         };
       }
 
@@ -414,7 +434,7 @@ function parseLL1(input: string[], grammar: Grammar, parsingTable: ParsingTable)
         childNodes.push({
           symbol,
           children: [],
-          isTerminal: grammar.terminals.has(symbol)
+          isTerminal: grammar.terminals.has(symbol),
         });
       }
       top.node.children = childNodes;
@@ -562,7 +582,7 @@ Atom -> SYMBOL | NUMBER | STRING
 S -> A B
 A -> a A | ε
 B -> b B | c
-`
+`,
 };
 
 // ============================================================================
@@ -578,38 +598,40 @@ export const parsergeneratorTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['generate', 'parse', 'first_follow', 'validate', 'predefined', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       grammar: {
         type: 'string',
-        description: 'Grammar in BNF notation'
+        description: 'Grammar in BNF notation',
       },
       grammar_name: {
         type: 'string',
         enum: ['arithmetic', 'json', 'lisp', 'simple'],
-        description: 'Use a predefined grammar'
+        description: 'Use a predefined grammar',
       },
       input: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Input tokens to parse'
+        description: 'Input tokens to parse',
       },
       parser_type: {
         type: 'string',
         enum: ['LL1', 'recursive_descent'],
-        description: 'Parser type to generate'
+        description: 'Parser type to generate',
       },
       format: {
         type: 'string',
         enum: ['bnf', 'ebnf'],
-        description: 'Grammar format'
-      }
+        description: 'Grammar format',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeparsergenerator(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -620,7 +642,7 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
       grammar_name,
       input,
       parser_type = 'LL1',
-      format = 'bnf'
+      format = 'bnf',
     } = args;
 
     // Info operation
@@ -633,35 +655,42 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
           parse: 'Parse input tokens using generated parser',
           first_follow: 'Compute FIRST and FOLLOW sets',
           validate: 'Validate grammar and check for conflicts',
-          predefined: 'List predefined grammars'
+          predefined: 'List predefined grammars',
         },
         grammarFormats: {
           bnf: 'Backus-Naur Form: A -> B C | D',
-          ebnf: 'Extended BNF with [optional] and {repetition}'
+          ebnf: 'Extended BNF with [optional] and {repetition}',
         },
         parserTypes: {
           LL1: 'LL(1) table-driven parser',
-          recursive_descent: 'Recursive descent parser code'
+          recursive_descent: 'Recursive descent parser code',
         },
         predefinedGrammars: Object.keys(PREDEFINED_GRAMMARS),
         limitations: [
           'LL(1) requires no left recursion',
           'Grammar should be factored for LL(1)',
-          'Direct left recursion will cause issues'
-        ]
+          'Direct left recursion will cause issues',
+        ],
       };
       return { toolCallId: id, content: JSON.stringify(info, null, 2) };
     }
 
     // Predefined grammars
     if (operation === 'predefined') {
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'predefined',
-        grammars: Object.entries(PREDEFINED_GRAMMARS).map(([name, text]) => ({
-          name,
-          grammar: text.trim()
-        }))
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'predefined',
+            grammars: Object.entries(PREDEFINED_GRAMMARS).map(([name, text]) => ({
+              name,
+              grammar: text.trim(),
+            })),
+          },
+          null,
+          2
+        ),
+      };
     }
 
     // Get grammar
@@ -675,29 +704,35 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
     }
 
     // Parse grammar
-    const grammar = format === 'ebnf'
-      ? parseEBNFGrammar(grammarSource)
-      : parseBNFGrammar(grammarSource);
+    const grammar =
+      format === 'ebnf' ? parseEBNFGrammar(grammarSource) : parseBNFGrammar(grammarSource);
 
     // First/Follow operation
     if (operation === 'first_follow') {
       const first = computeFirstSets(grammar);
       const follow = computeFollowSets(grammar, first);
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'first_follow',
-        grammar: {
-          startSymbol: grammar.startSymbol,
-          nonTerminals: [...grammar.nonTerminals],
-          terminals: [...grammar.terminals]
-        },
-        firstSets: Object.fromEntries(
-          [...grammar.nonTerminals].map(nt => [nt, [...first.get(nt)!]])
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'first_follow',
+            grammar: {
+              startSymbol: grammar.startSymbol,
+              nonTerminals: [...grammar.nonTerminals],
+              terminals: [...grammar.terminals],
+            },
+            firstSets: Object.fromEntries(
+              [...grammar.nonTerminals].map((nt) => [nt, [...first.get(nt)!]])
+            ),
+            followSets: Object.fromEntries(
+              [...grammar.nonTerminals].map((nt) => [nt, [...follow.get(nt)!]])
+            ),
+          },
+          null,
+          2
         ),
-        followSets: Object.fromEntries(
-          [...grammar.nonTerminals].map(nt => [nt, [...follow.get(nt)!]])
-        )
-      }, null, 2) };
+      };
     }
 
     // Validate operation
@@ -743,21 +778,29 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
         }
       }
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'validate',
-        grammar: {
-          startSymbol: grammar.startSymbol,
-          nonTerminalCount: grammar.nonTerminals.size,
-          terminalCount: grammar.terminals.size,
-          productionCount: [...grammar.rules.values()].reduce((s, p) => s + p.length, 0)
-        },
-        isLL1: conflicts.length === 0 && issues.length === 0,
-        conflicts,
-        issues,
-        summary: conflicts.length === 0 && issues.length === 0
-          ? 'Grammar is valid LL(1)'
-          : `Found ${conflicts.length} conflicts and ${issues.length} issues`
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'validate',
+            grammar: {
+              startSymbol: grammar.startSymbol,
+              nonTerminalCount: grammar.nonTerminals.size,
+              terminalCount: grammar.terminals.size,
+              productionCount: [...grammar.rules.values()].reduce((s, p) => s + p.length, 0),
+            },
+            isLL1: conflicts.length === 0 && issues.length === 0,
+            conflicts,
+            issues,
+            summary:
+              conflicts.length === 0 && issues.length === 0
+                ? 'Grammar is valid LL(1)'
+                : `Found ${conflicts.length} conflicts and ${issues.length} issues`,
+          },
+          null,
+          2
+        ),
+      };
     }
 
     // Generate operation
@@ -767,48 +810,66 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
 
       if (parser_type === 'recursive_descent') {
         const code = generateRecursiveDescentParser(grammar);
-        return { toolCallId: id, content: JSON.stringify({
-          operation: 'generate',
-          parserType: 'recursive_descent',
-          grammar: {
-            startSymbol: grammar.startSymbol,
-            nonTerminals: [...grammar.nonTerminals],
-            terminals: [...grammar.terminals]
-          },
-          generatedCode: code
-        }, null, 2) };
+        return {
+          toolCallId: id,
+          content: JSON.stringify(
+            {
+              operation: 'generate',
+              parserType: 'recursive_descent',
+              grammar: {
+                startSymbol: grammar.startSymbol,
+                nonTerminals: [...grammar.nonTerminals],
+                terminals: [...grammar.terminals],
+              },
+              generatedCode: code,
+            },
+            null,
+            2
+          ),
+        };
       }
 
       // LL(1) parser
       const { table, conflicts } = buildLL1Table(grammar, first, follow);
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'generate',
-        parserType: 'LL1',
-        grammar: {
-          startSymbol: grammar.startSymbol,
-          nonTerminals: [...grammar.nonTerminals],
-          terminals: [...grammar.terminals]
-        },
-        parsingTable: {
-          rows: [...grammar.nonTerminals].map(nt => ({
-            nonTerminal: nt,
-            entries: Object.fromEntries(table.table.get(nt)!)
-          })),
-          productions: table.productions.map((p, i) => ({
-            index: i,
-            rule: `${p[0]} -> ${p.slice(1).join(' ') || 'ε'}`
-          }))
-        },
-        conflicts,
-        isLL1: conflicts.length === 0
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'generate',
+            parserType: 'LL1',
+            grammar: {
+              startSymbol: grammar.startSymbol,
+              nonTerminals: [...grammar.nonTerminals],
+              terminals: [...grammar.terminals],
+            },
+            parsingTable: {
+              rows: [...grammar.nonTerminals].map((nt) => ({
+                nonTerminal: nt,
+                entries: Object.fromEntries(table.table.get(nt)!),
+              })),
+              productions: table.productions.map((p, i) => ({
+                index: i,
+                rule: `${p[0]} -> ${p.slice(1).join(' ') || 'ε'}`,
+              })),
+            },
+            conflicts,
+            isLL1: conflicts.length === 0,
+          },
+          null,
+          2
+        ),
+      };
     }
 
     // Parse operation
     if (operation === 'parse') {
       if (!input || !Array.isArray(input)) {
-        return { toolCallId: id, content: 'Error: input tokens array required for parse', isError: true };
+        return {
+          toolCallId: id,
+          content: 'Error: input tokens array required for parse',
+          isError: true,
+        };
       }
 
       const first = computeFirstSets(grammar);
@@ -816,22 +877,36 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
       const { table, conflicts } = buildLL1Table(grammar, first, follow);
 
       if (conflicts.length > 0) {
-        return { toolCallId: id, content: JSON.stringify({
-          operation: 'parse',
-          error: 'Grammar has LL(1) conflicts',
-          conflicts
-        }, null, 2) };
+        return {
+          toolCallId: id,
+          content: JSON.stringify(
+            {
+              operation: 'parse',
+              error: 'Grammar has LL(1) conflicts',
+              conflicts,
+            },
+            null,
+            2
+          ),
+        };
       }
 
       const { tree, error } = parseLL1(input, grammar, table);
 
       if (error) {
-        return { toolCallId: id, content: JSON.stringify({
-          operation: 'parse',
-          input,
-          success: false,
-          error
-        }, null, 2) };
+        return {
+          toolCallId: id,
+          content: JSON.stringify(
+            {
+              operation: 'parse',
+              input,
+              success: false,
+              error,
+            },
+            null,
+            2
+          ),
+        };
       }
 
       // Simplify tree for output
@@ -841,20 +916,26 @@ export async function executeparsergenerator(toolCall: UnifiedToolCall): Promise
         }
         return {
           nonTerminal: node.symbol,
-          children: node.children.map(simplifyTree)
+          children: node.children.map(simplifyTree),
         };
       }
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'parse',
-        input,
-        success: true,
-        parseTree: tree ? simplifyTree(tree) : null
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'parse',
+            input,
+            success: true,
+            parseTree: tree ? simplifyTree(tree) : null,
+          },
+          null,
+          2
+        ),
+      };
     }
 
     return { toolCallId: id, content: `Error: Unknown operation '${operation}'`, isError: true };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

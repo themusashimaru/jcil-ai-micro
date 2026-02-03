@@ -22,30 +22,11 @@ function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-function logSumExp(values: number[]): number {
-  const maxVal = Math.max(...values);
-  return maxVal + Math.log(values.reduce((sum, v) => sum + Math.exp(v - maxVal), 0));
-}
-
-function dotProduct(a: number[], b: number[]): number {
-  return a.reduce((sum, ai, i) => sum + ai * b[i], 0);
-}
-
-function vectorAdd(a: number[], b: number[]): number[] {
-  return a.map((ai, i) => ai + b[i]);
-}
-
-function vectorScale(a: number[], s: number): number[] {
-  return a.map(ai => ai * s);
-}
-/* eslint-enable @typescript-eslint/no-unused-vars */
-
 function softmax(logits: number[]): number[] {
   const maxLogit = Math.max(...logits);
-  const expValues = logits.map(l => Math.exp(l - maxLogit));
+  const expValues = logits.map((l) => Math.exp(l - maxLogit));
   const sum = expValues.reduce((a, b) => a + b, 0);
-  return expValues.map(e => e / sum);
+  return expValues.map((e) => e / sum);
 }
 
 function klDivergence(p: number[], q: number[]): number {
@@ -93,12 +74,20 @@ function initializeRewardModel(config: RewardModelConfig): RewardModel {
 
   const weights1: number[][] = [];
   for (let i = 0; i < inputDim; i++) {
-    weights1.push(Array(hiddenDim).fill(0).map(() => gaussianSample(0, scale1)));
+    weights1.push(
+      Array(hiddenDim)
+        .fill(0)
+        .map(() => gaussianSample(0, scale1))
+    );
   }
 
   const weights2: number[][] = [];
   for (let i = 0; i < hiddenDim; i++) {
-    weights2.push(Array(outputDim).fill(0).map(() => gaussianSample(0, scale2)));
+    weights2.push(
+      Array(outputDim)
+        .fill(0)
+        .map(() => gaussianSample(0, scale2))
+    );
   }
 
   return {
@@ -106,7 +95,7 @@ function initializeRewardModel(config: RewardModelConfig): RewardModel {
     bias1: Array(hiddenDim).fill(0),
     weights2,
     bias2: Array(outputDim).fill(0),
-    config
+    config,
   };
 }
 
@@ -174,7 +163,7 @@ function trainRewardModel(
   return {
     model,
     losses,
-    accuracy: correct / preferences.length
+    accuracy: correct / preferences.length,
   };
 }
 
@@ -211,9 +200,13 @@ function initializePolicy(config: PolicyConfig): Policy {
 
   const initWeights = (inDim: number, outDim: number): number[][] => {
     const scale = Math.sqrt(2 / (inDim + outDim));
-    return Array(inDim).fill(0).map(() =>
-      Array(outDim).fill(0).map(() => gaussianSample(0, scale))
-    );
+    return Array(inDim)
+      .fill(0)
+      .map(() =>
+        Array(outDim)
+          .fill(0)
+          .map(() => gaussianSample(0, scale))
+      );
   };
 
   return {
@@ -225,7 +218,7 @@ function initializePolicy(config: PolicyConfig): Policy {
     criticBias1: Array(hiddenDim).fill(0),
     criticWeights2: initWeights(hiddenDim, 1),
     criticBias2: [0],
-    config
+    config,
   };
 }
 
@@ -321,15 +314,24 @@ function ppoUpdate(
 ): { policyLoss: number; valueLoss: number; entropy: number; kl: number } {
   const { states, actions, rewards, logProbs: oldLogProbs, values, dones } = trajectory;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { clipEpsilon, valueCoef: _valueCoef, entropyCoef: _entropyCoef, gamma, lambda, learningRate } = policy.config;
+  const {
+    clipEpsilon,
+    valueCoef: _valueCoef,
+    entropyCoef: _entropyCoef,
+    gamma,
+    lambda,
+    learningRate,
+  } = policy.config;
 
   // Compute advantages
   const { advantages, returns } = computeGAE(rewards, values, dones, gamma, lambda);
 
   // Normalize advantages
   const advMean = advantages.reduce((a, b) => a + b, 0) / advantages.length;
-  const advStd = Math.sqrt(advantages.reduce((sum, a) => sum + (a - advMean) ** 2, 0) / advantages.length) + 1e-8;
-  const normAdvantages = advantages.map(a => (a - advMean) / advStd);
+  const advStd =
+    Math.sqrt(advantages.reduce((sum, a) => sum + (a - advMean) ** 2, 0) / advantages.length) +
+    1e-8;
+  const normAdvantages = advantages.map((a) => (a - advMean) / advStd);
 
   let totalPolicyLoss = 0;
   let totalValueLoss = 0;
@@ -345,10 +347,7 @@ function ppoUpdate(
       // Policy loss with clipping
       const ratio = Math.exp(newLogProb - oldLogProbs[t]);
       const surr1 = ratio * normAdvantages[t];
-      const surr2 = Math.max(
-        Math.min(ratio, 1 + clipEpsilon),
-        1 - clipEpsilon
-      ) * normAdvantages[t];
+      const surr2 = Math.max(Math.min(ratio, 1 + clipEpsilon), 1 - clipEpsilon) * normAdvantages[t];
       const policyLoss = -Math.min(surr1, surr2);
 
       // Value loss
@@ -358,7 +357,7 @@ function ppoUpdate(
       const entropy = -probs.reduce((sum, p) => sum + p * Math.log(p + 1e-10), 0);
 
       // KL divergence
-      const oldProbs = softmax(logits.map((_, i) => i === actions[t] ? oldLogProbs[t] : -10));
+      const oldProbs = softmax(logits.map((_, i) => (i === actions[t] ? oldLogProbs[t] : -10)));
       const kl = klDivergence(oldProbs, probs);
 
       totalPolicyLoss += policyLoss;
@@ -381,7 +380,7 @@ function ppoUpdate(
     policyLoss: totalPolicyLoss / n,
     valueLoss: totalValueLoss / n,
     entropy: totalEntropy / n,
-    kl: totalKL / n
+    kl: totalKL / n,
   };
 }
 
@@ -390,7 +389,7 @@ function ppoUpdate(
 // ============================================================================
 
 interface DPOConfig {
-  beta: number;  // Temperature parameter
+  beta: number; // Temperature parameter
   learningRate: number;
 }
 
@@ -413,12 +412,17 @@ function dpoLoss(
   return {
     loss,
     reward,
-    accuracy: logitDiff > 0 ? 1 : 0
+    accuracy: logitDiff > 0 ? 1 : 0,
   };
 }
 
 function trainDPO(
-  preferences: Array<{ chosen: number[]; rejected: number[]; chosenLogProb: number; rejectedLogProb: number }>,
+  preferences: Array<{
+    chosen: number[];
+    rejected: number[];
+    chosenLogProb: number;
+    rejectedLogProb: number;
+  }>,
   refModel: RewardModel,
   config: DPOConfig,
   epochs: number
@@ -456,7 +460,7 @@ function trainDPO(
   return {
     losses,
     accuracy: totalAccuracy,
-    implicitRewards
+    implicitRewards,
   };
 }
 
@@ -476,38 +480,46 @@ const CONSTITUTIONAL_PRINCIPLES: ConstitutionalPrinciple[] = [
   {
     name: 'harmlessness',
     description: 'Responses should not cause harm to users or others',
-    critiquePrefixes: ['This response could be harmful because', 'A potential harm in this response is'],
-    revisionInstructions: 'Revise to remove any potentially harmful content while preserving helpfulness',
-    weight: 1.0
+    critiquePrefixes: [
+      'This response could be harmful because',
+      'A potential harm in this response is',
+    ],
+    revisionInstructions:
+      'Revise to remove any potentially harmful content while preserving helpfulness',
+    weight: 1.0,
   },
   {
     name: 'honesty',
     description: 'Responses should be truthful and not misleading',
     critiquePrefixes: ['This response may be misleading because', 'An accuracy concern is'],
-    revisionInstructions: 'Revise to be more accurate and acknowledge uncertainty where appropriate',
-    weight: 1.0
+    revisionInstructions:
+      'Revise to be more accurate and acknowledge uncertainty where appropriate',
+    weight: 1.0,
   },
   {
     name: 'helpfulness',
     description: 'Responses should genuinely help the user with their task',
-    critiquePrefixes: ['This response could be more helpful by', 'The response falls short in helpfulness because'],
-    revisionInstructions: 'Revise to better address the user\'s actual needs',
-    weight: 0.8
+    critiquePrefixes: [
+      'This response could be more helpful by',
+      'The response falls short in helpfulness because',
+    ],
+    revisionInstructions: "Revise to better address the user's actual needs",
+    weight: 0.8,
   },
   {
     name: 'privacy',
     description: 'Responses should respect user privacy and not encourage data exposure',
     critiquePrefixes: ['This response has privacy concerns because', 'A privacy issue is'],
     revisionInstructions: 'Revise to better protect user privacy',
-    weight: 0.9
+    weight: 0.9,
   },
   {
     name: 'fairness',
     description: 'Responses should not perpetuate biases or discrimination',
     critiquePrefixes: ['This response may exhibit bias because', 'A fairness concern is'],
     revisionInstructions: 'Revise to be more balanced and fair',
-    weight: 0.9
-  }
+    weight: 0.9,
+  },
 ];
 
 interface CAIResult {
@@ -522,10 +534,7 @@ interface CAIResult {
   principleScores: Record<string, number>;
 }
 
-function simulateCAICritique(
-  response: string,
-  principles: ConstitutionalPrinciple[]
-): CAIResult {
+function simulateCAICritique(response: string, principles: ConstitutionalPrinciple[]): CAIResult {
   const critiques: CAIResult['critiques'] = [];
   const principleScores: Record<string, number> = {};
 
@@ -578,7 +587,7 @@ function simulateCAICritique(
     critiques.push({
       principle: principle.name,
       critique,
-      score
+      score,
     });
 
     principleScores[principle.name] = score;
@@ -604,7 +613,7 @@ function simulateCAICritique(
     critiques,
     revisedResponse,
     overallScore,
-    principleScores
+    principleScores,
   };
 }
 
@@ -671,13 +680,15 @@ function trainBradleyTerry(
   return model;
 }
 
-function getRankings(model: BradleyTerryModel): Array<{ item: string; strength: number; rank: number }> {
+function getRankings(
+  model: BradleyTerryModel
+): Array<{ item: string; strength: number; rank: number }> {
   const sorted = Object.entries(model.strengths)
     .sort((a, b) => b[1] - a[1])
     .map(([item, strength], index) => ({
       item,
       strength,
-      rank: index + 1
+      rank: index + 1,
     }));
 
   return sorted;
@@ -696,19 +707,14 @@ export const rlhfTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['reward_model', 'ppo', 'preference', 'dpo', 'constitutional', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       // Reward model parameters
       preferences: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            chosen: { type: 'array', items: { type: 'number' }, description: 'Feature vector for chosen response' },
-            rejected: { type: 'array', items: { type: 'number' }, description: 'Feature vector for rejected response' }
-          }
-        },
-        description: 'Preference pairs for training (chosen > rejected)'
+        items: { type: 'object' },
+        description:
+          'Preference pairs for training (chosen > rejected). Each pair has: chosen (array of numbers), rejected (array of numbers)',
       },
       inputDim: { type: 'number', description: 'Input dimension for reward model' },
       epochs: { type: 'number', description: 'Training epochs' },
@@ -716,16 +722,9 @@ export const rlhfTool: UnifiedTool = {
       // PPO parameters
       trajectories: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            states: { type: 'array', items: { type: 'array', items: { type: 'number' } } },
-            actions: { type: 'array', items: { type: 'number' } },
-            rewards: { type: 'array', items: { type: 'number' } },
-            dones: { type: 'array', items: { type: 'boolean' } }
-          }
-        },
-        description: 'Trajectories for PPO training'
+        items: { type: 'object' },
+        description:
+          'Trajectories for PPO training. Each trajectory has: states (array of arrays), actions (array of numbers), rewards (array of numbers), dones (array of booleans)',
       },
       stateDim: { type: 'number', description: 'State dimension for PPO' },
       actionDim: { type: 'number', description: 'Action dimension for PPO' },
@@ -735,14 +734,9 @@ export const rlhfTool: UnifiedTool = {
       items: { type: 'array', items: { type: 'string' }, description: 'Items to rank' },
       comparisons: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            winner: { type: 'string' },
-            loser: { type: 'string' }
-          }
-        },
-        description: 'Pairwise comparisons (winner > loser)'
+        items: { type: 'object' },
+        description:
+          'Pairwise comparisons (winner > loser). Each comparison has: winner (string), loser (string)',
       },
       // DPO parameters
       beta: { type: 'number', description: 'DPO temperature parameter (default 0.1)' },
@@ -751,11 +745,11 @@ export const rlhfTool: UnifiedTool = {
       principles: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Principles to apply (harmlessness, honesty, helpfulness, privacy, fairness)'
-      }
+        description: 'Principles to apply (harmlessness, honesty, helpfulness, privacy, fairness)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -769,44 +763,60 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'rlhf',
-            description: 'Reinforcement Learning from Human Feedback',
-            operations: {
-              reward_model: {
-                description: 'Train a reward model from human preferences',
-                parameters: ['preferences (array of {chosen, rejected})', 'inputDim', 'epochs', 'learningRate'],
-                output: 'Trained model statistics, losses, accuracy'
+          content: JSON.stringify(
+            {
+              tool: 'rlhf',
+              description: 'Reinforcement Learning from Human Feedback',
+              operations: {
+                reward_model: {
+                  description: 'Train a reward model from human preferences',
+                  parameters: [
+                    'preferences (array of {chosen, rejected})',
+                    'inputDim',
+                    'epochs',
+                    'learningRate',
+                  ],
+                  output: 'Trained model statistics, losses, accuracy',
+                },
+                ppo: {
+                  description: 'Proximal Policy Optimization training step',
+                  parameters: [
+                    'trajectories',
+                    'stateDim',
+                    'actionDim',
+                    'clipEpsilon',
+                    'gamma',
+                    'epochs',
+                  ],
+                  output: 'Policy loss, value loss, entropy, KL divergence',
+                },
+                preference: {
+                  description: 'Bradley-Terry preference learning for ranking',
+                  parameters: ['items', 'comparisons (array of {winner, loser})', 'epochs'],
+                  output: 'Item rankings with strength scores',
+                },
+                dpo: {
+                  description: 'Direct Preference Optimization (no explicit reward model)',
+                  parameters: ['preferences', 'beta', 'epochs'],
+                  output: 'DPO losses, implicit rewards, accuracy',
+                },
+                constitutional: {
+                  description: 'Constitutional AI critique and revision',
+                  parameters: ['response', 'principles'],
+                  output: 'Critiques, revised response, principle scores',
+                },
               },
-              ppo: {
-                description: 'Proximal Policy Optimization training step',
-                parameters: ['trajectories', 'stateDim', 'actionDim', 'clipEpsilon', 'gamma', 'epochs'],
-                output: 'Policy loss, value loss, entropy, KL divergence'
+              concepts: {
+                rewardModeling: 'Learn a reward function from human preference comparisons',
+                ppo: 'Policy gradient method with clipped objective for stable training',
+                bradleyTerry: 'Probabilistic model for pairwise comparisons',
+                dpo: 'Direct fine-tuning without separate reward model',
+                constitutionalAI: 'Self-critique and revision based on principles',
               },
-              preference: {
-                description: 'Bradley-Terry preference learning for ranking',
-                parameters: ['items', 'comparisons (array of {winner, loser})', 'epochs'],
-                output: 'Item rankings with strength scores'
-              },
-              dpo: {
-                description: 'Direct Preference Optimization (no explicit reward model)',
-                parameters: ['preferences', 'beta', 'epochs'],
-                output: 'DPO losses, implicit rewards, accuracy'
-              },
-              constitutional: {
-                description: 'Constitutional AI critique and revision',
-                parameters: ['response', 'principles'],
-                output: 'Critiques, revised response, principle scores'
-              }
             },
-            concepts: {
-              rewardModeling: 'Learn a reward function from human preference comparisons',
-              ppo: 'Policy gradient method with clipped objective for stable training',
-              bradleyTerry: 'Probabilistic model for pairwise comparisons',
-              dpo: 'Direct fine-tuning without separate reward model',
-              constitutionalAI: 'Self-critique and revision based on principles'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -820,8 +830,12 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
           // Generate example preferences
           const numExamples = 50;
           for (let i = 0; i < numExamples; i++) {
-            const chosen = Array(inputDim).fill(0).map(() => Math.random());
-            const rejected = Array(inputDim).fill(0).map(() => Math.random() * 0.8);
+            const chosen = Array(inputDim)
+              .fill(0)
+              .map(() => Math.random());
+            const rejected = Array(inputDim)
+              .fill(0)
+              .map(() => Math.random() * 0.8);
             preferences.push({ chosen, rejected });
           }
         }
@@ -830,38 +844,44 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
           inputDim,
           hiddenDim: Math.max(32, inputDim / 2),
           outputDim: 1,
-          learningRate
+          learningRate,
         };
 
         const model = initializeRewardModel(config);
         const result = trainRewardModel(model, preferences, epochs);
 
         // Test on a few examples
-        const testResults = preferences.slice(0, 5).map(pref => ({
+        const testResults = preferences.slice(0, 5).map((pref: PreferenceData) => ({
           chosenReward: rewardModelForward(result.model, pref.chosen),
           rejectedReward: rewardModelForward(result.model, pref.rejected),
-          correct: rewardModelForward(result.model, pref.chosen) > rewardModelForward(result.model, pref.rejected)
+          correct:
+            rewardModelForward(result.model, pref.chosen) >
+            rewardModelForward(result.model, pref.rejected),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'reward_model',
-            config,
-            training: {
-              numPreferences: preferences.length,
-              epochs,
-              finalLoss: result.losses[result.losses.length - 1],
-              lossHistory: result.losses.slice(-10),
-              accuracy: result.accuracy
+          content: JSON.stringify(
+            {
+              operation: 'reward_model',
+              config,
+              training: {
+                numPreferences: preferences.length,
+                epochs,
+                finalLoss: result.losses[result.losses.length - 1],
+                lossHistory: result.losses.slice(-10),
+                accuracy: result.accuracy,
+              },
+              testResults,
+              modelInfo: {
+                architecture: 'MLP (input -> hidden -> 1)',
+                hiddenActivation: 'ReLU',
+                lossFunction: 'Bradley-Terry (log-likelihood)',
+              },
             },
-            testResults,
-            modelInfo: {
-              architecture: 'MLP (input -> hidden -> 1)',
-              hiddenActivation: 'ReLU',
-              lossFunction: 'Bradley-Terry (log-likelihood)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -881,40 +901,45 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
           valueCoef: 0.5,
           entropyCoef: 0.01,
           gamma,
-          lambda: 0.95
+          lambda: 0.95,
         };
 
         const policy = initializePolicy(config);
 
         // Generate or use provided trajectories
-        const trajectories = args.trajectories && args.trajectories.length > 0 ? args.trajectories : (() => {
-          // Generate example trajectory
-          const T = 32;
-          const states: number[][] = [];
-          const actions: number[] = [];
-          const rewards: number[] = [];
-          const logProbs: number[] = [];
-          const values: number[] = [];
-          const dones: boolean[] = [];
+        const trajectories =
+          args.trajectories && args.trajectories.length > 0
+            ? args.trajectories
+            : (() => {
+                // Generate example trajectory
+                const T = 32;
+                const states: number[][] = [];
+                const actions: number[] = [];
+                const rewards: number[] = [];
+                const logProbs: number[] = [];
+                const values: number[] = [];
+                const dones: boolean[] = [];
 
-          let state = Array(stateDim).fill(0).map(() => Math.random());
+                let state = Array(stateDim)
+                  .fill(0)
+                  .map(() => Math.random());
 
-          for (let t = 0; t < T; t++) {
-            states.push([...state]);
-            const { logits, value } = policyForward(policy, state);
-            const { action, logProb } = sampleAction(logits);
+                for (let t = 0; t < T; t++) {
+                  states.push([...state]);
+                  const { logits, value } = policyForward(policy, state);
+                  const { action, logProb } = sampleAction(logits);
 
-            actions.push(action);
-            logProbs.push(logProb);
-            values.push(value);
-            rewards.push(Math.random() - 0.5);
-            dones.push(t === T - 1);
+                  actions.push(action);
+                  logProbs.push(logProb);
+                  values.push(value);
+                  rewards.push(Math.random() - 0.5);
+                  dones.push(t === T - 1);
 
-            state = state.map(s => s + (Math.random() - 0.5) * 0.1);
-          }
+                  state = state.map((s) => s + (Math.random() - 0.5) * 0.1);
+                }
 
-          return [{ states, actions, rewards, logProbs, values, dones }];
-        })();
+                return [{ states, actions, rewards, logProbs, values, dones }];
+              })();
 
         // Flatten trajectories
         const flatTrajectory: Trajectory = {
@@ -923,7 +948,7 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
           rewards: [],
           logProbs: [],
           values: [],
-          dones: []
+          dones: [],
         };
 
         for (const traj of trajectories) {
@@ -936,7 +961,11 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
             for (const state of traj.states) {
               const { logits, value } = policyForward(policy, state);
               const probs = softmax(logits);
-              flatTrajectory.logProbs.push(Math.log(probs[traj.actions[flatTrajectory.logProbs.length % traj.actions.length]] + 1e-10));
+              flatTrajectory.logProbs.push(
+                Math.log(
+                  probs[traj.actions[flatTrajectory.logProbs.length % traj.actions.length]] + 1e-10
+                )
+              );
               flatTrajectory.values.push(value);
             }
           } else {
@@ -951,46 +980,54 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'ppo',
-            config,
-            training: {
-              trajectoryLength: flatTrajectory.states.length,
-              epochs,
-              policyLoss: updateResult.policyLoss,
-              valueLoss: updateResult.valueLoss,
-              entropy: updateResult.entropy,
-              klDivergence: updateResult.kl
+          content: JSON.stringify(
+            {
+              operation: 'ppo',
+              config,
+              training: {
+                trajectoryLength: flatTrajectory.states.length,
+                epochs,
+                policyLoss: updateResult.policyLoss,
+                valueLoss: updateResult.valueLoss,
+                entropy: updateResult.entropy,
+                klDivergence: updateResult.kl,
+              },
+              hyperparameters: {
+                clipEpsilon,
+                gamma,
+                lambda: config.lambda,
+                learningRate: config.learningRate,
+              },
             },
-            hyperparameters: {
-              clipEpsilon,
-              gamma,
-              lambda: config.lambda,
-              learningRate: config.learningRate
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'preference': {
         const items = args.items || ['model_A', 'model_B', 'model_C', 'model_D'];
         const iterations = args.epochs || 100;
-        const comparisons = args.comparisons && args.comparisons.length > 0 ? args.comparisons : (() => {
-          const generated: Array<{ winner: string; loser: string }> = [];
-          // Generate example comparisons
-          for (let i = 0; i < 20; i++) {
-            const idx1 = Math.floor(Math.random() * items.length);
-            let idx2 = Math.floor(Math.random() * items.length);
-            while (idx2 === idx1) {
-              idx2 = Math.floor(Math.random() * items.length);
-            }
-            // Higher index wins more often (simulating quality ordering)
-            const winner = Math.random() < 0.6 + 0.1 * (idx1 - idx2) ? items[idx1] : items[idx2];
-            const loser = winner === items[idx1] ? items[idx2] : items[idx1];
-            generated.push({ winner, loser });
-          }
-          return generated;
-        })();
+        const comparisons =
+          args.comparisons && args.comparisons.length > 0
+            ? args.comparisons
+            : (() => {
+                const generated: Array<{ winner: string; loser: string }> = [];
+                // Generate example comparisons
+                for (let i = 0; i < 20; i++) {
+                  const idx1 = Math.floor(Math.random() * items.length);
+                  let idx2 = Math.floor(Math.random() * items.length);
+                  while (idx2 === idx1) {
+                    idx2 = Math.floor(Math.random() * items.length);
+                  }
+                  // Higher index wins more often (simulating quality ordering)
+                  const winner =
+                    Math.random() < 0.6 + 0.1 * (idx1 - idx2) ? items[idx1] : items[idx2];
+                  const loser = winner === items[idx1] ? items[idx2] : items[idx1];
+                  generated.push({ winner, loser });
+                }
+                return generated;
+              })();
 
         const model = trainBradleyTerry(items, comparisons, iterations);
         const rankings = getRankings(model);
@@ -1008,20 +1045,24 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'preference',
-            input: {
-              items,
-              numComparisons: comparisons.length,
-              iterations
+          content: JSON.stringify(
+            {
+              operation: 'preference',
+              input: {
+                items,
+                numComparisons: comparisons.length,
+                iterations,
+              },
+              rankings,
+              winProbabilities: winProbMatrix,
+              modelInfo: {
+                type: 'Bradley-Terry',
+                description: 'P(i beats j) = strength_i / (strength_i + strength_j)',
+              },
             },
-            rankings,
-            winProbabilities: winProbMatrix,
-            modelInfo: {
-              type: 'Bradley-Terry',
-              description: 'P(i beats j) = strength_i / (strength_i + strength_j)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1029,26 +1070,38 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
         const beta = args.beta || 0.1;
         const epochs = args.epochs || 10;
         const inputDim = args.inputDim || 32;
-        const preferences = args.preferences && args.preferences.length > 0 ? args.preferences : (() => {
-          const generated: Array<{ chosen: number[]; rejected: number[]; chosenLogProb: number; rejectedLogProb: number }> = [];
-          // Generate example preferences with log probs
-          for (let i = 0; i < 30; i++) {
-            generated.push({
-              chosen: Array(inputDim).fill(0).map(() => Math.random()),
-              rejected: Array(inputDim).fill(0).map(() => Math.random()),
-              chosenLogProb: -Math.random() * 2,
-              rejectedLogProb: -Math.random() * 3
-            });
-          }
-          return generated;
-        })();
+        const preferences =
+          args.preferences && args.preferences.length > 0
+            ? args.preferences
+            : (() => {
+                const generated: Array<{
+                  chosen: number[];
+                  rejected: number[];
+                  chosenLogProb: number;
+                  rejectedLogProb: number;
+                }> = [];
+                // Generate example preferences with log probs
+                for (let i = 0; i < 30; i++) {
+                  generated.push({
+                    chosen: Array(inputDim)
+                      .fill(0)
+                      .map(() => Math.random()),
+                    rejected: Array(inputDim)
+                      .fill(0)
+                      .map(() => Math.random()),
+                    chosenLogProb: -Math.random() * 2,
+                    rejectedLogProb: -Math.random() * 3,
+                  });
+                }
+                return generated;
+              })();
 
         // Initialize reference model
         const refConfig: RewardModelConfig = {
           inputDim,
           hiddenDim: 16,
           outputDim: 1,
-          learningRate: 0.001
+          learningRate: 0.001,
         };
         const refModel = initializeRewardModel(refConfig);
 
@@ -1057,29 +1110,35 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'dpo',
-            config: {
-              beta,
-              epochs,
-              numPreferences: preferences.length
+          content: JSON.stringify(
+            {
+              operation: 'dpo',
+              config: {
+                beta,
+                epochs,
+                numPreferences: preferences.length,
+              },
+              training: {
+                finalLoss: result.losses[result.losses.length - 1],
+                lossHistory: result.losses,
+                accuracy: result.accuracy,
+                avgImplicitReward:
+                  result.implicitRewards.reduce((a, b) => a + b, 0) / result.implicitRewards.length,
+              },
+              theory: {
+                objective:
+                  'Maximize: log σ(β(log π(y_w|x) - log π(y_l|x) - log π_ref(y_w|x) + log π_ref(y_l|x)))',
+                implicitReward: 'r(x,y) = β log(π(y|x) / π_ref(y|x))',
+                advantages: [
+                  'No separate reward model needed',
+                  'More stable training',
+                  'Closed-form optimal policy',
+                ],
+              },
             },
-            training: {
-              finalLoss: result.losses[result.losses.length - 1],
-              lossHistory: result.losses,
-              accuracy: result.accuracy,
-              avgImplicitReward: result.implicitRewards.reduce((a, b) => a + b, 0) / result.implicitRewards.length
-            },
-            theory: {
-              objective: 'Maximize: log σ(β(log π(y_w|x) - log π(y_l|x) - log π_ref(y_w|x) + log π_ref(y_l|x)))',
-              implicitReward: 'r(x,y) = β log(π(y|x) / π_ref(y|x))',
-              advantages: [
-                'No separate reward model needed',
-                'More stable training',
-                'Closed-form optimal policy'
-              ]
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1087,7 +1146,7 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
         const response = args.response || 'This is a sample response to evaluate.';
         const requestedPrinciples = args.principles || ['harmlessness', 'honesty', 'helpfulness'];
 
-        const principles = CONSTITUTIONAL_PRINCIPLES.filter(p =>
+        const principles = CONSTITUTIONAL_PRINCIPLES.filter((p) =>
           requestedPrinciples.includes(p.name)
         );
 
@@ -1099,33 +1158,37 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'constitutional',
-            input: {
-              response: result.originalResponse,
-              principlesApplied: principles.map(p => p.name)
+          content: JSON.stringify(
+            {
+              operation: 'constitutional',
+              input: {
+                response: result.originalResponse,
+                principlesApplied: principles.map((p) => p.name),
+              },
+              critiques: result.critiques,
+              revision: {
+                revisedResponse: result.revisedResponse,
+                wasRevised: result.revisedResponse !== result.originalResponse,
+              },
+              scores: {
+                overall: result.overallScore,
+                byPrinciple: result.principleScores,
+              },
+              process: {
+                step1: 'Generate critiques based on each principle',
+                step2: 'Score response on each principle',
+                step3: 'If score below threshold, generate revision',
+                step4: 'Return critique analysis and optional revision',
+              },
+              availablePrinciples: CONSTITUTIONAL_PRINCIPLES.map((p) => ({
+                name: p.name,
+                description: p.description,
+                weight: p.weight,
+              })),
             },
-            critiques: result.critiques,
-            revision: {
-              revisedResponse: result.revisedResponse,
-              wasRevised: result.revisedResponse !== result.originalResponse
-            },
-            scores: {
-              overall: result.overallScore,
-              byPrinciple: result.principleScores
-            },
-            process: {
-              step1: 'Generate critiques based on each principle',
-              step2: 'Score response on each principle',
-              step3: 'If score below threshold, generate revision',
-              step4: 'Return critique analysis and optional revision'
-            },
-            availablePrinciples: CONSTITUTIONAL_PRINCIPLES.map(p => ({
-              name: p.name,
-              description: p.description,
-              weight: p.weight
-            }))
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1134,9 +1197,16 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
           toolCallId: id,
           content: JSON.stringify({
             error: `Unknown operation: ${operation}`,
-            availableOperations: ['reward_model', 'ppo', 'preference', 'dpo', 'constitutional', 'info']
+            availableOperations: [
+              'reward_model',
+              'ppo',
+              'preference',
+              'dpo',
+              'constitutional',
+              'info',
+            ],
           }),
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1144,7 +1214,7 @@ export async function executerlhf(toolCall: UnifiedToolCall): Promise<UnifiedToo
     return {
       toolCallId: id,
       content: `Error in RLHF tool: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

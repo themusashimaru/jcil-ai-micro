@@ -47,13 +47,13 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         name: 'Burglary',
         states: ['true', 'false'],
         parents: [],
-        cpt: [[0.001], [0.999]]
+        cpt: [[0.001], [0.999]],
       },
       {
         name: 'Earthquake',
         states: ['true', 'false'],
         parents: [],
-        cpt: [[0.002], [0.998]]
+        cpt: [[0.002], [0.998]],
       },
       {
         name: 'Alarm',
@@ -62,28 +62,28 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         // P(A|B,E): B=T,E=T; B=T,E=F; B=F,E=T; B=F,E=F
         cpt: [
           [0.95, 0.94, 0.29, 0.001],
-          [0.05, 0.06, 0.71, 0.999]
-        ]
+          [0.05, 0.06, 0.71, 0.999],
+        ],
       },
       {
         name: 'JohnCalls',
         states: ['true', 'false'],
         parents: ['Alarm'],
         cpt: [
-          [0.90, 0.05],
-          [0.10, 0.95]
-        ]
+          [0.9, 0.05],
+          [0.1, 0.95],
+        ],
       },
       {
         name: 'MaryCalls',
         states: ['true', 'false'],
         parents: ['Alarm'],
         cpt: [
-          [0.70, 0.01],
-          [0.30, 0.99]
-        ]
-      }
-    ]
+          [0.7, 0.01],
+          [0.3, 0.99],
+        ],
+      },
+    ],
   },
   sprinkler: {
     description: 'Weather network: Cloudy -> Sprinkler/Rain -> WetGrass',
@@ -92,7 +92,7 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         name: 'Cloudy',
         states: ['true', 'false'],
         parents: [],
-        cpt: [[0.5], [0.5]]
+        cpt: [[0.5], [0.5]],
       },
       {
         name: 'Sprinkler',
@@ -100,8 +100,8 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         parents: ['Cloudy'],
         cpt: [
           [0.1, 0.5],
-          [0.9, 0.5]
-        ]
+          [0.9, 0.5],
+        ],
       },
       {
         name: 'Rain',
@@ -109,8 +109,8 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         parents: ['Cloudy'],
         cpt: [
           [0.8, 0.2],
-          [0.2, 0.8]
-        ]
+          [0.2, 0.8],
+        ],
       },
       {
         name: 'WetGrass',
@@ -118,11 +118,11 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         parents: ['Sprinkler', 'Rain'],
         // P(W|S,R): S=T,R=T; S=T,R=F; S=F,R=T; S=F,R=F
         cpt: [
-          [0.99, 0.90, 0.90, 0.00],
-          [0.01, 0.10, 0.10, 1.00]
-        ]
-      }
-    ]
+          [0.99, 0.9, 0.9, 0.0],
+          [0.01, 0.1, 0.1, 1.0],
+        ],
+      },
+    ],
   },
   medical: {
     description: 'Simple medical diagnosis: Smoking -> Cancer/Bronchitis -> Dyspnea/Xray',
@@ -131,7 +131,7 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         name: 'Smoking',
         states: ['true', 'false'],
         parents: [],
-        cpt: [[0.3], [0.7]]
+        cpt: [[0.3], [0.7]],
       },
       {
         name: 'Cancer',
@@ -139,8 +139,8 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         parents: ['Smoking'],
         cpt: [
           [0.03, 0.001],
-          [0.97, 0.999]
-        ]
+          [0.97, 0.999],
+        ],
       },
       {
         name: 'Bronchitis',
@@ -148,29 +148,29 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
         parents: ['Smoking'],
         cpt: [
           [0.45, 0.05],
-          [0.55, 0.95]
-        ]
+          [0.55, 0.95],
+        ],
       },
       {
         name: 'Dyspnea',
         states: ['true', 'false'],
         parents: ['Cancer', 'Bronchitis'],
         cpt: [
-          [0.90, 0.70, 0.65, 0.30],
-          [0.10, 0.30, 0.35, 0.70]
-        ]
+          [0.9, 0.7, 0.65, 0.3],
+          [0.1, 0.3, 0.35, 0.7],
+        ],
       },
       {
         name: 'PositiveXray',
         states: ['true', 'false'],
         parents: ['Cancer'],
         cpt: [
-          [0.90, 0.02],
-          [0.10, 0.98]
-        ]
-      }
-    ]
-  }
+          [0.9, 0.02],
+          [0.1, 0.98],
+        ],
+      },
+    ],
+  },
 };
 
 // ============================================================================
@@ -180,7 +180,7 @@ const EXAMPLE_NETWORKS: Record<string, { nodes: Node[]; description: string }> =
 function createNetwork(nodes: Node[]): BayesianNetwork {
   const network: BayesianNetwork = {
     nodes: new Map(),
-    edges: []
+    edges: [],
   };
 
   for (const node of nodes) {
@@ -217,7 +217,11 @@ function getTopologicalOrder(network: BayesianNetwork): string[] {
   return order;
 }
 
-function getCPTIndex(node: Node, parentStates: Record<string, string>, network: BayesianNetwork): number {
+function getCPTIndex(
+  node: Node,
+  parentStates: Record<string, string>,
+  network: BayesianNetwork
+): number {
   if (node.parents.length === 0) return 0;
 
   let index = 0;
@@ -259,7 +263,7 @@ function variableElimination(
   evidence: Evidence
 ): Record<string, number> {
   const order = getTopologicalOrder(network);
-  const hiddenVars = order.filter(v => v !== queryVar && !(v in evidence));
+  const hiddenVars = order.filter((v) => v !== queryVar && !(v in evidence));
 
   // Initialize factors from CPTs
   type Factor = {
@@ -269,11 +273,10 @@ function variableElimination(
 
   const factors: Factor[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const [_nodeName, node] of network.nodes) {
     const factor: Factor = {
       variables: [node.name, ...node.parents],
-      values: new Map()
+      values: new Map(),
     };
 
     // Generate all combinations
@@ -314,7 +317,7 @@ function variableElimination(
   // Eliminate hidden variables one by one
   for (const hiddenVar of hiddenVars) {
     // Find factors containing this variable
-    const relevantFactors = factors.filter(f => f.variables.includes(hiddenVar));
+    const relevantFactors = factors.filter((f) => f.variables.includes(hiddenVar));
     if (relevantFactors.length === 0) continue;
 
     // Remove these factors
@@ -435,9 +438,10 @@ function multiplyAndMarginalize(
   return { variables: resultVars, values: resultValues };
 }
 
-function multiplyFactors(
-  factors: Array<{ variables: string[]; values: Map<string, number> }>
-): { variables: string[]; values: Map<string, number> } {
+function multiplyFactors(factors: Array<{ variables: string[]; values: Map<string, number> }>): {
+  variables: string[];
+  values: Map<string, number>;
+} {
   if (factors.length === 0) {
     return { variables: [], values: new Map([['{}', 1]]) };
   }
@@ -554,7 +558,7 @@ function gibbsSampling(
   burnIn: number = 100
 ): Record<string, number> {
   const order = getTopologicalOrder(network);
-  const nonEvidenceVars = order.filter(v => !(v in evidence));
+  const nonEvidenceVars = order.filter((v) => !(v in evidence));
   const queryNode = network.nodes.get(queryVar);
   if (!queryNode) return {};
 
@@ -742,8 +746,8 @@ function learnCPT(
   laplacePrior: number = 1
 ): number[][] {
   const numStates = node.states.length;
-  const numParentConfigs = node.parents.length === 0 ? 1 :
-    node.parents.reduce((acc, _p) => acc * 2, 1); // Assuming binary
+  const numParentConfigs =
+    node.parents.length === 0 ? 1 : node.parents.reduce((acc, _p) => acc * 2, 1); // Assuming binary
 
   // Initialize counts with Laplace smoothing
   const counts: number[][] = [];
@@ -811,9 +815,8 @@ function findMostLikely(distribution: Record<string, number>): { state: string; 
 
 function analyzeNetworkStructure(network: BayesianNetwork): Record<string, unknown> {
   const nodes = Array.from(network.nodes.keys());
-  const rootNodes = nodes.filter(n => network.nodes.get(n)!.parents.length === 0);
-  const leafNodes = nodes.filter(n => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const rootNodes = nodes.filter((n) => network.nodes.get(n)!.parents.length === 0);
+  const leafNodes = nodes.filter((n) => {
     for (const [_nodeName, node] of network.nodes) {
       if (node.parents.includes(n)) return false;
     }
@@ -846,16 +849,11 @@ function analyzeNetworkStructure(network: BayesianNetwork): Record<string, unkno
     leafNodes,
     averageDegree: (2 * network.edges.length) / nodes.length,
     markovBlankets,
-    isTree: network.edges.length === nodes.length - 1
+    isTree: network.edges.length === nodes.length - 1,
   };
 }
 
-function dSeparation(
-  network: BayesianNetwork,
-  x: string,
-  y: string,
-  z: string[]
-): boolean {
+function dSeparation(network: BayesianNetwork, x: string, y: string, z: string[]): boolean {
   // Simplified d-separation test using reachability
   const zSet = new Set(z);
 
@@ -863,7 +861,7 @@ function dSeparation(
   const visited = new Set<string>();
   const queue: Array<{ node: string; direction: 'up' | 'down' }> = [
     { node: x, direction: 'up' },
-    { node: x, direction: 'down' }
+    { node: x, direction: 'down' },
   ];
 
   while (queue.length > 0) {
@@ -930,46 +928,62 @@ export const bayesiannetworkTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'query', 'sample', 'analyze', 'd_separation', 'learn_structure', 'learn_parameters', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'create',
+          'query',
+          'sample',
+          'analyze',
+          'd_separation',
+          'learn_structure',
+          'learn_parameters',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       network: {
         type: 'string',
         enum: ['alarm', 'sprinkler', 'medical'],
-        description: 'Predefined network name'
+        description: 'Predefined network name',
       },
       nodes: {
         type: 'array',
-        description: 'Custom node definitions'
+        description: 'Custom node definitions',
       },
       query: {
         type: 'string',
-        description: 'Query variable name'
+        description: 'Query variable name',
       },
       evidence: {
         type: 'object',
-        description: 'Evidence as {variable: state}'
+        description: 'Evidence as {variable: state}',
       },
       method: {
         type: 'string',
         enum: ['exact', 'likelihood_weighting', 'gibbs'],
-        description: 'Inference method'
+        description: 'Inference method',
       },
       numSamples: {
         type: 'number',
-        description: 'Number of samples for approximate inference'
+        description: 'Number of samples for approximate inference',
       },
       x: { type: 'string', description: 'First variable for d-separation' },
       y: { type: 'string', description: 'Second variable for d-separation' },
       z: { type: 'array', items: { type: 'string' }, description: 'Conditioning set' },
       data: { type: 'array', description: 'Training data for learning' },
-      variables: { type: 'array', items: { type: 'string' }, description: 'Variable names for learning' }
+      variables: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Variable names for learning',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executebayesiannetwork(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
@@ -978,67 +992,75 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Bayesian Network',
-            description: 'Probabilistic graphical models for reasoning under uncertainty',
-            capabilities: [
-              'Exact inference via variable elimination',
-              'Approximate inference via likelihood weighting and Gibbs sampling',
-              'Structure learning (Chow-Liu tree)',
-              'Parameter learning with Laplace smoothing',
-              'd-separation tests for conditional independence',
-              'Network structure analysis'
-            ],
-            predefinedNetworks: Object.entries(EXAMPLE_NETWORKS).map(([name, net]) => ({
-              name,
-              description: net.description,
-              nodes: net.nodes.map(n => n.name)
-            })),
-            inferenceComplexity: {
-              exact: 'O(n * d^w) where w is treewidth',
-              approximate: 'O(samples * nodes)'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              tool: 'Bayesian Network',
+              description: 'Probabilistic graphical models for reasoning under uncertainty',
+              capabilities: [
+                'Exact inference via variable elimination',
+                'Approximate inference via likelihood weighting and Gibbs sampling',
+                'Structure learning (Chow-Liu tree)',
+                'Parameter learning with Laplace smoothing',
+                'd-separation tests for conditional independence',
+                'Network structure analysis',
+              ],
+              predefinedNetworks: Object.entries(EXAMPLE_NETWORKS).map(([name, net]) => ({
+                name,
+                description: net.description,
+                nodes: net.nodes.map((n) => n.name),
+              })),
+              inferenceComplexity: {
+                exact: 'O(n * d^w) where w is treewidth',
+                approximate: 'O(samples * nodes)',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                description: 'Query probability of burglary given John and Mary both called',
-                call: {
-                  operation: 'query',
-                  network: 'alarm',
-                  query: 'Burglary',
-                  evidence: { JohnCalls: 'true', MaryCalls: 'true' }
-                }
-              },
-              {
-                description: 'Approximate inference using Gibbs sampling',
-                call: {
-                  operation: 'sample',
-                  network: 'sprinkler',
-                  query: 'Rain',
-                  evidence: { WetGrass: 'true' },
-                  method: 'gibbs',
-                  numSamples: 5000
-                }
-              },
-              {
-                description: 'Test d-separation',
-                call: {
-                  operation: 'd_separation',
-                  network: 'alarm',
-                  x: 'Burglary',
-                  y: 'Earthquake',
-                  z: []
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  description: 'Query probability of burglary given John and Mary both called',
+                  call: {
+                    operation: 'query',
+                    network: 'alarm',
+                    query: 'Burglary',
+                    evidence: { JohnCalls: 'true', MaryCalls: 'true' },
+                  },
+                },
+                {
+                  description: 'Approximate inference using Gibbs sampling',
+                  call: {
+                    operation: 'sample',
+                    network: 'sprinkler',
+                    query: 'Rain',
+                    evidence: { WetGrass: 'true' },
+                    method: 'gibbs',
+                    numSamples: 5000,
+                  },
+                },
+                {
+                  description: 'Test d-separation',
+                  call: {
+                    operation: 'd_separation',
+                    network: 'alarm',
+                    x: 'Burglary',
+                    y: 'Earthquake',
+                    z: [],
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1046,7 +1068,9 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
         const networkName = args.network || 'alarm';
         const networkDef = EXAMPLE_NETWORKS[networkName];
         if (!networkDef) {
-          throw new Error(`Unknown network: ${networkName}. Available: ${Object.keys(EXAMPLE_NETWORKS).join(', ')}`);
+          throw new Error(
+            `Unknown network: ${networkName}. Available: ${Object.keys(EXAMPLE_NETWORKS).join(', ')}`
+          );
         }
 
         const network = createNetwork(networkDef.nodes);
@@ -1054,16 +1078,20 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkName,
-            description: networkDef.description,
-            nodes: networkDef.nodes.map(n => ({
-              name: n.name,
-              states: n.states,
-              parents: n.parents
-            })),
-            structure
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              network: networkName,
+              description: networkDef.description,
+              nodes: networkDef.nodes.map((n) => ({
+                name: n.name,
+                states: n.states,
+                parents: n.parents,
+              })),
+              structure,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1089,17 +1117,25 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
           distribution,
           entropy,
           mostLikely,
-          confidence
+          confidence,
         };
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            query: `P(${queryVar} | ${Object.entries(evidence).map(([k, v]) => `${k}=${v}`).join(', ') || 'no evidence'})`,
-            method: 'variable_elimination',
-            result,
-            interpretation: `Most likely: ${mostLikely} with probability ${(confidence * 100).toFixed(2)}%`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              query: `P(${queryVar} | ${
+                Object.entries(evidence)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(', ') || 'no evidence'
+              })`,
+              method: 'variable_elimination',
+              result,
+              interpretation: `Most likely: ${mostLikely} with probability ${(confidence * 100).toFixed(2)}%`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1130,19 +1166,27 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            query: `P(${queryVar} | ${Object.entries(evidence).map(([k, v]) => `${k}=${v}`).join(', ') || 'no evidence'})`,
-            method,
-            numSamples,
-            result: {
-              variable: queryVar,
-              distribution,
-              entropy,
-              mostLikely,
-              confidence
+          content: JSON.stringify(
+            {
+              query: `P(${queryVar} | ${
+                Object.entries(evidence)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(', ') || 'no evidence'
+              })`,
+              method,
+              numSamples,
+              result: {
+                variable: queryVar,
+                distribution,
+                entropy,
+                mostLikely,
+                confidence,
+              },
+              note: 'Approximate inference - results may vary between runs',
             },
-            note: 'Approximate inference - results may vary between runs'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1156,11 +1200,15 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            network: networkName,
-            structure,
-            topologicalOrder: getTopologicalOrder(network)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              network: networkName,
+              structure,
+              topologicalOrder: getTopologicalOrder(network),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1182,13 +1230,17 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            test: `${x} ⊥ ${y} | {${z.join(', ')}}`,
-            dSeparated: separated,
-            interpretation: separated
-              ? `${x} and ${y} are conditionally independent given {${z.join(', ')}}`
-              : `${x} and ${y} are NOT conditionally independent given {${z.join(', ')}}`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              test: `${x} ⊥ ${y} | {${z.join(', ')}}`,
+              dSeparated: separated,
+              interpretation: separated
+                ? `${x} and ${y} are conditionally independent given {${z.join(', ')}}`
+                : `${x} and ${y} are NOT conditionally independent given {${z.join(', ')}}`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1203,19 +1255,23 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
             { A: 'true', B: 'true', C: 'false' },
             { A: 'true', B: 'false', C: 'true' },
             { A: 'false', B: 'true', C: 'true' },
-            { A: 'false', B: 'false', C: 'false' }
+            { A: 'false', B: 'false', C: 'false' },
           ];
           const sampleVars = ['A', 'B', 'C'];
           const edges = learnChowLiuTree(sampleData, sampleVars);
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              note: 'Using sample data - provide your own data for real learning',
-              variables: sampleVars,
-              learnedEdges: edges,
-              algorithm: 'Chow-Liu tree (maximum spanning tree of mutual information)'
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                note: 'Using sample data - provide your own data for real learning',
+                variables: sampleVars,
+                learnedEdges: edges,
+                algorithm: 'Chow-Liu tree (maximum spanning tree of mutual information)',
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -1223,12 +1279,16 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            variables,
-            numDataPoints: data.length,
-            learnedEdges: edges,
-            algorithm: 'Chow-Liu tree'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              variables,
+              numDataPoints: data.length,
+              learnedEdges: edges,
+              algorithm: 'Chow-Liu tree',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1242,39 +1302,55 @@ export async function executebayesiannetwork(toolCall: UnifiedToolCall): Promise
         if (!data || !Array.isArray(data) || data.length === 0) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              note: 'Provide training data to learn parameters',
-              expectedFormat: 'Array of objects with variable assignments',
-              example: [
-                { Burglary: 'true', Earthquake: 'false', Alarm: 'true', JohnCalls: 'true', MaryCalls: 'false' }
-              ],
-              currentCPTs: networkDef.nodes.map(n => ({
-                node: n.name,
-                parents: n.parents,
-                cpt: n.cpt
-              }))
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                note: 'Provide training data to learn parameters',
+                expectedFormat: 'Array of objects with variable assignments',
+                example: [
+                  {
+                    Burglary: 'true',
+                    Earthquake: 'false',
+                    Alarm: 'true',
+                    JohnCalls: 'true',
+                    MaryCalls: 'false',
+                  },
+                ],
+                currentCPTs: networkDef.nodes.map((n) => ({
+                  node: n.name,
+                  parents: n.parents,
+                  cpt: n.cpt,
+                })),
+              },
+              null,
+              2
+            ),
           };
         }
 
-        const learnedCPTs = networkDef.nodes.map(node => ({
+        const learnedCPTs = networkDef.nodes.map((node) => ({
           node: node.name,
           parents: node.parents,
-          cpt: learnCPT(data, node)
+          cpt: learnCPT(data, node),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            numDataPoints: data.length,
-            algorithm: 'Maximum likelihood with Laplace smoothing',
-            learnedCPTs
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              numDataPoints: data.length,
+              algorithm: 'Maximum likelihood with Laplace smoothing',
+              learnedCPTs,
+            },
+            null,
+            2
+          ),
         };
       }
 
       default:
-        throw new Error(`Unknown operation: ${args.operation}. Use 'info' for available operations.`);
+        throw new Error(
+          `Unknown operation: ${args.operation}. Use 'info' for available operations.`
+        );
     }
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';

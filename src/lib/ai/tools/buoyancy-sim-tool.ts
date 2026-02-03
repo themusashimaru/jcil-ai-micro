@@ -92,11 +92,10 @@ interface SubmergedCalculation {
 // Physics Constants
 // ============================================================================
 
-const WATER_DENSITY = 1000; // kg/m³ (fresh water at 20°C)
-const SEAWATER_DENSITY = 1025; // kg/m³
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const AIR_DENSITY = 1.225; // kg/m³
-const STANDARD_GRAVITY = 9.80665; // m/s²
+export const WATER_DENSITY = 1000; // kg/m³ (fresh water at 20°C)
+export const SEAWATER_DENSITY = 1025; // kg/m³
+export const AIR_DENSITY = 1.225; // kg/m³
+export const STANDARD_GRAVITY = 9.80665; // m/s²
 const ATMOSPHERIC_PRESSURE = 101325; // Pa
 
 // ============================================================================
@@ -111,7 +110,7 @@ const FLUID_PRESETS: { [key: string]: Omit<FluidLayer, 'id' | 'heightTop' | 'hei
   glycerin: { density: 1260, viscosity: 1.5, temperature: 293, name: 'Glycerin' },
   air: { density: 1.225, viscosity: 0.0000181, temperature: 293, name: 'Air' },
   honey: { density: 1420, viscosity: 10, temperature: 293, name: 'Honey' },
-  gasoline: { density: 750, viscosity: 0.0006, temperature: 293, name: 'Gasoline' }
+  gasoline: { density: 750, viscosity: 0.0006, temperature: 293, name: 'Gasoline' },
 };
 
 // ============================================================================
@@ -144,12 +143,11 @@ function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   return {
     x: a.y * b.z - a.z * b.y,
     y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x
+    z: a.x * b.y - a.y * b.x,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Dot(a: Vector3, b: Vector3): number {
+export function vec3Dot(a: Vector3, b: Vector3): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
@@ -171,13 +169,13 @@ function calculateBoxSubmergedVolume(
     // Fully submerged
     return {
       volume: obj.volume,
-      centerOfBuoyancy: { ...obj.position }
+      centerOfBuoyancy: { ...obj.position },
     };
   } else if (bottomY >= fluidSurfaceHeight) {
     // Not submerged
     return {
       volume: 0,
-      centerOfBuoyancy: { ...obj.position }
+      centerOfBuoyancy: { ...obj.position },
     };
   } else {
     // Partially submerged
@@ -190,7 +188,7 @@ function calculateBoxSubmergedVolume(
 
     return {
       volume: submergedVolume,
-      centerOfBuoyancy: { x: obj.position.x, y: cobY, z: obj.position.z }
+      centerOfBuoyancy: { x: obj.position.x, y: cobY, z: obj.position.z },
     };
   }
 }
@@ -211,25 +209,25 @@ function calculateSphereSubmergedVolume(
     // Fully submerged
     return {
       volume: obj.volume,
-      centerOfBuoyancy: { ...obj.position }
+      centerOfBuoyancy: { ...obj.position },
     };
   } else if (bottomY >= fluidSurfaceHeight) {
     // Not submerged
     return {
       volume: 0,
-      centerOfBuoyancy: { ...obj.position }
+      centerOfBuoyancy: { ...obj.position },
     };
   } else {
     // Partially submerged - use spherical cap formula
     const h = fluidSurfaceHeight - bottomY; // depth of submersion
-    const submergedVolume = (Math.PI * h * h / 3) * (3 * radius - h);
+    const submergedVolume = ((Math.PI * h * h) / 3) * (3 * radius - h);
 
     // Center of buoyancy for spherical cap
     const cobY = bottomY + (3 * (2 * radius - h) * (2 * radius - h)) / (4 * (3 * radius - h));
 
     return {
       volume: submergedVolume,
-      centerOfBuoyancy: { x: obj.position.x, y: cobY, z: obj.position.z }
+      centerOfBuoyancy: { x: obj.position.x, y: cobY, z: obj.position.z },
     };
   }
 }
@@ -249,12 +247,12 @@ function calculateCylinderSubmergedVolume(
   if (topY <= fluidSurfaceHeight) {
     return {
       volume: obj.volume,
-      centerOfBuoyancy: { ...obj.position }
+      centerOfBuoyancy: { ...obj.position },
     };
   } else if (bottomY >= fluidSurfaceHeight) {
     return {
       volume: 0,
-      centerOfBuoyancy: { ...obj.position }
+      centerOfBuoyancy: { ...obj.position },
     };
   } else {
     const submergedHeight = fluidSurfaceHeight - bottomY;
@@ -263,7 +261,7 @@ function calculateCylinderSubmergedVolume(
 
     return {
       volume: submergedVolume,
-      centerOfBuoyancy: { x: obj.position.x, y: cobY, z: obj.position.z }
+      centerOfBuoyancy: { x: obj.position.x, y: cobY, z: obj.position.z },
     };
   }
 }
@@ -289,10 +287,7 @@ function calculateSubmergedVolume(
 /**
  * Calculate buoyancy forces using Archimedes' principle
  */
-function calculateBuoyancyForces(
-  obj: FloatingObject,
-  state: BuoyancyState
-): BuoyancyForces {
+function calculateBuoyancyForces(obj: FloatingObject, state: BuoyancyState): BuoyancyForces {
   // Find the highest fluid layer (surface)
   const sortedLayers = [...state.fluidLayers].sort((a, b) => b.heightTop - a.heightTop);
 
@@ -332,7 +327,7 @@ function calculateBuoyancyForces(
   const gravitationalForce: Vector3 = {
     x: 0,
     y: -obj.mass * state.gravity,
-    z: 0
+    z: 0,
   };
 
   // Drag force (simplified - based on velocity through fluid)
@@ -344,7 +339,8 @@ function calculateBuoyancyForces(
     // Get dominant fluid density for drag calculation
     const dominantDensity = sortedLayers[0]?.density || WATER_DENSITY;
     // Drag = 0.5 * ρ * v² * Cd * A
-    const dragMagnitude = 0.5 * dominantDensity * speed * speed * obj.dragCoefficient * obj.waterlineArea;
+    const dragMagnitude =
+      0.5 * dominantDensity * speed * speed * obj.dragCoefficient * obj.waterlineArea;
     const dragDirection = vec3Normalize(vec3Scale(velocity, -1));
     dragForce = vec3Scale(dragDirection, dragMagnitude);
   }
@@ -365,7 +361,7 @@ function calculateBuoyancyForces(
     torque,
     submergedVolume: totalSubmergedVolume,
     submergedFraction: totalSubmergedVolume / obj.volume,
-    displacedFluidMass: totalDisplacedMass
+    displacedFluidMass: totalDisplacedMass,
   };
 }
 
@@ -409,7 +405,7 @@ function analyzeStability(obj: FloatingObject, state: BuoyancyState): StabilityA
   const metacenter: Vector3 = {
     x: B_point.x,
     y: B_point.y + BM,
-    z: B_point.z
+    z: B_point.z,
   };
 
   // Current heel angle (rotation about longitudinal axis)
@@ -422,7 +418,7 @@ function analyzeStability(obj: FloatingObject, state: BuoyancyState): StabilityA
   // Roll period (approximate): T = 2π * k / √(g * GM)
   // where k is radius of gyration, approximated as 0.4 * beam
   const k = 0.4 * B;
-  const rollPeriod = GM > 0 ? 2 * Math.PI * k / Math.sqrt(state.gravity * GM) : Infinity;
+  const rollPeriod = GM > 0 ? (2 * Math.PI * k) / Math.sqrt(state.gravity * GM) : Infinity;
 
   // Stability determination
   let stabilityType: 'stable' | 'neutral' | 'unstable';
@@ -436,8 +432,8 @@ function analyzeStability(obj: FloatingObject, state: BuoyancyState): StabilityA
 
   // Critical angle (angle at which it would capsize) - simplified estimate
   // Assuming capsizing occurs when deck edge submerges
-  const freeboard = (obj.position.y + obj.dimensions.y / 2) - fluidSurfaceHeight;
-  const criticalAngle = freeboard > 0 ? Math.atan(2 * freeboard / B) : 0;
+  const freeboard = obj.position.y + obj.dimensions.y / 2 - fluidSurfaceHeight;
+  const criticalAngle = freeboard > 0 ? Math.atan((2 * freeboard) / B) : 0;
 
   return {
     objectId: obj.id,
@@ -450,7 +446,7 @@ function analyzeStability(obj: FloatingObject, state: BuoyancyState): StabilityA
     heelAngle,
     rollPeriod,
     stabilityType,
-    criticalAngle
+    criticalAngle,
   };
 }
 
@@ -503,7 +499,7 @@ function calculateSubmersion(obj: FloatingObject, state: BuoyancyState): Submerg
     waterlineDepth,
     fluidLayersInContact,
     volumePerLayer,
-    pressureAtCenterOfBuoyancy: pressure
+    pressureAtCenterOfBuoyancy: pressure,
   };
 }
 
@@ -511,7 +507,7 @@ function calculateSubmersion(obj: FloatingObject, state: BuoyancyState): Submerg
  * Simulate one timestep of buoyancy dynamics
  */
 function simulateStep(state: BuoyancyState, dt: number): BuoyancyState {
-  const newObjects = state.objects.map(obj => {
+  const newObjects = state.objects.map((obj) => {
     const forces = calculateBuoyancyForces(obj, state);
 
     // Linear acceleration: F = ma
@@ -528,20 +524,14 @@ function simulateStep(state: BuoyancyState, dt: number): BuoyancyState {
 
     // Angular dynamics (simplified)
     // τ = I * α, assuming uniform density I ≈ m * r²/6 for a box
-    const momentOfInertia = obj.mass *
-      (obj.dimensions.x * obj.dimensions.x + obj.dimensions.y * obj.dimensions.y) / 12;
+    const momentOfInertia =
+      (obj.mass * (obj.dimensions.x * obj.dimensions.x + obj.dimensions.y * obj.dimensions.y)) / 12;
     const angularAcceleration = vec3Scale(forces.torque, 1 / momentOfInertia);
 
-    const newAngularVelocity = vec3Add(
-      obj.angularVelocity,
-      vec3Scale(angularAcceleration, dt)
-    );
+    const newAngularVelocity = vec3Add(obj.angularVelocity, vec3Scale(angularAcceleration, dt));
     const dampedAngularVelocity = vec3Scale(newAngularVelocity, 0.98);
 
-    const newOrientation = vec3Add(
-      obj.orientation,
-      vec3Scale(dampedAngularVelocity, dt)
-    );
+    const newOrientation = vec3Add(obj.orientation, vec3Scale(dampedAngularVelocity, dt));
 
     // Update center of buoyancy
     const sortedLayers = [...state.fluidLayers].sort((a, b) => b.heightTop - a.heightTop);
@@ -557,14 +547,14 @@ function simulateStep(state: BuoyancyState, dt: number): BuoyancyState {
       velocity: dampedVelocity,
       angularVelocity: dampedAngularVelocity,
       orientation: newOrientation,
-      centerOfBuoyancy
+      centerOfBuoyancy,
     };
   });
 
   return {
     ...state,
     objects: newObjects,
-    time: state.time + dt
+    time: state.time + dt,
   };
 }
 
@@ -585,7 +575,7 @@ function createFloatingObject(params: {
 
   switch (params.shape || 'box') {
     case 'sphere':
-      volume = (4/3) * Math.PI * Math.pow(dimensions.x / 2, 3);
+      volume = (4 / 3) * Math.PI * Math.pow(dimensions.x / 2, 3);
       break;
     case 'cylinder':
       volume = Math.PI * Math.pow(dimensions.x / 2, 2) * dimensions.y;
@@ -611,7 +601,7 @@ function createFloatingObject(params: {
     centerOfBuoyancy: { x: 0, y: 0, z: 0 },
     shape: params.shape || 'box',
     dragCoefficient: 1.0,
-    waterlineArea: dimensions.x * dimensions.z
+    waterlineArea: dimensions.x * dimensions.z,
   };
 }
 
@@ -630,7 +620,7 @@ function createFluidLayer(params: {
     id: params.id || `layer_${Date.now()}`,
     ...preset,
     heightTop: params.heightTop,
-    heightBottom: params.heightBottom
+    heightBottom: params.heightBottom,
   };
 }
 
@@ -649,27 +639,28 @@ function initializeState(params: {
       id: layer.id || `layer_${i}`,
       fluidType: layer.fluidType || 'freshWater',
       heightTop: layer.heightTop ?? 10,
-      heightBottom: layer.heightBottom ?? 0
+      heightBottom: layer.heightBottom ?? 0,
     })
   ) || [createFluidLayer({ fluidType: 'freshWater', heightTop: 10, heightBottom: 0 })];
 
-  const objects = params.objects?.map((obj, i) =>
-    createFloatingObject({
-      id: obj.id || `obj_${i}`,
-      name: obj.name,
-      mass: obj.mass || 100,
-      dimensions: obj.dimensions || { x: 1, y: 1, z: 1 },
-      position: obj.position || { x: 0, y: fluidLayers[0].heightTop, z: 0 },
-      shape: obj.shape
-    })
-  ) || [];
+  const objects =
+    params.objects?.map((obj, i) =>
+      createFloatingObject({
+        id: obj.id || `obj_${i}`,
+        name: obj.name,
+        mass: obj.mass || 100,
+        dimensions: obj.dimensions || { x: 1, y: 1, z: 1 },
+        position: obj.position || { x: 0, y: fluidLayers[0].heightTop, z: 0 },
+        shape: obj.shape,
+      })
+    ) || [];
 
   return {
     objects,
     fluidLayers,
     gravity: params.gravity ?? STANDARD_GRAVITY,
     time: 0,
-    ambientPressure: ATMOSPHERIC_PRESSURE
+    ambientPressure: ATMOSPHERIC_PRESSURE,
   };
 }
 
@@ -688,12 +679,16 @@ function runSimulation(params: {
   finalState: BuoyancyState;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trajectory: { time: number; objects: any[] }[];
-  analysis: { forces: BuoyancyForces; stability: StabilityAnalysis; submersion: SubmergedCalculation }[];
+  analysis: {
+    forces: BuoyancyForces;
+    stability: StabilityAnalysis;
+    submersion: SubmergedCalculation;
+  }[];
 } {
   let state = initializeState({
     objects: params.objects,
     fluidLayers: params.fluidLayers,
-    gravity: params.gravity
+    gravity: params.gravity,
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -708,27 +703,27 @@ function runSimulation(params: {
     if (i % recordInterval === 0) {
       trajectory.push({
         time: state.time,
-        objects: state.objects.map(obj => ({
+        objects: state.objects.map((obj) => ({
           id: obj.id,
           position: { ...obj.position },
           velocity: { ...obj.velocity },
-          orientation: { ...obj.orientation }
-        }))
+          orientation: { ...obj.orientation },
+        })),
       });
     }
   }
 
   // Final analysis
-  const analysis = state.objects.map(obj => ({
+  const analysis = state.objects.map((obj) => ({
     forces: calculateBuoyancyForces(obj, state),
     stability: analyzeStability(obj, state),
-    submersion: calculateSubmersion(obj, state)
+    submersion: calculateSubmersion(obj, state),
   }));
 
   return {
     finalState: state,
     trajectory,
-    analysis
+    analysis,
   };
 }
 
@@ -738,63 +733,44 @@ function runSimulation(params: {
 
 export const buoyancysimTool: UnifiedTool = {
   name: 'buoyancy_sim',
-  description: 'Comprehensive buoyancy and fluid dynamics simulation using Archimedes\' principle. Supports multi-fluid layers, metacentric height calculation, floating stability analysis, and partial submersion calculations.',
+  description:
+    "Comprehensive buoyancy and fluid dynamics simulation using Archimedes' principle. Supports multi-fluid layers, metacentric height calculation, floating stability analysis, and partial submersion calculations.",
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['simulate', 'step', 'analyze_forces', 'analyze_stability', 'calculate_submersion', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'simulate',
+          'step',
+          'analyze_forces',
+          'analyze_stability',
+          'calculate_submersion',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       objects: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            mass: { type: 'number', description: 'Mass in kg' },
-            dimensions: {
-              type: 'object',
-              properties: {
-                x: { type: 'number' },
-                y: { type: 'number' },
-                z: { type: 'number' }
-              }
-            },
-            position: {
-              type: 'object',
-              properties: {
-                x: { type: 'number' },
-                y: { type: 'number' },
-                z: { type: 'number' }
-              }
-            },
-            shape: { type: 'string', enum: ['box', 'sphere', 'cylinder'] }
-          }
-        },
-        description: 'Objects to simulate'
+        items: { type: 'object' },
+        description:
+          'Objects to simulate. Each object has: id (string), name (string), mass (number, kg), dimensions (object with x/y/z), position (object with x/y/z), shape (box|sphere|cylinder)',
       },
       fluidLayers: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            fluidType: { type: 'string', enum: ['freshWater', 'seaWater', 'oil', 'mercury', 'glycerin', 'air', 'honey', 'gasoline'] },
-            heightTop: { type: 'number' },
-            heightBottom: { type: 'number' }
-          }
-        },
-        description: 'Fluid layers (from bottom to top)'
+        items: { type: 'object' },
+        description:
+          'Fluid layers (from bottom to top). Each layer has: id (string), fluidType (freshWater|seaWater|oil|mercury|glycerin|air|honey|gasoline), heightTop (number), heightBottom (number)',
       },
       duration: { type: 'number', description: 'Simulation duration in seconds' },
       timestep: { type: 'number', description: 'Simulation timestep in seconds' },
-      gravity: { type: 'number', description: 'Gravitational acceleration (default: 9.80665 m/s²)' }
+      gravity: {
+        type: 'number',
+        description: 'Gravitational acceleration (default: 9.80665 m/s²)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -817,7 +793,7 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
           fluidLayers,
           duration: duration || 10,
           timestep: timestep || 0.01,
-          gravity
+          gravity,
         });
         break;
       }
@@ -827,7 +803,7 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
         state = simulateStep(state, timestep || 0.01);
         result = {
           state,
-          forces: state.objects.map(obj => calculateBuoyancyForces(obj, state))
+          forces: state.objects.map((obj) => calculateBuoyancyForces(obj, state)),
         };
         break;
       }
@@ -835,10 +811,10 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
       case 'analyze_forces': {
         const state = initializeState({ objects, fluidLayers, gravity });
         result = {
-          forces: state.objects.map(obj => ({
+          forces: state.objects.map((obj) => ({
             objectId: obj.id,
-            ...calculateBuoyancyForces(obj, state)
-          }))
+            ...calculateBuoyancyForces(obj, state),
+          })),
         };
         break;
       }
@@ -846,7 +822,7 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
       case 'analyze_stability': {
         const state = initializeState({ objects, fluidLayers, gravity });
         result = {
-          stability: state.objects.map(obj => analyzeStability(obj, state))
+          stability: state.objects.map((obj) => analyzeStability(obj, state)),
         };
         break;
       }
@@ -854,7 +830,7 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
       case 'calculate_submersion': {
         const state = initializeState({ objects, fluidLayers, gravity });
         result = {
-          submersion: state.objects.map(obj => calculateSubmersion(obj, state))
+          submersion: state.objects.map((obj) => calculateSubmersion(obj, state)),
         };
         break;
       }
@@ -862,7 +838,7 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
       case 'info':
       default: {
         result = {
-          description: 'Buoyancy simulation tool implementing Archimedes\' principle',
+          description: "Buoyancy simulation tool implementing Archimedes' principle",
           features: [
             'Multi-fluid layer support (oil/water/etc.)',
             'Metacentric height calculation',
@@ -870,19 +846,26 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
             'Partial/full submersion calculations',
             'Multiple object shapes (box, sphere, cylinder)',
             'Drag force modeling',
-            'Roll period estimation'
+            'Roll period estimation',
           ],
-          fluidPresets: Object.keys(FLUID_PRESETS).map(key => ({
+          fluidPresets: Object.keys(FLUID_PRESETS).map((key) => ({
             type: key,
-            ...FLUID_PRESETS[key]
+            ...FLUID_PRESETS[key],
           })),
           constants: {
             WATER_DENSITY,
             SEAWATER_DENSITY,
             STANDARD_GRAVITY,
-            ATMOSPHERIC_PRESSURE
+            ATMOSPHERIC_PRESSURE,
           },
-          operations: ['simulate', 'step', 'analyze_forces', 'analyze_stability', 'calculate_submersion', 'info']
+          operations: [
+            'simulate',
+            'step',
+            'analyze_forces',
+            'analyze_stability',
+            'calculate_submersion',
+            'info',
+          ],
         };
       }
     }
@@ -894,4 +877,6 @@ export async function executebuoyancysim(toolCall: UnifiedToolCall): Promise<Uni
   }
 }
 
-export function isbuoyancysimAvailable(): boolean { return true; }
+export function isbuoyancysimAvailable(): boolean {
+  return true;
+}

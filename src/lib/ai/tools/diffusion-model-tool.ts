@@ -14,40 +14,73 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const diffusionmodelTool: UnifiedTool = {
   name: 'diffusion_model',
-  description: 'Diffusion models - denoising, score matching, sampling, guidance. Implements DDPM, DDIM, Euler, DPM++ schedulers with full mathematical foundations.',
+  description:
+    'Diffusion models - denoising, score matching, sampling, guidance. Implements DDPM, DDIM, Euler, DPM++ schedulers with full mathematical foundations.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['forward', 'reverse', 'sample', 'guidance', 'schedule', 'denoise', 'train_step', 'info'],
-        description: 'Operation: forward (add noise), reverse (denoise), sample (generate), guidance (CFG), schedule (compute betas/alphas), denoise (single step), train_step (compute loss), info (documentation)'
+        enum: [
+          'forward',
+          'reverse',
+          'sample',
+          'guidance',
+          'schedule',
+          'denoise',
+          'train_step',
+          'info',
+        ],
+        description:
+          'Operation: forward (add noise), reverse (denoise), sample (generate), guidance (CFG), schedule (compute betas/alphas), denoise (single step), train_step (compute loss), info (documentation)',
       },
       scheduler: {
         type: 'string',
         enum: ['DDPM', 'DDIM', 'Euler', 'DPM++'],
-        description: 'Sampling scheduler algorithm'
+        description: 'Sampling scheduler algorithm',
       },
       schedule_type: {
         type: 'string',
         enum: ['linear', 'cosine', 'exponential', 'sigmoid'],
-        description: 'Noise schedule type for beta computation'
+        description: 'Noise schedule type for beta computation',
       },
       timesteps: { type: 'integer', description: 'Total diffusion timesteps T (default 1000)' },
       current_step: { type: 'integer', description: 'Current timestep t for operations' },
-      data: { type: 'array', items: { type: 'number' }, description: 'Input data vector x_0 or x_t' },
+      data: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Input data vector x_0 or x_t',
+      },
       noise: { type: 'array', items: { type: 'number' }, description: 'Noise vector epsilon' },
-      predicted_noise: { type: 'array', items: { type: 'number' }, description: 'Model-predicted noise' },
+      predicted_noise: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Model-predicted noise',
+      },
       beta_start: { type: 'number', description: 'Starting beta value (default 0.0001)' },
       beta_end: { type: 'number', description: 'Ending beta value (default 0.02)' },
-      guidance_scale: { type: 'number', description: 'Classifier-free guidance scale (default 7.5)' },
-      conditional_pred: { type: 'array', items: { type: 'number' }, description: 'Conditional model prediction' },
-      unconditional_pred: { type: 'array', items: { type: 'number' }, description: 'Unconditional model prediction' },
+      guidance_scale: {
+        type: 'number',
+        description: 'Classifier-free guidance scale (default 7.5)',
+      },
+      conditional_pred: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Conditional model prediction',
+      },
+      unconditional_pred: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Unconditional model prediction',
+      },
       eta: { type: 'number', description: 'DDIM eta parameter (0=deterministic, 1=DDPM)' },
-      num_inference_steps: { type: 'integer', description: 'Number of inference steps for sampling' }
+      num_inference_steps: {
+        type: 'integer',
+        description: 'Number of inference steps for sampling',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -83,15 +116,15 @@ function linearSchedule(timesteps: number, beta_start: number, beta_end: number)
 function cosineSchedule(timesteps: number, s: number = 0.008): number[] {
   const alphas_cumprod: number[] = [];
   for (let t = 0; t <= timesteps; t++) {
-    const f_t = Math.cos(((t / timesteps) + s) / (1 + s) * Math.PI / 2) ** 2;
-    const f_0 = Math.cos((s / (1 + s)) * Math.PI / 2) ** 2;
+    const f_t = Math.cos((((t / timesteps + s) / (1 + s)) * Math.PI) / 2) ** 2;
+    const f_0 = Math.cos(((s / (1 + s)) * Math.PI) / 2) ** 2;
     alphas_cumprod.push(f_t / f_0);
   }
 
   // Convert alpha_cumprod to betas
   const betas: number[] = [];
   for (let t = 1; t <= timesteps; t++) {
-    const beta = 1 - (alphas_cumprod[t] / alphas_cumprod[t - 1]);
+    const beta = 1 - alphas_cumprod[t] / alphas_cumprod[t - 1];
     betas.push(Math.min(Math.max(beta, 0.0001), 0.9999)); // Clip for stability
   }
   return betas;
@@ -151,7 +184,7 @@ function computeNoiseSchedule(
   }
 
   // Compute alphas: α_t = 1 - β_t
-  const alphas = betas.map(b => 1 - b);
+  const alphas = betas.map((b) => 1 - b);
 
   // Compute cumulative products: ᾱ_t = ∏_{s=1}^t α_s
   const alphas_cumprod: number[] = [];
@@ -165,14 +198,14 @@ function computeNoiseSchedule(
   const alphas_cumprod_prev = [1, ...alphas_cumprod.slice(0, -1)];
 
   // Precompute commonly used quantities
-  const sqrt_alphas_cumprod = alphas_cumprod.map(a => Math.sqrt(a));
-  const sqrt_one_minus_alphas_cumprod = alphas_cumprod.map(a => Math.sqrt(1 - a));
-  const sqrt_recip_alphas = alphas.map(a => 1 / Math.sqrt(a));
+  const sqrt_alphas_cumprod = alphas_cumprod.map((a) => Math.sqrt(a));
+  const sqrt_one_minus_alphas_cumprod = alphas_cumprod.map((a) => Math.sqrt(1 - a));
+  const sqrt_recip_alphas = alphas.map((a) => 1 / Math.sqrt(a));
 
   // Posterior variance: β̃_t = β_t * (1 - ᾱ_{t-1}) / (1 - ᾱ_t)
   const posterior_variance: number[] = [];
   for (let t = 0; t < timesteps; t++) {
-    const var_t = betas[t] * (1 - alphas_cumprod_prev[t]) / (1 - alphas_cumprod[t]);
+    const var_t = (betas[t] * (1 - alphas_cumprod_prev[t])) / (1 - alphas_cumprod[t]);
     posterior_variance.push(var_t);
   }
 
@@ -184,7 +217,7 @@ function computeNoiseSchedule(
     sqrt_alphas_cumprod,
     sqrt_one_minus_alphas_cumprod,
     sqrt_recip_alphas,
-    posterior_variance
+    posterior_variance,
   };
 }
 
@@ -209,15 +242,13 @@ function forwardDiffusion(
   const sqrt_one_minus_alpha_cumprod = schedule.sqrt_one_minus_alphas_cumprod[t];
 
   // x_t = √ᾱ_t * x_0 + √(1-ᾱ_t) * ε
-  const x_t = x_0.map((x, i) =>
-    sqrt_alpha_cumprod * x + sqrt_one_minus_alpha_cumprod * epsilon[i]
-  );
+  const x_t = x_0.map((x, i) => sqrt_alpha_cumprod * x + sqrt_one_minus_alpha_cumprod * epsilon[i]);
 
   return {
     x_t,
     noise: epsilon,
     signal_rate: sqrt_alpha_cumprod,
-    noise_rate: sqrt_one_minus_alpha_cumprod
+    noise_rate: sqrt_one_minus_alpha_cumprod,
   };
 }
 
@@ -252,14 +283,12 @@ function ddpmStep(
   const sqrt_recip_alpha = 1 / Math.sqrt(alpha);
   const noise_coef = beta / Math.sqrt(1 - alpha_cumprod);
 
-  const mean = x_t.map((x, i) =>
-    sqrt_recip_alpha * (x - noise_coef * predicted_noise[i])
-  );
+  const mean = x_t.map((x, i) => sqrt_recip_alpha * (x - noise_coef * predicted_noise[i]));
 
   // Add noise (except at t=0)
   if (t > 0) {
     const sigma = Math.sqrt(schedule.posterior_variance[t]);
-    return mean.map(m => m + sigma * gaussianRandom());
+    return mean.map((m) => m + sigma * gaussianRandom());
   }
 
   return mean;
@@ -284,15 +313,17 @@ function ddimStep(
   const sqrt_alpha_t = Math.sqrt(alpha_cumprod_t);
   const sqrt_one_minus_alpha_t = Math.sqrt(1 - alpha_cumprod_t);
 
-  const pred_x_0 = x_t.map((x, i) =>
-    (x - sqrt_one_minus_alpha_t * predicted_noise[i]) / sqrt_alpha_t
+  const pred_x_0 = x_t.map(
+    (x, i) => (x - sqrt_one_minus_alpha_t * predicted_noise[i]) / sqrt_alpha_t
   );
 
   // Compute sigma for stochasticity
-  const sigma_t = eta * Math.sqrt(
-    (1 - alpha_cumprod_prev) / (1 - alpha_cumprod_t) *
-    (1 - alpha_cumprod_t / alpha_cumprod_prev)
-  );
+  const sigma_t =
+    eta *
+    Math.sqrt(
+      ((1 - alpha_cumprod_prev) / (1 - alpha_cumprod_t)) *
+        (1 - alpha_cumprod_t / alpha_cumprod_prev)
+    );
 
   // Direction pointing to x_t
   const sqrt_one_minus_alpha_prev_minus_sigma = Math.sqrt(
@@ -302,10 +333,11 @@ function ddimStep(
   // Compute x_{t-1}
   const sqrt_alpha_prev = Math.sqrt(alpha_cumprod_prev);
 
-  return x_t.map((_, i) =>
-    sqrt_alpha_prev * pred_x_0[i] +
-    sqrt_one_minus_alpha_prev_minus_sigma * predicted_noise[i] +
-    sigma_t * gaussianRandom()
+  return x_t.map(
+    (_, i) =>
+      sqrt_alpha_prev * pred_x_0[i] +
+      sqrt_one_minus_alpha_prev_minus_sigma * predicted_noise[i] +
+      sigma_t * gaussianRandom()
   );
 }
 
@@ -323,7 +355,7 @@ function eulerStep(
   const sigma_prev = t_prev >= 0 ? Math.sqrt(1 - schedule.alphas_cumprod[t_prev]) : 0;
 
   // Convert noise prediction to score: score = -ε / σ
-  const score = predicted_noise.map(e => -e / sigma_t);
+  const score = predicted_noise.map((e) => -e / sigma_t);
 
   // Euler step: x_{t-1} = x_t + (σ_prev - σ_t) * score * σ_t
   const dt = sigma_prev - sigma_t;
@@ -343,10 +375,16 @@ function dpmPlusPlusStep(
   t_prev: number,
   schedule: NoiseSchedule
 ): { x_prev: number[]; for_next: number[] } {
-  const lambda_t = -Math.log(Math.sqrt(1 - schedule.alphas_cumprod[t]) / Math.sqrt(schedule.alphas_cumprod[t]));
-  const lambda_prev = t_prev >= 0
-    ? -Math.log(Math.sqrt(1 - schedule.alphas_cumprod[t_prev]) / Math.sqrt(schedule.alphas_cumprod[t_prev]))
-    : lambda_t;
+  const lambda_t = -Math.log(
+    Math.sqrt(1 - schedule.alphas_cumprod[t]) / Math.sqrt(schedule.alphas_cumprod[t])
+  );
+  const lambda_prev =
+    t_prev >= 0
+      ? -Math.log(
+          Math.sqrt(1 - schedule.alphas_cumprod[t_prev]) /
+            Math.sqrt(schedule.alphas_cumprod[t_prev])
+        )
+      : lambda_t;
 
   const h = lambda_prev - lambda_t;
   const alpha_t = Math.sqrt(schedule.alphas_cumprod[t]);
@@ -368,7 +406,11 @@ function dpmPlusPlusStep(
     x_prev = x_t.map((x, i) => {
       const D = pred_x_0[i];
       const D_prev = prev_pred_x_0[i];
-      return alpha_prev * D + sigma_prev * ((1 + 1/(2*r)) * (D - x/alpha_t) - (1/(2*r)) * (D_prev - x/alpha_t));
+      return (
+        alpha_prev * D +
+        sigma_prev *
+          ((1 + 1 / (2 * r)) * (D - x / alpha_t) - (1 / (2 * r)) * (D_prev - x / alpha_t))
+      );
     });
   } else {
     // First-order (DPM++ 1)
@@ -392,8 +434,8 @@ function applyGuidance(
   unconditional_pred: number[],
   guidance_scale: number
 ): number[] {
-  return unconditional_pred.map((uncond, i) =>
-    uncond + guidance_scale * (conditional_pred[i] - uncond)
+  return unconditional_pred.map(
+    (uncond, i) => uncond + guidance_scale * (conditional_pred[i] - uncond)
   );
 }
 
@@ -422,16 +464,17 @@ function computeTrainingLoss(
   return {
     mse: mse / true_noise.length,
     mae: mae / true_noise.length,
-    max_error
+    max_error,
   };
 }
 
 /**
  * Sample random timesteps for training
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function sampleTimesteps(batch_size: number, max_t: number): number[] {
-  return Array(batch_size).fill(0).map(() => Math.floor(Math.random() * max_t));
+export function sampleTimesteps(batch_size: number, max_t: number): number[] {
+  return Array(batch_size)
+    .fill(0)
+    .map(() => Math.floor(Math.random() * max_t));
 }
 
 // ============================================================================
@@ -441,8 +484,7 @@ function sampleTimesteps(batch_size: number, max_t: number): number[] {
 /**
  * Generate samples using full reverse diffusion
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function generateSamples(
+export function generateSamples(
   dimensions: number,
   num_samples: number,
   schedule: NoiseSchedule,
@@ -457,9 +499,13 @@ function generateSamples(
   const timesteps = Array.from({ length: num_inference_steps }, (_, i) => T - 1 - i * step_size);
 
   // Initialize with pure noise
-  const samples: number[][] = Array(num_samples).fill(0).map(() =>
-    Array(dimensions).fill(0).map(() => gaussianRandom())
-  );
+  const samples: number[][] = Array(num_samples)
+    .fill(0)
+    .map(() =>
+      Array(dimensions)
+        .fill(0)
+        .map(() => gaussianRandom())
+    );
 
   let prev_pred: number[] | null = null;
 
@@ -485,7 +531,14 @@ function generateSamples(
           samples[s] = eulerStep(samples[s], predicted_noise, t, t_prev, schedule);
           break;
         case 'DPM++':
-          const result = dpmPlusPlusStep(samples[s], predicted_noise, prev_pred, t, t_prev, schedule);
+          const result = dpmPlusPlusStep(
+            samples[s],
+            predicted_noise,
+            prev_pred,
+            t,
+            t_prev,
+            schedule
+          );
           samples[s] = result.x_prev;
           prev_pred = result.for_next;
           break;
@@ -523,7 +576,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
       conditional_pred,
       unconditional_pred,
       eta = 0,
-      num_inference_steps = 50
+      num_inference_steps = 50,
     } = args;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -543,21 +596,39 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
           alpha_cumprod_start: schedule.alphas_cumprod[0],
           alpha_cumprod_end: schedule.alphas_cumprod[schedule.alphas_cumprod.length - 1],
           snr_start: schedule.alphas_cumprod[0] / (1 - schedule.alphas_cumprod[0]),
-          snr_end: schedule.alphas_cumprod[timesteps - 1] / (1 - schedule.alphas_cumprod[timesteps - 1]),
+          snr_end:
+            schedule.alphas_cumprod[timesteps - 1] / (1 - schedule.alphas_cumprod[timesteps - 1]),
           // Sample values at key timesteps
-          sample_timesteps: [0, Math.floor(timesteps/4), Math.floor(timesteps/2), Math.floor(3*timesteps/4), timesteps-1],
-          sample_betas: [0, Math.floor(timesteps/4), Math.floor(timesteps/2), Math.floor(3*timesteps/4), timesteps-1]
-            .map(t => schedule.betas[t]),
-          sample_alphas_cumprod: [0, Math.floor(timesteps/4), Math.floor(timesteps/2), Math.floor(3*timesteps/4), timesteps-1]
-            .map(t => schedule.alphas_cumprod[t])
+          sample_timesteps: [
+            0,
+            Math.floor(timesteps / 4),
+            Math.floor(timesteps / 2),
+            Math.floor((3 * timesteps) / 4),
+            timesteps - 1,
+          ],
+          sample_betas: [
+            0,
+            Math.floor(timesteps / 4),
+            Math.floor(timesteps / 2),
+            Math.floor((3 * timesteps) / 4),
+            timesteps - 1,
+          ].map((t) => schedule.betas[t]),
+          sample_alphas_cumprod: [
+            0,
+            Math.floor(timesteps / 4),
+            Math.floor(timesteps / 2),
+            Math.floor((3 * timesteps) / 4),
+            timesteps - 1,
+          ].map((t) => schedule.alphas_cumprod[t]),
         };
 
         result = {
           operation: 'schedule',
           schedule_type,
           summary,
-          description: `Computed ${schedule_type} noise schedule with ${timesteps} timesteps. ` +
-            `SNR ranges from ${summary.snr_start.toFixed(4)} to ${summary.snr_end.toExponential(2)}.`
+          description:
+            `Computed ${schedule_type} noise schedule with ${timesteps} timesteps. ` +
+            `SNR ranges from ${summary.snr_start.toFixed(4)} to ${summary.snr_end.toExponential(2)}.`,
         };
         break;
       }
@@ -581,10 +652,11 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
           noise_added: forward_result.noise,
           signal_rate: forward_result.signal_rate,
           noise_rate: forward_result.noise_rate,
-          snr: (forward_result.signal_rate ** 2) / (forward_result.noise_rate ** 2),
-          description: `Forward diffusion at t=${t}/${timesteps}. ` +
+          snr: forward_result.signal_rate ** 2 / forward_result.noise_rate ** 2,
+          description:
+            `Forward diffusion at t=${t}/${timesteps}. ` +
             `Signal rate: ${forward_result.signal_rate.toFixed(4)}, ` +
-            `Noise rate: ${forward_result.noise_rate.toFixed(4)}`
+            `Noise rate: ${forward_result.noise_rate.toFixed(4)}`,
         };
         break;
       }
@@ -635,7 +707,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
           x_t: data,
           x_t_minus_1: x_prev,
           predicted_noise,
-          description: `Reverse diffusion step from t=${t} to t=${t_prev} using ${scheduler_info}`
+          description: `Reverse diffusion step from t=${t} to t=${t_prev} using ${scheduler_info}`,
         };
         break;
       }
@@ -649,11 +721,13 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
         const mockPredictNoise = (x: number[], t: number): number[] => {
           // Simple mock: predict noise that would move toward origin
           const alpha_t = schedule.sqrt_alphas_cumprod[t];
-          return x.map(xi => xi * (1 - alpha_t) / schedule.sqrt_one_minus_alphas_cumprod[t]);
+          return x.map((xi) => (xi * (1 - alpha_t)) / schedule.sqrt_one_minus_alphas_cumprod[t]);
         };
 
         // Generate single sample for demonstration
-        let x = Array(dimensions).fill(0).map(() => gaussianRandom());
+        let x = Array(dimensions)
+          .fill(0)
+          .map(() => gaussianRandom());
         const trajectory: { t: number; x: number[]; noise_level: number }[] = [];
 
         const step_size = Math.floor(timesteps / num_inference_steps);
@@ -665,7 +739,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
             trajectory.push({
               t,
               x: [...x],
-              noise_level: schedule.sqrt_one_minus_alphas_cumprod[t]
+              noise_level: schedule.sqrt_one_minus_alphas_cumprod[t],
             });
           }
 
@@ -695,7 +769,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
           dimensions,
           final_sample: x,
           trajectory_samples: trajectory,
-          description: `Generated ${dimensions}D sample using ${scheduler} scheduler with ${num_inference_steps} steps`
+          description: `Generated ${dimensions}D sample using ${scheduler} scheduler with ${num_inference_steps} steps`,
         };
         break;
       }
@@ -723,8 +797,9 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
           guided_prediction: guided,
           guidance_direction: amplification,
           guidance_magnitude,
-          description: `Applied classifier-free guidance with scale ${guidance_scale}. ` +
-            `Guidance magnitude: ${guidance_magnitude.toFixed(4)}`
+          description:
+            `Applied classifier-free guidance with scale ${guidance_scale}. ` +
+            `Guidance magnitude: ${guidance_magnitude.toFixed(4)}`,
         };
         break;
       }
@@ -744,7 +819,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
         const forward_result = forwardDiffusion(data, t, schedule);
 
         // Mock model prediction (would be neural network output)
-        const mock_prediction = forward_result.noise.map(n => n + 0.1 * gaussianRandom());
+        const mock_prediction = forward_result.noise.map((n) => n + 0.1 * gaussianRandom());
 
         // Compute loss
         const loss = computeTrainingLoss(forward_result.noise, mock_prediction);
@@ -757,7 +832,7 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
           true_noise: forward_result.noise,
           predicted_noise: mock_prediction,
           loss,
-          description: `Training step at t=${t}. MSE Loss: ${loss.mse.toFixed(6)}, MAE: ${loss.mae.toFixed(6)}`
+          description: `Training step at t=${t}. MSE Loss: ${loss.mse.toFixed(6)}, MAE: ${loss.mae.toFixed(6)}`,
         };
         break;
       }
@@ -767,28 +842,30 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
         result = {
           operation: 'info',
           tool: 'diffusion_model',
-          description: 'Diffusion models for generative AI - the technology behind DALL-E, Stable Diffusion, and more',
+          description:
+            'Diffusion models for generative AI - the technology behind DALL-E, Stable Diffusion, and more',
           theory: {
-            forward_process: 'q(x_t|x_0) = N(x_t; √ᾱ_t·x_0, (1-ᾱ_t)·I) - gradually add Gaussian noise',
+            forward_process:
+              'q(x_t|x_0) = N(x_t; √ᾱ_t·x_0, (1-ᾱ_t)·I) - gradually add Gaussian noise',
             reverse_process: 'p_θ(x_{t-1}|x_t) - learned denoising that generates data from noise',
             training_objective: 'E[||ε - ε_θ(x_t, t)||²] - predict added noise at each timestep',
-            sampling: 'Start from pure noise x_T ~ N(0,I), iteratively denoise to get x_0'
+            sampling: 'Start from pure noise x_T ~ N(0,I), iteratively denoise to get x_0',
           },
           schedulers: {
             DDPM: 'Denoising Diffusion Probabilistic Models - original algorithm, 1000 steps typical',
             DDIM: 'Denoising Diffusion Implicit Models - deterministic, faster (50-100 steps)',
             Euler: 'First-order ODE solver - treats diffusion as continuous-time process',
-            'DPM++': 'DPM-Solver++ - fast high-quality sampling (20-50 steps)'
+            'DPM++': 'DPM-Solver++ - fast high-quality sampling (20-50 steps)',
           },
           noise_schedules: {
             linear: 'β_t increases linearly from β_start to β_end',
             cosine: 'Improved schedule that preserves more signal at end of process',
             exponential: 'β_t = β_start * (β_end/β_start)^(t/T)',
-            sigmoid: 'S-shaped transition between β_start and β_end'
+            sigmoid: 'S-shaped transition between β_start and β_end',
           },
           guidance: {
             classifier_free: 'ε_guided = ε_uncond + w*(ε_cond - ε_uncond)',
-            typical_scale: 'w = 7.5 is common for text-to-image generation'
+            typical_scale: 'w = 7.5 is common for text-to-image generation',
           },
           operations: {
             schedule: 'Compute noise schedule (betas, alphas, derived quantities)',
@@ -796,29 +873,32 @@ export async function executediffusionmodel(toolCall: UnifiedToolCall): Promise<
             reverse: 'Single denoising step from t to t-1',
             sample: 'Full sampling loop to generate from noise',
             guidance: 'Apply classifier-free guidance to predictions',
-            train_step: 'Simulate one training iteration'
+            train_step: 'Simulate one training iteration',
           },
           key_equations: [
             'x_t = √ᾱ_t·x_0 + √(1-ᾱ_t)·ε  (forward process)',
             'x_{t-1} = (1/√α_t)(x_t - β_t/√(1-ᾱ_t)·ε_θ) + σ_t·z  (DDPM reverse)',
-            'SNR(t) = ᾱ_t/(1-ᾱ_t)  (signal-to-noise ratio)'
-          ]
+            'SNR(t) = ᾱ_t/(1-ᾱ_t)  (signal-to-noise ratio)',
+          ],
         };
       }
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: errorMessage,
-        tool: 'diffusion_model',
-        hint: 'Use operation="info" for documentation and available operations'
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: errorMessage,
+          tool: 'diffusion_model',
+          hint: 'Use operation="info" for documentation and available operations',
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
   }
 }

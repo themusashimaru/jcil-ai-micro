@@ -17,18 +17,16 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // Game representation
 interface NormalFormGame {
   players: string[];
-  strategies: string[][];  // strategies[player][strategy]
-  payoffs: number[][][][]; // payoffs[p1_strategy][p2_strategy][player]
+  strategies: string[][]; // strategies[player][strategy]
+  payoffs: number[][][]; // payoffs[p1_strategy][p2_strategy][player]
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface StrategyProfile {
+export interface StrategyProfile {
   strategies: number[];
   payoffs: number[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface MixedStrategy {
+export interface MixedStrategy {
   player: number;
   probabilities: number[];
   expectedPayoff: number;
@@ -36,109 +34,127 @@ interface MixedStrategy {
 
 interface NashEquilibrium {
   type: 'pure' | 'mixed';
-  strategies: (number | number[])[];  // index for pure, probabilities for mixed
+  strategies: (number | number[])[]; // index for pure, probabilities for mixed
   payoffs: number[];
   stable: boolean;
 }
 
 // Classic 2-player games
 const CLASSIC_GAMES: Record<string, NormalFormGame> = {
-  'prisoners_dilemma': {
+  prisoners_dilemma: {
     players: ['Player 1', 'Player 2'],
-    strategies: [['Cooperate', 'Defect'], ['Cooperate', 'Defect']],
+    strategies: [
+      ['Cooperate', 'Defect'],
+      ['Cooperate', 'Defect'],
+    ],
     payoffs: [
       // P1 Cooperate
       [
-        [-1, -1],  // P2 Cooperate: both get -1
-        [-3, 0]    // P2 Defect: P1 gets -3, P2 gets 0
+        [-1, -1], // P2 Cooperate: both get -1
+        [-3, 0], // P2 Defect: P1 gets -3, P2 gets 0
       ],
       // P1 Defect
       [
-        [0, -3],   // P2 Cooperate: P1 gets 0, P2 gets -3
-        [-2, -2]   // P2 Defect: both get -2
-      ]
-    ]
+        [0, -3], // P2 Cooperate: P1 gets 0, P2 gets -3
+        [-2, -2], // P2 Defect: both get -2
+      ],
+    ],
   },
-  'chicken': {
+  chicken: {
     players: ['Player 1', 'Player 2'],
-    strategies: [['Swerve', 'Straight'], ['Swerve', 'Straight']],
+    strategies: [
+      ['Swerve', 'Straight'],
+      ['Swerve', 'Straight'],
+    ],
     payoffs: [
       // P1 Swerve
       [
-        [0, 0],    // Both swerve: tie
-        [-1, 1]    // P1 swerves, P2 straight: P2 wins
+        [0, 0], // Both swerve: tie
+        [-1, 1], // P1 swerves, P2 straight: P2 wins
       ],
       // P1 Straight
       [
-        [1, -1],   // P1 straight, P2 swerves: P1 wins
-        [-10, -10] // Both straight: crash
-      ]
-    ]
+        [1, -1], // P1 straight, P2 swerves: P1 wins
+        [-10, -10], // Both straight: crash
+      ],
+    ],
   },
-  'battle_of_sexes': {
+  battle_of_sexes: {
     players: ['Player 1', 'Player 2'],
-    strategies: [['Opera', 'Football'], ['Opera', 'Football']],
+    strategies: [
+      ['Opera', 'Football'],
+      ['Opera', 'Football'],
+    ],
     payoffs: [
       // P1 Opera
       [
-        [3, 2],    // Both Opera
-        [0, 0]     // P1 Opera, P2 Football
+        [3, 2], // Both Opera
+        [0, 0], // P1 Opera, P2 Football
       ],
       // P1 Football
       [
-        [0, 0],    // P1 Football, P2 Opera
-        [2, 3]     // Both Football
-      ]
-    ]
+        [0, 0], // P1 Football, P2 Opera
+        [2, 3], // Both Football
+      ],
+    ],
   },
-  'matching_pennies': {
+  matching_pennies: {
     players: ['Player 1', 'Player 2'],
-    strategies: [['Heads', 'Tails'], ['Heads', 'Tails']],
+    strategies: [
+      ['Heads', 'Tails'],
+      ['Heads', 'Tails'],
+    ],
     payoffs: [
       // P1 Heads
       [
-        [1, -1],   // Both Heads: P1 wins
-        [-1, 1]    // P1 Heads, P2 Tails: P2 wins
+        [1, -1], // Both Heads: P1 wins
+        [-1, 1], // P1 Heads, P2 Tails: P2 wins
       ],
       // P1 Tails
       [
-        [-1, 1],   // P1 Tails, P2 Heads: P2 wins
-        [1, -1]    // Both Tails: P1 wins
-      ]
-    ]
+        [-1, 1], // P1 Tails, P2 Heads: P2 wins
+        [1, -1], // Both Tails: P1 wins
+      ],
+    ],
   },
-  'stag_hunt': {
+  stag_hunt: {
     players: ['Player 1', 'Player 2'],
-    strategies: [['Stag', 'Hare'], ['Stag', 'Hare']],
+    strategies: [
+      ['Stag', 'Hare'],
+      ['Stag', 'Hare'],
+    ],
     payoffs: [
       // P1 Stag
       [
-        [4, 4],    // Both hunt stag: big payoff
-        [0, 3]     // P1 stag, P2 hare: P1 gets nothing
+        [4, 4], // Both hunt stag: big payoff
+        [0, 3], // P1 stag, P2 hare: P1 gets nothing
       ],
       // P1 Hare
       [
-        [3, 0],    // P1 hare, P2 stag: P2 gets nothing
-        [3, 3]     // Both hunt hare: safe payoff
-      ]
-    ]
+        [3, 0], // P1 hare, P2 stag: P2 gets nothing
+        [3, 3], // Both hunt hare: safe payoff
+      ],
+    ],
   },
-  'coordination': {
+  coordination: {
     players: ['Player 1', 'Player 2'],
-    strategies: [['A', 'B'], ['A', 'B']],
+    strategies: [
+      ['A', 'B'],
+      ['A', 'B'],
+    ],
     payoffs: [
       // P1 A
       [
-        [2, 2],    // Both A
-        [0, 0]     // Mismatch
+        [2, 2], // Both A
+        [0, 0], // Mismatch
       ],
       // P1 B
       [
-        [0, 0],    // Mismatch
-        [1, 1]     // Both B
-      ]
-    ]
-  }
+        [0, 0], // Mismatch
+        [1, 1], // Both B
+      ],
+    ],
+  },
 };
 
 // Get payoff for a strategy profile
@@ -176,7 +192,7 @@ function isPureNashEquilibrium(game: NormalFormGame, profile: number[]): boolean
 // Find all pure strategy Nash equilibria
 function findPureNashEquilibria(game: NormalFormGame): NashEquilibrium[] {
   const equilibria: NashEquilibrium[] = [];
-  const numStrategies = game.strategies.map(s => s.length);
+  const numStrategies = game.strategies.map((s) => s.length);
 
   // Enumerate all strategy profiles
   function enumerate(profile: number[], playerIndex: number): void {
@@ -186,7 +202,7 @@ function findPureNashEquilibria(game: NormalFormGame): NashEquilibrium[] {
           type: 'pure',
           strategies: [...profile],
           payoffs: getPayoff(game, profile),
-          stable: true
+          stable: true,
         });
       }
       return;
@@ -252,18 +268,18 @@ function findMixedNashEquilibrium2x2(game: NormalFormGame): NashEquilibrium | nu
   // EU_2(1) = q * p[0][1][1] + (1-q) * p[1][1][1]
   // Set equal to find q
 
-  const a = p[0][0][1] - p[1][0][1];  // coefficient of q for P2's strategy 0
-  const b = p[0][1][1] - p[1][1][1];  // coefficient of q for P2's strategy 1
+  const a = p[0][0][1] - p[1][0][1]; // coefficient of q for P2's strategy 0
+  const b = p[0][1][1] - p[1][1][1]; // coefficient of q for P2's strategy 1
 
   // a*q + p[1][0][1] = b*q + p[1][1][1]
   // (a - b)*q = p[1][1][1] - p[1][0][1]
 
   const denom1 = a - b;
   if (Math.abs(denom1) < 1e-10) {
-    return null;  // No mixed equilibrium or infinite
+    return null; // No mixed equilibrium or infinite
   }
 
-  const q = (p[1][1][1] - p[1][0][1]) / denom1;  // P1's mixed strategy
+  const q = (p[1][1][1] - p[1][0][1]) / denom1; // P1's mixed strategy
 
   // Similarly for Player 1's indifference (P2 plays (r, 1-r))
   const d = p[0][0][0] - p[0][1][0];
@@ -274,29 +290,34 @@ function findMixedNashEquilibrium2x2(game: NormalFormGame): NashEquilibrium | nu
     return null;
   }
 
-  const r = (p[1][1][0] - p[0][1][0]) / denom2;  // P2's mixed strategy
+  const r = (p[1][1][0] - p[0][1][0]) / denom2; // P2's mixed strategy
 
   // Check if probabilities are valid
   if (q < 0 || q > 1 || r < 0 || r > 1) {
-    return null;  // No interior mixed equilibrium
+    return null; // No interior mixed equilibrium
   }
 
   // Compute expected payoffs
-  const eu1 = q * (r * p[0][0][0] + (1-r) * p[0][1][0]) +
-              (1-q) * (r * p[1][0][0] + (1-r) * p[1][1][0]);
-  const eu2 = q * (r * p[0][0][1] + (1-r) * p[0][1][1]) +
-              (1-q) * (r * p[1][0][1] + (1-r) * p[1][1][1]);
+  const eu1 =
+    q * (r * p[0][0][0] + (1 - r) * p[0][1][0]) + (1 - q) * (r * p[1][0][0] + (1 - r) * p[1][1][0]);
+  const eu2 =
+    q * (r * p[0][0][1] + (1 - r) * p[0][1][1]) + (1 - q) * (r * p[1][0][1] + (1 - r) * p[1][1][1]);
 
   return {
     type: 'mixed',
-    strategies: [[q, 1-q], [r, 1-r]],
+    strategies: [
+      [q, 1 - q],
+      [r, 1 - r],
+    ],
     payoffs: [eu1, eu2],
-    stable: true
+    stable: true,
   };
 }
 
 // Check for strictly dominated strategies
-function findDominatedStrategies(game: NormalFormGame): { player: number; strategy: number; dominatedBy: number }[] {
+function findDominatedStrategies(
+  game: NormalFormGame
+): { player: number; strategy: number; dominatedBy: number }[] {
   const dominated: { player: number; strategy: number; dominatedBy: number }[] = [];
 
   for (let player = 0; player < game.players.length; player++) {
@@ -335,8 +356,7 @@ function findDominatedStrategies(game: NormalFormGame): { player: number; strate
 }
 
 // Compute support enumeration for mixed Nash (simplified for small games)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function supportEnumeration(game: NormalFormGame): NashEquilibrium[] {
+export function supportEnumeration(game: NormalFormGame): NashEquilibrium[] {
   const equilibria: NashEquilibrium[] = [];
 
   // For 2-player games, try all support combinations
@@ -346,7 +366,7 @@ function supportEnumeration(game: NormalFormGame): NashEquilibrium[] {
   // Generate all non-empty subsets of strategies
   function getSubsets(n: number): number[][] {
     const subsets: number[][] = [];
-    for (let mask = 1; mask < (1 << n); mask++) {
+    for (let mask = 1; mask < 1 << n; mask++) {
       const subset: number[] = [];
       for (let i = 0; i < n; i++) {
         if (mask & (1 << i)) subset.push(i);
@@ -363,16 +383,21 @@ function supportEnumeration(game: NormalFormGame): NashEquilibrium[] {
   for (const supp1 of supports1) {
     for (const supp2 of supports2) {
       if (supp1.length !== supp2.length) continue;
-      if (supp1.length > 2) continue;  // Simplification for demo
+      if (supp1.length > 2) continue; // Simplification for demo
 
       // This is where we'd solve the linear system
       // For demonstration, we just use the 2x2 solver for full support
       if (supp1.length === n1 && supp2.length === n2 && n1 === 2 && n2 === 2) {
         const mixed = findMixedNashEquilibrium2x2(game);
-        if (mixed && !equilibria.some(e =>
-          e.type === 'mixed' &&
-          Math.abs((e.strategies[0] as number[])[0] - (mixed.strategies[0] as number[])[0]) < 0.001
-        )) {
+        if (
+          mixed &&
+          !equilibria.some(
+            (e) =>
+              e.type === 'mixed' &&
+              Math.abs((e.strategies[0] as number[])[0] - (mixed.strategies[0] as number[])[0]) <
+                0.001
+          )
+        ) {
           equilibria.push(mixed);
         }
       }
@@ -389,12 +414,12 @@ function analyzeGame(game: NormalFormGame): {
   coordinationGame: boolean;
   antiCoordinationGame: boolean;
 } {
-  const isSymmetric = game.players.length === 2 &&
+  const isSymmetric =
+    game.players.length === 2 &&
     game.strategies[0].length === game.strategies[1].length &&
     game.payoffs.every((row, i) =>
-      row.every((cell, j) =>
-        cell[0] === game.payoffs[j]?.[i]?.[1] &&
-        cell[1] === game.payoffs[j]?.[i]?.[0]
+      row.every(
+        (cell, j) => cell[0] === game.payoffs[j]?.[i]?.[1] && cell[1] === game.payoffs[j]?.[i]?.[0]
       )
     );
 
@@ -427,7 +452,7 @@ function analyzeGame(game: NormalFormGame): {
     symmetric: isSymmetric,
     zeroSum: isZeroSum,
     coordinationGame: isCoordination && !isZeroSum,
-    antiCoordinationGame: isAntiCoordination && isZeroSum
+    antiCoordinationGame: isAntiCoordination && isZeroSum,
   };
 }
 
@@ -439,42 +464,61 @@ export const nashequilibriumTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['find', 'verify', 'mixed_strategy', 'best_response', 'dominance', 'analyze', 'classic', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'find',
+          'verify',
+          'mixed_strategy',
+          'best_response',
+          'dominance',
+          'analyze',
+          'classic',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       game: {
         type: 'string',
-        enum: ['prisoners_dilemma', 'chicken', 'battle_of_sexes', 'matching_pennies', 'stag_hunt', 'coordination', 'custom'],
-        description: 'Classic game or custom'
+        enum: [
+          'prisoners_dilemma',
+          'chicken',
+          'battle_of_sexes',
+          'matching_pennies',
+          'stag_hunt',
+          'coordination',
+          'custom',
+        ],
+        description: 'Classic game or custom',
       },
       // Custom game specification
       payoff_matrix: {
         type: 'array',
-        description: 'Payoff matrix for custom game'
+        description: 'Payoff matrix for custom game',
       },
       strategies: {
         type: 'array',
-        description: 'Strategy names for each player'
+        description: 'Strategy names for each player',
       },
       // For verification
       strategy_profile: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Strategy profile to verify'
+        description: 'Strategy profile to verify',
       },
       // For best response
       player: { type: 'number', description: 'Player index (0 or 1)' },
       opponent_strategy: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Opponent\'s (mixed) strategy'
-      }
+        description: "Opponent's (mixed) strategy",
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executenashequilibrium(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -489,8 +533,11 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
       // Parse custom game
       game = {
         players: ['Player 1', 'Player 2'],
-        strategies: args.strategies ?? [['A', 'B'], ['A', 'B']],
-        payoffs: args.payoff_matrix
+        strategies: args.strategies ?? [
+          ['A', 'B'],
+          ['A', 'B'],
+        ],
+        payoffs: args.payoff_matrix,
       };
     } else {
       game = CLASSIC_GAMES[gameName] || CLASSIC_GAMES['prisoners_dilemma'];
@@ -499,30 +546,35 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'nash-equilibrium',
-          description: 'Nash equilibrium computation for game theory',
-          capabilities: [
-            'Find pure strategy Nash equilibria',
-            'Find mixed strategy Nash equilibria (2x2 games)',
-            'Best response computation',
-            'Dominance elimination',
-            'Game analysis (symmetric, zero-sum, coordination)',
-            'Classic game library'
-          ],
-          classicGames: Object.keys(CLASSIC_GAMES),
-          concepts: {
-            nashEquilibrium: 'Strategy profile where no player can improve by unilateral deviation',
-            pureStrategy: 'Deterministic choice of action',
-            mixedStrategy: 'Probability distribution over actions',
-            dominatedStrategy: 'Strategy that is never best response',
-            bestResponse: 'Optimal strategy given opponent\'s choice'
+        content: JSON.stringify(
+          {
+            tool: 'nash-equilibrium',
+            description: 'Nash equilibrium computation for game theory',
+            capabilities: [
+              'Find pure strategy Nash equilibria',
+              'Find mixed strategy Nash equilibria (2x2 games)',
+              'Best response computation',
+              'Dominance elimination',
+              'Game analysis (symmetric, zero-sum, coordination)',
+              'Classic game library',
+            ],
+            classicGames: Object.keys(CLASSIC_GAMES),
+            concepts: {
+              nashEquilibrium:
+                'Strategy profile where no player can improve by unilateral deviation',
+              pureStrategy: 'Deterministic choice of action',
+              mixedStrategy: 'Probability distribution over actions',
+              dominatedStrategy: 'Strategy that is never best response',
+              bestResponse: "Optimal strategy given opponent's choice",
+            },
+            references: [
+              'Nash, J. "Non-Cooperative Games" (1951)',
+              'Osborne & Rubinstein "A Course in Game Theory"',
+            ],
           },
-          references: [
-            'Nash, J. "Non-Cooperative Games" (1951)',
-            'Osborne & Rubinstein "A Course in Game Theory"'
-          ]
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -537,21 +589,25 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
           name,
           strategies: {
             [g.players[0]]: g.strategies[0],
-            [g.players[1]]: g.strategies[1]
+            [g.players[1]]: g.strategies[1],
           },
           pureEquilibria: pureNE.length,
           hasMixedEquilibrium: mixedNE !== null,
           properties: Object.entries(props)
             .filter(([, v]) => v)
-            .map(([k]) => k)
+            .map(([k]) => k),
         };
       });
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          classicGames: games
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            classicGames: games,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -563,45 +619,51 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          game: gameName,
-          players: game.players,
-          strategies: {
-            [game.players[0]]: game.strategies[0],
-            [game.players[1]]: game.strategies[1]
+        content: JSON.stringify(
+          {
+            game: gameName,
+            players: game.players,
+            strategies: {
+              [game.players[0]]: game.strategies[0],
+              [game.players[1]]: game.strategies[1],
+            },
+            payoffMatrix: game.payoffs.map((row, i) =>
+              row.map((cell, j) => ({
+                profile: `(${game.strategies[0][i]}, ${game.strategies[1][j]})`,
+                payoffs: `(${cell[0]}, ${cell[1]})`,
+              }))
+            ),
+            pureNashEquilibria: pureNE.map((ne) => ({
+              strategies: (ne.strategies as number[]).map((s, p) => game.strategies[p][s]),
+              payoffs: ne.payoffs,
+            })),
+            mixedNashEquilibrium: mixedNE
+              ? {
+                  player1: {
+                    strategy: (mixedNE.strategies[0] as number[])
+                      .map((p, i) => `${(p * 100).toFixed(1)}% ${game.strategies[0][i]}`)
+                      .join(', '),
+                  },
+                  player2: {
+                    strategy: (mixedNE.strategies[1] as number[])
+                      .map((p, i) => `${(p * 100).toFixed(1)}% ${game.strategies[1][i]}`)
+                      .join(', '),
+                  },
+                  expectedPayoffs: mixedNE.payoffs.map((p) => p.toFixed(3)),
+                }
+              : 'No interior mixed equilibrium',
+            dominatedStrategies: dominated.map((d) => ({
+              player: game.players[d.player],
+              dominated: game.strategies[d.player][d.strategy],
+              by: game.strategies[d.player][d.dominatedBy],
+            })),
+            gameProperties: Object.entries(props)
+              .filter(([, v]) => v)
+              .map(([k]) => k.replace(/([A-Z])/g, ' $1').trim()),
           },
-          payoffMatrix: game.payoffs.map((row, i) =>
-            row.map((cell, j) => ({
-              profile: `(${game.strategies[0][i]}, ${game.strategies[1][j]})`,
-              payoffs: `(${cell[0]}, ${cell[1]})`
-            }))
-          ),
-          pureNashEquilibria: pureNE.map(ne => ({
-            strategies: (ne.strategies as number[]).map((s, p) => game.strategies[p][s]),
-            payoffs: ne.payoffs
-          })),
-          mixedNashEquilibrium: mixedNE ? {
-            player1: {
-              strategy: (mixedNE.strategies[0] as number[]).map((p, i) =>
-                `${(p * 100).toFixed(1)}% ${game.strategies[0][i]}`
-              ).join(', ')
-            },
-            player2: {
-              strategy: (mixedNE.strategies[1] as number[]).map((p, i) =>
-                `${(p * 100).toFixed(1)}% ${game.strategies[1][i]}`
-              ).join(', ')
-            },
-            expectedPayoffs: mixedNE.payoffs.map(p => p.toFixed(3))
-          } : 'No interior mixed equilibrium',
-          dominatedStrategies: dominated.map(d => ({
-            player: game.players[d.player],
-            dominated: game.strategies[d.player][d.strategy],
-            by: game.strategies[d.player][d.dominatedBy]
-          })),
-          gameProperties: Object.entries(props)
-            .filter(([, v]) => v)
-            .map(([k]) => k.replace(/([A-Z])/g, ' $1').trim())
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -611,7 +673,7 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
       const payoffs = getPayoff(game, profile);
 
       // Compute deviation payoffs
-      const deviations = game.players.map((player, i) => {
+      const deviations = game.players.map((_player, i) => {
         const currentPayoff = payoffs[i];
         return game.strategies[i].map((strategy, s) => {
           if (s === profile[i]) {
@@ -623,31 +685,47 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
             strategy,
             payoff: getPayoff(game, altProfile)[i],
             improvement: getPayoff(game, altProfile)[i] - currentPayoff,
-            isCurrent: false
+            isCurrent: false,
           };
         });
       });
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          game: gameName,
-          strategyProfile: profile.map((s, p) => game.strategies[p][s]),
-          payoffs,
-          isNashEquilibrium: isNE,
-          deviationAnalysis: deviations.map((d, i) => ({
-            player: game.players[i],
-            currentStrategy: game.strategies[i][profile[i]],
-            deviations: d.filter(x => !x.isCurrent).map(x => ({
-              to: x.strategy,
-              payoffChange: (x as { improvement: number }).improvement.toFixed(2),
-              profitable: (x as { improvement: number }).improvement > 0
-            }))
-          })),
-          explanation: isNE
-            ? 'No player can improve by unilaterally changing strategy'
-            : 'At least one player has a profitable deviation'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            game: gameName,
+            strategyProfile: profile.map((s: number, p: number) => game.strategies[p][s]),
+            payoffs,
+            isNashEquilibrium: isNE,
+            deviationAnalysis: deviations.map(
+              (
+                d: Array<{
+                  strategy: string;
+                  payoff: number;
+                  isCurrent: boolean;
+                  improvement?: number;
+                }>,
+                i: number
+              ) => ({
+                player: game.players[i],
+                currentStrategy: game.strategies[i][profile[i]],
+                deviations: d
+                  .filter((x: { isCurrent: boolean }) => !x.isCurrent)
+                  .map((x: { strategy: string; improvement?: number }) => ({
+                    to: x.strategy,
+                    payoffChange: (x.improvement ?? 0).toFixed(2),
+                    profitable: (x.improvement ?? 0) > 0,
+                  })),
+              })
+            ),
+            explanation: isNE
+              ? 'No player can improve by unilaterally changing strategy'
+              : 'At least one player has a profitable deviation',
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -655,35 +733,49 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
       const player = args.player ?? 0;
       const opponentStrat = args.opponent_strategy ?? [0];
 
-      const brs = bestResponse(game, player, opponentStrat.length === 1 ? opponentStrat[0] : opponentStrat);
+      const brs = bestResponse(
+        game,
+        player,
+        opponentStrat.length === 1 ? opponentStrat[0] : opponentStrat
+      );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          game: gameName,
-          player: game.players[player],
-          opponentStrategy: opponentStrat.length === 1
-            ? game.strategies[1 - player][opponentStrat[0]]
-            : opponentStrat.map((p, i) => `${(p * 100).toFixed(0)}% ${game.strategies[1-player][i]}`).join(', '),
-          bestResponses: brs.map(s => ({
-            strategy: game.strategies[player][s],
-            index: s
-          })),
-          allStrategiesPayoffs: game.strategies[player].map((strategy, s) => {
-            let payoff: number;
-            if (opponentStrat.length === 1) {
-              const profile = player === 0 ? [s, opponentStrat[0]] : [opponentStrat[0], s];
-              payoff = getPayoff(game, profile)[player];
-            } else {
-              payoff = 0;
-              for (let os = 0; os < opponentStrat.length; os++) {
-                const profile = player === 0 ? [s, os] : [os, s];
-                payoff += opponentStrat[os] * getPayoff(game, profile)[player];
+        content: JSON.stringify(
+          {
+            game: gameName,
+            player: game.players[player],
+            opponentStrategy:
+              opponentStrat.length === 1
+                ? game.strategies[1 - player][opponentStrat[0]]
+                : opponentStrat
+                    .map(
+                      (p: number, i: number) =>
+                        `${(p * 100).toFixed(0)}% ${game.strategies[1 - player][i]}`
+                    )
+                    .join(', '),
+            bestResponses: brs.map((s: number) => ({
+              strategy: game.strategies[player][s],
+              index: s,
+            })),
+            allStrategiesPayoffs: game.strategies[player].map((strategy: string, s: number) => {
+              let payoff: number;
+              if (opponentStrat.length === 1) {
+                const profile = player === 0 ? [s, opponentStrat[0]] : [opponentStrat[0], s];
+                payoff = getPayoff(game, profile)[player];
+              } else {
+                payoff = 0;
+                for (let os = 0; os < opponentStrat.length; os++) {
+                  const profile = player === 0 ? [s, os] : [os, s];
+                  payoff += opponentStrat[os] * getPayoff(game, profile)[player];
+                }
               }
-            }
-            return { strategy, payoff: payoff.toFixed(3), isBestResponse: brs.includes(s) };
-          })
-        }, null, 2)
+              return { strategy, payoff: payoff.toFixed(3), isBestResponse: brs.includes(s) };
+            }),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -692,20 +784,26 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          game: gameName,
-          dominatedStrategies: dominated.length > 0
-            ? dominated.map(d => ({
-                player: game.players[d.player],
-                strategy: game.strategies[d.player][d.strategy],
-                dominatedBy: game.strategies[d.player][d.dominatedBy],
-                explanation: `${game.strategies[d.player][d.dominatedBy]} yields strictly higher payoff than ${game.strategies[d.player][d.strategy]} against any opponent strategy`
-              }))
-            : 'No strictly dominated strategies found',
-          eliminationOrder: dominated.length > 0
-            ? 'Can eliminate dominated strategies iteratively (IESDS)'
-            : 'All strategies may be rationalizable'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            game: gameName,
+            dominatedStrategies:
+              dominated.length > 0
+                ? dominated.map((d) => ({
+                    player: game.players[d.player],
+                    strategy: game.strategies[d.player][d.strategy],
+                    dominatedBy: game.strategies[d.player][d.dominatedBy],
+                    explanation: `${game.strategies[d.player][d.dominatedBy]} yields strictly higher payoff than ${game.strategies[d.player][d.strategy]} against any opponent strategy`,
+                  }))
+                : 'No strictly dominated strategies found',
+            eliminationOrder:
+              dominated.length > 0
+                ? 'Can eliminate dominated strategies iteratively (IESDS)'
+                : 'All strategies may be rationalizable',
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -715,39 +813,48 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
       if (!mixedNE) {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            game: gameName,
-            result: 'No interior mixed strategy Nash equilibrium',
-            explanation: 'Either the game has only pure equilibria, or mixed equilibria at boundaries'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              game: gameName,
+              result: 'No interior mixed strategy Nash equilibrium',
+              explanation:
+                'Either the game has only pure equilibria, or mixed equilibria at boundaries',
+            },
+            null,
+            2
+          ),
         };
       }
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          game: gameName,
-          mixedEquilibrium: {
-            player1: {
-              probabilities: (mixedNE.strategies[0] as number[]).map((p, i) => ({
-                strategy: game.strategies[0][i],
-                probability: (p * 100).toFixed(2) + '%'
-              })),
-              expectedPayoff: mixedNE.payoffs[0].toFixed(4)
+        content: JSON.stringify(
+          {
+            game: gameName,
+            mixedEquilibrium: {
+              player1: {
+                probabilities: (mixedNE.strategies[0] as number[]).map((p, i) => ({
+                  strategy: game.strategies[0][i],
+                  probability: (p * 100).toFixed(2) + '%',
+                })),
+                expectedPayoff: mixedNE.payoffs[0].toFixed(4),
+              },
+              player2: {
+                probabilities: (mixedNE.strategies[1] as number[]).map((p, i) => ({
+                  strategy: game.strategies[1][i],
+                  probability: (p * 100).toFixed(2) + '%',
+                })),
+                expectedPayoff: mixedNE.payoffs[1].toFixed(4),
+              },
             },
-            player2: {
-              probabilities: (mixedNE.strategies[1] as number[]).map((p, i) => ({
-                strategy: game.strategies[1][i],
-                probability: (p * 100).toFixed(2) + '%'
-              })),
-              expectedPayoff: mixedNE.payoffs[1].toFixed(4)
-            }
+            interpretation: {
+              player1: `${game.players[0]} randomizes to make ${game.players[1]} indifferent`,
+              player2: `${game.players[1]} randomizes to make ${game.players[0]} indifferent`,
+            },
           },
-          interpretation: {
-            player1: `${game.players[0]} randomizes to make ${game.players[1]} indifferent`,
-            player2: `${game.players[1]} randomizes to make ${game.players[0]} indifferent`
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -758,35 +865,43 @@ export async function executenashequilibrium(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          game: gameName,
-          properties: {
-            symmetric: props.symmetric,
-            zeroSum: props.zeroSum,
-            coordinationGame: props.coordinationGame,
-            antiCoordinationGame: props.antiCoordinationGame
+        content: JSON.stringify(
+          {
+            game: gameName,
+            properties: {
+              symmetric: props.symmetric,
+              zeroSum: props.zeroSum,
+              coordinationGame: props.coordinationGame,
+              antiCoordinationGame: props.antiCoordinationGame,
+            },
+            equilibriumAnalysis: {
+              numberOfPureEquilibria: pureNE.length,
+              hasMixedEquilibrium: mixedNE !== null,
+              totalEquilibria: pureNE.length + (mixedNE ? 1 : 0),
+            },
+            classification: props.zeroSum
+              ? 'Strictly competitive'
+              : props.coordinationGame
+                ? 'Coordination game'
+                : props.antiCoordinationGame
+                  ? 'Anti-coordination game'
+                  : pureNE.length === 0
+                    ? 'No pure equilibrium (requires mixing)'
+                    : pureNE.length > 1
+                      ? 'Multiple equilibria (coordination problem)'
+                      : 'Single equilibrium',
           },
-          equilibriumAnalysis: {
-            numberOfPureEquilibria: pureNE.length,
-            hasMixedEquilibrium: mixedNE !== null,
-            totalEquilibria: pureNE.length + (mixedNE ? 1 : 0)
-          },
-          classification: props.zeroSum ? 'Strictly competitive'
-            : props.coordinationGame ? 'Coordination game'
-            : props.antiCoordinationGame ? 'Anti-coordination game'
-            : pureNE.length === 0 ? 'No pure equilibrium (requires mixing)'
-            : pureNE.length > 1 ? 'Multiple equilibria (coordination problem)'
-            : 'Single equilibrium'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
       content: JSON.stringify({ error: 'Unknown operation', operation }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

@@ -9,56 +9,57 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const sequencealignmentTool: UnifiedTool = {
   name: 'sequence_alignment',
-  description: 'DNA/protein sequence alignment - Needleman-Wunsch, Smith-Waterman, multiple sequence alignment',
+  description:
+    'DNA/protein sequence alignment - Needleman-Wunsch, Smith-Waterman, multiple sequence alignment',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['global', 'local', 'semiglobal', 'multiple', 'score_only', 'analyze', 'info'],
-        description: 'Alignment operation'
+        description: 'Alignment operation',
       },
       sequence1: {
         type: 'string',
-        description: 'First sequence (DNA/RNA/protein)'
+        description: 'First sequence (DNA/RNA/protein)',
       },
       sequence2: {
         type: 'string',
-        description: 'Second sequence for pairwise alignment'
+        description: 'Second sequence for pairwise alignment',
       },
       sequences: {
         type: 'array',
-        description: 'Array of sequences for multiple alignment'
+        description: 'Array of sequences for multiple alignment',
       },
       sequence_type: {
         type: 'string',
         enum: ['dna', 'rna', 'protein'],
-        description: 'Type of sequence'
+        description: 'Type of sequence',
       },
       scoring_matrix: {
         type: 'string',
         enum: ['BLOSUM62', 'BLOSUM45', 'BLOSUM80', 'PAM250', 'PAM120', 'IDENTITY', 'DNA_SIMPLE'],
-        description: 'Scoring matrix for alignment'
+        description: 'Scoring matrix for alignment',
       },
       gap_open: {
         type: 'number',
-        description: 'Gap opening penalty (negative)'
+        description: 'Gap opening penalty (negative)',
       },
       gap_extend: {
         type: 'number',
-        description: 'Gap extension penalty (negative)'
+        description: 'Gap extension penalty (negative)',
       },
       match_score: {
         type: 'number',
-        description: 'Match score for DNA alignment'
+        description: 'Match score for DNA alignment',
       },
       mismatch_score: {
         type: 'number',
-        description: 'Mismatch penalty for DNA alignment'
-      }
+        description: 'Mismatch penalty for DNA alignment',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Standard amino acid order for matrices
@@ -67,26 +68,26 @@ const AMINO_ACIDS = 'ARNDCQEGHILKMFPSTWYV';
 // BLOSUM62 scoring matrix
 const BLOSUM62: Record<string, Record<string, number>> = {};
 const BLOSUM62_DATA = [
-  [ 4, -1, -2, -2,  0, -1, -1,  0, -2, -1, -1, -1, -1, -2, -1,  1,  0, -3, -2,  0],
-  [-1,  5,  0, -2, -3,  1,  0, -2,  0, -3, -2,  2, -1, -3, -2, -1, -1, -3, -2, -3],
-  [-2,  0,  6,  1, -3,  0,  0,  0,  1, -3, -3,  0, -2, -3, -2,  1,  0, -4, -2, -3],
-  [-2, -2,  1,  6, -3,  0,  2, -1, -1, -3, -4, -1, -3, -3, -1,  0, -1, -4, -3, -3],
-  [ 0, -3, -3, -3,  9, -3, -4, -3, -3, -1, -1, -3, -1, -2, -3, -1, -1, -2, -2, -1],
-  [-1,  1,  0,  0, -3,  5,  2, -2,  0, -3, -2,  1,  0, -3, -1,  0, -1, -2, -1, -2],
-  [-1,  0,  0,  2, -4,  2,  5, -2,  0, -3, -3,  1, -2, -3, -1,  0, -1, -3, -2, -2],
-  [ 0, -2,  0, -1, -3, -2, -2,  6, -2, -4, -4, -2, -3, -3, -2,  0, -2, -2, -3, -3],
-  [-2,  0,  1, -1, -3,  0,  0, -2,  8, -3, -3, -1, -2, -1, -2, -1, -2, -2,  2, -3],
-  [-1, -3, -3, -3, -1, -3, -3, -4, -3,  4,  2, -3,  1,  0, -3, -2, -1, -3, -1,  3],
-  [-1, -2, -3, -4, -1, -2, -3, -4, -3,  2,  4, -2,  2,  0, -3, -2, -1, -2, -1,  1],
-  [-1,  2,  0, -1, -3,  1,  1, -2, -1, -3, -2,  5, -1, -3, -1,  0, -1, -3, -2, -2],
-  [-1, -1, -2, -3, -1,  0, -2, -3, -2,  1,  2, -1,  5,  0, -2, -1, -1, -1, -1,  1],
-  [-2, -3, -3, -3, -2, -3, -3, -3, -1,  0,  0, -3,  0,  6, -4, -2, -2,  1,  3, -1],
-  [-1, -2, -2, -1, -3, -1, -1, -2, -2, -3, -3, -1, -2, -4,  7, -1, -1, -4, -3, -2],
-  [ 1, -1,  1,  0, -1,  0,  0,  0, -1, -2, -2,  0, -1, -2, -1,  4,  1, -3, -2, -2],
-  [ 0, -1,  0, -1, -1, -1, -1, -2, -2, -1, -1, -1, -1, -2, -1,  1,  5, -2, -2,  0],
-  [-3, -3, -4, -4, -2, -2, -3, -2, -2, -3, -2, -3, -1,  1, -4, -3, -2, 11,  2, -3],
-  [-2, -2, -2, -3, -2, -1, -2, -3,  2, -1, -1, -2, -1,  3, -3, -2, -2,  2,  7, -1],
-  [ 0, -3, -3, -3, -1, -2, -2, -3, -3,  3,  1, -2,  1, -1, -2, -2,  0, -3, -1,  4]
+  [4, -1, -2, -2, 0, -1, -1, 0, -2, -1, -1, -1, -1, -2, -1, 1, 0, -3, -2, 0],
+  [-1, 5, 0, -2, -3, 1, 0, -2, 0, -3, -2, 2, -1, -3, -2, -1, -1, -3, -2, -3],
+  [-2, 0, 6, 1, -3, 0, 0, 0, 1, -3, -3, 0, -2, -3, -2, 1, 0, -4, -2, -3],
+  [-2, -2, 1, 6, -3, 0, 2, -1, -1, -3, -4, -1, -3, -3, -1, 0, -1, -4, -3, -3],
+  [0, -3, -3, -3, 9, -3, -4, -3, -3, -1, -1, -3, -1, -2, -3, -1, -1, -2, -2, -1],
+  [-1, 1, 0, 0, -3, 5, 2, -2, 0, -3, -2, 1, 0, -3, -1, 0, -1, -2, -1, -2],
+  [-1, 0, 0, 2, -4, 2, 5, -2, 0, -3, -3, 1, -2, -3, -1, 0, -1, -3, -2, -2],
+  [0, -2, 0, -1, -3, -2, -2, 6, -2, -4, -4, -2, -3, -3, -2, 0, -2, -2, -3, -3],
+  [-2, 0, 1, -1, -3, 0, 0, -2, 8, -3, -3, -1, -2, -1, -2, -1, -2, -2, 2, -3],
+  [-1, -3, -3, -3, -1, -3, -3, -4, -3, 4, 2, -3, 1, 0, -3, -2, -1, -3, -1, 3],
+  [-1, -2, -3, -4, -1, -2, -3, -4, -3, 2, 4, -2, 2, 0, -3, -2, -1, -2, -1, 1],
+  [-1, 2, 0, -1, -3, 1, 1, -2, -1, -3, -2, 5, -1, -3, -1, 0, -1, -3, -2, -2],
+  [-1, -1, -2, -3, -1, 0, -2, -3, -2, 1, 2, -1, 5, 0, -2, -1, -1, -1, -1, 1],
+  [-2, -3, -3, -3, -2, -3, -3, -3, -1, 0, 0, -3, 0, 6, -4, -2, -2, 1, 3, -1],
+  [-1, -2, -2, -1, -3, -1, -1, -2, -2, -3, -3, -1, -2, -4, 7, -1, -1, -4, -3, -2],
+  [1, -1, 1, 0, -1, 0, 0, 0, -1, -2, -2, 0, -1, -2, -1, 4, 1, -3, -2, -2],
+  [0, -1, 0, -1, -1, -1, -1, -2, -2, -1, -1, -1, -1, -2, -1, 1, 5, -2, -2, 0],
+  [-3, -3, -4, -4, -2, -2, -3, -2, -2, -3, -2, -3, -1, 1, -4, -3, -2, 11, 2, -3],
+  [-2, -2, -2, -3, -2, -1, -2, -3, 2, -1, -1, -2, -1, 3, -3, -2, -2, 2, 7, -1],
+  [0, -3, -3, -3, -1, -2, -2, -3, -3, 3, 1, -2, 1, -1, -2, -2, 0, -3, -1, 4],
 ];
 
 // Initialize BLOSUM62
@@ -99,26 +100,26 @@ for (let i = 0; i < 20; i++) {
 
 // BLOSUM45 (more distant sequences)
 const BLOSUM45_DATA = [
-  [ 5, -2, -1, -2, -1, -1, -1,  0, -2, -1, -1, -1, -1, -2, -1,  1,  0, -2, -2,  0],
-  [-2,  7,  0, -1, -3,  1,  0, -2,  0, -3, -2,  3, -1, -2, -2, -1, -1, -2, -1, -2],
-  [-1,  0,  6,  2, -2,  0,  0,  0,  1, -2, -3,  0, -2, -2, -2,  1,  0, -4, -2, -3],
-  [-2, -1,  2,  7, -3,  0,  2, -1,  0, -4, -3,  0, -3, -4, -1,  0, -1, -4, -2, -3],
+  [5, -2, -1, -2, -1, -1, -1, 0, -2, -1, -1, -1, -1, -2, -1, 1, 0, -2, -2, 0],
+  [-2, 7, 0, -1, -3, 1, 0, -2, 0, -3, -2, 3, -1, -2, -2, -1, -1, -2, -1, -2],
+  [-1, 0, 6, 2, -2, 0, 0, 0, 1, -2, -3, 0, -2, -2, -2, 1, 0, -4, -2, -3],
+  [-2, -1, 2, 7, -3, 0, 2, -1, 0, -4, -3, 0, -3, -4, -1, 0, -1, -4, -2, -3],
   [-1, -3, -2, -3, 12, -3, -3, -3, -3, -3, -2, -3, -2, -2, -4, -1, -1, -5, -3, -1],
-  [-1,  1,  0,  0, -3,  6,  2, -2,  1, -2, -2,  1,  0, -4, -1,  0, -1, -2, -1, -3],
-  [-1,  0,  0,  2, -3,  2,  6, -2,  0, -3, -2,  1, -2, -3,  0,  0, -1, -3, -2, -3],
-  [ 0, -2,  0, -1, -3, -2, -2,  7, -2, -4, -3, -2, -2, -3, -2,  0, -2, -2, -3, -3],
-  [-2,  0,  1,  0, -3,  1,  0, -2, 10, -3, -2, -1,  0, -2, -2, -1, -2, -3,  2, -3],
-  [-1, -3, -2, -4, -3, -2, -3, -4, -3,  5,  2, -3,  2,  0, -2, -2, -1, -2,  0,  3],
-  [-1, -2, -3, -3, -2, -2, -2, -3, -2,  2,  5, -3,  2,  1, -3, -3, -1, -2,  0,  1],
-  [-1,  3,  0,  0, -3,  1,  1, -2, -1, -3, -3,  5, -1, -3, -1, -1, -1, -2, -1, -2],
-  [-1, -1, -2, -3, -2,  0, -2, -2,  0,  2,  2, -1,  6,  0, -2, -2, -1, -2,  0,  1],
-  [-2, -2, -2, -4, -2, -4, -3, -3, -2,  0,  1, -3,  0,  8, -3, -2, -1,  1,  3,  0],
-  [-1, -2, -2, -1, -4, -1,  0, -2, -2, -2, -3, -1, -2, -3,  9, -1, -1, -3, -3, -3],
-  [ 1, -1,  1,  0, -1,  0,  0,  0, -1, -2, -3, -1, -2, -2, -1,  4,  2, -4, -2, -1],
-  [ 0, -1,  0, -1, -1, -1, -1, -2, -2, -1, -1, -1, -1, -1, -1,  2,  5, -3, -1,  0],
-  [-2, -2, -4, -4, -5, -2, -3, -2, -3, -2, -2, -2, -2,  1, -3, -4, -3, 15,  3, -3],
-  [-2, -1, -2, -2, -3, -1, -2, -3,  2,  0,  0, -1,  0,  3, -3, -2, -1,  3,  8, -1],
-  [ 0, -2, -3, -3, -1, -3, -3, -3, -3,  3,  1, -2,  1,  0, -3, -1,  0, -3, -1,  5]
+  [-1, 1, 0, 0, -3, 6, 2, -2, 1, -2, -2, 1, 0, -4, -1, 0, -1, -2, -1, -3],
+  [-1, 0, 0, 2, -3, 2, 6, -2, 0, -3, -2, 1, -2, -3, 0, 0, -1, -3, -2, -3],
+  [0, -2, 0, -1, -3, -2, -2, 7, -2, -4, -3, -2, -2, -3, -2, 0, -2, -2, -3, -3],
+  [-2, 0, 1, 0, -3, 1, 0, -2, 10, -3, -2, -1, 0, -2, -2, -1, -2, -3, 2, -3],
+  [-1, -3, -2, -4, -3, -2, -3, -4, -3, 5, 2, -3, 2, 0, -2, -2, -1, -2, 0, 3],
+  [-1, -2, -3, -3, -2, -2, -2, -3, -2, 2, 5, -3, 2, 1, -3, -3, -1, -2, 0, 1],
+  [-1, 3, 0, 0, -3, 1, 1, -2, -1, -3, -3, 5, -1, -3, -1, -1, -1, -2, -1, -2],
+  [-1, -1, -2, -3, -2, 0, -2, -2, 0, 2, 2, -1, 6, 0, -2, -2, -1, -2, 0, 1],
+  [-2, -2, -2, -4, -2, -4, -3, -3, -2, 0, 1, -3, 0, 8, -3, -2, -1, 1, 3, 0],
+  [-1, -2, -2, -1, -4, -1, 0, -2, -2, -2, -3, -1, -2, -3, 9, -1, -1, -3, -3, -3],
+  [1, -1, 1, 0, -1, 0, 0, 0, -1, -2, -3, -1, -2, -2, -1, 4, 2, -4, -2, -1],
+  [0, -1, 0, -1, -1, -1, -1, -2, -2, -1, -1, -1, -1, -1, -1, 2, 5, -3, -1, 0],
+  [-2, -2, -4, -4, -5, -2, -3, -2, -3, -2, -2, -2, -2, 1, -3, -4, -3, 15, 3, -3],
+  [-2, -1, -2, -2, -3, -1, -2, -3, 2, 0, 0, -1, 0, 3, -3, -2, -1, 3, 8, -1],
+  [0, -2, -3, -3, -1, -3, -3, -3, -3, 3, 1, -2, 1, 0, -3, -1, 0, -3, -1, 5],
 ];
 
 const BLOSUM45: Record<string, Record<string, number>> = {};
@@ -131,26 +132,26 @@ for (let i = 0; i < 20; i++) {
 
 // PAM250 matrix
 const PAM250_DATA = [
-  [ 2, -2,  0,  0, -2,  0,  0,  1, -1, -1, -2, -1, -1, -4,  1,  1,  1, -6, -3,  0],
-  [-2,  6,  0, -1, -4,  1, -1, -3,  2, -2, -3,  3,  0, -4,  0,  0, -1,  2, -4, -2],
-  [ 0,  0,  2,  2, -4,  1,  1,  0,  2, -2, -3,  1, -2, -4, -1,  1,  0, -4, -2, -2],
-  [ 0, -1,  2,  4, -5,  2,  3,  1,  1, -2, -4,  0, -3, -6, -1,  0,  0, -7, -4, -2],
-  [-2, -4, -4, -5, 12, -5, -5, -3, -3, -2, -6, -5, -5, -4, -3,  0, -2, -8,  0, -2],
-  [ 0,  1,  1,  2, -5,  4,  2, -1,  3, -2, -2,  1, -1, -5,  0, -1, -1, -5, -4, -2],
-  [ 0, -1,  1,  3, -5,  2,  4,  0,  1, -2, -3,  0, -2, -5, -1,  0,  0, -7, -4, -2],
-  [ 1, -3,  0,  1, -3, -1,  0,  5, -2, -3, -4, -2, -3, -5, -1,  1,  0, -7, -5, -1],
-  [-1,  2,  2,  1, -3,  3,  1, -2,  6, -2, -2,  0, -2, -2,  0, -1, -1, -3,  0, -2],
-  [-1, -2, -2, -2, -2, -2, -2, -3, -2,  5,  2, -2,  2,  1, -2, -1,  0, -5, -1,  4],
-  [-2, -3, -3, -4, -6, -2, -3, -4, -2,  2,  6, -3,  4,  2, -3, -3, -2, -2, -1,  2],
-  [-1,  3,  1,  0, -5,  1,  0, -2,  0, -2, -3,  5,  0, -5, -1,  0,  0, -3, -4, -2],
-  [-1,  0, -2, -3, -5, -1, -2, -3, -2,  2,  4,  0,  6,  0, -2, -2, -1, -4, -2,  2],
-  [-4, -4, -4, -6, -4, -5, -5, -5, -2,  1,  2, -5,  0,  9, -5, -3, -3,  0,  7, -1],
-  [ 1,  0, -1, -1, -3,  0, -1, -1,  0, -2, -3, -1, -2, -5,  6,  1,  0, -6, -5, -1],
-  [ 1,  0,  1,  0,  0, -1,  0,  1, -1, -1, -3,  0, -2, -3,  1,  2,  1, -2, -3, -1],
-  [ 1, -1,  0,  0, -2, -1,  0,  0, -1,  0, -2,  0, -1, -3,  0,  1,  3, -5, -3,  0],
-  [-6,  2, -4, -7, -8, -5, -7, -7, -3, -5, -2, -3, -4,  0, -6, -2, -5, 17,  0, -6],
-  [-3, -4, -2, -4,  0, -4, -4, -5,  0, -1, -1, -4, -2,  7, -5, -3, -3,  0, 10, -2],
-  [ 0, -2, -2, -2, -2, -2, -2, -1, -2,  4,  2, -2,  2, -1, -1, -1,  0, -6, -2,  4]
+  [2, -2, 0, 0, -2, 0, 0, 1, -1, -1, -2, -1, -1, -4, 1, 1, 1, -6, -3, 0],
+  [-2, 6, 0, -1, -4, 1, -1, -3, 2, -2, -3, 3, 0, -4, 0, 0, -1, 2, -4, -2],
+  [0, 0, 2, 2, -4, 1, 1, 0, 2, -2, -3, 1, -2, -4, -1, 1, 0, -4, -2, -2],
+  [0, -1, 2, 4, -5, 2, 3, 1, 1, -2, -4, 0, -3, -6, -1, 0, 0, -7, -4, -2],
+  [-2, -4, -4, -5, 12, -5, -5, -3, -3, -2, -6, -5, -5, -4, -3, 0, -2, -8, 0, -2],
+  [0, 1, 1, 2, -5, 4, 2, -1, 3, -2, -2, 1, -1, -5, 0, -1, -1, -5, -4, -2],
+  [0, -1, 1, 3, -5, 2, 4, 0, 1, -2, -3, 0, -2, -5, -1, 0, 0, -7, -4, -2],
+  [1, -3, 0, 1, -3, -1, 0, 5, -2, -3, -4, -2, -3, -5, -1, 1, 0, -7, -5, -1],
+  [-1, 2, 2, 1, -3, 3, 1, -2, 6, -2, -2, 0, -2, -2, 0, -1, -1, -3, 0, -2],
+  [-1, -2, -2, -2, -2, -2, -2, -3, -2, 5, 2, -2, 2, 1, -2, -1, 0, -5, -1, 4],
+  [-2, -3, -3, -4, -6, -2, -3, -4, -2, 2, 6, -3, 4, 2, -3, -3, -2, -2, -1, 2],
+  [-1, 3, 1, 0, -5, 1, 0, -2, 0, -2, -3, 5, 0, -5, -1, 0, 0, -3, -4, -2],
+  [-1, 0, -2, -3, -5, -1, -2, -3, -2, 2, 4, 0, 6, 0, -2, -2, -1, -4, -2, 2],
+  [-4, -4, -4, -6, -4, -5, -5, -5, -2, 1, 2, -5, 0, 9, -5, -3, -3, 0, 7, -1],
+  [1, 0, -1, -1, -3, 0, -1, -1, 0, -2, -3, -1, -2, -5, 6, 1, 0, -6, -5, -1],
+  [1, 0, 1, 0, 0, -1, 0, 1, -1, -1, -3, 0, -2, -3, 1, 2, 1, -2, -3, -1],
+  [1, -1, 0, 0, -2, -1, 0, 0, -1, 0, -2, 0, -1, -3, 0, 1, 3, -5, -3, 0],
+  [-6, 2, -4, -7, -8, -5, -7, -7, -3, -5, -2, -3, -4, 0, -6, -2, -5, 17, 0, -6],
+  [-3, -4, -2, -4, 0, -4, -4, -5, 0, -1, -1, -4, -2, 7, -5, -3, -3, 0, 10, -2],
+  [0, -2, -2, -2, -2, -2, -2, -1, -2, 4, 2, -2, 2, -1, -1, -1, 0, -6, -2, 4],
 ];
 
 const PAM250: Record<string, Record<string, number>> = {};
@@ -172,19 +173,19 @@ for (const b1 of DNA_BASES) {
 }
 
 // Handle ambiguous bases
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const AMBIGUOUS_DNA: Record<string, string[]> = {
-  'N': ['A', 'C', 'G', 'T'],
-  'R': ['A', 'G'],
-  'Y': ['C', 'T'],
-  'S': ['G', 'C'],
-  'W': ['A', 'T'],
-  'K': ['G', 'T'],
-  'M': ['A', 'C'],
-  'B': ['C', 'G', 'T'],
-  'D': ['A', 'G', 'T'],
-  'H': ['A', 'C', 'T'],
-  'V': ['A', 'C', 'G']
+  N: ['A', 'C', 'G', 'T'],
+  R: ['A', 'G'],
+  Y: ['C', 'T'],
+  S: ['G', 'C'],
+  W: ['A', 'T'],
+  K: ['G', 'T'],
+  M: ['A', 'C'],
+  B: ['C', 'G', 'T'],
+  D: ['A', 'G', 'T'],
+  H: ['A', 'C', 'T'],
+  V: ['A', 'C', 'G'],
 };
 
 function getScore(
@@ -231,9 +232,15 @@ function needlemanWunsch(
   const n = seq2.length;
 
   // Three matrices for affine gap penalties
-  const M: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(-Infinity));
-  const Ix: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(-Infinity)); // gap in seq2
-  const Iy: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(-Infinity)); // gap in seq1
+  const M: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(-Infinity));
+  const Ix: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(-Infinity)); // gap in seq2
+  const Iy: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(-Infinity)); // gap in seq1
 
   // Initialize
   M[0][0] = 0;
@@ -257,22 +264,17 @@ function needlemanWunsch(
         Iy[i - 1][j - 1] + score
       );
 
-      Ix[i][j] = Math.max(
-        M[i - 1][j] + gapOpen,
-        Ix[i - 1][j] + gapExtend
-      );
+      Ix[i][j] = Math.max(M[i - 1][j] + gapOpen, Ix[i - 1][j] + gapExtend);
 
-      Iy[i][j] = Math.max(
-        M[i][j - 1] + gapOpen,
-        Iy[i][j - 1] + gapExtend
-      );
+      Iy[i][j] = Math.max(M[i][j - 1] + gapOpen, Iy[i][j - 1] + gapExtend);
     }
   }
 
   // Traceback
   let align1 = '';
   let align2 = '';
-  let i = m, j = n;
+  let i = m,
+    j = n;
 
   let currentMatrix = 'M';
   const finalScore = Math.max(M[m][n], Ix[m][n], Iy[m][n]);
@@ -326,7 +328,7 @@ function needlemanWunsch(
     score: finalScore,
     identity: (matches / align1.length) * 100,
     gaps,
-    matrix_used: Object.keys(matrix).length > 10 ? 'protein' : 'dna'
+    matrix_used: Object.keys(matrix).length > 10 ? 'protein' : 'dna',
   };
 }
 
@@ -352,9 +354,12 @@ function smithWaterman(
   const m = seq1.length;
   const n = seq2.length;
 
-  const H: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  const H: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0));
   let maxScore = 0;
-  let maxI = 0, maxJ = 0;
+  let maxI = 0,
+    maxJ = 0;
 
   // Fill matrix
   for (let i = 1; i <= m; i++) {
@@ -390,7 +395,8 @@ function smithWaterman(
   // Traceback from maximum
   let align1 = '';
   let align2 = '';
-  let i = maxI, j = maxJ;
+  let i = maxI,
+    j = maxJ;
   const end1 = maxI - 1;
   const end2 = maxJ - 1;
 
@@ -419,8 +425,11 @@ function smithWaterman(
   // Calculate identity
   let matches = 0;
   for (let k = 0; k < align1.length; k++) {
-    if (align1[k] !== '-' && align2[k] !== '-' &&
-        align1[k].toUpperCase() === align2[k].toUpperCase()) {
+    if (
+      align1[k] !== '-' &&
+      align2[k] !== '-' &&
+      align1[k].toUpperCase() === align2[k].toUpperCase()
+    ) {
       matches++;
     }
   }
@@ -433,7 +442,7 @@ function smithWaterman(
     end1,
     start2,
     end2,
-    identity: align1.length > 0 ? (matches / align1.length) * 100 : 0
+    identity: align1.length > 0 ? (matches / align1.length) * 100 : 0,
   };
 }
 
@@ -455,7 +464,9 @@ function semiGlobalAlignment(
   const m = seq1.length;
   const n = seq2.length;
 
-  const H: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  const H: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0));
 
   // Initialize (no gap penalty at start)
   for (let i = 0; i <= m; i++) H[i][0] = 0;
@@ -466,17 +477,14 @@ function semiGlobalAlignment(
     for (let j = 1; j <= n; j++) {
       const score = getScore(seq1[i - 1], seq2[j - 1], matrix, matchScore, mismatchScore);
 
-      H[i][j] = Math.max(
-        H[i - 1][j - 1] + score,
-        H[i - 1][j] + gapOpen,
-        H[i][j - 1] + gapOpen
-      );
+      H[i][j] = Math.max(H[i - 1][j - 1] + score, H[i - 1][j] + gapOpen, H[i][j - 1] + gapOpen);
     }
   }
 
   // Find maximum in last row or column (no gap penalty at end)
   let maxScore = -Infinity;
-  let maxI = m, maxJ = n;
+  let maxI = m,
+    maxJ = n;
 
   for (let i = 0; i <= m; i++) {
     if (H[i][n] > maxScore) {
@@ -509,7 +517,8 @@ function semiGlobalAlignment(
   }
 
   // Traceback
-  let i = maxI, j = maxJ;
+  let i = maxI,
+    j = maxJ;
 
   while (i > 0 && j > 0) {
     const score = getScore(seq1[i - 1], seq2[j - 1], matrix, matchScore, mismatchScore);
@@ -559,7 +568,7 @@ function semiGlobalAlignment(
     alignment1: align1,
     alignment2: align2,
     score: maxScore,
-    identity: counted > 0 ? (matches / counted) * 100 : 0
+    identity: counted > 0 ? (matches / counted) * 100 : 0,
   };
 }
 
@@ -579,7 +588,8 @@ function multipleSequenceAlignment(
   }
 
   // Calculate pairwise distances
-  const distances: number[][] = Array(sequences.length).fill(null)
+  const distances: number[][] = Array(sequences.length)
+    .fill(null)
     .map(() => Array(sequences.length).fill(0));
 
   for (let i = 0; i < sequences.length; i++) {
@@ -678,8 +688,8 @@ function analyzeSequence(seq: string): {
   // Detect sequence type
   const dnaChars = new Set('ACGTN');
   const rnaChars = new Set('ACGUN');
-  const isDNA = [...upper].every(c => dnaChars.has(c) || AMBIGUOUS_DNA[c]);
-  const isRNA = [...upper].every(c => rnaChars.has(c));
+  const isDNA = [...upper].every((c) => dnaChars.has(c) || AMBIGUOUS_DNA[c]);
+  const isRNA = [...upper].every((c) => rnaChars.has(c));
 
   let type_detected = 'protein';
   if (isDNA && !upper.includes('U')) type_detected = 'dna';
@@ -694,7 +704,7 @@ function analyzeSequence(seq: string): {
   } = {
     length: upper.length,
     composition,
-    type_detected
+    type_detected,
   };
 
   // GC content for nucleic acids
@@ -717,7 +727,8 @@ function analyzeSequence(seq: string): {
 
 function formatAlignment(align1: string, align2: string, lineWidth: number = 60): string {
   let output = '';
-  let pos1 = 0, pos2 = 0;
+  let pos1 = 0,
+    pos2 = 0;
 
   for (let i = 0; i < align1.length; i += lineWidth) {
     const chunk1 = align1.slice(i, i + lineWidth);
@@ -754,7 +765,9 @@ function formatAlignment(align1: string, align2: string, lineWidth: number = 60)
   return output;
 }
 
-export async function executesequencealignment(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executesequencealignment(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -764,62 +777,66 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'sequence_alignment',
-          description: 'DNA and protein sequence alignment algorithms',
-          algorithms: {
-            global: {
-              name: 'Needleman-Wunsch',
-              description: 'Global alignment - aligns entire sequences end-to-end',
-              use_case: 'Comparing similar-length sequences of similar origin',
-              complexity: 'O(mn) time and space'
+        content: JSON.stringify(
+          {
+            tool: 'sequence_alignment',
+            description: 'DNA and protein sequence alignment algorithms',
+            algorithms: {
+              global: {
+                name: 'Needleman-Wunsch',
+                description: 'Global alignment - aligns entire sequences end-to-end',
+                use_case: 'Comparing similar-length sequences of similar origin',
+                complexity: 'O(mn) time and space',
+              },
+              local: {
+                name: 'Smith-Waterman',
+                description: 'Local alignment - finds best matching subsequences',
+                use_case: 'Finding conserved regions, domain matching',
+                complexity: 'O(mn) time and space',
+              },
+              semiglobal: {
+                name: 'End-gap free alignment',
+                description: 'Global alignment without penalizing end gaps',
+                use_case: 'Overlap detection, primer alignment',
+              },
+              multiple: {
+                name: 'Progressive MSA',
+                description: 'Aligns multiple sequences progressively',
+                use_case: 'Finding conserved motifs across many sequences',
+              },
             },
-            local: {
-              name: 'Smith-Waterman',
-              description: 'Local alignment - finds best matching subsequences',
-              use_case: 'Finding conserved regions, domain matching',
-              complexity: 'O(mn) time and space'
+            scoring_matrices: {
+              BLOSUM62: 'Best for proteins with 62% identity (default)',
+              BLOSUM45: 'Distant protein sequences (<45% identity)',
+              BLOSUM80: 'Close protein sequences (>80% identity)',
+              PAM250: 'Distant evolutionary relationships',
+              DNA_SIMPLE: 'Simple match/mismatch for DNA',
             },
-            semiglobal: {
-              name: 'End-gap free alignment',
-              description: 'Global alignment without penalizing end gaps',
-              use_case: 'Overlap detection, primer alignment'
+            parameters: {
+              gap_open: 'Penalty for opening a gap (default: -10)',
+              gap_extend: 'Penalty for extending a gap (default: -1)',
+              match_score: 'Score for DNA match (default: 2)',
+              mismatch_score: 'Score for DNA mismatch (default: -1)',
             },
-            multiple: {
-              name: 'Progressive MSA',
-              description: 'Aligns multiple sequences progressively',
-              use_case: 'Finding conserved motifs across many sequences'
-            }
+            example_usage: {
+              protein_global: {
+                operation: 'global',
+                sequence1: 'MVLSPADKTN',
+                sequence2: 'MVHLTPEEKS',
+                sequence_type: 'protein',
+                scoring_matrix: 'BLOSUM62',
+              },
+              dna_local: {
+                operation: 'local',
+                sequence1: 'ACGTACGTACGT',
+                sequence2: 'TACGTACG',
+                sequence_type: 'dna',
+              },
+            },
           },
-          scoring_matrices: {
-            BLOSUM62: 'Best for proteins with 62% identity (default)',
-            BLOSUM45: 'Distant protein sequences (<45% identity)',
-            BLOSUM80: 'Close protein sequences (>80% identity)',
-            PAM250: 'Distant evolutionary relationships',
-            DNA_SIMPLE: 'Simple match/mismatch for DNA'
-          },
-          parameters: {
-            gap_open: 'Penalty for opening a gap (default: -10)',
-            gap_extend: 'Penalty for extending a gap (default: -1)',
-            match_score: 'Score for DNA match (default: 2)',
-            mismatch_score: 'Score for DNA mismatch (default: -1)'
-          },
-          example_usage: {
-            protein_global: {
-              operation: 'global',
-              sequence1: 'MVLSPADKTN',
-              sequence2: 'MVHLTPEEKS',
-              sequence_type: 'protein',
-              scoring_matrix: 'BLOSUM62'
-            },
-            dna_local: {
-              operation: 'local',
-              sequence1: 'ACGTACGTACGT',
-              sequence2: 'TACGTACG',
-              sequence_type: 'dna'
-            }
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -854,11 +871,15 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          sequence1: analysis1,
-          sequence2: analysis2
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            sequence1: analysis1,
+            sequence2: analysis2,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -867,22 +888,34 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Two sequences required' }, null, 2),
-          isError: true
+          isError: true,
         };
       }
 
-      const result = needlemanWunsch(seq1, seq2, matrix, gapOpen, gapExtend, matchScore, mismatchScore);
+      const result = needlemanWunsch(
+        seq1,
+        seq2,
+        matrix,
+        gapOpen,
+        gapExtend,
+        matchScore,
+        mismatchScore
+      );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'score_only',
-          score: result.score,
-          identity: result.identity.toFixed(1) + '%',
-          gaps: result.gaps,
-          length1: seq1.length,
-          length2: seq2.length
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'score_only',
+            score: result.score,
+            identity: result.identity.toFixed(1) + '%',
+            gaps: result.gaps,
+            length1: seq1.length,
+            length2: seq2.length,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -890,35 +923,51 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
       if (!seq1 || !seq2) {
         return {
           toolCallId: id,
-          content: JSON.stringify({ error: 'Two sequences required for pairwise alignment' }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            { error: 'Two sequences required for pairwise alignment' },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
-      const result = needlemanWunsch(seq1, seq2, matrix, gapOpen, gapExtend, matchScore, mismatchScore);
+      const result = needlemanWunsch(
+        seq1,
+        seq2,
+        matrix,
+        gapOpen,
+        gapExtend,
+        matchScore,
+        mismatchScore
+      );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'global',
-          algorithm: 'Needleman-Wunsch',
-          scoring: {
-            matrix: matrixName,
-            gap_open: gapOpen,
-            gap_extend: gapExtend
+        content: JSON.stringify(
+          {
+            operation: 'global',
+            algorithm: 'Needleman-Wunsch',
+            scoring: {
+              matrix: matrixName,
+              gap_open: gapOpen,
+              gap_extend: gapExtend,
+            },
+            results: {
+              score: result.score,
+              identity: result.identity.toFixed(1) + '%',
+              gaps: result.gaps,
+              alignment_length: result.alignment1.length,
+            },
+            alignment: {
+              sequence1: result.alignment1,
+              sequence2: result.alignment2,
+            },
+            formatted: formatAlignment(result.alignment1, result.alignment2),
           },
-          results: {
-            score: result.score,
-            identity: result.identity.toFixed(1) + '%',
-            gaps: result.gaps,
-            alignment_length: result.alignment1.length
-          },
-          alignment: {
-            sequence1: result.alignment1,
-            sequence2: result.alignment2
-          },
-          formatted: formatAlignment(result.alignment1, result.alignment2)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -926,40 +975,56 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
       if (!seq1 || !seq2) {
         return {
           toolCallId: id,
-          content: JSON.stringify({ error: 'Two sequences required for pairwise alignment' }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            { error: 'Two sequences required for pairwise alignment' },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
-      const result = smithWaterman(seq1, seq2, matrix, gapOpen, gapExtend, matchScore, mismatchScore);
+      const result = smithWaterman(
+        seq1,
+        seq2,
+        matrix,
+        gapOpen,
+        gapExtend,
+        matchScore,
+        mismatchScore
+      );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'local',
-          algorithm: 'Smith-Waterman',
-          scoring: {
-            matrix: matrixName,
-            gap_open: gapOpen,
-            gap_extend: gapExtend
+        content: JSON.stringify(
+          {
+            operation: 'local',
+            algorithm: 'Smith-Waterman',
+            scoring: {
+              matrix: matrixName,
+              gap_open: gapOpen,
+              gap_extend: gapExtend,
+            },
+            results: {
+              score: result.score,
+              identity: result.identity.toFixed(1) + '%',
+              alignment_length: result.alignment1.length,
+            },
+            positions: {
+              seq1_start: result.start1,
+              seq1_end: result.end1,
+              seq2_start: result.start2,
+              seq2_end: result.end2,
+            },
+            alignment: {
+              sequence1: result.alignment1,
+              sequence2: result.alignment2,
+            },
+            formatted: formatAlignment(result.alignment1, result.alignment2),
           },
-          results: {
-            score: result.score,
-            identity: result.identity.toFixed(1) + '%',
-            alignment_length: result.alignment1.length
-          },
-          positions: {
-            seq1_start: result.start1,
-            seq1_end: result.end1,
-            seq2_start: result.start2,
-            seq2_end: result.end2
-          },
-          alignment: {
-            sequence1: result.alignment1,
-            sequence2: result.alignment2
-          },
-          formatted: formatAlignment(result.alignment1, result.alignment2)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -968,44 +1033,63 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Two sequences required' }, null, 2),
-          isError: true
+          isError: true,
         };
       }
 
-      const result = semiGlobalAlignment(seq1, seq2, matrix, gapOpen, gapExtend, matchScore, mismatchScore);
+      const result = semiGlobalAlignment(
+        seq1,
+        seq2,
+        matrix,
+        gapOpen,
+        gapExtend,
+        matchScore,
+        mismatchScore
+      );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'semiglobal',
-          algorithm: 'End-gap free alignment',
-          scoring: {
-            matrix: matrixName,
-            gap_open: gapOpen,
-            gap_extend: gapExtend
+        content: JSON.stringify(
+          {
+            operation: 'semiglobal',
+            algorithm: 'End-gap free alignment',
+            scoring: {
+              matrix: matrixName,
+              gap_open: gapOpen,
+              gap_extend: gapExtend,
+            },
+            results: {
+              score: result.score,
+              identity: result.identity.toFixed(1) + '%',
+              alignment_length: result.alignment1.length,
+            },
+            alignment: {
+              sequence1: result.alignment1,
+              sequence2: result.alignment2,
+            },
+            formatted: formatAlignment(result.alignment1, result.alignment2),
           },
-          results: {
-            score: result.score,
-            identity: result.identity.toFixed(1) + '%',
-            alignment_length: result.alignment1.length
-          },
-          alignment: {
-            sequence1: result.alignment1,
-            sequence2: result.alignment2
-          },
-          formatted: formatAlignment(result.alignment1, result.alignment2)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'multiple') {
-      const seqs = sequences.length > 0 ? sequences.map((s: string) => s.toUpperCase().replace(/\s/g, '')) : [seq1, seq2].filter(Boolean);
+      const seqs =
+        sequences.length > 0
+          ? sequences.map((s: string) => s.toUpperCase().replace(/\s/g, ''))
+          : [seq1, seq2].filter(Boolean);
 
       if (seqs.length < 2) {
         return {
           toolCallId: id,
-          content: JSON.stringify({ error: 'At least 2 sequences required for multiple alignment' }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            { error: 'At least 2 sequences required for multiple alignment' },
+            null,
+            2
+          ),
+          isError: true,
         };
       }
 
@@ -1013,27 +1097,34 @@ export async function executesequencealignment(toolCall: UnifiedToolCall): Promi
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'multiple',
-          algorithm: 'Progressive alignment',
-          num_sequences: seqs.length,
-          alignment_length: result.alignments[0]?.length || 0,
-          alignments: result.alignments,
-          consensus: result.consensus,
-          scores: result.scores
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'multiple',
+            algorithm: 'Progressive alignment',
+            num_sequences: seqs.length,
+            alignment_length: result.alignments[0]?.length || 0,
+            alignments: result.alignments,
+            consensus: result.consensus,
+            scores: result.scores,
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: 'Unknown operation',
-        available: ['global', 'local', 'semiglobal', 'multiple', 'score_only', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: 'Unknown operation',
+          available: ['global', 'local', 'semiglobal', 'multiple', 'score_only', 'analyze', 'info'],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

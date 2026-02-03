@@ -15,9 +15,9 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // Process state
 interface Process {
   id: string;
-  allocation: number[];  // Currently allocated resources
-  max: number[];        // Maximum resource need
-  need?: number[];      // Max - Allocation
+  allocation: number[]; // Currently allocated resources
+  max: number[]; // Maximum resource need
+  need?: number[]; // Max - Allocation
 }
 
 // System state for Banker's Algorithm
@@ -42,9 +42,9 @@ interface WaitForGraph {
 
 // Compute need matrix
 function computeNeed(processes: Process[]): Process[] {
-  return processes.map(p => ({
+  return processes.map((p) => ({
     ...p,
-    need: p.max.map((m, i) => m - p.allocation[i])
+    need: p.max.map((m, i) => m - p.allocation[i]),
   }));
 }
 
@@ -87,7 +87,7 @@ function bankersAlgorithm(state: SystemState): {
           step: step++,
           process: processes[i].id,
           available: [...newWork],
-          reason: `Process ${processes[i].id} completes, releases resources`
+          reason: `Process ${processes[i].id} completes, releases resources`,
         });
 
         for (let j = 0; j < m; j++) {
@@ -101,15 +101,15 @@ function bankersAlgorithm(state: SystemState): {
   }
 
   // Check if all processes finished
-  const isSafe = finish.every(f => f);
+  const isSafe = finish.every((f) => f);
 
   if (!isSafe) {
-    const blocked = processes.filter((p, i) => !finish[i]).map(p => p.id);
+    const blocked = processes.filter((_p, i) => !finish[i]).map((proc) => proc.id);
     trace.push({
       step,
       process: 'DEADLOCK',
       available: [...work],
-      reason: `Processes ${blocked.join(', ')} cannot proceed - potential deadlock`
+      reason: `Processes ${blocked.join(', ')} cannot proceed - potential deadlock`,
     });
   }
 
@@ -126,7 +126,7 @@ function requestResources(
   reason: string;
   newState?: SystemState;
 } {
-  const processIdx = state.processes.findIndex(p => p.id === processId);
+  const processIdx = state.processes.findIndex((p) => p.id === processId);
 
   if (processIdx === -1) {
     return { granted: false, reason: `Process ${processId} not found` };
@@ -140,7 +140,7 @@ function requestResources(
     if (request[i] > need[i]) {
       return {
         granted: false,
-        reason: `Request exceeds declared maximum need for resource ${state.resourceNames[i]}`
+        reason: `Request exceeds declared maximum need for resource ${state.resourceNames[i]}`,
       };
     }
   }
@@ -150,7 +150,7 @@ function requestResources(
     if (request[i] > state.available[i]) {
       return {
         granted: false,
-        reason: `Insufficient ${state.resourceNames[i]} available (requested: ${request[i]}, available: ${state.available[i]})`
+        reason: `Insufficient ${state.resourceNames[i]} available (requested: ${request[i]}, available: ${state.available[i]})`,
       };
     }
   }
@@ -161,7 +161,7 @@ function requestResources(
     if (idx === processIdx) {
       return {
         ...p,
-        allocation: p.allocation.map((a, i) => a + request[i])
+        allocation: p.allocation.map((a, i) => a + request[i]),
       };
     }
     return p;
@@ -170,7 +170,7 @@ function requestResources(
   const newState: SystemState = {
     available: newAvailable,
     processes: newProcesses,
-    resourceNames: state.resourceNames
+    resourceNames: state.resourceNames,
   };
 
   // Check if new state is safe
@@ -180,18 +180,22 @@ function requestResources(
     return {
       granted: true,
       reason: 'Request granted - system remains in safe state',
-      newState
+      newState,
     };
   } else {
     return {
       granted: false,
-      reason: 'Request denied - would result in unsafe state'
+      reason: 'Request denied - would result in unsafe state',
     };
   }
 }
 
 // Detect cycle in Resource Allocation Graph using DFS
-function detectCycleRAG(edges: RAGEdge[], processes: string[], resources: string[]): {
+function detectCycleRAG(
+  edges: RAGEdge[],
+  processes: string[],
+  resources: string[]
+): {
   hasCycle: boolean;
   cycle?: string[];
 } {
@@ -209,7 +213,9 @@ function detectCycleRAG(edges: RAGEdge[], processes: string[], resources: string
   }
 
   // DFS for cycle detection
-  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const WHITE = 0,
+    GRAY = 1,
+    BLACK = 2;
   const color = new Map<string, number>();
 
   for (const node of graph.keys()) {
@@ -249,7 +255,11 @@ function detectCycleRAG(edges: RAGEdge[], processes: string[], resources: string
 }
 
 // Build Wait-For Graph from RAG
-function buildWaitForGraph(edges: RAGEdge[], processes: string[], _resources: string[]): WaitForGraph {
+function buildWaitForGraph(
+  edges: RAGEdge[],
+  processes: string[],
+  _resources: string[]
+): WaitForGraph {
   const wfgEdges: { from: string; to: string }[] = [];
 
   // Find which process holds each resource
@@ -274,7 +284,7 @@ function buildWaitForGraph(edges: RAGEdge[], processes: string[], _resources: st
 
   return {
     processes,
-    edges: wfgEdges
+    edges: wfgEdges,
   };
 }
 
@@ -331,7 +341,7 @@ function detectDeadlockWFG(wfg: WaitForGraph): {
 
   return {
     hasDeadlock: deadlocked.size > 0,
-    deadlockedProcesses: [...deadlocked]
+    deadlockedProcesses: [...deadlocked],
   };
 }
 
@@ -345,50 +355,57 @@ function generateDemoState(): SystemState {
       { id: 'P1', allocation: [2, 0, 0], max: [3, 2, 2] },
       { id: 'P2', allocation: [3, 0, 2], max: [9, 0, 2] },
       { id: 'P3', allocation: [2, 1, 1], max: [2, 2, 2] },
-      { id: 'P4', allocation: [0, 0, 2], max: [4, 3, 3] }
-    ]
+      { id: 'P4', allocation: [0, 0, 2], max: [4, 3, 3] },
+    ],
   };
 }
 
 // Generate deadlock scenario
-function generateDeadlockScenario(): { edges: RAGEdge[]; processes: string[]; resources: string[] } {
+function generateDeadlockScenario(): {
+  edges: RAGEdge[];
+  processes: string[];
+  resources: string[];
+} {
   return {
     processes: ['P1', 'P2', 'P3'],
     resources: ['R1', 'R2', 'R3'],
     edges: [
-      { from: 'R1', to: 'P1', type: 'assignment' },  // P1 holds R1
-      { from: 'P1', to: 'R2', type: 'request' },     // P1 requests R2
-      { from: 'R2', to: 'P2', type: 'assignment' },  // P2 holds R2
-      { from: 'P2', to: 'R3', type: 'request' },     // P2 requests R3
-      { from: 'R3', to: 'P3', type: 'assignment' },  // P3 holds R3
-      { from: 'P3', to: 'R1', type: 'request' }      // P3 requests R1 -> CYCLE
-    ]
+      { from: 'R1', to: 'P1', type: 'assignment' }, // P1 holds R1
+      { from: 'P1', to: 'R2', type: 'request' }, // P1 requests R2
+      { from: 'R2', to: 'P2', type: 'assignment' }, // P2 holds R2
+      { from: 'P2', to: 'R3', type: 'request' }, // P2 requests R3
+      { from: 'R3', to: 'P3', type: 'assignment' }, // P3 holds R3
+      { from: 'P3', to: 'R1', type: 'request' }, // P3 requests R1 -> CYCLE
+    ],
   };
 }
 
 export const deadlockdetectorTool: UnifiedTool = {
   name: 'deadlock_detector',
-  description: "Deadlock detection and prevention - Banker's Algorithm, RAG analysis, Wait-For Graph",
+  description:
+    "Deadlock detection and prevention - Banker's Algorithm, RAG analysis, Wait-For Graph",
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['bankers', 'request', 'rag_cycle', 'wait_for', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       state: { type: 'object', description: 'System state {available, processes, resourceNames}' },
       processId: { type: 'string', description: 'Process ID for resource request' },
       request: { type: 'array', items: { type: 'number' }, description: 'Resource request vector' },
       edges: { type: 'array', description: 'RAG edges array' },
       processes: { type: 'array', items: { type: 'string' }, description: 'Process list' },
-      resources: { type: 'array', items: { type: 'string' }, description: 'Resource list' }
+      resources: { type: 'array', items: { type: 'string' }, description: 'Resource list' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executedeadlockdetector(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executedeadlockdetector(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -398,58 +415,66 @@ export async function executedeadlockdetector(toolCall: UnifiedToolCall): Promis
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'deadlock-detector',
-          description: 'Deadlock detection and avoidance algorithms',
-          algorithms: {
-            bankers: {
-              name: "Banker's Algorithm",
-              description: 'Deadlock avoidance by finding safe sequence',
-              complexity: 'O(n^2 * m) where n=processes, m=resources'
+        content: JSON.stringify(
+          {
+            tool: 'deadlock-detector',
+            description: 'Deadlock detection and avoidance algorithms',
+            algorithms: {
+              bankers: {
+                name: "Banker's Algorithm",
+                description: 'Deadlock avoidance by finding safe sequence',
+                complexity: 'O(n^2 * m) where n=processes, m=resources',
+              },
+              rag: {
+                name: 'Resource Allocation Graph',
+                description: 'Graph-based deadlock detection via cycle finding',
+                complexity: 'O(n + e) where e=edges',
+              },
+              waitFor: {
+                name: 'Wait-For Graph',
+                description: 'Simplified RAG for single-instance resources',
+              },
             },
-            rag: {
-              name: 'Resource Allocation Graph',
-              description: 'Graph-based deadlock detection via cycle finding',
-              complexity: 'O(n + e) where e=edges'
+            concepts: {
+              safeState: 'System state where at least one safe sequence exists',
+              safeSequence: 'Order in which all processes can complete',
+              deadlock: 'Circular wait condition among processes',
             },
-            waitFor: {
-              name: 'Wait-For Graph',
-              description: 'Simplified RAG for single-instance resources'
-            }
+            operations: ['bankers', 'request', 'rag_cycle', 'wait_for', 'demo', 'info', 'examples'],
           },
-          concepts: {
-            safeState: 'System state where at least one safe sequence exists',
-            safeSequence: 'Order in which all processes can complete',
-            deadlock: 'Circular wait condition among processes'
-          },
-          operations: ['bankers', 'request', 'rag_cycle', 'wait_for', 'demo', 'info', 'examples']
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'examples') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          examples: [
-            {
-              description: "Run Banker's Algorithm on demo state",
-              call: { operation: 'demo' }
-            },
-            {
-              description: 'Check resource request safety',
-              call: { operation: 'request', processId: 'P1', request: [1, 0, 2] }
-            },
-            {
-              description: 'Detect cycle in RAG',
-              call: { operation: 'rag_cycle' }
-            },
-            {
-              description: 'Build and analyze Wait-For Graph',
-              call: { operation: 'wait_for' }
-            }
-          ]
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            examples: [
+              {
+                description: "Run Banker's Algorithm on demo state",
+                call: { operation: 'demo' },
+              },
+              {
+                description: 'Check resource request safety',
+                call: { operation: 'request', processId: 'P1', request: [1, 0, 2] },
+              },
+              {
+                description: 'Detect cycle in RAG',
+                call: { operation: 'rag_cycle' },
+              },
+              {
+                description: 'Build and analyze Wait-For Graph',
+                call: { operation: 'wait_for' },
+              },
+            ],
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -463,27 +488,31 @@ export async function executedeadlockdetector(toolCall: UnifiedToolCall): Promis
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          algorithm: "Banker's Algorithm",
-          systemState: {
-            resources: state.resourceNames,
-            totalAvailable: state.available,
-            processes: processesWithNeed.map(p => ({
-              id: p.id,
-              allocation: p.allocation,
-              maximum: p.max,
-              need: p.need
-            }))
+        content: JSON.stringify(
+          {
+            algorithm: "Banker's Algorithm",
+            systemState: {
+              resources: state.resourceNames,
+              totalAvailable: state.available,
+              processes: processesWithNeed.map((p) => ({
+                id: p.id,
+                allocation: p.allocation,
+                maximum: p.max,
+                need: p.need,
+              })),
+            },
+            analysis: {
+              isSafe: result.isSafe,
+              safeSequence: result.isSafe ? result.safeSequence : null,
+              message: result.isSafe
+                ? `Safe state - sequence: ${result.safeSequence.join(' -> ')}`
+                : 'Unsafe state - no safe sequence exists',
+            },
+            executionTrace: result.trace,
           },
-          analysis: {
-            isSafe: result.isSafe,
-            safeSequence: result.isSafe ? result.safeSequence : null,
-            message: result.isSafe
-              ? `Safe state - sequence: ${result.safeSequence.join(' -> ')}`
-              : 'Unsafe state - no safe sequence exists'
-          },
-          executionTrace: result.trace
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -496,93 +525,111 @@ export async function executedeadlockdetector(toolCall: UnifiedToolCall): Promis
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'resource_request',
-          process: processId,
-          request,
-          resourceNames: state.resourceNames,
-          result: {
-            granted: result.granted,
-            reason: result.reason
+        content: JSON.stringify(
+          {
+            operation: 'resource_request',
+            process: processId,
+            request,
+            resourceNames: state.resourceNames,
+            result: {
+              granted: result.granted,
+              reason: result.reason,
+            },
+            newAvailable: result.newState?.available,
           },
-          newAvailable: result.newState?.available
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'rag_cycle') {
-      const scenario = args.edges ? {
-        edges: args.edges,
-        processes: args.processes || [],
-        resources: args.resources || []
-      } : generateDeadlockScenario();
+      const scenario = args.edges
+        ? {
+            edges: args.edges,
+            processes: args.processes || [],
+            resources: args.resources || [],
+          }
+        : generateDeadlockScenario();
 
       const cycleResult = detectCycleRAG(scenario.edges, scenario.processes, scenario.resources);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          algorithm: 'Resource Allocation Graph Cycle Detection',
-          graph: {
-            processes: scenario.processes,
-            resources: scenario.resources,
-            edges: scenario.edges.map(e => ({
-              ...e,
-              description: e.type === 'assignment'
-                ? `${e.from} is held by ${e.to}`
-                : `${e.from} requests ${e.to}`
-            }))
+        content: JSON.stringify(
+          {
+            algorithm: 'Resource Allocation Graph Cycle Detection',
+            graph: {
+              processes: scenario.processes,
+              resources: scenario.resources,
+              edges: scenario.edges.map((e: RAGEdge) => ({
+                ...e,
+                description:
+                  e.type === 'assignment'
+                    ? `${e.from} is held by ${e.to}`
+                    : `${e.from} requests ${e.to}`,
+              })),
+            },
+            analysis: {
+              hasCycle: cycleResult.hasCycle,
+              cycle: cycleResult.cycle,
+              conclusion: cycleResult.hasCycle
+                ? `DEADLOCK DETECTED: ${cycleResult.cycle?.join(' -> ')}`
+                : 'No deadlock - no cycle in RAG',
+            },
           },
-          analysis: {
-            hasCycle: cycleResult.hasCycle,
-            cycle: cycleResult.cycle,
-            conclusion: cycleResult.hasCycle
-              ? `DEADLOCK DETECTED: ${cycleResult.cycle?.join(' -> ')}`
-              : 'No deadlock - no cycle in RAG'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'wait_for') {
-      const scenario = args.edges ? {
-        edges: args.edges,
-        processes: args.processes || [],
-        resources: args.resources || []
-      } : generateDeadlockScenario();
+      const scenario = args.edges
+        ? {
+            edges: args.edges,
+            processes: args.processes || [],
+            resources: args.resources || [],
+          }
+        : generateDeadlockScenario();
 
       const wfg = buildWaitForGraph(scenario.edges, scenario.processes, scenario.resources);
       const deadlockResult = detectDeadlockWFG(wfg);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          algorithm: 'Wait-For Graph Analysis',
-          waitForGraph: {
-            processes: wfg.processes,
-            edges: wfg.edges.map(e => `${e.from} waits for ${e.to}`)
+        content: JSON.stringify(
+          {
+            algorithm: 'Wait-For Graph Analysis',
+            waitForGraph: {
+              processes: wfg.processes,
+              edges: wfg.edges.map((e) => `${e.from} waits for ${e.to}`),
+            },
+            analysis: {
+              hasDeadlock: deadlockResult.hasDeadlock,
+              deadlockedProcesses: deadlockResult.deadlockedProcesses,
+              conclusion: deadlockResult.hasDeadlock
+                ? `DEADLOCK: Processes ${deadlockResult.deadlockedProcesses.join(', ')} are in circular wait`
+                : 'No deadlock detected',
+            },
           },
-          analysis: {
-            hasDeadlock: deadlockResult.hasDeadlock,
-            deadlockedProcesses: deadlockResult.deadlockedProcesses,
-            conclusion: deadlockResult.hasDeadlock
-              ? `DEADLOCK: Processes ${deadlockResult.deadlockedProcesses.join(', ')} are in circular wait`
-              : 'No deadlock detected'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
       content: JSON.stringify({ error: `Unknown operation: ${operation}` }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function isdeadlockdetectorAvailable(): boolean { return true; }
+export function isdeadlockdetectorAvailable(): boolean {
+  return true;
+}

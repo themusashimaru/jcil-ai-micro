@@ -14,42 +14,50 @@ export const contourdetectionTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['detect', 'trace', 'analyze', 'moments', 'hierarchy', 'approximate', 'generate', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'detect',
+          'trace',
+          'analyze',
+          'moments',
+          'hierarchy',
+          'approximate',
+          'generate',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       image: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Binary image as 2D array (0 = background, >0 = foreground)'
+        items: { type: 'array' },
+        description: 'Binary image as 2D array of numbers (0 = background, >0 = foreground)',
       },
       method: {
         type: 'string',
         enum: ['moore', 'radial', 'square', 'pavlidis'],
-        description: 'Contour tracing method'
+        description: 'Contour tracing method',
       },
       mode: {
         type: 'string',
         enum: ['external', 'all', 'tree'],
-        description: 'Contour retrieval mode'
+        description: 'Contour retrieval mode',
       },
       approximation: {
         type: 'string',
         enum: ['none', 'simple', 'douglas_peucker'],
-        description: 'Contour approximation method'
+        description: 'Contour approximation method',
       },
       epsilon: { type: 'number', description: 'Approximation accuracy for Douglas-Peucker' },
       shape: {
         type: 'string',
         enum: ['circle', 'square', 'triangle', 'star', 'cross', 'ring', 'multiple'],
-        description: 'Shape to generate for testing'
+        description: 'Shape to generate for testing',
       },
-      size: { type: 'integer', description: 'Image size for generation' }
+      size: { type: 'integer', description: 'Image size for generation' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Point type
@@ -70,16 +78,29 @@ interface Contour {
   boundingBox: { x: number; y: number; width: number; height: number };
 }
 
+// Shape analysis result
+interface ShapeAnalysis {
+  area: string;
+  perimeter: string;
+  bounding_box: { x: number; y: number; width: number; height: number };
+  circularity: string;
+  aspect_ratio: string;
+  extent: string;
+  equivalent_diameter: string;
+  compactness: string;
+  shape_estimate: string;
+}
+
 // Moore neighborhood directions (8-connected, clockwise from east)
 const MOORE_DIRECTIONS: Point[] = [
-  { x: 1, y: 0 },   // E
-  { x: 1, y: 1 },   // SE
-  { x: 0, y: 1 },   // S
-  { x: -1, y: 1 },  // SW
-  { x: -1, y: 0 },  // W
+  { x: 1, y: 0 }, // E
+  { x: 1, y: 1 }, // SE
+  { x: 0, y: 1 }, // S
+  { x: -1, y: 1 }, // SW
+  { x: -1, y: 0 }, // W
   { x: -1, y: -1 }, // NW
-  { x: 0, y: -1 },  // N
-  { x: 1, y: -1 }   // NE
+  { x: 0, y: -1 }, // N
+  { x: 1, y: -1 }, // NE
 ];
 
 // Generate test images
@@ -134,7 +155,7 @@ function generateTestImage(shape: string, size: number): number[][] {
           const dy = y - center;
           const angle = Math.atan2(dy, dx);
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const starAngle = ((angle * 5 / Math.PI + 1) % 2 - 1);
+          const starAngle = (((angle * 5) / Math.PI + 1) % 2) - 1;
           const starR = innerR + (outerR - innerR) * (1 - Math.abs(starAngle));
           if (dist <= starR) {
             image[y][x] = 255;
@@ -186,15 +207,15 @@ function generateTestImage(shape: string, size: number): number[][] {
       }
       // Square in top-right
       for (let y = Math.floor(size / 4) - r; y <= Math.floor(size / 4) + r; y++) {
-        for (let x = Math.floor(3 * size / 4) - r; x <= Math.floor(3 * size / 4) + r; x++) {
+        for (let x = Math.floor((3 * size) / 4) - r; x <= Math.floor((3 * size) / 4) + r; x++) {
           if (y >= 0 && y < size && x >= 0 && x < size) {
             image[y][x] = 255;
           }
         }
       }
       // Triangle in bottom
-      for (let y = Math.floor(3 * size / 4) - r; y <= Math.floor(3 * size / 4) + r; y++) {
-        const rowFromTop = y - (Math.floor(3 * size / 4) - r);
+      for (let y = Math.floor((3 * size) / 4) - r; y <= Math.floor((3 * size) / 4) + r; y++) {
+        const rowFromTop = y - (Math.floor((3 * size) / 4) - r);
         const halfWidth = Math.floor(rowFromTop / 2);
         for (let x = Math.floor(size / 2) - halfWidth; x <= Math.floor(size / 2) + halfWidth; x++) {
           if (y >= 0 && y < size && x >= 0 && x < size) {
@@ -221,16 +242,19 @@ function generateTestImage(shape: string, size: number): number[][] {
 }
 
 // Moore-Neighbor boundary tracing
-function mooreTrace(image: number[][], startX: number, startY: number, visited: Set<string>): Point[] {
+function mooreTrace(
+  image: number[][],
+  startX: number,
+  startY: number,
+  visited: Set<string>
+): Point[] {
   const height = image.length;
   const width = image[0].length;
   const contour: Point[] = [];
 
-  const isValid = (x: number, y: number) =>
-    x >= 0 && x < width && y >= 0 && y < height;
+  const isValid = (x: number, y: number) => x >= 0 && x < width && y >= 0 && y < height;
 
-  const isForeground = (x: number, y: number) =>
-    isValid(x, y) && image[y][x] > 0;
+  const isForeground = (x: number, y: number) => isValid(x, y) && image[y][x] > 0;
 
   // Find starting direction (enter from left)
   let dirIndex = 4; // Start looking from West
@@ -269,14 +293,18 @@ function mooreTrace(image: number[][], startX: number, startY: number, visited: 
       break;
     }
     startingPoint = false;
-
   } while (contour.length < width * height); // Safety limit
 
   return contour;
 }
 
 // Square tracing algorithm (simpler 4-connected)
-function squareTrace(image: number[][], startX: number, startY: number, visited: Set<string>): Point[] {
+function squareTrace(
+  image: number[][],
+  startX: number,
+  startY: number,
+  visited: Set<string>
+): Point[] {
   const height = image.length;
   const width = image[0].length;
   const contour: Point[] = [];
@@ -286,21 +314,16 @@ function squareTrace(image: number[][], startX: number, startY: number, visited:
     { x: 1, y: 0 },
     { x: 0, y: 1 },
     { x: -1, y: 0 },
-    { x: 0, y: -1 }
+    { x: 0, y: -1 },
   ];
 
-  const isValid = (x: number, y: number) =>
-    x >= 0 && x < width && y >= 0 && y < height;
+  const isValid = (x: number, y: number) => x >= 0 && x < width && y >= 0 && y < height;
 
-  const isForeground = (x: number, y: number) =>
-    isValid(x, y) && image[y][x] > 0;
+  const isForeground = (x: number, y: number) => isValid(x, y) && image[y][x] > 0;
 
   let x = startX;
   let y = startY;
   let dir = 0; // Start facing East
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const startKey = `${x},${y}`;
   let firstMove = true;
 
   while (contour.length < width * height) {
@@ -380,7 +403,10 @@ function findContours(image: number[][], method: string): Contour[] {
 // Create contour object with properties
 function createContour(id: number, points: Point[], isHole: boolean): Contour {
   // Calculate bounding box
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const p of points) {
     minX = Math.min(minX, p.x);
     minY = Math.min(minY, p.y);
@@ -418,8 +444,8 @@ function createContour(id: number, points: Point[], isHole: boolean): Contour {
       x: minX,
       y: minY,
       width: maxX - minX + 1,
-      height: maxY - minY + 1
-    }
+      height: maxY - minY + 1,
+    },
   };
 }
 
@@ -459,9 +485,7 @@ function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): 
   const mag = Math.sqrt(dx * dx + dy * dy);
 
   if (mag === 0) {
-    return Math.sqrt(
-      (point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2
-    );
+    return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
   }
 
   const u = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / (mag * mag);
@@ -476,7 +500,16 @@ function calculateMoments(contour: Contour): object {
   const points = contour.points;
 
   // Raw moments
-  let m00 = 0, m10 = 0, m01 = 0, m20 = 0, m11 = 0, m02 = 0, m30 = 0, m21 = 0, m12 = 0, m03 = 0;
+  let m00 = 0,
+    m10 = 0,
+    m01 = 0,
+    m20 = 0,
+    m11 = 0,
+    m02 = 0,
+    m30 = 0,
+    m21 = 0,
+    m12 = 0,
+    m03 = 0;
 
   // Using contour points (area-based moments would require filled region)
   for (const p of points) {
@@ -530,24 +563,24 @@ function calculateMoments(contour: Contour): object {
       mu00: mu00.toFixed(2),
       mu20: mu20.toFixed(2),
       mu11: mu11.toFixed(2),
-      mu02: mu02.toFixed(2)
+      mu02: mu02.toFixed(2),
     },
     normalized: {
       n20: n20.toFixed(6),
       n11: n11.toFixed(6),
-      n02: n02.toFixed(6)
+      n02: n02.toFixed(6),
     },
     hu_moments: {
       h1: hu1.toFixed(6),
       h2: hu2.toFixed(6),
       h3: hu3.toFixed(6),
-      h4: hu4.toFixed(6)
-    }
+      h4: hu4.toFixed(6),
+    },
   };
 }
 
 // Calculate shape descriptors
-function analyzeShape(contour: Contour): object {
+function analyzeShape(contour: Contour): ShapeAnalysis {
   const area = contour.area;
   const perimeter = contour.perimeter;
   const bbox = contour.boundingBox;
@@ -563,10 +596,10 @@ function analyzeShape(contour: Contour): object {
 
   // Solidity would require convex hull (simplified here)
   // Equivalent diameter
-  const equivalentDiameter = Math.sqrt(4 * area / Math.PI);
+  const equivalentDiameter = Math.sqrt((4 * area) / Math.PI);
 
   // Compactness
-  const compactness = perimeter * perimeter / area;
+  const compactness = (perimeter * perimeter) / area;
 
   return {
     area: area.toFixed(2),
@@ -577,7 +610,7 @@ function analyzeShape(contour: Contour): object {
     extent: extent.toFixed(4),
     equivalent_diameter: equivalentDiameter.toFixed(2),
     compactness: compactness.toFixed(4),
-    shape_estimate: estimateShape(circularity, aspectRatio, extent)
+    shape_estimate: estimateShape(circularity, aspectRatio, extent),
   };
 }
 
@@ -591,7 +624,9 @@ function estimateShape(circularity: number, aspectRatio: number, extent: number)
   return 'irregular';
 }
 
-export async function executecontourdetection(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executecontourdetection(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -612,20 +647,24 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'detect',
-            method,
-            image_size: `${image[0].length}x${image.length}`,
-            num_contours: contours.length,
-            contours: contours.map(c => ({
-              id: c.id,
-              num_points: c.points.length,
-              area: c.area.toFixed(2),
-              perimeter: c.perimeter.toFixed(2),
-              bounding_box: c.boundingBox,
-              first_points: c.points.slice(0, 10).map(p => `(${p.x},${p.y})`)
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'detect',
+              method,
+              image_size: `${image[0].length}x${image.length}`,
+              num_contours: contours.length,
+              contours: contours.map((c) => ({
+                id: c.id,
+                num_points: c.points.length,
+                area: c.area.toFixed(2),
+                perimeter: c.perimeter.toFixed(2),
+                bounding_box: c.boundingBox,
+                first_points: c.points.slice(0, 10).map((p) => `(${p.x},${p.y})`),
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -644,30 +683,35 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
         let processedContours = contours;
         if (args.approximation && args.approximation !== 'none') {
           const epsilon = args.epsilon || 1.0;
-          processedContours = contours.map(c => ({
+          processedContours = contours.map((c) => ({
             ...c,
-            points: args.approximation === 'douglas_peucker'
-              ? douglasPeucker(c.points, epsilon)
-              : c.points.filter((_, i) => i % 2 === 0) // Simple: every other point
+            points:
+              args.approximation === 'douglas_peucker'
+                ? douglasPeucker(c.points, epsilon)
+                : c.points.filter((_, i) => i % 2 === 0), // Simple: every other point
           }));
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'trace',
-            method,
-            approximation: args.approximation || 'none',
-            epsilon: args.epsilon,
-            num_contours: processedContours.length,
-            contours: processedContours.map(c => ({
-              id: c.id,
-              original_points: contours[c.id].points.length,
-              simplified_points: c.points.length,
-              compression_ratio: (1 - c.points.length / contours[c.id].points.length).toFixed(2),
-              points: c.points.map(p => [p.x, p.y])
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'trace',
+              method,
+              approximation: args.approximation || 'none',
+              epsilon: args.epsilon,
+              num_contours: processedContours.length,
+              contours: processedContours.map((c) => ({
+                id: c.id,
+                original_points: contours[c.id].points.length,
+                simplified_points: c.points.length,
+                compression_ratio: (1 - c.points.length / contours[c.id].points.length).toFixed(2),
+                points: c.points.map((p) => [p.x, p.y]),
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -683,14 +727,18 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            num_contours: contours.length,
-            analysis: contours.map(c => ({
-              contour_id: c.id,
-              ...analyzeShape(c)
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              num_contours: contours.length,
+              analysis: contours.map((c) => ({
+                contour_id: c.id,
+                ...analyzeShape(c),
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -706,17 +754,22 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'moments',
-            description: 'Image moments and Hu invariants for shape matching',
-            num_contours: contours.length,
-            moments: contours.map(c => ({
-              contour_id: c.id,
-              num_points: c.points.length,
-              ...calculateMoments(c)
-            })),
-            usage: 'Hu moments are invariant to translation, scale, and rotation - useful for shape matching'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'moments',
+              description: 'Image moments and Hu invariants for shape matching',
+              num_contours: contours.length,
+              moments: contours.map((c) => ({
+                contour_id: c.id,
+                num_points: c.points.length,
+                ...calculateMoments(c),
+              })),
+              usage:
+                'Hu moments are invariant to translation, scale, and rotation - useful for shape matching',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -731,26 +784,30 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
         const contours = findContours(image, 'moore');
         const epsilon = args.epsilon || 2.0;
 
-        const results = contours.map(c => {
+        const results = contours.map((c) => {
           const simplified = douglasPeucker(c.points, epsilon);
           return {
             contour_id: c.id,
             original_points: c.points.length,
             simplified_points: simplified.length,
             reduction: ((1 - simplified.length / c.points.length) * 100).toFixed(1) + '%',
-            original_sample: c.points.slice(0, 5).map(p => [p.x, p.y]),
-            simplified: simplified.map(p => [p.x, p.y])
+            original_sample: c.points.slice(0, 5).map((p) => [p.x, p.y]),
+            simplified: simplified.map((p) => [p.x, p.y]),
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'approximate',
-            method: 'Douglas-Peucker',
-            epsilon,
-            results
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'approximate',
+              method: 'Douglas-Peucker',
+              epsilon,
+              results,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -760,20 +817,22 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
         const image = generateTestImage(shape, size);
 
         // Create ASCII visualization
-        const ascii = image.map(row =>
-          row.map(v => v > 0 ? '█' : '·').join('')
-        );
+        const ascii = image.map((row) => row.map((v) => (v > 0 ? '█' : '·')).join(''));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate',
-            shape,
-            size: `${size}x${size}`,
-            visualization: ascii,
-            raw_image: image,
-            note: 'Use this image with other operations (detect, analyze, etc.)'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'generate',
+              shape,
+              size: `${size}x${size}`,
+              visualization: ascii,
+              raw_image: image,
+              note: 'Use this image with other operations (detect, analyze, etc.)',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -782,7 +841,7 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
         const shapes = ['circle', 'square', 'triangle', 'star'];
         const size = 40;
 
-        const results = shapes.map(shape => {
+        const results = shapes.map((shape) => {
           const image = generateTestImage(shape, size);
           const contours = findContours(image, 'moore');
           const contour = contours[0];
@@ -801,126 +860,138 @@ export async function executecontourdetection(toolCall: UnifiedToolCall): Promis
             extent: analysis.extent,
             detected_as: analysis.shape_estimate,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            hu1: (moments as any).hu_moments.h1
+            hu1: (moments as any).hu_moments.h1,
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            description: 'Shape analysis comparison',
-            image_size: `${size}x${size}`,
-            shapes: results,
-            interpretation: {
-              circularity: 'Closer to 1.0 = more circular',
-              extent: 'Ratio of area to bounding box',
-              hu1: 'First Hu moment - shape descriptor'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              description: 'Shape analysis comparison',
+              image_size: `${size}x${size}`,
+              shapes: results,
+              interpretation: {
+                circularity: 'Closer to 1.0 = more circular',
+                extent: 'Ratio of area to bounding box',
+                hu1: 'First Hu moment - shape descriptor',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'contour_detection',
-            description: 'Image contour detection and shape analysis',
-            algorithms: {
-              moore: {
-                name: 'Moore-Neighbor Tracing',
-                connectivity: '8-connected',
-                description: 'Follows boundary using Moore neighborhood'
+          content: JSON.stringify(
+            {
+              tool: 'contour_detection',
+              description: 'Image contour detection and shape analysis',
+              algorithms: {
+                moore: {
+                  name: 'Moore-Neighbor Tracing',
+                  connectivity: '8-connected',
+                  description: 'Follows boundary using Moore neighborhood',
+                },
+                square: {
+                  name: 'Square Tracing',
+                  connectivity: '4-connected',
+                  description: 'Simpler algorithm for 4-connected boundaries',
+                },
+                douglas_peucker: {
+                  name: 'Douglas-Peucker Approximation',
+                  description: 'Reduces points while preserving shape',
+                },
               },
-              square: {
-                name: 'Square Tracing',
-                connectivity: '4-connected',
-                description: 'Simpler algorithm for 4-connected boundaries'
+              shape_descriptors: {
+                circularity: '4πA/P² - 1.0 for circle',
+                aspect_ratio: 'Width/Height of bounding box',
+                extent: 'Area / Bounding box area',
+                compactness: 'P²/A',
               },
-              douglas_peucker: {
-                name: 'Douglas-Peucker Approximation',
-                description: 'Reduces points while preserving shape'
-              }
+              moments: {
+                raw: 'Basic spatial moments',
+                central: 'Translation invariant',
+                normalized: 'Scale invariant',
+                hu: 'Rotation, scale, translation invariant',
+              },
+              operations: {
+                detect: 'Find all contours in image',
+                trace: 'Trace contours with optional approximation',
+                analyze: 'Calculate shape descriptors',
+                moments: 'Calculate image moments and Hu invariants',
+                approximate: 'Simplify contours using Douglas-Peucker',
+                generate: 'Generate test shapes',
+              },
             },
-            shape_descriptors: {
-              circularity: '4πA/P² - 1.0 for circle',
-              aspect_ratio: 'Width/Height of bounding box',
-              extent: 'Area / Bounding box area',
-              compactness: 'P²/A'
-            },
-            moments: {
-              raw: 'Basic spatial moments',
-              central: 'Translation invariant',
-              normalized: 'Scale invariant',
-              hu: 'Rotation, scale, translation invariant'
-            },
-            operations: {
-              detect: 'Find all contours in image',
-              trace: 'Trace contours with optional approximation',
-              analyze: 'Calculate shape descriptors',
-              moments: 'Calculate image moments and Hu invariants',
-              approximate: 'Simplify contours using Douglas-Peucker',
-              generate: 'Generate test shapes'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                description: 'Detect contours in generated circle',
-                call: {
-                  operation: 'detect',
-                  shape: 'circle',
-                  size: 50
-                }
-              },
-              {
-                description: 'Analyze shape properties',
-                call: {
-                  operation: 'analyze',
-                  shape: 'star',
-                  size: 60
-                }
-              },
-              {
-                description: 'Calculate Hu moments',
-                call: {
-                  operation: 'moments',
-                  shape: 'triangle',
-                  size: 50
-                }
-              },
-              {
-                description: 'Approximate contour',
-                call: {
-                  operation: 'approximate',
-                  shape: 'circle',
-                  size: 50,
-                  epsilon: 3.0
-                }
-              },
-              {
-                description: 'Generate and visualize shape',
-                call: {
-                  operation: 'generate',
-                  shape: 'ring',
-                  size: 30
-                }
-              },
-              {
-                description: 'Compare multiple shapes',
-                call: {
-                  operation: 'demo'
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  description: 'Detect contours in generated circle',
+                  call: {
+                    operation: 'detect',
+                    shape: 'circle',
+                    size: 50,
+                  },
+                },
+                {
+                  description: 'Analyze shape properties',
+                  call: {
+                    operation: 'analyze',
+                    shape: 'star',
+                    size: 60,
+                  },
+                },
+                {
+                  description: 'Calculate Hu moments',
+                  call: {
+                    operation: 'moments',
+                    shape: 'triangle',
+                    size: 50,
+                  },
+                },
+                {
+                  description: 'Approximate contour',
+                  call: {
+                    operation: 'approximate',
+                    shape: 'circle',
+                    size: 50,
+                    epsilon: 3.0,
+                  },
+                },
+                {
+                  description: 'Generate and visualize shape',
+                  call: {
+                    operation: 'generate',
+                    shape: 'ring',
+                    size: 30,
+                  },
+                },
+                {
+                  description: 'Compare multiple shapes',
+                  call: {
+                    operation: 'demo',
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 

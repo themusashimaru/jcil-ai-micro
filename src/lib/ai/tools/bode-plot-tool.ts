@@ -15,45 +15,46 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const bodeplotTool: UnifiedTool = {
   name: 'bode_plot',
-  description: 'Bode plot frequency response analysis with gain/phase margins and stability analysis',
+  description:
+    'Bode plot frequency response analysis with gain/phase margins and stability analysis',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['plot', 'margins', 'stability', 'nyquist', 'transfer_function', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       numerator: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Transfer function numerator coefficients (highest power first)'
+        description: 'Transfer function numerator coefficients (highest power first)',
       },
       denominator: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Transfer function denominator coefficients (highest power first)'
+        description: 'Transfer function denominator coefficients (highest power first)',
       },
       freq_min: {
         type: 'number',
-        description: 'Minimum frequency (rad/s)'
+        description: 'Minimum frequency (rad/s)',
       },
       freq_max: {
         type: 'number',
-        description: 'Maximum frequency (rad/s)'
+        description: 'Maximum frequency (rad/s)',
       },
       num_points: {
         type: 'number',
-        description: 'Number of frequency points'
+        description: 'Number of frequency points',
       },
       preset: {
         type: 'string',
         enum: ['first_order', 'second_order', 'pid', 'lead_lag', 'integrator', 'differentiator'],
-        description: 'Preset system type'
-      }
+        description: 'Preset system type',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Complex number operations
@@ -69,7 +70,7 @@ function complexAdd(a: Complex, b: Complex): Complex {
 function complexMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -78,7 +79,7 @@ function complexDiv(a: Complex, b: Complex): Complex {
   if (denom === 0) return { re: Infinity, im: 0 };
   return {
     re: (a.re * b.re + a.im * b.im) / denom,
-    im: (a.im * b.re - a.re * b.im) / denom
+    im: (a.im * b.re - a.re * b.im) / denom,
   };
 }
 
@@ -90,8 +91,7 @@ function complexPhase(c: Complex): number {
   return Math.atan2(c.im, c.re);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function complexFromPolar(mag: number, phase: number): Complex {
+export function complexFromPolar(mag: number, phase: number): Complex {
   return { re: mag * Math.cos(phase), im: mag * Math.sin(phase) };
 }
 
@@ -112,11 +112,7 @@ function evalPoly(coeffs: number[], s: Complex): Complex {
 }
 
 // Transfer function H(s) = num(s) / den(s)
-function transferFunction(
-  numerator: number[],
-  denominator: number[],
-  omega: number
-): Complex {
+function transferFunction(numerator: number[], denominator: number[], omega: number): Complex {
   const s: Complex = { re: 0, im: omega }; // s = jω
   const num = evalPoly(numerator, s);
   const den = evalPoly(denominator, s);
@@ -150,7 +146,7 @@ function generateBodeData(
 
     const H = transferFunction(numerator, denominator, omega);
     const mag = complexMag(H);
-    let ph = complexPhase(H) * 180 / Math.PI;
+    let ph = (complexPhase(H) * 180) / Math.PI;
 
     // Unwrap phase
     while (ph - prevPhase > 180) {
@@ -194,11 +190,14 @@ function calculateMargins(
 
   // Find gain crossover (where magnitude = 1 or 0 dB)
   for (let i = 1; i < numPoints; i++) {
-    if ((data.magnitudeDB[i - 1] >= 0 && data.magnitudeDB[i] < 0) ||
-        (data.magnitudeDB[i - 1] <= 0 && data.magnitudeDB[i] > 0)) {
+    if (
+      (data.magnitudeDB[i - 1] >= 0 && data.magnitudeDB[i] < 0) ||
+      (data.magnitudeDB[i - 1] <= 0 && data.magnitudeDB[i] > 0)
+    ) {
       // Linear interpolation
       const ratio = -data.magnitudeDB[i - 1] / (data.magnitudeDB[i] - data.magnitudeDB[i - 1]);
-      gainCrossoverFreq = data.frequency[i - 1] + ratio * (data.frequency[i] - data.frequency[i - 1]);
+      gainCrossoverFreq =
+        data.frequency[i - 1] + ratio * (data.frequency[i] - data.frequency[i - 1]);
       phaseAtGainCrossover = data.phase[i - 1] + ratio * (data.phase[i] - data.phase[i - 1]);
       break;
     }
@@ -206,21 +205,27 @@ function calculateMargins(
 
   // Find phase crossover (where phase = -180°)
   for (let i = 1; i < numPoints; i++) {
-    if ((data.phase[i - 1] >= -180 && data.phase[i] < -180) ||
-        (data.phase[i - 1] <= -180 && data.phase[i] > -180)) {
+    if (
+      (data.phase[i - 1] >= -180 && data.phase[i] < -180) ||
+      (data.phase[i - 1] <= -180 && data.phase[i] > -180)
+    ) {
       const ratio = (-180 - data.phase[i - 1]) / (data.phase[i] - data.phase[i - 1]);
-      phaseCrossoverFreq = data.frequency[i - 1] + ratio * (data.frequency[i] - data.frequency[i - 1]);
-      magAtPhaseCrossover = data.magnitudeDB[i - 1] + ratio * (data.magnitudeDB[i] - data.magnitudeDB[i - 1]);
+      phaseCrossoverFreq =
+        data.frequency[i - 1] + ratio * (data.frequency[i] - data.frequency[i - 1]);
+      magAtPhaseCrossover =
+        data.magnitudeDB[i - 1] + ratio * (data.magnitudeDB[i] - data.magnitudeDB[i - 1]);
       break;
     }
   }
 
   const phaseMargin = phaseAtGainCrossover !== null ? 180 + phaseAtGainCrossover : Infinity;
   const gainMarginDB = magAtPhaseCrossover !== null ? -magAtPhaseCrossover : Infinity;
-  const gainMargin = magAtPhaseCrossover !== null ? Math.pow(10, -magAtPhaseCrossover / 20) : Infinity;
+  const gainMargin =
+    magAtPhaseCrossover !== null ? Math.pow(10, -magAtPhaseCrossover / 20) : Infinity;
 
-  const isStable = (phaseMargin > 0 || phaseMargin === Infinity) &&
-                   (gainMarginDB > 0 || gainMarginDB === Infinity);
+  const isStable =
+    (phaseMargin > 0 || phaseMargin === Infinity) &&
+    (gainMarginDB > 0 || gainMarginDB === Infinity);
 
   return {
     gainMargin,
@@ -228,7 +233,7 @@ function calculateMargins(
     phaseMargin,
     gainCrossoverFreq,
     phaseCrossoverFreq,
-    isStable
+    isStable,
   };
 }
 
@@ -324,60 +329,64 @@ function analyzeTransferFunction(
     zeros,
     poles,
     isProper: denOrder >= numOrder,
-    isStrictlyProper: denOrder > numOrder
+    isStrictlyProper: denOrder > numOrder,
   };
 }
 
 // Preset transfer functions
-function getPresetSystem(preset: string): { numerator: number[]; denominator: number[]; description: string } {
+function getPresetSystem(preset: string): {
+  numerator: number[];
+  denominator: number[];
+  description: string;
+} {
   switch (preset) {
     case 'first_order':
       return {
         numerator: [1],
-        denominator: [1, 1],  // 1/(s+1)
-        description: 'First-order low-pass: 1/(s+1), τ=1s'
+        denominator: [1, 1], // 1/(s+1)
+        description: 'First-order low-pass: 1/(s+1), τ=1s',
       };
 
     case 'second_order':
       return {
         numerator: [1],
-        denominator: [1, 0.5, 1],  // 1/(s² + 0.5s + 1)
-        description: 'Second-order: ωn=1, ζ=0.25 (underdamped)'
+        denominator: [1, 0.5, 1], // 1/(s² + 0.5s + 1)
+        description: 'Second-order: ωn=1, ζ=0.25 (underdamped)',
       };
 
     case 'pid':
       return {
-        numerator: [1, 2, 1],  // Kp + Ki/s + Kd*s = (s² + 2s + 1)/s
+        numerator: [1, 2, 1], // Kp + Ki/s + Kd*s = (s² + 2s + 1)/s
         denominator: [1, 0],
-        description: 'PID controller: Kp=2, Ki=1, Kd=1'
+        description: 'PID controller: Kp=2, Ki=1, Kd=1',
       };
 
     case 'lead_lag':
       return {
         numerator: [1, 10],
-        denominator: [1, 1],  // (s+10)/(s+1)
-        description: 'Lead compensator: (s+10)/(s+1)'
+        denominator: [1, 1], // (s+10)/(s+1)
+        description: 'Lead compensator: (s+10)/(s+1)',
       };
 
     case 'integrator':
       return {
         numerator: [1],
-        denominator: [1, 0],  // 1/s
-        description: 'Pure integrator: 1/s'
+        denominator: [1, 0], // 1/s
+        description: 'Pure integrator: 1/s',
       };
 
     case 'differentiator':
       return {
         numerator: [1, 0],
-        denominator: [1],  // s
-        description: 'Differentiator: s'
+        denominator: [1], // s
+        description: 'Differentiator: s',
       };
 
     default:
       return {
         numerator: [1],
         denominator: [1, 1],
-        description: 'Default first-order'
+        description: 'Default first-order',
       };
   }
 }
@@ -392,40 +401,44 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'bode_plot',
-          description: 'Bode plot frequency response analysis for control systems',
-          operations: {
-            plot: 'Generate Bode plot data (magnitude and phase vs frequency)',
-            margins: 'Calculate gain margin and phase margin',
-            stability: 'Analyze system stability',
-            nyquist: 'Generate Nyquist plot data',
-            transfer_function: 'Analyze transfer function properties'
+        content: JSON.stringify(
+          {
+            tool: 'bode_plot',
+            description: 'Bode plot frequency response analysis for control systems',
+            operations: {
+              plot: 'Generate Bode plot data (magnitude and phase vs frequency)',
+              margins: 'Calculate gain margin and phase margin',
+              stability: 'Analyze system stability',
+              nyquist: 'Generate Nyquist plot data',
+              transfer_function: 'Analyze transfer function properties',
+            },
+            presets: {
+              first_order: '1/(s+1) - Simple first-order low-pass',
+              second_order: '1/(s²+0.5s+1) - Underdamped second-order',
+              pid: 'PID controller transfer function',
+              lead_lag: '(s+10)/(s+1) - Lead compensator',
+              integrator: '1/s - Pure integrator',
+              differentiator: 's - Pure differentiator',
+            },
+            features: [
+              'Magnitude (dB) and phase (deg) computation',
+              'Gain and phase margin calculation',
+              'Crossover frequency identification',
+              'Nyquist plot generation',
+              'Pole-zero analysis',
+              'Stability determination',
+            ],
+            example: {
+              operation: 'plot',
+              numerator: [1],
+              denominator: [1, 2, 1],
+              freq_min: 0.01,
+              freq_max: 100,
+            },
           },
-          presets: {
-            first_order: '1/(s+1) - Simple first-order low-pass',
-            second_order: '1/(s²+0.5s+1) - Underdamped second-order',
-            pid: 'PID controller transfer function',
-            lead_lag: '(s+10)/(s+1) - Lead compensator',
-            integrator: '1/s - Pure integrator',
-            differentiator: 's - Pure differentiator'
-          },
-          features: [
-            'Magnitude (dB) and phase (deg) computation',
-            'Gain and phase margin calculation',
-            'Crossover frequency identification',
-            'Nyquist plot generation',
-            'Pole-zero analysis',
-            'Stability determination'
-          ],
-          example: {
-            operation: 'plot',
-            numerator: [1],
-            denominator: [1, 2, 1],
-            freq_min: 0.01,
-            freq_max: 100
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -455,11 +468,13 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
       const sampleIndices = Array.from({ length: Math.ceil(numPoints / 10) }, (_, i) => i * 10);
       sampleIndices.push(numPoints - 1);
 
-      const sampledData = sampleIndices.filter(i => i < numPoints).map(i => ({
-        frequency: parseFloat(data.frequency[i].toFixed(4)),
-        magnitude_dB: parseFloat(data.magnitudeDB[i].toFixed(2)),
-        phase_deg: parseFloat(data.phase[i].toFixed(2))
-      }));
+      const sampledData = sampleIndices
+        .filter((i) => i < numPoints)
+        .map((i) => ({
+          frequency: parseFloat(data.frequency[i].toFixed(4)),
+          magnitude_dB: parseFloat(data.magnitudeDB[i].toFixed(2)),
+          phase_deg: parseFloat(data.phase[i].toFixed(2)),
+        }));
 
       // Key points
       const maxMag = Math.max(...data.magnitudeDB);
@@ -468,24 +483,30 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'plot',
-          transfer_function: {
-            numerator,
-            denominator,
-            description
+        content: JSON.stringify(
+          {
+            operation: 'plot',
+            transfer_function: {
+              numerator,
+              denominator,
+              description,
+            },
+            frequency_range: { min: freqMin, max: freqMax, unit: 'rad/s' },
+            num_points: numPoints,
+            bode_data_sample: sampledData,
+            key_points: {
+              max_magnitude_dB: maxMag,
+              min_magnitude_dB: minMag,
+              peak_frequency: maxMagFreq,
+              dc_gain_dB: data.magnitudeDB[0],
+              high_freq_rolloff:
+                (data.magnitudeDB[numPoints - 1] - data.magnitudeDB[numPoints - 11]) /
+                Math.log10(data.frequency[numPoints - 1] / data.frequency[numPoints - 11]),
+            },
           },
-          frequency_range: { min: freqMin, max: freqMax, unit: 'rad/s' },
-          num_points: numPoints,
-          bode_data_sample: sampledData,
-          key_points: {
-            max_magnitude_dB: maxMag,
-            min_magnitude_dB: minMag,
-            peak_frequency: maxMagFreq,
-            dc_gain_dB: data.magnitudeDB[0],
-            high_freq_rolloff: (data.magnitudeDB[numPoints - 1] - data.magnitudeDB[numPoints - 11]) / Math.log10(data.frequency[numPoints - 1] / data.frequency[numPoints - 11])
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -494,27 +515,32 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'margins',
-          transfer_function: { numerator, denominator, description },
-          gain_margin: {
-            linear: margins.gainMargin === Infinity ? 'Infinite' : margins.gainMargin,
-            dB: margins.gainMarginDB === Infinity ? 'Infinite' : margins.gainMarginDB,
-            crossover_frequency: margins.phaseCrossoverFreq
+        content: JSON.stringify(
+          {
+            operation: 'margins',
+            transfer_function: { numerator, denominator, description },
+            gain_margin: {
+              linear: margins.gainMargin === Infinity ? 'Infinite' : margins.gainMargin,
+              dB: margins.gainMarginDB === Infinity ? 'Infinite' : margins.gainMarginDB,
+              crossover_frequency: margins.phaseCrossoverFreq,
+            },
+            phase_margin: {
+              degrees: margins.phaseMargin === Infinity ? 'Infinite' : margins.phaseMargin,
+              crossover_frequency: margins.gainCrossoverFreq,
+            },
+            stability: {
+              is_stable: margins.isStable,
+              recommendation:
+                margins.phaseMargin < 30
+                  ? 'Low phase margin - consider adding phase lead'
+                  : margins.phaseMargin < 60
+                    ? 'Adequate stability margin'
+                    : 'Good stability margin',
+            },
           },
-          phase_margin: {
-            degrees: margins.phaseMargin === Infinity ? 'Infinite' : margins.phaseMargin,
-            crossover_frequency: margins.gainCrossoverFreq
-          },
-          stability: {
-            is_stable: margins.isStable,
-            recommendation: margins.phaseMargin < 30
-              ? 'Low phase margin - consider adding phase lead'
-              : margins.phaseMargin < 60
-              ? 'Adequate stability margin'
-              : 'Good stability margin'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -523,41 +549,45 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
       const tfAnalysis = analyzeTransferFunction(numerator, denominator);
 
       // Check pole stability
-      const unstablePoles = tfAnalysis.poles.filter(p => p.re >= 0);
+      const unstablePoles = tfAnalysis.poles.filter((p) => p.re >= 0);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'stability',
-          transfer_function: { numerator, denominator, description },
-          bode_stability: {
-            is_stable: margins.isStable,
-            gain_margin_dB: margins.gainMarginDB,
-            phase_margin_deg: margins.phaseMargin
+        content: JSON.stringify(
+          {
+            operation: 'stability',
+            transfer_function: { numerator, denominator, description },
+            bode_stability: {
+              is_stable: margins.isStable,
+              gain_margin_dB: margins.gainMarginDB,
+              phase_margin_deg: margins.phaseMargin,
+            },
+            pole_analysis: {
+              poles: tfAnalysis.poles.map((p) => ({
+                real: p.re,
+                imaginary: p.im,
+                magnitude: Math.sqrt(p.re * p.re + p.im * p.im),
+                stable: p.re < 0,
+              })),
+              has_unstable_poles: unstablePoles.length > 0,
+              num_unstable_poles: unstablePoles.length,
+            },
+            system_properties: {
+              order: tfAnalysis.order,
+              type: tfAnalysis.type,
+              dc_gain: tfAnalysis.dcGain,
+              is_proper: tfAnalysis.isProper,
+            },
+            recommendations: [
+              !margins.isStable ? 'System is UNSTABLE - redesign required' : 'System is stable',
+              margins.phaseMargin < 30 ? 'Consider adding phase lead compensation' : null,
+              margins.gainMarginDB < 6 ? 'Consider reducing loop gain' : null,
+              tfAnalysis.type > 1 ? 'Multiple integrators may cause oscillation' : null,
+            ].filter(Boolean),
           },
-          pole_analysis: {
-            poles: tfAnalysis.poles.map(p => ({
-              real: p.re,
-              imaginary: p.im,
-              magnitude: Math.sqrt(p.re * p.re + p.im * p.im),
-              stable: p.re < 0
-            })),
-            has_unstable_poles: unstablePoles.length > 0,
-            num_unstable_poles: unstablePoles.length
-          },
-          system_properties: {
-            order: tfAnalysis.order,
-            type: tfAnalysis.type,
-            dc_gain: tfAnalysis.dcGain,
-            is_proper: tfAnalysis.isProper
-          },
-          recommendations: [
-            !margins.isStable ? 'System is UNSTABLE - redesign required' : 'System is stable',
-            margins.phaseMargin < 30 ? 'Consider adding phase lead compensation' : null,
-            margins.gainMarginDB < 6 ? 'Consider reducing loop gain' : null,
-            tfAnalysis.type > 1 ? 'Multiple integrators may cause oscillation' : null
-          ].filter(Boolean)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -568,11 +598,13 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
       // Sample data
       const sampleIndices = Array.from({ length: Math.ceil(numPoints / 10) }, (_, i) => i * 10);
 
-      const sampledData = sampleIndices.filter(i => i < numPoints).map(i => ({
-        frequency: parseFloat(data.frequency[i].toFixed(4)),
-        real: parseFloat(data.real[i].toFixed(4)),
-        imaginary: parseFloat(data.imag[i].toFixed(4))
-      }));
+      const sampledData = sampleIndices
+        .filter((i) => i < numPoints)
+        .map((i) => ({
+          frequency: parseFloat(data.frequency[i].toFixed(4)),
+          real: parseFloat(data.real[i].toFixed(4)),
+          imaginary: parseFloat(data.imag[i].toFixed(4)),
+        }));
 
       // Find closest approach to -1
       let minDist = Infinity;
@@ -587,20 +619,25 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'nyquist',
-          transfer_function: { numerator, denominator, description },
-          nyquist_data_sample: sampledData,
-          critical_point: {
-            location: [-1, 0],
-            closest_approach: minDist,
-            closest_frequency: closestFreq
+        content: JSON.stringify(
+          {
+            operation: 'nyquist',
+            transfer_function: { numerator, denominator, description },
+            nyquist_data_sample: sampledData,
+            critical_point: {
+              location: [-1, 0],
+              closest_approach: minDist,
+              closest_frequency: closestFreq,
+            },
+            encirclements:
+              minDist < 1 ? 'May encircle -1 (check full contour)' : 'Does not encircle -1',
+            stability_indication: margins.isStable
+              ? 'Nyquist curve does not encircle -1: stable'
+              : 'Nyquist curve may encircle -1: potentially unstable',
           },
-          encirclements: minDist < 1 ? 'May encircle -1 (check full contour)' : 'Does not encircle -1',
-          stability_indication: margins.isStable
-            ? 'Nyquist curve does not encircle -1: stable'
-            : 'Nyquist curve may encircle -1: potentially unstable'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -608,56 +645,78 @@ export async function executebodeplot(toolCall: UnifiedToolCall): Promise<Unifie
       const analysis = analyzeTransferFunction(numerator, denominator);
 
       // Build string representation
-      const numStr = numerator.map((c, i) => {
-        const power = numerator.length - 1 - i;
-        if (c === 0) return '';
-        const term = power === 0 ? `${c}` : power === 1 ? `${c}s` : `${c}s^${power}`;
-        return term;
-      }).filter(Boolean).join(' + ') || '0';
+      const numStr =
+        numerator
+          .map((c, i) => {
+            const power = numerator.length - 1 - i;
+            if (c === 0) return '';
+            const term = power === 0 ? `${c}` : power === 1 ? `${c}s` : `${c}s^${power}`;
+            return term;
+          })
+          .filter(Boolean)
+          .join(' + ') || '0';
 
-      const denStr = denominator.map((c, i) => {
-        const power = denominator.length - 1 - i;
-        if (c === 0) return '';
-        const term = power === 0 ? `${c}` : power === 1 ? `${c}s` : `${c}s^${power}`;
-        return term;
-      }).filter(Boolean).join(' + ') || '1';
+      const denStr =
+        denominator
+          .map((c, i) => {
+            const power = denominator.length - 1 - i;
+            if (c === 0) return '';
+            const term = power === 0 ? `${c}` : power === 1 ? `${c}s` : `${c}s^${power}`;
+            return term;
+          })
+          .filter(Boolean)
+          .join(' + ') || '1';
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'transfer_function',
-          representation: {
-            numerator: numStr,
-            denominator: denStr,
-            latex: `H(s) = \\frac{${numStr}}{${denStr}}`
+        content: JSON.stringify(
+          {
+            operation: 'transfer_function',
+            representation: {
+              numerator: numStr,
+              denominator: denStr,
+              latex: `H(s) = \\frac{${numStr}}{${denStr}}`,
+            },
+            properties: {
+              order: analysis.order,
+              type: analysis.type,
+              dc_gain: analysis.dcGain,
+              is_proper: analysis.isProper,
+              is_strictly_proper: analysis.isStrictlyProper,
+            },
+            zeros: analysis.zeros,
+            poles: analysis.poles.map((p) => ({
+              real: p.re,
+              imaginary: p.im,
+              stable: p.re < 0,
+            })),
+            description,
           },
-          properties: {
-            order: analysis.order,
-            type: analysis.type,
-            dc_gain: analysis.dcGain,
-            is_proper: analysis.isProper,
-            is_strictly_proper: analysis.isStrictlyProper
-          },
-          zeros: analysis.zeros,
-          poles: analysis.poles.map(p => ({
-            real: p.re,
-            imaginary: p.im,
-            stable: p.re < 0
-          })),
-          description
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: `Unknown operation: ${operation}`,
-        available_operations: ['plot', 'margins', 'stability', 'nyquist', 'transfer_function', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: `Unknown operation: ${operation}`,
+          available_operations: [
+            'plot',
+            'margins',
+            'stability',
+            'nyquist',
+            'transfer_function',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

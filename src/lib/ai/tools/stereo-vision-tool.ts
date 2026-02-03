@@ -3,7 +3,13 @@
  * Comprehensive stereo vision depth estimation and 3D reconstruction
  */
 
-import { UnifiedTool, ToolResult } from './types';
+import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
+
+interface ToolResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -12,18 +18,18 @@ import { UnifiedTool, ToolResult } from './types';
 type GrayscaleImage = number[][];
 
 interface CameraIntrinsics {
-  fx: number;  // Focal length x
-  fy: number;  // Focal length y
-  cx: number;  // Principal point x
-  cy: number;  // Principal point y
+  fx: number; // Focal length x
+  fy: number; // Focal length y
+  cx: number; // Principal point x
+  cy: number; // Principal point y
 }
 
 interface StereoCalibration {
   leftIntrinsics: CameraIntrinsics;
   rightIntrinsics: CameraIntrinsics;
-  baseline: number;  // Distance between cameras in same units as focal length
-  rotation: number[][];  // 3x3 rotation matrix
-  translation: number[];  // 3D translation vector
+  baseline: number; // Distance between cameras in same units as focal length
+  rotation: number[][]; // 3x3 rotation matrix
+  translation: number[]; // 3D translation vector
 }
 
 interface Point3D {
@@ -60,16 +66,16 @@ class StereoRectification {
    * Compute rectification homographies for stereo pair
    * Simplified approach for parallel stereo rigs
    */
-  static computeRectificationHomographies(
-    calibration: StereoCalibration
-  ): { H1: number[][]; H2: number[][] } {
+  static computeRectificationHomographies(calibration: StereoCalibration): {
+    H1: number[][];
+    H2: number[][];
+  } {
     // For a standard stereo rig with cameras facing the same direction,
     // we need to rotate both images to align epipolar lines with scanlines
 
     // Simplified rectification for nearly parallel cameras
     // H1 and H2 are identity-like transformations with small corrections
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { rotation: _rotation, translation } = calibration;
 
     // Full rectification would compute R_rect from baseline direction:
@@ -80,13 +86,13 @@ class StereoRectification {
     const H1: number[][] = [
       [1, 0, 0],
       [0, 1, 0],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
 
     const H2: number[][] = [
-      [1, 0, -translation[0] * calibration.leftIntrinsics.fx / calibration.baseline],
+      [1, 0, (-translation[0] * calibration.leftIntrinsics.fx) / calibration.baseline],
       [0, 1, 0],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
 
     return { H1, H2 };
@@ -98,9 +104,7 @@ class StereoRectification {
   static applyHomography(image: GrayscaleImage, H: number[][]): GrayscaleImage {
     const height = image.length;
     const width = image[0].length;
-    const result: GrayscaleImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const result: GrayscaleImage = Array.from({ length: height }, () => Array(width).fill(0));
 
     // Compute inverse homography for backward mapping
     const Hinv = this.invertMatrix3x3(H);
@@ -121,9 +125,9 @@ class StereoRectification {
 
           result[y][x] = Math.round(
             (1 - fx) * (1 - fy) * image[y0][x0] +
-            fx * (1 - fy) * image[y0][x0 + 1] +
-            (1 - fx) * fy * image[y0 + 1][x0] +
-            fx * fy * image[y0 + 1][x0 + 1]
+              fx * (1 - fy) * image[y0][x0 + 1] +
+              (1 - fx) * fy * image[y0 + 1][x0] +
+              fx * fy * image[y0 + 1][x0 + 1]
           );
         }
       }
@@ -151,32 +155,33 @@ class StereoRectification {
   // Helper methods
   private static normalize(v: number[]): number[] {
     const len = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
-    return v.map(x => x / len);
+    return v.map((x) => x / len);
   }
 
   private static cross(a: number[], b: number[]): number[] {
-    return [
-      a[1] * b[2] - a[2] * b[1],
-      a[2] * b[0] - a[0] * b[2],
-      a[0] * b[1] - a[1] * b[0]
-    ];
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   }
 
   private static intrinsicsToMatrix(K: CameraIntrinsics): number[][] {
     return [
       [K.fx, 0, K.cx],
       [0, K.fy, K.cy],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
   }
 
   private static invertMatrix3x3(M: number[][]): number[][] {
-    const det = M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
-                M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) +
-                M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+    const det =
+      M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
+      M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) +
+      M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
 
     if (Math.abs(det) < 1e-10) {
-      return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      return [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+      ];
     }
 
     const invDet = 1 / det;
@@ -185,18 +190,18 @@ class StereoRectification {
       [
         (M[1][1] * M[2][2] - M[1][2] * M[2][1]) * invDet,
         (M[0][2] * M[2][1] - M[0][1] * M[2][2]) * invDet,
-        (M[0][1] * M[1][2] - M[0][2] * M[1][1]) * invDet
+        (M[0][1] * M[1][2] - M[0][2] * M[1][1]) * invDet,
       ],
       [
         (M[1][2] * M[2][0] - M[1][0] * M[2][2]) * invDet,
         (M[0][0] * M[2][2] - M[0][2] * M[2][0]) * invDet,
-        (M[0][2] * M[1][0] - M[0][0] * M[1][2]) * invDet
+        (M[0][2] * M[1][0] - M[0][0] * M[1][2]) * invDet,
       ],
       [
         (M[1][0] * M[2][1] - M[1][1] * M[2][0]) * invDet,
         (M[0][1] * M[2][0] - M[0][0] * M[2][1]) * invDet,
-        (M[0][0] * M[1][1] - M[0][1] * M[1][0]) * invDet
-      ]
+        (M[0][0] * M[1][1] - M[0][1] * M[1][0]) * invDet,
+      ],
     ];
   }
 }
@@ -223,9 +228,7 @@ class BlockMatchingStereo {
     const height = leftImage.length;
     const width = leftImage[0].length;
     const halfBlock = Math.floor(this.blockSize / 2);
-    const disparity: number[][] = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const disparity: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
 
     let minDisp = Infinity;
     let maxDisp = -Infinity;
@@ -285,7 +288,7 @@ class BlockMatchingStereo {
       disparity,
       minDisparity: minDisp,
       maxDisparity: maxDisp,
-      validPixels
+      validPixels,
     };
   }
 
@@ -315,8 +318,8 @@ class SGBMStereo {
   private blockSize: number;
   private minDisparity: number;
   private maxDisparity: number;
-  private P1: number;  // Penalty for small disparity changes
-  private P2: number;  // Penalty for large disparity changes
+  private P1: number; // Penalty for small disparity changes
+  private P2: number; // Penalty for large disparity changes
 
   constructor(
     blockSize: number = 5,
@@ -347,9 +350,7 @@ class SGBMStereo {
     const aggregatedCost = this.aggregateCosts(costVolume, height, width, numDisparities);
 
     // Winner-takes-all disparity selection
-    const disparity: number[][] = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const disparity: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
 
     let minDisp = Infinity;
     let maxDisp = -Infinity;
@@ -383,17 +384,14 @@ class SGBMStereo {
       disparity,
       minDisparity: minDisp === Infinity ? 0 : minDisp,
       maxDisparity: maxDisp === -Infinity ? 0 : maxDisp,
-      validPixels
+      validPixels,
     };
   }
 
   /**
    * Compute cost volume using Census transform matching
    */
-  private computeCostVolume(
-    leftImage: GrayscaleImage,
-    rightImage: GrayscaleImage
-  ): number[][][] {
+  private computeCostVolume(leftImage: GrayscaleImage, rightImage: GrayscaleImage): number[][][] {
     const height = leftImage.length;
     const width = leftImage[0].length;
     const numDisparities = this.maxDisparity - this.minDisparity + 1;
@@ -404,9 +402,7 @@ class SGBMStereo {
 
     // Initialize cost volume
     const costVolume: number[][][] = Array.from({ length: height }, () =>
-      Array.from({ length: width }, () =>
-        Array(numDisparities).fill(255)
-      )
+      Array.from({ length: width }, () => Array(numDisparities).fill(255))
     );
 
     const halfBlock = Math.floor(this.blockSize / 2);
@@ -417,10 +413,7 @@ class SGBMStereo {
           const rx = x - (d + this.minDisparity);
           if (rx >= halfBlock && rx < width - halfBlock) {
             // Hamming distance between Census descriptors
-            costVolume[y][x][d] = this.hammingDistance(
-              leftCensus[y][x],
-              rightCensus[y][rx]
-            );
+            costVolume[y][x][d] = this.hammingDistance(leftCensus[y][x], rightCensus[y][rx]);
           }
         }
       }
@@ -435,9 +428,7 @@ class SGBMStereo {
   private censusTransform(image: GrayscaleImage): number[][] {
     const height = image.length;
     const width = image[0].length;
-    const census: number[][] = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const census: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
 
     const radius = 3;
 
@@ -451,7 +442,7 @@ class SGBMStereo {
           for (let dx = -radius; dx <= radius; dx++) {
             if (dy === 0 && dx === 0) continue;
             if (image[y + dy][x + dx] < center) {
-              descriptor |= (1 << bit);
+              descriptor |= 1 << bit;
             }
             bit++;
           }
@@ -487,21 +478,19 @@ class SGBMStereo {
     numDisparities: number
   ): number[][][] {
     const aggregated: number[][][] = Array.from({ length: height }, () =>
-      Array.from({ length: width }, () =>
-        Array(numDisparities).fill(0)
-      )
+      Array.from({ length: width }, () => Array(numDisparities).fill(0))
     );
 
     // Direction vectors for 8-path aggregation
     const directions = [
-      [0, 1],   // Right
-      [0, -1],  // Left
-      [1, 0],   // Down
-      [-1, 0],  // Up
-      [1, 1],   // Down-right
-      [1, -1],  // Down-left
-      [-1, 1],  // Up-right
-      [-1, -1]  // Up-left
+      [0, 1], // Right
+      [0, -1], // Left
+      [1, 0], // Down
+      [-1, 0], // Up
+      [1, 1], // Down-right
+      [1, -1], // Down-left
+      [-1, 1], // Up-right
+      [-1, -1], // Up-left
     ];
 
     for (const [dy, dx] of directions) {
@@ -532,9 +521,7 @@ class SGBMStereo {
     dx: number
   ): number[][][] {
     const pathCost: number[][][] = Array.from({ length: height }, () =>
-      Array.from({ length: width }, () =>
-        Array(numDisparities).fill(0)
-      )
+      Array.from({ length: width }, () => Array(numDisparities).fill(0))
     );
 
     // Determine traversal order based on direction
@@ -561,7 +548,7 @@ class SGBMStereo {
             const prevCosts = pathCost[prevY][prevX];
             const minPrevCost = Math.min(...prevCosts);
 
-            let minPath = prevCosts[d];  // Same disparity
+            let minPath = prevCosts[d]; // Same disparity
             if (d > 0) {
               minPath = Math.min(minPath, prevCosts[d - 1] + this.P1);
             }
@@ -596,9 +583,7 @@ class DepthEstimation {
     const disparity = disparityResult.disparity;
     const height = disparity.length;
     const width = disparity[0].length;
-    const depth: number[][] = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const depth: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
 
     const focalLength = calibration.leftIntrinsics.fx;
     const baseline = calibration.baseline;
@@ -615,7 +600,8 @@ class DepthEstimation {
           const z = (baseline * focalLength) / d;
           depth[y][x] = z;
 
-          if (z > 0 && z < 10000) {  // Reasonable depth range
+          if (z > 0 && z < 10000) {
+            // Reasonable depth range
             minDepth = Math.min(minDepth, z);
             maxDepth = Math.max(maxDepth, z);
             validPixels++;
@@ -628,7 +614,7 @@ class DepthEstimation {
       depth,
       minDepth: minDepth === Infinity ? 0 : minDepth,
       maxDepth,
-      validPixels
+      validPixels,
     };
   }
 
@@ -654,8 +640,8 @@ class DepthEstimation {
 
         if (z > 0 && z < 10000) {
           // Back-project to 3D
-          const X = (x - cx) * z / fx;
-          const Y = (y - cy) * z / fy;
+          const X = ((x - cx) * z) / fx;
+          const Y = ((y - cy) * z) / fy;
 
           points.push({ x: X, y: Y, z });
 
@@ -700,11 +686,7 @@ class EpipolarGeometry {
       const x2 = norm2[i].x;
       const y2 = norm2[i].y;
 
-      A.push([
-        x2 * x1, x2 * y1, x2,
-        y2 * x1, y2 * y1, y2,
-        x1, y1, 1
-      ]);
+      A.push([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1]);
     }
 
     // Solve Af = 0 using SVD (simplified - use least squares)
@@ -714,7 +696,7 @@ class EpipolarGeometry {
     const F_norm: number[][] = [
       [F_flat[0], F_flat[1], F_flat[2]],
       [F_flat[3], F_flat[4], F_flat[5]],
-      [F_flat[6], F_flat[7], F_flat[8]]
+      [F_flat[6], F_flat[7], F_flat[8]],
     ];
 
     // Enforce rank-2 constraint (simplified)
@@ -748,7 +730,7 @@ class EpipolarGeometry {
     const l = [
       F[0][0] * p[0] + F[0][1] * p[1] + F[0][2] * p[2],
       F[1][0] * p[0] + F[1][1] * p[1] + F[1][2] * p[2],
-      F[2][0] * p[0] + F[2][1] * p[1] + F[2][2] * p[2]
+      F[2][0] * p[0] + F[2][1] * p[1] + F[2][2] * p[2],
     ];
 
     // Normalize line
@@ -756,7 +738,7 @@ class EpipolarGeometry {
     return {
       a: l[0] / norm,
       b: l[1] / norm,
-      c: l[2] / norm
+      c: l[2] / norm,
     };
   }
 
@@ -772,13 +754,13 @@ class EpipolarGeometry {
     const K1_mat = [
       [K1.fx, 0, K1.cx],
       [0, K1.fy, K1.cy],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
 
     const K2_mat = [
       [K2.fx, 0, K2.cx],
       [0, K2.fy, K2.cy],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
 
     const temp = this.matMul(this.transpose(K2_mat), F);
@@ -791,7 +773,8 @@ class EpipolarGeometry {
     T: number[][];
   } {
     // Compute centroid
-    let cx = 0, cy = 0;
+    let cx = 0,
+      cy = 0;
     for (const p of points) {
       cx += p.x;
       cy += p.y;
@@ -811,13 +794,13 @@ class EpipolarGeometry {
     const T: number[][] = [
       [scale, 0, -scale * cx],
       [0, scale, -scale * cy],
-      [0, 0, 1]
+      [0, 0, 1],
     ];
 
     // Apply transformation
-    const normalized = points.map(p => ({
+    const normalized = points.map((p) => ({
       x: scale * (p.x - cx),
-      y: scale * (p.y - cy)
+      y: scale * (p.y - cy),
     }));
 
     return { normalized, T };
@@ -843,13 +826,13 @@ class EpipolarGeometry {
     // Simplified: use normalized last row of AtA
     const lastRow = AtA[n - 1];
     const norm = Math.sqrt(lastRow.reduce((sum, v) => sum + v * v, 0));
-    return lastRow.map(v => v / (norm || 1));
+    return lastRow.map((v) => v / (norm || 1));
   }
 
   private static enforceRank2(F: number[][]): number[][] {
     // Simplified rank-2 enforcement
     // Set smallest singular value to 0 (approximation)
-    return F;  // In practice, would use SVD
+    return F; // In practice, would use SVD
   }
 
   private static matMul(A: number[][], B: number[][]): number[][] {
@@ -896,12 +879,8 @@ function generateStereoTestPair(): {
   const width = 128;
   const height = 96;
 
-  const leftImage: GrayscaleImage = Array.from({ length: height }, () =>
-    Array(width).fill(128)
-  );
-  const rightImage: GrayscaleImage = Array.from({ length: height }, () =>
-    Array(width).fill(128)
-  );
+  const leftImage: GrayscaleImage = Array.from({ length: height }, () => Array(width).fill(128));
+  const rightImage: GrayscaleImage = Array.from({ length: height }, () => Array(width).fill(128));
 
   // Create a scene with objects at different depths
   // Object 1: Close (large disparity)
@@ -950,9 +929,13 @@ function generateStereoTestPair(): {
   const calibration: StereoCalibration = {
     leftIntrinsics: { fx: 500, fy: 500, cx: width / 2, cy: height / 2 },
     rightIntrinsics: { fx: 500, fy: 500, cx: width / 2, cy: height / 2 },
-    baseline: 0.1,  // 10 cm baseline
-    rotation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-    translation: [0.1, 0, 0]
+    baseline: 0.1, // 10 cm baseline
+    rotation: [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ],
+    translation: [0.1, 0, 0],
   };
 
   return { leftImage, rightImage, calibration };
@@ -964,7 +947,8 @@ function formatDepthMapAscii(depth: number[][], width: number, height: number): 
   const stepX = Math.max(1, Math.floor(depth[0].length / width));
 
   // Find range
-  let minD = Infinity, maxD = 0;
+  let minD = Infinity,
+    maxD = 0;
   for (const row of depth) {
     for (const val of row) {
       if (val > 0) {
@@ -1021,23 +1005,23 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
             'compute_epipolar_lines',
             'demo',
             'info',
-            'examples'
+            'examples',
           ],
           algorithms: {
             block_matching: 'Sum of Absolute Differences (SAD) with subpixel refinement',
             sgbm: 'Semi-Global Block Matching with 8-path aggregation and Census transform',
             depth: 'Triangulation: depth = baseline * focalLength / disparity',
             rectification: 'Homography-based stereo rectification',
-            epipolar: '8-point algorithm for Fundamental matrix estimation'
+            epipolar: '8-point algorithm for Fundamental matrix estimation',
           },
           parameters: {
             block_size: 'Matching block size (default: 15 for BM, 5 for SGBM)',
             min_disparity: 'Minimum disparity to search (default: 0)',
             max_disparity: 'Maximum disparity to search (default: 64)',
             P1: 'SGBM penalty for small disparity changes (default: 10)',
-            P2: 'SGBM penalty for large disparity changes (default: 120)'
-          }
-        }
+            P2: 'SGBM penalty for large disparity changes (default: 120)',
+          },
+        },
       };
     }
 
@@ -1071,32 +1055,32 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
               baseline: calibration.baseline,
               principal_point: {
                 x: calibration.leftIntrinsics.cx,
-                y: calibration.leftIntrinsics.cy
-              }
-            }
+                y: calibration.leftIntrinsics.cy,
+              },
+            },
           },
           block_matching_results: {
             disparity_range: `${disparityBM.minDisparity.toFixed(1)} - ${disparityBM.maxDisparity.toFixed(1)}`,
             valid_pixels: disparityBM.validPixels,
             depth_range: `${depthBM.minDepth.toFixed(3)} - ${depthBM.maxDepth.toFixed(3)} units`,
-            disparity_map: formatDepthMapAscii(disparityBM.disparity, 32, 12)
+            disparity_map: formatDepthMapAscii(disparityBM.disparity, 32, 12),
           },
           sgbm_results: {
             disparity_range: `${disparitySGBM.minDisparity.toFixed(1)} - ${disparitySGBM.maxDisparity.toFixed(1)}`,
             valid_pixels: disparitySGBM.validPixels,
             depth_range: `${depthSGBM.minDepth.toFixed(3)} - ${depthSGBM.maxDepth.toFixed(3)} units`,
-            disparity_map: formatDepthMapAscii(disparitySGBM.disparity, 32, 12)
+            disparity_map: formatDepthMapAscii(disparitySGBM.disparity, 32, 12),
           },
           point_cloud: {
             num_points: pointCloud.points.length,
-            sample_points: pointCloud.points.slice(0, 5).map(p => ({
+            sample_points: pointCloud.points.slice(0, 5).map((p) => ({
               x: p.x.toFixed(3),
               y: p.y.toFixed(3),
-              z: p.z.toFixed(3)
+              z: p.z.toFixed(3),
             })),
-            has_colors: !!pointCloud.colors
-          }
-        }
+            has_colors: !!pointCloud.colors,
+          },
+        },
       };
     }
 
@@ -1118,14 +1102,18 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
         success: true,
         data: {
           operation: 'block_matching_disparity',
-          parameters: { block_size: blockSize, min_disparity: minDisparity, max_disparity: maxDisparity },
+          parameters: {
+            block_size: blockSize,
+            min_disparity: minDisparity,
+            max_disparity: maxDisparity,
+          },
           disparity: result.disparity,
           stats: {
             min_disparity: result.minDisparity,
             max_disparity: result.maxDisparity,
-            valid_pixels: result.validPixels
-          }
-        }
+            valid_pixels: result.validPixels,
+          },
+        },
       };
     }
 
@@ -1149,14 +1137,20 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
         success: true,
         data: {
           operation: 'sgbm_disparity',
-          parameters: { block_size: blockSize, min_disparity: minDisparity, max_disparity: maxDisparity, P1, P2 },
+          parameters: {
+            block_size: blockSize,
+            min_disparity: minDisparity,
+            max_disparity: maxDisparity,
+            P1,
+            P2,
+          },
           disparity: result.disparity,
           stats: {
             min_disparity: result.minDisparity,
             max_disparity: result.maxDisparity,
-            valid_pixels: result.validPixels
-          }
-        }
+            valid_pixels: result.validPixels,
+          },
+        },
       };
     }
 
@@ -1169,7 +1163,9 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
       }
 
       // Find disparity stats
-      let minD = Infinity, maxD = 0, validCount = 0;
+      let minD = Infinity,
+        maxD = 0,
+        validCount = 0;
       for (const row of disparityMap) {
         for (const val of row) {
           if (val > 0) {
@@ -1184,7 +1180,7 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
         disparity: disparityMap,
         minDisparity: minD,
         maxDisparity: maxD,
-        validPixels: validCount
+        validPixels: validCount,
       };
 
       const depthResult = DepthEstimation.disparityToDepth(disparityResult, calibration);
@@ -1197,9 +1193,9 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
           stats: {
             min_depth: depthResult.minDepth,
             max_depth: depthResult.maxDepth,
-            valid_pixels: depthResult.validPixels
-          }
-        }
+            valid_pixels: depthResult.validPixels,
+          },
+        },
       };
     }
 
@@ -1213,7 +1209,9 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
       }
 
       // Find depth stats
-      let minD = Infinity, maxD = 0, validCount = 0;
+      let minD = Infinity,
+        maxD = 0,
+        validCount = 0;
       for (const row of depthMap) {
         for (const val of row) {
           if (val > 0 && val < 10000) {
@@ -1228,7 +1226,7 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
         depth: depthMap,
         minDepth: minD,
         maxDepth: maxD,
-        validPixels: validCount
+        validPixels: validCount,
       };
 
       const pointCloud = DepthEstimation.depthToPointCloud(depthResult, calibration, image);
@@ -1242,19 +1240,19 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
           colors: pointCloud.colors,
           bounds: {
             x: {
-              min: Math.min(...pointCloud.points.map(p => p.x)),
-              max: Math.max(...pointCloud.points.map(p => p.x))
+              min: Math.min(...pointCloud.points.map((p) => p.x)),
+              max: Math.max(...pointCloud.points.map((p) => p.x)),
             },
             y: {
-              min: Math.min(...pointCloud.points.map(p => p.y)),
-              max: Math.max(...pointCloud.points.map(p => p.y))
+              min: Math.min(...pointCloud.points.map((p) => p.y)),
+              max: Math.max(...pointCloud.points.map((p) => p.y)),
             },
             z: {
-              min: Math.min(...pointCloud.points.map(p => p.z)),
-              max: Math.max(...pointCloud.points.map(p => p.z))
-            }
-          }
-        }
+              min: Math.min(...pointCloud.points.map((p) => p.z)),
+              max: Math.max(...pointCloud.points.map((p) => p.z)),
+            },
+          },
+        },
       };
     }
 
@@ -1268,7 +1266,9 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
       }
 
       const { leftRectified, rightRectified } = StereoRectification.rectify(
-        leftImage, rightImage, calibration
+        leftImage,
+        rightImage,
+        calibration
       );
 
       return {
@@ -1277,8 +1277,8 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
           operation: 'stereo_rectification',
           left_rectified: leftRectified,
           right_rectified: rightRectified,
-          description: 'Images rectified to align epipolar lines with scanlines'
-        }
+          description: 'Images rectified to align epipolar lines with scanlines',
+        },
       };
     }
 
@@ -1298,8 +1298,8 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
           data: {
             operation: 'fundamental_matrix',
             F: F,
-            description: 'Fundamental matrix computed using 8-point algorithm'
-          }
+            description: 'Fundamental matrix computed using 8-point algorithm',
+          },
         };
       } catch (e) {
         return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
@@ -1314,7 +1314,7 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
         return { success: false, error: 'Points and Fundamental matrix required' };
       }
 
-      const lines = points.map(p => EpipolarGeometry.computeEpipolarLine(p, F));
+      const lines = points.map((p) => EpipolarGeometry.computeEpipolarLine(p, F));
 
       return {
         success: true,
@@ -1323,9 +1323,9 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
           lines: lines.map((l, i) => ({
             point: points[i],
             line: { a: l.a.toFixed(4), b: l.b.toFixed(4), c: l.c.toFixed(4) },
-            equation: `${l.a.toFixed(4)}x + ${l.b.toFixed(4)}y + ${l.c.toFixed(4)} = 0`
-          }))
-        }
+            equation: `${l.a.toFixed(4)}x + ${l.b.toFixed(4)}y + ${l.c.toFixed(4)} = 0`,
+          })),
+        },
       };
     }
 
@@ -1337,42 +1337,42 @@ async function executestereovision(params: Record<string, unknown>): Promise<Too
             {
               title: 'Block Matching Disparity',
               code: 'executestereovision({ operation: "compute_disparity", left_image: left, right_image: right, block_size: 15, max_disparity: 64 })',
-              description: 'Compute disparity using SAD block matching'
+              description: 'Compute disparity using SAD block matching',
             },
             {
               title: 'SGBM Disparity',
               code: 'executestereovision({ operation: "compute_disparity_sgbm", left_image: left, right_image: right, P1: 10, P2: 120 })',
-              description: 'Compute disparity using Semi-Global Block Matching'
+              description: 'Compute disparity using Semi-Global Block Matching',
             },
             {
               title: 'Disparity to Depth',
               code: 'executestereovision({ operation: "disparity_to_depth", disparity: disparityMap, calibration: stereoCalib })',
-              description: 'Convert disparity map to depth using triangulation'
+              description: 'Convert disparity map to depth using triangulation',
             },
             {
               title: 'Generate Point Cloud',
               code: 'executestereovision({ operation: "depth_to_pointcloud", depth: depthMap, calibration: stereoCalib, image: leftImage })',
-              description: 'Create 3D point cloud from depth map'
+              description: 'Create 3D point cloud from depth map',
             },
             {
               title: 'Rectify Stereo Pair',
               code: 'executestereovision({ operation: "rectify_images", left_image: left, right_image: right, calibration: stereoCalib })',
-              description: 'Rectify images to align epipolar lines horizontally'
+              description: 'Rectify images to align epipolar lines horizontally',
             },
             {
               title: 'Compute Fundamental Matrix',
               code: 'executestereovision({ operation: "compute_fundamental_matrix", points1: pts1, points2: pts2 })',
-              description: 'Estimate fundamental matrix from point correspondences'
-            }
-          ]
-        }
+              description: 'Estimate fundamental matrix from point correspondences',
+            },
+          ],
+        },
       };
     }
 
     default:
       return {
         success: false,
-        error: `Unknown operation: ${operation}. Use "info" to see available operations.`
+        error: `Unknown operation: ${operation}. Use "info" to see available operations.`,
       };
   }
 }
@@ -1414,72 +1414,94 @@ CALIBRATION PARAMETERS:
     properties: {
       operation: {
         type: 'string',
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       left_image: {
         type: 'array',
-        description: 'Left stereo image (2D grayscale array)'
+        description: 'Left stereo image (2D grayscale array)',
       },
       right_image: {
         type: 'array',
-        description: 'Right stereo image (2D grayscale array)'
+        description: 'Right stereo image (2D grayscale array)',
       },
       disparity: {
         type: 'array',
-        description: 'Disparity map for depth conversion'
+        description: 'Disparity map for depth conversion',
       },
       depth: {
         type: 'array',
-        description: 'Depth map for point cloud generation'
+        description: 'Depth map for point cloud generation',
       },
       calibration: {
         type: 'object',
-        description: 'Stereo calibration parameters'
+        description: 'Stereo calibration parameters',
       },
       block_size: {
         type: 'number',
-        description: 'Matching block size'
+        description: 'Matching block size',
       },
       min_disparity: {
         type: 'number',
-        description: 'Minimum disparity to search'
+        description: 'Minimum disparity to search',
       },
       max_disparity: {
         type: 'number',
-        description: 'Maximum disparity to search'
+        description: 'Maximum disparity to search',
       },
       P1: {
         type: 'number',
-        description: 'SGBM penalty for small disparity changes'
+        description: 'SGBM penalty for small disparity changes',
       },
       P2: {
         type: 'number',
-        description: 'SGBM penalty for large disparity changes'
+        description: 'SGBM penalty for large disparity changes',
       },
       points1: {
         type: 'array',
-        description: 'Point correspondences in first image'
+        description: 'Point correspondences in first image',
       },
       points2: {
         type: 'array',
-        description: 'Point correspondences in second image'
+        description: 'Point correspondences in second image',
       },
       F: {
         type: 'array',
-        description: '3x3 Fundamental matrix'
+        description: '3x3 Fundamental matrix',
       },
       points: {
         type: 'array',
-        description: 'Points for epipolar line computation'
+        description: 'Points for epipolar line computation',
       },
       image: {
         type: 'array',
-        description: 'Optional intensity image for colored point cloud'
-      }
+        description: 'Optional intensity image for colored point cloud',
+      },
     },
-    required: []
+    required: [],
   },
-  execute: executestereovision
+  execute: executestereovision,
 };
 
-export { executestereovision, isstereovisionAvailable };
+// Wrapper for UnifiedToolCall signature
+export async function executestereovisionUnified(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
+  const { id, arguments: rawArgs } = toolCall;
+  try {
+    const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
+    const result = await executestereovision(args as Record<string, unknown>);
+    return {
+      toolCallId: id,
+      content: JSON.stringify(result.data || result, null, 2),
+      isError: !result.success,
+    };
+  } catch (error) {
+    return {
+      toolCallId: id,
+      content: `Stereo Vision Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      isError: true,
+    };
+  }
+}
+
+export { executestereovisionUnified as executestereovision, isstereovisionAvailable };

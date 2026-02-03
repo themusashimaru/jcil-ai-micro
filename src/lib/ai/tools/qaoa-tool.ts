@@ -32,7 +32,7 @@ function cAdd(a: Complex, b: Complex): Complex {
 function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -40,8 +40,7 @@ function cScale(a: Complex, s: number): Complex {
   return { re: a.re * s, im: a.im * s };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cAbs(a: Complex): number {
+export function cAbs(a: Complex): number {
   return Math.sqrt(a.re * a.re + a.im * a.im);
 }
 
@@ -72,7 +71,7 @@ function parseGraph(nodes: number, edgeList: [number, number, number?][]): Graph
   const edges: Edge[] = edgeList.map(([source, target, weight]) => ({
     source,
     target,
-    weight: weight ?? 1
+    weight: weight ?? 1,
   }));
   return { numNodes: nodes, edges };
 }
@@ -90,7 +89,7 @@ function createUniformSuperposition(nQubits: number): StateVector {
 }
 
 function measureProbabilities(state: StateVector): number[] {
-  return state.map(a => cAbsSq(a));
+  return state.map((a) => cAbsSq(a));
 }
 
 // ============================================================================
@@ -99,7 +98,7 @@ function measureProbabilities(state: StateVector): number[] {
 
 // Cost Hamiltonian operator (for Max-Cut: sum of Z_i Z_j for each edge)
 function applyCostOperator(state: StateVector, graph: Graph, gamma: number): StateVector {
-  const result: StateVector = state.map(c => ({ ...c }));
+  const result: StateVector = state.map((c) => ({ ...c }));
   const nQubits = Math.log2(state.length);
 
   for (let i = 0; i < state.length; i++) {
@@ -112,7 +111,7 @@ function applyCostOperator(state: StateVector, graph: Graph, gamma: number): Sta
       const zzEigenvalue = bitS === bitT ? 1 : -1;
       // For Max-Cut, we want to maximize cut, so cost term is (1 - Z_i Z_j)/2
       // Phase is e^{-i * gamma * cost}
-      cost += edge.weight * (1 - zzEigenvalue) / 2;
+      cost += (edge.weight * (1 - zzEigenvalue)) / 2;
     }
     // Apply phase rotation
     result[i] = cMul(result[i], cExp(-gamma * cost));
@@ -124,7 +123,7 @@ function applyCostOperator(state: StateVector, graph: Graph, gamma: number): Sta
 // Mixer Hamiltonian operator (sum of X gates)
 function applyMixerOperator(state: StateVector, beta: number): StateVector {
   const nQubits = Math.log2(state.length);
-  let result = state.map(c => ({ ...c }));
+  let result = state.map((c) => ({ ...c }));
 
   // Apply Rx(2*beta) to each qubit
   // Rx(theta) = [[cos(theta/2), -i*sin(theta/2)], [-i*sin(theta/2), cos(theta/2)]]
@@ -197,7 +196,7 @@ function runQAOA(graph: Graph, depth: number, iterations: number = 50): QAOAResu
 
   // Initialize parameters randomly
   let gammas = new Array(depth).fill(0).map(() => Math.random() * Math.PI);
-  let betas = new Array(depth).fill(0).map(() => Math.random() * Math.PI / 2);
+  let betas = new Array(depth).fill(0).map(() => (Math.random() * Math.PI) / 2);
 
   const optimizationHistory: { iteration: number; value: number }[] = [];
 
@@ -258,7 +257,7 @@ function runQAOA(graph: Graph, depth: number, iterations: number = 50): QAOAResu
   // Calculate optimal classical solution
   let optimalClassical = 0;
   let optimalBitstring = '';
-  for (let i = 0; i < (1 << nQubits); i++) {
+  for (let i = 0; i < 1 << nQubits; i++) {
     let cost = 0;
     for (const edge of graph.edges) {
       const bitS = (i >> (nQubits - 1 - edge.source)) & 1;
@@ -288,7 +287,7 @@ function runQAOA(graph: Graph, depth: number, iterations: number = 50): QAOAResu
       topStates.push({
         bitstring: i.toString(2).padStart(nQubits, '0'),
         probability: probs[i],
-        cost
+        cost,
       });
     }
   }
@@ -323,7 +322,7 @@ function runQAOA(graph: Graph, depth: number, iterations: number = 50): QAOAResu
     optimalBitstring,
     probabilities: topStates.slice(0, 10),
     optimizationHistory,
-    circuit
+    circuit,
   };
 }
 
@@ -332,7 +331,10 @@ function runQAOA(graph: Graph, depth: number, iterations: number = 50): QAOAResu
 // ============================================================================
 
 function solveMaxCut(nodes: number, edges: [number, number][], depth: number): QAOAResult {
-  const graph = parseGraph(nodes, edges.map(e => [e[0], e[1], 1]));
+  const graph = parseGraph(
+    nodes,
+    edges.map((e) => [e[0], e[1], 1])
+  );
   return runQAOA(graph, depth);
 }
 
@@ -353,7 +355,7 @@ function solveTSPApproximation(distances: number[][]): TSPResult {
       path: [],
       totalDistance: 0,
       approximationQuality: 'N/A',
-      notes: ['TSP with > 5 cities requires O(n²) qubits, exceeding simulation capability']
+      notes: ['TSP with > 5 cities requires O(n²) qubits, exceeding simulation capability'],
     };
   }
 
@@ -387,8 +389,8 @@ function solveTSPApproximation(distances: number[][]): TSPResult {
     notes: [
       'QAOA for TSP requires encoding as QUBO problem',
       `Requires ${n * n} qubits for n=${n} cities`,
-      'Full quantum solution would use phase separation + mixer operators'
-    ]
+      'Full quantum solution would use phase separation + mixer operators',
+    ],
   };
 }
 
@@ -422,39 +424,33 @@ Operations:
       operation: {
         type: 'string',
         enum: ['max_cut', 'optimize', 'tsp', 'info', 'examples'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       nodes: {
         type: 'number',
-        description: 'Number of nodes in the graph'
+        description: 'Number of nodes in the graph',
       },
       edges: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Edge list as [[source, target, weight?], ...]'
+        items: { type: 'array' },
+        description: 'Edge list as 2D array of numbers [[source, target, weight?], ...]',
       },
       depth: {
         type: 'number',
-        description: 'Circuit depth p (number of QAOA layers, 1-5)'
+        description: 'Circuit depth p (number of QAOA layers, 1-5)',
       },
       distances: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Distance matrix for TSP'
+        items: { type: 'array' },
+        description: 'Distance matrix for TSP (2D array of numbers)',
       },
       iterations: {
         type: 'number',
-        description: 'Number of optimization iterations'
-      }
+        description: 'Number of optimization iterations',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -477,12 +473,16 @@ export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToo
         if (nodes > 10) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Graph too large for simulation',
-              maxNodes: 10,
-              note: 'Quantum simulation requires 2^n memory, limiting to 10 qubits'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Graph too large for simulation',
+                maxNodes: 10,
+                note: 'Quantum simulation requires 2^n memory, limiting to 10 qubits',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -490,36 +490,40 @@ export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'max_cut',
-            problem: {
-              nodes,
-              edges: edges.length,
-              description: 'Partition nodes into two sets to maximize edges between sets'
+          content: JSON.stringify(
+            {
+              operation: 'max_cut',
+              problem: {
+                nodes,
+                edges: edges.length,
+                description: 'Partition nodes into two sets to maximize edges between sets',
+              },
+              parameters: {
+                depth,
+                optimalGammas: result.optimalGammas.map((g) => g.toFixed(4)),
+                optimalBetas: result.optimalBetas.map((b) => b.toFixed(4)),
+              },
+              results: {
+                maxCutValue: result.optimalValue.toFixed(2),
+                approximationRatio: (result.approximationRatio * 100).toFixed(1) + '%',
+                optimalPartition: result.optimalBitstring,
+                interpretation: `0s and 1s represent the two partitions`,
+              },
+              topSolutions: result.probabilities.slice(0, 5).map((p) => ({
+                partition: p.bitstring,
+                cutValue: p.cost,
+                probability: (p.probability * 100).toFixed(2) + '%',
+              })),
+              circuit: result.circuit.slice(0, 20),
+              notes: [
+                'QAOA provides approximation guarantee dependent on depth p',
+                'Higher depth generally improves approximation ratio',
+                'Classical optimization finds best γ and β parameters',
+              ],
             },
-            parameters: {
-              depth,
-              optimalGammas: result.optimalGammas.map(g => g.toFixed(4)),
-              optimalBetas: result.optimalBetas.map(b => b.toFixed(4))
-            },
-            results: {
-              maxCutValue: result.optimalValue.toFixed(2),
-              approximationRatio: (result.approximationRatio * 100).toFixed(1) + '%',
-              optimalPartition: result.optimalBitstring,
-              interpretation: `0s and 1s represent the two partitions`
-            },
-            topSolutions: result.probabilities.slice(0, 5).map(p => ({
-              partition: p.bitstring,
-              cutValue: p.cost,
-              probability: (p.probability * 100).toFixed(2) + '%'
-            })),
-            circuit: result.circuit.slice(0, 20),
-            notes: [
-              'QAOA provides approximation guarantee dependent on depth p',
-              'Higher depth generally improves approximation ratio',
-              'Classical optimization finds best γ and β parameters'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -537,7 +541,7 @@ export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: 'Error: Maximum 10 nodes supported for simulation',
-            isError: true
+            isError: true,
           };
         }
 
@@ -546,27 +550,31 @@ export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'optimize',
-            graph: {
-              nodes,
-              edges: edges.length
+          content: JSON.stringify(
+            {
+              operation: 'optimize',
+              graph: {
+                nodes,
+                edges: edges.length,
+              },
+              parameters: {
+                depth,
+                iterations,
+                optimalGammas: result.optimalGammas.map((g) => g.toFixed(4)),
+                optimalBetas: result.optimalBetas.map((b) => b.toFixed(4)),
+              },
+              results: {
+                optimalValue: result.optimalValue.toFixed(4),
+                approximationRatio: (result.approximationRatio * 100).toFixed(1) + '%',
+                optimalBitstring: result.optimalBitstring,
+              },
+              topSolutions: result.probabilities.slice(0, 5),
+              convergence: result.optimizationHistory.filter((_, i) => i % 10 === 0),
+              circuit: result.circuit.slice(0, 15),
             },
-            parameters: {
-              depth,
-              iterations,
-              optimalGammas: result.optimalGammas.map(g => g.toFixed(4)),
-              optimalBetas: result.optimalBetas.map(b => b.toFixed(4))
-            },
-            results: {
-              optimalValue: result.optimalValue.toFixed(4),
-              approximationRatio: (result.approximationRatio * 100).toFixed(1) + '%',
-              optimalBitstring: result.optimalBitstring
-            },
-            topSolutions: result.probabilities.slice(0, 5),
-            convergence: result.optimizationHistory.filter((_, i) => i % 10 === 0),
-            circuit: result.circuit.slice(0, 15)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -581,118 +589,146 @@ export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'tsp',
-            problem: {
-              cities: distances.length,
-              description: 'Find shortest tour visiting all cities exactly once'
+          content: JSON.stringify(
+            {
+              operation: 'tsp',
+              problem: {
+                cities: distances.length,
+                description: 'Find shortest tour visiting all cities exactly once',
+              },
+              result: {
+                path: result.path,
+                totalDistance: result.totalDistance,
+                approximationQuality: result.approximationQuality,
+              },
+              notes: result.notes,
+              qaoaFormulation: {
+                qubitsRequired: `${distances.length * distances.length} (n² for n cities)`,
+                encoding: 'One-hot encoding: x_{i,t} = 1 if city i visited at time t',
+                constraints: [
+                  'Each city visited exactly once',
+                  'Exactly one city visited at each time step',
+                ],
+              },
             },
-            result: {
-              path: result.path,
-              totalDistance: result.totalDistance,
-              approximationQuality: result.approximationQuality
-            },
-            notes: result.notes,
-            qaoaFormulation: {
-              qubitsRequired: `${distances.length * distances.length} (n² for n cities)`,
-              encoding: 'One-hot encoding: x_{i,t} = 1 if city i visited at time t',
-              constraints: [
-                'Each city visited exactly once',
-                'Exactly one city visited at each time step'
-              ]
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'qaoa',
-            name: 'Quantum Approximate Optimization Algorithm',
-            description: 'Hybrid quantum-classical algorithm for combinatorial optimization',
-            algorithm: {
-              step1: 'Prepare uniform superposition |+⟩^⊗n',
-              step2: 'Apply p layers of cost (U_C) and mixer (U_M) operators',
-              step3: 'Measure in computational basis',
-              step4: 'Classically optimize parameters γ, β',
-              step5: 'Repeat until convergence'
+          content: JSON.stringify(
+            {
+              tool: 'qaoa',
+              name: 'Quantum Approximate Optimization Algorithm',
+              description: 'Hybrid quantum-classical algorithm for combinatorial optimization',
+              algorithm: {
+                step1: 'Prepare uniform superposition |+⟩^⊗n',
+                step2: 'Apply p layers of cost (U_C) and mixer (U_M) operators',
+                step3: 'Measure in computational basis',
+                step4: 'Classically optimize parameters γ, β',
+                step5: 'Repeat until convergence',
+              },
+              operators: {
+                costOperator: 'U_C(γ) = e^{-iγC} where C is the cost Hamiltonian',
+                mixerOperator: 'U_M(β) = e^{-iβB} where B = Σ_i X_i',
+              },
+              guarantees: {
+                depth1: 'Approximation ratio ≥ 0.6924 for Max-Cut on 3-regular graphs',
+                depthInf: 'Converges to optimal solution as p → ∞',
+              },
+              applications: [
+                'Max-Cut',
+                'Graph coloring',
+                'Traveling Salesman Problem',
+                'Portfolio optimization',
+                'Scheduling problems',
+              ],
+              limitations: [
+                'Requires classical optimization loop',
+                'Performance depends on parameter initialization',
+                'Barren plateaus can affect training',
+                'Limited to small problems on current hardware',
+              ],
             },
-            operators: {
-              costOperator: 'U_C(γ) = e^{-iγC} where C is the cost Hamiltonian',
-              mixerOperator: 'U_M(β) = e^{-iβB} where B = Σ_i X_i'
-            },
-            guarantees: {
-              depth1: 'Approximation ratio ≥ 0.6924 for Max-Cut on 3-regular graphs',
-              depthInf: 'Converges to optimal solution as p → ∞'
-            },
-            applications: [
-              'Max-Cut',
-              'Graph coloring',
-              'Traveling Salesman Problem',
-              'Portfolio optimization',
-              'Scheduling problems'
-            ],
-            limitations: [
-              'Requires classical optimization loop',
-              'Performance depends on parameter initialization',
-              'Barren plateaus can affect training',
-              'Limited to small problems on current hardware'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Max-Cut on triangle graph',
-                call: {
-                  operation: 'max_cut',
-                  nodes: 3,
-                  edges: [[0, 1], [1, 2], [0, 2]],
-                  depth: 2
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Max-Cut on triangle graph',
+                  call: {
+                    operation: 'max_cut',
+                    nodes: 3,
+                    edges: [
+                      [0, 1],
+                      [1, 2],
+                      [0, 2],
+                    ],
+                    depth: 2,
+                  },
+                  description: 'Find maximum cut on a 3-node complete graph',
                 },
-                description: 'Find maximum cut on a 3-node complete graph'
-              },
-              {
-                name: 'Max-Cut on 5-node graph',
-                call: {
-                  operation: 'max_cut',
-                  nodes: 5,
-                  edges: [[0, 1], [1, 2], [2, 3], [3, 4], [0, 4], [1, 3]],
-                  depth: 3
-                }
-              },
-              {
-                name: 'Custom optimization',
-                call: {
-                  operation: 'optimize',
-                  nodes: 4,
-                  edges: [[0, 1, 2], [1, 2, 1], [2, 3, 3], [0, 3, 1]],
-                  depth: 2,
-                  iterations: 100
+                {
+                  name: 'Max-Cut on 5-node graph',
+                  call: {
+                    operation: 'max_cut',
+                    nodes: 5,
+                    edges: [
+                      [0, 1],
+                      [1, 2],
+                      [2, 3],
+                      [3, 4],
+                      [0, 4],
+                      [1, 3],
+                    ],
+                    depth: 3,
+                  },
                 },
-                description: 'Weighted graph optimization'
-              },
-              {
-                name: 'TSP for 4 cities',
-                call: {
-                  operation: 'tsp',
-                  distances: [
-                    [0, 10, 15, 20],
-                    [10, 0, 35, 25],
-                    [15, 35, 0, 30],
-                    [20, 25, 30, 0]
-                  ]
-                }
-              }
-            ]
-          }, null, 2)
+                {
+                  name: 'Custom optimization',
+                  call: {
+                    operation: 'optimize',
+                    nodes: 4,
+                    edges: [
+                      [0, 1, 2],
+                      [1, 2, 1],
+                      [2, 3, 3],
+                      [0, 3, 1],
+                    ],
+                    depth: 2,
+                    iterations: 100,
+                  },
+                  description: 'Weighted graph optimization',
+                },
+                {
+                  name: 'TSP for 4 cities',
+                  call: {
+                    operation: 'tsp',
+                    distances: [
+                      [0, 10, 15, 20],
+                      [10, 0, 35, 25],
+                      [15, 35, 0, 30],
+                      [20, 25, 30, 0],
+                    ],
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -700,7 +736,7 @@ export async function executeqaoa(toolCall: UnifiedToolCall): Promise<UnifiedToo
         return {
           toolCallId: id,
           content: `Error: Unknown operation '${operation}'. Valid: max_cut, optimize, tsp, info, examples`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

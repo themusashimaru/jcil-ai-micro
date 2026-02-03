@@ -16,49 +16,59 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const wordembeddingsTool: UnifiedTool = {
   name: 'word_embeddings',
-  description: 'Word embeddings (Word2Vec, GloVe, FastText) with similarity, analogy, and visualization',
+  description:
+    'Word embeddings (Word2Vec, GloVe, FastText) with similarity, analogy, and visualization',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['embed', 'similarity', 'analogy', 'nearest', 'train', 'visualize', 'arithmetic', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'embed',
+          'similarity',
+          'analogy',
+          'nearest',
+          'train',
+          'visualize',
+          'arithmetic',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       model: {
         type: 'string',
         enum: ['word2vec', 'glove', 'fasttext'],
-        description: 'Embedding model type'
+        description: 'Embedding model type',
       },
       words: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Words to embed or compare'
+        description: 'Words to embed or compare',
       },
       corpus: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Training corpus (sentences)'
+        description: 'Training corpus (sentences)',
       },
       positive: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Positive words for analogy/arithmetic'
+        description: 'Positive words for analogy/arithmetic',
       },
       negative: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Negative words for analogy/arithmetic'
+        description: 'Negative words for analogy/arithmetic',
       },
       embedding_dim: { type: 'integer', description: 'Embedding dimension (default: 100)' },
       window_size: { type: 'integer', description: 'Context window size (default: 5)' },
       min_count: { type: 'integer', description: 'Minimum word frequency (default: 1)' },
       epochs: { type: 'integer', description: 'Training epochs (default: 5)' },
       top_k: { type: 'integer', description: 'Number of nearest neighbors (default: 10)' },
-      metric: { type: 'string', enum: ['cosine', 'euclidean'], description: 'Distance metric' }
+      metric: { type: 'string', enum: ['cosine', 'euclidean'], description: 'Distance metric' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Simple pseudo-random number generator for reproducibility
@@ -92,14 +102,18 @@ interface Vocabulary {
 
 // Tokenize text into words
 function tokenize(text: string): string[] {
-  return text.toLowerCase()
+  return text
+    .toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 0);
+    .filter((w) => w.length > 0);
 }
 
 // Build vocabulary from corpus
-function buildVocabulary(corpus: string[], minCount: number = 1): { vocab: Vocabulary; sentences: number[][] } {
+function buildVocabulary(
+  corpus: string[],
+  minCount: number = 1
+): { vocab: Vocabulary; sentences: number[][] } {
   const wordCounts = new Map<string, number>();
 
   // Count word frequencies
@@ -130,9 +144,7 @@ function buildVocabulary(corpus: string[], minCount: number = 1): { vocab: Vocab
   // Convert sentences to indices
   const sentences: number[][] = [];
   for (const tokens of tokenizedSentences) {
-    const indices = tokens
-      .filter(t => word2idx.has(t))
-      .map(t => word2idx.get(t)!);
+    const indices = tokens.filter((t) => word2idx.has(t)).map((t) => word2idx.get(t)!);
     if (indices.length > 0) {
       sentences.push(indices);
     }
@@ -143,9 +155,9 @@ function buildVocabulary(corpus: string[], minCount: number = 1): { vocab: Vocab
       word2idx,
       idx2word,
       counts,
-      embeddings: []
+      embeddings: [],
     },
-    sentences
+    sentences,
   };
 }
 
@@ -181,7 +193,7 @@ function vectorNorm(v: number[]): number {
 function normalizeVector(v: number[]): number[] {
   const norm = vectorNorm(v);
   if (norm === 0) return v.slice();
-  return v.map(x => x / norm);
+  return v.map((x) => x / norm);
 }
 
 function vectorAdd(a: number[], b: number[]): number[] {
@@ -192,9 +204,8 @@ function vectorSub(a: number[], b: number[]): number[] {
   return a.map((x, i) => x - b[i]);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vectorScale(v: number[], s: number): number[] {
-  return v.map(x => x * s);
+export function vectorScale(v: number[], s: number): number[] {
+  return v.map((x) => x * s);
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -314,7 +325,11 @@ function trainGloVe(
 
   for (const sentence of sentences) {
     for (let i = 0; i < sentence.length; i++) {
-      for (let j = Math.max(0, i - windowSize); j < Math.min(sentence.length, i + windowSize + 1); j++) {
+      for (
+        let j = Math.max(0, i - windowSize);
+        j < Math.min(sentence.length, i + windowSize + 1);
+        j++
+      ) {
         if (i !== j) {
           const key = `${sentence[i]},${sentence[j]}`;
           const distance = Math.abs(i - j);
@@ -401,7 +416,7 @@ function trainFastText(
       if (!ngramEmbeddings.has(ngram)) {
         const emb: number[] = [];
         for (let j = 0; j < embeddingDim; j++) {
-          emb.push((rng.next() - 0.5) * 0.5 / embeddingDim);
+          emb.push(((rng.next() - 0.5) * 0.5) / embeddingDim);
         }
         ngramEmbeddings.set(ngram, emb);
       }
@@ -425,7 +440,7 @@ function trainFastText(
     }
     // Normalize by number of n-grams
     const scale = 1 / Math.max(1, ngrams.length);
-    return emb.map(x => x * scale);
+    return emb.map((x) => x * scale);
   }
 
   // Training loop (similar to Word2Vec)
@@ -465,7 +480,7 @@ function trainFastText(
           for (const ngram of targetNgrams) {
             const ngramEmb = ngramEmbeddings.get(ngram)!;
             for (let k = 0; k < embeddingDim; k++) {
-              ngramEmb[k] += lr * error * contextEmbeddings[contextIdx][k] / targetNgrams.length;
+              ngramEmb[k] += (lr * error * contextEmbeddings[contextIdx][k]) / targetNgrams.length;
             }
           }
 
@@ -513,9 +528,9 @@ function findNearestNeighbors(
 
   scores.sort((a, b) => b.score - a.score);
 
-  return scores.slice(0, topK).map(s => ({
+  return scores.slice(0, topK).map((s) => ({
     word: idx2word[s.idx],
-    score: metric === 'euclidean' ? -s.score : s.score
+    score: metric === 'euclidean' ? -s.score : s.score,
   }));
 }
 
@@ -538,7 +553,7 @@ function pca2D(embeddings: number[][]): number[][] {
   }
 
   // Center data
-  const centered = embeddings.map(emb => vectorSub(emb, mean));
+  const centered = embeddings.map((emb) => vectorSub(emb, mean));
 
   // Compute covariance matrix (approximate using power iteration)
   // Find first two principal components using power iteration
@@ -550,7 +565,7 @@ function pca2D(embeddings: number[][]): number[][] {
 
     for (let iter = 0; iter < numIter; iter++) {
       // v = X^T * X * v
-      const Xv = data.map(x => dotProduct(x, v));
+      const Xv = data.map((x) => dotProduct(x, v));
       const newV = new Array(v.length).fill(0);
       for (let i = 0; i < data.length; i++) {
         for (let j = 0; j < v.length; j++) {
@@ -566,7 +581,7 @@ function pca2D(embeddings: number[][]): number[][] {
   const pc1 = powerIteration(centered);
 
   // Deflate data
-  const deflated = centered.map(x => {
+  const deflated = centered.map((x) => {
     const proj = dotProduct(x, pc1);
     return x.map((xi, i) => xi - proj * pc1[i]);
   });
@@ -575,11 +590,15 @@ function pca2D(embeddings: number[][]): number[][] {
   const pc2 = powerIteration(deflated);
 
   // Project data onto first two PCs
-  return centered.map(x => [dotProduct(x, pc1), dotProduct(x, pc2)]);
+  return centered.map((x) => [dotProduct(x, pc1), dotProduct(x, pc2)]);
 }
 
 // Simple t-SNE (simplified Barnes-Hut approximation)
-function tsne2D(embeddings: number[][], perplexity: number = 30, iterations: number = 500): number[][] {
+function tsne2D(
+  embeddings: number[][],
+  perplexity: number = 30,
+  iterations: number = 500
+): number[][] {
   if (embeddings.length === 0) return [];
 
   const n = embeddings.length;
@@ -619,7 +638,7 @@ function tsne2D(embeddings: number[][], perplexity: number = 30, iterations: num
 
       for (let j = 0; j < n; j++) {
         if (i !== j) {
-          P[i][j] = Math.exp(-distances[i][j] * distances[i][j] / (2 * sigma * sigma));
+          P[i][j] = Math.exp((-distances[i][j] * distances[i][j]) / (2 * sigma * sigma));
           sumP += P[i][j];
         }
       }
@@ -692,7 +711,7 @@ function tsne2D(embeddings: number[][], perplexity: number = 30, iterations: num
       for (let j = 0; j < n; j++) {
         if (i !== j) {
           const dist = euclideanDistance(Y[i], Y[j]);
-          const mult = 4 * (P[i][j] - Q[i][j]) / (1 + dist * dist);
+          const mult = (4 * (P[i][j] - Q[i][j])) / (1 + dist * dist);
           gradients[i][0] += mult * (Y[i][0] - Y[j][0]);
           gradients[i][1] += mult * (Y[i][1] - Y[j][1]);
         }
@@ -709,7 +728,8 @@ function tsne2D(embeddings: number[][], perplexity: number = 30, iterations: num
           gains[i][d] = Math.max(gains[i][d] * 0.8, 0.01);
         }
 
-        velocities[i][d] = momentum * velocities[i][d] - learningRate * gains[i][d] * gradients[i][d];
+        velocities[i][d] =
+          momentum * velocities[i][d] - learningRate * gains[i][d] * gradients[i][d];
         Y[i][d] += velocities[i][d];
       }
     }
@@ -734,51 +754,51 @@ function tsne2D(embeddings: number[][], perplexity: number = 30, iterations: num
 // Demo vocabulary with pre-computed embeddings for common words
 const DEMO_EMBEDDINGS: Record<string, number[]> = {
   // Royalty
-  'king': [0.5, 0.8, 0.1, -0.2, 0.3, 0.7, -0.1, 0.4, 0.2, 0.6],
-  'queen': [0.5, 0.8, -0.3, 0.2, 0.3, 0.7, 0.3, 0.4, -0.2, 0.6],
-  'prince': [0.4, 0.7, 0.2, -0.1, 0.2, 0.6, -0.1, 0.3, 0.1, 0.5],
-  'princess': [0.4, 0.7, -0.2, 0.1, 0.2, 0.6, 0.2, 0.3, -0.1, 0.5],
-  'royal': [0.45, 0.75, 0.0, 0.0, 0.25, 0.65, 0.1, 0.35, 0.0, 0.55],
+  king: [0.5, 0.8, 0.1, -0.2, 0.3, 0.7, -0.1, 0.4, 0.2, 0.6],
+  queen: [0.5, 0.8, -0.3, 0.2, 0.3, 0.7, 0.3, 0.4, -0.2, 0.6],
+  prince: [0.4, 0.7, 0.2, -0.1, 0.2, 0.6, -0.1, 0.3, 0.1, 0.5],
+  princess: [0.4, 0.7, -0.2, 0.1, 0.2, 0.6, 0.2, 0.3, -0.1, 0.5],
+  royal: [0.45, 0.75, 0.0, 0.0, 0.25, 0.65, 0.1, 0.35, 0.0, 0.55],
 
   // Gender
-  'man': [0.1, 0.2, 0.4, -0.4, -0.1, 0.1, -0.3, 0.0, 0.3, 0.1],
-  'woman': [0.1, 0.2, -0.2, 0.2, -0.1, 0.1, 0.3, 0.0, -0.1, 0.1],
-  'boy': [0.0, 0.1, 0.3, -0.3, -0.2, 0.0, -0.2, -0.1, 0.2, 0.0],
-  'girl': [0.0, 0.1, -0.1, 0.1, -0.2, 0.0, 0.2, -0.1, -0.1, 0.0],
+  man: [0.1, 0.2, 0.4, -0.4, -0.1, 0.1, -0.3, 0.0, 0.3, 0.1],
+  woman: [0.1, 0.2, -0.2, 0.2, -0.1, 0.1, 0.3, 0.0, -0.1, 0.1],
+  boy: [0.0, 0.1, 0.3, -0.3, -0.2, 0.0, -0.2, -0.1, 0.2, 0.0],
+  girl: [0.0, 0.1, -0.1, 0.1, -0.2, 0.0, 0.2, -0.1, -0.1, 0.0],
 
   // Animals
-  'cat': [-0.3, -0.2, 0.1, 0.0, 0.5, -0.3, 0.0, -0.2, 0.4, -0.2],
-  'dog': [-0.3, -0.2, 0.2, -0.1, 0.6, -0.3, -0.1, -0.2, 0.3, -0.2],
-  'kitten': [-0.35, -0.25, 0.05, 0.05, 0.45, -0.35, 0.05, -0.25, 0.35, -0.25],
-  'puppy': [-0.35, -0.25, 0.15, -0.05, 0.55, -0.35, -0.05, -0.25, 0.25, -0.25],
+  cat: [-0.3, -0.2, 0.1, 0.0, 0.5, -0.3, 0.0, -0.2, 0.4, -0.2],
+  dog: [-0.3, -0.2, 0.2, -0.1, 0.6, -0.3, -0.1, -0.2, 0.3, -0.2],
+  kitten: [-0.35, -0.25, 0.05, 0.05, 0.45, -0.35, 0.05, -0.25, 0.35, -0.25],
+  puppy: [-0.35, -0.25, 0.15, -0.05, 0.55, -0.35, -0.05, -0.25, 0.25, -0.25],
 
   // Countries and capitals
-  'paris': [0.7, -0.3, -0.1, 0.5, -0.2, 0.4, 0.1, 0.6, -0.1, 0.3],
-  'france': [0.7, -0.3, 0.1, 0.3, -0.3, 0.5, 0.0, 0.5, 0.0, 0.4],
-  'london': [0.6, -0.4, -0.1, 0.4, -0.1, 0.3, 0.2, 0.5, -0.2, 0.2],
-  'england': [0.6, -0.4, 0.1, 0.2, -0.2, 0.4, 0.1, 0.4, -0.1, 0.3],
-  'berlin': [0.65, -0.35, -0.15, 0.45, -0.15, 0.35, 0.15, 0.55, -0.15, 0.25],
-  'germany': [0.65, -0.35, 0.05, 0.25, -0.25, 0.45, 0.05, 0.45, -0.05, 0.35],
-  'tokyo': [0.55, -0.45, -0.2, 0.35, -0.05, 0.25, 0.25, 0.45, -0.25, 0.15],
-  'japan': [0.55, -0.45, 0.0, 0.15, -0.15, 0.35, 0.15, 0.35, -0.15, 0.25],
+  paris: [0.7, -0.3, -0.1, 0.5, -0.2, 0.4, 0.1, 0.6, -0.1, 0.3],
+  france: [0.7, -0.3, 0.1, 0.3, -0.3, 0.5, 0.0, 0.5, 0.0, 0.4],
+  london: [0.6, -0.4, -0.1, 0.4, -0.1, 0.3, 0.2, 0.5, -0.2, 0.2],
+  england: [0.6, -0.4, 0.1, 0.2, -0.2, 0.4, 0.1, 0.4, -0.1, 0.3],
+  berlin: [0.65, -0.35, -0.15, 0.45, -0.15, 0.35, 0.15, 0.55, -0.15, 0.25],
+  germany: [0.65, -0.35, 0.05, 0.25, -0.25, 0.45, 0.05, 0.45, -0.05, 0.35],
+  tokyo: [0.55, -0.45, -0.2, 0.35, -0.05, 0.25, 0.25, 0.45, -0.25, 0.15],
+  japan: [0.55, -0.45, 0.0, 0.15, -0.15, 0.35, 0.15, 0.35, -0.15, 0.25],
 
   // Technology
-  'computer': [-0.4, 0.5, 0.3, -0.1, -0.4, -0.2, 0.4, 0.1, 0.5, -0.3],
-  'software': [-0.35, 0.45, 0.25, -0.05, -0.45, -0.25, 0.45, 0.05, 0.45, -0.35],
-  'programming': [-0.38, 0.48, 0.28, -0.08, -0.42, -0.22, 0.42, 0.08, 0.48, -0.32],
-  'code': [-0.36, 0.46, 0.26, -0.06, -0.44, -0.24, 0.44, 0.06, 0.46, -0.34],
+  computer: [-0.4, 0.5, 0.3, -0.1, -0.4, -0.2, 0.4, 0.1, 0.5, -0.3],
+  software: [-0.35, 0.45, 0.25, -0.05, -0.45, -0.25, 0.45, 0.05, 0.45, -0.35],
+  programming: [-0.38, 0.48, 0.28, -0.08, -0.42, -0.22, 0.42, 0.08, 0.48, -0.32],
+  code: [-0.36, 0.46, 0.26, -0.06, -0.44, -0.24, 0.44, 0.06, 0.46, -0.34],
 
   // Food
-  'apple': [-0.1, -0.4, 0.0, 0.3, 0.2, -0.5, -0.2, 0.4, -0.3, 0.5],
-  'banana': [-0.12, -0.42, 0.02, 0.32, 0.18, -0.48, -0.18, 0.38, -0.32, 0.48],
-  'orange': [-0.08, -0.38, -0.02, 0.28, 0.22, -0.52, -0.22, 0.42, -0.28, 0.52],
-  'fruit': [-0.1, -0.4, 0.0, 0.3, 0.2, -0.5, -0.2, 0.4, -0.3, 0.5],
+  apple: [-0.1, -0.4, 0.0, 0.3, 0.2, -0.5, -0.2, 0.4, -0.3, 0.5],
+  banana: [-0.12, -0.42, 0.02, 0.32, 0.18, -0.48, -0.18, 0.38, -0.32, 0.48],
+  orange: [-0.08, -0.38, -0.02, 0.28, 0.22, -0.52, -0.22, 0.42, -0.28, 0.52],
+  fruit: [-0.1, -0.4, 0.0, 0.3, 0.2, -0.5, -0.2, 0.4, -0.3, 0.5],
 
   // Verbs
-  'walk': [0.2, 0.1, 0.3, 0.1, 0.1, 0.2, -0.2, -0.3, 0.2, -0.1],
-  'run': [0.25, 0.15, 0.35, 0.15, 0.05, 0.25, -0.25, -0.35, 0.25, -0.05],
-  'swim': [0.18, 0.08, 0.28, 0.08, 0.12, 0.18, -0.18, -0.28, 0.18, -0.12],
-  'fly': [0.22, 0.12, 0.32, 0.12, 0.08, 0.22, -0.22, -0.32, 0.22, -0.08]
+  walk: [0.2, 0.1, 0.3, 0.1, 0.1, 0.2, -0.2, -0.3, 0.2, -0.1],
+  run: [0.25, 0.15, 0.35, 0.15, 0.05, 0.25, -0.25, -0.35, 0.25, -0.05],
+  swim: [0.18, 0.08, 0.28, 0.08, 0.12, 0.18, -0.18, -0.28, 0.18, -0.12],
+  fly: [0.22, 0.12, 0.32, 0.12, 0.08, 0.22, -0.22, -0.32, 0.22, -0.08],
 };
 
 export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -786,47 +806,51 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const operation = args.operation as string;
-    const model = args.model as string || 'word2vec';
+    const model = (args.model as string) || 'word2vec';
 
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'word_embeddings',
-          description: 'Word embedding models for semantic word representations',
-          models: {
-            word2vec: 'Skip-gram model that learns word representations from context',
-            glove: 'Global Vectors based on co-occurrence statistics',
-            fasttext: 'Embeddings with character n-grams for handling OOV words'
+        content: JSON.stringify(
+          {
+            tool: 'word_embeddings',
+            description: 'Word embedding models for semantic word representations',
+            models: {
+              word2vec: 'Skip-gram model that learns word representations from context',
+              glove: 'Global Vectors based on co-occurrence statistics',
+              fasttext: 'Embeddings with character n-grams for handling OOV words',
+            },
+            operations: {
+              embed: 'Get embedding vectors for specified words',
+              similarity: 'Compute similarity between two words',
+              analogy: 'Solve word analogies (king - man + woman = ?)',
+              nearest: 'Find nearest neighbor words by embedding similarity',
+              train: 'Train embeddings on custom corpus',
+              visualize: 'Reduce embeddings to 2D using PCA or t-SNE',
+              arithmetic: 'Perform vector arithmetic on word embeddings',
+            },
+            parameters: {
+              words: 'Array of words to embed or compare',
+              corpus: 'Array of sentences for training',
+              positive: 'Words to add in analogy/arithmetic',
+              negative: 'Words to subtract in analogy/arithmetic',
+              embedding_dim: 'Vector dimension (default: 100)',
+              window_size: 'Context window size (default: 5)',
+              epochs: 'Training epochs (default: 5)',
+              top_k: 'Number of nearest neighbors (default: 10)',
+              metric: 'Distance metric: cosine or euclidean',
+            },
+            demo_vocabulary: Object.keys(DEMO_EMBEDDINGS),
+            concepts: {
+              distributional_hypothesis: 'Words in similar contexts have similar meanings',
+              cosine_similarity: 'Measures angle between vectors (1=identical, 0=orthogonal)',
+              analogy: 'Captures semantic relationships: king-man+woman≈queen',
+              oov: 'Out-of-vocabulary words can be handled by FastText using subwords',
+            },
           },
-          operations: {
-            embed: 'Get embedding vectors for specified words',
-            similarity: 'Compute similarity between two words',
-            analogy: 'Solve word analogies (king - man + woman = ?)',
-            nearest: 'Find nearest neighbor words by embedding similarity',
-            train: 'Train embeddings on custom corpus',
-            visualize: 'Reduce embeddings to 2D using PCA or t-SNE',
-            arithmetic: 'Perform vector arithmetic on word embeddings'
-          },
-          parameters: {
-            words: 'Array of words to embed or compare',
-            corpus: 'Array of sentences for training',
-            positive: 'Words to add in analogy/arithmetic',
-            negative: 'Words to subtract in analogy/arithmetic',
-            embedding_dim: 'Vector dimension (default: 100)',
-            window_size: 'Context window size (default: 5)',
-            epochs: 'Training epochs (default: 5)',
-            top_k: 'Number of nearest neighbors (default: 10)',
-            metric: 'Distance metric: cosine or euclidean'
-          },
-          demo_vocabulary: Object.keys(DEMO_EMBEDDINGS),
-          concepts: {
-            distributional_hypothesis: 'Words in similar contexts have similar meanings',
-            cosine_similarity: 'Measures angle between vectors (1=identical, 0=orthogonal)',
-            analogy: 'Captures semantic relationships: king-man+woman≈queen',
-            oov: 'Out-of-vocabulary words can be handled by FastText using subwords'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -841,7 +865,7 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
 
     switch (operation) {
       case 'embed': {
-        const words = args.words as string[] || [];
+        const words = (args.words as string[]) || [];
         if (words.length === 0) {
           throw new Error('Please provide words to embed');
         }
@@ -862,13 +886,16 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
           embeddings,
           embedding_dimension: 10,
           not_found: notFound.length > 0 ? notFound : undefined,
-          note: notFound.length > 0 ? 'Use train operation with custom corpus for custom vocabulary' : undefined
+          note:
+            notFound.length > 0
+              ? 'Use train operation with custom corpus for custom vocabulary'
+              : undefined,
         };
         break;
       }
 
       case 'similarity': {
-        const words = args.words as string[] || [];
+        const words = (args.words as string[]) || [];
         if (words.length < 2) {
           throw new Error('Please provide at least 2 words to compare');
         }
@@ -881,9 +908,10 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
             const w2 = words[j].toLowerCase();
 
             if (DEMO_EMBEDDINGS[w1] && DEMO_EMBEDDINGS[w2]) {
-              const sim = metric === 'cosine'
-                ? cosineSimilarity(DEMO_EMBEDDINGS[w1], DEMO_EMBEDDINGS[w2])
-                : 1 / (1 + euclideanDistance(DEMO_EMBEDDINGS[w1], DEMO_EMBEDDINGS[w2]));
+              const sim =
+                metric === 'cosine'
+                  ? cosineSimilarity(DEMO_EMBEDDINGS[w1], DEMO_EMBEDDINGS[w2])
+                  : 1 / (1 + euclideanDistance(DEMO_EMBEDDINGS[w1], DEMO_EMBEDDINGS[w2]));
               similarities.push({ pair: [w1, w2], similarity: sim });
             }
           }
@@ -896,8 +924,8 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
 
       case 'analogy':
       case 'arithmetic': {
-        const positive = (args.positive as string[] || []).map(w => w.toLowerCase());
-        const negative = (args.negative as string[] || []).map(w => w.toLowerCase());
+        const positive = ((args.positive as string[]) || []).map((w) => w.toLowerCase());
+        const negative = ((args.negative as string[]) || []).map((w) => w.toLowerCase());
 
         if (positive.length === 0) {
           throw new Error('Please provide positive words for the analogy');
@@ -925,7 +953,7 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
         // Find nearest neighbors excluding input words
         const excludeWords = new Set([...positive, ...negative]);
         const demoWords = Object.keys(DEMO_EMBEDDINGS);
-        const demoEmbeddings = demoWords.map(w => DEMO_EMBEDDINGS[w]);
+        const demoEmbeddings = demoWords.map((w) => DEMO_EMBEDDINGS[w]);
 
         const nearest = findNearestNeighbors(
           targetVec,
@@ -942,24 +970,26 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
           result_vector: targetVec,
           nearest_words: nearest,
           metric,
-          example: operation === 'analogy' ? 'king - man + woman ≈ queen' : undefined
+          example: operation === 'analogy' ? 'king - man + woman ≈ queen' : undefined,
         };
         break;
       }
 
       case 'nearest': {
-        const words = args.words as string[] || [];
+        const words = (args.words as string[]) || [];
         if (words.length === 0) {
           throw new Error('Please provide a word to find neighbors for');
         }
 
         const word = words[0].toLowerCase();
         if (!DEMO_EMBEDDINGS[word]) {
-          throw new Error(`Word "${word}" not in demo vocabulary. Use train operation for custom vocabulary.`);
+          throw new Error(
+            `Word "${word}" not in demo vocabulary. Use train operation for custom vocabulary.`
+          );
         }
 
         const demoWords = Object.keys(DEMO_EMBEDDINGS);
-        const demoEmbeddings = demoWords.map(w => DEMO_EMBEDDINGS[w]);
+        const demoEmbeddings = demoWords.map((w) => DEMO_EMBEDDINGS[w]);
 
         const nearest = findNearestNeighbors(
           DEMO_EMBEDDINGS[word],
@@ -973,13 +1003,13 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
         result = {
           word,
           nearest_neighbors: nearest.slice(0, topK),
-          metric
+          metric,
         };
         break;
       }
 
       case 'train': {
-        const corpus = args.corpus as string[] || [];
+        const corpus = (args.corpus as string[]) || [];
         if (corpus.length === 0) {
           throw new Error('Please provide a corpus (array of sentences) for training');
         }
@@ -1035,7 +1065,7 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
         // Create word -> embedding map
         const wordEmbeddings: Record<string, number[]> = {};
         for (let i = 0; i < vocab.idx2word.length; i++) {
-          wordEmbeddings[vocab.idx2word[i]] = embeddings[i].map(x => parseFloat(x.toFixed(4)));
+          wordEmbeddings[vocab.idx2word[i]] = embeddings[i].map((x) => parseFloat(x.toFixed(4)));
         }
 
         result = {
@@ -1045,24 +1075,22 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
           epochs,
           window_size: windowSize,
           vocabulary: vocab.idx2word.slice(0, 50),
-          sample_embeddings: Object.fromEntries(
-            Object.entries(wordEmbeddings).slice(0, 10)
-          ),
-          ngram_count: ngramEmbeddings?.size
+          sample_embeddings: Object.fromEntries(Object.entries(wordEmbeddings).slice(0, 10)),
+          ngram_count: ngramEmbeddings?.size,
         };
         break;
       }
 
       case 'visualize': {
-        const words = args.words as string[] || Object.keys(DEMO_EMBEDDINGS);
+        const words = (args.words as string[]) || Object.keys(DEMO_EMBEDDINGS);
         const method = args.method || 'pca';
 
-        const validWords = words.filter(w => DEMO_EMBEDDINGS[w.toLowerCase()]);
+        const validWords = words.filter((w) => DEMO_EMBEDDINGS[w.toLowerCase()]);
         if (validWords.length === 0) {
           throw new Error('No valid words found in demo vocabulary');
         }
 
-        const embeddings = validWords.map(w => DEMO_EMBEDDINGS[w.toLowerCase()]);
+        const embeddings = validWords.map((w) => DEMO_EMBEDDINGS[w.toLowerCase()]);
 
         let coordinates: number[][];
         if (method === 'tsne') {
@@ -1074,13 +1102,13 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
         const visualization = validWords.map((word, i) => ({
           word: word.toLowerCase(),
           x: parseFloat(coordinates[i][0].toFixed(4)),
-          y: parseFloat(coordinates[i][1].toFixed(4))
+          y: parseFloat(coordinates[i][1].toFixed(4)),
         }));
 
         result = {
           method,
           coordinates: visualization,
-          note: 'Coordinates are in 2D space for visualization'
+          note: 'Coordinates are in 2D space for visualization',
         };
         break;
       }
@@ -1091,17 +1119,22 @@ export async function executewordembeddings(toolCall: UnifiedToolCall): Promise<
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        operation,
-        model,
-        ...result
-      }, null, 2)
+      content: JSON.stringify(
+        {
+          operation,
+          model,
+          ...result,
+        },
+        null,
+        2
+      ),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function iswordembeddingsAvailable(): boolean { return true; }
+export function iswordembeddingsAvailable(): boolean {
+  return true;
+}

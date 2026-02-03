@@ -51,7 +51,7 @@ function simpsonIndex(abundances: number[]): { D: number; complement: number; re
   return {
     D: Math.round(D * 10000) / 10000,
     complement: Math.round((1 - D) * 10000) / 10000,
-    reciprocal: Math.round(1 / D * 100) / 100,
+    reciprocal: Math.round((1 / D) * 100) / 100,
   };
 }
 
@@ -67,7 +67,7 @@ function shannonIndex(abundances: number[]): { H: number; Hmax: number; evenness
     }
   }
 
-  const S = abundances.filter(n => n > 0).length;
+  const S = abundances.filter((n) => n > 0).length;
   const Hmax = Math.log(S);
   const evenness = Hmax > 0 ? H / Hmax : 0;
 
@@ -79,7 +79,7 @@ function shannonIndex(abundances: number[]): { H: number; Hmax: number; evenness
 }
 
 function speciesRichness(abundances: number[]): number {
-  return abundances.filter(n => n > 0).length;
+  return abundances.filter((n) => n > 0).length;
 }
 
 // ============================================================================
@@ -87,8 +87,12 @@ function speciesRichness(abundances: number[]): number {
 // ============================================================================
 
 function lotkaVolterra(
-  prey: number, predator: number,
-  alpha: number, beta: number, gamma: number, delta: number,
+  prey: number,
+  predator: number,
+  alpha: number,
+  beta: number,
+  gamma: number,
+  delta: number,
   dt: number
 ): { prey: number; predator: number } {
   // dx/dt = αx - βxy (prey)
@@ -132,7 +136,11 @@ export function trophicEfficiency(energyIn: number, energyOut: number): number {
   return (energyOut / energyIn) * 100;
 }
 
-function biomassAtLevel(primaryProduction: number, level: number, efficiency: number = 0.1): number {
+function biomassAtLevel(
+  primaryProduction: number,
+  level: number,
+  efficiency: number = 0.1
+): number {
   return primaryProduction * Math.pow(efficiency, level - 1);
 }
 
@@ -163,7 +171,11 @@ Operations:
       r: { type: 'number', description: 'Growth rate' },
       K: { type: 'number', description: 'Carrying capacity' },
       t: { type: 'number', description: 'Time' },
-      abundances: { type: 'array', items: { type: 'number' }, description: 'Species abundances array' },
+      abundances: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Species abundances array',
+      },
       prey: { type: 'number', description: 'Prey population' },
       predator: { type: 'number', description: 'Predator population' },
       alpha: { type: 'number', description: 'Prey growth rate' },
@@ -221,7 +233,7 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
           },
           logistic_growth: {
             final_population: Math.round(logPop),
-            percent_of_K: Math.round(logPop / K * 100),
+            percent_of_K: Math.round((logPop / K) * 100),
             density_dependent: true,
           },
           growth_curve: curve,
@@ -244,25 +256,42 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
             D: simpson.D,
             complement_1_D: simpson.complement,
             reciprocal_1_over_D: simpson.reciprocal,
-            interpretation: simpson.complement > 0.8 ? 'High diversity' : simpson.complement > 0.5 ? 'Moderate diversity' : 'Low diversity',
+            interpretation:
+              simpson.complement > 0.8
+                ? 'High diversity'
+                : simpson.complement > 0.5
+                  ? 'Moderate diversity'
+                  : 'Low diversity',
           },
           shannon_index: {
             H: shannon.H,
             H_max: shannon.Hmax,
             evenness_J: shannon.evenness,
-            interpretation: shannon.H > 2 ? 'High diversity' : shannon.H > 1 ? 'Moderate diversity' : 'Low diversity',
+            interpretation:
+              shannon.H > 2
+                ? 'High diversity'
+                : shannon.H > 1
+                  ? 'Moderate diversity'
+                  : 'Low diversity',
           },
           species_abundances: (abundances as number[]).map((n: number, i: number) => ({
             species: i + 1,
             count: n,
-            relative_abundance: Math.round(n / total * 10000) / 100,
+            relative_abundance: Math.round((n / total) * 10000) / 100,
           })),
         };
         break;
       }
 
       case 'predator_prey': {
-        const { prey = 100, predator = 20, alpha = 0.1, beta = 0.01, gamma = 0.1, delta = 0.005 } = args;
+        const {
+          prey = 100,
+          predator = 20,
+          alpha = 0.1,
+          beta = 0.01,
+          gamma = 0.1,
+          delta = 0.005,
+        } = args;
 
         // Simulate for 100 time steps
         const simulation: Array<{ t: number; prey: number; predator: number }> = [];
@@ -316,7 +345,8 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
           },
           total_ecological_footprint_hectares: fp.totalHectares,
           earths_needed: fp.earths,
-          sustainability: fp.earths <= 1 ? 'Sustainable' : fp.earths <= 2 ? 'Above average' : 'Unsustainable',
+          sustainability:
+            fp.earths <= 1 ? 'Sustainable' : fp.earths <= 2 ? 'Above average' : 'Unsustainable',
           global_average_comparison: {
             world_average_hectares: 2.75,
             your_footprint: fp.totalHectares > 2.75 ? 'Above average' : 'Below average',
@@ -334,9 +364,18 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
           const biomass = biomassAtLevel(primary_production, i, eff);
           levels.push({
             level: i,
-            name: i === 1 ? 'Producers' : i === 2 ? 'Primary consumers' : i === 3 ? 'Secondary consumers' : i === 4 ? 'Tertiary consumers' : 'Apex predators',
+            name:
+              i === 1
+                ? 'Producers'
+                : i === 2
+                  ? 'Primary consumers'
+                  : i === 3
+                    ? 'Secondary consumers'
+                    : i === 4
+                      ? 'Tertiary consumers'
+                      : 'Apex predators',
             energy_available: Math.round(biomass * 100) / 100,
-            percent_of_primary: Math.round(biomass / primary_production * 10000) / 100,
+            percent_of_primary: Math.round((biomass / primary_production) * 10000) / 100,
           });
         }
 
@@ -360,9 +399,14 @@ export async function executeEcology(toolCall: UnifiedToolCall): Promise<Unified
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Ecology Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Ecology Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isEcologyAvailable(): boolean { return true; }
-void _carryingCapacity; void _trophicEfficiency;
+export function isEcologyAvailable(): boolean {
+  return true;
+}

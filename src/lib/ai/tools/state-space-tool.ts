@@ -15,7 +15,9 @@ type Matrix = number[][];
 
 // Matrix operations
 function matrixCreate(rows: number, cols: number, fill: number = 0): Matrix {
-  return Array(rows).fill(null).map(() => Array(cols).fill(fill));
+  return Array(rows)
+    .fill(null)
+    .map(() => Array(cols).fill(fill));
 }
 
 function matrixIdentity(n: number): Matrix {
@@ -38,20 +40,8 @@ function matrixAdd(A: Matrix, B: Matrix): Matrix {
   return C;
 }
 
-function matrixSubtract(A: Matrix, B: Matrix): Matrix {
-  const rows = A.length;
-  const cols = A[0].length;
-  const C = matrixCreate(rows, cols);
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      C[i][j] = A[i][j] - B[i][j];
-    }
-  }
-  return C;
-}
-
 function matrixScale(A: Matrix, s: number): Matrix {
-  return A.map(row => row.map(val => val * s));
+  return A.map((row) => row.map((val) => val * s));
 }
 
 function matrixMultiply(A: Matrix, B: Matrix): Matrix {
@@ -72,38 +62,16 @@ function matrixMultiply(A: Matrix, B: Matrix): Matrix {
   return C;
 }
 
-function matrixTranspose(A: Matrix): Matrix {
-  const rows = A.length;
-  const cols = A[0].length;
-  const T = matrixCreate(cols, rows);
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      T[j][i] = A[i][j];
-    }
-  }
-  return T;
-}
-
-// Concatenate matrices horizontally [A | B]
-function matrixConcatHorizontal(A: Matrix, B: Matrix): Matrix {
-  const rows = A.length;
-  const C: Matrix = [];
-  for (let i = 0; i < rows; i++) {
-    C.push([...A[i], ...B[i]]);
-  }
-  return C;
-}
-
 // Extract column from matrix
 function matrixGetColumn(A: Matrix, col: number): Matrix {
-  return A.map(row => [row[col]]);
+  return A.map((row) => [row[col]]);
 }
 
 // LU decomposition with partial pivoting
 function luDecomposition(A: Matrix): { L: Matrix; U: Matrix; P: Matrix } {
   const n = A.length;
   const L = matrixIdentity(n);
-  const U = A.map(row => [...row]);
+  const U = A.map((row) => [...row]);
   const P = matrixIdentity(n);
 
   for (let k = 0; k < n - 1; k++) {
@@ -140,73 +108,11 @@ function luDecomposition(A: Matrix): { L: Matrix; U: Matrix; P: Matrix } {
   return { L, U, P };
 }
 
-// Solve linear system Ax = b using LU decomposition
-function solveLinearSystem(A: Matrix, b: Matrix): Matrix {
-  const n = A.length;
-  const { L, U, P } = luDecomposition(A);
-
-  // Pb = P * b
-  const Pb = matrixMultiply(P, b);
-
-  // Forward substitution: Ly = Pb
-  const y = matrixCreate(n, 1);
-  for (let i = 0; i < n; i++) {
-    let sum = Pb[i][0];
-    for (let j = 0; j < i; j++) {
-      sum -= L[i][j] * y[j][0];
-    }
-    y[i][0] = sum;
-  }
-
-  // Back substitution: Ux = y
-  const x = matrixCreate(n, 1);
-  for (let i = n - 1; i >= 0; i--) {
-    let sum = y[i][0];
-    for (let j = i + 1; j < n; j++) {
-      sum -= U[i][j] * x[j][0];
-    }
-    if (Math.abs(U[i][i]) > 1e-15) {
-      x[i][0] = sum / U[i][i];
-    } else {
-      x[i][0] = 0;
-    }
-  }
-
-  return x;
-}
-
-// Matrix determinant using LU decomposition
-function matrixDeterminant(A: Matrix): number {
-  const n = A.length;
-  const { U, P } = luDecomposition(A);
-
-  // Count permutation sign
-  let sign = 1;
-  for (let i = 0; i < n; i++) {
-    if (P[i][i] !== 1) {
-      for (let j = i + 1; j < n; j++) {
-        if (P[j][i] === 1) {
-          sign *= -1;
-          break;
-        }
-      }
-    }
-  }
-
-  // Determinant is product of U diagonal
-  let det = sign;
-  for (let i = 0; i < n; i++) {
-    det *= U[i][i];
-  }
-
-  return det;
-}
-
 // Matrix rank using reduced row echelon form
 function matrixRank(A: Matrix): number {
   const rows = A.length;
   const cols = A[0].length;
-  const R = A.map(row => [...row]);
+  const R = A.map((row) => [...row]);
   const tolerance = 1e-10;
 
   let rank = 0;
@@ -277,20 +183,20 @@ function findEigenvalues(A: Matrix): Complex[] {
       const sqrtDisc = Math.sqrt(disc);
       return [
         { real: (trace + sqrtDisc) / 2, imag: 0 },
-        { real: (trace - sqrtDisc) / 2, imag: 0 }
+        { real: (trace - sqrtDisc) / 2, imag: 0 },
       ];
     } else {
       const realPart = trace / 2;
       const imagPart = Math.sqrt(-disc) / 2;
       return [
         { real: realPart, imag: imagPart },
-        { real: realPart, imag: -imagPart }
+        { real: realPart, imag: -imagPart },
       ];
     }
   }
 
   // QR algorithm for larger matrices
-  let H = A.map(row => [...row]);  // Copy
+  let H = A.map((row) => [...row]); // Copy
 
   // Simple QR iteration
   for (let iter = 0; iter < 100; iter++) {
@@ -300,7 +206,7 @@ function findEigenvalues(A: Matrix): Complex[] {
 
     for (let j = 0; j < n; j++) {
       // Get column j of H
-      const v = H.map(row => row[j]);
+      const v = H.map((row) => row[j]);
 
       // Orthogonalize against previous columns
       for (let i = 0; i < j; i++) {
@@ -343,8 +249,10 @@ function findEigenvalues(A: Matrix): Complex[] {
       i++;
     } else {
       // 2x2 block - complex conjugate pair
-      const a = H[i][i], b = H[i][i + 1];
-      const c = H[i + 1][i], d = H[i + 1][i + 1];
+      const a = H[i][i],
+        b = H[i][i + 1];
+      const c = H[i + 1][i],
+        d = H[i + 1][i + 1];
       const trace = a + d;
       const det = a * d - b * c;
       const disc = trace * trace - 4 * det;
@@ -368,13 +276,13 @@ function findEigenvalues(A: Matrix): Complex[] {
 
 // State-space system
 interface StateSpaceSystem {
-  A: Matrix;  // State matrix (n×n)
-  B: Matrix;  // Input matrix (n×m)
-  C: Matrix;  // Output matrix (p×n)
-  D: Matrix;  // Feedthrough matrix (p×m)
-  n: number;  // Number of states
-  m: number;  // Number of inputs
-  p: number;  // Number of outputs
+  A: Matrix; // State matrix (n×n)
+  B: Matrix; // Input matrix (n×m)
+  C: Matrix; // Output matrix (p×n)
+  D: Matrix; // Feedthrough matrix (p×m)
+  n: number; // Number of states
+  m: number; // Number of inputs
+  p: number; // Number of outputs
 }
 
 // Build controllability matrix [B, AB, A²B, ..., A^(n-1)B]
@@ -438,9 +346,9 @@ function checkStability(sys: StateSpaceSystem): {
   marginallySTable: boolean;
 } {
   const eigenvalues = findEigenvalues(sys.A);
-  const isStable = eigenvalues.every(e => e.real < 0);
-  const marginallySTable = eigenvalues.every(e => e.real <= 0) &&
-                          eigenvalues.some(e => Math.abs(e.real) < 1e-10);
+  const isStable = eigenvalues.every((e) => e.real < 0);
+  const marginallySTable =
+    eigenvalues.every((e) => e.real <= 0) && eigenvalues.some((e) => Math.abs(e.real) < 1e-10);
 
   return { eigenvalues, isStable, marginallySTable };
 }
@@ -470,7 +378,7 @@ function stepResponse(
     const Cx = matrixMultiply(C, x);
     const Du = matrixMultiply(D, u);
     const y = matrixAdd(Cx, Du);
-    output.push(y.map(row => row[0]));
+    output.push(y.map((row) => row[0]));
 
     // State update: x_new = x + dt*(Ax + Bu)
     const Ax = matrixMultiply(A, x);
@@ -486,10 +394,10 @@ function stepResponse(
 function tf2ss(numerator: number[], denominator: number[]): StateSpaceSystem {
   // Normalize by leading coefficient
   const a0 = denominator[0];
-  const num = numerator.map(c => c / a0);
-  const den = denominator.map(c => c / a0);
+  const num = numerator.map((c) => c / a0);
+  const den = denominator.map((c) => c / a0);
 
-  const n = den.length - 1;  // System order
+  const n = den.length - 1; // System order
 
   // Make numerator same length as denominator
   while (num.length < den.length) {
@@ -544,7 +452,7 @@ function ss2tf(sys: StateSpaceSystem): { numerator: number[]; denominator: numbe
   }
 
   // Handle complex conjugate pairs
-  const complexEigs = eigenvalues.filter(e => e.imag > 1e-10);
+  const complexEigs = eigenvalues.filter((e) => e.imag > 1e-10);
   for (const e of complexEigs) {
     // (s - (a+jb))(s - (a-jb)) = s² - 2as + (a² + b²)
     const a = e.real;
@@ -562,7 +470,7 @@ function ss2tf(sys: StateSpaceSystem): { numerator: number[]; denominator: numbe
 
   // Numerator: approximate using DC gain
   // G(0) = C * (-A)^(-1) * B + D
-  const dcGain = D[0][0];  // Simplified
+  const dcGain = D[0][0]; // Simplified
 
   // For a proper system, numerator degree < denominator degree
   const numerator = [dcGain * denominator[denominator.length - 1]];
@@ -593,47 +501,75 @@ function formatMatrix(M: Matrix, name: string): string {
 
 // Example systems
 const EXAMPLE_SYSTEMS: Record<string, StateSpaceSystem & { description: string }> = {
-  'mass_spring_damper': {
+  mass_spring_damper: {
     // m*x'' + c*x' + k*x = u
     // State: [x, x']
     // With m=1, c=0.5, k=2
-    A: [[0, 1], [-2, -0.5]],
+    A: [
+      [0, 1],
+      [-2, -0.5],
+    ],
     B: [[0], [1]],
     C: [[1, 0]],
     D: [[0]],
-    n: 2, m: 1, p: 1,
-    description: 'Mass-spring-damper: m=1, c=0.5, k=2'
+    n: 2,
+    m: 1,
+    p: 1,
+    description: 'Mass-spring-damper: m=1, c=0.5, k=2',
   },
-  'dc_motor': {
+  dc_motor: {
     // State: [θ, ω, i]
     // Simplified DC motor model
-    A: [[0, 1, 0], [0, -0.1, 0.5], [0, -0.5, -1]],
+    A: [
+      [0, 1, 0],
+      [0, -0.1, 0.5],
+      [0, -0.5, -1],
+    ],
     B: [[0], [0], [1]],
     C: [[1, 0, 0]],
     D: [[0]],
-    n: 3, m: 1, p: 1,
-    description: 'DC motor (position, velocity, current)'
+    n: 3,
+    m: 1,
+    p: 1,
+    description: 'DC motor (position, velocity, current)',
   },
-  'inverted_pendulum': {
+  inverted_pendulum: {
     // Linearized about upright position
     // State: [θ, θ', x, x']
-    A: [[0, 1, 0, 0], [10, 0, 0, 0], [0, 0, 0, 1], [-1, 0, 0, 0]],
+    A: [
+      [0, 1, 0, 0],
+      [10, 0, 0, 0],
+      [0, 0, 0, 1],
+      [-1, 0, 0, 0],
+    ],
     B: [[0], [-1], [0], [1]],
-    C: [[1, 0, 0, 0], [0, 0, 1, 0]],
+    C: [
+      [1, 0, 0, 0],
+      [0, 0, 1, 0],
+    ],
     D: [[0], [0]],
-    n: 4, m: 1, p: 2,
-    description: 'Linearized inverted pendulum on cart'
+    n: 4,
+    m: 1,
+    p: 2,
+    description: 'Linearized inverted pendulum on cart',
   },
-  'aircraft_longitudinal': {
+  aircraft_longitudinal: {
     // Simplified longitudinal dynamics
     // State: [u, w, q, θ]
-    A: [[-0.038, 18.984, 0, -32.174], [-0.001, -0.632, 1, 0], [0, -0.759, -0.518, 0], [0, 0, 1, 0]],
+    A: [
+      [-0.038, 18.984, 0, -32.174],
+      [-0.001, -0.632, 1, 0],
+      [0, -0.759, -0.518, 0],
+      [0, 0, 1, 0],
+    ],
     B: [[10.1], [0], [-0.0086], [0]],
     C: [[1, 0, 0, 0]],
     D: [[0]],
-    n: 4, m: 1, p: 1,
-    description: 'Aircraft longitudinal dynamics'
-  }
+    n: 4,
+    m: 1,
+    p: 1,
+    description: 'Aircraft longitudinal dynamics',
+  },
 };
 
 export const statespaceTool: UnifiedTool = {
@@ -662,49 +598,64 @@ Matrix dimensions:
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'analyze', 'controllability', 'observability', 'stability', 'eigenvalues', 'step_response', 'tf2ss', 'ss2tf', 'examples', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'create',
+          'analyze',
+          'controllability',
+          'observability',
+          'stability',
+          'eigenvalues',
+          'step_response',
+          'tf2ss',
+          'ss2tf',
+          'examples',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       A: {
         type: 'array',
-        items: { type: 'array', items: { type: 'number' } },
-        description: 'State matrix (n×n)'
+        items: { type: 'array' },
+        description: 'State matrix (n×n) - 2D array of numbers',
       },
       B: {
         type: 'array',
-        items: { type: 'array', items: { type: 'number' } },
-        description: 'Input matrix (n×m)'
+        items: { type: 'array' },
+        description: 'Input matrix (n×m) - 2D array of numbers',
       },
       C: {
         type: 'array',
-        items: { type: 'array', items: { type: 'number' } },
-        description: 'Output matrix (p×n)'
+        items: { type: 'array' },
+        description: 'Output matrix (p×n) - 2D array of numbers',
       },
       D: {
         type: 'array',
-        items: { type: 'array', items: { type: 'number' } },
-        description: 'Feedthrough matrix (p×m)'
+        items: { type: 'array' },
+        description: 'Feedthrough matrix (p×m) - 2D array of numbers',
       },
       example: {
         type: 'string',
         enum: ['mass_spring_damper', 'dc_motor', 'inverted_pendulum', 'aircraft_longitudinal'],
-        description: 'Use example system'
+        description: 'Use example system',
       },
       numerator: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Transfer function numerator for tf2ss'
+        description: 'Transfer function numerator for tf2ss',
       },
       denominator: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Transfer function denominator for tf2ss'
+        description: 'Transfer function denominator for tf2ss',
       },
-      duration: { type: 'number', description: 'Simulation duration for step response (default: 10)' },
-      dt: { type: 'number', description: 'Time step for simulation (default: 0.01)' }
+      duration: {
+        type: 'number',
+        description: 'Simulation duration for step response (default: 10)',
+      },
+      dt: { type: 'number', description: 'Time step for simulation (default: 0.01)' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executestatespace(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -727,14 +678,14 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         D: exSys.D,
         n: exSys.n,
         m: exSys.m,
-        p: exSys.p
+        p: exSys.p,
       };
       systemDescription = exSys.description;
     } else if (args.A) {
       const A = args.A as Matrix;
-      const B = args.B as Matrix || matrixCreate(A.length, 1);
-      const C = args.C as Matrix || matrixCreate(1, A.length, 1);
-      const D = args.D as Matrix || [[0]];
+      const B = (args.B as Matrix) || matrixCreate(A.length, 1);
+      const C = (args.C as Matrix) || matrixCreate(1, A.length, 1);
+      const D = (args.D as Matrix) || [[0]];
 
       sys = {
         A,
@@ -743,7 +694,7 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         D,
         n: A.length,
         m: B[0].length,
-        p: C.length
+        p: C.length,
       };
     } else {
       // Default simple system
@@ -754,7 +705,7 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         D: [[0]],
         n: 1,
         m: 1,
-        p: 1
+        p: 1,
       };
     }
 
@@ -762,30 +713,31 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
       case 'create': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            state_space_model: {
-              equations: [
-                'ẋ = Ax + Bu',
-                'y = Cx + Du'
-              ],
-              dimensions: {
-                states: sys.n,
-                inputs: sys.m,
-                outputs: sys.p
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              state_space_model: {
+                equations: ['ẋ = Ax + Bu', 'y = Cx + Du'],
+                dimensions: {
+                  states: sys.n,
+                  inputs: sys.m,
+                  outputs: sys.p,
+                },
+                A: sys.A,
+                B: sys.B,
+                C: sys.C,
+                D: sys.D,
               },
-              A: sys.A,
-              B: sys.B,
-              C: sys.C,
-              D: sys.D
+              formatted: {
+                A: formatMatrix(sys.A, 'A'),
+                B: formatMatrix(sys.B, 'B'),
+                C: formatMatrix(sys.C, 'C'),
+                D: formatMatrix(sys.D, 'D'),
+              },
             },
-            formatted: {
-              A: formatMatrix(sys.A, 'A'),
-              B: formatMatrix(sys.B, 'B'),
-              C: formatMatrix(sys.C, 'C'),
-              D: formatMatrix(sys.D, 'D')
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -798,37 +750,42 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            dimensions: {
-              states: sys.n,
-              inputs: sys.m,
-              outputs: sys.p
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              dimensions: {
+                states: sys.n,
+                inputs: sys.m,
+                outputs: sys.p,
+              },
+              controllability: {
+                rank: controllabilityRank,
+                required_rank: sys.n,
+                is_controllable: controllabilityRank === sys.n,
+              },
+              observability: {
+                rank: observabilityRank,
+                required_rank: sys.n,
+                is_observable: observabilityRank === sys.n,
+              },
+              stability: {
+                eigenvalues: stability.eigenvalues.map((e) => ({
+                  real: e.real.toFixed(6),
+                  imag: e.imag.toFixed(6),
+                  location:
+                    e.real < 0 ? 'LHP (stable)' : e.real > 0 ? 'RHP (unstable)' : 'imaginary axis',
+                })),
+                is_stable: stability.isStable,
+                is_marginally_stable: stability.marginallySTable,
+              },
+              minimality: {
+                is_minimal: controllabilityRank === sys.n && observabilityRank === sys.n,
+                explanation: 'System is minimal if both controllable and observable',
+              },
             },
-            controllability: {
-              rank: controllabilityRank,
-              required_rank: sys.n,
-              is_controllable: controllabilityRank === sys.n
-            },
-            observability: {
-              rank: observabilityRank,
-              required_rank: sys.n,
-              is_observable: observabilityRank === sys.n
-            },
-            stability: {
-              eigenvalues: stability.eigenvalues.map(e => ({
-                real: e.real.toFixed(6),
-                imag: e.imag.toFixed(6),
-                location: e.real < 0 ? 'LHP (stable)' : e.real > 0 ? 'RHP (unstable)' : 'imaginary axis'
-              })),
-              is_stable: stability.isStable,
-              is_marginally_stable: stability.marginallySTable
-            },
-            minimality: {
-              is_minimal: controllabilityRank === sys.n && observabilityRank === sys.n,
-              explanation: 'System is minimal if both controllable and observable'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -838,23 +795,28 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            controllability_matrix: {
-              description: 'Mc = [B, AB, A²B, ..., A^(n-1)B]',
-              dimensions: `${sys.n} × ${sys.n * sys.m}`,
-              matrix: Mc,
-              formatted: formatMatrix(Mc, 'Mc')
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              controllability_matrix: {
+                description: 'Mc = [B, AB, A²B, ..., A^(n-1)B]',
+                dimensions: `${sys.n} × ${sys.n * sys.m}`,
+                matrix: Mc,
+                formatted: formatMatrix(Mc, 'Mc'),
+              },
+              analysis: {
+                rank: rank,
+                required_rank: sys.n,
+                is_controllable: rank === sys.n,
+              },
+              interpretation:
+                rank === sys.n
+                  ? 'System is fully controllable - all states can be driven to any value'
+                  : `System has ${sys.n - rank} uncontrollable mode(s)`,
             },
-            analysis: {
-              rank: rank,
-              required_rank: sys.n,
-              is_controllable: rank === sys.n
-            },
-            interpretation: rank === sys.n
-              ? 'System is fully controllable - all states can be driven to any value'
-              : `System has ${sys.n - rank} uncontrollable mode(s)`
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -864,23 +826,28 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            observability_matrix: {
-              description: 'Mo = [C; CA; CA²; ...; CA^(n-1)]',
-              dimensions: `${sys.n * sys.p} × ${sys.n}`,
-              matrix: Mo,
-              formatted: formatMatrix(Mo, 'Mo')
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              observability_matrix: {
+                description: 'Mo = [C; CA; CA²; ...; CA^(n-1)]',
+                dimensions: `${sys.n * sys.p} × ${sys.n}`,
+                matrix: Mo,
+                formatted: formatMatrix(Mo, 'Mo'),
+              },
+              analysis: {
+                rank: rank,
+                required_rank: sys.n,
+                is_observable: rank === sys.n,
+              },
+              interpretation:
+                rank === sys.n
+                  ? 'System is fully observable - all states can be determined from outputs'
+                  : `System has ${sys.n - rank} unobservable mode(s)`,
             },
-            analysis: {
-              rank: rank,
-              required_rank: sys.n,
-              is_observable: rank === sys.n
-            },
-            interpretation: rank === sys.n
-              ? 'System is fully observable - all states can be determined from outputs'
-              : `System has ${sys.n - rank} unobservable mode(s)`
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -888,40 +855,45 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         const stability = checkStability(sys);
 
         // Categorize eigenvalues
-        const stableEigs = stability.eigenvalues.filter(e => e.real < 0);
-        const unstableEigs = stability.eigenvalues.filter(e => e.real > 0);
-        const marginalEigs = stability.eigenvalues.filter(e => Math.abs(e.real) < 1e-10);
+        const stableEigs = stability.eigenvalues.filter((e) => e.real < 0);
+        const unstableEigs = stability.eigenvalues.filter((e) => e.real > 0);
+        const marginalEigs = stability.eigenvalues.filter((e) => Math.abs(e.real) < 1e-10);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            stability_analysis: {
-              is_asymptotically_stable: stability.isStable,
-              is_marginally_stable: stability.marginallySTable,
-              is_unstable: !stability.isStable && !stability.marginallySTable
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              stability_analysis: {
+                is_asymptotically_stable: stability.isStable,
+                is_marginally_stable: stability.marginallySTable,
+                is_unstable: !stability.isStable && !stability.marginallySTable,
+              },
+              eigenvalue_summary: {
+                total: stability.eigenvalues.length,
+                in_lhp: stableEigs.length,
+                in_rhp: unstableEigs.length,
+                on_imaginary_axis: marginalEigs.length,
+              },
+              eigenvalues: stability.eigenvalues.map((e) => {
+                const mag = complexMagnitude(e);
+                return {
+                  value: `${e.real.toFixed(6)} ${e.imag >= 0 ? '+' : '-'} ${Math.abs(e.imag).toFixed(6)}j`,
+                  magnitude: mag.toFixed(6),
+                  damping_ratio: e.imag !== 0 ? (-e.real / mag).toFixed(6) : 'N/A (real)',
+                  natural_frequency: mag.toFixed(6),
+                  stability: e.real < 0 ? 'stable' : e.real > 0 ? 'unstable' : 'marginal',
+                };
+              }),
+              criteria: {
+                continuous_time: 'All eigenvalues must have negative real parts',
+                discrete_time:
+                  'All eigenvalues must have magnitude less than 1 (not applicable here)',
+              },
             },
-            eigenvalue_summary: {
-              total: stability.eigenvalues.length,
-              in_lhp: stableEigs.length,
-              in_rhp: unstableEigs.length,
-              on_imaginary_axis: marginalEigs.length
-            },
-            eigenvalues: stability.eigenvalues.map(e => {
-              const mag = complexMagnitude(e);
-              return {
-                value: `${e.real.toFixed(6)} ${e.imag >= 0 ? '+' : '-'} ${Math.abs(e.imag).toFixed(6)}j`,
-                magnitude: mag.toFixed(6),
-                damping_ratio: e.imag !== 0 ? (-e.real / mag).toFixed(6) : 'N/A (real)',
-                natural_frequency: mag.toFixed(6),
-                stability: e.real < 0 ? 'stable' : e.real > 0 ? 'unstable' : 'marginal'
-              };
-            }),
-            criteria: {
-              continuous_time: 'All eigenvalues must have negative real parts',
-              discrete_time: 'All eigenvalues must have magnitude less than 1 (not applicable here)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -930,22 +902,26 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            state_matrix_A: sys.A,
-            eigenvalues: eigenvalues.map((e, i) => ({
-              index: i + 1,
-              real: e.real.toFixed(6),
-              imag: e.imag.toFixed(6),
-              complex_form: `${e.real.toFixed(4)} ${e.imag >= 0 ? '+' : '-'} ${Math.abs(e.imag).toFixed(4)}j`,
-              magnitude: complexMagnitude(e).toFixed(6),
-              phase_degrees: (Math.atan2(e.imag, e.real) * 180 / Math.PI).toFixed(2)
-            })),
-            characteristic_polynomial: {
-              description: 'det(λI - A) = 0',
-              degree: sys.n
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              state_matrix_A: sys.A,
+              eigenvalues: eigenvalues.map((e, i) => ({
+                index: i + 1,
+                real: e.real.toFixed(6),
+                imag: e.imag.toFixed(6),
+                complex_form: `${e.real.toFixed(4)} ${e.imag >= 0 ? '+' : '-'} ${Math.abs(e.imag).toFixed(4)}j`,
+                magnitude: complexMagnitude(e).toFixed(6),
+                phase_degrees: ((Math.atan2(e.imag, e.real) * 180) / Math.PI).toFixed(2),
+              })),
+              characteristic_polynomial: {
+                description: 'det(λI - A) = 0',
+                degree: sys.n,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -956,11 +932,11 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         // Sample output at key times
         const sampleTimes = [0, 0.5, 1, 2, 5, simDuration];
-        const samples = sampleTimes.map(t => {
+        const samples = sampleTimes.map((t) => {
           const idx = Math.min(Math.round(t / simDt), response.time.length - 1);
           return {
             time: response.time[idx].toFixed(3),
-            output: response.output[idx].map(v => v.toFixed(6))
+            output: response.output[idx].map((v) => v.toFixed(6)),
           };
         });
 
@@ -972,7 +948,8 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         if (steadyState[0] !== 0) {
           const target10 = 0.1 * steadyState[0];
           const target90 = 0.9 * steadyState[0];
-          let t10 = 0, t90 = 0;
+          let t10 = 0,
+            t90 = 0;
           for (let i = 0; i < response.output.length; i++) {
             if (response.output[i][0] >= target10 && t10 === 0) {
               t10 = response.time[i];
@@ -989,21 +966,25 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            simulation_parameters: {
-              duration: simDuration,
-              time_step: simDt,
-              input: 'Unit step on all inputs',
-              total_points: response.time.length
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              simulation_parameters: {
+                duration: simDuration,
+                time_step: simDt,
+                input: 'Unit step on all inputs',
+                total_points: response.time.length,
+              },
+              response_samples: samples,
+              performance_metrics: {
+                steady_state_value: steadyState.map((v) => v.toFixed(6)),
+                rise_time_10_90: riseTime,
+                note: 'Full time series available for plotting',
+              },
             },
-            response_samples: samples,
-            performance_metrics: {
-              steady_state_value: steadyState.map(v => v.toFixed(6)),
-              rise_time_10_90: riseTime,
-              note: 'Full time series available for plotting'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1011,10 +992,14 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         if (!numerator || !denominator) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Provide numerator and denominator arrays for tf2ss conversion'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Provide numerator and denominator arrays for tf2ss conversion',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1022,31 +1007,35 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            conversion: 'Transfer Function to State-Space',
-            transfer_function: {
-              numerator,
-              denominator
-            },
-            state_space: {
-              form: 'Controllable Canonical Form',
-              dimensions: {
-                states: ssSys.n,
-                inputs: ssSys.m,
-                outputs: ssSys.p
+          content: JSON.stringify(
+            {
+              conversion: 'Transfer Function to State-Space',
+              transfer_function: {
+                numerator,
+                denominator,
               },
-              A: ssSys.A,
-              B: ssSys.B,
-              C: ssSys.C,
-              D: ssSys.D
+              state_space: {
+                form: 'Controllable Canonical Form',
+                dimensions: {
+                  states: ssSys.n,
+                  inputs: ssSys.m,
+                  outputs: ssSys.p,
+                },
+                A: ssSys.A,
+                B: ssSys.B,
+                C: ssSys.C,
+                D: ssSys.D,
+              },
+              formatted: {
+                A: formatMatrix(ssSys.A, 'A'),
+                B: formatMatrix(ssSys.B, 'B'),
+                C: formatMatrix(ssSys.C, 'C'),
+                D: formatMatrix(ssSys.D, 'D'),
+              },
             },
-            formatted: {
-              A: formatMatrix(ssSys.A, 'A'),
-              B: formatMatrix(ssSys.B, 'B'),
-              C: formatMatrix(ssSys.C, 'C'),
-              D: formatMatrix(ssSys.D, 'D')
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1055,22 +1044,26 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            system: systemDescription,
-            conversion: 'State-Space to Transfer Function',
-            state_space: {
-              A: sys.A,
-              B: sys.B,
-              C: sys.C,
-              D: sys.D
+          content: JSON.stringify(
+            {
+              system: systemDescription,
+              conversion: 'State-Space to Transfer Function',
+              state_space: {
+                A: sys.A,
+                B: sys.B,
+                C: sys.C,
+                D: sys.D,
+              },
+              transfer_function: {
+                numerator: tf.numerator,
+                denominator: tf.denominator,
+                formula: 'G(s) = C(sI - A)^(-1)B + D',
+              },
+              note: 'Transfer function is approximate for MIMO systems',
             },
-            transfer_function: {
-              numerator: tf.numerator,
-              denominator: tf.denominator,
-              formula: 'G(s) = C(sI - A)^(-1)B + D'
-            },
-            note: 'Transfer function is approximate for MIMO systems'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1083,56 +1076,64 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
             dimensions: {
               states: sys.n,
               inputs: sys.m,
-              outputs: sys.p
+              outputs: sys.p,
             },
-            is_stable: stability.isStable
+            is_stable: stability.isStable,
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            example_systems: examples,
-            usage: 'Use example parameter to analyze these systems'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              example_systems: examples,
+              usage: 'Use example parameter to analyze these systems',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'state_space',
-            description: 'State-space analysis for linear control systems',
-            state_space_form: {
-              state_equation: 'ẋ = Ax + Bu',
-              output_equation: 'y = Cx + Du',
-              matrices: {
-                A: 'State matrix (n×n) - defines system dynamics',
-                B: 'Input matrix (n×m) - how inputs affect states',
-                C: 'Output matrix (p×n) - how states map to outputs',
-                D: 'Feedthrough matrix (p×m) - direct input-output coupling'
-              }
+          content: JSON.stringify(
+            {
+              tool: 'state_space',
+              description: 'State-space analysis for linear control systems',
+              state_space_form: {
+                state_equation: 'ẋ = Ax + Bu',
+                output_equation: 'y = Cx + Du',
+                matrices: {
+                  A: 'State matrix (n×n) - defines system dynamics',
+                  B: 'Input matrix (n×m) - how inputs affect states',
+                  C: 'Output matrix (p×n) - how states map to outputs',
+                  D: 'Feedthrough matrix (p×m) - direct input-output coupling',
+                },
+              },
+              operations: {
+                create: 'Create and display state-space model',
+                analyze: 'Complete system analysis',
+                controllability: 'Check and compute controllability matrix',
+                observability: 'Check and compute observability matrix',
+                stability: 'Detailed stability analysis',
+                eigenvalues: 'Compute eigenvalues of A matrix',
+                step_response: 'Simulate step response',
+                tf2ss: 'Convert transfer function to state-space',
+                ss2tf: 'Convert state-space to transfer function',
+                examples: 'List available example systems',
+              },
+              key_concepts: {
+                controllability: 'Can all states be controlled from inputs?',
+                observability: 'Can all states be inferred from outputs?',
+                stability: 'Do all eigenvalues have negative real parts?',
+                minimality: 'Is system both controllable and observable?',
+              },
             },
-            operations: {
-              create: 'Create and display state-space model',
-              analyze: 'Complete system analysis',
-              controllability: 'Check and compute controllability matrix',
-              observability: 'Check and compute observability matrix',
-              stability: 'Detailed stability analysis',
-              eigenvalues: 'Compute eigenvalues of A matrix',
-              step_response: 'Simulate step response',
-              tf2ss: 'Convert transfer function to state-space',
-              ss2tf: 'Convert state-space to transfer function',
-              examples: 'List available example systems'
-            },
-            key_concepts: {
-              controllability: 'Can all states be controlled from inputs?',
-              observability: 'Can all states be inferred from outputs?',
-              stability: 'Do all eigenvalues have negative real parts?',
-              minimality: 'Is system both controllable and observable?'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1140,7 +1141,7 @@ export async function executestatespace(toolCall: UnifiedToolCall): Promise<Unif
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

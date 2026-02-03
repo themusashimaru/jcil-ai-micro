@@ -25,16 +25,16 @@ interface Transaction {
   isolationLevel: IsolationLevel;
   startTimestamp: number;
   commitTimestamp?: number;
-  readSet: Map<string, number>;  // key -> version read
-  writeSet: Map<string, VersionedValue>;  // key -> value written
+  readSet: Map<string, number>; // key -> version read
+  writeSet: Map<string, VersionedValue>; // key -> value written
   snapshot?: Snapshot;
   locksHeld: Set<string>;
 }
 
 interface VersionedValue {
   value: unknown;
-  xmin: number;  // Transaction that created this version
-  xmax: number;  // Transaction that deleted/updated this version (0 if active)
+  xmin: number; // Transaction that created this version
+  xmax: number; // Transaction that deleted/updated this version (0 if active)
   timestamp: number;
   prevVersion?: VersionedValue;
   undoLog?: UndoLogEntry;
@@ -49,9 +49,9 @@ interface UndoLogEntry {
 }
 
 interface Snapshot {
-  xmin: number;  // Oldest active transaction at snapshot time
-  xmax: number;  // Next transaction ID at snapshot time
-  activeTransactions: Set<number>;  // Transactions active at snapshot time
+  xmin: number; // Oldest active transaction at snapshot time
+  xmax: number; // Next transaction ID at snapshot time
+  activeTransactions: Set<number>; // Transactions active at snapshot time
   timestamp: number;
 }
 
@@ -101,7 +101,7 @@ class MVCCEngine {
   private conflictLog: ConflictInfo[] = [];
   private versionStorage: VersionStorageType = 'APPEND_ONLY';
   private undoLog: UndoLogEntry[] = [];
-  private waitForGraph: Map<number, Set<number>> = new Map();  // txId -> waiting for txIds
+  private waitForGraph: Map<number, Set<number>> = new Map(); // txId -> waiting for txIds
 
   // Statistics
   private stats: MVCCStats = {
@@ -112,7 +112,7 @@ class MVCCEngine {
     totalVersions: 0,
     deadVersions: 0,
     conflicts: 0,
-    deadlocks: 0
+    deadlocks: 0,
   };
 
   constructor(storageType: VersionStorageType = 'APPEND_ONLY') {
@@ -126,7 +126,7 @@ class MVCCEngine {
   beginTransaction(isolationLevel: IsolationLevel = 'READ_COMMITTED'): Transaction {
     const txId: TransactionId = {
       id: this.nextTxId++,
-      timestamp: this.nextTimestamp++
+      timestamp: this.nextTimestamp++,
     };
 
     const tx: Transaction = {
@@ -136,7 +136,7 @@ class MVCCEngine {
       startTimestamp: txId.timestamp,
       readSet: new Map(),
       writeSet: new Map(),
-      locksHeld: new Set()
+      locksHeld: new Set(),
     };
 
     // Create snapshot for REPEATABLE_READ and SERIALIZABLE
@@ -176,7 +176,7 @@ class MVCCEngine {
 
     // Make writes visible
     for (const [key, version] of tx.writeSet) {
-      version.xmax = 0;  // Mark as current version
+      version.xmax = 0; // Mark as current version
       this.data.set(key, version);
     }
 
@@ -208,7 +208,7 @@ class MVCCEngine {
     } else {
       // For append-only, just mark versions as invalid
       for (const [key, version] of tx.writeSet) {
-        version.xmax = txId;  // Mark version as dead
+        version.xmax = txId; // Mark version as dead
         // Restore previous version if exists
         if (version.prevVersion) {
           this.data.set(key, version.prevVersion);
@@ -234,7 +234,7 @@ class MVCCEngine {
 
   private rollbackWithUndo(tx: Transaction): void {
     // Process undo log in reverse order
-    for (const entry of this.undoLog.filter(e => e.txId === tx.txId.id).reverse()) {
+    for (const entry of this.undoLog.filter((e) => e.txId === tx.txId.id).reverse()) {
       const current = this.data.get(entry.key);
       if (current) {
         // Restore old value
@@ -242,7 +242,7 @@ class MVCCEngine {
           value: entry.oldValue,
           xmin: current.xmin,
           xmax: 0,
-          timestamp: entry.timestamp
+          timestamp: entry.timestamp,
         };
         this.data.set(entry.key, restoredVersion);
       }
@@ -295,7 +295,7 @@ class MVCCEngine {
           txId1: txId,
           txId2: currentVersion.xmin,
           key,
-          resolution: 'First-writer wins - current transaction must wait or abort'
+          resolution: 'First-writer wins - current transaction must wait or abort',
         };
         this.conflictLog.push(conflict);
         this.stats.conflicts++;
@@ -317,9 +317,9 @@ class MVCCEngine {
     const newVersion: VersionedValue = {
       value,
       xmin: txId,
-      xmax: txId,  // Not yet visible to others
+      xmax: txId, // Not yet visible to others
       timestamp: this.nextTimestamp++,
-      prevVersion: currentVersion
+      prevVersion: currentVersion,
     };
 
     // For in-place with undo, create undo log entry
@@ -328,7 +328,7 @@ class MVCCEngine {
         txId,
         key,
         oldValue: currentVersion.value,
-        timestamp: currentVersion.timestamp
+        timestamp: currentVersion.timestamp,
       };
       this.undoLog.push(undoEntry);
       newVersion.undoLog = undoEntry;
@@ -403,8 +403,11 @@ class MVCCEngine {
     // Check if version was deleted before snapshot
     if (xmax !== 0) {
       const deleteTx = this.transactions.get(xmax);
-      if (deleteTx && deleteTx.state === 'COMMITTED' &&
-          deleteTx.commitTimestamp! < snapshot.timestamp) {
+      if (
+        deleteTx &&
+        deleteTx.state === 'COMMITTED' &&
+        deleteTx.commitTimestamp! < snapshot.timestamp
+      ) {
         return false;
       }
     }
@@ -418,7 +421,10 @@ class MVCCEngine {
     return true;
   }
 
-  checkVisibility(txId: number, key: string): { visible: boolean; reason: string; version?: VersionedValue } {
+  checkVisibility(
+    txId: number,
+    key: string
+  ): { visible: boolean; reason: string; version?: VersionedValue } {
     const tx = this.transactions.get(txId);
     if (!tx) {
       return { visible: false, reason: 'Transaction not found' };
@@ -474,7 +480,7 @@ class MVCCEngine {
       xmin,
       xmax: this.nextTxId,
       activeTransactions,
-      timestamp: this.nextTimestamp++
+      timestamp: this.nextTimestamp++,
     };
   }
 
@@ -509,14 +515,17 @@ class MVCCEngine {
       // Check if someone else modified this key after we read it
       if (currentVersion.timestamp > readVersion && currentVersion.xmin !== tx.txId.id) {
         const writerTx = this.transactions.get(currentVersion.xmin);
-        if (writerTx && writerTx.state === 'COMMITTED' &&
-            writerTx.commitTimestamp! > tx.startTimestamp) {
+        if (
+          writerTx &&
+          writerTx.state === 'COMMITTED' &&
+          writerTx.commitTimestamp! > tx.startTimestamp
+        ) {
           const conflict: ConflictInfo = {
             type: 'READ_WRITE',
             txId1: tx.txId.id,
             txId2: currentVersion.xmin,
             key,
-            resolution: 'Serialization failure - must abort'
+            resolution: 'Serialization failure - must abort',
           };
           this.conflictLog.push(conflict);
           this.stats.conflicts++;
@@ -533,7 +542,7 @@ class MVCCEngine {
       WRITE_WRITE: 0,
       READ_WRITE: 0,
       WRITE_READ: 0,
-      DEADLOCK: 0
+      DEADLOCK: 0,
     };
 
     for (const conflict of this.conflictLog) {
@@ -566,7 +575,7 @@ class MVCCEngine {
     const stack = new Set<number>();
 
     const dfs = (tx: number): boolean => {
-      if (stack.has(tx)) return true;  // Cycle found
+      if (stack.has(tx)) return true; // Cycle found
       if (visited.has(tx)) return false;
 
       visited.add(tx);
@@ -605,7 +614,6 @@ class MVCCEngine {
     }
 
     // Process each key
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_key, version] of this.data) {
       keysProcessed++;
 
@@ -633,7 +641,7 @@ class MVCCEngine {
     // Clean up old undo log entries
     if (this.versionStorage === 'IN_PLACE_WITH_UNDO') {
       const undoCountBefore = this.undoLog.length;
-      this.undoLog = this.undoLog.filter(entry => {
+      this.undoLog = this.undoLog.filter((entry) => {
         const tx = this.transactions.get(entry.txId);
         return tx && tx.state === 'ACTIVE';
       });
@@ -654,7 +662,7 @@ class MVCCEngine {
       keysProcessed,
       oldestActiveTx,
       spaceReclaimed,
-      duration
+      duration,
     };
   }
 
@@ -674,7 +682,7 @@ class MVCCEngine {
 
   private estimateVersionSize(version: VersionedValue): number {
     const valueSize = JSON.stringify(version.value).length;
-    return valueSize + 64;  // Overhead
+    return valueSize + 64; // Overhead
   }
 
   // ==========================================================================
@@ -697,7 +705,7 @@ class MVCCEngine {
       key,
       versions,
       currentVersion: current,
-      oldestVisibleVersion: versions[versions.length - 1]
+      oldestVisibleVersion: versions[versions.length - 1],
     };
   }
 
@@ -714,7 +722,7 @@ class MVCCEngine {
   }
 
   getActiveTransactions(): Transaction[] {
-    return Array.from(this.transactions.values()).filter(tx => tx.state === 'ACTIVE');
+    return Array.from(this.transactions.values()).filter((tx) => tx.state === 'ACTIVE');
   }
 
   getAllTransactions(): Transaction[] {
@@ -741,7 +749,7 @@ class MVCCEngine {
       totalVersions: 0,
       deadVersions: 0,
       conflicts: 0,
-      deadlocks: 0
+      deadlocks: 0,
     };
   }
 }
@@ -769,37 +777,52 @@ initializeDemoData();
 
 export const mvccTool: UnifiedTool = {
   name: 'mvcc',
-  description: 'Multi-Version Concurrency Control with transaction management, version chains, and multiple isolation levels',
+  description:
+    'Multi-Version Concurrency Control with transaction management, version chains, and multiple isolation levels',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['begin_transaction', 'commit', 'rollback', 'read', 'write',
-               'check_visibility', 'get_snapshot', 'vacuum', 'analyze_conflicts',
-               'get_version_chain', 'get_stats', 'demo', 'info', 'examples', 'reset'],
-        description: 'Operation to perform'
+        enum: [
+          'begin_transaction',
+          'commit',
+          'rollback',
+          'read',
+          'write',
+          'check_visibility',
+          'get_snapshot',
+          'vacuum',
+          'analyze_conflicts',
+          'get_version_chain',
+          'get_stats',
+          'demo',
+          'info',
+          'examples',
+          'reset',
+        ],
+        description: 'Operation to perform',
       },
       txId: {
         type: 'number',
-        description: 'Transaction ID'
+        description: 'Transaction ID',
       },
       isolationLevel: {
         type: 'string',
         enum: ['READ_UNCOMMITTED', 'READ_COMMITTED', 'REPEATABLE_READ', 'SERIALIZABLE'],
-        description: 'Isolation level for new transaction'
+        description: 'Isolation level for new transaction',
       },
       key: {
         type: 'string',
-        description: 'Key to read or write'
+        description: 'Key to read or write',
       },
       value: {
         type: 'string',
-        description: 'Value to write'
-      }
+        description: 'Value to write',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -816,17 +839,21 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'begin_transaction',
-            transaction: {
-              txId: tx.txId.id,
-              state: tx.state,
-              isolationLevel: tx.isolationLevel,
-              startTimestamp: tx.startTimestamp,
-              hasSnapshot: !!tx.snapshot
+          content: JSON.stringify(
+            {
+              operation: 'begin_transaction',
+              transaction: {
+                txId: tx.txId.id,
+                state: tx.state,
+                isolationLevel: tx.isolationLevel,
+                startTimestamp: tx.startTimestamp,
+                hasSnapshot: !!tx.snapshot,
+              },
+              message: `Transaction ${tx.txId.id} started with ${isolationLevel} isolation`,
             },
-            message: `Transaction ${tx.txId.id} started with ${isolationLevel} isolation`
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -836,7 +863,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'txId is required' }),
-            isError: true
+            isError: true,
           };
         }
 
@@ -844,13 +871,19 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'commit',
-            txId,
-            success: result.success,
-            error: result.error,
-            message: result.success ? `Transaction ${txId} committed successfully` : `Commit failed: ${result.error}`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'commit',
+              txId,
+              success: result.success,
+              error: result.error,
+              message: result.success
+                ? `Transaction ${txId} committed successfully`
+                : `Commit failed: ${result.error}`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -860,7 +893,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'txId is required' }),
-            isError: true
+            isError: true,
           };
         }
 
@@ -868,13 +901,19 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'rollback',
-            txId,
-            success: result.success,
-            error: result.error,
-            message: result.success ? `Transaction ${txId} rolled back` : `Rollback failed: ${result.error}`
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'rollback',
+              txId,
+              success: result.success,
+              error: result.error,
+              message: result.success
+                ? `Transaction ${txId} rolled back`
+                : `Rollback failed: ${result.error}`,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -886,7 +925,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'txId and key are required' }),
-            isError: true
+            isError: true,
           };
         }
 
@@ -895,21 +934,27 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'read',
-              txId,
-              key,
-              found: result.found,
-              value: result.value,
-              version: result.version,
-              message: result.found ? `Read value for '${key}'` : `Key '${key}' not found or not visible`
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'read',
+                txId,
+                key,
+                found: result.found,
+                value: result.value,
+                version: result.version,
+                message: result.found
+                  ? `Read value for '${key}'`
+                  : `Key '${key}' not found or not visible`,
+              },
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
             content: JSON.stringify({ error: (e as Error).message }),
-            isError: true
+            isError: true,
           };
         }
       }
@@ -923,7 +968,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'txId, key, and value are required' }),
-            isError: true
+            isError: true,
           };
         }
 
@@ -933,32 +978,40 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           if (result.success) {
             return {
               toolCallId: id,
-              content: JSON.stringify({
-                operation: 'write',
-                txId,
-                key,
-                success: true,
-                message: `Wrote value to '${key}'`
-              }, null, 2)
+              content: JSON.stringify(
+                {
+                  operation: 'write',
+                  txId,
+                  key,
+                  success: true,
+                  message: `Wrote value to '${key}'`,
+                },
+                null,
+                2
+              ),
             };
           } else {
             return {
               toolCallId: id,
-              content: JSON.stringify({
-                operation: 'write',
-                txId,
-                key,
-                success: false,
-                conflict: result.conflict,
-                message: `Write conflict: ${result.conflict?.resolution}`
-              }, null, 2)
+              content: JSON.stringify(
+                {
+                  operation: 'write',
+                  txId,
+                  key,
+                  success: false,
+                  conflict: result.conflict,
+                  message: `Write conflict: ${result.conflict?.resolution}`,
+                },
+                null,
+                2
+              ),
             };
           }
         } catch (e) {
           return {
             toolCallId: id,
             content: JSON.stringify({ error: (e as Error).message }),
-            isError: true
+            isError: true,
           };
         }
       }
@@ -971,7 +1024,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'txId and key are required' }),
-            isError: true
+            isError: true,
           };
         }
 
@@ -980,23 +1033,31 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'check_visibility',
-            txId,
-            key,
-            visible: result.visible,
-            reason: result.reason,
-            transaction: tx ? {
-              isolationLevel: tx.isolationLevel,
-              startTimestamp: tx.startTimestamp,
-              hasSnapshot: !!tx.snapshot
-            } : null,
-            version: result.version ? {
-              xmin: result.version.xmin,
-              xmax: result.version.xmax,
-              timestamp: result.version.timestamp
-            } : null
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'check_visibility',
+              txId,
+              key,
+              visible: result.visible,
+              reason: result.reason,
+              transaction: tx
+                ? {
+                    isolationLevel: tx.isolationLevel,
+                    startTimestamp: tx.startTimestamp,
+                    hasSnapshot: !!tx.snapshot,
+                  }
+                : null,
+              version: result.version
+                ? {
+                    xmin: result.version.xmin,
+                    xmax: result.version.xmax,
+                    timestamp: result.version.timestamp,
+                  }
+                : null,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1007,7 +1068,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'txId is required' }),
-            isError: true
+            isError: true,
           };
         }
 
@@ -1017,28 +1078,33 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           return {
             toolCallId: id,
             content: JSON.stringify({ error: 'Transaction not found' }),
-            isError: true
+            isError: true,
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'get_snapshot',
-            txId,
-            snapshot: {
-              xmin: snapshot.xmin,
-              xmax: snapshot.xmax,
-              activeTransactions: Array.from(snapshot.activeTransactions),
-              timestamp: snapshot.timestamp
+          content: JSON.stringify(
+            {
+              operation: 'get_snapshot',
+              txId,
+              snapshot: {
+                xmin: snapshot.xmin,
+                xmax: snapshot.xmax,
+                activeTransactions: Array.from(snapshot.activeTransactions),
+                timestamp: snapshot.timestamp,
+              },
+              explanation: {
+                xmin: 'Oldest transaction ID that was active at snapshot time',
+                xmax: 'Next transaction ID at snapshot time',
+                activeTransactions:
+                  'Transaction IDs that were active at snapshot time (their changes are invisible)',
+                timestamp: 'Logical timestamp when snapshot was created',
+              },
             },
-            explanation: {
-              xmin: 'Oldest transaction ID that was active at snapshot time',
-              xmax: 'Next transaction ID at snapshot time',
-              activeTransactions: 'Transaction IDs that were active at snapshot time (their changes are invisible)',
-              timestamp: 'Logical timestamp when snapshot was created'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1047,17 +1113,21 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'vacuum',
-            result: {
-              versionsRemoved: result.versionsRemoved,
-              keysProcessed: result.keysProcessed,
-              oldestActiveTx: result.oldestActiveTx,
-              spaceReclaimed: `${result.spaceReclaimed} bytes`,
-              duration: `${result.duration}ms`
+          content: JSON.stringify(
+            {
+              operation: 'vacuum',
+              result: {
+                versionsRemoved: result.versionsRemoved,
+                keysProcessed: result.keysProcessed,
+                oldestActiveTx: result.oldestActiveTx,
+                spaceReclaimed: `${result.spaceReclaimed} bytes`,
+                duration: `${result.duration}ms`,
+              },
+              message: `Vacuum complete: removed ${result.versionsRemoved} dead versions from ${result.keysProcessed} keys`,
             },
-            message: `Vacuum complete: removed ${result.versionsRemoved} dead versions from ${result.keysProcessed} keys`
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1066,23 +1136,27 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze_conflicts',
-            summary: analysis.summary,
-            recentConflicts: analysis.conflicts.map(c => ({
-              type: c.type,
-              txId1: c.txId1,
-              txId2: c.txId2,
-              key: c.key,
-              resolution: c.resolution
-            })),
-            explanation: {
-              WRITE_WRITE: 'Two transactions tried to modify same row',
-              READ_WRITE: 'Transaction read data that was later modified (serialization anomaly)',
-              WRITE_READ: 'Transaction overwrote data that another transaction read',
-              DEADLOCK: 'Circular wait between transactions'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'analyze_conflicts',
+              summary: analysis.summary,
+              recentConflicts: analysis.conflicts.map((c) => ({
+                type: c.type,
+                txId1: c.txId1,
+                txId2: c.txId2,
+                key: c.key,
+                resolution: c.resolution,
+              })),
+              explanation: {
+                WRITE_WRITE: 'Two transactions tried to modify same row',
+                READ_WRITE: 'Transaction read data that was later modified (serialization anomaly)',
+                WRITE_READ: 'Transaction overwrote data that another transaction read',
+                DEADLOCK: 'Circular wait between transactions',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1093,32 +1167,40 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         if (!chain) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'get_version_chain',
-              key,
-              found: false,
-              message: `No version chain found for key '${key}'`
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'get_version_chain',
+                key,
+                found: false,
+                message: `No version chain found for key '${key}'`,
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'get_version_chain',
-            key,
-            found: true,
-            versionCount: chain.versions.length,
-            versions: chain.versions.map((v, i) => ({
-              index: i,
-              value: v.value,
-              xmin: v.xmin,
-              xmax: v.xmax,
-              timestamp: v.timestamp,
-              isCurrent: i === 0
-            })),
-            explanation: 'Version chain shows all versions of a key, with newest first'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'get_version_chain',
+              key,
+              found: true,
+              versionCount: chain.versions.length,
+              versions: chain.versions.map((v, i) => ({
+                index: i,
+                value: v.value,
+                xmin: v.xmin,
+                xmax: v.xmax,
+                timestamp: v.timestamp,
+                isCurrent: i === 0,
+              })),
+              explanation: 'Version chain shows all versions of a key, with newest first',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1128,17 +1210,21 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'get_stats',
-            statistics: stats,
-            activeTransactions: activeTxs.map(tx => ({
-              txId: tx.txId.id,
-              isolationLevel: tx.isolationLevel,
-              startTimestamp: tx.startTimestamp,
-              readSetSize: tx.readSet.size,
-              writeSetSize: tx.writeSet.size
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'get_stats',
+              statistics: stats,
+              activeTransactions: activeTxs.map((tx) => ({
+                txId: tx.txId.id,
+                isolationLevel: tx.isolationLevel,
+                startTimestamp: tx.startTimestamp,
+                readSetSize: tx.readSet.size,
+                writeSetSize: tx.writeSet.size,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1157,7 +1243,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           step: 1,
           action: 'Started two transactions',
           tx1: { id: tx1.txId.id, isolation: tx1.isolationLevel },
-          tx2: { id: tx2.txId.id, isolation: tx2.isolationLevel }
+          tx2: { id: tx2.txId.id, isolation: tx2.isolationLevel },
         });
 
         // TX1 reads account:1
@@ -1165,7 +1251,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         results.push({
           step: 2,
           action: 'TX1 reads account:1',
-          result: read1
+          result: read1,
         });
 
         // TX2 reads account:1 (same value due to snapshot isolation)
@@ -1173,7 +1259,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         results.push({
           step: 3,
           action: 'TX2 reads account:1',
-          result: read2
+          result: read2,
         });
 
         // TX1 writes to account:1
@@ -1181,15 +1267,18 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         results.push({
           step: 4,
           action: 'TX1 writes account:1 (balance: 900)',
-          result: write1
+          result: write1,
         });
 
         // TX2 tries to write to account:1 (conflict!)
-        const write2 = mvccEngine.write(tx2.txId.id, 'account:1', { balance: 1100, owner: 'Alice' });
+        const write2 = mvccEngine.write(tx2.txId.id, 'account:1', {
+          balance: 1100,
+          owner: 'Alice',
+        });
         results.push({
           step: 5,
           action: 'TX2 tries to write account:1 (conflict expected)',
-          result: write2
+          result: write2,
         });
 
         // TX1 commits
@@ -1197,7 +1286,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         results.push({
           step: 6,
           action: 'TX1 commits',
-          result: commit1
+          result: commit1,
         });
 
         // TX2 must abort due to conflict
@@ -1206,7 +1295,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
           results.push({
             step: 7,
             action: 'TX2 aborts due to conflict',
-            result: abort2
+            result: abort2,
           });
         }
 
@@ -1218,7 +1307,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         results.push({
           step: 8,
           action: 'Final state of account:1',
-          value: finalRead.value
+          value: finalRead.value,
         });
 
         // Show version chain
@@ -1226,125 +1315,139 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            description: 'Write-write conflict scenario with REPEATABLE_READ isolation',
-            steps: results,
-            versionChain: chain ? {
-              versionCount: chain.versions.length,
-              versions: chain.versions.map(v => ({
-                value: v.value,
-                xmin: v.xmin,
-                xmax: v.xmax
-              }))
-            } : null,
-            stats: mvccEngine.getStats()
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              description: 'Write-write conflict scenario with REPEATABLE_READ isolation',
+              steps: results,
+              versionChain: chain
+                ? {
+                    versionCount: chain.versions.length,
+                    versions: chain.versions.map((v) => ({
+                      value: v.value,
+                      xmin: v.xmin,
+                      xmax: v.xmax,
+                    })),
+                  }
+                : null,
+              stats: mvccEngine.getStats(),
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'MVCC (Multi-Version Concurrency Control)',
-            description: 'Database concurrency control that maintains multiple versions of data',
-            concepts: {
-              transaction: 'Unit of work with ACID properties',
-              version: 'Timestamped snapshot of a data item',
-              snapshot: 'Consistent view of database at a point in time',
-              xmin: 'Transaction ID that created a version',
-              xmax: 'Transaction ID that deleted/updated a version (0 if current)'
+          content: JSON.stringify(
+            {
+              tool: 'MVCC (Multi-Version Concurrency Control)',
+              description: 'Database concurrency control that maintains multiple versions of data',
+              concepts: {
+                transaction: 'Unit of work with ACID properties',
+                version: 'Timestamped snapshot of a data item',
+                snapshot: 'Consistent view of database at a point in time',
+                xmin: 'Transaction ID that created a version',
+                xmax: 'Transaction ID that deleted/updated a version (0 if current)',
+              },
+              isolationLevels: {
+                READ_UNCOMMITTED: 'Can see uncommitted data (dirty reads possible)',
+                READ_COMMITTED: 'Only sees committed data (no dirty reads)',
+                REPEATABLE_READ: 'Uses snapshot - same query returns same results',
+                SERIALIZABLE: 'Transactions appear to execute serially',
+              },
+              operations: [
+                'begin_transaction - Start new transaction',
+                'commit - Commit transaction',
+                'rollback - Abort and undo transaction',
+                'read - Read value with visibility rules',
+                'write - Write new version',
+                'check_visibility - Check if version is visible to transaction',
+                'get_snapshot - Get transaction snapshot',
+                'vacuum - Clean up old versions',
+                'analyze_conflicts - View conflict history',
+                'get_version_chain - View version history for a key',
+                'get_stats - View MVCC statistics',
+              ],
+              conflictTypes: {
+                WRITE_WRITE: 'Two active transactions modify same row',
+                READ_WRITE: 'Serializable violation - read-then-write by another',
+                DEADLOCK: 'Circular wait between transactions',
+              },
             },
-            isolationLevels: {
-              READ_UNCOMMITTED: 'Can see uncommitted data (dirty reads possible)',
-              READ_COMMITTED: 'Only sees committed data (no dirty reads)',
-              REPEATABLE_READ: 'Uses snapshot - same query returns same results',
-              SERIALIZABLE: 'Transactions appear to execute serially'
-            },
-            operations: [
-              'begin_transaction - Start new transaction',
-              'commit - Commit transaction',
-              'rollback - Abort and undo transaction',
-              'read - Read value with visibility rules',
-              'write - Write new version',
-              'check_visibility - Check if version is visible to transaction',
-              'get_snapshot - Get transaction snapshot',
-              'vacuum - Clean up old versions',
-              'analyze_conflicts - View conflict history',
-              'get_version_chain - View version history for a key',
-              'get_stats - View MVCC statistics'
-            ],
-            conflictTypes: {
-              WRITE_WRITE: 'Two active transactions modify same row',
-              READ_WRITE: 'Serializable violation - read-then-write by another',
-              DEADLOCK: 'Circular wait between transactions'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Start a transaction',
-                call: {
-                  operation: 'begin_transaction',
-                  isolationLevel: 'REPEATABLE_READ'
-                }
-              },
-              {
-                name: 'Read a value',
-                call: {
-                  operation: 'read',
-                  txId: 1,
-                  key: 'account:1'
-                }
-              },
-              {
-                name: 'Write a value',
-                call: {
-                  operation: 'write',
-                  txId: 1,
-                  key: 'account:1',
-                  value: { balance: 1500, owner: 'Alice' }
-                }
-              },
-              {
-                name: 'Commit transaction',
-                call: {
-                  operation: 'commit',
-                  txId: 1
-                }
-              },
-              {
-                name: 'Check visibility',
-                call: {
-                  operation: 'check_visibility',
-                  txId: 2,
-                  key: 'account:1'
-                }
-              },
-              {
-                name: 'Get version chain',
-                call: {
-                  operation: 'get_version_chain',
-                  key: 'account:1'
-                }
-              },
-              {
-                name: 'Run vacuum',
-                call: { operation: 'vacuum' }
-              },
-              {
-                name: 'Run demo scenario',
-                call: { operation: 'demo' }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Start a transaction',
+                  call: {
+                    operation: 'begin_transaction',
+                    isolationLevel: 'REPEATABLE_READ',
+                  },
+                },
+                {
+                  name: 'Read a value',
+                  call: {
+                    operation: 'read',
+                    txId: 1,
+                    key: 'account:1',
+                  },
+                },
+                {
+                  name: 'Write a value',
+                  call: {
+                    operation: 'write',
+                    txId: 1,
+                    key: 'account:1',
+                    value: { balance: 1500, owner: 'Alice' },
+                  },
+                },
+                {
+                  name: 'Commit transaction',
+                  call: {
+                    operation: 'commit',
+                    txId: 1,
+                  },
+                },
+                {
+                  name: 'Check visibility',
+                  call: {
+                    operation: 'check_visibility',
+                    txId: 2,
+                    key: 'account:1',
+                  },
+                },
+                {
+                  name: 'Get version chain',
+                  call: {
+                    operation: 'get_version_chain',
+                    key: 'account:1',
+                  },
+                },
+                {
+                  name: 'Run vacuum',
+                  call: { operation: 'vacuum' },
+                },
+                {
+                  name: 'Run demo scenario',
+                  call: { operation: 'demo' },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1354,15 +1457,19 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'reset',
-            message: 'MVCC engine reset with initial demo data',
-            initialData: [
-              { key: 'account:1', value: { balance: 1000, owner: 'Alice' } },
-              { key: 'account:2', value: { balance: 2000, owner: 'Bob' } },
-              { key: 'account:3', value: { balance: 500, owner: 'Carol' } }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'reset',
+              message: 'MVCC engine reset with initial demo data',
+              initialData: [
+                { key: 'account:1', value: { balance: 1000, owner: 'Alice' } },
+                { key: 'account:2', value: { balance: 2000, owner: 'Bob' } },
+                { key: 'account:3', value: { balance: 500, owner: 'Carol' } },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1370,7 +1477,7 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1379,4 +1486,6 @@ export async function executemvcc(toolCall: UnifiedToolCall): Promise<UnifiedToo
   }
 }
 
-export function ismvccAvailable(): boolean { return true; }
+export function ismvccAvailable(): boolean {
+  return true;
+}

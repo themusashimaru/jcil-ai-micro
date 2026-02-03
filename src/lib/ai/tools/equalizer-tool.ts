@@ -14,55 +14,68 @@ export const equalizerTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['info', 'examples', 'demo', 'parametric', 'graphic', 'shelving', 'analyze', 'design_filter', 'frequency_response'],
-        description: 'Operation to perform'
+        enum: [
+          'info',
+          'examples',
+          'demo',
+          'parametric',
+          'graphic',
+          'shelving',
+          'analyze',
+          'design_filter',
+          'frequency_response',
+        ],
+        description: 'Operation to perform',
       },
       signal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Input audio signal samples'
+        description: 'Input audio signal samples',
       },
       sampleRate: {
         type: 'number',
-        description: 'Sample rate in Hz (default: 44100)'
+        description: 'Sample rate in Hz (default: 44100)',
       },
       bands: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            frequency: { type: 'number' },
-            gain: { type: 'number' },
-            q: { type: 'number' }
-          }
-        },
-        description: 'Parametric EQ bands'
+        items: { type: 'object' },
+        description:
+          'Parametric EQ bands. Each band has: frequency (number), gain (number), q (number)',
       },
       graphicBands: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Graphic EQ gains in dB (e.g., 10 bands or 31 bands)'
+        description: 'Graphic EQ gains in dB (e.g., 10 bands or 31 bands)',
       },
       filterType: {
         type: 'string',
-        enum: ['lowpass', 'highpass', 'bandpass', 'notch', 'peak', 'lowshelf', 'highshelf', 'allpass'],
-        description: 'Filter type for design'
+        enum: [
+          'lowpass',
+          'highpass',
+          'bandpass',
+          'notch',
+          'peak',
+          'lowshelf',
+          'highshelf',
+          'allpass',
+        ],
+        description: 'Filter type for design',
       },
       frequency: {
         type: 'number',
-        description: 'Center/cutoff frequency in Hz'
+        description: 'Center/cutoff frequency in Hz',
       },
       gain: {
         type: 'number',
-        description: 'Gain in dB'
+        description: 'Gain in dB',
       },
       q: {
         type: 'number',
-        description: 'Q factor (quality/bandwidth)'
-      }
+        description: 'Q factor (quality/bandwidth)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Biquad filter coefficients
@@ -91,13 +104,18 @@ function calculateBiquadCoeffs(
   q: number,
   gain: number
 ): BiquadCoefficients {
-  const w0 = 2 * Math.PI * frequency / sampleRate;
+  const w0 = (2 * Math.PI * frequency) / sampleRate;
   const cosw0 = Math.cos(w0);
   const sinw0 = Math.sin(w0);
   const alpha = sinw0 / (2 * q);
   const A = Math.pow(10, gain / 40); // sqrt of amplitude
 
-  let b0 = 0, b1 = 0, b2 = 0, a0 = 1, a1 = 0, a2 = 0;
+  let b0 = 0,
+    b1 = 0,
+    b2 = 0,
+    a0 = 1,
+    a1 = 0,
+    a2 = 0;
 
   switch (type) {
     case 'lowpass':
@@ -147,23 +165,23 @@ function calculateBiquadCoeffs(
 
     case 'lowshelf': {
       const sqrtA = Math.sqrt(A);
-      b0 = A * ((A + 1) - (A - 1) * cosw0 + 2 * sqrtA * alpha);
-      b1 = 2 * A * ((A - 1) - (A + 1) * cosw0);
-      b2 = A * ((A + 1) - (A - 1) * cosw0 - 2 * sqrtA * alpha);
-      a0 = (A + 1) + (A - 1) * cosw0 + 2 * sqrtA * alpha;
-      a1 = -2 * ((A - 1) + (A + 1) * cosw0);
-      a2 = (A + 1) + (A - 1) * cosw0 - 2 * sqrtA * alpha;
+      b0 = A * (A + 1 - (A - 1) * cosw0 + 2 * sqrtA * alpha);
+      b1 = 2 * A * (A - 1 - (A + 1) * cosw0);
+      b2 = A * (A + 1 - (A - 1) * cosw0 - 2 * sqrtA * alpha);
+      a0 = A + 1 + (A - 1) * cosw0 + 2 * sqrtA * alpha;
+      a1 = -2 * (A - 1 + (A + 1) * cosw0);
+      a2 = A + 1 + (A - 1) * cosw0 - 2 * sqrtA * alpha;
       break;
     }
 
     case 'highshelf': {
       const sqrtA = Math.sqrt(A);
-      b0 = A * ((A + 1) + (A - 1) * cosw0 + 2 * sqrtA * alpha);
-      b1 = -2 * A * ((A - 1) + (A + 1) * cosw0);
-      b2 = A * ((A + 1) + (A - 1) * cosw0 - 2 * sqrtA * alpha);
-      a0 = (A + 1) - (A - 1) * cosw0 + 2 * sqrtA * alpha;
-      a1 = 2 * ((A - 1) - (A + 1) * cosw0);
-      a2 = (A + 1) - (A - 1) * cosw0 - 2 * sqrtA * alpha;
+      b0 = A * (A + 1 + (A - 1) * cosw0 + 2 * sqrtA * alpha);
+      b1 = -2 * A * (A - 1 + (A + 1) * cosw0);
+      b2 = A * (A + 1 + (A - 1) * cosw0 - 2 * sqrtA * alpha);
+      a0 = A + 1 - (A - 1) * cosw0 + 2 * sqrtA * alpha;
+      a1 = 2 * (A - 1 - (A + 1) * cosw0);
+      a2 = A + 1 - (A - 1) * cosw0 - 2 * sqrtA * alpha;
       break;
     }
 
@@ -183,7 +201,7 @@ function calculateBiquadCoeffs(
     b1: b1 / a0,
     b2: b2 / a0,
     a1: a1 / a0,
-    a2: a2 / a0
+    a2: a2 / a0,
   };
 }
 
@@ -194,7 +212,7 @@ function createBiquadFilter(coeffs: BiquadCoefficients): BiquadFilter {
     x1: 0,
     x2: 0,
     y1: 0,
-    y2: 0
+    y2: 0,
   };
 }
 
@@ -202,8 +220,7 @@ function createBiquadFilter(coeffs: BiquadCoefficients): BiquadFilter {
 function processBiquad(filter: BiquadFilter, input: number): number {
   const { b0, b1, b2, a1, a2 } = filter.coeffs;
 
-  const output = b0 * input + b1 * filter.x1 + b2 * filter.x2
-                 - a1 * filter.y1 - a2 * filter.y2;
+  const output = b0 * input + b1 * filter.x1 + b2 * filter.x2 - a1 * filter.y1 - a2 * filter.y2;
 
   filter.x2 = filter.x1;
   filter.x1 = input;
@@ -231,7 +248,7 @@ function calculateFrequencyResponse(
     const freq = minFreq * Math.pow(maxFreq / minFreq, i / (numPoints - 1));
     frequencies.push(freq);
 
-    const w = 2 * Math.PI * freq / sampleRate;
+    const w = (2 * Math.PI * freq) / sampleRate;
     const cosw = Math.cos(w);
     const cos2w = Math.cos(2 * w);
     const sinw = Math.sin(w);
@@ -252,7 +269,7 @@ function calculateFrequencyResponse(
 
     const mag = Math.sqrt(respReal * respReal + respImag * respImag);
     magnitude.push(20 * Math.log10(Math.max(mag, 1e-10)));
-    phase.push(Math.atan2(respImag, respReal) * 180 / Math.PI);
+    phase.push((Math.atan2(respImag, respReal) * 180) / Math.PI);
   }
 
   return { frequencies, magnitude, phase };
@@ -265,10 +282,8 @@ function parametricEQ(
   bands: { frequency: number; gain: number; q: number }[]
 ): { output: number[]; analysis: object } {
   // Create filter for each band
-  const filters: BiquadFilter[] = bands.map(band =>
-    createBiquadFilter(
-      calculateBiquadCoeffs('peak', band.frequency, sampleRate, band.q, band.gain)
-    )
+  const filters: BiquadFilter[] = bands.map((band) =>
+    createBiquadFilter(calculateBiquadCoeffs('peak', band.frequency, sampleRate, band.q, band.gain))
   );
 
   // Process signal through cascade of filters
@@ -283,7 +298,7 @@ function parametricEQ(
   }
 
   // Calculate combined frequency response
-  const responses = bands.map(band => {
+  const responses = bands.map((band) => {
     const coeffs = calculateBiquadCoeffs('peak', band.frequency, sampleRate, band.q, band.gain);
     return calculateFrequencyResponse(coeffs, sampleRate, 50);
   });
@@ -302,13 +317,15 @@ function parametricEQ(
         frequency: band.frequency + ' Hz',
         gain: band.gain + ' dB',
         q: band.q,
-        bandwidth: (band.frequency / band.q).toFixed(1) + ' Hz'
+        bandwidth: (band.frequency / band.q).toFixed(1) + ' Hz',
       })),
       frequencyResponse: {
-        frequencies: responses[0].frequencies.filter((_, i) => i % 5 === 0).map(f => f.toFixed(0) + ' Hz'),
-        magnitude: combinedMagnitude.filter((_, i) => i % 5 === 0).map(m => m.toFixed(2) + ' dB')
-      }
-    }
+        frequencies: responses[0].frequencies
+          .filter((_, i) => i % 5 === 0)
+          .map((f) => f.toFixed(0) + ' Hz'),
+        magnitude: combinedMagnitude.filter((_, i) => i % 5 === 0).map((m) => m.toFixed(2) + ' dB'),
+      },
+    },
   };
 }
 
@@ -322,9 +339,8 @@ function graphicEQ(
   // Standard ISO center frequencies
   const isoFrequencies10 = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
   const isoFrequencies31 = [
-    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160,
-    200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600,
-    2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000
+    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250,
+    1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000,
   ];
 
   const frequencies = bandCount === 31 ? isoFrequencies31 : isoFrequencies10;
@@ -344,7 +360,7 @@ function graphicEQ(
   const bands = frequencies.map((freq, i) => ({
     frequency: freq,
     gain: usedGains[i],
-    q
+    q,
   }));
 
   // Only create filters for non-zero gains (optimization)
@@ -379,16 +395,21 @@ function graphicEQ(
       type: `${bandCount}-Band Graphic EQ`,
       bandType: bandCount === 31 ? '1/3 Octave' : '1 Octave',
       q,
-      bands: bands.map(b => ({
+      bands: bands.map((b) => ({
         frequency: b.frequency + ' Hz',
-        gain: b.gain.toFixed(1) + ' dB'
+        gain: b.gain.toFixed(1) + ' dB',
       })),
       activeBands: activeBands.length,
-      visualizer: bands.map(b => {
-        const bars = Math.round((b.gain + 12) / 24 * 10);
-        return '|' + '█'.repeat(Math.max(0, Math.min(10, bars))) + ' '.repeat(10 - Math.max(0, Math.min(10, bars))) + '|';
-      })
-    }
+      visualizer: bands.map((b) => {
+        const bars = Math.round(((b.gain + 12) / 24) * 10);
+        return (
+          '|' +
+          '█'.repeat(Math.max(0, Math.min(10, bars))) +
+          ' '.repeat(10 - Math.max(0, Math.min(10, bars))) +
+          '|'
+        );
+      }),
+    },
   };
 }
 
@@ -402,11 +423,23 @@ function shelvingEQ(
   highShelfGain: number
 ): { output: number[]; analysis: object } {
   // Create low shelf filter
-  const lowShelfCoeffs = calculateBiquadCoeffs('lowshelf', lowShelfFreq, sampleRate, 0.707, lowShelfGain);
+  const lowShelfCoeffs = calculateBiquadCoeffs(
+    'lowshelf',
+    lowShelfFreq,
+    sampleRate,
+    0.707,
+    lowShelfGain
+  );
   const lowShelfFilter = createBiquadFilter(lowShelfCoeffs);
 
   // Create high shelf filter
-  const highShelfCoeffs = calculateBiquadCoeffs('highshelf', highShelfFreq, sampleRate, 0.707, highShelfGain);
+  const highShelfCoeffs = calculateBiquadCoeffs(
+    'highshelf',
+    highShelfFreq,
+    sampleRate,
+    0.707,
+    highShelfGain
+  );
   const highShelfFilter = createBiquadFilter(highShelfCoeffs);
 
   // Process
@@ -430,26 +463,22 @@ function shelvingEQ(
       type: 'Shelving EQ (Bass/Treble)',
       lowShelf: {
         frequency: lowShelfFreq + ' Hz',
-        gain: lowShelfGain + ' dB'
+        gain: lowShelfGain + ' dB',
       },
       highShelf: {
         frequency: highShelfFreq + ' Hz',
-        gain: highShelfGain + ' dB'
+        gain: highShelfGain + ' dB',
       },
       frequencyResponse: {
-        frequencies: lowResp.frequencies.filter((_, i) => i % 10 === 0).map(f => f.toFixed(0)),
-        magnitude: combinedMag.filter((_, i) => i % 10 === 0).map(m => m.toFixed(2))
-      }
-    }
+        frequencies: lowResp.frequencies.filter((_, i) => i % 10 === 0).map((f) => f.toFixed(0)),
+        magnitude: combinedMag.filter((_, i) => i % 10 === 0).map((m) => m.toFixed(2)),
+      },
+    },
   };
 }
 
 // Spectrum analysis
-function analyzeSpectrum(
-  signal: number[],
-  sampleRate: number,
-  fftSize: number = 1024
-): object {
+function analyzeSpectrum(signal: number[], sampleRate: number, fftSize: number = 1024): object {
   // Simple DFT for analysis (FFT would be faster for large sizes)
   const N = Math.min(signal.length, fftSize);
   const spectrum: { frequency: number; magnitude: number }[] = [];
@@ -457,7 +486,7 @@ function analyzeSpectrum(
   // Apply Hanning window
   const windowed = new Array(N);
   for (let i = 0; i < N; i++) {
-    const window = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
+    const window = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (N - 1)));
     windowed[i] = signal[i] * window;
   }
 
@@ -469,18 +498,18 @@ function analyzeSpectrum(
     let imag = 0;
 
     for (let n = 0; n < N; n++) {
-      const angle = -2 * Math.PI * k * n / N;
+      const angle = (-2 * Math.PI * k * n) / N;
       real += windowed[n] * Math.cos(angle);
       imag += windowed[n] * Math.sin(angle);
     }
 
     const magnitude = Math.sqrt(real * real + imag * imag) / N;
-    const frequency = k * sampleRate / N;
+    const frequency = (k * sampleRate) / N;
 
     if (frequency > 0) {
       spectrum.push({
         frequency,
-        magnitude: 20 * Math.log10(Math.max(magnitude, 1e-10))
+        magnitude: 20 * Math.log10(Math.max(magnitude, 1e-10)),
       });
     }
   }
@@ -488,9 +517,11 @@ function analyzeSpectrum(
   // Find peaks
   const peaks: { frequency: number; magnitude: number }[] = [];
   for (let i = 1; i < spectrum.length - 1; i++) {
-    if (spectrum[i].magnitude > spectrum[i - 1].magnitude &&
-        spectrum[i].magnitude > spectrum[i + 1].magnitude &&
-        spectrum[i].magnitude > -40) {
+    if (
+      spectrum[i].magnitude > spectrum[i - 1].magnitude &&
+      spectrum[i].magnitude > spectrum[i + 1].magnitude &&
+      spectrum[i].magnitude > -40
+    ) {
       peaks.push(spectrum[i]);
     }
   }
@@ -504,13 +535,14 @@ function analyzeSpectrum(
     { name: 'Mids', low: 500, high: 2000 },
     { name: 'High Mids', low: 2000, high: 4000 },
     { name: 'Presence', low: 4000, high: 6000 },
-    { name: 'Brilliance', low: 6000, high: 20000 }
+    { name: 'Brilliance', low: 6000, high: 20000 },
   ];
 
-  const bandEnergy = bands.map(band => {
-    const binsInBand = spectrum.filter(s => s.frequency >= band.low && s.frequency < band.high);
+  const bandEnergy = bands.map((band) => {
+    const binsInBand = spectrum.filter((s) => s.frequency >= band.low && s.frequency < band.high);
     if (binsInBand.length === 0) return { ...band, energy: -100 };
-    const avgMag = binsInBand.reduce((sum, s) => sum + Math.pow(10, s.magnitude / 20), 0) / binsInBand.length;
+    const avgMag =
+      binsInBand.reduce((sum, s) => sum + Math.pow(10, s.magnitude / 20), 0) / binsInBand.length;
     return { ...band, energy: 20 * Math.log10(avgMag) };
   });
 
@@ -518,19 +550,21 @@ function analyzeSpectrum(
     fftSize: N,
     frequencyResolution: (sampleRate / N).toFixed(2) + ' Hz',
     nyquistFrequency: sampleRate / 2,
-    spectrumPreview: spectrum.filter((_, i) => i % 10 === 0).map(s => ({
-      frequency: s.frequency.toFixed(0) + ' Hz',
-      magnitude: s.magnitude.toFixed(1) + ' dB'
-    })),
-    topPeaks: peaks.slice(0, 5).map(p => ({
+    spectrumPreview: spectrum
+      .filter((_, i) => i % 10 === 0)
+      .map((s) => ({
+        frequency: s.frequency.toFixed(0) + ' Hz',
+        magnitude: s.magnitude.toFixed(1) + ' dB',
+      })),
+    topPeaks: peaks.slice(0, 5).map((p) => ({
       frequency: p.frequency.toFixed(1) + ' Hz',
-      magnitude: p.magnitude.toFixed(1) + ' dB'
+      magnitude: p.magnitude.toFixed(1) + ' dB',
     })),
-    bandAnalysis: bandEnergy.map(b => ({
+    bandAnalysis: bandEnergy.map((b) => ({
       band: b.name,
       range: `${b.low}-${b.high} Hz`,
-      energy: b.energy.toFixed(1) + ' dB'
-    }))
+      energy: b.energy.toFixed(1) + ' dB',
+    })),
   };
 }
 
@@ -548,7 +582,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
       filterType = 'peak',
       frequency = 1000,
       gain = 0,
-      q = 1.0
+      q = 1.0,
     } = args;
 
     let result: object;
@@ -561,22 +595,31 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
           eqTypes: {
             parametric: 'Fully adjustable bands with frequency, gain, and Q control',
             graphic: '10-band or 31-band ISO standard frequencies',
-            shelving: 'Bass and treble tone controls'
+            shelving: 'Bass and treble tone controls',
           },
-          filterTypes: ['lowpass', 'highpass', 'bandpass', 'notch', 'peak', 'lowshelf', 'highshelf', 'allpass'],
+          filterTypes: [
+            'lowpass',
+            'highpass',
+            'bandpass',
+            'notch',
+            'peak',
+            'lowshelf',
+            'highshelf',
+            'allpass',
+          ],
           operations: [
             'parametric - Multi-band parametric EQ',
             'graphic - Fixed-frequency graphic EQ',
             'shelving - Bass/treble controls',
             'analyze - Spectrum analysis',
             'design_filter - Design individual filter',
-            'frequency_response - Calculate filter response'
+            'frequency_response - Calculate filter response',
           ],
           parameters: {
             frequency: 'Center/cutoff frequency in Hz',
             gain: 'Boost/cut in dB',
-            q: 'Quality factor (higher = narrower bandwidth)'
-          }
+            q: 'Quality factor (higher = narrower bandwidth)',
+          },
         };
         break;
 
@@ -590,17 +633,17 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
               bands: [
                 { frequency: 100, gain: 3, q: 1.5 },
                 { frequency: 1000, gain: -2, q: 2.0 },
-                { frequency: 8000, gain: 4, q: 1.0 }
-              ]
-            }
+                { frequency: 8000, gain: 4, q: 1.0 },
+              ],
+            },
           },
           graphicEQ: {
             description: '10-band graphic EQ',
             parameters: {
               operation: 'graphic',
               signal: [0.5, 0.3, 0.1, -0.2],
-              graphicBands: [3, 2, 1, 0, -1, 0, 1, 2, 3, 4]
-            }
+              graphicBands: [3, 2, 1, 0, -1, 0, 1, 2, 3, 4],
+            },
           },
           filterDesign: {
             description: 'Design a peak filter',
@@ -609,9 +652,9 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
               filterType: 'peak',
               frequency: 2000,
               gain: 6,
-              q: 2.0
-            }
-          }
+              q: 2.0,
+            },
+          },
         };
         break;
 
@@ -622,7 +665,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
         for (let i = 0; i < 1024; i++) {
           let sample = 0;
           for (const f of testFreqs) {
-            sample += Math.sin(2 * Math.PI * f * i / sampleRate) * 0.25;
+            sample += Math.sin((2 * Math.PI * f * i) / sampleRate) * 0.25;
           }
           demoSignal.push(sample);
         }
@@ -630,7 +673,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
         // Apply parametric EQ
         const demoBands = [
           { frequency: 100, gain: -6, q: 2 },
-          { frequency: 2000, gain: 6, q: 1.5 }
+          { frequency: 2000, gain: 6, q: 1.5 },
         ];
 
         const demoResult = parametricEQ(demoSignal, sampleRate, demoBands);
@@ -639,11 +682,11 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
           demo: 'Parametric EQ on multi-frequency test signal',
           inputSignal: {
             type: 'Multi-tone (100Hz, 500Hz, 2kHz, 8kHz)',
-            length: demoSignal.length
+            length: demoSignal.length,
           },
           eqSettings: demoBands,
-          outputPreview: demoResult.output.slice(0, 50).map(v => v.toFixed(4)),
-          analysis: demoResult.analysis
+          outputPreview: demoResult.output.slice(0, 50).map((v) => v.toFixed(4)),
+          analysis: demoResult.analysis,
         };
         break;
 
@@ -661,7 +704,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
           operation: 'parametric',
           inputLength: signal.length,
           output: paramResult.output.slice(0, 100),
-          analysis: paramResult.analysis
+          analysis: paramResult.analysis,
         };
         break;
 
@@ -677,7 +720,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
           operation: 'graphic',
           inputLength: signal.length,
           output: graphicResult.output.slice(0, 100),
-          analysis: graphicResult.analysis
+          analysis: graphicResult.analysis,
         };
         break;
 
@@ -699,7 +742,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
           operation: 'shelving',
           inputLength: signal.length,
           output: shelvingResult.output.slice(0, 100),
-          analysis: shelvingResult.analysis
+          analysis: shelvingResult.analysis,
         };
         break;
 
@@ -710,7 +753,7 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
 
         result = {
           operation: 'analyze',
-          analysis: analyzeSpectrum(signal, sampleRate, args.fftSize || 1024)
+          analysis: analyzeSpectrum(signal, sampleRate, args.fftSize || 1024),
         };
         break;
 
@@ -724,16 +767,16 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
             frequency: frequency + ' Hz',
             gain: gain + ' dB',
             q,
-            sampleRate: sampleRate + ' Hz'
+            sampleRate: sampleRate + ' Hz',
           },
           coefficients: {
             b0: coeffs.b0.toFixed(10),
             b1: coeffs.b1.toFixed(10),
             b2: coeffs.b2.toFixed(10),
             a1: coeffs.a1.toFixed(10),
-            a2: coeffs.a2.toFixed(10)
+            a2: coeffs.a2.toFixed(10),
           },
-          differenceEquation: `y[n] = ${coeffs.b0.toFixed(4)}*x[n] + ${coeffs.b1.toFixed(4)}*x[n-1] + ${coeffs.b2.toFixed(4)}*x[n-2] - ${coeffs.a1.toFixed(4)}*y[n-1] - ${coeffs.a2.toFixed(4)}*y[n-2]`
+          differenceEquation: `y[n] = ${coeffs.b0.toFixed(4)}*x[n] + ${coeffs.b1.toFixed(4)}*x[n-1] + ${coeffs.b2.toFixed(4)}*x[n-2] - ${coeffs.a1.toFixed(4)}*y[n-1] - ${coeffs.a2.toFixed(4)}*y[n-2]`,
         };
         break;
 
@@ -746,31 +789,44 @@ export async function executeequalizer(toolCall: UnifiedToolCall): Promise<Unifi
           filterType,
           parameters: { frequency, gain, q },
           response: {
-            frequencies: response.frequencies.filter((_, i) => i % 10 === 0).map(f => f.toFixed(0) + ' Hz'),
-            magnitude: response.magnitude.filter((_, i) => i % 10 === 0).map(m => m.toFixed(2) + ' dB'),
-            phase: response.phase.filter((_, i) => i % 10 === 0).map(p => p.toFixed(1) + '°')
-          }
+            frequencies: response.frequencies
+              .filter((_, i) => i % 10 === 0)
+              .map((f) => f.toFixed(0) + ' Hz'),
+            magnitude: response.magnitude
+              .filter((_, i) => i % 10 === 0)
+              .map((m) => m.toFixed(2) + ' dB'),
+            phase: response.phase.filter((_, i) => i % 10 === 0).map((p) => p.toFixed(1) + '°'),
+          },
         };
         break;
 
       default:
         result = {
           error: `Unknown operation: ${operation}`,
-          availableOperations: ['info', 'examples', 'demo', 'parametric', 'graphic', 'shelving', 'analyze', 'design_filter', 'frequency_response']
+          availableOperations: [
+            'info',
+            'examples',
+            'demo',
+            'parametric',
+            'graphic',
+            'shelving',
+            'analyze',
+            'design_filter',
+            'frequency_response',
+          ],
         };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

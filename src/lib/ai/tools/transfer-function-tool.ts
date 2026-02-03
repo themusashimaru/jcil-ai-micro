@@ -22,27 +22,36 @@ export const transferfunctionTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'poles_zeros', 'step_response', 'impulse_response', 'bode', 'stability', 'frequency_response', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'create',
+          'poles_zeros',
+          'step_response',
+          'impulse_response',
+          'bode',
+          'stability',
+          'frequency_response',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       numerator: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Numerator polynomial coefficients [highest to lowest degree]'
+        description: 'Numerator polynomial coefficients [highest to lowest degree]',
       },
       denominator: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Denominator polynomial coefficients [highest to lowest degree]'
+        description: 'Denominator polynomial coefficients [highest to lowest degree]',
       },
       time_start: { type: 'number', description: 'Start time for response (default: 0)' },
       time_end: { type: 'number', description: 'End time for response (default: 10)' },
       num_points: { type: 'integer', description: 'Number of time points (default: 500)' },
       frequency_start: { type: 'number', description: 'Start frequency in rad/s (default: 0.01)' },
-      frequency_end: { type: 'number', description: 'End frequency in rad/s (default: 100)' }
+      frequency_end: { type: 'number', description: 'End frequency in rad/s (default: 100)' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Complex number operations
@@ -62,7 +71,7 @@ function complexSub(a: Complex, b: Complex): Complex {
 function complexMul(a: Complex, b: Complex): Complex {
   return {
     real: a.real * b.real - a.imag * b.imag,
-    imag: a.real * b.imag + a.imag * b.real
+    imag: a.real * b.imag + a.imag * b.real,
   };
 }
 
@@ -71,7 +80,7 @@ function complexDiv(a: Complex, b: Complex): Complex {
   if (denom === 0) return { real: Infinity, imag: 0 };
   return {
     real: (a.real * b.real + a.imag * b.imag) / denom,
-    imag: (a.imag * b.real - a.real * b.imag) / denom
+    imag: (a.imag * b.real - a.real * b.imag) / denom,
   };
 }
 
@@ -87,8 +96,7 @@ function complexFromPolar(r: number, theta: number): Complex {
   return { real: r * Math.cos(theta), imag: r * Math.sin(theta) };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function complexSqrt(c: Complex): Complex {
+export function complexSqrt(c: Complex): Complex {
   const r = complexAbs(c);
   const theta = complexArg(c);
   return complexFromPolar(Math.sqrt(r), theta / 2);
@@ -113,8 +121,7 @@ function polyEval(coeffs: number[], x: number): number {
 }
 
 // Polynomial derivative
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function polyDerivative(coeffs: number[]): number[] {
+export function polyDerivative(coeffs: number[]): number[] {
   if (coeffs.length <= 1) return [0];
   const deriv: number[] = [];
   for (let i = 0; i < coeffs.length - 1; i++) {
@@ -140,13 +147,13 @@ function findRoots(coeffs: number[], maxIter: number = 1000, tol: number = 1e-10
       const sqrtD = Math.sqrt(discriminant);
       return [
         { real: (-b + sqrtD) / (2 * a), imag: 0 },
-        { real: (-b - sqrtD) / (2 * a), imag: 0 }
+        { real: (-b - sqrtD) / (2 * a), imag: 0 },
       ];
     } else {
       const sqrtD = Math.sqrt(-discriminant);
       return [
         { real: -b / (2 * a), imag: sqrtD / (2 * a) },
-        { real: -b / (2 * a), imag: -sqrtD / (2 * a) }
+        { real: -b / (2 * a), imag: -sqrtD / (2 * a) },
       ];
     }
   }
@@ -156,7 +163,7 @@ function findRoots(coeffs: number[], maxIter: number = 1000, tol: number = 1e-10
 
   // Normalize polynomial
   const leadCoeff = coeffs[0];
-  const normalizedCoeffs = coeffs.map(c => c / leadCoeff);
+  const normalizedCoeffs = coeffs.map((c) => c / leadCoeff);
 
   // Initial guesses distributed on a circle
   const roots: Complex[] = [];
@@ -190,7 +197,7 @@ function findRoots(coeffs: number[], maxIter: number = 1000, tol: number = 1e-10
   }
 
   // Clean up near-real roots
-  return roots.map(r => {
+  return roots.map((r) => {
     if (Math.abs(r.imag) < 1e-10) {
       return { real: r.real, imag: 0 };
     }
@@ -205,7 +212,14 @@ function calculateStepResponse(
   timeStart: number,
   timeEnd: number,
   numPoints: number
-): { time: number[]; response: number[]; steadyState: number; riseTime: number; settlingTime: number; overshoot: number } {
+): {
+  time: number[];
+  response: number[];
+  steadyState: number;
+  riseTime: number;
+  settlingTime: number;
+  overshoot: number;
+} {
   const dt = (timeEnd - timeStart) / (numPoints - 1);
   const time: number[] = [];
   const response: number[] = [];
@@ -245,7 +259,7 @@ function calculateStepResponse(
 
     const omegaN = Math.sqrt(a0 / a2);
     const zeta = a1 / (2 * Math.sqrt(a0 * a2));
-    const K = (numerator[numerator.length - 1] / a0);
+    const K = numerator[numerator.length - 1] / a0;
 
     for (let i = 0; i < numPoints; i++) {
       const t = timeStart + i * dt;
@@ -255,7 +269,9 @@ function calculateStepResponse(
         // Underdamped
         const omegaD = omegaN * Math.sqrt(1 - zeta * zeta);
         const phi = Math.atan2(omegaD, zeta * omegaN);
-        response.push(K * (1 - Math.exp(-zeta * omegaN * t) * Math.sin(omegaD * t + phi) / Math.sin(phi)));
+        response.push(
+          K * (1 - (Math.exp(-zeta * omegaN * t) * Math.sin(omegaD * t + phi)) / Math.sin(phi))
+        );
       } else if (zeta === 1) {
         // Critically damped
         response.push(K * (1 - (1 + omegaN * t) * Math.exp(-omegaN * t)));
@@ -278,14 +294,24 @@ function calculateStepResponse(
       // Output: weighted sum of states
       let y = 0;
       for (let j = 0; j < Math.min(numerator.length, n); j++) {
-        y += numerator[numerator.length - 1 - j] * state[j] / denominator[0];
+        y += (numerator[numerator.length - 1 - j] * state[j]) / denominator[0];
       }
       response.push(y);
 
       // RK4 integration step
       const k1 = stateDerivative(state, 1, numerator, denominator);
-      const k2 = stateDerivative(addArrays(state, scaleArray(k1, dt / 2)), 1, numerator, denominator);
-      const k3 = stateDerivative(addArrays(state, scaleArray(k2, dt / 2)), 1, numerator, denominator);
+      const k2 = stateDerivative(
+        addArrays(state, scaleArray(k1, dt / 2)),
+        1,
+        numerator,
+        denominator
+      );
+      const k3 = stateDerivative(
+        addArrays(state, scaleArray(k2, dt / 2)),
+        1,
+        numerator,
+        denominator
+      );
       const k4 = stateDerivative(addArrays(state, scaleArray(k3, dt)), 1, numerator, denominator);
 
       for (let j = 0; j < n; j++) {
@@ -350,7 +376,7 @@ function calculateStepResponse(
     steadyState: finalValue,
     riseTime: isFinite(riseTime) ? riseTime : 0,
     settlingTime: isFinite(settlingTime) ? settlingTime : timeEnd,
-    overshoot: Math.max(0, overshoot)
+    overshoot: Math.max(0, overshoot),
   };
 }
 
@@ -378,7 +404,7 @@ function addArrays(a: number[], b: number[]): number[] {
 }
 
 function scaleArray(a: number[], s: number): number[] {
-  return a.map(v => v * s);
+  return a.map((v) => v * s);
 }
 
 // Calculate impulse response
@@ -428,8 +454,11 @@ function calculateImpulseResponse(
       if (zeta < 1) {
         // Underdamped
         const omegaD = omegaN * Math.sqrt(1 - zeta * zeta);
-        response.push(K * omegaN / Math.sqrt(1 - zeta * zeta) *
-          Math.exp(-zeta * omegaN * t) * Math.sin(omegaD * t));
+        response.push(
+          ((K * omegaN) / Math.sqrt(1 - zeta * zeta)) *
+            Math.exp(-zeta * omegaN * t) *
+            Math.sin(omegaD * t)
+        );
       } else if (zeta === 1) {
         // Critically damped
         response.push(K * omegaN * omegaN * t * Math.exp(-omegaN * t));
@@ -437,12 +466,18 @@ function calculateImpulseResponse(
         // Overdamped
         const s1 = -zeta * omegaN + omegaN * Math.sqrt(zeta * zeta - 1);
         const s2 = -zeta * omegaN - omegaN * Math.sqrt(zeta * zeta - 1);
-        response.push(K * omegaN * omegaN * (Math.exp(s1 * t) - Math.exp(s2 * t)) / (s1 - s2));
+        response.push((K * omegaN * omegaN * (Math.exp(s1 * t) - Math.exp(s2 * t))) / (s1 - s2));
       }
     }
   } else {
     // General case: derivative of step response
-    const stepResponse = calculateStepResponse(numerator, denominator, timeStart, timeEnd, numPoints);
+    const stepResponse = calculateStepResponse(
+      numerator,
+      denominator,
+      timeStart,
+      timeEnd,
+      numPoints
+    );
     for (let i = 0; i < numPoints; i++) {
       time.push(stepResponse.time[i]);
       if (i === 0) {
@@ -492,7 +527,7 @@ function calculateBode(
     magnitudeDb.push(20 * Math.log10(mag));
 
     // Phase in degrees
-    let phaseDeg = complexArg(H) * 180 / Math.PI;
+    let phaseDeg = (complexArg(H) * 180) / Math.PI;
     // Unwrap phase
     if (i > 0) {
       while (phaseDeg - phase[i - 1] > 180) phaseDeg -= 360;
@@ -508,20 +543,25 @@ function calculateBode(
 function analyzeStability(denominator: number[]): {
   stable: boolean;
   poles: { real: number; imag: number; magnitude: number; damping: number }[];
-  stabilityMargins: { gainMargin: number; phaseMargin: number; gainCrossover: number; phaseCrossover: number };
+  stabilityMargins: {
+    gainMargin: number;
+    phaseMargin: number;
+    gainCrossover: number;
+    phaseCrossover: number;
+  };
   routhTable: number[][];
 } {
   const poles = findRoots(denominator);
 
   // Check if all poles have negative real parts
-  const stable = poles.every(p => p.real < 0);
+  const stable = poles.every((p) => p.real < 0);
 
   // Pole analysis
-  const poleAnalysis = poles.map(p => ({
+  const poleAnalysis = poles.map((p) => ({
     real: p.real,
     imag: p.imag,
     magnitude: complexAbs(p),
-    damping: p.imag === 0 ? 1 : -p.real / complexAbs(p)
+    damping: p.imag === 0 ? 1 : -p.real / complexAbs(p),
   }));
 
   // Routh-Hurwitz stability criterion
@@ -566,14 +606,17 @@ function analyzeStability(denominator: number[]): {
       gainMargin: stable ? Infinity : 0,
       phaseMargin: stable ? 180 : 0,
       gainCrossover: 0,
-      phaseCrossover: 0
+      phaseCrossover: 0,
     },
-    routhTable
+    routhTable,
   };
 }
 
 // Create transfer function representation
-function createTransferFunction(numerator: number[], denominator: number[]): {
+function createTransferFunction(
+  numerator: number[],
+  denominator: number[]
+): {
   numerator: number[];
   denominator: number[];
   order: number;
@@ -600,7 +643,7 @@ function createTransferFunction(numerator: number[], denominator: number[]): {
     dcGain: isFinite(dcGain) ? dcGain : Infinity,
     zeros,
     poles,
-    polynomialForm
+    polynomialForm,
   };
 }
 
@@ -622,7 +665,8 @@ function polyToString(coeffs: number[], variable: string): string {
     } else if (power === 1) {
       term = Math.abs(coeff) === 1 ? variable : `${coeff.toFixed(3)}${variable}`;
     } else {
-      term = Math.abs(coeff) === 1 ? `${variable}^${power}` : `${coeff.toFixed(3)}${variable}^${power}`;
+      term =
+        Math.abs(coeff) === 1 ? `${variable}^${power}` : `${coeff.toFixed(3)}${variable}^${power}`;
     }
 
     if (terms.length > 0 && coeff > 0) {
@@ -635,7 +679,9 @@ function polyToString(coeffs: number[], variable: string): string {
   return terms.length > 0 ? terms.join(' ') : '0';
 }
 
-export async function executetransferfunction(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executetransferfunction(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
@@ -644,53 +690,57 @@ export async function executetransferfunction(toolCall: UnifiedToolCall): Promis
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'transfer_function',
-          description: 'Control systems transfer function analysis tool',
-          operations: {
-            create: 'Create transfer function from numerator/denominator polynomials',
-            poles_zeros: 'Find poles and zeros of the transfer function',
-            step_response: 'Calculate unit step response with performance metrics',
-            impulse_response: 'Calculate impulse response',
-            bode: 'Generate Bode plot data (magnitude and phase vs frequency)',
-            stability: 'Analyze system stability using Routh-Hurwitz criterion',
-            frequency_response: 'Evaluate frequency response at specific frequencies'
+        content: JSON.stringify(
+          {
+            tool: 'transfer_function',
+            description: 'Control systems transfer function analysis tool',
+            operations: {
+              create: 'Create transfer function from numerator/denominator polynomials',
+              poles_zeros: 'Find poles and zeros of the transfer function',
+              step_response: 'Calculate unit step response with performance metrics',
+              impulse_response: 'Calculate impulse response',
+              bode: 'Generate Bode plot data (magnitude and phase vs frequency)',
+              stability: 'Analyze system stability using Routh-Hurwitz criterion',
+              frequency_response: 'Evaluate frequency response at specific frequencies',
+            },
+            parameters: {
+              numerator: 'Array of numerator polynomial coefficients [highest to lowest]',
+              denominator: 'Array of denominator polynomial coefficients [highest to lowest]',
+              time_start: 'Start time for time-domain responses (default: 0)',
+              time_end: 'End time for time-domain responses (default: 10)',
+              num_points: 'Number of points for response calculation (default: 500)',
+              frequency_start: 'Start frequency in rad/s for Bode plot (default: 0.01)',
+              frequency_end: 'End frequency in rad/s for Bode plot (default: 100)',
+            },
+            examples: {
+              first_order: 'G(s) = 1 / (s + 1): num=[1], den=[1, 1]',
+              second_order: 'G(s) = 1 / (s² + 0.5s + 1): num=[1], den=[1, 0.5, 1]',
+              pid_controller: 'G(s) = (Kd·s² + Kp·s + Ki) / s: num=[Kd, Kp, Ki], den=[1, 0]',
+            },
+            concepts: {
+              poles: 'Roots of denominator - determine system stability and dynamics',
+              zeros: 'Roots of numerator - affect transient response shape',
+              stability: 'System is stable if all poles have negative real parts',
+              dc_gain: 'Steady-state response to unit step input: G(0)',
+              rise_time: 'Time to go from 10% to 90% of final value',
+              settling_time: 'Time to stay within 2% of final value',
+              overshoot: 'Percentage by which response exceeds final value',
+            },
           },
-          parameters: {
-            numerator: 'Array of numerator polynomial coefficients [highest to lowest]',
-            denominator: 'Array of denominator polynomial coefficients [highest to lowest]',
-            time_start: 'Start time for time-domain responses (default: 0)',
-            time_end: 'End time for time-domain responses (default: 10)',
-            num_points: 'Number of points for response calculation (default: 500)',
-            frequency_start: 'Start frequency in rad/s for Bode plot (default: 0.01)',
-            frequency_end: 'End frequency in rad/s for Bode plot (default: 100)'
-          },
-          examples: {
-            first_order: 'G(s) = 1 / (s + 1): num=[1], den=[1, 1]',
-            second_order: 'G(s) = 1 / (s² + 0.5s + 1): num=[1], den=[1, 0.5, 1]',
-            pid_controller: 'G(s) = (Kd·s² + Kp·s + Ki) / s: num=[Kd, Kp, Ki], den=[1, 0]'
-          },
-          concepts: {
-            poles: 'Roots of denominator - determine system stability and dynamics',
-            zeros: 'Roots of numerator - affect transient response shape',
-            stability: 'System is stable if all poles have negative real parts',
-            dc_gain: 'Steady-state response to unit step input: G(0)',
-            rise_time: 'Time to go from 10% to 90% of final value',
-            settling_time: 'Time to stay within 2% of final value',
-            overshoot: 'Percentage by which response exceeds final value'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
-    const numerator = args.numerator as number[] || [1];
-    const denominator = args.denominator as number[] || [1, 1];
+    const numerator = (args.numerator as number[]) || [1];
+    const denominator = (args.denominator as number[]) || [1, 1];
 
     if (!denominator || denominator.length === 0) {
       throw new Error('Denominator polynomial cannot be empty');
     }
 
-    if (denominator.every(c => c === 0)) {
+    if (denominator.every((c) => c === 0)) {
       throw new Error('Denominator polynomial cannot be all zeros');
     }
 
@@ -710,17 +760,33 @@ export async function executetransferfunction(toolCall: UnifiedToolCall): Promis
       case 'poles_zeros': {
         const tf = createTransferFunction(numerator, denominator);
         result = {
-          poles: tf.poles.map(p => ({ real: p.real, imag: p.imag, magnitude: complexAbs(p), angle_deg: complexArg(p) * 180 / Math.PI })),
-          zeros: tf.zeros.map(z => ({ real: z.real, imag: z.imag, magnitude: complexAbs(z), angle_deg: complexArg(z) * 180 / Math.PI })),
+          poles: tf.poles.map((p) => ({
+            real: p.real,
+            imag: p.imag,
+            magnitude: complexAbs(p),
+            angle_deg: (complexArg(p) * 180) / Math.PI,
+          })),
+          zeros: tf.zeros.map((z) => ({
+            real: z.real,
+            imag: z.imag,
+            magnitude: complexAbs(z),
+            angle_deg: (complexArg(z) * 180) / Math.PI,
+          })),
           order: tf.order,
           dcGain: tf.dcGain,
-          polynomialForm: tf.polynomialForm
+          polynomialForm: tf.polynomialForm,
         };
         break;
       }
 
       case 'step_response': {
-        const stepData = calculateStepResponse(numerator, denominator, timeStart, timeEnd, numPoints);
+        const stepData = calculateStepResponse(
+          numerator,
+          denominator,
+          timeStart,
+          timeEnd,
+          numPoints
+        );
         // Return sampled data points for reasonable response size
         const sampleStep = Math.max(1, Math.floor(numPoints / 100));
         result = {
@@ -730,20 +796,26 @@ export async function executetransferfunction(toolCall: UnifiedToolCall): Promis
             steadyState: stepData.steadyState,
             riseTime: stepData.riseTime,
             settlingTime: stepData.settlingTime,
-            overshoot_percent: stepData.overshoot
+            overshoot_percent: stepData.overshoot,
           },
-          full_data_points: numPoints
+          full_data_points: numPoints,
         };
         break;
       }
 
       case 'impulse_response': {
-        const impulseData = calculateImpulseResponse(numerator, denominator, timeStart, timeEnd, numPoints);
+        const impulseData = calculateImpulseResponse(
+          numerator,
+          denominator,
+          timeStart,
+          timeEnd,
+          numPoints
+        );
         const sampleStep = Math.max(1, Math.floor(numPoints / 100));
         result = {
           time: impulseData.time.filter((_, i) => i % sampleStep === 0),
           response: impulseData.response.filter((_, i) => i % sampleStep === 0),
-          full_data_points: numPoints
+          full_data_points: numPoints,
         };
         break;
       }
@@ -756,7 +828,7 @@ export async function executetransferfunction(toolCall: UnifiedToolCall): Promis
           magnitude_db: bodeData.magnitudeDb.filter((_, i) => i % sampleStep === 0),
           phase_deg: bodeData.phase.filter((_, i) => i % sampleStep === 0),
           frequency_range: { start: freqStart, end: freqEnd },
-          full_data_points: numPoints
+          full_data_points: numPoints,
         };
         break;
       }
@@ -776,9 +848,9 @@ export async function executetransferfunction(toolCall: UnifiedToolCall): Promis
           frequency_rad_s: omega,
           magnitude: complexAbs(H),
           magnitude_db: 20 * Math.log10(complexAbs(H)),
-          phase_deg: complexArg(H) * 180 / Math.PI,
+          phase_deg: (complexArg(H) * 180) / Math.PI,
           real: H.real,
-          imaginary: H.imag
+          imaginary: H.imag,
         };
         break;
       }
@@ -789,16 +861,21 @@ export async function executetransferfunction(toolCall: UnifiedToolCall): Promis
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        operation,
-        ...result
-      }, null, 2)
+      content: JSON.stringify(
+        {
+          operation,
+          ...result,
+        },
+        null,
+        2
+      ),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function istransferfunctionAvailable(): boolean { return true; }
+export function istransferfunctionAvailable(): boolean {
+  return true;
+}

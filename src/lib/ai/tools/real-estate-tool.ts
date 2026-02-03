@@ -30,16 +30,116 @@ interface MarketData {
 }
 
 const MARKET_DATA: Record<string, MarketData> = {
-  'new_york': { city: 'New York', state: 'NY', median_price: 750000, price_per_sqft: 850, avg_cap_rate: 0.04, avg_rent_per_sqft: 4.5, vacancy_rate: 0.05, appreciation_rate: 0.03, property_tax_rate: 0.012 },
-  'los_angeles': { city: 'Los Angeles', state: 'CA', median_price: 850000, price_per_sqft: 650, avg_cap_rate: 0.045, avg_rent_per_sqft: 3.5, vacancy_rate: 0.06, appreciation_rate: 0.04, property_tax_rate: 0.0075 },
-  'chicago': { city: 'Chicago', state: 'IL', median_price: 325000, price_per_sqft: 250, avg_cap_rate: 0.065, avg_rent_per_sqft: 2.0, vacancy_rate: 0.07, appreciation_rate: 0.02, property_tax_rate: 0.022 },
-  'houston': { city: 'Houston', state: 'TX', median_price: 325000, price_per_sqft: 180, avg_cap_rate: 0.07, avg_rent_per_sqft: 1.4, vacancy_rate: 0.08, appreciation_rate: 0.035, property_tax_rate: 0.022 },
-  'phoenix': { city: 'Phoenix', state: 'AZ', median_price: 425000, price_per_sqft: 275, avg_cap_rate: 0.055, avg_rent_per_sqft: 1.6, vacancy_rate: 0.06, appreciation_rate: 0.045, property_tax_rate: 0.006 },
-  'miami': { city: 'Miami', state: 'FL', median_price: 550000, price_per_sqft: 450, avg_cap_rate: 0.05, avg_rent_per_sqft: 2.8, vacancy_rate: 0.07, appreciation_rate: 0.05, property_tax_rate: 0.02 },
-  'dallas': { city: 'Dallas', state: 'TX', median_price: 400000, price_per_sqft: 220, avg_cap_rate: 0.06, avg_rent_per_sqft: 1.5, vacancy_rate: 0.07, appreciation_rate: 0.04, property_tax_rate: 0.022 },
-  'seattle': { city: 'Seattle', state: 'WA', median_price: 750000, price_per_sqft: 550, avg_cap_rate: 0.045, avg_rent_per_sqft: 2.8, vacancy_rate: 0.05, appreciation_rate: 0.04, property_tax_rate: 0.01 },
-  'denver': { city: 'Denver', state: 'CO', median_price: 550000, price_per_sqft: 350, avg_cap_rate: 0.05, avg_rent_per_sqft: 2.0, vacancy_rate: 0.05, appreciation_rate: 0.04, property_tax_rate: 0.006 },
-  'austin': { city: 'Austin', state: 'TX', median_price: 550000, price_per_sqft: 325, avg_cap_rate: 0.05, avg_rent_per_sqft: 2.0, vacancy_rate: 0.06, appreciation_rate: 0.05, property_tax_rate: 0.02 }
+  new_york: {
+    city: 'New York',
+    state: 'NY',
+    median_price: 750000,
+    price_per_sqft: 850,
+    avg_cap_rate: 0.04,
+    avg_rent_per_sqft: 4.5,
+    vacancy_rate: 0.05,
+    appreciation_rate: 0.03,
+    property_tax_rate: 0.012,
+  },
+  los_angeles: {
+    city: 'Los Angeles',
+    state: 'CA',
+    median_price: 850000,
+    price_per_sqft: 650,
+    avg_cap_rate: 0.045,
+    avg_rent_per_sqft: 3.5,
+    vacancy_rate: 0.06,
+    appreciation_rate: 0.04,
+    property_tax_rate: 0.0075,
+  },
+  chicago: {
+    city: 'Chicago',
+    state: 'IL',
+    median_price: 325000,
+    price_per_sqft: 250,
+    avg_cap_rate: 0.065,
+    avg_rent_per_sqft: 2.0,
+    vacancy_rate: 0.07,
+    appreciation_rate: 0.02,
+    property_tax_rate: 0.022,
+  },
+  houston: {
+    city: 'Houston',
+    state: 'TX',
+    median_price: 325000,
+    price_per_sqft: 180,
+    avg_cap_rate: 0.07,
+    avg_rent_per_sqft: 1.4,
+    vacancy_rate: 0.08,
+    appreciation_rate: 0.035,
+    property_tax_rate: 0.022,
+  },
+  phoenix: {
+    city: 'Phoenix',
+    state: 'AZ',
+    median_price: 425000,
+    price_per_sqft: 275,
+    avg_cap_rate: 0.055,
+    avg_rent_per_sqft: 1.6,
+    vacancy_rate: 0.06,
+    appreciation_rate: 0.045,
+    property_tax_rate: 0.006,
+  },
+  miami: {
+    city: 'Miami',
+    state: 'FL',
+    median_price: 550000,
+    price_per_sqft: 450,
+    avg_cap_rate: 0.05,
+    avg_rent_per_sqft: 2.8,
+    vacancy_rate: 0.07,
+    appreciation_rate: 0.05,
+    property_tax_rate: 0.02,
+  },
+  dallas: {
+    city: 'Dallas',
+    state: 'TX',
+    median_price: 400000,
+    price_per_sqft: 220,
+    avg_cap_rate: 0.06,
+    avg_rent_per_sqft: 1.5,
+    vacancy_rate: 0.07,
+    appreciation_rate: 0.04,
+    property_tax_rate: 0.022,
+  },
+  seattle: {
+    city: 'Seattle',
+    state: 'WA',
+    median_price: 750000,
+    price_per_sqft: 550,
+    avg_cap_rate: 0.045,
+    avg_rent_per_sqft: 2.8,
+    vacancy_rate: 0.05,
+    appreciation_rate: 0.04,
+    property_tax_rate: 0.01,
+  },
+  denver: {
+    city: 'Denver',
+    state: 'CO',
+    median_price: 550000,
+    price_per_sqft: 350,
+    avg_cap_rate: 0.05,
+    avg_rent_per_sqft: 2.0,
+    vacancy_rate: 0.05,
+    appreciation_rate: 0.04,
+    property_tax_rate: 0.006,
+  },
+  austin: {
+    city: 'Austin',
+    state: 'TX',
+    median_price: 550000,
+    price_per_sqft: 325,
+    avg_cap_rate: 0.05,
+    avg_rent_per_sqft: 2.0,
+    vacancy_rate: 0.06,
+    appreciation_rate: 0.05,
+    property_tax_rate: 0.02,
+  },
 };
 
 // ============================================================================
@@ -55,13 +155,55 @@ interface PropertyTypeData {
 }
 
 const PROPERTY_TYPES: Record<string, PropertyTypeData> = {
-  'single_family': { name: 'Single Family Home', typical_cap_rate_range: [0.04, 0.08], typical_expense_ratio: 0.35, typical_vacancy: 0.05, depreciation_years: 27.5 },
-  'multifamily': { name: 'Multifamily (2-4 units)', typical_cap_rate_range: [0.05, 0.09], typical_expense_ratio: 0.40, typical_vacancy: 0.07, depreciation_years: 27.5 },
-  'apartment': { name: 'Apartment Complex (5+ units)', typical_cap_rate_range: [0.04, 0.07], typical_expense_ratio: 0.45, typical_vacancy: 0.08, depreciation_years: 27.5 },
-  'office': { name: 'Office Building', typical_cap_rate_range: [0.05, 0.09], typical_expense_ratio: 0.40, typical_vacancy: 0.12, depreciation_years: 39 },
-  'retail': { name: 'Retail Property', typical_cap_rate_range: [0.05, 0.10], typical_expense_ratio: 0.35, typical_vacancy: 0.08, depreciation_years: 39 },
-  'industrial': { name: 'Industrial/Warehouse', typical_cap_rate_range: [0.05, 0.08], typical_expense_ratio: 0.25, typical_vacancy: 0.06, depreciation_years: 39 },
-  'mixed_use': { name: 'Mixed Use', typical_cap_rate_range: [0.05, 0.08], typical_expense_ratio: 0.40, typical_vacancy: 0.08, depreciation_years: 27.5 }
+  single_family: {
+    name: 'Single Family Home',
+    typical_cap_rate_range: [0.04, 0.08],
+    typical_expense_ratio: 0.35,
+    typical_vacancy: 0.05,
+    depreciation_years: 27.5,
+  },
+  multifamily: {
+    name: 'Multifamily (2-4 units)',
+    typical_cap_rate_range: [0.05, 0.09],
+    typical_expense_ratio: 0.4,
+    typical_vacancy: 0.07,
+    depreciation_years: 27.5,
+  },
+  apartment: {
+    name: 'Apartment Complex (5+ units)',
+    typical_cap_rate_range: [0.04, 0.07],
+    typical_expense_ratio: 0.45,
+    typical_vacancy: 0.08,
+    depreciation_years: 27.5,
+  },
+  office: {
+    name: 'Office Building',
+    typical_cap_rate_range: [0.05, 0.09],
+    typical_expense_ratio: 0.4,
+    typical_vacancy: 0.12,
+    depreciation_years: 39,
+  },
+  retail: {
+    name: 'Retail Property',
+    typical_cap_rate_range: [0.05, 0.1],
+    typical_expense_ratio: 0.35,
+    typical_vacancy: 0.08,
+    depreciation_years: 39,
+  },
+  industrial: {
+    name: 'Industrial/Warehouse',
+    typical_cap_rate_range: [0.05, 0.08],
+    typical_expense_ratio: 0.25,
+    typical_vacancy: 0.06,
+    depreciation_years: 39,
+  },
+  mixed_use: {
+    name: 'Mixed Use',
+    typical_cap_rate_range: [0.05, 0.08],
+    typical_expense_ratio: 0.4,
+    typical_vacancy: 0.08,
+    depreciation_years: 27.5,
+  },
 };
 
 // ============================================================================
@@ -70,18 +212,41 @@ const PROPERTY_TYPES: Record<string, PropertyTypeData> = {
 
 export const realestateTool: UnifiedTool = {
   name: 'real_estate',
-  description: 'Comprehensive real estate valuation and investment analysis tool. Supports property valuation, cap rate analysis, cash flow projections, investment metrics (IRR, NPV), and market comparisons.',
+  description:
+    'Comprehensive real estate valuation and investment analysis tool. Supports property valuation, cap rate analysis, cash flow projections, investment metrics (IRR, NPV), and market comparisons.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['valuation', 'cap_rate', 'cash_flow', 'investment', 'mortgage', 'market_analysis', 'compare', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'valuation',
+          'cap_rate',
+          'cash_flow',
+          'investment',
+          'mortgage',
+          'market_analysis',
+          'compare',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       // Property details
       purchase_price: { type: 'number', description: 'Purchase price in USD' },
-      property_type: { type: 'string', enum: ['single_family', 'multifamily', 'apartment', 'office', 'retail', 'industrial', 'mixed_use'], description: 'Type of property' },
+      property_type: {
+        type: 'string',
+        enum: [
+          'single_family',
+          'multifamily',
+          'apartment',
+          'office',
+          'retail',
+          'industrial',
+          'mixed_use',
+        ],
+        description: 'Type of property',
+      },
       square_feet: { type: 'number', description: 'Total square footage' },
       units: { type: 'number', description: 'Number of units (for multifamily)' },
       year_built: { type: 'number', description: 'Year property was built' },
@@ -93,7 +258,10 @@ export const realestateTool: UnifiedTool = {
       property_taxes: { type: 'number', description: 'Annual property taxes' },
       insurance: { type: 'number', description: 'Annual insurance cost' },
       maintenance: { type: 'number', description: 'Annual maintenance/repairs' },
-      management_fee: { type: 'number', description: 'Property management fee (0-1 or annual amount)' },
+      management_fee: {
+        type: 'number',
+        description: 'Property management fee (0-1 or annual amount)',
+      },
       utilities: { type: 'number', description: 'Annual utilities (if owner paid)' },
       hoa_fees: { type: 'number', description: 'Annual HOA fees' },
       other_expenses: { type: 'number', description: 'Other annual expenses' },
@@ -112,20 +280,13 @@ export const realestateTool: UnifiedTool = {
       // Comparable properties
       comparables: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            price: { type: 'number' },
-            sqft: { type: 'number' },
-            bedrooms: { type: 'number' },
-            distance_miles: { type: 'number' }
-          }
-        },
-        description: 'Comparable properties for valuation'
-      }
+        items: { type: 'object' },
+        description:
+          'Comparable properties for valuation. Each property has: price (number), sqft (number), bedrooms (number), distance_miles (number)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -153,7 +314,7 @@ function calculateValuation(
   };
   confidence: string;
 } {
-  const analyzed = comparables.map(comp => {
+  const analyzed = comparables.map((comp) => {
     const ppsf = comp.price / comp.sqft;
 
     // Size adjustment (-$10k per 100 sqft difference)
@@ -166,7 +327,7 @@ function calculateValuation(
 
     // Distance adjustment (farther = less reliable)
     if (comp.distance_miles !== undefined && comp.distance_miles > 0.5) {
-      adjustment *= (1 - Math.min(0.2, comp.distance_miles * 0.05));
+      adjustment *= 1 - Math.min(0.2, comp.distance_miles * 0.05);
     }
 
     const adjustedPrice = comp.price + adjustment;
@@ -176,11 +337,11 @@ function calculateValuation(
       sqft: comp.sqft,
       price_per_sqft: Math.round(ppsf * 100) / 100,
       adjustment: Math.round(adjustment),
-      adjusted_price: Math.round(adjustedPrice)
+      adjusted_price: Math.round(adjustedPrice),
     };
   });
 
-  const adjustedPrices = analyzed.map(a => a.adjusted_price);
+  const adjustedPrices = analyzed.map((a) => a.adjusted_price);
   const avgPrice = adjustedPrices.reduce((a, b) => a + b, 0) / adjustedPrices.length;
   const minPrice = Math.min(...adjustedPrices);
   const maxPrice = Math.max(...adjustedPrices);
@@ -199,9 +360,9 @@ function calculateValuation(
       low: Math.round(minPrice),
       mid: Math.round(avgPrice),
       high: Math.round(maxPrice),
-      price_per_sqft: Math.round(avgPrice / subjectSqft * 100) / 100
+      price_per_sqft: Math.round((avgPrice / subjectSqft) * 100) / 100,
     },
-    confidence
+    confidence,
   };
 }
 
@@ -259,9 +420,9 @@ function calculateCapRate(
   }
 
   // Implied values at different cap rates
-  const valuationAtCaps = [0.04, 0.05, 0.06, 0.07, 0.08].map(cr => ({
+  const valuationAtCaps = [0.04, 0.05, 0.06, 0.07, 0.08].map((cr) => ({
     cap_rate: cr,
-    implied_value: Math.round(noi / cr)
+    implied_value: Math.round(noi / cr),
   }));
 
   return {
@@ -270,11 +431,11 @@ function calculateCapRate(
       vacancy_loss: Math.round(vacancyLoss),
       effective_gross_income: Math.round(egi),
       other_income: otherIncome,
-      total_income: Math.round(totalIncome)
+      total_income: Math.round(totalIncome),
     },
     expenses: {
       operating_expenses: operatingExpenses,
-      expense_ratio: Math.round(expenseRatio * 1000) / 10
+      expense_ratio: Math.round(expenseRatio * 1000) / 10,
     },
     noi: Math.round(noi),
     cap_rate: Math.round(capRate * 10000) / 10000,
@@ -283,8 +444,8 @@ function calculateCapRate(
     market_comparison: {
       property_type: propTypeData.name,
       typical_range: propTypeData.typical_cap_rate_range,
-      assessment
-    }
+      assessment,
+    },
   };
 }
 
@@ -346,7 +507,9 @@ function calculateCashFlow(
   // Mortgage calculation
   const monthlyRate = interestRate / 12;
   const numPayments = loanTermYears * 12;
-  const monthlyMortgage = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  const monthlyMortgage =
+    (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+    (Math.pow(1 + monthlyRate, numPayments) - 1);
   const annualDebtService = monthlyMortgage * 12;
 
   // Cash flow
@@ -365,31 +528,31 @@ function calculateCashFlow(
       down_payment: Math.round(downPayment),
       loan_amount: Math.round(loanAmount),
       closing_costs_estimate: Math.round(closingCosts),
-      total_cash_needed: Math.round(totalCashNeeded)
+      total_cash_needed: Math.round(totalCashNeeded),
     },
     annual_income: {
       gross_rent: grossRent,
       other_income: otherIncome,
       vacancy_loss: Math.round(vacancyLoss),
-      effective_income: Math.round(effectiveIncome)
+      effective_income: Math.round(effectiveIncome),
     },
     annual_expenses: {
       operating_expenses: operatingExpenses,
       mortgage_payment: Math.round(annualDebtService),
-      total_expenses: Math.round(operatingExpenses + annualDebtService)
+      total_expenses: Math.round(operatingExpenses + annualDebtService),
     },
     cash_flow: {
       noi: Math.round(noi),
       annual_debt_service: Math.round(annualDebtService),
       cash_flow_before_tax: Math.round(cfbt),
-      monthly_cash_flow: Math.round(cfbt / 12)
+      monthly_cash_flow: Math.round(cfbt / 12),
     },
     returns: {
       cap_rate: Math.round(capRate * 10000) / 100,
       cash_on_cash_return: Math.round(coc * 10000) / 100,
       debt_service_coverage_ratio: Math.round(dscr * 100) / 100,
-      gross_rent_multiplier: Math.round(grm * 100) / 100
-    }
+      gross_rent_multiplier: Math.round(grm * 100) / 100,
+    },
   };
 }
 
@@ -403,7 +566,7 @@ function calculateInvestment(
   noi: number,
   holdingPeriod: number,
   exitCapRate: number,
-  appreciationRate: number,
+  _appreciationRate: number,
   rentGrowthRate: number,
   discountRate: number,
   annualDebtService: number
@@ -438,7 +601,12 @@ function calculateInvestment(
 
   // Project cash flows
   const cashFlows: number[] = [-initialInvestment];
-  const projectedCFs: Array<{ year: number; noi: number; cash_flow: number; cumulative_cash_flow: number }> = [];
+  const projectedCFs: Array<{
+    year: number;
+    noi: number;
+    cash_flow: number;
+    cumulative_cash_flow: number;
+  }> = [];
 
   let currentNOI = noi;
   let cumulativeCF = -initialInvestment;
@@ -452,7 +620,7 @@ function calculateInvestment(
       year,
       noi: Math.round(currentNOI),
       cash_flow: Math.round(cf),
-      cumulative_cash_flow: Math.round(cumulativeCF)
+      cumulative_cash_flow: Math.round(cumulativeCF),
     });
   }
 
@@ -465,7 +633,8 @@ function calculateInvestment(
   const monthlyRate = 0.065 / 12; // Estimate
   const remainingPayments = yearsRemaining * 12;
   const monthlyPayment = annualDebtService / 12;
-  const loanBalance = monthlyPayment * (1 - Math.pow(1 + monthlyRate, -remainingPayments)) / monthlyRate;
+  const loanBalance =
+    (monthlyPayment * (1 - Math.pow(1 + monthlyRate, -remainingPayments))) / monthlyRate;
 
   const sellingCosts = exitValue * 0.06; // 6% selling costs
   const netProceeds = exitValue - loanBalance - sellingCosts;
@@ -495,15 +664,15 @@ function calculateInvestment(
   }
 
   // Sensitivity analysis
-  const sensitivity = [0.05, 0.055, 0.06, 0.065, 0.07, 0.075, 0.08].map(capRate => {
+  const sensitivity = [0.05, 0.055, 0.06, 0.065, 0.07, 0.075, 0.08].map((capRate) => {
     const ev = exitNOI / capRate;
-    const np = ev - loanBalance - (ev * 0.06);
+    const np = ev - loanBalance - ev * 0.06;
     const tempCFs = [...cashFlows];
     tempCFs[tempCFs.length - 1] = projectedCFs[projectedCFs.length - 1].cash_flow + np;
     return {
       cap_rate: capRate,
       exit_value: Math.round(ev),
-      irr_estimate: Math.round(calculateIRR(tempCFs) * 10000) / 100
+      irr_estimate: Math.round(calculateIRR(tempCFs) * 10000) / 100,
     };
   });
 
@@ -514,18 +683,18 @@ function calculateInvestment(
       projected_noi_at_exit: Math.round(exitNOI),
       exit_value: Math.round(exitValue),
       loan_balance_estimate: Math.round(loanBalance),
-      net_proceeds: Math.round(netProceeds)
+      net_proceeds: Math.round(netProceeds),
     },
     returns: {
       total_profit: Math.round(totalProfit),
       multiple_on_equity: Math.round(multiple * 100) / 100,
       irr: Math.round(irr * 10000) / 100,
       npv: Math.round(npv),
-      payback_period_years: paybackYears
+      payback_period_years: paybackYears,
     },
     sensitivity: {
-      exit_cap_rates: sensitivity
-    }
+      exit_cap_rates: sensitivity,
+    },
   };
 }
 
@@ -593,7 +762,9 @@ function calculateMortgage(
   const monthlyRate = interestRate / 12;
   const numPayments = loanTermYears * 12;
 
-  const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  const monthlyPayment =
+    (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+    (Math.pow(1 + monthlyRate, numPayments) - 1);
   const totalCost = monthlyPayment * numPayments;
   const totalInterest = totalCost - loanAmount;
 
@@ -625,20 +796,27 @@ function calculateMortgage(
       beginning_balance: Math.round(beginningBalance),
       principal_paid: Math.round(yearPrincipal),
       interest_paid: Math.round(yearInterest),
-      ending_balance: Math.round(Math.max(0, balance))
+      ending_balance: Math.round(Math.max(0, balance)),
     });
   }
 
   // Rate comparison
-  const rateComparison = [interestRate - 0.01, interestRate - 0.005, interestRate, interestRate + 0.005, interestRate + 0.01]
-    .filter(r => r > 0)
-    .map(rate => {
+  const rateComparison = [
+    interestRate - 0.01,
+    interestRate - 0.005,
+    interestRate,
+    interestRate + 0.005,
+    interestRate + 0.01,
+  ]
+    .filter((r) => r > 0)
+    .map((rate) => {
       const mr = rate / 12;
-      const mp = loanAmount * (mr * Math.pow(1 + mr, numPayments)) / (Math.pow(1 + mr, numPayments) - 1);
+      const mp =
+        (loanAmount * (mr * Math.pow(1 + mr, numPayments))) / (Math.pow(1 + mr, numPayments) - 1);
       return {
         rate: Math.round(rate * 10000) / 100,
         monthly_payment: Math.round(mp),
-        total_interest: Math.round(mp * numPayments - loanAmount)
+        total_interest: Math.round(mp * numPayments - loanAmount),
       };
     });
 
@@ -647,16 +825,16 @@ function calculateMortgage(
       principal: loanAmount,
       annual_interest_rate: interestRate,
       term_years: loanTermYears,
-      total_payments: numPayments
+      total_payments: numPayments,
     },
     payment: {
       monthly_payment: Math.round(monthlyPayment),
       annual_payment: Math.round(monthlyPayment * 12),
       total_interest: Math.round(totalInterest),
-      total_cost: Math.round(totalCost)
+      total_cost: Math.round(totalCost),
     },
     amortization_summary: amortization,
-    comparison: rateComparison
+    comparison: rateComparison,
   };
 }
 
@@ -669,7 +847,7 @@ function getMarketAnalysis(marketName: string): object {
   if (!market) {
     return {
       error: `Market '${marketName}' not found`,
-      available_markets: Object.keys(MARKET_DATA)
+      available_markets: Object.keys(MARKET_DATA),
     };
   }
 
@@ -682,19 +860,21 @@ function getMarketAnalysis(marketName: string): object {
       avg_rent_per_sqft: '$' + market.avg_rent_per_sqft.toFixed(2),
       vacancy_rate: (market.vacancy_rate * 100).toFixed(1) + '%',
       appreciation_rate: (market.appreciation_rate * 100).toFixed(1) + '%',
-      property_tax_rate: (market.property_tax_rate * 100).toFixed(2) + '%'
+      property_tax_rate: (market.property_tax_rate * 100).toFixed(2) + '%',
     },
     rental_analysis: {
       sample_1br_rent: Math.round(market.avg_rent_per_sqft * 650),
       sample_2br_rent: Math.round(market.avg_rent_per_sqft * 900),
       sample_3br_rent: Math.round(market.avg_rent_per_sqft * 1200),
-      grm_estimate: Math.round(1 / (market.avg_rent_per_sqft * 12 / market.price_per_sqft) * 100) / 100
+      grm_estimate:
+        Math.round((1 / ((market.avg_rent_per_sqft * 12) / market.price_per_sqft)) * 100) / 100,
     },
-    investment_outlook: market.avg_cap_rate > 0.06 ?
-      'Higher yield market - focus on cash flow' :
-      market.appreciation_rate > 0.04 ?
-        'Growth market - appreciation potential' :
-        'Balanced market - moderate cash flow and appreciation'
+    investment_outlook:
+      market.avg_cap_rate > 0.06
+        ? 'Higher yield market - focus on cash flow'
+        : market.appreciation_rate > 0.04
+          ? 'Growth market - appreciation potential'
+          : 'Balanced market - moderate cash flow and appreciation',
   };
 }
 
@@ -706,13 +886,22 @@ function compareMarkets(): object {
       median_price: m.median_price,
       cap_rate: (m.avg_cap_rate * 100).toFixed(1) + '%',
       appreciation: (m.appreciation_rate * 100).toFixed(1) + '%',
-      price_per_sqft: m.price_per_sqft
+      price_per_sqft: m.price_per_sqft,
     })),
     rankings: {
-      highest_cap_rate: Object.entries(MARKET_DATA).sort(([, a], [, b]) => b.avg_cap_rate - a.avg_cap_rate).slice(0, 3).map(([k]) => k),
-      highest_appreciation: Object.entries(MARKET_DATA).sort(([, a], [, b]) => b.appreciation_rate - a.appreciation_rate).slice(0, 3).map(([k]) => k),
-      most_affordable: Object.entries(MARKET_DATA).sort(([, a], [, b]) => a.median_price - b.median_price).slice(0, 3).map(([k]) => k)
-    }
+      highest_cap_rate: Object.entries(MARKET_DATA)
+        .sort(([, a], [, b]) => b.avg_cap_rate - a.avg_cap_rate)
+        .slice(0, 3)
+        .map(([k]) => k),
+      highest_appreciation: Object.entries(MARKET_DATA)
+        .sort(([, a], [, b]) => b.appreciation_rate - a.appreciation_rate)
+        .slice(0, 3)
+        .map(([k]) => k),
+      most_affordable: Object.entries(MARKET_DATA)
+        .sort(([, a], [, b]) => a.median_price - b.median_price)
+        .slice(0, 3)
+        .map(([k]) => k),
+    },
   };
 }
 
@@ -726,7 +915,7 @@ function getInfo(): object {
       'Cash flow analysis (income, expenses, NOI)',
       'Investment metrics (IRR, NPV, cash-on-cash)',
       'Mortgage calculations with amortization',
-      'Market analysis and comparisons'
+      'Market analysis and comparisons',
     ],
     property_types: Object.keys(PROPERTY_TYPES),
     markets_available: Object.keys(MARKET_DATA),
@@ -734,8 +923,8 @@ function getInfo(): object {
       cap_rate: 'NOI / Purchase Price',
       cash_on_cash: 'Annual Cash Flow / Total Cash Invested',
       dscr: 'NOI / Annual Debt Service (should be > 1.25)',
-      grm: 'Purchase Price / Annual Gross Rent'
-    }
+      grm: 'Purchase Price / Annual Gross Rent',
+    },
   };
 }
 
@@ -750,7 +939,7 @@ function getExamples(): object {
       insurance: 2400,
       maintenance: 4800,
       management_fee: 4800,
-      property_type: 'multifamily'
+      property_type: 'multifamily',
     },
     cash_flow_analysis: {
       operation: 'cash_flow',
@@ -764,7 +953,7 @@ function getExamples(): object {
       management_fee: 3840,
       down_payment_percent: 0.25,
       interest_rate: 0.07,
-      loan_term_years: 30
+      loan_term_years: 30,
     },
     investment_analysis: {
       operation: 'investment',
@@ -776,15 +965,15 @@ function getExamples(): object {
       exit_cap_rate: 0.06,
       appreciation_rate: 0.03,
       rent_growth_rate: 0.02,
-      discount_rate: 0.10
+      discount_rate: 0.1,
     },
     mortgage: {
       operation: 'mortgage',
       purchase_price: 400000,
-      down_payment_percent: 0.20,
+      down_payment_percent: 0.2,
       interest_rate: 0.07,
-      loan_term_years: 30
-    }
+      loan_term_years: 30,
+    },
   };
 }
 
@@ -808,14 +997,20 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
         }
         result = {
           operation: 'valuation',
-          ...calculateValuation(args.comparables, args.square_feet || 1500, args.bedrooms)
+          ...calculateValuation(args.comparables, args.square_feet || 1500, args.bedrooms),
         };
         break;
       }
 
       case 'cap_rate': {
-        const opex = (args.property_taxes || 0) + (args.insurance || 0) + (args.maintenance || 0) +
-          (args.management_fee || 0) + (args.utilities || 0) + (args.hoa_fees || 0) + (args.other_expenses || 0);
+        const opex =
+          (args.property_taxes || 0) +
+          (args.insurance || 0) +
+          (args.maintenance || 0) +
+          (args.management_fee || 0) +
+          (args.utilities || 0) +
+          (args.hoa_fees || 0) +
+          (args.other_expenses || 0);
         result = {
           operation: 'cap_rate',
           ...calculateCapRate(
@@ -825,14 +1020,20 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
             args.vacancy_rate || 0.05,
             opex,
             args.property_type || 'multifamily'
-          )
+          ),
         };
         break;
       }
 
       case 'cash_flow': {
-        const opex = (args.property_taxes || 0) + (args.insurance || 0) + (args.maintenance || 0) +
-          (args.management_fee || 0) + (args.utilities || 0) + (args.hoa_fees || 0) + (args.other_expenses || 0);
+        const opex =
+          (args.property_taxes || 0) +
+          (args.insurance || 0) +
+          (args.maintenance || 0) +
+          (args.management_fee || 0) +
+          (args.utilities || 0) +
+          (args.hoa_fees || 0) +
+          (args.other_expenses || 0);
         result = {
           operation: 'cash_flow',
           ...calculateCashFlow(
@@ -844,24 +1045,31 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
             args.down_payment_percent || 0.25,
             args.interest_rate || 0.07,
             args.loan_term_years || 30
-          )
+          ),
         };
         break;
       }
 
       case 'investment': {
-        const opex = (args.property_taxes || 0) + (args.insurance || 0) + (args.maintenance || 0) +
-          (args.management_fee || 0) + (args.utilities || 0) + (args.hoa_fees || 0) + (args.other_expenses || 0);
+        const opex =
+          (args.property_taxes || 0) +
+          (args.insurance || 0) +
+          (args.maintenance || 0) +
+          (args.management_fee || 0) +
+          (args.utilities || 0) +
+          (args.hoa_fees || 0) +
+          (args.other_expenses || 0);
         const grossRent = args.gross_rent || 60000;
         const vacancyRate = args.vacancy_rate || 0.05;
         const noi = grossRent * (1 - vacancyRate) - opex;
 
         const downPayment = (args.purchase_price || 500000) * (args.down_payment_percent || 0.25);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const loanAmount = (args.purchase_price || 500000) - downPayment;
         const monthlyRate = (args.interest_rate || 0.07) / 12;
         const numPayments = (args.loan_term_years || 30) * 12;
-        const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+        const monthlyPayment =
+          (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+          (Math.pow(1 + monthlyRate, numPayments) - 1);
         const annualDebtService = monthlyPayment * 12;
 
         result = {
@@ -874,22 +1082,19 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
             args.exit_cap_rate || 0.06,
             args.appreciation_rate || 0.03,
             args.rent_growth_rate || 0.02,
-            args.discount_rate || 0.10,
+            args.discount_rate || 0.1,
             annualDebtService
-          )
+          ),
         };
         break;
       }
 
       case 'mortgage': {
-        const loanAmount = (args.purchase_price || 400000) * (1 - (args.down_payment_percent || 0.20));
+        const loanAmount =
+          (args.purchase_price || 400000) * (1 - (args.down_payment_percent || 0.2));
         result = {
           operation: 'mortgage',
-          ...calculateMortgage(
-            loanAmount,
-            args.interest_rate || 0.07,
-            args.loan_term_years || 30
-          )
+          ...calculateMortgage(loanAmount, args.interest_rate || 0.07, args.loan_term_years || 30),
         };
         break;
       }
@@ -897,21 +1102,21 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
       case 'market_analysis':
         result = {
           operation: 'market_analysis',
-          ...getMarketAnalysis(args.market || 'new_york')
+          ...getMarketAnalysis(args.market || 'new_york'),
         };
         break;
 
       case 'compare':
         result = {
           operation: 'compare',
-          ...compareMarkets()
+          ...compareMarkets(),
         };
         break;
 
       case 'examples':
         result = {
           operation: 'examples',
-          examples: getExamples()
+          examples: getExamples(),
         };
         break;
 
@@ -919,7 +1124,7 @@ export async function executerealestate(toolCall: UnifiedToolCall): Promise<Unif
       default:
         result = {
           operation: 'info',
-          ...getInfo()
+          ...getInfo(),
         };
     }
 

@@ -14,59 +14,53 @@ export const inversekinematicsTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['info', 'examples', 'demo', 'analytical_2dof', 'analytical_3dof', 'jacobian', 'fabrik', 'forward_kinematics', 'analyze_workspace'],
-        description: 'Operation to perform'
+        enum: [
+          'info',
+          'examples',
+          'demo',
+          'analytical_2dof',
+          'analytical_3dof',
+          'jacobian',
+          'fabrik',
+          'forward_kinematics',
+          'analyze_workspace',
+        ],
+        description: 'Operation to perform',
       },
       targetPosition: {
         type: 'object',
-        properties: {
-          x: { type: 'number' },
-          y: { type: 'number' },
-          z: { type: 'number' }
-        },
-        description: 'Target end-effector position'
+        description: 'Target end-effector position with x, y, z (numbers)',
       },
       targetOrientation: {
         type: 'object',
-        properties: {
-          roll: { type: 'number' },
-          pitch: { type: 'number' },
-          yaw: { type: 'number' }
-        },
-        description: 'Target end-effector orientation (radians)'
+        description: 'Target end-effector orientation (radians) with roll, pitch, yaw (numbers)',
       },
       linkLengths: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Array of link lengths'
+        description: 'Array of link lengths',
       },
       jointAngles: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Current or initial joint angles (radians)'
+        description: 'Current or initial joint angles (radians)',
       },
       jointLimits: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            min: { type: 'number' },
-            max: { type: 'number' }
-          }
-        },
-        description: 'Joint angle limits'
+        items: { type: 'object' },
+        description: 'Joint angle limits. Each entry has: min (number), max (number)',
       },
       maxIterations: {
         type: 'number',
-        description: 'Maximum iterations for iterative methods (default: 100)'
+        description: 'Maximum iterations for iterative methods (default: 100)',
       },
       tolerance: {
         type: 'number',
-        description: 'Convergence tolerance (default: 0.001)'
-      }
+        description: 'Convergence tolerance (default: 0.001)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // 3D vector operations
@@ -124,8 +118,8 @@ function analytical2DOF(
       analysis: {
         error: 'Target unreachable - outside workspace',
         maxReach: L1 + L2,
-        targetDistance: D
-      }
+        targetDistance: D,
+      },
     };
   }
 
@@ -137,8 +131,8 @@ function analytical2DOF(
       analysis: {
         error: 'Target unreachable - inside minimum reach',
         minReach: Math.abs(L1 - L2),
-        targetDistance: D
-      }
+        targetDistance: D,
+      },
     };
   }
 
@@ -160,10 +154,10 @@ function analytical2DOF(
       targetDistance: D.toFixed(4),
       workspaceUtilization: ((D / (L1 + L2)) * 100).toFixed(1) + '%',
       jointAngles: {
-        theta1Deg: (theta1 * 180 / Math.PI).toFixed(2),
-        theta2Deg: (theta2 * 180 / Math.PI).toFixed(2)
-      }
-    }
+        theta1Deg: ((theta1 * 180) / Math.PI).toFixed(2),
+        theta2Deg: ((theta2 * 180) / Math.PI).toFixed(2),
+      },
+    },
   };
 }
 
@@ -190,7 +184,7 @@ function analytical3DOF(
     return {
       success: false,
       angles: [0, 0, 0],
-      analysis: { error: 'Target unreachable', maxReach: L1 + L2, targetDistance: D }
+      analysis: { error: 'Target unreachable', maxReach: L1 + L2, targetDistance: D },
     };
   }
 
@@ -210,11 +204,11 @@ function analytical3DOF(
     analysis: {
       configuration: elbowUp ? 'Elbow up' : 'Elbow down',
       jointAnglesDeg: {
-        base: (theta1 * 180 / Math.PI).toFixed(2),
-        shoulder: (theta2 * 180 / Math.PI).toFixed(2),
-        elbow: (theta3 * 180 / Math.PI).toFixed(2)
-      }
-    }
+        base: ((theta1 * 180) / Math.PI).toFixed(2),
+        shoulder: ((theta2 * 180) / Math.PI).toFixed(2),
+        elbow: ((theta3 * 180) / Math.PI).toFixed(2),
+      },
+    },
   };
 }
 
@@ -259,7 +253,8 @@ function jacobianIK(
         cumAngle += theta[k];
       }
 
-      let dx = 0, dy = 0;
+      let dx = 0,
+        dy = 0;
       let partialAngle = cumAngle;
       for (let k = j; k < n; k++) {
         dx -= linkLengths[k] * Math.sin(partialAngle);
@@ -305,12 +300,12 @@ function jacobianIK(
     const det = JJT[0][0] * JJT[1][1] - JJT[0][1] * JJT[1][0];
     if (Math.abs(det) < 1e-10) {
       // Singular, return small movement
-      return JT.map(row => row.map(v => v * 0.01));
+      return JT.map((row) => row.map((v) => v * 0.01));
     }
 
     const invJJT = [
       [JJT[1][1] / det, -JJT[0][1] / det],
-      [-JJT[1][0] / det, JJT[0][0] / det]
+      [-JJT[1][0] / det, JJT[0][0] / det],
     ];
 
     // J^T * inv(J * J^T)
@@ -372,9 +367,9 @@ function jacobianIK(
       converged: currentError < tolerance,
       finalError: currentError.toFixed(6),
       iterationsUsed: iteration,
-      jointAnglesDeg: angles.map(a => (a * 180 / Math.PI).toFixed(2)),
-      convergenceHistory: iterationHistory
-    }
+      jointAnglesDeg: angles.map((a) => ((a * 180) / Math.PI).toFixed(2)),
+      convergenceHistory: iterationHistory,
+    },
   };
 }
 
@@ -385,7 +380,13 @@ function fabrikIK(
   basePosition: Vector3,
   maxIterations: number,
   tolerance: number
-): { success: boolean; jointPositions: Vector3[]; iterations: number; error: number; analysis: object } {
+): {
+  success: boolean;
+  jointPositions: Vector3[];
+  iterations: number;
+  error: number;
+  analysis: object;
+} {
   const n = linkLengths.length;
 
   // Initialize joint positions along X axis
@@ -418,8 +419,8 @@ function fabrikIK(
       analysis: {
         error: 'Target unreachable',
         totalLength,
-        targetDistance: targetDist
-      }
+        targetDistance: targetDist,
+      },
     };
   }
 
@@ -463,9 +464,9 @@ function fabrikIK(
       converged: error <= tolerance,
       finalError: error.toFixed(6),
       iterationsUsed: iteration,
-      jointAnglesRad: angles.map(a => a.toFixed(4)),
-      jointAnglesDeg: angles.map(a => (a * 180 / Math.PI).toFixed(2))
-    }
+      jointAnglesRad: angles.map((a) => a.toFixed(4)),
+      jointAnglesDeg: angles.map((a) => ((a * 180) / Math.PI).toFixed(2)),
+    },
   };
 }
 
@@ -483,14 +484,14 @@ function forwardKinematics(
     currentPos = {
       x: currentPos.x + linkLengths[i] * Math.cos(cumAngle),
       y: currentPos.y + linkLengths[i] * Math.sin(cumAngle),
-      z: 0
+      z: 0,
     };
     joints.push({ ...currentPos });
   }
 
   return {
     endEffector: currentPos,
-    jointPositions: joints
+    jointPositions: joints,
   };
 }
 
@@ -501,9 +502,9 @@ function analyzeWorkspace(
   resolution: number = 36
 ): object {
   const totalLength = linkLengths.reduce((a, b) => a + b, 0);
-  const minReach = Math.abs(linkLengths.reduce((a, b, i) =>
-    i === 0 ? b : (i % 2 === 0 ? a + b : a - b), 0
-  ));
+  const minReach = Math.abs(
+    linkLengths.reduce((a, b, i) => (i === 0 ? b : i % 2 === 0 ? a + b : a - b), 0)
+  );
 
   // Sample workspace points
   const workspacePoints: { x: number; y: number }[] = [];
@@ -541,10 +542,10 @@ function analyzeWorkspace(
   }
 
   // Find workspace bounds
-  const xMin = Math.min(...workspacePoints.map(p => p.x));
-  const xMax = Math.max(...workspacePoints.map(p => p.x));
-  const yMin = Math.min(...workspacePoints.map(p => p.y));
-  const yMax = Math.max(...workspacePoints.map(p => p.y));
+  const xMin = Math.min(...workspacePoints.map((p) => p.x));
+  const xMax = Math.max(...workspacePoints.map((p) => p.x));
+  const yMin = Math.min(...workspacePoints.map((p) => p.y));
+  const yMax = Math.max(...workspacePoints.map((p) => p.y));
 
   // Calculate manipulability (rough estimate)
   const workspaceArea = (xMax - xMin) * (yMax - yMin);
@@ -555,27 +556,29 @@ function analyzeWorkspace(
     linkLengths,
     reach: {
       maximum: totalLength.toFixed(4),
-      minimum: minReach.toFixed(4)
+      minimum: minReach.toFixed(4),
     },
     workspaceBounds: {
       x: { min: xMin.toFixed(4), max: xMax.toFixed(4) },
-      y: { min: yMin.toFixed(4), max: yMax.toFixed(4) }
+      y: { min: yMin.toFixed(4), max: yMax.toFixed(4) },
     },
     workspaceAnalysis: {
       sampledPoints: workspacePoints.length,
       approximateArea: workspaceArea.toFixed(4),
       theoreticalMaxArea: theoreticalMaxArea.toFixed(4),
-      workspaceUtilization: ((workspaceArea / theoreticalMaxArea) * 100).toFixed(1) + '%'
+      workspaceUtilization: ((workspaceArea / theoreticalMaxArea) * 100).toFixed(1) + '%',
     },
     jointLimits: limits.map((l, i) => ({
       joint: i + 1,
-      minDeg: (l.min * 180 / Math.PI).toFixed(1),
-      maxDeg: (l.max * 180 / Math.PI).toFixed(1)
-    }))
+      minDeg: ((l.min * 180) / Math.PI).toFixed(1),
+      maxDeg: ((l.max * 180) / Math.PI).toFixed(1),
+    })),
   };
 }
 
-export async function executeinversekinematics(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeinversekinematics(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -587,7 +590,7 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
       jointAngles = [],
       jointLimits = null,
       maxIterations = 100,
-      tolerance = 0.001
+      tolerance = 0.001,
     } = args;
 
     let result: object = {};
@@ -601,14 +604,14 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
             analytical_2dof: 'Closed-form solution for 2-link planar arm',
             analytical_3dof: 'Closed-form solution for 3-link arm with base rotation',
             jacobian: 'Numerical IK using Jacobian pseudoinverse with damping',
-            fabrik: 'FABRIK algorithm - fast iterative method'
+            fabrik: 'FABRIK algorithm - fast iterative method',
           },
           parameters: {
             targetPosition: 'Desired end-effector position {x, y, z}',
             linkLengths: 'Array of link lengths',
             jointAngles: 'Initial angles for iterative methods',
             jointLimits: 'Array of {min, max} for each joint',
-            tolerance: 'Convergence threshold for iterative methods'
+            tolerance: 'Convergence threshold for iterative methods',
           },
           operations: [
             'analytical_2dof - 2-DOF planar IK',
@@ -616,8 +619,8 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
             'jacobian - Jacobian-based numerical IK',
             'fabrik - FABRIK iterative IK',
             'forward_kinematics - Compute end-effector from angles',
-            'analyze_workspace - Analyze reachable workspace'
-          ]
+            'analyze_workspace - Analyze reachable workspace',
+          ],
         };
         break;
 
@@ -628,8 +631,8 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
             parameters: {
               operation: 'analytical_2dof',
               targetPosition: { x: 1.5, y: 0.5 },
-              linkLengths: [1, 1]
-            }
+              linkLengths: [1, 1],
+            },
           },
           jacobianIK: {
             description: 'Multi-joint Jacobian IK',
@@ -637,17 +640,17 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
               operation: 'jacobian',
               targetPosition: { x: 2, y: 1 },
               linkLengths: [1, 0.8, 0.6],
-              jointAngles: [0, 0, 0]
-            }
+              jointAngles: [0, 0, 0],
+            },
           },
           fabrikIK: {
             description: 'FABRIK algorithm',
             parameters: {
               operation: 'fabrik',
               targetPosition: { x: 1.8, y: 0.8 },
-              linkLengths: [1, 1, 0.5, 0.5]
-            }
-          }
+              linkLengths: [1, 1, 0.5, 0.5],
+            },
+          },
         };
         break;
 
@@ -664,20 +667,20 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
           target: demoTarget,
           linkLengths: demoLinks,
           solution: {
-            theta1: (demoResult.theta1 * 180 / Math.PI).toFixed(2) + '°',
-            theta2: (demoResult.theta2 * 180 / Math.PI).toFixed(2) + '°'
+            theta1: ((demoResult.theta1 * 180) / Math.PI).toFixed(2) + '°',
+            theta2: ((demoResult.theta2 * 180) / Math.PI).toFixed(2) + '°',
           },
           verification: {
             computedEndEffector: {
               x: fkResult.endEffector.x.toFixed(4),
-              y: fkResult.endEffector.y.toFixed(4)
+              y: fkResult.endEffector.y.toFixed(4),
             },
             error: distance(
               { x: demoTarget.x, y: demoTarget.y, z: 0 },
               fkResult.endEffector
-            ).toFixed(6)
+            ).toFixed(6),
           },
-          analysis: demoResult.analysis
+          analysis: demoResult.analysis,
         };
         break;
 
@@ -699,10 +702,10 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
           jointAngles: {
             theta1Rad: ik2dof.theta1.toFixed(6),
             theta2Rad: ik2dof.theta2.toFixed(6),
-            theta1Deg: (ik2dof.theta1 * 180 / Math.PI).toFixed(2),
-            theta2Deg: (ik2dof.theta2 * 180 / Math.PI).toFixed(2)
+            theta1Deg: ((ik2dof.theta1 * 180) / Math.PI).toFixed(2),
+            theta2Deg: ((ik2dof.theta2 * 180) / Math.PI).toFixed(2),
           },
-          analysis: ik2dof.analysis
+          analysis: ik2dof.analysis,
         };
         break;
 
@@ -725,9 +728,9 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
           jointAngles: ik3dof.angles.map((a, i) => ({
             joint: i + 1,
             radians: a.toFixed(6),
-            degrees: (a * 180 / Math.PI).toFixed(2)
+            degrees: ((a * 180) / Math.PI).toFixed(2),
           })),
-          analysis: ik3dof.analysis
+          analysis: ik3dof.analysis,
         };
         break;
 
@@ -747,11 +750,11 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
           jointAngles: jacobianResult.angles.map((a, i) => ({
             joint: i + 1,
             radians: a.toFixed(6),
-            degrees: (a * 180 / Math.PI).toFixed(2)
+            degrees: ((a * 180) / Math.PI).toFixed(2),
           })),
           iterations: jacobianResult.iterations,
           finalError: jacobianResult.error.toFixed(6),
-          analysis: jacobianResult.analysis
+          analysis: jacobianResult.analysis,
         };
         break;
 
@@ -771,11 +774,11 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
             joint: i,
             x: p.x.toFixed(4),
             y: p.y.toFixed(4),
-            z: p.z.toFixed(4)
+            z: p.z.toFixed(4),
           })),
           iterations: fabrikResult.iterations,
           finalError: fabrikResult.error.toFixed(6),
-          analysis: fabrikResult.analysis
+          analysis: fabrikResult.analysis,
         };
         break;
 
@@ -787,46 +790,55 @@ export async function executeinversekinematics(toolCall: UnifiedToolCall): Promi
           endEffector: {
             x: fk.endEffector.x.toFixed(6),
             y: fk.endEffector.y.toFixed(6),
-            z: fk.endEffector.z.toFixed(6)
+            z: fk.endEffector.z.toFixed(6),
           },
           jointPositions: fk.jointPositions.map((p, i) => ({
             joint: i,
             x: p.x.toFixed(4),
-            y: p.y.toFixed(4)
+            y: p.y.toFixed(4),
           })),
-          inputAngles: jointAngles.map((a, i) => ({
+          inputAngles: jointAngles.map((a: number, i: number) => ({
             joint: i + 1,
             radians: a.toFixed(4),
-            degrees: (a * 180 / Math.PI).toFixed(2)
-          }))
+            degrees: ((a * 180) / Math.PI).toFixed(2),
+          })),
         };
         break;
 
       case 'analyze_workspace':
         result = {
           operation: 'analyze_workspace',
-          analysis: analyzeWorkspace(linkLengths, jointLimits)
+          analysis: analyzeWorkspace(linkLengths, jointLimits),
         };
         break;
 
       default:
         result = {
           error: `Unknown operation: ${operation}`,
-          availableOperations: ['info', 'examples', 'demo', 'analytical_2dof', 'analytical_3dof', 'jacobian', 'fabrik', 'forward_kinematics', 'analyze_workspace']
+          availableOperations: [
+            'info',
+            'examples',
+            'demo',
+            'analytical_2dof',
+            'analytical_3dof',
+            'jacobian',
+            'fabrik',
+            'forward_kinematics',
+            'analyze_workspace',
+          ],
         };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error: ${err}`,
-      isError: true
+      isError: true,
     };
   }
 }

@@ -12,23 +12,23 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 const CONSTANTS = {
   // Wave velocities (km/s) for average crust
-  Vp_crust: 6.0,           // P-wave velocity
-  Vs_crust: 3.5,           // S-wave velocity
-  Vp_mantle: 8.0,          // P-wave in upper mantle
-  Vs_mantle: 4.5,          // S-wave in upper mantle
+  Vp_crust: 6.0, // P-wave velocity
+  Vs_crust: 3.5, // S-wave velocity
+  Vp_mantle: 8.0, // P-wave in upper mantle
+  Vs_mantle: 4.5, // S-wave in upper mantle
 
   // Earth properties
-  earthRadius: 6371,       // km
-  crustThickness: 35,      // km (continental average)
-  mantleDepth: 2890,       // km
+  earthRadius: 6371, // km
+  crustThickness: 35, // km (continental average)
+  mantleDepth: 2890, // km
 
   // Attenuation
-  Q_p: 500,                // P-wave quality factor
-  Q_s: 200,                // S-wave quality factor
+  Q_p: 500, // P-wave quality factor
+  Q_s: 200, // S-wave quality factor
 
   // Reference values
-  M0_reference: 1e16,      // Reference seismic moment (N·m)
-  A0_reference: 1e-6       // Reference amplitude (m)
+  M0_reference: 1e16, // Reference seismic moment (N·m)
+  A0_reference: 1e-6, // Reference amplitude (m)
 };
 
 // =============================================================================
@@ -38,10 +38,10 @@ const CONSTANTS = {
 interface EarthquakeSource {
   latitude: number;
   longitude: number;
-  depth: number;           // km
+  depth: number; // km
   magnitude: number;
   magnitudeType: 'Mw' | 'ML' | 'Ms' | 'mb';
-  seismicMoment?: number;  // N·m
+  seismicMoment?: number; // N·m
   faultType?: 'strike-slip' | 'normal' | 'thrust' | 'oblique';
   ruptureDuration?: number; // seconds
 }
@@ -50,24 +50,24 @@ interface SeismicStation {
   id: string;
   latitude: number;
   longitude: number;
-  elevation: number;       // m
+  elevation: number; // m
   siteClass?: 'A' | 'B' | 'C' | 'D' | 'E';
 }
 
 interface WaveArrival {
   phase: string;
-  arrivalTime: number;     // seconds from origin
-  distance: number;        // km
-  amplitude: number;       // relative
+  arrivalTime: number; // seconds from origin
+  distance: number; // km
+  amplitude: number; // relative
   rayParameter?: number;
 }
 
 interface SeismicHazard {
-  pga: number;             // Peak Ground Acceleration (g)
-  pgv: number;             // Peak Ground Velocity (cm/s)
-  sa_02: number;           // Spectral acceleration at 0.2s (g)
-  sa_10: number;           // Spectral acceleration at 1.0s (g)
-  mmi: number;             // Modified Mercalli Intensity
+  pga: number; // Peak Ground Acceleration (g)
+  pgv: number; // Peak Ground Velocity (cm/s)
+  sa_02: number; // Spectral acceleration at 0.2s (g)
+  sa_10: number; // Spectral acceleration at 1.0s (g)
+  mmi: number; // Modified Mercalli Intensity
 }
 
 interface LocationResult {
@@ -96,11 +96,14 @@ interface MagnitudeResult {
  */
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = CONSTANTS.earthRadius;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -116,14 +119,15 @@ function hypocentralDistance(epicentralDist: number, depth: number): number {
  * Calculate back azimuth
  */
 function backAzimuth(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const lat1Rad = lat1 * Math.PI / 180;
-  const lat2Rad = lat2 * Math.PI / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const lat1Rad = (lat1 * Math.PI) / 180;
+  const lat2Rad = (lat2 * Math.PI) / 180;
 
   const x = Math.sin(dLon) * Math.cos(lat2Rad);
-  const y = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+  const y =
+    Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
 
-  const azimuth = Math.atan2(x, y) * 180 / Math.PI;
+  const azimuth = (Math.atan2(x, y) * 180) / Math.PI;
   return (azimuth + 360) % 360;
 }
 
@@ -138,16 +142,16 @@ function convertMagnitude(value: number, fromType: string, toType: string): numb
   // Approximate conversions based on empirical relationships
   const toMw: Record<string, (m: number) => number> = {
     Mw: (m) => m,
-    ML: (m) => 0.67 * m + 1.0,  // Local magnitude
-    Ms: (m) => 0.67 * m + 1.0,  // Surface wave magnitude
-    mb: (m) => 0.85 * m + 0.8   // Body wave magnitude
+    ML: (m) => 0.67 * m + 1.0, // Local magnitude
+    Ms: (m) => 0.67 * m + 1.0, // Surface wave magnitude
+    mb: (m) => 0.85 * m + 0.8, // Body wave magnitude
   };
 
   const fromMw: Record<string, (m: number) => number> = {
     Mw: (m) => m,
     ML: (m) => (m - 1.0) / 0.67,
     Ms: (m) => (m - 1.0) / 0.67,
-    mb: (m) => (m - 0.8) / 0.85
+    mb: (m) => (m - 0.8) / 0.85,
   };
 
   const mw = toMw[fromType]?.(value) ?? value;
@@ -165,8 +169,7 @@ function seismicMomentFromMw(Mw: number): number {
 /**
  * Calculate moment magnitude from seismic moment
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function mwFromSeismicMoment(M0: number): number {
+export function mwFromSeismicMoment(M0: number): number {
   // Mw = (log10(M0) - 9.1) / 1.5
   return (Math.log10(M0) - 9.1) / 1.5;
 }
@@ -182,8 +185,7 @@ function energyFromMagnitude(Mw: number): number {
 /**
  * Calculate local magnitude from amplitude
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function localMagnitude(amplitude: number, distance: number): number {
+export function localMagnitude(amplitude: number, distance: number): number {
   // Richter's original formula (simplified)
   // ML = log10(A) + 2.76*log10(d) - 2.48
   return Math.log10(amplitude * 1e6) + 2.76 * Math.log10(distance) - 2.48;
@@ -232,8 +234,10 @@ function sWaveTravelTime(distance: number, depth: number): number {
  */
 function calculateArrivals(source: EarthquakeSource, station: SeismicStation): WaveArrival[] {
   const epicentralDist = haversineDistance(
-    source.latitude, source.longitude,
-    station.latitude, station.longitude
+    source.latitude,
+    source.longitude,
+    station.latitude,
+    station.longitude
   );
 
   const arrivals: WaveArrival[] = [];
@@ -246,7 +250,7 @@ function calculateArrivals(source: EarthquakeSource, station: SeismicStation): W
     arrivalTime: pTime,
     distance: epicentralDist,
     amplitude: pAmplitude,
-    rayParameter: Math.sin(Math.atan(epicentralDist / source.depth)) / CONSTANTS.Vp_crust
+    rayParameter: Math.sin(Math.atan(epicentralDist / source.depth)) / CONSTANTS.Vp_crust,
   });
 
   // Direct S-wave
@@ -257,7 +261,7 @@ function calculateArrivals(source: EarthquakeSource, station: SeismicStation): W
     arrivalTime: sTime,
     distance: epicentralDist,
     amplitude: sAmplitude,
-    rayParameter: Math.sin(Math.atan(epicentralDist / source.depth)) / CONSTANTS.Vs_crust
+    rayParameter: Math.sin(Math.atan(epicentralDist / source.depth)) / CONSTANTS.Vs_crust,
   });
 
   // Surface waves (for shallow events)
@@ -269,7 +273,7 @@ function calculateArrivals(source: EarthquakeSource, station: SeismicStation): W
       phase: 'Rayleigh',
       arrivalTime: rayleighTime,
       distance: epicentralDist,
-      amplitude: pAmplitude * 1.5
+      amplitude: pAmplitude * 1.5,
     });
 
     // Love wave
@@ -279,7 +283,7 @@ function calculateArrivals(source: EarthquakeSource, station: SeismicStation): W
       phase: 'Love',
       arrivalTime: loveTime,
       distance: epicentralDist,
-      amplitude: pAmplitude * 1.2
+      amplitude: pAmplitude * 1.2,
     });
   }
 
@@ -305,7 +309,7 @@ function calculateAmplitude(
   const Q = waveType === 'P' ? CONSTANTS.Q_p : CONSTANTS.Q_s;
   const V = waveType === 'P' ? CONSTANTS.Vp_crust : CONSTANTS.Vs_crust;
   const frequency = 1; // Reference frequency 1 Hz
-  const attenuationFactor = Math.exp(-Math.PI * frequency * hypoDist / (Q * V));
+  const attenuationFactor = Math.exp((-Math.PI * frequency * hypoDist) / (Q * V));
 
   // Amplitude proportional to cube root of moment
   const sourceAmplitude = Math.pow(M0 / CONSTANTS.M0_reference, 1 / 3);
@@ -338,7 +342,13 @@ function locateEarthquake(
       for (let depth = depthRange.min; depth <= depthRange.max; depth += depthRange.step * 2) {
         const result = calculateResidual(stations, pArrivals, sArrivals, lat, lon, depth);
         if (result.residual < bestLocation.residual) {
-          bestLocation = { lat, lon, depth, originTime: result.originTime, residual: result.residual };
+          bestLocation = {
+            lat,
+            lon,
+            depth,
+            originTime: result.originTime,
+            residual: result.residual,
+          };
         }
       }
     }
@@ -347,10 +357,20 @@ function locateEarthquake(
   // Fine grid search around best location
   for (let lat = bestLocation.lat - 5; lat <= bestLocation.lat + 5; lat += 0.5) {
     for (let lon = bestLocation.lon - 5; lon <= bestLocation.lon + 5; lon += 0.5) {
-      for (let depth = Math.max(0, bestLocation.depth - 20); depth <= bestLocation.depth + 20; depth += 2) {
+      for (
+        let depth = Math.max(0, bestLocation.depth - 20);
+        depth <= bestLocation.depth + 20;
+        depth += 2
+      ) {
         const result = calculateResidual(stations, pArrivals, sArrivals, lat, lon, depth);
         if (result.residual < bestLocation.residual) {
-          bestLocation = { lat, lon, depth, originTime: result.originTime, residual: result.residual };
+          bestLocation = {
+            lat,
+            lon,
+            depth,
+            originTime: result.originTime,
+            residual: result.residual,
+          };
         }
       }
     }
@@ -365,7 +385,7 @@ function locateEarthquake(
     depth: bestLocation.depth,
     originTime: bestLocation.originTime,
     residual: bestLocation.residual,
-    confidence
+    confidence,
   };
 }
 
@@ -377,7 +397,7 @@ function calculateResidual(
   lon: number,
   depth: number
 ): { residual: number; originTime: number } {
-  const stationMap = new Map(stations.map(s => [s.id, s]));
+  const stationMap = new Map(stations.map((s) => [s.id, s]));
 
   let totalResidual = 0;
   let originTimeSum = 0;
@@ -442,11 +462,11 @@ function calculateGroundMotion(
 
   // Site amplification factors
   const siteFactors: Record<string, number> = {
-    A: 0.8,   // Hard rock
-    B: 1.0,   // Rock
-    C: 1.2,   // Dense soil
-    D: 1.6,   // Stiff soil
-    E: 2.5    // Soft soil
+    A: 0.8, // Hard rock
+    B: 1.0, // Rock
+    C: 1.2, // Dense soil
+    D: 1.6, // Stiff soil
+    E: 2.5, // Soft soil
   };
   const siteFactor = siteFactors[siteClass] ?? 1.0;
 
@@ -458,8 +478,12 @@ function calculateGroundMotion(
   const c3 = -1.5;
   const c4 = -0.003;
 
-  const lnPGA = c0 + c1 * (magnitude - 6) + c2 * Math.pow(magnitude - 6, 2) +
-    c3 * Math.log(hypoDist) + c4 * hypoDist;
+  const lnPGA =
+    c0 +
+    c1 * (magnitude - 6) +
+    c2 * Math.pow(magnitude - 6, 2) +
+    c3 * Math.log(hypoDist) +
+    c4 * hypoDist;
 
   const pga = Math.exp(lnPGA) * siteFactor;
 
@@ -467,8 +491,8 @@ function calculateGroundMotion(
   const pgv = pga * 100 * Math.pow(10, 0.5 * (magnitude - 5));
 
   // Spectral accelerations (simplified relationships)
-  const sa_02 = pga * 2.5;  // Short period amplification
-  const sa_10 = pga * 0.8;  // Long period reduction
+  const sa_02 = pga * 2.5; // Short period amplification
+  const sa_10 = pga * 0.8; // Long period reduction
 
   // Modified Mercalli Intensity (from PGA)
   const mmi = calculateMMI(pga);
@@ -478,7 +502,7 @@ function calculateGroundMotion(
     pgv: Math.round(pgv * 10) / 10,
     sa_02: Math.round(sa_02 * 1000) / 1000,
     sa_10: Math.round(sa_10 * 1000) / 1000,
-    mmi: Math.round(mmi * 10) / 10
+    mmi: Math.round(mmi * 10) / 10,
   };
 }
 
@@ -512,7 +536,7 @@ function mmiDescription(mmi: number): string {
     7: 'Severe - moderate damage',
     8: 'Destructive - heavy damage',
     9: 'Violent - buildings collapse',
-    10: 'Extreme - total destruction'
+    10: 'Extreme - total destruction',
   };
   return descriptions[Math.round(Math.min(10, Math.max(1, mmi)))] ?? 'Unknown';
 }
@@ -528,7 +552,7 @@ const exampleEarthquakes: Record<string, EarthquakeSource> = {
     depth: 10,
     magnitude: 6.0,
     magnitudeType: 'Mw',
-    faultType: 'strike-slip'
+    faultType: 'strike-slip',
   },
   japan_m7: {
     latitude: 38.3,
@@ -536,7 +560,7 @@ const exampleEarthquakes: Record<string, EarthquakeSource> = {
     depth: 25,
     magnitude: 7.1,
     magnitudeType: 'Mw',
-    faultType: 'thrust'
+    faultType: 'thrust',
   },
   chile_m8: {
     latitude: -33.5,
@@ -544,7 +568,7 @@ const exampleEarthquakes: Record<string, EarthquakeSource> = {
     depth: 35,
     magnitude: 8.0,
     magnitudeType: 'Mw',
-    faultType: 'thrust'
+    faultType: 'thrust',
   },
   shallow_m5: {
     latitude: 37.8,
@@ -552,7 +576,7 @@ const exampleEarthquakes: Record<string, EarthquakeSource> = {
     depth: 5,
     magnitude: 5.2,
     magnitudeType: 'ML',
-    faultType: 'strike-slip'
+    faultType: 'strike-slip',
   },
   deep_m6: {
     latitude: -5.5,
@@ -560,8 +584,8 @@ const exampleEarthquakes: Record<string, EarthquakeSource> = {
     depth: 150,
     magnitude: 6.5,
     magnitudeType: 'Mw',
-    faultType: 'normal'
-  }
+    faultType: 'normal',
+  },
 };
 
 const exampleStations: SeismicStation[] = [
@@ -569,7 +593,7 @@ const exampleStations: SeismicStation[] = [
   { id: 'STA2', latitude: 34.0, longitude: -118.1, elevation: 150, siteClass: 'D' },
   { id: 'STA3', latitude: 33.9, longitude: -118.2, elevation: 100, siteClass: 'C' },
   { id: 'STA4', latitude: 34.2, longitude: -118.4, elevation: 300, siteClass: 'B' },
-  { id: 'STA5', latitude: 34.0, longitude: -118.5, elevation: 50, siteClass: 'D' }
+  { id: 'STA5', latitude: 34.0, longitude: -118.5, elevation: 50, siteClass: 'D' },
 ];
 
 // =============================================================================
@@ -578,77 +602,86 @@ const exampleStations: SeismicStation[] = [
 
 export const seismicanalysisTool: UnifiedTool = {
   name: 'seismic_analysis',
-  description: 'Seismic wave analysis and earthquake modeling including magnitude calculation, earthquake location, wave propagation, ground motion prediction, and hazard assessment.',
+  description:
+    'Seismic wave analysis and earthquake modeling including magnitude calculation, earthquake location, wave propagation, ground motion prediction, and hazard assessment.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['analyze', 'locate', 'magnitude', 'arrivals', 'hazard', 'convert', 'examples', 'info'],
-        description: 'Operation: analyze earthquake, locate from arrivals, calculate magnitude, compute arrivals, assess hazard, convert magnitude types, examples, or info'
+        enum: [
+          'analyze',
+          'locate',
+          'magnitude',
+          'arrivals',
+          'hazard',
+          'convert',
+          'examples',
+          'info',
+        ],
+        description:
+          'Operation: analyze earthquake, locate from arrivals, calculate magnitude, compute arrivals, assess hazard, convert magnitude types, examples, or info',
       },
       earthquake: {
         type: 'object',
-        properties: {
-          latitude: { type: 'number' },
-          longitude: { type: 'number' },
-          depth: { type: 'number' },
-          magnitude: { type: 'number' },
-          magnitudeType: { type: 'string', enum: ['Mw', 'ML', 'Ms', 'mb'] }
-        },
-        description: 'Earthquake source parameters'
+        description:
+          'Earthquake source: latitude, longitude, depth (km), magnitude, magnitudeType (Mw|ML|Ms|mb)',
       },
       earthquake_name: {
         type: 'string',
-        description: 'Named earthquake: california_m6, japan_m7, chile_m8, shallow_m5, deep_m6'
+        description: 'Named earthquake: california_m6, japan_m7, chile_m8, shallow_m5, deep_m6',
       },
       station: {
         type: 'object',
-        properties: {
-          latitude: { type: 'number' },
-          longitude: { type: 'number' },
-          elevation: { type: 'number' },
-          siteClass: { type: 'string', enum: ['A', 'B', 'C', 'D', 'E'] }
-        },
-        description: 'Seismic station location'
+        description: 'Seismic station: latitude, longitude, elevation (m), siteClass (A|B|C|D|E)',
       },
       stations: {
         type: 'array',
-        description: 'Array of seismic stations'
+        description: 'Array of seismic stations',
       },
       p_arrivals: {
         type: 'array',
-        description: 'P-wave arrival times at stations'
+        description: 'P-wave arrival times at stations',
       },
       s_arrivals: {
         type: 'array',
-        description: 'S-wave arrival times at stations'
+        description: 'S-wave arrival times at stations',
       },
       distance: {
         type: 'number',
-        description: 'Epicentral distance in km'
+        description: 'Epicentral distance in km',
       },
       from_type: { type: 'string', description: 'Source magnitude type for conversion' },
       to_type: { type: 'string', description: 'Target magnitude type for conversion' },
-      value: { type: 'number', description: 'Magnitude value to convert' }
+      value: { type: 'number', description: 'Magnitude value to convert' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // =============================================================================
 // TOOL EXECUTOR
 // =============================================================================
 
-export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeseismicanalysis(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const {
-      operation, earthquake: inputEQ, earthquake_name, station: inputStation,
-      stations: inputStations, p_arrivals, s_arrivals, distance,
-      from_type, to_type, value
+      operation,
+      earthquake: inputEQ,
+      earthquake_name,
+      station: inputStation,
+      stations: inputStations,
+      p_arrivals,
+      s_arrivals,
+      distance,
+      from_type,
+      to_type,
+      value,
     } = args;
 
     // Info operation
@@ -660,14 +693,14 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
           magnitude_calculation: {
             types: ['Mw (moment)', 'ML (local)', 'Ms (surface)', 'mb (body)'],
             formulas: {
-              'Mw_from_M0': 'Mw = (log10(M0) - 9.1) / 1.5',
-              'energy': 'E = 10^(1.5*Mw + 4.8) Joules'
-            }
+              Mw_from_M0: 'Mw = (log10(M0) - 9.1) / 1.5',
+              energy: 'E = 10^(1.5*Mw + 4.8) Joules',
+            },
           },
           wave_propagation: {
             p_wave: `${CONSTANTS.Vp_crust} km/s in crust`,
             s_wave: `${CONSTANTS.Vs_crust} km/s in crust`,
-            phases: ['P', 'S', 'Rayleigh', 'Love']
+            phases: ['P', 'S', 'Rayleigh', 'Love'],
           },
           hazard_assessment: {
             outputs: ['PGA (g)', 'PGV (cm/s)', 'Spectral acceleration', 'MMI'],
@@ -676,16 +709,16 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
               B: 'Rock (760-1500 m/s)',
               C: 'Dense soil (360-760 m/s)',
               D: 'Stiff soil (180-360 m/s)',
-              E: 'Soft soil (< 180 m/s)'
-            }
+              E: 'Soft soil (< 180 m/s)',
+            },
           },
           location: {
             method: 'Grid search with P and S arrivals',
-            output: ['Latitude', 'Longitude', 'Depth', 'Origin time']
-          }
+            output: ['Latitude', 'Longitude', 'Depth', 'Origin time'],
+          },
         },
         constants: CONSTANTS,
-        example_earthquakes: Object.keys(exampleEarthquakes)
+        example_earthquakes: Object.keys(exampleEarthquakes),
       };
       return { toolCallId: id, content: JSON.stringify(info, null, 2) };
     }
@@ -696,15 +729,19 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
         name: key,
         ...eq,
         seismicMoment: seismicMomentFromMw(eq.magnitude),
-        energyRelease: energyFromMagnitude(eq.magnitude)
+        energyRelease: energyFromMagnitude(eq.magnitude),
       }));
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          earthquakes: examples,
-          stations: exampleStations
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            earthquakes: examples,
+            stations: exampleStations,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -714,7 +751,7 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
         return {
           toolCallId: id,
           content: 'Error: from_type, to_type, and value required for conversion',
-          isError: true
+          isError: true,
         };
       }
 
@@ -722,12 +759,20 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          input: { value, type: from_type },
-          output: { value: Math.round(converted * 100) / 100, type: to_type },
-          seismic_moment_Nm: seismicMomentFromMw(from_type === 'Mw' ? value : convertMagnitude(value, from_type, 'Mw')),
-          energy_joules: energyFromMagnitude(from_type === 'Mw' ? value : convertMagnitude(value, from_type, 'Mw'))
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            input: { value, type: from_type },
+            output: { value: Math.round(converted * 100) / 100, type: to_type },
+            seismic_moment_Nm: seismicMomentFromMw(
+              from_type === 'Mw' ? value : convertMagnitude(value, from_type, 'Mw')
+            ),
+            energy_joules: energyFromMagnitude(
+              from_type === 'Mw' ? value : convertMagnitude(value, from_type, 'Mw')
+            ),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -741,7 +786,7 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
         longitude: inputEQ.longitude ?? 0,
         depth: inputEQ.depth ?? 10,
         magnitude: inputEQ.magnitude ?? 5.0,
-        magnitudeType: inputEQ.magnitudeType ?? 'Mw'
+        magnitudeType: inputEQ.magnitudeType ?? 'Mw',
       };
     } else {
       earthquake = exampleEarthquakes.california_m6;
@@ -757,7 +802,7 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
         return {
           toolCallId: id,
           content: 'Error: P-wave arrivals required for location',
-          isError: true
+          isError: true,
         };
       }
 
@@ -765,31 +810,36 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          location: {
-            latitude: Math.round(location.latitude * 100) / 100,
-            longitude: Math.round(location.longitude * 100) / 100,
-            depth_km: Math.round(location.depth * 10) / 10,
-            origin_time_s: Math.round(location.originTime * 100) / 100
+        content: JSON.stringify(
+          {
+            location: {
+              latitude: Math.round(location.latitude * 100) / 100,
+              longitude: Math.round(location.longitude * 100) / 100,
+              depth_km: Math.round(location.depth * 10) / 10,
+              origin_time_s: Math.round(location.originTime * 100) / 100,
+            },
+            quality: {
+              rms_residual_s: Math.round(location.residual * 1000) / 1000,
+              confidence_pct: Math.round(location.confidence),
+            },
+            input: {
+              num_stations: stations.length,
+              num_p_arrivals: pArr.length,
+              num_s_arrivals: sArr.length,
+            },
           },
-          quality: {
-            rms_residual_s: Math.round(location.residual * 1000) / 1000,
-            confidence_pct: Math.round(location.confidence)
-          },
-          input: {
-            num_stations: stations.length,
-            num_p_arrivals: pArr.length,
-            num_s_arrivals: sArr.length
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     // Magnitude operation
     if (operation === 'magnitude') {
-      const Mw = earthquake.magnitudeType === 'Mw'
-        ? earthquake.magnitude
-        : convertMagnitude(earthquake.magnitude, earthquake.magnitudeType, 'Mw');
+      const Mw =
+        earthquake.magnitudeType === 'Mw'
+          ? earthquake.magnitude
+          : convertMagnitude(earthquake.magnitude, earthquake.magnitudeType, 'Mw');
 
       const M0 = seismicMomentFromMw(Mw);
       const energy = energyFromMagnitude(Mw);
@@ -799,30 +849,34 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
         type: earthquake.magnitudeType,
         uncertainty: 0.2,
         seismicMoment: M0,
-        energyRelease: energy
+        energyRelease: energy,
       };
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          magnitude: result,
-          conversions: {
-            Mw: Mw,
-            ML: convertMagnitude(Mw, 'Mw', 'ML'),
-            Ms: convertMagnitude(Mw, 'Mw', 'Ms'),
-            mb: convertMagnitude(Mw, 'Mw', 'mb')
+        content: JSON.stringify(
+          {
+            magnitude: result,
+            conversions: {
+              Mw: Mw,
+              ML: convertMagnitude(Mw, 'Mw', 'ML'),
+              Ms: convertMagnitude(Mw, 'Mw', 'Ms'),
+              mb: convertMagnitude(Mw, 'Mw', 'mb'),
+            },
+            seismic_moment: {
+              value: M0,
+              unit: 'N·m',
+              scientific: M0.toExponential(2),
+            },
+            energy_release: {
+              joules: energy,
+              scientific: energy.toExponential(2),
+              tnt_equivalent_tons: energy / 4.184e9,
+            },
           },
-          seismic_moment: {
-            value: M0,
-            unit: 'N·m',
-            scientific: M0.toExponential(2)
-          },
-          energy_release: {
-            joules: energy,
-            scientific: energy.toExponential(2),
-            tnt_equivalent_tons: energy / 4.184e9
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -832,37 +886,54 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
       const arrivals = calculateArrivals(earthquake, station);
 
       const epicentralDist = haversineDistance(
-        earthquake.latitude, earthquake.longitude,
-        station.latitude, station.longitude
+        earthquake.latitude,
+        earthquake.longitude,
+        station.latitude,
+        station.longitude
       );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          source: {
-            latitude: earthquake.latitude,
-            longitude: earthquake.longitude,
-            depth_km: earthquake.depth,
-            magnitude: earthquake.magnitude
+        content: JSON.stringify(
+          {
+            source: {
+              latitude: earthquake.latitude,
+              longitude: earthquake.longitude,
+              depth_km: earthquake.depth,
+              magnitude: earthquake.magnitude,
+            },
+            station: {
+              id: station.id ?? 'CUSTOM',
+              latitude: station.latitude,
+              longitude: station.longitude,
+            },
+            geometry: {
+              epicentral_distance_km: Math.round(epicentralDist * 10) / 10,
+              hypocentral_distance_km:
+                Math.round(hypocentralDistance(epicentralDist, earthquake.depth) * 10) / 10,
+              back_azimuth_deg: Math.round(
+                backAzimuth(
+                  station.latitude,
+                  station.longitude,
+                  earthquake.latitude,
+                  earthquake.longitude
+                )
+              ),
+            },
+            arrivals: arrivals.map((a) => ({
+              phase: a.phase,
+              time_s: Math.round(a.arrivalTime * 100) / 100,
+              amplitude_relative: Math.round(a.amplitude * 1000) / 1000,
+            })),
+            s_p_time_s:
+              Math.round(
+                (arrivals.find((a) => a.phase === 'S')?.arrivalTime ?? 0) -
+                  (arrivals.find((a) => a.phase === 'P')?.arrivalTime ?? 0) * 100
+              ) / 100,
           },
-          station: {
-            id: station.id ?? 'CUSTOM',
-            latitude: station.latitude,
-            longitude: station.longitude
-          },
-          geometry: {
-            epicentral_distance_km: Math.round(epicentralDist * 10) / 10,
-            hypocentral_distance_km: Math.round(hypocentralDistance(epicentralDist, earthquake.depth) * 10) / 10,
-            back_azimuth_deg: Math.round(backAzimuth(station.latitude, station.longitude, earthquake.latitude, earthquake.longitude))
-          },
-          arrivals: arrivals.map(a => ({
-            phase: a.phase,
-            time_s: Math.round(a.arrivalTime * 100) / 100,
-            amplitude_relative: Math.round(a.amplitude * 1000) / 1000
-          })),
-          s_p_time_s: Math.round((arrivals.find(a => a.phase === 'S')?.arrivalTime ?? 0) -
-            (arrivals.find(a => a.phase === 'P')?.arrivalTime ?? 0) * 100) / 100
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -875,71 +946,80 @@ export async function executeseismicanalysis(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          source: {
-            magnitude: earthquake.magnitude,
-            depth_km: earthquake.depth
+        content: JSON.stringify(
+          {
+            source: {
+              magnitude: earthquake.magnitude,
+              depth_km: earthquake.depth,
+            },
+            site: {
+              epicentral_distance_km: dist,
+              hypocentral_distance_km:
+                Math.round(hypocentralDistance(dist, earthquake.depth) * 10) / 10,
+              site_class: siteClass,
+            },
+            ground_motion: {
+              PGA_g: hazard.pga,
+              PGV_cm_s: hazard.pgv,
+              Sa_0_2s_g: hazard.sa_02,
+              Sa_1_0s_g: hazard.sa_10,
+            },
+            intensity: {
+              MMI: hazard.mmi,
+              description: mmiDescription(hazard.mmi),
+            },
           },
-          site: {
-            epicentral_distance_km: dist,
-            hypocentral_distance_km: Math.round(hypocentralDistance(dist, earthquake.depth) * 10) / 10,
-            site_class: siteClass
-          },
-          ground_motion: {
-            PGA_g: hazard.pga,
-            PGV_cm_s: hazard.pgv,
-            Sa_0_2s_g: hazard.sa_02,
-            Sa_1_0s_g: hazard.sa_10
-          },
-          intensity: {
-            MMI: hazard.mmi,
-            description: mmiDescription(hazard.mmi)
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     // Analyze operation (default)
-    const Mw = earthquake.magnitudeType === 'Mw'
-      ? earthquake.magnitude
-      : convertMagnitude(earthquake.magnitude, earthquake.magnitudeType, 'Mw');
+    const Mw =
+      earthquake.magnitudeType === 'Mw'
+        ? earthquake.magnitude
+        : convertMagnitude(earthquake.magnitude, earthquake.magnitudeType, 'Mw');
 
     const M0 = seismicMomentFromMw(Mw);
     const energy = energyFromMagnitude(Mw);
 
     // Calculate hazard at multiple distances
     const distances = [10, 25, 50, 100, 200];
-    const hazardProfile = distances.map(d => ({
+    const hazardProfile = distances.map((d) => ({
       distance_km: d,
-      ...calculateGroundMotion(earthquake.magnitude, d, earthquake.depth)
+      ...calculateGroundMotion(earthquake.magnitude, d, earthquake.depth),
     }));
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        earthquake: {
-          location: {
-            latitude: earthquake.latitude,
-            longitude: earthquake.longitude,
-            depth_km: earthquake.depth
+      content: JSON.stringify(
+        {
+          earthquake: {
+            location: {
+              latitude: earthquake.latitude,
+              longitude: earthquake.longitude,
+              depth_km: earthquake.depth,
+            },
+            magnitude: {
+              value: earthquake.magnitude,
+              type: earthquake.magnitudeType,
+              Mw_equivalent: Mw,
+            },
+            fault_type: earthquake.faultType ?? 'unknown',
+            seismic_moment_Nm: M0.toExponential(2),
+            energy_joules: energy.toExponential(2),
           },
-          magnitude: {
-            value: earthquake.magnitude,
-            type: earthquake.magnitudeType,
-            Mw_equivalent: Mw
+          hazard_vs_distance: hazardProfile,
+          felt_radius_km: {
+            slight_damage: Math.round(Math.pow(10, (earthquake.magnitude - 3) / 1.5)),
+            felt: Math.round(Math.pow(10, (earthquake.magnitude - 2) / 1.5)),
           },
-          fault_type: earthquake.faultType ?? 'unknown',
-          seismic_moment_Nm: M0.toExponential(2),
-          energy_joules: energy.toExponential(2)
         },
-        hazard_vs_distance: hazardProfile,
-        felt_radius_km: {
-          slight_damage: Math.round(Math.pow(10, (earthquake.magnitude - 3) / 1.5)),
-          felt: Math.round(Math.pow(10, (earthquake.magnitude - 2) / 1.5))
-        }
-      }, null, 2)
+        null,
+        2
+      ),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

@@ -13,59 +13,60 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const keyderivationTool: UnifiedTool = {
   name: 'key_derivation',
-  description: 'Key derivation functions (PBKDF2, scrypt, Argon2, HKDF) for password hashing and key stretching',
+  description:
+    'Key derivation functions (PBKDF2, scrypt, Argon2, HKDF) for password hashing and key stretching',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['derive', 'verify', 'benchmark', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       algorithm: {
         type: 'string',
         enum: ['PBKDF2', 'scrypt', 'Argon2id', 'HKDF'],
-        description: 'KDF algorithm (default: Argon2id)'
+        description: 'KDF algorithm (default: Argon2id)',
       },
       password: {
         type: 'string',
-        description: 'Password or input key material'
+        description: 'Password or input key material',
       },
       salt: {
         type: 'string',
-        description: 'Salt value (hex or auto-generate)'
+        description: 'Salt value (hex or auto-generate)',
       },
       iterations: {
         type: 'integer',
-        description: 'PBKDF2 iterations (default: 100000)'
+        description: 'PBKDF2 iterations (default: 100000)',
       },
       memory_cost: {
         type: 'integer',
-        description: 'Argon2/scrypt memory in KB (default: 65536)'
+        description: 'Argon2/scrypt memory in KB (default: 65536)',
       },
       time_cost: {
         type: 'integer',
-        description: 'Argon2 time cost / scrypt N parameter (default: 3)'
+        description: 'Argon2 time cost / scrypt N parameter (default: 3)',
       },
       parallelism: {
         type: 'integer',
-        description: 'Argon2 parallelism / scrypt p (default: 4)'
+        description: 'Argon2 parallelism / scrypt p (default: 4)',
       },
       output_length: {
         type: 'integer',
-        description: 'Output key length in bytes (default: 32)'
+        description: 'Output key length in bytes (default: 32)',
       },
       info: {
         type: 'string',
-        description: 'HKDF info/context string'
+        description: 'HKDF info/context string',
       },
       hash: {
         type: 'string',
-        description: 'Hash algorithm for verification'
-      }
+        description: 'Hash algorithm for verification',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // SHA-256 for PBKDF2 and HKDF
@@ -78,17 +79,16 @@ function sha256(message: Uint8Array): Uint8Array {
     0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
     0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
   ]);
 
   const H = new Uint32Array([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ]);
 
   const msgLen = message.length;
   const bitLen = msgLen * 8;
-  const padLen = ((msgLen + 8) % 64 < 56) ? 56 - (msgLen + 8) % 64 : 120 - (msgLen + 8) % 64;
+  const padLen = (msgLen + 8) % 64 < 56 ? 56 - ((msgLen + 8) % 64) : 120 - ((msgLen + 8) % 64);
   const padded = new Uint8Array(msgLen + 1 + padLen + 8);
   padded.set(message);
   padded[msgLen] = 0x80;
@@ -101,8 +101,11 @@ function sha256(message: Uint8Array): Uint8Array {
   for (let offset = 0; offset < padded.length; offset += 64) {
     const W = new Uint32Array(64);
     for (let i = 0; i < 16; i++) {
-      W[i] = (padded[offset + i * 4] << 24) | (padded[offset + i * 4 + 1] << 16) |
-             (padded[offset + i * 4 + 2] << 8) | padded[offset + i * 4 + 3];
+      W[i] =
+        (padded[offset + i * 4] << 24) |
+        (padded[offset + i * 4 + 1] << 16) |
+        (padded[offset + i * 4 + 2] << 8) |
+        padded[offset + i * 4 + 3];
     }
     for (let i = 16; i < 64; i++) {
       const s0 = rotr(W[i - 15], 7) ^ rotr(W[i - 15], 18) ^ (W[i - 15] >>> 3);
@@ -118,13 +121,23 @@ function sha256(message: Uint8Array): Uint8Array {
       const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
       const maj = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (S0 + maj) >>> 0;
-      h = g; g = f; f = e; e = (d + temp1) >>> 0;
-      d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) >>> 0;
     }
-    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0;
-    H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0;
-    H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    H[0] = (H[0] + a) >>> 0;
+    H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0;
+    H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0;
+    H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0;
+    H[7] = (H[7] + h) >>> 0;
   }
 
   const result = new Uint8Array(32);
@@ -169,7 +182,12 @@ function hmacSha256(key: Uint8Array, message: Uint8Array): Uint8Array {
 }
 
 // PBKDF2-HMAC-SHA256
-function pbkdf2(password: Uint8Array, salt: Uint8Array, iterations: number, keyLength: number): Uint8Array {
+function pbkdf2(
+  password: Uint8Array,
+  salt: Uint8Array,
+  iterations: number,
+  keyLength: number
+): Uint8Array {
   const hashLen = 32;
   const numBlocks = Math.ceil(keyLength / hashLen);
   const result = new Uint8Array(numBlocks * hashLen);
@@ -201,7 +219,14 @@ function pbkdf2(password: Uint8Array, salt: Uint8Array, iterations: number, keyL
 }
 
 // Simplified scrypt implementation
-function scrypt(password: Uint8Array, salt: Uint8Array, N: number, r: number, p: number, keyLength: number): Uint8Array {
+function scrypt(
+  password: Uint8Array,
+  salt: Uint8Array,
+  N: number,
+  r: number,
+  p: number,
+  keyLength: number
+): Uint8Array {
   // scrypt parameters: N = CPU/memory cost, r = block size, p = parallelism
   const blockSize = 128 * r;
 
@@ -291,7 +316,7 @@ function scrypt(password: Uint8Array, salt: Uint8Array, N: number, r: number, p:
     // Shuffle: even blocks to first half, odd to second
     const temp = new Uint8Array(Y.length);
     for (let i = 0; i < blockWords; i++) {
-      const destOffset = (i < blockWords / 2) ? i * 2 * 64 : ((i - blockWords / 2) * 2 + 1) * 64;
+      const destOffset = i < blockWords / 2 ? i * 2 * 64 : ((i - blockWords / 2) * 2 + 1) * 64;
       temp.set(Y.slice(i * 64, (i + 1) * 64), destOffset);
     }
     Y.set(temp);
@@ -314,7 +339,12 @@ function scrypt(password: Uint8Array, salt: Uint8Array, N: number, r: number, p:
     // Mix
     for (let i = 0; i < N; i++) {
       // j = Integerify(X) mod N
-      const j = (X[blockLen - 64] | (X[blockLen - 63] << 8) | (X[blockLen - 62] << 16) | (X[blockLen - 61] << 24)) % N;
+      const j =
+        (X[blockLen - 64] |
+          (X[blockLen - 63] << 8) |
+          (X[blockLen - 62] << 16) |
+          (X[blockLen - 61] << 24)) %
+        N;
 
       // X = X XOR V[j]
       for (let k = 0; k < blockLen; k++) {
@@ -353,16 +383,6 @@ function argon2id(
   const blockSize = 1024; // 1 KB blocks
   const numBlocks = Math.max(8, Math.floor(memoryCost / parallelism) * parallelism);
   const segmentLength = Math.floor(numBlocks / (parallelism * 4));
-
-  // Initialize memory with simplified Blake2b-like mixing
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function blake2bCompress(state: Uint8Array, block: Uint8Array): void {
-    // Simplified mixing (not full Blake2b for brevity)
-    for (let i = 0; i < 64; i++) {
-      state[i % state.length] ^= block[i % block.length];
-      state[(i + 1) % state.length] = ((state[(i + 1) % state.length] << 1) | (state[(i + 1) % state.length] >> 7)) & 0xff;
-    }
-  }
 
   // Initialize H0 (initial hash)
   const h0Input = new Uint8Array(64 + password.length + salt.length + 24);
@@ -464,7 +484,7 @@ function argon2id(
     for (let slice = 0; slice < 4; slice++) {
       for (let lane = 0; lane < parallelism; lane++) {
         const laneStart = lane * (numBlocks / parallelism);
-        const startIdx = (pass === 0 && slice === 0) ? 2 : 0;
+        const startIdx = pass === 0 && slice === 0 ? 2 : 0;
 
         for (let idx = startIdx; idx < segmentLength; idx++) {
           const blockIdx = laneStart + slice * segmentLength + idx;
@@ -511,13 +531,13 @@ function hkdf(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: numbe
   const n = Math.ceil(length / hashLen);
   const okm = new Uint8Array(n * hashLen);
 
-  let t = new Uint8Array(0);
+  let t: Uint8Array = new Uint8Array(0);
   for (let i = 1; i <= n; i++) {
     const input = new Uint8Array(t.length + info.length + 1);
     input.set(t);
     input.set(info, t.length);
     input[t.length + info.length] = i;
-    t = hmacSha256(prk, input);
+    t = hmacSha256(prk, input) as Uint8Array;
     okm.set(t, (i - 1) * hashLen);
   }
 
@@ -534,7 +554,9 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function stringToBytes(str: string): Uint8Array {
@@ -568,58 +590,62 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'key_derivation',
-          description: 'Key derivation functions for secure password hashing and key stretching',
-          algorithms: {
-            'PBKDF2': {
-              description: 'Password-Based Key Derivation Function 2 (RFC 8018)',
-              params: 'iterations, salt',
-              security: 'Moderate - vulnerable to GPU/ASIC attacks',
-              recommended_iterations: '100,000+ for SHA-256'
+        content: JSON.stringify(
+          {
+            tool: 'key_derivation',
+            description: 'Key derivation functions for secure password hashing and key stretching',
+            algorithms: {
+              PBKDF2: {
+                description: 'Password-Based Key Derivation Function 2 (RFC 8018)',
+                params: 'iterations, salt',
+                security: 'Moderate - vulnerable to GPU/ASIC attacks',
+                recommended_iterations: '100,000+ for SHA-256',
+              },
+              scrypt: {
+                description: 'Memory-hard KDF (RFC 7914)',
+                params: 'N (CPU/memory cost), r (block size), p (parallelism)',
+                security: 'Good - memory-hard, resistant to GPU attacks',
+                recommended: 'N=2^14, r=8, p=1 for interactive, N=2^20 for sensitive',
+              },
+              Argon2id: {
+                description: 'Winner of Password Hashing Competition (RFC 9106)',
+                params: 'time_cost, memory_cost (KB), parallelism',
+                security: 'Best - memory-hard, side-channel resistant',
+                recommended: 'time=3, memory=65536KB, parallelism=4',
+              },
+              HKDF: {
+                description: 'HMAC-based Key Derivation Function (RFC 5869)',
+                params: 'salt, info',
+                security: 'For key expansion, not password hashing',
+                use_case: 'Derive multiple keys from one secret',
+              },
             },
-            'scrypt': {
-              description: 'Memory-hard KDF (RFC 7914)',
-              params: 'N (CPU/memory cost), r (block size), p (parallelism)',
-              security: 'Good - memory-hard, resistant to GPU attacks',
-              recommended: 'N=2^14, r=8, p=1 for interactive, N=2^20 for sensitive'
+            operations: {
+              derive: 'Derive key from password/secret',
+              verify: 'Verify password against stored hash',
+              benchmark: 'Test performance with current parameters',
             },
-            'Argon2id': {
-              description: 'Winner of Password Hashing Competition (RFC 9106)',
-              params: 'time_cost, memory_cost (KB), parallelism',
-              security: 'Best - memory-hard, side-channel resistant',
-              recommended: 'time=3, memory=65536KB, parallelism=4'
+            parameters: {
+              password: 'Password or input key material',
+              salt: 'Salt (hex string or auto-generated)',
+              output_length: 'Output key length in bytes (default: 32)',
+              iterations: 'PBKDF2 iteration count',
+              memory_cost: 'Argon2/scrypt memory in KB',
+              time_cost: 'Argon2 time cost / scrypt N parameter',
+              parallelism: 'Thread count',
+              info: 'HKDF context/application info',
             },
-            'HKDF': {
-              description: 'HMAC-based Key Derivation Function (RFC 5869)',
-              params: 'salt, info',
-              security: 'For key expansion, not password hashing',
-              use_case: 'Derive multiple keys from one secret'
-            }
+            security_notes: [
+              'Always use a unique random salt per password',
+              'Salt should be at least 16 bytes',
+              'Store salt alongside the hash (it is not secret)',
+              'Use Argon2id for new applications',
+              'Tune parameters to take ~0.5-1 second on target hardware',
+            ],
           },
-          operations: {
-            derive: 'Derive key from password/secret',
-            verify: 'Verify password against stored hash',
-            benchmark: 'Test performance with current parameters'
-          },
-          parameters: {
-            password: 'Password or input key material',
-            salt: 'Salt (hex string or auto-generated)',
-            output_length: 'Output key length in bytes (default: 32)',
-            iterations: 'PBKDF2 iteration count',
-            memory_cost: 'Argon2/scrypt memory in KB',
-            time_cost: 'Argon2 time cost / scrypt N parameter',
-            parallelism: 'Thread count',
-            info: 'HKDF context/application info'
-          },
-          security_notes: [
-            'Always use a unique random salt per password',
-            'Salt should be at least 16 bytes',
-            'Store salt alongside the hash (it is not secret)',
-            'Use Argon2id for new applications',
-            'Tune parameters to take ~0.5-1 second on target hardware'
-          ]
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -657,12 +683,19 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
             const timeCost = args.time_cost ?? 3;
             const memoryCost = args.memory_cost ?? 65536;
             const parallelism = args.parallelism ?? 4;
-            derivedKey = argon2id(passwordBytes, salt, timeCost, memoryCost, parallelism, outputLength);
+            derivedKey = argon2id(
+              passwordBytes,
+              salt,
+              timeCost,
+              memoryCost,
+              parallelism,
+              outputLength
+            );
             params = { time_cost: timeCost, memory_cost_kb: memoryCost, parallelism };
             break;
           }
           case 'HKDF': {
-            const info = stringToBytes(args.info as string || '');
+            const info = stringToBytes((args.info as string) || '');
             derivedKey = hkdf(passwordBytes, salt, info, outputLength);
             params = { info_length: info.length };
             break;
@@ -677,7 +710,7 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
           salt: bytesToHex(salt),
           output_length_bytes: outputLength,
           parameters: params,
-          encoding_format: `$${algorithm.toLowerCase()}$${JSON.stringify(params)}$${bytesToHex(salt)}$${bytesToHex(derivedKey)}`
+          encoding_format: `$${algorithm.toLowerCase()}$${JSON.stringify(params)}$${bytesToHex(salt)}$${bytesToHex(derivedKey)}`,
         };
         break;
       }
@@ -713,7 +746,14 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
             const timeCost = args.time_cost ?? 3;
             const memoryCost = args.memory_cost ?? 65536;
             const parallelism = args.parallelism ?? 4;
-            derivedKey = argon2id(passwordBytes, salt, timeCost, memoryCost, parallelism, outputLength);
+            derivedKey = argon2id(
+              passwordBytes,
+              salt,
+              timeCost,
+              memoryCost,
+              parallelism,
+              outputLength
+            );
             break;
           }
           default:
@@ -726,7 +766,7 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
           algorithm,
           valid,
           verification: valid ? 'Password matches' : 'Password does not match',
-          note: 'Verification uses timing-safe comparison'
+          note: 'Verification uses timing-safe comparison',
         };
         break;
       }
@@ -734,8 +774,6 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
       case 'benchmark': {
         const password = stringToBytes('benchmark_password_test');
         const salt = generateSalt(16);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const iterations = 1;
 
         const startTime = Date.now();
 
@@ -747,7 +785,14 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
             scrypt(password, salt, args.time_cost ?? 16384, 8, args.parallelism ?? 1, 32);
             break;
           case 'Argon2id':
-            argon2id(password, salt, args.time_cost ?? 3, args.memory_cost ?? 65536, args.parallelism ?? 4, 32);
+            argon2id(
+              password,
+              salt,
+              args.time_cost ?? 3,
+              args.memory_cost ?? 65536,
+              args.parallelism ?? 4,
+              32
+            );
             break;
         }
 
@@ -760,11 +805,14 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
             iterations: args.iterations,
             time_cost: args.time_cost,
             memory_cost: args.memory_cost,
-            parallelism: args.parallelism
+            parallelism: args.parallelism,
           },
-          recommendation: elapsed < 100 ? 'Increase parameters for better security' :
-                          elapsed > 2000 ? 'Consider reducing parameters for usability' :
-                          'Parameters are in reasonable range'
+          recommendation:
+            elapsed < 100
+              ? 'Increase parameters for better security'
+              : elapsed > 2000
+                ? 'Consider reducing parameters for usability'
+                : 'Parameters are in reasonable range',
         };
         break;
       }
@@ -775,16 +823,21 @@ export async function executekeyderivation(toolCall: UnifiedToolCall): Promise<U
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        operation,
-        ...result
-      }, null, 2)
+      content: JSON.stringify(
+        {
+          operation,
+          ...result,
+        },
+        null,
+        2
+      ),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function iskeyderivationAvailable(): boolean { return true; }
+export function iskeyderivationAvailable(): boolean {
+  return true;
+}

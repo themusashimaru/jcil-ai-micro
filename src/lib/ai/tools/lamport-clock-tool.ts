@@ -108,7 +108,7 @@ function createClock(config: {
     nodes: new Map(),
     events: [],
     messageQueue: [],
-    nodeIds: config.nodeIds
+    nodeIds: config.nodeIds,
   };
 
   // Initialize clocks for each node
@@ -117,7 +117,7 @@ function createClock(config: {
       case 'lamport':
         system.nodes.set(nodeId, {
           nodeId,
-          timestamp: 0
+          timestamp: 0,
         } as LamportClock);
         break;
 
@@ -128,7 +128,7 @@ function createClock(config: {
         }
         system.nodes.set(nodeId, {
           nodeId,
-          vector
+          vector,
         } as VectorClock);
         break;
       }
@@ -144,7 +144,7 @@ function createClock(config: {
         }
         system.nodes.set(nodeId, {
           nodeId,
-          matrix
+          matrix,
         } as MatrixClock);
         break;
       }
@@ -164,7 +164,12 @@ function incrementLamport(clock: LamportClock): number {
   return clock.timestamp;
 }
 
-function sendLamport(system: ClockSystem, senderId: string, receiverId: string, payload?: unknown): {
+function sendLamport(
+  system: ClockSystem,
+  senderId: string,
+  receiverId: string,
+  payload?: unknown
+): {
   messageId: string;
   senderTimestamp: number;
 } {
@@ -182,7 +187,7 @@ function sendLamport(system: ClockSystem, senderId: string, receiverId: string, 
     payload,
     sent: true,
     received: false,
-    sentAt: Date.now()
+    sentAt: Date.now(),
   };
 
   system.messageQueue.push(message);
@@ -196,20 +201,23 @@ function sendLamport(system: ClockSystem, senderId: string, receiverId: string, 
     clockType: 'lamport',
     description: `Send to ${receiverId}`,
     linkedEventId: message.id,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   return {
     messageId: message.id,
-    senderTimestamp: sender.timestamp
+    senderTimestamp: sender.timestamp,
   };
 }
 
-function receiveLamport(system: ClockSystem, messageId: string): {
+function receiveLamport(
+  system: ClockSystem,
+  messageId: string
+): {
   receiverTimestamp: number;
   messageTimestamp: number;
 } {
-  const message = system.messageQueue.find(m => m.id === messageId && !m.received);
+  const message = system.messageQueue.find((m) => m.id === messageId && !m.received);
   if (!message) throw new Error(`Message ${messageId} not found or already received`);
 
   const receiver = system.nodes.get(message.receiverId) as LamportClock;
@@ -231,12 +239,12 @@ function receiveLamport(system: ClockSystem, messageId: string): {
     clockType: 'lamport',
     description: `Receive from ${message.senderId}`,
     linkedEventId: messageId,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   return {
     receiverTimestamp: receiver.timestamp,
-    messageTimestamp: msgTimestamp
+    messageTimestamp: msgTimestamp,
   };
 }
 
@@ -250,7 +258,12 @@ function incrementVector(clock: VectorClock): Map<string, number> {
   return clock.vector;
 }
 
-function sendVector(system: ClockSystem, senderId: string, receiverId: string, payload?: unknown): {
+function sendVector(
+  system: ClockSystem,
+  senderId: string,
+  receiverId: string,
+  payload?: unknown
+): {
   messageId: string;
   senderVector: Record<string, number>;
 } {
@@ -266,11 +279,11 @@ function sendVector(system: ClockSystem, senderId: string, receiverId: string, p
     id: `msg_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     senderId,
     receiverId,
-    timestamp: Array.from(vectorCopy.entries()),
+    timestamp: Array.from(vectorCopy.values()),
     payload,
     sent: true,
     received: false,
-    sentAt: Date.now()
+    sentAt: Date.now(),
   };
 
   system.messageQueue.push(message);
@@ -284,20 +297,23 @@ function sendVector(system: ClockSystem, senderId: string, receiverId: string, p
     clockType: 'vector',
     description: `Send to ${receiverId}`,
     linkedEventId: message.id,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   return {
     messageId: message.id,
-    senderVector: Object.fromEntries(sender.vector)
+    senderVector: Object.fromEntries(sender.vector),
   };
 }
 
-function receiveVector(system: ClockSystem, messageId: string): {
+function receiveVector(
+  system: ClockSystem,
+  messageId: string
+): {
   receiverVector: Record<string, number>;
   merged: boolean;
 } {
-  const message = system.messageQueue.find(m => m.id === messageId && !m.received);
+  const message = system.messageQueue.find((m) => m.id === messageId && !m.received);
   if (!message) throw new Error(`Message ${messageId} not found or already received`);
 
   const receiver = system.nodes.get(message.receiverId) as VectorClock;
@@ -326,12 +342,12 @@ function receiveVector(system: ClockSystem, messageId: string): {
     clockType: 'vector',
     description: `Receive from ${message.senderId}`,
     linkedEventId: messageId,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   return {
     receiverVector: Object.fromEntries(receiver.vector),
-    merged: true
+    merged: true,
   };
 }
 
@@ -369,7 +385,12 @@ function incrementMatrix(clock: MatrixClock): void {
   }
 }
 
-function sendMatrix(system: ClockSystem, senderId: string, receiverId: string, payload?: unknown): {
+function sendMatrix(
+  system: ClockSystem,
+  senderId: string,
+  receiverId: string,
+  payload?: unknown
+): {
   messageId: string;
   senderMatrix: Record<string, Record<string, number>>;
 } {
@@ -378,21 +399,21 @@ function sendMatrix(system: ClockSystem, senderId: string, receiverId: string, p
 
   incrementMatrix(sender);
 
-  // Deep copy matrix
-  const matrixCopy: [string, [string, number][]][] = [];
-  for (const [rowId, row] of sender.matrix) {
-    matrixCopy.push([rowId, Array.from(row.entries())]);
+  // Deep copy matrix - convert to 2D number array for Message type
+  const matrixValues: number[][] = [];
+  for (const [_rowId, row] of sender.matrix) {
+    matrixValues.push(Array.from(row.values()));
   }
 
   const message: Message = {
     id: `msg_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     senderId,
     receiverId,
-    timestamp: matrixCopy,
+    timestamp: matrixValues,
     payload,
     sent: true,
     received: false,
-    sentAt: Date.now()
+    sentAt: Date.now(),
   };
 
   system.messageQueue.push(message);
@@ -411,7 +432,7 @@ function sendMatrix(system: ClockSystem, senderId: string, receiverId: string, p
     clockType: 'matrix',
     description: `Send to ${receiverId}`,
     linkedEventId: message.id,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   const resultMatrix: Record<string, Record<string, number>> = {};
@@ -421,24 +442,33 @@ function sendMatrix(system: ClockSystem, senderId: string, receiverId: string, p
 
   return {
     messageId: message.id,
-    senderMatrix: resultMatrix
+    senderMatrix: resultMatrix,
   };
 }
 
-function receiveMatrix(system: ClockSystem, messageId: string): {
+function receiveMatrix(
+  system: ClockSystem,
+  messageId: string
+): {
   receiverMatrix: Record<string, Record<string, number>>;
 } {
-  const message = system.messageQueue.find(m => m.id === messageId && !m.received);
+  const message = system.messageQueue.find((m) => m.id === messageId && !m.received);
   if (!message) throw new Error(`Message ${messageId} not found or already received`);
 
   const receiver = system.nodes.get(message.receiverId) as MatrixClock;
   if (!receiver) throw new Error(`Node ${message.receiverId} not found`);
 
-  const msgMatrix = new Map(
-    (message.timestamp as [string, [string, number][]][]).map(
-      ([rowId, entries]) => [rowId, new Map(entries)]
-    )
-  );
+  // Reconstruct matrix from number[][] using system.nodeIds ordering
+  const matrixValues = message.timestamp as number[][];
+  const msgMatrix = new Map<string, Map<string, number>>();
+  for (let i = 0; i < system.nodeIds.length; i++) {
+    const rowId = system.nodeIds[i];
+    const row = new Map<string, number>();
+    for (let j = 0; j < system.nodeIds.length; j++) {
+      row.set(system.nodeIds[j], matrixValues[i]?.[j] ?? 0);
+    }
+    msgMatrix.set(rowId, row);
+  }
 
   // Update receiver's view of sender's knowledge
   const senderRow = msgMatrix.get(message.senderId);
@@ -472,7 +502,7 @@ function receiveMatrix(system: ClockSystem, messageId: string): {
     clockType: 'matrix',
     description: `Receive from ${message.senderId}`,
     linkedEventId: messageId,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   const resultMatrix: Record<string, Record<string, number>> = {};
@@ -487,7 +517,10 @@ function receiveMatrix(system: ClockSystem, messageId: string): {
 // UNIFIED OPERATIONS
 // ============================================================================
 
-function increment(systemId: string, nodeId: string): {
+function increment(
+  systemId: string,
+  nodeId: string
+): {
   nodeId: string;
   timestamp: unknown;
   clockType: ClockType;
@@ -523,24 +556,30 @@ function increment(systemId: string, nodeId: string): {
     id: `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     nodeId,
     type: 'local',
-    timestamp: system.type === 'lamport'
-      ? timestamp as number
-      : system.type === 'vector'
-        ? Array.from((clock as VectorClock).vector.values())
-        : [],
+    timestamp:
+      system.type === 'lamport'
+        ? (timestamp as number)
+        : system.type === 'vector'
+          ? Array.from((clock as VectorClock).vector.values())
+          : [],
     clockType: system.type,
     description: 'Local event',
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
 
   return {
     nodeId,
     timestamp,
-    clockType: system.type
+    clockType: system.type,
   };
 }
 
-function sendEvent(systemId: string, senderId: string, receiverId: string, payload?: unknown): {
+function sendEvent(
+  systemId: string,
+  senderId: string,
+  receiverId: string,
+  payload?: unknown
+): {
   messageId: string;
   senderTimestamp: unknown;
 } {
@@ -563,14 +602,17 @@ function sendEvent(systemId: string, senderId: string, receiverId: string, paylo
   }
 }
 
-function receiveEvent(systemId: string, messageId: string): {
+function receiveEvent(
+  systemId: string,
+  messageId: string
+): {
   receiverTimestamp: unknown;
   receiverId: string;
 } {
   const system = clockSystems.get(systemId);
   if (!system) throw new Error(`System ${systemId} not found`);
 
-  const message = system.messageQueue.find(m => m.id === messageId);
+  const message = system.messageQueue.find((m) => m.id === messageId);
   if (!message) throw new Error(`Message ${messageId} not found`);
 
   switch (system.type) {
@@ -597,8 +639,8 @@ function compareTimestamps(systemId: string, eventIdA: string, eventIdB: string)
   const system = clockSystems.get(systemId);
   if (!system) throw new Error(`System ${systemId} not found`);
 
-  const eventA = system.events.find(e => e.id === eventIdA);
-  const eventB = system.events.find(e => e.id === eventIdB);
+  const eventA = system.events.find((e) => e.id === eventIdA);
+  const eventB = system.events.find((e) => e.id === eventIdB);
 
   if (!eventA) throw new Error(`Event ${eventIdA} not found`);
   if (!eventB) throw new Error(`Event ${eventIdB} not found`);
@@ -669,7 +711,7 @@ function compareTimestamps(systemId: string, eventIdA: string, eventIdB: string)
     relation,
     timestampA: eventA.timestamp,
     timestampB: eventB.timestamp,
-    explanation
+    explanation,
   };
 }
 
@@ -745,7 +787,7 @@ function visualizeOrdering(systemId: string): OrderingVisualization {
         timestamp: event.timestamp,
         type: event.type,
         column: col,
-        row
+        row,
       });
       eventPositions.set(event.id, { column: col, row });
       maxColumn = Math.max(maxColumn, col);
@@ -753,15 +795,15 @@ function visualizeOrdering(systemId: string): OrderingVisualization {
   }
 
   // Add message edges
-  for (const msg of system.messageQueue.filter(m => m.received)) {
-    const sendEvent = system.events.find(e => e.linkedEventId === msg.id && e.type === 'send');
-    const recvEvent = system.events.find(e => e.linkedEventId === msg.id && e.type === 'receive');
+  for (const msg of system.messageQueue.filter((m) => m.received)) {
+    const sendEvent = system.events.find((e) => e.linkedEventId === msg.id && e.type === 'send');
+    const recvEvent = system.events.find((e) => e.linkedEventId === msg.id && e.type === 'receive');
 
     if (sendEvent && recvEvent) {
       edges.push({
         from: sendEvent.id,
         to: recvEvent.id,
-        type: 'message'
+        type: 'message',
       });
     }
   }
@@ -772,7 +814,7 @@ function visualizeOrdering(systemId: string): OrderingVisualization {
       edges.push({
         from: events[i - 1].id,
         to: events[i].id,
-        type: 'happens-before'
+        type: 'happens-before',
       });
     }
   }
@@ -784,7 +826,7 @@ function visualizeOrdering(systemId: string): OrderingVisualization {
     nodes,
     events: visualEvents,
     edges,
-    asciiArt
+    asciiArt,
   };
 }
 
@@ -799,7 +841,9 @@ function generateAsciiDiagram(
   const header = '  Time -> ';
 
   // Header
-  lines.push(header + Array.from({ length: maxColumn + 1 }, (_, i) => `t${i}`.padEnd(cellWidth)).join(''));
+  lines.push(
+    header + Array.from({ length: maxColumn + 1 }, (_, i) => `t${i}`.padEnd(cellWidth)).join('')
+  );
   lines.push('');
 
   // Create grid
@@ -807,7 +851,7 @@ function generateAsciiDiagram(
     const nodeId = nodes[row];
     let line = nodeId.padEnd(10);
 
-    const rowEvents = events.filter(e => e.row === row).sort((a, b) => a.column - b.column);
+    const rowEvents = events.filter((e) => e.row === row).sort((a, b) => a.column - b.column);
     let lastCol = -1;
 
     for (const evt of rowEvents) {
@@ -832,16 +876,15 @@ function generateAsciiDiagram(
     lines.push(line);
 
     // Add message arrows (simplified)
-    const outgoingMessages = edges.filter(e =>
-      e.type === 'message' &&
-      events.find(evt => evt.id === e.from)?.row === row
+    const outgoingMessages = edges.filter(
+      (e) => e.type === 'message' && events.find((evt) => evt.id === e.from)?.row === row
     );
 
     if (outgoingMessages.length > 0) {
       let arrowLine = ''.padEnd(10);
       for (const msg of outgoingMessages) {
-        const fromEvt = events.find(e => e.id === msg.from)!;
-        const toEvt = events.find(e => e.id === msg.to)!;
+        const fromEvt = events.find((e) => e.id === msg.from)!;
+        const toEvt = events.find((e) => e.id === msg.to)!;
         const direction = toEvt.row > fromEvt.row ? 'v' : '^';
         arrowLine += ''.padEnd(fromEvt.column * cellWidth) + direction;
       }
@@ -857,7 +900,10 @@ function generateAsciiDiagram(
   return lines.join('\n');
 }
 
-function mergeClocks(systemId: string, nodeIds: string[]): {
+function mergeClocks(
+  systemId: string,
+  nodeIds: string[]
+): {
   mergedVector?: Record<string, number>;
   mergedMatrix?: Record<string, Record<string, number>>;
 } {
@@ -965,7 +1011,7 @@ function getClockState(systemId: string, nodeId?: string): unknown {
     type: system.type,
     nodes: allStates,
     eventCount: system.events.length,
-    pendingMessages: system.messageQueue.filter(m => !m.received).length
+    pendingMessages: system.messageQueue.filter((m) => !m.received).length,
   };
 }
 
@@ -975,32 +1021,48 @@ function getClockState(systemId: string, nodeId?: string): unknown {
 
 export const lamportclockTool: UnifiedTool = {
   name: 'lamport_clock',
-  description: 'Logical clocks for distributed systems: Lamport, Vector, and Matrix clocks with causal ordering',
+  description:
+    'Logical clocks for distributed systems: Lamport, Vector, and Matrix clocks with causal ordering',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'create_clock', 'increment', 'send_event', 'receive_event',
-          'compare_timestamps', 'detect_concurrent', 'visualize_ordering',
-          'merge_clocks', 'get_state', 'get_events'
+          'create_clock',
+          'increment',
+          'send_event',
+          'receive_event',
+          'compare_timestamps',
+          'detect_concurrent',
+          'visualize_ordering',
+          'merge_clocks',
+          'get_state',
+          'get_events',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       systemId: { type: 'string', description: 'Clock system identifier' },
       nodeId: { type: 'string', description: 'Node identifier' },
-      nodeIds: { type: 'array', items: { type: 'string' }, description: 'List of node identifiers' },
-      clockType: { type: 'string', enum: ['lamport', 'vector', 'matrix'], description: 'Type of clock' },
+      nodeIds: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'List of node identifiers',
+      },
+      clockType: {
+        type: 'string',
+        enum: ['lamport', 'vector', 'matrix'],
+        description: 'Type of clock',
+      },
       senderId: { type: 'string', description: 'Sender node identifier' },
       receiverId: { type: 'string', description: 'Receiver node identifier' },
       messageId: { type: 'string', description: 'Message identifier' },
       eventIdA: { type: 'string', description: 'First event identifier' },
       eventIdB: { type: 'string', description: 'Second event identifier' },
-      payload: { type: 'object', description: 'Message payload' }
+      payload: { type: 'object', description: 'Message payload' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -1025,14 +1087,14 @@ export async function executelamportclock(toolCall: UnifiedToolCall): Promise<Un
         const system = createClock({
           systemId: args.systemId,
           type: clockType,
-          nodeIds: args.nodeIds
+          nodeIds: args.nodeIds,
         });
 
         result = {
           systemId: system.id,
           type: system.type,
           nodes: system.nodeIds,
-          initialized: true
+          initialized: true,
         };
         break;
       }
@@ -1070,7 +1132,7 @@ export async function executelamportclock(toolCall: UnifiedToolCall): Promise<Un
       case 'detect_concurrent': {
         if (!args.systemId) throw new Error('systemId required');
         result = {
-          concurrentPairs: detectConcurrent(args.systemId)
+          concurrentPairs: detectConcurrent(args.systemId),
         };
         break;
       }
@@ -1100,18 +1162,20 @@ export async function executelamportclock(toolCall: UnifiedToolCall): Promise<Un
         if (!system) throw new Error(`System ${args.systemId} not found`);
 
         result = {
-          events: system.events.map(e => ({
+          events: system.events.map((e) => ({
             id: e.id,
             nodeId: e.nodeId,
             type: e.type,
             timestamp: e.timestamp,
-            description: e.description
+            description: e.description,
           })),
-          pendingMessages: system.messageQueue.filter(m => !m.received).map(m => ({
-            id: m.id,
-            from: m.senderId,
-            to: m.receiverId
-          }))
+          pendingMessages: system.messageQueue
+            .filter((m) => !m.received)
+            .map((m) => ({
+              id: m.id,
+              from: m.senderId,
+              to: m.receiverId,
+            })),
         };
         break;
       }
@@ -1122,9 +1186,8 @@ export async function executelamportclock(toolCall: UnifiedToolCall): Promise<Un
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

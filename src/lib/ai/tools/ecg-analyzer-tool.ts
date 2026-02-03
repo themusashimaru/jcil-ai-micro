@@ -20,7 +20,12 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 class SignalProcessor {
   // Bandpass filter using cascaded Butterworth IIR
-  static bandpassFilter(signal: number[], lowCut: number, highCut: number, sampleRate: number): number[] {
+  static bandpassFilter(
+    signal: number[],
+    lowCut: number,
+    highCut: number,
+    sampleRate: number
+  ): number[] {
     const nyquist = sampleRate / 2;
     const lowNorm = lowCut / nyquist;
     const highNorm = highCut / nyquist;
@@ -77,7 +82,7 @@ class SignalProcessor {
 
   // Square the signal to enhance peaks
   static square(signal: number[]): number[] {
-    return signal.map(x => x * x);
+    return signal.map((x) => x * x);
   }
 
   // Moving window integration
@@ -120,7 +125,12 @@ class SignalProcessor {
   }
 
   // Notch filter for powerline interference (50/60 Hz)
-  static notchFilter(signal: number[], notchFreq: number, sampleRate: number, Q: number = 30): number[] {
+  static notchFilter(
+    signal: number[],
+    notchFreq: number,
+    sampleRate: number,
+    Q: number = 30
+  ): number[] {
     const w0 = (2 * Math.PI * notchFreq) / sampleRate;
     const alpha = Math.sin(w0) / (2 * Q);
 
@@ -136,11 +146,12 @@ class SignalProcessor {
     result[1] = signal[1];
 
     for (let i = 2; i < signal.length; i++) {
-      result[i] = (b0 / a0) * signal[i] +
-                  (b1 / a0) * signal[i - 1] +
-                  (b2 / a0) * signal[i - 2] -
-                  (a1 / a0) * result[i - 1] -
-                  (a2 / a0) * result[i - 2];
+      result[i] =
+        (b0 / a0) * signal[i] +
+        (b1 / a0) * signal[i - 1] +
+        (b2 / a0) * signal[i - 2] -
+        (a1 / a0) * result[i - 1] -
+        (a2 / a0) * result[i - 2];
     }
 
     return result;
@@ -157,7 +168,7 @@ class PanTompkinsDetector {
 
   constructor(sampleRate: number = 360) {
     this.sampleRate = sampleRate;
-    this.windowSize = Math.round(0.150 * sampleRate); // 150ms window
+    this.windowSize = Math.round(0.15 * sampleRate); // 150ms window
   }
 
   detect(signal: number[]): {
@@ -183,7 +194,7 @@ class PanTompkinsDetector {
     return {
       rPeaks,
       processedSignal: integrated,
-      threshold: this.calculateThreshold(integrated)
+      threshold: this.calculateThreshold(integrated),
     };
   }
 
@@ -194,10 +205,7 @@ class PanTompkinsDetector {
 
     // Find local maxima above threshold
     for (let i = 1; i < signal.length - 1; i++) {
-      if (signal[i] > signal[i - 1] &&
-          signal[i] > signal[i + 1] &&
-          signal[i] > threshold) {
-
+      if (signal[i] > signal[i - 1] && signal[i] > signal[i + 1] && signal[i] > threshold) {
         // Check minimum distance from last peak
         if (peaks.length === 0 || i - peaks[peaks.length - 1] > minDistance) {
           peaks.push(i);
@@ -248,12 +256,12 @@ interface WaveAmplitudes {
 }
 
 interface Intervals {
-  prInterval: number | null;  // PR interval in ms
-  qrsWidth: number | null;    // QRS duration in ms
-  qtInterval: number | null;  // QT interval in ms
-  qtcBazett: number | null;   // QTc using Bazett formula
+  prInterval: number | null; // PR interval in ms
+  qrsWidth: number | null; // QRS duration in ms
+  qtInterval: number | null; // QT interval in ms
+  qtcBazett: number | null; // QTc using Bazett formula
   qtcFridericia: number | null; // QTc using Fridericia formula
-  rrInterval: number | null;  // RR interval in ms
+  rrInterval: number | null; // RR interval in ms
 }
 
 class WaveMorphologyAnalyzer {
@@ -263,7 +271,12 @@ class WaveMorphologyAnalyzer {
     this.sampleRate = sampleRate;
   }
 
-  analyzeComplex(signal: number[], rPeak: number, prevRPeak: number | null, nextRPeak: number | null): {
+  analyzeComplex(
+    signal: number[],
+    rPeak: number,
+    prevRPeak: number | null,
+    nextRPeak: number | null
+  ): {
     wavePoints: WavePoints;
     amplitudes: WaveAmplitudes;
     intervals: Intervals;
@@ -275,7 +288,12 @@ class WaveMorphologyAnalyzer {
     return { wavePoints, amplitudes, intervals };
   }
 
-  private findWavePoints(signal: number[], rPeak: number, _prevRPeak: number | null, _nextRPeak: number | null): WavePoints {
+  private findWavePoints(
+    signal: number[],
+    rPeak: number,
+    _prevRPeak: number | null,
+    _nextRPeak: number | null
+  ): WavePoints {
     const result: WavePoints = {
       pOnset: null,
       pPeak: null,
@@ -287,7 +305,7 @@ class WaveMorphologyAnalyzer {
       sOffset: null,
       tOnset: null,
       tPeak: null,
-      tOffset: null
+      tOffset: null,
     };
 
     // Search window before R peak for P and Q waves
@@ -352,7 +370,11 @@ class WaveMorphologyAnalyzer {
       if (tIdx === null || signal[i] > signal[tIdx]) {
         tIdx = i;
       }
-      if (tIdx !== null && signal[i] < signal[tIdx] * 0.5 && i > tIdx + Math.round(0.04 * this.sampleRate)) {
+      if (
+        tIdx !== null &&
+        signal[i] < signal[tIdx] * 0.5 &&
+        i > tIdx + Math.round(0.04 * this.sampleRate)
+      ) {
         break;
       }
     }
@@ -391,7 +413,7 @@ class WaveMorphologyAnalyzer {
       qAmplitude: wavePoints.qPeak !== null ? signal[wavePoints.qPeak] : null,
       rAmplitude: signal[wavePoints.rPeak],
       sAmplitude: wavePoints.sPeak !== null ? signal[wavePoints.sPeak] : null,
-      tAmplitude: wavePoints.tPeak !== null ? signal[wavePoints.tPeak] : null
+      tAmplitude: wavePoints.tPeak !== null ? signal[wavePoints.tPeak] : null,
     };
   }
 
@@ -400,17 +422,20 @@ class WaveMorphologyAnalyzer {
 
     const rrInterval = prevRPeak !== null ? toMs(wavePoints.rPeak - prevRPeak) : null;
 
-    const prInterval = (wavePoints.pOnset !== null && wavePoints.qOnset !== null)
-      ? toMs(wavePoints.qOnset - wavePoints.pOnset)
-      : null;
+    const prInterval =
+      wavePoints.pOnset !== null && wavePoints.qOnset !== null
+        ? toMs(wavePoints.qOnset - wavePoints.pOnset)
+        : null;
 
-    const qrsWidth = (wavePoints.qOnset !== null && wavePoints.sOffset !== null)
-      ? toMs(wavePoints.sOffset - wavePoints.qOnset)
-      : null;
+    const qrsWidth =
+      wavePoints.qOnset !== null && wavePoints.sOffset !== null
+        ? toMs(wavePoints.sOffset - wavePoints.qOnset)
+        : null;
 
-    const qtInterval = (wavePoints.qOnset !== null && wavePoints.tOffset !== null)
-      ? toMs(wavePoints.tOffset - wavePoints.qOnset)
-      : null;
+    const qtInterval =
+      wavePoints.qOnset !== null && wavePoints.tOffset !== null
+        ? toMs(wavePoints.tOffset - wavePoints.qOnset)
+        : null;
 
     // QTc corrections
     let qtcBazett: number | null = null;
@@ -419,7 +444,7 @@ class WaveMorphologyAnalyzer {
     if (qtInterval !== null && rrInterval !== null && rrInterval > 0) {
       const rrSeconds = rrInterval / 1000;
       qtcBazett = qtInterval / Math.sqrt(rrSeconds);
-      qtcFridericia = qtInterval / Math.pow(rrSeconds, 1/3);
+      qtcFridericia = qtInterval / Math.pow(rrSeconds, 1 / 3);
     }
 
     return {
@@ -428,7 +453,7 @@ class WaveMorphologyAnalyzer {
       qtInterval,
       qtcBazett,
       qtcFridericia,
-      rrInterval
+      rrInterval,
     };
   }
 }
@@ -440,22 +465,22 @@ class WaveMorphologyAnalyzer {
 interface HRVMetrics {
   // Time domain
   meanRR: number;
-  sdnn: number;        // Standard deviation of NN intervals
-  rmssd: number;       // Root mean square of successive differences
-  pnn50: number;       // Percentage of successive NN intervals > 50ms
+  sdnn: number; // Standard deviation of NN intervals
+  rmssd: number; // Root mean square of successive differences
+  pnn50: number; // Percentage of successive NN intervals > 50ms
   meanHR: number;
   sdHR: number;
 
   // Frequency domain (simplified)
-  vlf: number;         // Very low frequency power (0.003-0.04 Hz)
-  lf: number;          // Low frequency power (0.04-0.15 Hz)
-  hf: number;          // High frequency power (0.15-0.4 Hz)
-  lfHfRatio: number;   // LF/HF ratio
+  vlf: number; // Very low frequency power (0.003-0.04 Hz)
+  lf: number; // Low frequency power (0.04-0.15 Hz)
+  hf: number; // High frequency power (0.15-0.4 Hz)
+  lfHfRatio: number; // LF/HF ratio
   totalPower: number;
 
   // Non-linear
-  sd1: number;         // Poincaré plot SD1
-  sd2: number;         // Poincaré plot SD2
+  sd1: number; // Poincaré plot SD1
+  sd2: number; // Poincaré plot SD2
   sd1sd2Ratio: number;
 }
 
@@ -468,7 +493,7 @@ class HRVAnalyzer {
     return {
       ...timeDomain,
       ...frequencyDomain,
-      ...nonLinear
+      ...nonLinear,
     };
   }
 
@@ -508,9 +533,10 @@ class HRVAnalyzer {
     const pnn50 = (countNN50 / (n - 1)) * 100;
 
     // Heart rate statistics
-    const heartRates = rr.map(interval => 60000 / interval);
+    const heartRates = rr.map((interval) => 60000 / interval);
     const meanHR = heartRates.reduce((a, b) => a + b, 0) / n;
-    const hrVariance = heartRates.reduce((sum, val) => sum + Math.pow(val - meanHR, 2), 0) / (n - 1);
+    const hrVariance =
+      heartRates.reduce((sum, val) => sum + Math.pow(val - meanHR, 2), 0) / (n - 1);
     const sdHR = Math.sqrt(hrVariance);
 
     return { meanRR, sdnn, rmssd, pnn50, meanHR, sdHR };
@@ -532,7 +558,7 @@ class HRVAnalyzer {
 
     // Remove mean
     const mean = resampledRR.reduce((a, b) => a + b, 0) / resampledRR.length;
-    const centered = resampledRR.map(v => v - mean);
+    const centered = resampledRR.map((v) => v - mean);
 
     // Compute power spectrum using Welch's method (simplified)
     const psd = this.computePSD(centered, 4);
@@ -549,7 +575,7 @@ class HRVAnalyzer {
 
   private interpolateRR(rr: number[], targetRate: number): number[] {
     const totalTime = rr.reduce((a, b) => a + b, 0);
-    const numSamples = Math.floor(totalTime * targetRate / 1000);
+    const numSamples = Math.floor((totalTime * targetRate) / 1000);
     const result: number[] = new Array(numSamples);
 
     let cumTime = 0;
@@ -688,8 +714,8 @@ class ArrhythmiaClassifier {
 
     // Calculate RR variability
     const rrVariability = this.calculateRRVariability(rrIntervals);
-    const meanPR = this.meanValid(intervals.map(i => i.prInterval));
-    const meanQRS = this.meanValid(intervals.map(i => i.qrsWidth));
+    const meanPR = this.meanValid(intervals.map((i) => i.prInterval));
+    const meanQRS = this.meanValid(intervals.map((i) => i.qrsWidth));
 
     // Check for bradycardia/tachycardia
     if (heartRate < 60) {
@@ -704,12 +730,16 @@ class ArrhythmiaClassifier {
 
     // Check for atrial fibrillation (irregular RR with absent P waves)
     if (rrVariability > 0.15) {
-      const pWaveAbsent = morphology.filter(m => m.pAmplitude === null || Math.abs(m.pAmplitude) < 0.05).length;
+      const pWaveAbsent = morphology.filter(
+        (m) => m.pAmplitude === null || Math.abs(m.pAmplitude) < 0.05
+      ).length;
       if (pWaveAbsent > morphology.length * 0.5) {
         type = 'atrial_fibrillation';
         confidence = 0.85;
         evidence.push(`Irregular RR intervals (variability: ${(rrVariability * 100).toFixed(1)}%)`);
-        evidence.push(`Absent or diminished P waves in ${pWaveAbsent}/${morphology.length} complexes`);
+        evidence.push(
+          `Absent or diminished P waves in ${pWaveAbsent}/${morphology.length} complexes`
+        );
         severity = 'moderate';
       }
     }
@@ -766,7 +796,7 @@ class ArrhythmiaClassifier {
       confidence,
       evidence,
       severity,
-      recommendations
+      recommendations,
     };
   }
 
@@ -774,7 +804,8 @@ class ArrhythmiaClassifier {
     if (rrIntervals.length < 2) return 0;
 
     const mean = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
-    const variance = rrIntervals.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / rrIntervals.length;
+    const variance =
+      rrIntervals.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / rrIntervals.length;
 
     return Math.sqrt(variance) / mean; // Coefficient of variation
   }
@@ -801,7 +832,11 @@ class ArrhythmiaClassifier {
     return count;
   }
 
-  private generateRecommendations(type: ArrhythmiaType, severity: string, heartRate: number): string[] {
+  private generateRecommendations(
+    type: ArrhythmiaType,
+    severity: string,
+    heartRate: number
+  ): string[] {
     const recommendations: string[] = [];
 
     switch (type) {
@@ -812,7 +847,9 @@ class ArrhythmiaClassifier {
       case 'sinus_bradycardia':
         if (severity === 'moderate' || severity === 'severe') {
           recommendations.push('Evaluate for symptomatic bradycardia');
-          recommendations.push('Consider medication review (beta-blockers, calcium channel blockers)');
+          recommendations.push(
+            'Consider medication review (beta-blockers, calcium channel blockers)'
+          );
           recommendations.push('May require pacemaker evaluation if symptomatic');
         } else {
           recommendations.push('Monitor for symptoms (dizziness, syncope, fatigue)');
@@ -820,7 +857,9 @@ class ArrhythmiaClassifier {
         break;
 
       case 'sinus_tachycardia':
-        recommendations.push('Evaluate for underlying causes (fever, anxiety, dehydration, anemia)');
+        recommendations.push(
+          'Evaluate for underlying causes (fever, anxiety, dehydration, anemia)'
+        );
         recommendations.push('Review medications and stimulant intake');
         break;
 
@@ -870,8 +909,8 @@ class ArrhythmiaClassifier {
 // ============================================================================
 
 interface STAnalysis {
-  elevation: number[];       // ST elevation in mV per lead
-  depression: number[];      // ST depression in mV per lead
+  elevation: number[]; // ST elevation in mV per lead
+  depression: number[]; // ST depression in mV per lead
   ischemiaDetected: boolean;
   stemiCriteria: boolean;
   affectedTerritory: string | null;
@@ -896,9 +935,10 @@ class STSegmentAnalyzer {
 
         if (measurePoint < signal.length) {
           // Reference to isoelectric line (PR segment)
-          const isoelectric = wp.pOffset !== null && wp.qOnset !== null
-            ? (signal[wp.pOffset] + signal[wp.qOnset]) / 2
-            : 0;
+          const isoelectric =
+            wp.pOffset !== null && wp.qOnset !== null
+              ? (signal[wp.pOffset] + signal[wp.qOnset]) / 2
+              : 0;
 
           const stLevel = signal[measurePoint] - isoelectric;
           stLevels.push(stLevel);
@@ -906,11 +946,11 @@ class STSegmentAnalyzer {
       }
     }
 
-    const elevation = stLevels.filter(st => st > 0.1);
-    const depression = stLevels.filter(st => st < -0.1);
+    const elevation = stLevels.filter((st) => st > 0.1);
+    const depression = stLevels.filter((st) => st < -0.1);
 
     const ischemiaDetected = elevation.length > 0 || depression.length > 0;
-    const stemiCriteria = elevation.some(e => e > 0.2);
+    const stemiCriteria = elevation.some((e) => e > 0.2);
 
     let affectedTerritory: string | null = null;
     let interpretation = 'Normal ST segments';
@@ -926,11 +966,11 @@ class STSegmentAnalyzer {
 
     return {
       elevation: elevation,
-      depression: depression.map(d => Math.abs(d)),
+      depression: depression.map((d) => Math.abs(d)),
       ischemiaDetected,
       stemiCriteria,
       affectedTerritory,
-      interpretation
+      interpretation,
     };
   }
 }
@@ -940,13 +980,12 @@ class STSegmentAnalyzer {
 // ============================================================================
 
 interface AxisAnalysis {
-  qrsAxis: number;  // Degrees
+  qrsAxis: number; // Degrees
   interpretation: string;
   deviation: 'normal' | 'left' | 'right' | 'extreme';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-class AxisCalculator {
+export class AxisCalculator {
   // Calculate frontal plane axis from lead I and aVF amplitudes
   calculate(leadI_amplitude: number, aVF_amplitude: number): AxisAnalysis {
     // Calculate axis using atan2
@@ -978,7 +1017,7 @@ class AxisCalculator {
     return {
       qrsAxis: axisDegrees,
       interpretation,
-      deviation
+      deviation,
     };
   }
 }
@@ -1066,9 +1105,8 @@ class ECGAnalyzer {
     }
 
     // Calculate heart rate
-    const meanRR = rrIntervals.length > 0
-      ? rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length
-      : 0;
+    const meanRR =
+      rrIntervals.length > 0 ? rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length : 0;
     const heartRate = meanRR > 0 ? 60000 / meanRR : 0;
 
     // HRV analysis
@@ -1096,37 +1134,40 @@ class ECGAnalyzer {
         heartRate: Math.round(heartRate),
         rhythm: arrhythmia.type,
         rhythmConfidence: arrhythmia.confidence,
-        severity: arrhythmia.severity
+        severity: arrhythmia.severity,
       },
       rPeaks: {
         indices: rPeaks,
-        count: rPeaks.length
+        count: rPeaks.length,
       },
       intervals: {
         mean: meanIntervals,
-        individual: intervalsList
+        individual: intervalsList,
       },
       hrv,
       morphology: {
         wavePoints: wavePointsList,
-        amplitudes: amplitudesList
+        amplitudes: amplitudesList,
       },
       arrhythmia,
       stAnalysis,
       recommendations: arrhythmia.recommendations,
-      qualityMetrics
+      qualityMetrics,
     };
   }
 
   private calculateMeanIntervals(intervals: Intervals[]): Intervals {
-    const validPR = intervals.filter(i => i.prInterval !== null).map(i => i.prInterval!);
-    const validQRS = intervals.filter(i => i.qrsWidth !== null).map(i => i.qrsWidth!);
-    const validQT = intervals.filter(i => i.qtInterval !== null).map(i => i.qtInterval!);
-    const validQTcB = intervals.filter(i => i.qtcBazett !== null).map(i => i.qtcBazett!);
-    const validQTcF = intervals.filter(i => i.qtcFridericia !== null).map(i => i.qtcFridericia!);
-    const validRR = intervals.filter(i => i.rrInterval !== null).map(i => i.rrInterval!);
+    const validPR = intervals.filter((i) => i.prInterval !== null).map((i) => i.prInterval!);
+    const validQRS = intervals.filter((i) => i.qrsWidth !== null).map((i) => i.qrsWidth!);
+    const validQT = intervals.filter((i) => i.qtInterval !== null).map((i) => i.qtInterval!);
+    const validQTcB = intervals.filter((i) => i.qtcBazett !== null).map((i) => i.qtcBazett!);
+    const validQTcF = intervals
+      .filter((i) => i.qtcFridericia !== null)
+      .map((i) => i.qtcFridericia!);
+    const validRR = intervals.filter((i) => i.rrInterval !== null).map((i) => i.rrInterval!);
 
-    const mean = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const mean = (arr: number[]) =>
+      arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
     return {
       prInterval: mean(validPR),
@@ -1134,11 +1175,15 @@ class ECGAnalyzer {
       qtInterval: mean(validQT),
       qtcBazett: mean(validQTcB),
       qtcFridericia: mean(validQTcF),
-      rrInterval: mean(validRR)
+      rrInterval: mean(validRR),
     };
   }
 
-  private assessSignalQuality(original: number[], processed: number[], rPeaks: number[]): {
+  private assessSignalQuality(
+    original: number[],
+    processed: number[],
+    rPeaks: number[]
+  ): {
     signalQuality: 'good' | 'fair' | 'poor';
     noiseLevel: number;
     baselineStable: boolean;
@@ -1167,7 +1212,7 @@ class ECGAnalyzer {
     return {
       signalQuality,
       noiseLevel: meanNoise,
-      baselineStable
+      baselineStable,
     };
   }
 
@@ -1258,7 +1303,11 @@ class ECGDemoGenerator {
   }
 
   private addGaussian(signal: number[], center: number, amplitude: number, width: number): void {
-    for (let i = Math.max(0, center - width * 3); i < Math.min(signal.length, center + width * 3); i++) {
+    for (
+      let i = Math.max(0, center - width * 3);
+      i < Math.min(signal.length, center + width * 3);
+      i++
+    ) {
       const x = i - center;
       signal[i] += amplitude * Math.exp(-(x * x) / (2 * width * width));
     }
@@ -1299,35 +1348,45 @@ Operations:
     properties: {
       operation: {
         type: 'string',
-        enum: ['analyze', 'detect_rpeaks', 'hrv', 'intervals', 'classify', 'st_analysis', 'generate_demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'analyze',
+          'detect_rpeaks',
+          'hrv',
+          'intervals',
+          'classify',
+          'st_analysis',
+          'generate_demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       signal: {
         type: 'array',
         items: { type: 'number' },
-        description: 'ECG signal data as array of voltage values (mV)'
+        description: 'ECG signal data as array of voltage values (mV)',
       },
       sample_rate: {
         type: 'number',
-        description: 'Sample rate in Hz (default: 360)'
+        description: 'Sample rate in Hz (default: 360)',
       },
       rr_intervals: {
         type: 'array',
         items: { type: 'number' },
-        description: 'RR intervals in milliseconds for HRV analysis'
+        description: 'RR intervals in milliseconds for HRV analysis',
       },
       demo_type: {
         type: 'string',
         enum: ['normal', 'afib', 'bradycardia', 'tachycardia'],
-        description: 'Type of demo signal to generate'
+        description: 'Type of demo signal to generate',
       },
       duration: {
         type: 'number',
-        description: 'Duration of demo signal in seconds'
-      }
+        description: 'Duration of demo signal in seconds',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -1342,7 +1401,11 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
       case 'analyze': {
         const signal = args.signal;
         if (!signal || !Array.isArray(signal) || signal.length === 0) {
-          return { toolCallId: id, content: 'Error: signal array is required for analysis', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: signal array is required for analysis',
+            isError: true,
+          };
         }
 
         const analyzer = new ECGAnalyzer(sampleRate);
@@ -1350,28 +1413,32 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze',
-            summary: result.summary,
-            intervals: {
-              prInterval: result.intervals.mean.prInterval?.toFixed(1) + ' ms',
-              qrsWidth: result.intervals.mean.qrsWidth?.toFixed(1) + ' ms',
-              qtInterval: result.intervals.mean.qtInterval?.toFixed(1) + ' ms',
-              qtcBazett: result.intervals.mean.qtcBazett?.toFixed(1) + ' ms',
-              rrInterval: result.intervals.mean.rrInterval?.toFixed(1) + ' ms'
+          content: JSON.stringify(
+            {
+              operation: 'analyze',
+              summary: result.summary,
+              intervals: {
+                prInterval: result.intervals.mean.prInterval?.toFixed(1) + ' ms',
+                qrsWidth: result.intervals.mean.qrsWidth?.toFixed(1) + ' ms',
+                qtInterval: result.intervals.mean.qtInterval?.toFixed(1) + ' ms',
+                qtcBazett: result.intervals.mean.qtcBazett?.toFixed(1) + ' ms',
+                rrInterval: result.intervals.mean.rrInterval?.toFixed(1) + ' ms',
+              },
+              arrhythmia: result.arrhythmia,
+              stAnalysis: result.stAnalysis,
+              hrv: {
+                meanRR: result.hrv.meanRR.toFixed(1) + ' ms',
+                sdnn: result.hrv.sdnn.toFixed(1) + ' ms',
+                rmssd: result.hrv.rmssd.toFixed(1) + ' ms',
+                pnn50: result.hrv.pnn50.toFixed(1) + '%',
+                lfHfRatio: result.hrv.lfHfRatio.toFixed(2),
+              },
+              qualityMetrics: result.qualityMetrics,
+              recommendations: result.recommendations,
             },
-            arrhythmia: result.arrhythmia,
-            stAnalysis: result.stAnalysis,
-            hrv: {
-              meanRR: result.hrv.meanRR.toFixed(1) + ' ms',
-              sdnn: result.hrv.sdnn.toFixed(1) + ' ms',
-              rmssd: result.hrv.rmssd.toFixed(1) + ' ms',
-              pnn50: result.hrv.pnn50.toFixed(1) + '%',
-              lfHfRatio: result.hrv.lfHfRatio.toFixed(2)
-            },
-            qualityMetrics: result.qualityMetrics,
-            recommendations: result.recommendations
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1390,28 +1457,35 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
           const rrMs = ((detection.rPeaks[i] - detection.rPeaks[i - 1]) / sampleRate) * 1000;
           rrIntervals.push(rrMs);
         }
-        const meanRR = rrIntervals.length > 0
-          ? rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length
-          : 0;
+        const meanRR =
+          rrIntervals.length > 0 ? rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length : 0;
         const heartRate = meanRR > 0 ? Math.round(60000 / meanRR) : 0;
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'detect_rpeaks',
-            rPeaks: detection.rPeaks,
-            count: detection.rPeaks.length,
-            heartRate: heartRate + ' bpm',
-            rrIntervals: rrIntervals.map(rr => Math.round(rr)),
-            threshold: detection.threshold
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'detect_rpeaks',
+              rPeaks: detection.rPeaks,
+              count: detection.rPeaks.length,
+              heartRate: heartRate + ' bpm',
+              rrIntervals: rrIntervals.map((rr) => Math.round(rr)),
+              threshold: detection.threshold,
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'hrv': {
         const rrIntervals = args.rr_intervals || args.signal;
         if (!rrIntervals || !Array.isArray(rrIntervals) || rrIntervals.length < 5) {
-          return { toolCallId: id, content: 'Error: at least 5 RR intervals are required for HRV analysis', isError: true };
+          return {
+            toolCallId: id,
+            content: 'Error: at least 5 RR intervals are required for HRV analysis',
+            isError: true,
+          };
         }
 
         const analyzer = new HRVAnalyzer();
@@ -1419,34 +1493,42 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'hrv',
-            timeDomain: {
-              meanRR: hrv.meanRR.toFixed(1) + ' ms',
-              sdnn: hrv.sdnn.toFixed(1) + ' ms',
-              rmssd: hrv.rmssd.toFixed(1) + ' ms',
-              pnn50: hrv.pnn50.toFixed(1) + '%',
-              meanHR: hrv.meanHR.toFixed(1) + ' bpm',
-              sdHR: hrv.sdHR.toFixed(1) + ' bpm'
+          content: JSON.stringify(
+            {
+              operation: 'hrv',
+              timeDomain: {
+                meanRR: hrv.meanRR.toFixed(1) + ' ms',
+                sdnn: hrv.sdnn.toFixed(1) + ' ms',
+                rmssd: hrv.rmssd.toFixed(1) + ' ms',
+                pnn50: hrv.pnn50.toFixed(1) + '%',
+                meanHR: hrv.meanHR.toFixed(1) + ' bpm',
+                sdHR: hrv.sdHR.toFixed(1) + ' bpm',
+              },
+              frequencyDomain: {
+                vlf: hrv.vlf.toFixed(2) + ' ms²',
+                lf: hrv.lf.toFixed(2) + ' ms²',
+                hf: hrv.hf.toFixed(2) + ' ms²',
+                lfHfRatio: hrv.lfHfRatio.toFixed(2),
+                totalPower: hrv.totalPower.toFixed(2) + ' ms²',
+              },
+              nonLinear: {
+                sd1: hrv.sd1.toFixed(1) + ' ms',
+                sd2: hrv.sd2.toFixed(1) + ' ms',
+                sd1sd2Ratio: hrv.sd1sd2Ratio.toFixed(2),
+              },
+              interpretation: {
+                autonomicBalance:
+                  hrv.lfHfRatio > 2
+                    ? 'Sympathetic dominant'
+                    : hrv.lfHfRatio < 0.5
+                      ? 'Parasympathetic dominant'
+                      : 'Balanced',
+                variability: hrv.sdnn > 100 ? 'High' : hrv.sdnn > 50 ? 'Normal' : 'Reduced',
+              },
             },
-            frequencyDomain: {
-              vlf: hrv.vlf.toFixed(2) + ' ms²',
-              lf: hrv.lf.toFixed(2) + ' ms²',
-              hf: hrv.hf.toFixed(2) + ' ms²',
-              lfHfRatio: hrv.lfHfRatio.toFixed(2),
-              totalPower: hrv.totalPower.toFixed(2) + ' ms²'
-            },
-            nonLinear: {
-              sd1: hrv.sd1.toFixed(1) + ' ms',
-              sd2: hrv.sd2.toFixed(1) + ' ms',
-              sd1sd2Ratio: hrv.sd1sd2Ratio.toFixed(2)
-            },
-            interpretation: {
-              autonomicBalance: hrv.lfHfRatio > 2 ? 'Sympathetic dominant' :
-                               hrv.lfHfRatio < 0.5 ? 'Parasympathetic dominant' : 'Balanced',
-              variability: hrv.sdnn > 100 ? 'High' : hrv.sdnn > 50 ? 'Normal' : 'Reduced'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1461,24 +1543,40 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'intervals',
-            meanIntervals: {
-              prInterval: result.intervals.mean.prInterval ? result.intervals.mean.prInterval.toFixed(1) + ' ms' : 'N/A',
-              qrsWidth: result.intervals.mean.qrsWidth ? result.intervals.mean.qrsWidth.toFixed(1) + ' ms' : 'N/A',
-              qtInterval: result.intervals.mean.qtInterval ? result.intervals.mean.qtInterval.toFixed(1) + ' ms' : 'N/A',
-              qtcBazett: result.intervals.mean.qtcBazett ? result.intervals.mean.qtcBazett.toFixed(1) + ' ms' : 'N/A',
-              qtcFridericia: result.intervals.mean.qtcFridericia ? result.intervals.mean.qtcFridericia.toFixed(1) + ' ms' : 'N/A',
-              rrInterval: result.intervals.mean.rrInterval ? result.intervals.mean.rrInterval.toFixed(1) + ' ms' : 'N/A'
+          content: JSON.stringify(
+            {
+              operation: 'intervals',
+              meanIntervals: {
+                prInterval: result.intervals.mean.prInterval
+                  ? result.intervals.mean.prInterval.toFixed(1) + ' ms'
+                  : 'N/A',
+                qrsWidth: result.intervals.mean.qrsWidth
+                  ? result.intervals.mean.qrsWidth.toFixed(1) + ' ms'
+                  : 'N/A',
+                qtInterval: result.intervals.mean.qtInterval
+                  ? result.intervals.mean.qtInterval.toFixed(1) + ' ms'
+                  : 'N/A',
+                qtcBazett: result.intervals.mean.qtcBazett
+                  ? result.intervals.mean.qtcBazett.toFixed(1) + ' ms'
+                  : 'N/A',
+                qtcFridericia: result.intervals.mean.qtcFridericia
+                  ? result.intervals.mean.qtcFridericia.toFixed(1) + ' ms'
+                  : 'N/A',
+                rrInterval: result.intervals.mean.rrInterval
+                  ? result.intervals.mean.rrInterval.toFixed(1) + ' ms'
+                  : 'N/A',
+              },
+              normalRanges: {
+                prInterval: '120-200 ms',
+                qrsWidth: '< 120 ms',
+                qtInterval: '350-440 ms',
+                qtcBazett: '< 440 ms (male), < 460 ms (female)',
+              },
+              complexCount: result.intervals.individual.length,
             },
-            normalRanges: {
-              prInterval: '120-200 ms',
-              qrsWidth: '< 120 ms',
-              qtInterval: '350-440 ms',
-              qtcBazett: '< 440 ms (male), < 460 ms (female)'
-            },
-            complexCount: result.intervals.individual.length
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1505,97 +1603,110 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'generate_demo',
-            type: demoType,
-            duration: duration + ' seconds',
-            sampleRate: sampleRate + ' Hz',
-            samples: signal.length,
-            signal: signal.slice(0, 100), // Return first 100 samples as preview
-            note: 'Full signal available with ' + signal.length + ' samples'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'generate_demo',
+              type: demoType,
+              duration: duration + ' seconds',
+              sampleRate: sampleRate + ' Hz',
+              samples: signal.length,
+              signal: signal.slice(0, 100), // Return first 100 samples as preview
+              note: 'Full signal available with ' + signal.length + ' samples',
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'ecg_analyzer',
-            version: '1.0.0',
-            description: 'Comprehensive ECG analysis tool with arrhythmia detection',
-            algorithms: {
-              rPeakDetection: 'Pan-Tompkins algorithm with adaptive thresholding',
-              morphologyAnalysis: 'Template matching and derivative-based wave detection',
-              hrvAnalysis: 'Time domain, frequency domain (Welch), and Poincaré plot',
-              arrhythmiaClassification: 'Rule-based classification with confidence scoring'
+          content: JSON.stringify(
+            {
+              tool: 'ecg_analyzer',
+              version: '1.0.0',
+              description: 'Comprehensive ECG analysis tool with arrhythmia detection',
+              algorithms: {
+                rPeakDetection: 'Pan-Tompkins algorithm with adaptive thresholding',
+                morphologyAnalysis: 'Template matching and derivative-based wave detection',
+                hrvAnalysis: 'Time domain, frequency domain (Welch), and Poincaré plot',
+                arrhythmiaClassification: 'Rule-based classification with confidence scoring',
+              },
+              supportedArrhythmias: [
+                'Normal sinus rhythm',
+                'Sinus bradycardia/tachycardia',
+                'Atrial fibrillation',
+                'Ventricular tachycardia',
+                'Premature ventricular contractions',
+                'AV blocks (1st, 2nd, 3rd degree)',
+                'Bundle branch block',
+              ],
+              intervals: {
+                PR: 'P wave onset to QRS onset (normal: 120-200 ms)',
+                QRS: 'QRS complex duration (normal: < 120 ms)',
+                QT: 'QRS onset to T wave end',
+                QTc: 'Corrected QT (Bazett and Fridericia formulas)',
+              },
+              disclaimer:
+                'This tool is for educational and research purposes. Always consult a qualified healthcare professional for clinical interpretation.',
             },
-            supportedArrhythmias: [
-              'Normal sinus rhythm',
-              'Sinus bradycardia/tachycardia',
-              'Atrial fibrillation',
-              'Ventricular tachycardia',
-              'Premature ventricular contractions',
-              'AV blocks (1st, 2nd, 3rd degree)',
-              'Bundle branch block'
-            ],
-            intervals: {
-              PR: 'P wave onset to QRS onset (normal: 120-200 ms)',
-              QRS: 'QRS complex duration (normal: < 120 ms)',
-              QT: 'QRS onset to T wave end',
-              QTc: 'Corrected QT (Bazett and Fridericia formulas)'
-            },
-            disclaimer: 'This tool is for educational and research purposes. Always consult a qualified healthcare professional for clinical interpretation.'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Full ECG analysis',
-                call: {
-                  operation: 'analyze',
-                  signal: '[...ECG data...]',
-                  sample_rate: 360
-                }
-              },
-              {
-                name: 'R-peak detection',
-                call: {
-                  operation: 'detect_rpeaks',
-                  signal: '[...ECG data...]',
-                  sample_rate: 500
-                }
-              },
-              {
-                name: 'HRV analysis from RR intervals',
-                call: {
-                  operation: 'hrv',
-                  rr_intervals: [850, 820, 880, 830, 870, 840, 860]
-                }
-              },
-              {
-                name: 'Generate demo normal sinus rhythm',
-                call: {
-                  operation: 'generate_demo',
-                  demo_type: 'normal',
-                  duration: 10
-                }
-              },
-              {
-                name: 'Generate demo atrial fibrillation',
-                call: {
-                  operation: 'generate_demo',
-                  demo_type: 'afib',
-                  duration: 10
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Full ECG analysis',
+                  call: {
+                    operation: 'analyze',
+                    signal: '[...ECG data...]',
+                    sample_rate: 360,
+                  },
+                },
+                {
+                  name: 'R-peak detection',
+                  call: {
+                    operation: 'detect_rpeaks',
+                    signal: '[...ECG data...]',
+                    sample_rate: 500,
+                  },
+                },
+                {
+                  name: 'HRV analysis from RR intervals',
+                  call: {
+                    operation: 'hrv',
+                    rr_intervals: [850, 820, 880, 830, 870, 840, 860],
+                  },
+                },
+                {
+                  name: 'Generate demo normal sinus rhythm',
+                  call: {
+                    operation: 'generate_demo',
+                    demo_type: 'normal',
+                    duration: 10,
+                  },
+                },
+                {
+                  name: 'Generate demo atrial fibrillation',
+                  call: {
+                    operation: 'generate_demo',
+                    demo_type: 'afib',
+                    duration: 10,
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1603,7 +1714,7 @@ export async function executeecganalyzer(toolCall: UnifiedToolCall): Promise<Uni
         return {
           toolCallId: id,
           content: `Error: Unknown operation '${operation}'. Valid operations: analyze, detect_rpeaks, hrv, intervals, classify, st_analysis, generate_demo, info, examples`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

@@ -33,12 +33,12 @@ interface Corner {
 }
 
 interface HarrisParams {
-  k?: number;           // Harris sensitivity parameter (default: 0.04)
-  windowSize?: number;  // Window size for gradient summation (default: 3)
-  threshold?: number;   // Response threshold (default: auto)
-  nmsRadius?: number;   // Non-maximum suppression radius (default: 3)
-  maxCorners?: number;  // Maximum number of corners to return
-  subPixel?: boolean;   // Enable sub-pixel refinement
+  k?: number; // Harris sensitivity parameter (default: 0.04)
+  windowSize?: number; // Window size for gradient summation (default: 3)
+  threshold?: number; // Response threshold (default: auto)
+  nmsRadius?: number; // Non-maximum suppression radius (default: 3)
+  maxCorners?: number; // Maximum number of corners to return
+  subPixel?: boolean; // Enable sub-pixel refinement
   method?: 'harris' | 'shi-tomasi' | 'harmonic-mean';
 }
 
@@ -121,41 +121,40 @@ function computeSobelGradients(image: number[][]): GradientImage {
   const sobelX = [
     [-1, 0, 1],
     [-2, 0, 2],
-    [-1, 0, 1]
+    [-1, 0, 1],
   ];
 
   const sobelY = [
     [-1, -2, -1],
     [0, 0, 0],
-    [1, 2, 1]
+    [1, 2, 1],
   ];
 
   return {
     Ix: convolve2D(image, sobelX),
-    Iy: convolve2D(image, sobelY)
+    Iy: convolve2D(image, sobelY),
   };
 }
 
 /**
  * Compute Scharr gradients (more accurate than Sobel)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function computeScharrGradients(image: number[][]): GradientImage {
+export function computeScharrGradients(image: number[][]): GradientImage {
   const scharrX = [
     [-3, 0, 3],
     [-10, 0, 10],
-    [-3, 0, 3]
+    [-3, 0, 3],
   ];
 
   const scharrY = [
     [-3, -10, -3],
     [0, 0, 0],
-    [3, 10, 3]
+    [3, 10, 3],
   ];
 
   return {
     Ix: convolve2D(image, scharrX),
-    Iy: convolve2D(image, scharrY)
+    Iy: convolve2D(image, scharrY),
   };
 }
 
@@ -189,7 +188,7 @@ function computeStructureTensor(gradients: GradientImage, windowSize: number): S
   return {
     Ixx: convolve2D(IxIx, gaussian),
     Iyy: convolve2D(IyIy, gaussian),
-    Ixy: convolve2D(IxIy, gaussian)
+    Ixy: convolve2D(IxIy, gaussian),
   };
 }
 
@@ -246,7 +245,7 @@ function computeShiTomasiResponse(tensor: StructureTensor): number[][] {
       // Eigenvalues of structure tensor
       const trace = Ixx + Iyy;
       const det = Ixx * Iyy - Ixy * Ixy;
-      const discriminant = Math.sqrt(Math.max(0, trace * trace / 4 - det));
+      const discriminant = Math.sqrt(Math.max(0, (trace * trace) / 4 - det));
 
       const lambda1 = trace / 2 + discriminant;
       const lambda2 = trace / 2 - discriminant;
@@ -392,14 +391,18 @@ function refineCornerSubPixel(response: number[][], corner: Corner): Corner {
   return {
     ...corner,
     subPixelX: x + clampedOffsetX,
-    subPixelY: y + clampedOffsetY
+    subPixelY: y + clampedOffsetY,
   };
 }
 
 /**
  * Compute corner orientation using gradient
  */
-function computeCornerOrientation(gradients: GradientImage, corner: Corner, windowSize: number = 5): number {
+function computeCornerOrientation(
+  gradients: GradientImage,
+  corner: Corner,
+  windowSize: number = 5
+): number {
   const { x, y } = corner;
   const half = Math.floor(windowSize / 2);
   const height = gradients.Ix.length;
@@ -435,7 +438,7 @@ class HarrisCornerDetector {
       nmsRadius: params.nmsRadius ?? 3,
       maxCorners: params.maxCorners ?? 500,
       subPixel: params.subPixel ?? true,
-      method: params.method ?? 'harris'
+      method: params.method ?? 'harris',
     };
   }
 
@@ -481,13 +484,13 @@ class HarrisCornerDetector {
 
     // Step 8: Sub-pixel refinement
     if (this.params.subPixel) {
-      corners = corners.map(c => refineCornerSubPixel(response, c));
+      corners = corners.map((c) => refineCornerSubPixel(response, c));
     }
 
     // Step 9: Compute orientations
-    corners = corners.map(c => ({
+    corners = corners.map((c) => ({
       ...c,
-      angle: computeCornerOrientation(gradients, c)
+      angle: computeCornerOrientation(gradients, c),
     }));
 
     return corners;
@@ -529,12 +532,12 @@ function downsampleImage(image: number[][]): number[][] {
     result[y] = [];
     for (let x = 0; x < newWidth; x++) {
       // Average 2x2 block
-      result[y][x] = (
-        image[y * 2][x * 2] +
-        image[y * 2][x * 2 + 1] +
-        image[y * 2 + 1][x * 2] +
-        image[y * 2 + 1][x * 2 + 1]
-      ) / 4;
+      result[y][x] =
+        (image[y * 2][x * 2] +
+          image[y * 2][x * 2 + 1] +
+          image[y * 2 + 1][x * 2] +
+          image[y * 2 + 1][x * 2 + 1]) /
+        4;
     }
   }
 
@@ -558,16 +561,16 @@ function detectMultiScale(
     const corners = detector.detect({
       width: currentImage[0].length,
       height: currentImage.length,
-      data: currentImage
+      data: currentImage,
     });
 
     // Scale corners back to original coordinates
-    const scaledCorners = corners.map(c => ({
+    const scaledCorners = corners.map((c) => ({
       ...c,
       x: c.x * scale,
       y: c.y * scale,
       subPixelX: (c.subPixelX ?? c.x) * scale,
-      subPixelY: (c.subPixelY ?? c.y) * scale
+      subPixelY: (c.subPixelY ?? c.y) * scale,
     }));
 
     results.push({ corners: scaledCorners, scale });
@@ -619,7 +622,8 @@ function matchCorners(
   // Compute NCC between patches
   const computeNCC = (patch1: number[], patch2: number[]): number => {
     const n = patch1.length;
-    let mean1 = 0, mean2 = 0;
+    let mean1 = 0,
+      mean2 = 0;
 
     for (let i = 0; i < n; i++) {
       mean1 += patch1[i];
@@ -628,7 +632,9 @@ function matchCorners(
     mean1 /= n;
     mean2 /= n;
 
-    let num = 0, den1 = 0, den2 = 0;
+    let num = 0,
+      den1 = 0,
+      den2 = 0;
     for (let i = 0; i < n; i++) {
       const d1 = patch1[i] - mean1;
       const d2 = patch2[i] - mean2;
@@ -699,7 +705,7 @@ function generateTestImage(width: number, height: number, pattern: string): Gray
         for (let x = 0; x < width; x++) {
           const sx = Math.floor(x / squareSize);
           const sy = Math.floor(y / squareSize);
-          data[y][x] = ((sx + sy) % 2 === 0) ? 255 : 0;
+          data[y][x] = (sx + sy) % 2 === 0 ? 255 : 0;
         }
       }
       break;
@@ -709,7 +715,7 @@ function generateTestImage(width: number, height: number, pattern: string): Gray
       const rects = [
         { x: 50, y: 50, w: 60, h: 40 },
         { x: 150, y: 80, w: 80, h: 50 },
-        { x: 80, y: 150, w: 50, h: 60 }
+        { x: 80, y: 150, w: 50, h: 60 },
       ];
 
       for (const rect of rects) {
@@ -763,53 +769,51 @@ function generateTestImage(width: number, height: number, pattern: string): Gray
 
 export const harriscornersTool: UnifiedTool = {
   name: 'harris_corners',
-  description: 'Harris corner detection with sub-pixel refinement, multi-scale detection, and corner tracking',
+  description:
+    'Harris corner detection with sub-pixel refinement, multi-scale detection, and corner tracking',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['detect', 'multi_scale', 'track', 'response_map', 'compare_methods', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'detect',
+          'multi_scale',
+          'track',
+          'response_map',
+          'compare_methods',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       image: {
         type: 'object',
-        description: 'Grayscale image data { width, height, data: number[][] }',
-        properties: {
-          width: { type: 'number', description: 'Image width' },
-          height: { type: 'number', description: 'Image height' },
-          data: { type: 'array', description: '2D array of pixel values [0-255]' }
-        }
+        description:
+          'Grayscale image data with properties: width (number), height (number), data (2D array of pixel values 0-255)',
       },
       params: {
         type: 'object',
-        description: 'Harris detection parameters',
-        properties: {
-          k: { type: 'number', description: 'Harris sensitivity (default: 0.04)' },
-          windowSize: { type: 'number', description: 'Window size (default: 3)' },
-          threshold: { type: 'number', description: 'Response threshold (auto if < 0)' },
-          nmsRadius: { type: 'number', description: 'Non-maximum suppression radius (default: 3)' },
-          maxCorners: { type: 'number', description: 'Maximum corners (default: 500)' },
-          subPixel: { type: 'boolean', description: 'Enable sub-pixel refinement' },
-          method: { type: 'string', enum: ['harris', 'shi-tomasi', 'harmonic-mean'] }
-        }
+        description:
+          'Harris detection parameters: k (sensitivity, default 0.04), windowSize (default 3), threshold (auto if < 0), nmsRadius (default 3), maxCorners (default 500), subPixel (boolean), method (harris/shi-tomasi/harmonic-mean)',
       },
       image2: {
         type: 'object',
-        description: 'Second image for tracking'
+        description: 'Second image for tracking',
       },
       numScales: {
         type: 'number',
-        description: 'Number of scales for multi-scale detection'
+        description: 'Number of scales for multi-scale detection',
       },
       testPattern: {
         type: 'string',
         enum: ['checkerboard', 'corners', 'gradient', 'noise', 'cross'],
-        description: 'Test pattern for demo'
-      }
+        description: 'Test pattern for demo',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -843,13 +847,13 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
             k: params?.k ?? 0.04,
             windowSize: params?.windowSize ?? 3,
             nmsRadius: params?.nmsRadius ?? 3,
-            subPixel: params?.subPixel ?? true
+            subPixel: params?.subPixel ?? true,
           },
           statistics: {
-            maxResponse: Math.max(...corners.map(c => c.response)),
-            minResponse: Math.min(...corners.map(c => c.response)),
-            avgResponse: corners.reduce((s, c) => s + c.response, 0) / corners.length
-          }
+            maxResponse: Math.max(...corners.map((c) => c.response)),
+            minResponse: Math.min(...corners.map((c) => c.response)),
+            avgResponse: corners.reduce((s, c) => s + c.response, 0) / corners.length,
+          },
         };
         break;
       }
@@ -864,12 +868,12 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
         result = {
           operation: 'multi_scale',
           numScales: scales.length,
-          scales: scales.map(s => ({
+          scales: scales.map((s) => ({
             scale: s.scale,
             cornerCount: s.corners.length,
-            corners: s.corners.slice(0, 50)
+            corners: s.corners.slice(0, 50),
           })),
-          totalCorners: scales.reduce((sum, s) => sum + s.corners.length, 0)
+          totalCorners: scales.reduce((sum, s) => sum + s.corners.length, 0),
         };
         break;
       }
@@ -883,12 +887,7 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
         const corners1 = detector.detect(image);
         const corners2 = detector.detect(image2);
 
-        const { matches, scores } = matchCorners(
-          corners1,
-          corners2,
-          image.data,
-          image2.data
-        );
+        const { matches, scores } = matchCorners(corners1, corners2, image.data, image2.data);
 
         result = {
           operation: 'track',
@@ -898,9 +897,9 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
           matches: matches.slice(0, 50).map((m, i) => ({
             corner1: { x: corners1[m[0]].x, y: corners1[m[0]].y },
             corner2: { x: corners2[m[1]].x, y: corners2[m[1]].y },
-            score: scores[i]
+            score: scores[i],
           })),
-          averageScore: scores.reduce((s, v) => s + v, 0) / scores.length
+          averageScore: scores.reduce((s, v) => s + v, 0) / scores.length,
         };
         break;
       }
@@ -914,7 +913,9 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
         const responseMap = detector.getResponseMap(image);
 
         // Compute statistics
-        let min = Infinity, max = -Infinity, sum = 0;
+        let min = Infinity,
+          max = -Infinity,
+          sum = 0;
         let count = 0;
 
         for (let y = 0; y < responseMap.length; y++) {
@@ -933,11 +934,12 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
           statistics: {
             min,
             max,
-            mean: sum / count
+            mean: sum / count,
           },
           // Return downsampled response for visualization
-          sampleData: responseMap.filter((_, i) => i % 4 === 0)
-            .map(row => row.filter((_, i) => i % 4 === 0))
+          sampleData: responseMap
+            .filter((_, i) => i % 4 === 0)
+            .map((row) => row.filter((_, i) => i % 4 === 0)),
         };
         break;
       }
@@ -956,20 +958,20 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
 
           comparison[method] = {
             cornerCount: corners.length,
-            topCorners: corners.slice(0, 10).map(c => ({
+            topCorners: corners.slice(0, 10).map((c) => ({
               x: c.x,
               y: c.y,
-              response: c.response
+              response: c.response,
             })),
-            maxResponse: Math.max(...corners.map(c => c.response)),
-            avgResponse: corners.reduce((s, c) => s + c.response, 0) / corners.length
+            maxResponse: Math.max(...corners.map((c) => c.response)),
+            avgResponse: corners.reduce((s, c) => s + c.response, 0) / corners.length,
           };
         }
 
         result = {
           operation: 'compare_methods',
           imageSize: { width: image.width, height: image.height },
-          comparison
+          comparison,
         };
         break;
       }
@@ -990,24 +992,24 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
           imageSize: { width: 200, height: 200 },
           harris: {
             cornerCount: harrisCorners.length,
-            topCorners: harrisCorners.slice(0, 20).map(c => ({
+            topCorners: harrisCorners.slice(0, 20).map((c) => ({
               x: Math.round(c.subPixelX ?? c.x),
               y: Math.round(c.subPixelY ?? c.y),
-              response: c.response.toFixed(2)
-            }))
+              response: c.response.toFixed(2),
+            })),
           },
           shiTomasi: {
             cornerCount: shiTomasiCorners.length,
-            topCorners: shiTomasiCorners.slice(0, 20).map(c => ({
+            topCorners: shiTomasiCorners.slice(0, 20).map((c) => ({
               x: Math.round(c.subPixelX ?? c.x),
               y: Math.round(c.subPixelY ?? c.y),
-              response: c.response.toFixed(2)
-            }))
+              response: c.response.toFixed(2),
+            })),
           },
           explanation: {
             harris: 'Uses det(M) - k*trace(M)^2 for corner response',
-            shiTomasi: 'Uses min eigenvalue, more stable for tracking'
-          }
+            shiTomasi: 'Uses min eigenvalue, more stable for tracking',
+          },
         };
         break;
       }
@@ -1022,7 +1024,7 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
   "operation": "detect",
   "image": { "width": 100, "height": 100, "data": [[...]] },
   "params": { "method": "harris", "maxCorners": 100 }
-}`
+}`,
             },
             {
               name: 'Multi-scale detection',
@@ -1030,7 +1032,7 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
   "operation": "multi_scale",
   "image": { "width": 200, "height": 200, "data": [[...]] },
   "numScales": 4
-}`
+}`,
             },
             {
               name: 'Corner tracking',
@@ -1038,23 +1040,23 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
   "operation": "track",
   "image": { ... },
   "image2": { ... }
-}`
+}`,
             },
             {
               name: 'Compare methods',
               code: `{
   "operation": "compare_methods",
   "image": { ... }
-}`
+}`,
             },
             {
               name: 'Demo with test pattern',
               code: `{
   "operation": "demo",
   "testPattern": "checkerboard"
-}`
-            }
-          ]
+}`,
+            },
+          ],
         };
         break;
       }
@@ -1073,21 +1075,21 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
             'Sub-pixel corner refinement',
             'Multi-scale detection',
             'Corner tracking between frames',
-            'Adaptive thresholding'
+            'Adaptive thresholding',
           ],
           methods: {
             harris: {
               formula: 'R = det(M) - k * trace(M)²',
-              description: 'Original Harris formulation, good for general corner detection'
+              description: 'Original Harris formulation, good for general corner detection',
             },
             'shi-tomasi': {
               formula: 'R = min(λ₁, λ₂)',
-              description: 'Minimum eigenvalue, more stable for tracking'
+              description: 'Minimum eigenvalue, more stable for tracking',
             },
             'harmonic-mean': {
               formula: 'R = det(M) / trace(M)',
-              description: 'More robust to noise'
-            }
+              description: 'More robust to noise',
+            },
           },
           parameters: {
             k: 'Harris sensitivity (0.04-0.06), higher = fewer corners',
@@ -1095,24 +1097,32 @@ export async function executeharriscorners(toolCall: UnifiedToolCall): Promise<U
             threshold: 'Response threshold, -1 for adaptive',
             nmsRadius: 'Non-maximum suppression radius',
             maxCorners: 'Maximum number of corners to return',
-            subPixel: 'Enable sub-pixel refinement for better accuracy'
+            subPixel: 'Enable sub-pixel refinement for better accuracy',
           },
-          operations: ['detect', 'multi_scale', 'track', 'response_map', 'compare_methods', 'demo', 'info', 'examples']
+          operations: [
+            'detect',
+            'multi_scale',
+            'track',
+            'response_map',
+            'compare_methods',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
       }
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error in harris_corners: ${error}`,
-      isError: true
+      isError: true,
     };
   }
 }

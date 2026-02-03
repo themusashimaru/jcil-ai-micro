@@ -63,11 +63,7 @@ interface AssignmentProblem {
 /**
  * 0/1 Knapsack using Branch and Bound
  */
-function solveKnapsackBB(
-  weights: number[],
-  values: number[],
-  capacity: number
-): BBResult {
+function solveKnapsackBB(weights: number[], values: number[], capacity: number): BBResult {
   const n = weights.length;
   const items: KnapsackItem[] = [];
 
@@ -76,7 +72,7 @@ function solveKnapsackBB(
       weight: weights[i],
       value: values[i],
       index: i,
-      ratio: values[i] / weights[i]
+      ratio: values[i] / weights[i],
     });
   }
 
@@ -127,7 +123,7 @@ function solveKnapsackBB(
     value: 0,
     weight: 0,
     bound: rootBound,
-    included: new Array(n).fill(false)
+    included: new Array(n).fill(false),
   });
 
   searchTree.push({
@@ -136,7 +132,7 @@ function solveKnapsackBB(
     bound: rootBound,
     cost: 0,
     status: 'explored',
-    decision: 'root'
+    decision: 'root',
   });
 
   while (queue.length > 0) {
@@ -153,7 +149,7 @@ function solveKnapsackBB(
         bound: node.bound,
         cost: node.value,
         status: 'pruned',
-        decision: `bound ${node.bound.toFixed(2)} <= best ${maxValue}`
+        decision: `bound ${node.bound.toFixed(2)} <= best ${maxValue}`,
       });
       continue;
     }
@@ -177,7 +173,7 @@ function solveKnapsackBB(
       const includeBound = calculateBound({
         level: node.level + 1,
         value: newValue,
-        weight: newWeight
+        weight: newWeight,
       });
 
       if (includeBound > maxValue) {
@@ -186,7 +182,7 @@ function solveKnapsackBB(
           value: newValue,
           weight: newWeight,
           bound: includeBound,
-          included: newIncluded
+          included: newIncluded,
         });
 
         searchTree.push({
@@ -195,7 +191,7 @@ function solveKnapsackBB(
           bound: includeBound,
           cost: newValue,
           status: 'explored',
-          decision: `include item ${item.index}`
+          decision: `include item ${item.index}`,
         });
       }
     }
@@ -204,7 +200,7 @@ function solveKnapsackBB(
     const excludeBound = calculateBound({
       level: node.level + 1,
       value: node.value,
-      weight: node.weight
+      weight: node.weight,
     });
 
     if (excludeBound > maxValue) {
@@ -213,7 +209,7 @@ function solveKnapsackBB(
         value: node.value,
         weight: node.weight,
         bound: excludeBound,
-        included: [...node.included]
+        included: [...node.included],
       });
 
       searchTree.push({
@@ -222,7 +218,7 @@ function solveKnapsackBB(
         bound: excludeBound,
         cost: node.value,
         status: 'explored',
-        decision: `exclude item ${item.index}`
+        decision: `exclude item ${item.index}`,
       });
     } else {
       nodesPruned++;
@@ -244,7 +240,7 @@ function solveKnapsackBB(
     nodesPruned,
     searchTree: searchTree.slice(0, 50), // Limit for display
     algorithm: 'Branch and Bound with LP Relaxation',
-    problemType: '0/1 Knapsack'
+    problemType: '0/1 Knapsack',
   };
 }
 
@@ -270,8 +266,11 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
   }
 
   // Calculate lower bound using reduced cost matrix
-  function reduceMatrix(matrix: number[][], excluded: Set<string>): { reduced: number[][]; cost: number } {
-    const m = matrix.map(row => [...row]);
+  function reduceMatrix(
+    matrix: number[][],
+    excluded: Set<string>
+  ): { reduced: number[][]; cost: number } {
+    const m = matrix.map((row) => [...row]);
     let cost = 0;
 
     // Row reduction
@@ -326,13 +325,15 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
   // Initial reduction
   const { reduced: initialMatrix, cost: initialBound } = reduceMatrix(dist, new Set());
 
-  const queue: TSPNode[] = [{
-    path: [0],
-    bound: initialBound,
-    cost: 0,
-    level: 0,
-    matrix: initialMatrix
-  }];
+  const queue: TSPNode[] = [
+    {
+      path: [0],
+      bound: initialBound,
+      cost: 0,
+      level: 0,
+      matrix: initialMatrix,
+    },
+  ];
 
   searchTree.push({
     id: 0,
@@ -340,7 +341,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
     bound: initialBound,
     cost: 0,
     status: 'explored',
-    decision: 'root (city 0)'
+    decision: 'root (city 0)',
   });
 
   while (queue.length > 0) {
@@ -369,7 +370,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
           bound: totalCost,
           cost: totalCost,
           status: 'optimal',
-          decision: `complete tour: ${bestTour.join(' → ')}`
+          decision: `complete tour: ${bestTour.join(' → ')}`,
         });
       }
       continue;
@@ -384,7 +385,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
 
       // Calculate new bound
       const newCost = node.cost + edgeCost;
-      const newMatrix = node.matrix.map(row => [...row]);
+      const newMatrix = node.matrix.map((row) => [...row]);
 
       // Set row and column to infinity
       for (let k = 0; k < n; k++) {
@@ -428,7 +429,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
           bound: newBound,
           cost: newCost,
           level: node.level + 1,
-          matrix: newMatrix
+          matrix: newMatrix,
         });
 
         searchTree.push({
@@ -437,7 +438,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
           bound: newBound,
           cost: newCost,
           status: 'explored',
-          decision: `visit city ${next}`
+          decision: `visit city ${next}`,
         });
       } else {
         nodesPruned++;
@@ -447,7 +448,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
           bound: newBound,
           cost: newCost,
           status: 'pruned',
-          decision: `city ${next} pruned (bound ${newBound.toFixed(2)} >= best ${bestCost.toFixed(2)})`
+          decision: `city ${next} pruned (bound ${newBound.toFixed(2)} >= best ${bestCost.toFixed(2)})`,
         });
       }
     }
@@ -460,7 +461,7 @@ function solveTSPBB(cities: TSPCity[]): BBResult {
     nodesPruned,
     searchTree: searchTree.slice(0, 50),
     algorithm: 'Branch and Bound with Matrix Reduction',
-    problemType: 'Traveling Salesman Problem'
+    problemType: 'Traveling Salesman Problem',
   };
 }
 
@@ -511,13 +512,15 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
   }
 
   const initialBound = calculateBound([], new Set());
-  const queue: AssignmentNode[] = [{
-    assignment: [],
-    assigned: new Set(),
-    level: 0,
-    cost: 0,
-    bound: initialBound
-  }];
+  const queue: AssignmentNode[] = [
+    {
+      assignment: [],
+      assigned: new Set(),
+      level: 0,
+      cost: 0,
+      bound: initialBound,
+    },
+  ];
 
   searchTree.push({
     id: 0,
@@ -525,7 +528,7 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
     bound: initialBound,
     cost: 0,
     status: 'explored',
-    decision: 'root'
+    decision: 'root',
   });
 
   while (queue.length > 0) {
@@ -549,7 +552,7 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
           bound: node.cost,
           cost: node.cost,
           status: 'optimal',
-          decision: `complete assignment`
+          decision: `complete assignment`,
         });
       }
       continue;
@@ -571,7 +574,7 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
           assigned: newAssigned,
           level: node.level + 1,
           cost: newCost,
-          bound: newBound
+          bound: newBound,
         });
 
         searchTree.push({
@@ -580,7 +583,7 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
           bound: newBound,
           cost: newCost,
           status: 'explored',
-          decision: `assign ${agents[node.level]} → ${tasks[j]}`
+          decision: `assign ${agents[node.level]} → ${tasks[j]}`,
         });
       } else {
         nodesPruned++;
@@ -595,7 +598,7 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
     nodesPruned,
     searchTree: searchTree.slice(0, 50),
     algorithm: 'Branch and Bound',
-    problemType: 'Assignment Problem'
+    problemType: 'Assignment Problem',
   };
 }
 
@@ -603,10 +606,10 @@ function solveAssignmentBB(problem: AssignmentProblem): BBResult {
  * Integer Linear Programming using Branch and Bound
  */
 function solveILP(
-  c: number[],           // Objective coefficients (minimize c^T x)
-  A: number[][],         // Constraint matrix
-  b: number[],           // RHS of constraints
-  bounds: { lower: number[]; upper: number[] }  // Variable bounds
+  c: number[], // Objective coefficients (minimize c^T x)
+  A: number[][], // Constraint matrix
+  b: number[], // RHS of constraints
+  bounds: { lower: number[]; upper: number[] } // Variable bounds
 ): BBResult {
   const n = c.length;
 
@@ -673,17 +676,19 @@ function solveILP(
       nodesPruned: 0,
       searchTree: [],
       algorithm: 'Branch and Bound',
-      problemType: 'Integer Linear Programming (Infeasible)'
+      problemType: 'Integer Linear Programming (Infeasible)',
     };
   }
 
-  const queue: ILPNode[] = [{
-    fixed: new Map(),
-    lowerBounds: [...bounds.lower],
-    upperBounds: [...bounds.upper],
-    bound: initial.value,
-    level: 0
-  }];
+  const queue: ILPNode[] = [
+    {
+      fixed: new Map(),
+      lowerBounds: [...bounds.lower],
+      upperBounds: [...bounds.upper],
+      bound: initial.value,
+      level: 0,
+    },
+  ];
 
   searchTree.push({
     id: 0,
@@ -691,7 +696,7 @@ function solveILP(
     bound: initial.value,
     cost: initial.value,
     status: 'explored',
-    decision: 'root'
+    decision: 'root',
   });
 
   while (queue.length > 0) {
@@ -736,7 +741,7 @@ function solveILP(
           bound: lp.value,
           cost: lp.value,
           status: 'optimal',
-          decision: `integer solution found`
+          decision: `integer solution found`,
         });
       }
       continue;
@@ -756,7 +761,7 @@ function solveILP(
           lowerBounds: [...node.lowerBounds],
           upperBounds: leftUpper,
           bound: leftLP.value,
-          level: node.level + 1
+          level: node.level + 1,
         });
 
         searchTree.push({
@@ -765,7 +770,7 @@ function solveILP(
           bound: leftLP.value,
           cost: leftLP.value,
           status: 'explored',
-          decision: `x${branchVar} <= ${Math.floor(val)}`
+          decision: `x${branchVar} <= ${Math.floor(val)}`,
         });
       }
     }
@@ -781,7 +786,7 @@ function solveILP(
           lowerBounds: rightLower,
           upperBounds: [...node.upperBounds],
           bound: rightLP.value,
-          level: node.level + 1
+          level: node.level + 1,
         });
 
         searchTree.push({
@@ -790,7 +795,7 @@ function solveILP(
           bound: rightLP.value,
           cost: rightLP.value,
           status: 'explored',
-          decision: `x${branchVar} >= ${Math.ceil(val)}`
+          decision: `x${branchVar} >= ${Math.ceil(val)}`,
         });
       }
     }
@@ -803,7 +808,7 @@ function solveILP(
     nodesPruned,
     searchTree: searchTree.slice(0, 50),
     algorithm: 'Branch and Bound with LP Relaxation',
-    problemType: 'Integer Linear Programming'
+    problemType: 'Integer Linear Programming',
   };
 }
 
@@ -813,88 +818,74 @@ function solveILP(
 
 export const branchboundTool: UnifiedTool = {
   name: 'branch_bound',
-  description: 'Branch and bound optimizer for combinatorial optimization problems including 0/1 Knapsack, TSP, Assignment Problem, and Integer Linear Programming',
+  description:
+    'Branch and bound optimizer for combinatorial optimization problems including 0/1 Knapsack, TSP, Assignment Problem, and Integer Linear Programming',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['knapsack', 'tsp', 'assignment', 'ilp', 'info', 'examples'],
-        description: 'Operation: knapsack (0/1 knapsack), tsp (traveling salesman), assignment (assignment problem), ilp (integer linear programming), info, examples'
+        description:
+          'Operation: knapsack (0/1 knapsack), tsp (traveling salesman), assignment (assignment problem), ilp (integer linear programming), info, examples',
       },
       weights: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Item weights for knapsack problem'
+        description: 'Item weights for knapsack problem',
       },
       values: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Item values for knapsack problem'
+        description: 'Item values for knapsack problem',
       },
       capacity: {
         type: 'number',
-        description: 'Knapsack capacity'
+        description: 'Knapsack capacity',
       },
       cities: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            x: { type: 'number' },
-            y: { type: 'number' },
-            name: { type: 'string' }
-          }
-        },
-        description: 'City coordinates for TSP'
+        items: { type: 'object' },
+        description:
+          'City coordinates for TSP. Each city object has: x (number), y (number), name (string)',
       },
       costs: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Cost matrix for assignment problem'
+        items: { type: 'array' },
+        description: 'Cost matrix for assignment problem (2D array of numbers)',
       },
       agents: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Agent names for assignment problem'
+        description: 'Agent names for assignment problem',
       },
       tasks: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Task names for assignment problem'
+        description: 'Task names for assignment problem',
       },
       c: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Objective coefficients for ILP (minimize c^T x)'
+        description: 'Objective coefficients for ILP (minimize c^T x)',
       },
       A: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Constraint matrix for ILP (Ax <= b)'
+        items: { type: 'array' },
+        description: 'Constraint matrix for ILP (Ax <= b) - 2D array of numbers',
       },
       b: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Right-hand side of constraints for ILP'
+        description: 'Right-hand side of constraints for ILP',
       },
       bounds: {
         type: 'object',
-        properties: {
-          lower: { type: 'array', items: { type: 'number' } },
-          upper: { type: 'array', items: { type: 'number' } }
-        },
-        description: 'Variable bounds for ILP'
-      }
+        description: 'Variable bounds for ILP: { lower: number[], upper: number[] }',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executebranchbound(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -914,30 +905,41 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            problem: {
-              type: '0/1 Knapsack',
-              items: weights.map((w: number, i: number) => ({
-                index: i,
-                weight: w,
-                value: values[i],
-                ratio: (values[i] / w).toFixed(2)
-              })),
-              capacity
+          content: JSON.stringify(
+            {
+              problem: {
+                type: '0/1 Knapsack',
+                items: weights.map((w: number, i: number) => ({
+                  index: i,
+                  weight: w,
+                  value: values[i],
+                  ratio: (values[i] / w).toFixed(2),
+                })),
+                capacity,
+              },
+              solution: {
+                optimalValue: result.optimalValue,
+                selectedItems: result.optimalSolution,
+                totalWeight: result.optimalSolution.reduce(
+                  (sum: number, i: number) => sum + weights[i],
+                  0
+                ),
+              },
+              searchStatistics: {
+                nodesExplored: result.nodesExplored,
+                nodesPruned: result.nodesPruned,
+                pruningEfficiency:
+                  (
+                    (result.nodesPruned / (result.nodesExplored + result.nodesPruned)) *
+                    100
+                  ).toFixed(2) + '%',
+              },
+              searchTree: result.searchTree,
+              algorithm: result.algorithm,
             },
-            solution: {
-              optimalValue: result.optimalValue,
-              selectedItems: result.optimalSolution,
-              totalWeight: result.optimalSolution.reduce((sum: number, i: number) => sum + weights[i], 0)
-            },
-            searchStatistics: {
-              nodesExplored: result.nodesExplored,
-              nodesPruned: result.nodesPruned,
-              pruningEfficiency: ((result.nodesPruned / (result.nodesExplored + result.nodesPruned)) * 100).toFixed(2) + '%'
-            },
-            searchTree: result.searchTree,
-            algorithm: result.algorithm
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -947,39 +949,41 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
           { x: 1, y: 5, name: 'B' },
           { x: 5, y: 2, name: 'C' },
           { x: 6, y: 6, name: 'D' },
-          { x: 8, y: 3, name: 'E' }
+          { x: 8, y: 3, name: 'E' },
         ];
 
         const result = solveTSPBB(cities);
 
-        const tourNames = result.optimalSolution.map((i: number) =>
-          cities[i].name || `City ${i}`
-        );
+        const tourNames = result.optimalSolution.map((i: number) => cities[i].name || `City ${i}`);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            problem: {
-              type: 'Traveling Salesman Problem',
-              numCities: cities.length,
-              cities: cities.map((c: TSPCity, i: number) => ({
-                index: i,
-                name: c.name || `City ${i}`,
-                coordinates: { x: c.x, y: c.y }
-              }))
+          content: JSON.stringify(
+            {
+              problem: {
+                type: 'Traveling Salesman Problem',
+                numCities: cities.length,
+                cities: cities.map((c: TSPCity, i: number) => ({
+                  index: i,
+                  name: c.name || `City ${i}`,
+                  coordinates: { x: c.x, y: c.y },
+                })),
+              },
+              solution: {
+                optimalTourLength: result.optimalValue.toFixed(4),
+                optimalTour: result.optimalSolution,
+                tourPath: tourNames.join(' → '),
+              },
+              searchStatistics: {
+                nodesExplored: result.nodesExplored,
+                nodesPruned: result.nodesPruned,
+              },
+              searchTree: result.searchTree,
+              algorithm: result.algorithm,
             },
-            solution: {
-              optimalTourLength: result.optimalValue.toFixed(4),
-              optimalTour: result.optimalSolution,
-              tourPath: tourNames.join(' → ')
-            },
-            searchStatistics: {
-              nodesExplored: result.nodesExplored,
-              nodesPruned: result.nodesPruned
-            },
-            searchTree: result.searchTree,
-            algorithm: result.algorithm
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -988,7 +992,7 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
           [9, 2, 7, 8],
           [6, 4, 3, 7],
           [5, 8, 1, 8],
-          [7, 6, 9, 4]
+          [7, 6, 9, 4],
         ];
         const agents = args.agents || ['Alice', 'Bob', 'Carol', 'Dave'];
         const tasks = args.tasks || ['Task1', 'Task2', 'Task3', 'Task4'];
@@ -998,29 +1002,33 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
         const assignments = result.optimalSolution.map((taskIdx: number, agentIdx: number) => ({
           agent: agents[agentIdx],
           task: tasks[taskIdx],
-          cost: costs[agentIdx][taskIdx]
+          cost: costs[agentIdx][taskIdx],
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            problem: {
-              type: 'Assignment Problem',
-              numAgents: agents.length,
-              numTasks: tasks.length,
-              costMatrix: costs
+          content: JSON.stringify(
+            {
+              problem: {
+                type: 'Assignment Problem',
+                numAgents: agents.length,
+                numTasks: tasks.length,
+                costMatrix: costs,
+              },
+              solution: {
+                optimalCost: result.optimalValue,
+                assignments,
+              },
+              searchStatistics: {
+                nodesExplored: result.nodesExplored,
+                nodesPruned: result.nodesPruned,
+              },
+              searchTree: result.searchTree,
+              algorithm: result.algorithm,
             },
-            solution: {
-              optimalCost: result.optimalValue,
-              assignments
-            },
-            searchStatistics: {
-              nodesExplored: result.nodesExplored,
-              nodesPruned: result.nodesPruned
-            },
-            searchTree: result.searchTree,
-            algorithm: result.algorithm
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1031,128 +1039,151 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
         const b = args.b || [4];
         const bounds = args.bounds || {
           lower: [0, 0],
-          upper: [4, 4]
+          upper: [4, 4],
         };
 
         const result = solveILP(c, A, b, bounds);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            problem: {
-              type: 'Integer Linear Programming',
-              objective: `minimize ${c.map((ci: number, i: number) => `${ci >= 0 ? '+' : ''}${ci}x${i}`).join(' ')}`,
-              constraints: A.map((row: number[], i: number) =>
-                `${row.map((a: number, j: number) => `${a >= 0 ? '+' : ''}${a}x${j}`).join(' ')} <= ${b[i]}`
-              ),
-              variableBounds: bounds
+          content: JSON.stringify(
+            {
+              problem: {
+                type: 'Integer Linear Programming',
+                objective: `minimize ${c.map((ci: number, i: number) => `${ci >= 0 ? '+' : ''}${ci}x${i}`).join(' ')}`,
+                constraints: A.map(
+                  (row: number[], i: number) =>
+                    `${row.map((a: number, j: number) => `${a >= 0 ? '+' : ''}${a}x${j}`).join(' ')} <= ${b[i]}`
+                ),
+                variableBounds: bounds,
+              },
+              solution: {
+                optimalValue: result.optimalValue,
+                optimalSolution: result.optimalSolution,
+                variableValues: result.optimalSolution.map(
+                  (v: number, i: number) => `x${i} = ${v}`
+                ),
+              },
+              searchStatistics: {
+                nodesExplored: result.nodesExplored,
+                nodesPruned: result.nodesPruned,
+              },
+              searchTree: result.searchTree,
+              algorithm: result.algorithm,
             },
-            solution: {
-              optimalValue: result.optimalValue,
-              optimalSolution: result.optimalSolution,
-              variableValues: result.optimalSolution.map((v: number, i: number) => `x${i} = ${v}`)
-            },
-            searchStatistics: {
-              nodesExplored: result.nodesExplored,
-              nodesPruned: result.nodesPruned
-            },
-            searchTree: result.searchTree,
-            algorithm: result.algorithm
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Branch and Bound Optimizer',
-            description: 'Exact optimization algorithm that systematically enumerates candidate solutions by means of state space search',
-            supportedProblems: [
-              {
-                name: '0/1 Knapsack',
-                operation: 'knapsack',
-                description: 'Select items to maximize value within weight capacity',
-                boundingStrategy: 'LP relaxation (fractional knapsack)'
+          content: JSON.stringify(
+            {
+              tool: 'Branch and Bound Optimizer',
+              description:
+                'Exact optimization algorithm that systematically enumerates candidate solutions by means of state space search',
+              supportedProblems: [
+                {
+                  name: '0/1 Knapsack',
+                  operation: 'knapsack',
+                  description: 'Select items to maximize value within weight capacity',
+                  boundingStrategy: 'LP relaxation (fractional knapsack)',
+                },
+                {
+                  name: 'Traveling Salesman Problem',
+                  operation: 'tsp',
+                  description: 'Find shortest tour visiting all cities exactly once',
+                  boundingStrategy: 'Reduced cost matrix',
+                },
+                {
+                  name: 'Assignment Problem',
+                  operation: 'assignment',
+                  description: 'Assign agents to tasks minimizing total cost',
+                  boundingStrategy: 'Row/column minimum bounds',
+                },
+                {
+                  name: 'Integer Linear Programming',
+                  operation: 'ilp',
+                  description: 'Optimize linear objective with integer constraints',
+                  boundingStrategy: 'LP relaxation',
+                },
+              ],
+              algorithmConcepts: {
+                branching: 'Divide problem into smaller subproblems',
+                bounding: 'Calculate optimistic bound for each subproblem',
+                pruning: 'Discard subproblems that cannot improve best known solution',
+                searchStrategies: ['Best-first', 'Depth-first', 'Breadth-first'],
               },
-              {
-                name: 'Traveling Salesman Problem',
-                operation: 'tsp',
-                description: 'Find shortest tour visiting all cities exactly once',
-                boundingStrategy: 'Reduced cost matrix'
-              },
-              {
-                name: 'Assignment Problem',
-                operation: 'assignment',
-                description: 'Assign agents to tasks minimizing total cost',
-                boundingStrategy: 'Row/column minimum bounds'
-              },
-              {
-                name: 'Integer Linear Programming',
-                operation: 'ilp',
-                description: 'Optimize linear objective with integer constraints',
-                boundingStrategy: 'LP relaxation'
-              }
-            ],
-            algorithmConcepts: {
-              branching: 'Divide problem into smaller subproblems',
-              bounding: 'Calculate optimistic bound for each subproblem',
-              pruning: 'Discard subproblems that cannot improve best known solution',
-              searchStrategies: ['Best-first', 'Depth-first', 'Breadth-first']
+              complexity: 'Worst case exponential, but pruning often makes it practical',
             },
-            complexity: 'Worst case exponential, but pruning often makes it practical'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: '0/1 Knapsack',
-                call: {
-                  operation: 'knapsack',
-                  weights: [2, 3, 4, 5],
-                  values: [3, 4, 5, 6],
-                  capacity: 8
-                }
-              },
-              {
-                name: 'TSP with 5 cities',
-                call: {
-                  operation: 'tsp',
-                  cities: [
-                    { x: 0, y: 0, name: 'Start' },
-                    { x: 2, y: 4, name: 'A' },
-                    { x: 5, y: 2, name: 'B' },
-                    { x: 7, y: 5, name: 'C' },
-                    { x: 3, y: 1, name: 'D' }
-                  ]
-                }
-              },
-              {
-                name: 'Job Assignment',
-                call: {
-                  operation: 'assignment',
-                  costs: [[10, 5, 8], [3, 8, 6], [7, 4, 9]],
-                  agents: ['Worker1', 'Worker2', 'Worker3'],
-                  tasks: ['JobA', 'JobB', 'JobC']
-                }
-              },
-              {
-                name: 'Simple ILP',
-                call: {
-                  operation: 'ilp',
-                  c: [-5, -4],
-                  A: [[1, 1], [2, 1]],
-                  b: [5, 8],
-                  bounds: { lower: [0, 0], upper: [5, 5] }
-                }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: '0/1 Knapsack',
+                  call: {
+                    operation: 'knapsack',
+                    weights: [2, 3, 4, 5],
+                    values: [3, 4, 5, 6],
+                    capacity: 8,
+                  },
+                },
+                {
+                  name: 'TSP with 5 cities',
+                  call: {
+                    operation: 'tsp',
+                    cities: [
+                      { x: 0, y: 0, name: 'Start' },
+                      { x: 2, y: 4, name: 'A' },
+                      { x: 5, y: 2, name: 'B' },
+                      { x: 7, y: 5, name: 'C' },
+                      { x: 3, y: 1, name: 'D' },
+                    ],
+                  },
+                },
+                {
+                  name: 'Job Assignment',
+                  call: {
+                    operation: 'assignment',
+                    costs: [
+                      [10, 5, 8],
+                      [3, 8, 6],
+                      [7, 4, 9],
+                    ],
+                    agents: ['Worker1', 'Worker2', 'Worker3'],
+                    tasks: ['JobA', 'JobB', 'JobC'],
+                  },
+                },
+                {
+                  name: 'Simple ILP',
+                  call: {
+                    operation: 'ilp',
+                    c: [-5, -4],
+                    A: [
+                      [1, 1],
+                      [2, 1],
+                    ],
+                    b: [5, 8],
+                    bounds: { lower: [0, 0], upper: [5, 5] },
+                  },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1160,7 +1191,7 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1169,4 +1200,6 @@ export async function executebranchbound(toolCall: UnifiedToolCall): Promise<Uni
   }
 }
 
-export function isbranchboundAvailable(): boolean { return true; }
+export function isbranchboundAvailable(): boolean {
+  return true;
+}

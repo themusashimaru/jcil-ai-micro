@@ -14,27 +14,63 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const hiddenmarkovTool: UnifiedTool = {
   name: 'hidden_markov',
-  description: 'Hidden Markov Model - Viterbi decoding, Forward-Backward algorithm, Baum-Welch training, sequence generation.',
+  description:
+    'Hidden Markov Model - Viterbi decoding, Forward-Backward algorithm, Baum-Welch training, sequence generation.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['viterbi', 'forward', 'backward', 'forward_backward', 'train', 'generate', 'predict', 'likelihood', 'info'],
-        description: 'Operation: viterbi (decode), forward (probability), backward (smoothing), forward_backward (full), train (Baum-Welch), generate (sample), predict (next state), likelihood (sequence prob)'
+        enum: [
+          'viterbi',
+          'forward',
+          'backward',
+          'forward_backward',
+          'train',
+          'generate',
+          'predict',
+          'likelihood',
+          'info',
+        ],
+        description:
+          'Operation: viterbi (decode), forward (probability), backward (smoothing), forward_backward (full), train (Baum-Welch), generate (sample), predict (next state), likelihood (sequence prob)',
       },
       states: { type: 'array', items: { type: 'string' }, description: 'Hidden state names' },
-      observations: { type: 'array', items: { type: 'string' }, description: 'Observable symbol names' },
-      transition_matrix: { type: 'array', items: { type: 'array', items: { type: 'number' } }, description: 'State transition probabilities A[i][j] = P(s_j | s_i)' },
-      emission_matrix: { type: 'array', items: { type: 'array', items: { type: 'number' } }, description: 'Emission probabilities B[i][k] = P(o_k | s_i)' },
-      initial_probs: { type: 'array', items: { type: 'number' }, description: 'Initial state probabilities π[i] = P(s_i at t=0)' },
-      observed_sequence: { type: 'array', items: { type: 'string' }, description: 'Sequence of observed symbols' },
+      observations: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Observable symbol names',
+      },
+      transition_matrix: {
+        type: 'array',
+        items: { type: 'array' },
+        description: 'State transition probabilities A[i][j] = P(s_j | s_i) - 2D array of numbers',
+      },
+      emission_matrix: {
+        type: 'array',
+        items: { type: 'array' },
+        description: 'Emission probabilities B[i][k] = P(o_k | s_i) - 2D array of numbers',
+      },
+      initial_probs: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Initial state probabilities π[i] = P(s_i at t=0)',
+      },
+      observed_sequence: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Sequence of observed symbols',
+      },
       sequence_length: { type: 'integer', description: 'Length of sequence to generate' },
       num_iterations: { type: 'integer', description: 'Number of Baum-Welch iterations' },
-      training_sequences: { type: 'array', items: { type: 'array', items: { type: 'string' } }, description: 'Multiple sequences for training' }
+      training_sequences: {
+        type: 'array',
+        items: { type: 'array' },
+        description: 'Multiple sequences for training (2D array of strings)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -98,7 +134,7 @@ function createHMM(
     B,
     pi,
     numStates: states.length,
-    numObs: observations.length
+    numObs: observations.length,
   };
 }
 
@@ -147,9 +183,13 @@ function viterbi(hmm: HMM, obsSequence: number[]): ViterbiResult {
   const N = hmm.numStates;
 
   // Trellis: delta[t][i] = max probability of path ending in state i at time t
-  const delta: number[][] = Array(T).fill(null).map(() => Array(N).fill(0));
+  const delta: number[][] = Array(T)
+    .fill(null)
+    .map(() => Array(N).fill(0));
   // Backpointers
-  const psi: number[][] = Array(T).fill(null).map(() => Array(N).fill(0));
+  const psi: number[][] = Array(T)
+    .fill(null)
+    .map(() => Array(N).fill(0));
 
   // Initialization (t=0)
   for (let i = 0; i < N; i++) {
@@ -193,14 +233,14 @@ function viterbi(hmm: HMM, obsSequence: number[]): ViterbiResult {
     pathIndices[t] = psi[t + 1][pathIndices[t + 1]];
   }
 
-  const path = pathIndices.map(i => hmm.states[i]);
+  const path = pathIndices.map((i) => hmm.states[i]);
 
   return {
     path,
     pathIndices,
     probability: Math.exp(maxFinal),
     logProbability: maxFinal,
-    trellis: delta
+    trellis: delta,
   };
 }
 
@@ -214,7 +254,9 @@ function forward(hmm: HMM, obsSequence: number[]): ForwardResult {
   const N = hmm.numStates;
 
   // Alpha with scaling for numerical stability
-  const alpha: number[][] = Array(T).fill(null).map(() => Array(N).fill(0));
+  const alpha: number[][] = Array(T)
+    .fill(null)
+    .map(() => Array(N).fill(0));
   const scalingFactors: number[] = Array(T).fill(1);
 
   // Initialization (t=0)
@@ -255,7 +297,7 @@ function forward(hmm: HMM, obsSequence: number[]): ForwardResult {
     alpha,
     probability: Math.exp(logProb),
     logProbability: logProb,
-    scalingFactors
+    scalingFactors,
   };
 }
 
@@ -267,7 +309,9 @@ function backward(hmm: HMM, obsSequence: number[], scalingFactors: number[]): Ba
   const T = obsSequence.length;
   const N = hmm.numStates;
 
-  const beta: number[][] = Array(T).fill(null).map(() => Array(N).fill(0));
+  const beta: number[][] = Array(T)
+    .fill(null)
+    .map(() => Array(N).fill(0));
 
   // Initialization (t=T-1)
   for (let i = 0; i < N; i++) {
@@ -305,7 +349,9 @@ function forwardBackward(hmm: HMM, obsSequence: number[]): ForwardBackwardResult
   const { beta } = backward(hmm, obsSequence, scalingFactors);
 
   // Compute gamma: P(state_t = i | observations)
-  const gamma: number[][] = Array(T).fill(null).map(() => Array(N).fill(0));
+  const gamma: number[][] = Array(T)
+    .fill(null)
+    .map(() => Array(N).fill(0));
   for (let t = 0; t < T; t++) {
     let sum = 0;
     for (let i = 0; i < N; i++) {
@@ -321,9 +367,13 @@ function forwardBackward(hmm: HMM, obsSequence: number[]): ForwardBackwardResult
   }
 
   // Compute xi: P(state_t = i, state_{t+1} = j | observations)
-  const xi: number[][][] = Array(T - 1).fill(null).map(() =>
-    Array(N).fill(null).map(() => Array(N).fill(0))
-  );
+  const xi: number[][][] = Array(T - 1)
+    .fill(null)
+    .map(() =>
+      Array(N)
+        .fill(null)
+        .map(() => Array(N).fill(0))
+    );
 
   for (let t = 0; t < T - 1; t++) {
     let sum = 0;
@@ -346,7 +396,7 @@ function forwardBackward(hmm: HMM, obsSequence: number[]): ForwardBackwardResult
   // Format state probabilities for output
   const stateProbs = gamma.map((probs, t) => ({
     time: t,
-    probs: probs.map((prob, i) => ({ state: hmm.states[i], prob }))
+    probs: probs.map((prob, i) => ({ state: hmm.states[i], prob })),
   }));
 
   return {
@@ -355,7 +405,7 @@ function forwardBackward(hmm: HMM, obsSequence: number[]): ForwardBackwardResult
     gamma,
     xi,
     probability: Math.exp(logProbability),
-    stateProbs
+    stateProbs,
   };
 }
 
@@ -372,8 +422,8 @@ function baumWelch(
   const M = hmm.numObs;
 
   // Copy HMM parameters
-  const A = hmm.A.map(row => [...row]);
-  const B = hmm.B.map(row => [...row]);
+  const A = hmm.A.map((row) => [...row]);
+  const B = hmm.B.map((row) => [...row]);
   const pi = [...hmm.pi];
 
   const logLikelihood: number[] = [];
@@ -381,9 +431,13 @@ function baumWelch(
 
   for (let iter = 0; iter < numIterations; iter++) {
     // Accumulators
-    const A_num = Array(N).fill(null).map(() => Array(N).fill(0));
+    const A_num = Array(N)
+      .fill(null)
+      .map(() => Array(N).fill(0));
     const A_den = Array(N).fill(0);
-    const B_num = Array(N).fill(null).map(() => Array(M).fill(0));
+    const B_num = Array(N)
+      .fill(null)
+      .map(() => Array(M).fill(0));
     const B_den = Array(N).fill(0);
     const pi_new = Array(N).fill(0);
 
@@ -456,9 +510,8 @@ function baumWelch(
   }
 
   const trainedHMM = createHMM(hmm.states, hmm.observations, A, B, pi);
-  const improvement = logLikelihood.length > 1
-    ? logLikelihood[logLikelihood.length - 1] - logLikelihood[0]
-    : 0;
+  const improvement =
+    logLikelihood.length > 1 ? logLikelihood[logLikelihood.length - 1] - logLikelihood[0] : 0;
 
   return { hmm: trainedHMM, logLikelihood, improvement };
 }
@@ -467,7 +520,10 @@ function baumWelch(
 // SEQUENCE GENERATION
 // ============================================================================
 
-function generateSequence(hmm: HMM, length: number): {
+function generateSequence(
+  hmm: HMM,
+  length: number
+): {
   states: string[];
   observations: string[];
   stateIndices: number[];
@@ -496,10 +552,10 @@ function generateSequence(hmm: HMM, length: number): {
   }
 
   return {
-    states: stateIndices.map(i => hmm.states[i]),
-    observations: obsIndices.map(i => hmm.observations[i]),
+    states: stateIndices.map((i) => hmm.states[i]),
+    observations: obsIndices.map((i) => hmm.observations[i]),
     stateIndices,
-    obsIndices
+    obsIndices,
   };
 }
 
@@ -525,13 +581,13 @@ function getDefaultHMM(): HMM {
   // Transition probabilities
   const A = [
     [0.7, 0.3], // Sunny -> Sunny (0.7), Sunny -> Rainy (0.3)
-    [0.4, 0.6]  // Rainy -> Sunny (0.4), Rainy -> Rainy (0.6)
+    [0.4, 0.6], // Rainy -> Sunny (0.4), Rainy -> Rainy (0.6)
   ];
 
   // Emission probabilities
   const B = [
     [0.6, 0.3, 0.1], // Sunny: Walk (0.6), Shop (0.3), Clean (0.1)
-    [0.1, 0.4, 0.5]  // Rainy: Walk (0.1), Shop (0.4), Clean (0.5)
+    [0.1, 0.4, 0.5], // Rainy: Walk (0.1), Shop (0.4), Clean (0.5)
   ];
 
   // Initial probabilities
@@ -559,7 +615,7 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
       observed_sequence,
       sequence_length = 10,
       num_iterations = 10,
-      training_sequences
+      training_sequences,
     } = args;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -576,7 +632,7 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
 
     // Convert observation sequence to indices
     const getObsIndices = (seq: string[]): number[] =>
-      seq.map(o => {
+      seq.map((o) => {
         const idx = hmm.observations.indexOf(o);
         if (idx === -1) throw new Error(`Unknown observation: ${o}`);
         return idx;
@@ -600,11 +656,12 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           state_by_time: viterbiResult.path.map((state, t) => ({
             time: t,
             observation: observed_sequence[t],
-            inferred_state: state
+            inferred_state: state,
           })),
           algorithm: 'Dynamic programming with backtracking to find argmax P(states|observations)',
-          description: `Viterbi decoded ${observed_sequence.length} observations. ` +
-            `Most likely path: ${viterbiResult.path.join(' → ')}`
+          description:
+            `Viterbi decoded ${observed_sequence.length} observations. ` +
+            `Most likely path: ${viterbiResult.path.join(' → ')}`,
         };
         break;
       }
@@ -622,12 +679,14 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           observed_sequence,
           sequence_probability: forwardResult.probability,
           log_probability: forwardResult.logProbability,
-          forward_variables_final: forwardResult.alpha[forwardResult.alpha.length - 1].map((prob, i) => ({
-            state: hmm.states[i],
-            alpha: prob
-          })),
+          forward_variables_final: forwardResult.alpha[forwardResult.alpha.length - 1].map(
+            (prob, i) => ({
+              state: hmm.states[i],
+              alpha: prob,
+            })
+          ),
           algorithm: 'Recursive computation of P(observations up to t, state at t)',
-          description: `P(${observed_sequence.join(', ')}) = ${forwardResult.probability.toExponential(4)}`
+          description: `P(${observed_sequence.join(', ')}) = ${forwardResult.probability.toExponential(4)}`,
         };
         break;
       }
@@ -646,10 +705,10 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           observed_sequence,
           backward_variables_initial: backwardResult.beta[0].map((prob, i) => ({
             state: hmm.states[i],
-            beta: prob
+            beta: prob,
           })),
           algorithm: 'Recursive computation of P(future observations | state at t)',
-          description: `Backward pass completed for ${observed_sequence.length} observations`
+          description: `Backward pass completed for ${observed_sequence.length} observations`,
         };
         break;
       }
@@ -669,7 +728,7 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
             time: t,
             observation: observed_sequence[t],
             most_likely_state: hmm.states[maxIdx],
-            probabilities: probs.map((p, i) => ({ state: hmm.states[i], prob: p }))
+            probabilities: probs.map((p, i) => ({ state: hmm.states[i], prob: p })),
           };
         });
 
@@ -680,17 +739,20 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           state_posteriors: inferredStates.slice(0, 10), // First 10
           summary: {
             sequence_length: observed_sequence.length,
-            inferred_states: inferredStates.map(s => s.most_likely_state).join(' → ')
+            inferred_states: inferredStates.map((s) => s.most_likely_state).join(' → '),
           },
-          algorithm: 'Combines forward and backward passes to compute P(state_t | all observations)',
-          description: `Forward-backward analysis of ${observed_sequence.length} observations`
+          algorithm:
+            'Combines forward and backward passes to compute P(state_t | all observations)',
+          description: `Forward-backward analysis of ${observed_sequence.length} observations`,
         };
         break;
       }
 
       case 'train': {
-        const seqs = training_sequences || [observed_sequence || ['Walk', 'Shop', 'Clean', 'Walk', 'Walk']];
-        const seqIndices = seqs.map(seq => getObsIndices(seq));
+        const seqs = training_sequences || [
+          observed_sequence || ['Walk', 'Shop', 'Clean', 'Walk', 'Walk'],
+        ];
+        const seqIndices = seqs.map((seq: string[]) => getObsIndices(seq));
 
         const trainResult = baumWelch(hmm, seqIndices, num_iterations);
 
@@ -704,11 +766,12 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           learned_parameters: {
             transition_matrix: trainResult.hmm.A,
             emission_matrix: trainResult.hmm.B,
-            initial_probs: trainResult.hmm.pi
+            initial_probs: trainResult.hmm.pi,
           },
           algorithm: 'Baum-Welch (EM algorithm for HMMs)',
-          description: `Trained on ${seqs.length} sequences for ${trainResult.logLikelihood.length} iterations. ` +
-            `Log-likelihood improved by ${trainResult.improvement.toFixed(4)}`
+          description:
+            `Trained on ${seqs.length} sequences for ${trainResult.logLikelihood.length} iterations. ` +
+            `Log-likelihood improved by ${trainResult.improvement.toFixed(4)}`,
         };
         break;
       }
@@ -724,9 +787,9 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           sequence_pairs: generated.states.map((state, t) => ({
             time: t,
             hidden_state: state,
-            observation: generated.observations[t]
+            observation: generated.observations[t],
           })),
-          description: `Generated sequence of ${sequence_length} observations from HMM`
+          description: `Generated sequence of ${sequence_length} observations from HMM`,
         };
         break;
       }
@@ -763,10 +826,14 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           observed_sequence,
           current_state_distribution: lastGamma.map((p, i) => ({ state: hmm.states[i], prob: p })),
           predicted_next_state: nextStateProbs.map((p, i) => ({ state: hmm.states[i], prob: p })),
-          predicted_next_observation: nextObsProbs.map((p, k) => ({ observation: hmm.observations[k], prob: p })),
+          predicted_next_observation: nextObsProbs.map((p, k) => ({
+            observation: hmm.observations[k],
+            prob: p,
+          })),
           most_likely_next_state: hmm.states[nextStateProbs.indexOf(Math.max(...nextStateProbs))],
-          most_likely_next_observation: hmm.observations[nextObsProbs.indexOf(Math.max(...nextObsProbs))],
-          description: `Predicted next state/observation from ${observed_sequence.length} observations`
+          most_likely_next_observation:
+            hmm.observations[nextObsProbs.indexOf(Math.max(...nextObsProbs))],
+          description: `Predicted next state/observation from ${observed_sequence.length} observations`,
         };
         break;
       }
@@ -786,8 +853,9 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
           log_probability: forwardResult.logProbability,
           perplexity: Math.exp(-forwardResult.logProbability / observed_sequence.length),
           bits_per_symbol: -forwardResult.logProbability / (observed_sequence.length * Math.log(2)),
-          description: `P(sequence) = ${forwardResult.probability.toExponential(4)}, ` +
-            `log P = ${forwardResult.logProbability.toFixed(4)}`
+          description:
+            `P(sequence) = ${forwardResult.probability.toExponential(4)}, ` +
+            `log P = ${forwardResult.logProbability.toFixed(4)}`,
         };
         break;
       }
@@ -803,7 +871,7 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
             observations: hmm.observations,
             transition_matrix: hmm.A,
             emission_matrix: hmm.B,
-            initial_probs: hmm.pi
+            initial_probs: hmm.pi,
           },
           algorithms: {
             viterbi: 'Find most likely state sequence (decoding)',
@@ -811,21 +879,21 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
             backward: 'Compute backward variables (smoothing)',
             forward_backward: 'State posterior probabilities γ(t)',
             baum_welch: 'EM algorithm for parameter learning',
-            generate: 'Sample sequences from the model'
+            generate: 'Sample sequences from the model',
           },
           applications: [
             'Speech recognition',
             'Part-of-speech tagging',
             'Gene finding in bioinformatics',
             'Financial time series',
-            'Gesture recognition'
+            'Gesture recognition',
           ],
           mathematics: {
             transition: 'A[i][j] = P(state_j at t+1 | state_i at t)',
             emission: 'B[i][k] = P(observation_k | state_i)',
             forward: 'α_t(i) = P(o_1..o_t, s_t=i)',
             backward: 'β_t(i) = P(o_{t+1}..o_T | s_t=i)',
-            gamma: 'γ_t(i) = P(s_t=i | O) = α_t(i)β_t(i) / P(O)'
+            gamma: 'γ_t(i) = P(s_t=i | O) = α_t(i)β_t(i) / P(O)',
           },
           operations: {
             viterbi: 'Decode most likely state sequence',
@@ -835,24 +903,27 @@ export async function executehiddenmarkov(toolCall: UnifiedToolCall): Promise<Un
             train: 'Baum-Welch parameter estimation',
             generate: 'Sample from the model',
             predict: 'Predict next state/observation',
-            likelihood: 'Compute sequence probability'
-          }
+            likelihood: 'Compute sequence probability',
+          },
         };
       }
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: errorMessage,
-        tool: 'hidden_markov',
-        hint: 'Use operation="info" for documentation'
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: errorMessage,
+          tool: 'hidden_markov',
+          hint: 'Use operation="info" for documentation',
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
   }
 }

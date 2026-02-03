@@ -8,69 +8,84 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const randomgeneratorTool: UnifiedTool = {
   name: 'random_generator',
-  description: 'Random number generation - cryptographic, statistical distributions, UUIDs, passwords',
+  description:
+    'Random number generation - cryptographic, statistical distributions, UUIDs, passwords',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['generate_bytes', 'generate_int', 'generate_float', 'generate_uuid', 'generate_password',
-               'uniform', 'normal', 'exponential', 'poisson', 'binomial', 'shuffle', 'sample', 'test', 'info'],
-        description: 'Operation to perform'
+        enum: [
+          'generate_bytes',
+          'generate_int',
+          'generate_float',
+          'generate_uuid',
+          'generate_password',
+          'uniform',
+          'normal',
+          'exponential',
+          'poisson',
+          'binomial',
+          'shuffle',
+          'sample',
+          'test',
+          'info',
+        ],
+        description: 'Operation to perform',
       },
       length: {
         type: 'number',
-        description: 'Length in bytes or characters'
+        description: 'Length in bytes or characters',
       },
       count: {
         type: 'number',
-        description: 'Number of values to generate'
+        description: 'Number of values to generate',
       },
       min: {
         type: 'number',
-        description: 'Minimum value for range'
+        description: 'Minimum value for range',
       },
       max: {
         type: 'number',
-        description: 'Maximum value for range'
+        description: 'Maximum value for range',
       },
       mean: {
         type: 'number',
-        description: 'Mean for normal distribution'
+        description: 'Mean for normal distribution',
       },
       std: {
         type: 'number',
-        description: 'Standard deviation for normal distribution'
+        description: 'Standard deviation for normal distribution',
       },
       lambda: {
         type: 'number',
-        description: 'Rate parameter for exponential/Poisson'
+        description: 'Rate parameter for exponential/Poisson',
       },
       n: {
         type: 'number',
-        description: 'Number of trials for binomial'
+        description: 'Number of trials for binomial',
       },
       p: {
         type: 'number',
-        description: 'Probability for binomial'
+        description: 'Probability for binomial',
       },
       format: {
         type: 'string',
         enum: ['hex', 'base64', 'binary', 'decimal'],
-        description: 'Output format'
+        description: 'Output format',
       },
       array: {
         type: 'array',
-        description: 'Array to shuffle or sample from'
+        description: 'Array to shuffle or sample from',
       },
       charset: {
         type: 'string',
         enum: ['alphanumeric', 'alpha', 'numeric', 'hex', 'base64', 'symbols', 'all'],
-        description: 'Character set for password generation'
-      }
+        description: 'Character set for password generation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Cryptographically secure random bytes (using Math.random as fallback)
@@ -93,7 +108,7 @@ class Xorshift128Plus {
 
   constructor(seed?: number) {
     const s = seed ?? Date.now();
-    this.state = [BigInt(s) ^ 0x5555555555555555n, BigInt(~s) ^ 0xAAAAAAAAAAAAAAAAn];
+    this.state = [BigInt(s) ^ 0x5555555555555555n, BigInt(~s) ^ 0xaaaaaaaaaaaaaaaan];
   }
 
   next(): bigint {
@@ -105,12 +120,12 @@ class Xorshift128Plus {
     s1 ^= s0;
     s1 ^= s0 >> 26n;
     this.state[1] = s1;
-    return (s0 + s1) & 0xFFFFFFFFFFFFFFFFn;
+    return (s0 + s1) & 0xffffffffffffffffn;
   }
 
   // Float in [0, 1)
   nextFloat(): number {
-    return Number(this.next() & 0xFFFFFFFFFFFFFn) / 0x10000000000000;
+    return Number(this.next() & 0xfffffffffffffn) / 0x10000000000000;
   }
 
   // Integer in [min, max]
@@ -120,8 +135,8 @@ class Xorshift128Plus {
 }
 
 // Mersenne Twister (MT19937)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-class MersenneTwister {
+
+export class MersenneTwister {
   private mt: number[] = new Array(624);
   private mti: number = 625;
 
@@ -144,8 +159,8 @@ class MersenneTwister {
 
     let y = this.mt[this.mti++];
     y ^= y >>> 11;
-    y ^= (y << 7) & 0x9D2C5680;
-    y ^= (y << 15) & 0xEFC60000;
+    y ^= (y << 7) & 0x9d2c5680;
+    y ^= (y << 15) & 0xefc60000;
     y ^= y >>> 18;
 
     return y >>> 0;
@@ -153,10 +168,10 @@ class MersenneTwister {
 
   private twist(): void {
     for (let i = 0; i < 624; i++) {
-      const y = (this.mt[i] & 0x80000000) | (this.mt[(i + 1) % 624] & 0x7FFFFFFF);
+      const y = (this.mt[i] & 0x80000000) | (this.mt[(i + 1) % 624] & 0x7fffffff);
       this.mt[i] = this.mt[(i + 397) % 624] ^ (y >>> 1);
       if (y & 1) {
-        this.mt[i] ^= 0x9908B0DF;
+        this.mt[i] ^= 0x9908b0df;
       }
     }
     this.mti = 0;
@@ -173,7 +188,7 @@ class MersenneTwister {
 
 // Utility functions
 function bytesToHex(bytes: number[]): string {
-  return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function bytesToBase64(bytes: number[]): string {
@@ -193,7 +208,7 @@ function bytesToBase64(bytes: number[]): string {
 }
 
 function bytesToBinary(bytes: number[]): string {
-  return bytes.map(b => b.toString(2).padStart(8, '0')).join('');
+  return bytes.map((b) => b.toString(2).padStart(8, '0')).join('');
 }
 
 // UUID v4 generation
@@ -201,8 +216,8 @@ function generateUUIDv4(): string {
   const bytes = secureRandomBytes(16);
 
   // Set version (4) and variant (10xx)
-  bytes[6] = (bytes[6] & 0x0F) | 0x40;
-  bytes[8] = (bytes[8] & 0x3F) | 0x80;
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
   const hex = bytesToHex(bytes);
   return [
@@ -210,7 +225,7 @@ function generateUUIDv4(): string {
     hex.slice(8, 12),
     hex.slice(12, 16),
     hex.slice(16, 20),
-    hex.slice(20, 32)
+    hex.slice(20, 32),
   ].join('-');
 }
 
@@ -221,14 +236,14 @@ function generateUUIDv7(): string {
 
   // Set timestamp (first 48 bits)
   for (let i = 0; i < 6; i++) {
-    bytes[i] = (timestamp >> (8 * (5 - i))) & 0xFF;
+    bytes[i] = (timestamp >> (8 * (5 - i))) & 0xff;
   }
 
   // Set version (7)
-  bytes[6] = (bytes[6] & 0x0F) | 0x70;
+  bytes[6] = (bytes[6] & 0x0f) | 0x70;
 
   // Set variant
-  bytes[8] = (bytes[8] & 0x3F) | 0x80;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
   const hex = bytesToHex(bytes);
   return [
@@ -236,7 +251,7 @@ function generateUUIDv7(): string {
     hex.slice(8, 12),
     hex.slice(12, 16),
     hex.slice(16, 20),
-    hex.slice(20, 32)
+    hex.slice(20, 32),
   ].join('-');
 }
 
@@ -249,7 +264,7 @@ function generatePassword(length: number, charset: string): string {
     hex: '0123456789abcdef',
     base64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
     symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?',
-    all: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?'
+    all: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?',
   };
 
   const chars = charsets[charset] || charsets.alphanumeric;
@@ -266,7 +281,9 @@ function generatePassword(length: number, charset: string): string {
 // Statistical distributions
 function uniformDistribution(count: number, min: number, max: number): number[] {
   const rng = new Xorshift128Plus();
-  return Array(count).fill(0).map(() => min + rng.nextFloat() * (max - min));
+  return Array(count)
+    .fill(0)
+    .map(() => min + rng.nextFloat() * (max - min));
 }
 
 // Box-Muller transform for normal distribution
@@ -293,7 +310,9 @@ function normalDistribution(count: number, mean: number, std: number): number[] 
 // Inverse transform sampling for exponential
 function exponentialDistribution(count: number, lambda: number): number[] {
   const rng = new Xorshift128Plus();
-  return Array(count).fill(0).map(() => -Math.log(1 - rng.nextFloat()) / lambda);
+  return Array(count)
+    .fill(0)
+    .map(() => -Math.log(1 - rng.nextFloat()) / lambda);
 }
 
 // Poisson distribution using Knuth's algorithm
@@ -301,32 +320,36 @@ function poissonDistribution(count: number, lambda: number): number[] {
   const rng = new Xorshift128Plus();
   const L = Math.exp(-lambda);
 
-  return Array(count).fill(0).map(() => {
-    let k = 0;
-    let p = 1;
+  return Array(count)
+    .fill(0)
+    .map(() => {
+      let k = 0;
+      let p = 1;
 
-    do {
-      k++;
-      p *= rng.nextFloat();
-    } while (p > L);
+      do {
+        k++;
+        p *= rng.nextFloat();
+      } while (p > L);
 
-    return k - 1;
-  });
+      return k - 1;
+    });
 }
 
 // Binomial distribution
 function binomialDistribution(count: number, n: number, p: number): number[] {
   const rng = new Xorshift128Plus();
 
-  return Array(count).fill(0).map(() => {
-    let successes = 0;
-    for (let i = 0; i < n; i++) {
-      if (rng.nextFloat() < p) {
-        successes++;
+  return Array(count)
+    .fill(0)
+    .map(() => {
+      let successes = 0;
+      for (let i = 0; i < n; i++) {
+        if (rng.nextFloat() < p) {
+          successes++;
+        }
       }
-    }
-    return successes;
-  });
+      return successes;
+    });
 }
 
 // Fisher-Yates shuffle
@@ -362,7 +385,10 @@ function sample<T>(array: T[], count: number): T[] {
 }
 
 // Statistical tests for randomness
-function chiSquareTest(observed: number[], expected: number[]): { statistic: number; pValue: number } {
+function chiSquareTest(
+  observed: number[],
+  expected: number[]
+): { statistic: number; pValue: number } {
   let chiSq = 0;
   for (let i = 0; i < observed.length; i++) {
     chiSq += Math.pow(observed[i] - expected[i], 2) / expected[i];
@@ -371,7 +397,7 @@ function chiSquareTest(observed: number[], expected: number[]): { statistic: num
   // Approximate p-value using chi-square CDF (simplified)
   const df = observed.length - 1;
   // Using Wilson-Hilferty approximation
-  const z = Math.pow(chiSq / df, 1/3) - (1 - 2 / (9 * df));
+  const z = Math.pow(chiSq / df, 1 / 3) - (1 - 2 / (9 * df));
   const se = Math.sqrt(2 / (9 * df));
   const pValue = 0.5 * (1 + erf(-(z / se) / Math.sqrt(2)));
 
@@ -380,18 +406,18 @@ function chiSquareTest(observed: number[], expected: number[]): { statistic: num
 
 // Error function approximation
 function erf(x: number): number {
-  const a1 =  0.254829592;
+  const a1 = 0.254829592;
   const a2 = -0.284496736;
-  const a3 =  1.421413741;
+  const a3 = 1.421413741;
   const a4 = -1.453152027;
-  const a5 =  1.061405429;
-  const p  =  0.3275911;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
 
   const sign = x < 0 ? -1 : 1;
   x = Math.abs(x);
 
   const t = 1 / (1 + p * x);
-  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
   return sign * y;
 }
@@ -399,15 +425,15 @@ function erf(x: number): number {
 // Runs test for randomness
 function runsTest(data: number[]): { runs: number; expected: number; zScore: number } {
   const median = [...data].sort((a, b) => a - b)[Math.floor(data.length / 2)];
-  const binary = data.map(d => d > median ? 1 : 0);
+  const binary = data.map((d) => (d > median ? 1 : 0));
 
   let runs = 1;
   for (let i = 1; i < binary.length; i++) {
     if (binary[i] !== binary[i - 1]) runs++;
   }
 
-  const n1 = binary.filter(b => b === 1).length;
-  const n2 = binary.filter(b => b === 0).length;
+  const n1 = binary.filter((b) => b === 1).length;
+  const n2 = binary.filter((b) => b === 0).length;
   const n = n1 + n2;
 
   const expected = (2 * n1 * n2) / n + 1;
@@ -436,7 +462,9 @@ function calculateEntropy(data: number[]): number {
   return entropy;
 }
 
-export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executerandomgenerator(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -446,38 +474,42 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'random_generator',
-          description: 'Comprehensive random number generation',
-          operations: {
-            generate_bytes: 'Generate random bytes (crypto-quality)',
-            generate_int: 'Generate random integers in range',
-            generate_float: 'Generate random floats in range',
-            generate_uuid: 'Generate UUID v4 or v7',
-            generate_password: 'Generate secure password',
-            uniform: 'Uniform distribution',
-            normal: 'Normal (Gaussian) distribution',
-            exponential: 'Exponential distribution',
-            poisson: 'Poisson distribution',
-            binomial: 'Binomial distribution',
-            shuffle: 'Fisher-Yates shuffle',
-            sample: 'Random sampling without replacement',
-            test: 'Statistical tests for randomness'
+        content: JSON.stringify(
+          {
+            tool: 'random_generator',
+            description: 'Comprehensive random number generation',
+            operations: {
+              generate_bytes: 'Generate random bytes (crypto-quality)',
+              generate_int: 'Generate random integers in range',
+              generate_float: 'Generate random floats in range',
+              generate_uuid: 'Generate UUID v4 or v7',
+              generate_password: 'Generate secure password',
+              uniform: 'Uniform distribution',
+              normal: 'Normal (Gaussian) distribution',
+              exponential: 'Exponential distribution',
+              poisson: 'Poisson distribution',
+              binomial: 'Binomial distribution',
+              shuffle: 'Fisher-Yates shuffle',
+              sample: 'Random sampling without replacement',
+              test: 'Statistical tests for randomness',
+            },
+            algorithms: {
+              prng: 'Xorshift128+ and Mersenne Twister MT19937',
+              csprng: 'Multiple entropy sources combined',
+              uuid_v4: 'Random-based UUID (RFC 4122)',
+              uuid_v7: 'Time-ordered UUID (RFC draft)',
+            },
+            distributions: {
+              uniform: 'Equal probability over range',
+              normal: 'Gaussian bell curve (Box-Muller)',
+              exponential: 'Memoryless waiting time',
+              poisson: 'Event counts (Knuth algorithm)',
+              binomial: 'Success counts in trials',
+            },
           },
-          algorithms: {
-            prng: 'Xorshift128+ and Mersenne Twister MT19937',
-            csprng: 'Multiple entropy sources combined',
-            uuid_v4: 'Random-based UUID (RFC 4122)',
-            uuid_v7: 'Time-ordered UUID (RFC draft)'
-          },
-          distributions: {
-            uniform: 'Equal probability over range',
-            normal: 'Gaussian bell curve (Box-Muller)',
-            exponential: 'Memoryless waiting time',
-            poisson: 'Event counts (Knuth algorithm)',
-            binomial: 'Success counts in trials'
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -503,13 +535,17 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'generate_bytes',
-          length,
-          format,
-          output,
-          entropy_bits: length * 8
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'generate_bytes',
+            length,
+            format,
+            output,
+            entropy_bits: length * 8,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -519,21 +555,30 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
       const max = args.max ?? 100;
       const rng = new Xorshift128Plus();
 
-      const values = Array(count).fill(0).map(() => rng.nextInt(min, max));
+      const values = Array(count)
+        .fill(0)
+        .map(() => rng.nextInt(min, max));
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'generate_int',
-          count,
-          range: { min, max },
-          values: count === 1 ? values[0] : values,
-          statistics: count > 1 ? {
-            mean: values.reduce((a, b) => a + b, 0) / count,
-            min: Math.min(...values),
-            max: Math.max(...values)
-          } : undefined
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'generate_int',
+            count,
+            range: { min, max },
+            values: count === 1 ? values[0] : values,
+            statistics:
+              count > 1
+                ? {
+                    mean: values.reduce((a, b) => a + b, 0) / count,
+                    min: Math.min(...values),
+                    max: Math.max(...values),
+                  }
+                : undefined,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -543,20 +588,34 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
       const max = args.max ?? 1;
       const rng = new Xorshift128Plus();
 
-      const values = Array(count).fill(0).map(() => min + rng.nextFloat() * (max - min));
+      const values = Array(count)
+        .fill(0)
+        .map(() => min + rng.nextFloat() * (max - min));
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'generate_float',
-          count,
-          range: { min, max },
-          values: count === 1 ? values[0] : values.map(v => Math.round(v * 1e10) / 1e10),
-          statistics: count > 1 ? {
-            mean: values.reduce((a, b) => a + b, 0) / count,
-            std: Math.sqrt(values.reduce((a, b) => a + Math.pow(b - values.reduce((x, y) => x + y, 0) / count, 2), 0) / count)
-          } : undefined
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'generate_float',
+            count,
+            range: { min, max },
+            values: count === 1 ? values[0] : values.map((v) => Math.round(v * 1e10) / 1e10),
+            statistics:
+              count > 1
+                ? {
+                    mean: values.reduce((a, b) => a + b, 0) / count,
+                    std: Math.sqrt(
+                      values.reduce(
+                        (a, b) => a + Math.pow(b - values.reduce((x, y) => x + y, 0) / count, 2),
+                        0
+                      ) / count
+                    ),
+                  }
+                : undefined,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -565,50 +624,68 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
       const version = args.version || 'v4';
 
       const generator = version === 'v7' ? generateUUIDv7 : generateUUIDv4;
-      const uuids = Array(count).fill(0).map(() => generator());
+      const uuids = Array(count)
+        .fill(0)
+        .map(() => generator());
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'generate_uuid',
-          version,
-          count,
-          uuids: count === 1 ? uuids[0] : uuids
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'generate_uuid',
+            version,
+            count,
+            uuids: count === 1 ? uuids[0] : uuids,
+          },
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'generate_password') {
       const length = args.length || 16;
-      const charset = args.charset || 'all';
+      const charset = (args.charset || 'all') as string;
       const count = args.count || 1;
 
-      const passwords = Array(count).fill(0).map(() => generatePassword(length, charset));
+      const passwords = Array(count)
+        .fill(0)
+        .map(() => generatePassword(length, charset));
 
-      const entropyPerChar = {
+      const entropyMap: Record<string, number> = {
         alphanumeric: Math.log2(62),
         alpha: Math.log2(52),
         numeric: Math.log2(10),
         hex: Math.log2(16),
         base64: Math.log2(64),
         symbols: Math.log2(26),
-        all: Math.log2(88)
-      }[charset] || Math.log2(62);
+        all: Math.log2(88),
+      };
+      const entropyPerChar = entropyMap[charset] || Math.log2(62);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'generate_password',
-          length,
-          charset,
-          passwords: count === 1 ? passwords[0] : passwords,
-          security: {
-            entropy_bits: Math.round(length * entropyPerChar),
-            strength: length * entropyPerChar >= 128 ? 'Very Strong' :
-                     length * entropyPerChar >= 80 ? 'Strong' :
-                     length * entropyPerChar >= 60 ? 'Good' : 'Weak'
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'generate_password',
+            length,
+            charset,
+            passwords: count === 1 ? passwords[0] : passwords,
+            security: {
+              entropy_bits: Math.round(length * entropyPerChar),
+              strength:
+                length * entropyPerChar >= 128
+                  ? 'Very Strong'
+                  : length * entropyPerChar >= 80
+                    ? 'Strong'
+                    : length * entropyPerChar >= 60
+                      ? 'Good'
+                      : 'Weak',
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -621,18 +698,23 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'uniform',
-          parameters: { min, max },
-          count,
-          samples: values.slice(0, 10).map(v => Math.round(v * 1e6) / 1e6),
-          statistics: {
-            sample_mean: values.reduce((a, b) => a + b, 0) / count,
-            expected_mean: (min + max) / 2,
-            sample_variance: values.reduce((a, b) => a + Math.pow(b - (min + max) / 2, 2), 0) / count,
-            expected_variance: Math.pow(max - min, 2) / 12
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'uniform',
+            parameters: { min, max },
+            count,
+            samples: values.slice(0, 10).map((v) => Math.round(v * 1e6) / 1e6),
+            statistics: {
+              sample_mean: values.reduce((a, b) => a + b, 0) / count,
+              expected_mean: (min + max) / 2,
+              sample_variance:
+                values.reduce((a, b) => a + Math.pow(b - (min + max) / 2, 2), 0) / count,
+              expected_variance: Math.pow(max - min, 2) / 12,
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -643,22 +725,28 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       const values = normalDistribution(count, mean, std);
       const sampleMean = values.reduce((a, b) => a + b, 0) / count;
-      const sampleStd = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - sampleMean, 2), 0) / count);
+      const sampleStd = Math.sqrt(
+        values.reduce((a, b) => a + Math.pow(b - sampleMean, 2), 0) / count
+      );
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'normal',
-          parameters: { mean, std },
-          count,
-          samples: values.slice(0, 10).map(v => Math.round(v * 1e6) / 1e6),
-          statistics: {
-            sample_mean: sampleMean,
-            sample_std: sampleStd,
-            expected_mean: mean,
-            expected_std: std
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'normal',
+            parameters: { mean, std },
+            count,
+            samples: values.slice(0, 10).map((v) => Math.round(v * 1e6) / 1e6),
+            statistics: {
+              sample_mean: sampleMean,
+              sample_std: sampleStd,
+              expected_mean: mean,
+              expected_std: std,
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -671,17 +759,21 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'exponential',
-          parameters: { lambda },
-          count,
-          samples: values.slice(0, 10).map(v => Math.round(v * 1e6) / 1e6),
-          statistics: {
-            sample_mean: sampleMean,
-            expected_mean: 1 / lambda,
-            expected_variance: 1 / (lambda * lambda)
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'exponential',
+            parameters: { lambda },
+            count,
+            samples: values.slice(0, 10).map((v) => Math.round(v * 1e6) / 1e6),
+            statistics: {
+              sample_mean: sampleMean,
+              expected_mean: 1 / lambda,
+              expected_variance: 1 / (lambda * lambda),
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -700,19 +792,25 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'poisson',
-          parameters: { lambda },
-          count,
-          samples: values.slice(0, 20),
-          frequency_distribution: Object.entries(freq).sort((a, b) => Number(a[0]) - Number(b[0]))
-            .slice(0, 10).map(([k, v]) => ({ value: Number(k), count: v })),
-          statistics: {
-            sample_mean: sampleMean,
-            expected_mean: lambda,
-            expected_variance: lambda
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'poisson',
+            parameters: { lambda },
+            count,
+            samples: values.slice(0, 20),
+            frequency_distribution: Object.entries(freq)
+              .sort((a, b) => Number(a[0]) - Number(b[0]))
+              .slice(0, 10)
+              .map(([k, v]) => ({ value: Number(k), count: v })),
+            statistics: {
+              sample_mean: sampleMean,
+              expected_mean: lambda,
+              expected_variance: lambda,
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -726,17 +824,21 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'binomial',
-          parameters: { n, p },
-          count,
-          samples: values.slice(0, 20),
-          statistics: {
-            sample_mean: sampleMean,
-            expected_mean: n * p,
-            expected_variance: n * p * (1 - p)
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'binomial',
+            parameters: { n, p },
+            count,
+            samples: values.slice(0, 20),
+            statistics: {
+              sample_mean: sampleMean,
+              expected_mean: n * p,
+              expected_variance: n * p * (1 - p),
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -746,12 +848,16 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'shuffle',
-          original: array,
-          shuffled,
-          algorithm: 'Fisher-Yates'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'shuffle',
+            original: array,
+            shuffled,
+            algorithm: 'Fisher-Yates',
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -763,19 +869,23 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'sample',
-          population_size: array.length,
-          sample_size: count,
-          sample: sampled,
-          method: 'without replacement'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'sample',
+            population_size: array.length,
+            sample_size: count,
+            sample: sampled,
+            method: 'without replacement',
+          },
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'test') {
       const count = args.count || 1000;
-      const values = uniformDistribution(count, 0, 100).map(v => Math.floor(v));
+      const values = uniformDistribution(count, 0, 100).map((v) => Math.floor(v));
 
       // Chi-square test
       const bins = 10;
@@ -790,46 +900,72 @@ export async function executerandomgenerator(toolCall: UnifiedToolCall): Promise
       const runs = runsTest(values);
 
       // Entropy
-      const entropy = calculateEntropy(values.map(v => Math.floor(v / 10)));
+      const entropy = calculateEntropy(values.map((v) => Math.floor(v / 10)));
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'test',
-          sample_size: count,
-          tests: {
-            chi_square: {
-              statistic: chiSq.statistic,
-              p_value: chiSq.pValue,
-              conclusion: chiSq.pValue > 0.05 ? 'PASS (appears random)' : 'FAIL (may not be random)'
+        content: JSON.stringify(
+          {
+            operation: 'test',
+            sample_size: count,
+            tests: {
+              chi_square: {
+                statistic: chiSq.statistic,
+                p_value: chiSq.pValue,
+                conclusion:
+                  chiSq.pValue > 0.05 ? 'PASS (appears random)' : 'FAIL (may not be random)',
+              },
+              runs_test: {
+                observed_runs: runs.runs,
+                expected_runs: runs.expected,
+                z_score: runs.zScore,
+                conclusion:
+                  Math.abs(runs.zScore) < 1.96
+                    ? 'PASS (appears random)'
+                    : 'FAIL (may not be random)',
+              },
+              entropy: {
+                bits: entropy,
+                max_bits: Math.log2(10),
+                ratio: entropy / Math.log2(10),
+                conclusion:
+                  entropy / Math.log2(10) > 0.95 ? 'PASS (high entropy)' : 'WARN (low entropy)',
+              },
             },
-            runs_test: {
-              observed_runs: runs.runs,
-              expected_runs: runs.expected,
-              z_score: runs.zScore,
-              conclusion: Math.abs(runs.zScore) < 1.96 ? 'PASS (appears random)' : 'FAIL (may not be random)'
-            },
-            entropy: {
-              bits: entropy,
-              max_bits: Math.log2(10),
-              ratio: entropy / Math.log2(10),
-              conclusion: entropy / Math.log2(10) > 0.95 ? 'PASS (high entropy)' : 'WARN (low entropy)'
-            }
-          }
-        }, null, 2)
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: 'Unknown operation',
-        available: ['generate_bytes', 'generate_int', 'generate_float', 'generate_uuid', 'generate_password',
-                   'uniform', 'normal', 'exponential', 'poisson', 'binomial', 'shuffle', 'sample', 'test', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: 'Unknown operation',
+          available: [
+            'generate_bytes',
+            'generate_int',
+            'generate_float',
+            'generate_uuid',
+            'generate_password',
+            'uniform',
+            'normal',
+            'exponential',
+            'poisson',
+            'binomial',
+            'shuffle',
+            'sample',
+            'test',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

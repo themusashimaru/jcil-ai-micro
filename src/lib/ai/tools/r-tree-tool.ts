@@ -31,7 +31,7 @@ interface Point {
 interface RTreeNode {
   bbox: BBox;
   children: RTreeNode[];
-  entries: Point[];  // Only leaf nodes have entries
+  entries: Point[]; // Only leaf nodes have entries
   isLeaf: boolean;
   level: number;
 }
@@ -47,7 +47,7 @@ function expandBBox(a: BBox, b: BBox): BBox {
     minX: Math.min(a.minX, b.minX),
     minY: Math.min(a.minY, b.minY),
     maxX: Math.max(a.maxX, b.maxX),
-    maxY: Math.max(a.maxY, b.maxY)
+    maxY: Math.max(a.maxY, b.maxY),
   };
 }
 
@@ -64,15 +64,13 @@ function enlargementArea(a: BBox, b: BBox): number {
 
 // Check if two bboxes intersect
 function bboxIntersects(a: BBox, b: BBox): boolean {
-  return a.minX <= b.maxX && a.maxX >= b.minX &&
-         a.minY <= b.maxY && a.maxY >= b.minY;
+  return a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
 }
 
 // Check if bbox a contains bbox b
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function bboxContains(a: BBox, b: BBox): boolean {
-  return a.minX <= b.minX && a.maxX >= b.maxX &&
-         a.minY <= b.minY && a.maxY >= b.maxY;
+
+export function bboxContains(a: BBox, b: BBox): boolean {
+  return a.minX <= b.minX && a.maxX >= b.maxX && a.minY <= b.minY && a.maxY >= b.maxY;
 }
 
 // Distance from point to bbox (0 if inside)
@@ -106,7 +104,7 @@ class RTree {
       children: [],
       entries: [],
       isLeaf: true,
-      level: 0
+      level: 0,
     };
   }
 
@@ -131,8 +129,7 @@ class RTree {
         const enlargement = enlargementArea(child.bbox, pointBBox);
         const area = bboxArea(child.bbox);
 
-        if (enlargement < bestEnlargement ||
-            (enlargement === bestEnlargement && area < bestArea)) {
+        if (enlargement < bestEnlargement || (enlargement === bestEnlargement && area < bestArea)) {
           bestChild = child;
           bestEnlargement = enlargement;
           bestArea = area;
@@ -162,7 +159,8 @@ class RTree {
     const entries = node.entries;
 
     // Pick seeds: find pair with largest area waste
-    let seed1 = 0, seed2 = 1;
+    let seed1 = 0,
+      seed2 = 1;
     let maxWaste = -Infinity;
 
     for (let i = 0; i < entries.length; i++) {
@@ -221,7 +219,7 @@ class RTree {
       children: [],
       entries: group2,
       isLeaf: true,
-      level: node.level
+      level: node.level,
     };
     this.nodeCount++;
 
@@ -233,7 +231,7 @@ class RTree {
         children: [node, sibling],
         entries: [],
         isLeaf: false,
-        level: node.level + 1
+        level: node.level + 1,
       };
       this.root = newRoot;
       this.nodeCount++;
@@ -253,7 +251,8 @@ class RTree {
     const children = node.children;
 
     // Pick seeds
-    let seed1 = 0, seed2 = 1;
+    let seed1 = 0,
+      seed2 = 1;
     let maxWaste = -Infinity;
 
     for (let i = 0; i < children.length; i++) {
@@ -304,7 +303,7 @@ class RTree {
       children: group2,
       entries: [],
       isLeaf: false,
-      level: node.level
+      level: node.level,
     };
     this.nodeCount++;
 
@@ -314,7 +313,7 @@ class RTree {
         children: [node, sibling],
         entries: [],
         isLeaf: false,
-        level: node.level + 1
+        level: node.level + 1,
       };
       this.root = newRoot;
       this.nodeCount++;
@@ -341,8 +340,12 @@ class RTree {
 
     if (node.isLeaf) {
       for (const entry of node.entries) {
-        if (entry.x >= queryBBox.minX && entry.x <= queryBBox.maxX &&
-            entry.y >= queryBBox.minY && entry.y <= queryBBox.maxY) {
+        if (
+          entry.x >= queryBBox.minX &&
+          entry.x <= queryBBox.maxX &&
+          entry.y >= queryBBox.minY &&
+          entry.y <= queryBBox.maxY
+        ) {
           results.push(entry);
         }
       }
@@ -359,7 +362,7 @@ class RTree {
 
     // Priority queue for nodes (min-heap by distance to query)
     const nodeQueue: { node: RTreeNode; dist: number }[] = [
-      { node: this.root, dist: distanceToBBox(query, this.root.bbox) }
+      { node: this.root, dist: distanceToBBox(query, this.root.bbox) },
     ];
 
     while (nodeQueue.length > 0 && results.length < k) {
@@ -426,16 +429,17 @@ class RTree {
     const leafNodes: RTreeNode[] = [];
     this.collectLeaves(this.root, leafNodes);
 
-    const avgEntriesPerLeaf = leafNodes.length > 0
-      ? leafNodes.reduce((sum, n) => sum + n.entries.length, 0) / leafNodes.length
-      : 0;
+    const avgEntriesPerLeaf =
+      leafNodes.length > 0
+        ? leafNodes.reduce((sum, n) => sum + n.entries.length, 0) / leafNodes.length
+        : 0;
 
     return {
       height: this.root.level + 1,
       nodeCount: this.nodeCount,
       entryCount: this.entryCount,
       avgEntriesPerLeaf,
-      rootBBox: this.root.bbox
+      rootBBox: this.root.bbox,
     };
   }
 
@@ -476,20 +480,33 @@ class RTree {
 
       const childPrefix = prefix + (isLast ? '    ' : '│   ');
       node.children.forEach((child, i) => {
-        this.visualizeNode(child, childPrefix, i === node.children.length - 1, lines, depth + 1, maxDepth);
+        this.visualizeNode(
+          child,
+          childPrefix,
+          i === node.children.length - 1,
+          lines,
+          depth + 1,
+          maxDepth
+        );
       });
     }
   }
 }
 
 // Demo data generators
-function generateRandomPoints(n: number, minX: number, maxX: number, minY: number, maxY: number): Point[] {
+function generateRandomPoints(
+  n: number,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number
+): Point[] {
   const points: Point[] = [];
   for (let i = 0; i < n; i++) {
     points.push({
       x: minX + Math.random() * (maxX - minX),
       y: minY + Math.random() * (maxY - minY),
-      data: { id: i }
+      data: { id: i },
     });
   }
   return points;
@@ -497,15 +514,19 @@ function generateRandomPoints(n: number, minX: number, maxX: number, minY: numbe
 
 function generateClusteredPoints(n: number, clusters: number): Point[] {
   const points: Point[] = [];
-  const centersX = Array(clusters).fill(0).map(() => Math.random() * 100);
-  const centersY = Array(clusters).fill(0).map(() => Math.random() * 100);
+  const centersX = Array(clusters)
+    .fill(0)
+    .map(() => Math.random() * 100);
+  const centersY = Array(clusters)
+    .fill(0)
+    .map(() => Math.random() * 100);
 
   for (let i = 0; i < n; i++) {
     const cluster = i % clusters;
     points.push({
       x: centersX[cluster] + (Math.random() - 0.5) * 20,
       y: centersY[cluster] + (Math.random() - 0.5) * 20,
-      data: { id: i, cluster }
+      data: { id: i, cluster },
     });
   }
   return points;
@@ -522,20 +543,34 @@ export const rtreeTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'insert', 'bulk_insert', 'range_query', 'knn', 'stats', 'visualize', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'create',
+          'insert',
+          'bulk_insert',
+          'range_query',
+          'knn',
+          'stats',
+          'visualize',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       maxEntries: { type: 'number', description: 'Max entries per node (default 9)' },
-      point: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, description: 'Point to insert' },
+      point: { type: 'object', description: 'Point to insert: { x: number, y: number }' },
       points: { type: 'array', description: 'Array of points for bulk insert' },
-      bbox: { type: 'object', description: 'Bounding box for range query: {minX, minY, maxX, maxY}' },
-      query: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, description: 'Query point for KNN' },
+      bbox: {
+        type: 'object',
+        description: 'Bounding box for range query: { minX, minY, maxX, maxY }',
+      },
+      query: { type: 'object', description: 'Query point for KNN: { x: number, y: number }' },
       k: { type: 'number', description: 'Number of neighbors for KNN' },
       n: { type: 'number', description: 'Number of random points for demo' },
-      clustered: { type: 'boolean', description: 'Use clustered distribution for demo' }
+      clustered: { type: 'boolean', description: 'Use clustered distribution for demo' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -548,61 +583,87 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'r-tree',
-          description: 'R-tree spatial indexing data structure',
-          concepts: {
-            rtree: 'Balanced tree for indexing multi-dimensional data',
-            mbr: 'Minimum Bounding Rectangle - each node has a bounding box',
-            splitting: 'Quadratic split algorithm when node overflows',
-            rangeQuery: 'Find all points within a given bounding box',
-            knn: 'K-nearest neighbors using branch-and-bound'
+        content: JSON.stringify(
+          {
+            tool: 'r-tree',
+            description: 'R-tree spatial indexing data structure',
+            concepts: {
+              rtree: 'Balanced tree for indexing multi-dimensional data',
+              mbr: 'Minimum Bounding Rectangle - each node has a bounding box',
+              splitting: 'Quadratic split algorithm when node overflows',
+              rangeQuery: 'Find all points within a given bounding box',
+              knn: 'K-nearest neighbors using branch-and-bound',
+            },
+            complexity: {
+              insert: 'O(log n)',
+              rangeQuery: 'O(log n + k) where k is result size',
+              knn: 'O(log n * k)',
+            },
+            parameters: {
+              maxEntries: 'Maximum entries per node (M), typically 9-50',
+              minEntries: 'Minimum entries per node (m), typically 40% of M',
+            },
+            operations: [
+              'create',
+              'insert',
+              'bulk_insert',
+              'range_query',
+              'knn',
+              'stats',
+              'visualize',
+              'demo',
+              'info',
+              'examples',
+            ],
           },
-          complexity: {
-            insert: 'O(log n)',
-            rangeQuery: 'O(log n + k) where k is result size',
-            knn: 'O(log n * k)'
-          },
-          parameters: {
-            maxEntries: 'Maximum entries per node (M), typically 9-50',
-            minEntries: 'Minimum entries per node (m), typically 40% of M'
-          },
-          operations: ['create', 'insert', 'bulk_insert', 'range_query', 'knn', 'stats', 'visualize', 'demo', 'info', 'examples']
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'examples') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          examples: [
-            {
-              description: 'Create a new R-tree',
-              call: { operation: 'create', maxEntries: 9 }
-            },
-            {
-              description: 'Insert a point',
-              call: { operation: 'insert', point: { x: 10, y: 20 } }
-            },
-            {
-              description: 'Bulk insert points',
-              call: { operation: 'bulk_insert', points: [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }] }
-            },
-            {
-              description: 'Range query',
-              call: { operation: 'range_query', bbox: { minX: 0, minY: 0, maxX: 50, maxY: 50 } }
-            },
-            {
-              description: 'Find 5 nearest neighbors',
-              call: { operation: 'knn', query: { x: 25, y: 25 }, k: 5 }
-            },
-            {
-              description: 'Demo with 100 random points',
-              call: { operation: 'demo', n: 100 }
-            }
-          ]
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            examples: [
+              {
+                description: 'Create a new R-tree',
+                call: { operation: 'create', maxEntries: 9 },
+              },
+              {
+                description: 'Insert a point',
+                call: { operation: 'insert', point: { x: 10, y: 20 } },
+              },
+              {
+                description: 'Bulk insert points',
+                call: {
+                  operation: 'bulk_insert',
+                  points: [
+                    { x: 1, y: 2 },
+                    { x: 3, y: 4 },
+                    { x: 5, y: 6 },
+                  ],
+                },
+              },
+              {
+                description: 'Range query',
+                call: { operation: 'range_query', bbox: { minX: 0, minY: 0, maxX: 50, maxY: 50 } },
+              },
+              {
+                description: 'Find 5 nearest neighbors',
+                call: { operation: 'knn', query: { x: 25, y: 25 }, k: 5 },
+              },
+              {
+                description: 'Demo with 100 random points',
+                call: { operation: 'demo', n: 100 },
+              },
+            ],
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -612,12 +673,16 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'create',
-          maxEntries,
-          message: 'R-tree created successfully',
-          stats: demoTree.getStats()
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'create',
+            maxEntries,
+            message: 'R-tree created successfully',
+            stats: demoTree.getStats(),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -631,7 +696,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Invalid point: must have x and y coordinates' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -639,11 +704,15 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'insert',
-          point,
-          stats: demoTree.getStats()
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'insert',
+            point,
+            stats: demoTree.getStats(),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -657,7 +726,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Points must be an array' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -669,11 +738,15 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'bulk_insert',
-          inserted: points.length,
-          stats: demoTree.getStats()
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'bulk_insert',
+            inserted: points.length,
+            stats: demoTree.getStats(),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -682,7 +755,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'No tree exists. Use create or demo first.' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -691,7 +764,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Invalid bbox: must have minX, minY, maxX, maxY' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -699,13 +772,17 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'range_query',
-          bbox,
-          resultCount: results.length,
-          results: results.slice(0, 20).map(p => ({ x: p.x.toFixed(2), y: p.y.toFixed(2) })),
-          truncated: results.length > 20
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'range_query',
+            bbox,
+            resultCount: results.length,
+            results: results.slice(0, 20).map((p) => ({ x: p.x.toFixed(2), y: p.y.toFixed(2) })),
+            truncated: results.length > 20,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -714,7 +791,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'No tree exists. Use create or demo first.' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -725,7 +802,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Invalid query point' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -733,16 +810,20 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'knn',
-          query,
-          k,
-          results: results.map(r => ({
-            x: r.point.x.toFixed(4),
-            y: r.point.y.toFixed(4),
-            distance: r.distance.toFixed(4)
-          }))
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'knn',
+            query,
+            k,
+            results: results.map((r) => ({
+              x: r.point.x.toFixed(4),
+              y: r.point.y.toFixed(4),
+              distance: r.distance.toFixed(4),
+            })),
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -751,7 +832,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'No tree exists. Use create or demo first.' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -759,16 +840,20 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'stats',
-          ...stats,
-          rootBBox: {
-            minX: stats.rootBBox.minX.toFixed(2),
-            minY: stats.rootBBox.minY.toFixed(2),
-            maxX: stats.rootBBox.maxX.toFixed(2),
-            maxY: stats.rootBBox.maxY.toFixed(2)
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'stats',
+            ...stats,
+            rootBBox: {
+              minX: stats.rootBBox.minX.toFixed(2),
+              minY: stats.rootBBox.minY.toFixed(2),
+              maxX: stats.rootBBox.maxX.toFixed(2),
+              maxY: stats.rootBBox.maxY.toFixed(2),
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -777,7 +862,7 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'No tree exists. Use create or demo first.' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -785,10 +870,14 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'visualize',
-          tree: visualization
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'visualize',
+            tree: visualization,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -812,39 +901,44 @@ export async function executertree(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'demo',
-          pointsGenerated: n,
-          distribution: clustered ? 'clustered (5 clusters)' : 'uniform random',
-          stats: demoTree.getStats(),
-          sampleRangeQuery: {
-            bbox: { minX: 25, minY: 25, maxX: 75, maxY: 75 },
-            resultCount: rangeResults.length
+        content: JSON.stringify(
+          {
+            operation: 'demo',
+            pointsGenerated: n,
+            distribution: clustered ? 'clustered (5 clusters)' : 'uniform random',
+            stats: demoTree.getStats(),
+            sampleRangeQuery: {
+              bbox: { minX: 25, minY: 25, maxX: 75, maxY: 75 },
+              resultCount: rangeResults.length,
+            },
+            sampleKNN: {
+              query: { x: 50, y: 50 },
+              k: 5,
+              results: knnResults.map((r) => ({
+                x: r.point.x.toFixed(2),
+                y: r.point.y.toFixed(2),
+                distance: r.distance.toFixed(2),
+              })),
+            },
+            treeVisualization: demoTree.visualize(2),
           },
-          sampleKNN: {
-            query: { x: 50, y: 50 },
-            k: 5,
-            results: knnResults.map(r => ({
-              x: r.point.x.toFixed(2),
-              y: r.point.y.toFixed(2),
-              distance: r.distance.toFixed(2)
-            }))
-          },
-          treeVisualization: demoTree.visualize(2)
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
       content: JSON.stringify({ error: `Unknown operation: ${operation}` }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };
   }
 }
 
-export function isrtreeAvailable(): boolean { return true; }
+export function isrtreeAvailable(): boolean {
+  return true;
+}

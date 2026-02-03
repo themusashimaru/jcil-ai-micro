@@ -45,11 +45,28 @@ interface TrainingResult {
 const ENVIRONMENTS: Record<string, Environment> = {
   gridworld: {
     name: 'GridWorld 4x4',
-    states: ['0,0', '0,1', '0,2', '0,3', '1,0', '1,1', '1,2', '1,3', '2,0', '2,1', '2,2', '2,3', '3,0', '3,1', '3,2', '3,3'],
+    states: [
+      '0,0',
+      '0,1',
+      '0,2',
+      '0,3',
+      '1,0',
+      '1,1',
+      '1,2',
+      '1,3',
+      '2,0',
+      '2,1',
+      '2,2',
+      '2,3',
+      '3,0',
+      '3,1',
+      '3,2',
+      '3,3',
+    ],
     actions: ['up', 'down', 'left', 'right'],
     transitions: {},
     initialState: '0,0',
-    terminalStates: ['3,3']
+    terminalStates: ['3,3'],
   },
   cliffwalk: {
     name: 'Cliff Walking',
@@ -57,35 +74,64 @@ const ENVIRONMENTS: Record<string, Environment> = {
     actions: ['up', 'down', 'left', 'right'],
     transitions: {},
     initialState: '3,0',
-    terminalStates: ['3,11']
+    terminalStates: ['3,11'],
   },
   frozenlake: {
     name: 'Frozen Lake 4x4',
-    states: ['S', 'F1', 'F2', 'F3', 'F4', 'H1', 'F5', 'H2', 'F6', 'F7', 'F8', 'H3', 'H4', 'F9', 'F10', 'G'],
+    states: [
+      'S',
+      'F1',
+      'F2',
+      'F3',
+      'F4',
+      'H1',
+      'F5',
+      'H2',
+      'F6',
+      'F7',
+      'F8',
+      'H3',
+      'H4',
+      'F9',
+      'F10',
+      'G',
+    ],
     actions: ['up', 'down', 'left', 'right'],
     transitions: {},
     initialState: 'S',
-    terminalStates: ['G', 'H1', 'H2', 'H3', 'H4']
-  }
+    terminalStates: ['G', 'H1', 'H2', 'H3', 'H4'],
+  },
 };
 
 // Initialize GridWorld transitions
 function initializeGridWorld(): void {
   const env = ENVIRONMENTS.gridworld;
-  const transitions: Record<string, Record<string, { nextState: string; reward: number; done: boolean }>> = {};
+  const transitions: Record<
+    string,
+    Record<string, { nextState: string; reward: number; done: boolean }>
+  > = {};
 
   for (const state of env.states) {
     const [row, col] = state.split(',').map(Number);
     transitions[state] = {};
 
     for (const action of env.actions) {
-      let newRow = row, newCol = col;
+      let newRow = row,
+        newCol = col;
 
       switch (action) {
-        case 'up': newRow = Math.max(0, row - 1); break;
-        case 'down': newRow = Math.min(3, row + 1); break;
-        case 'left': newCol = Math.max(0, col - 1); break;
-        case 'right': newCol = Math.min(3, col + 1); break;
+        case 'up':
+          newRow = Math.max(0, row - 1);
+          break;
+        case 'down':
+          newRow = Math.min(3, row + 1);
+          break;
+        case 'left':
+          newCol = Math.max(0, col - 1);
+          break;
+        case 'right':
+          newCol = Math.min(3, col + 1);
+          break;
       }
 
       const nextState = `${newRow},${newCol}`;
@@ -102,7 +148,10 @@ function initializeGridWorld(): void {
 // Initialize Cliff Walking transitions
 function initializeCliffWalk(): void {
   const env = ENVIRONMENTS.cliffwalk;
-  const transitions: Record<string, Record<string, { nextState: string; reward: number; done: boolean }>> = {};
+  const transitions: Record<
+    string,
+    Record<string, { nextState: string; reward: number; done: boolean }>
+  > = {};
   const cliffStates = ['3,1', '3,2', '3,3', '3,4', '3,5', '3,6', '3,7', '3,8', '3,9', '3,10'];
 
   for (const state of env.states) {
@@ -110,13 +159,22 @@ function initializeCliffWalk(): void {
     transitions[state] = {};
 
     for (const action of env.actions) {
-      let newRow = row, newCol = col;
+      let newRow = row,
+        newCol = col;
 
       switch (action) {
-        case 'up': newRow = Math.max(0, row - 1); break;
-        case 'down': newRow = Math.min(3, row + 1); break;
-        case 'left': newCol = Math.max(0, col - 1); break;
-        case 'right': newCol = Math.min(11, col + 1); break;
+        case 'up':
+          newRow = Math.max(0, row - 1);
+          break;
+        case 'down':
+          newRow = Math.min(3, row + 1);
+          break;
+        case 'left':
+          newCol = Math.max(0, col - 1);
+          break;
+        case 'right':
+          newCol = Math.min(11, col + 1);
+          break;
       }
 
       let nextState = `${newRow},${newCol}`;
@@ -147,8 +205,7 @@ initializeCliffWalk();
 // EXPLORATION STRATEGIES
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function softmax(
+export function softmax(
   qValues: { [action: string]: number },
   actions: string[],
   temperature: number
@@ -219,7 +276,7 @@ function qLearning(
     gamma = 0.99,
     epsilon: initialEpsilon = 1.0,
     epsilonDecay = 0.995,
-    minEpsilon = 0.01
+    minEpsilon = 0.01,
   } = options;
 
   const qTable: QTable = {};
@@ -249,7 +306,7 @@ function qLearning(
       const { nextState, reward, done } = transition;
       totalReward += reward;
 
-      const maxNextQ = Math.max(...env.actions.map(a => qTable[nextState]?.[a] || 0));
+      const maxNextQ = Math.max(...env.actions.map((a) => qTable[nextState]?.[a] || 0));
       const currentQ = qTable[state][action];
       qTable[state][action] = currentQ + alpha * (reward + gamma * maxNextQ - currentQ);
 
@@ -284,7 +341,7 @@ function qLearning(
     averageReward,
     convergenceEpisode,
     qTable,
-    rewardHistory
+    rewardHistory,
   };
 }
 
@@ -309,7 +366,7 @@ function sarsa(
     gamma = 0.99,
     epsilon: initialEpsilon = 1.0,
     epsilonDecay = 0.995,
-    minEpsilon = 0.01
+    minEpsilon = 0.01,
   } = options;
 
   const qTable: QTable = {};
@@ -370,7 +427,7 @@ function sarsa(
     averageReward,
     convergenceEpisode,
     qTable,
-    rewardHistory
+    rewardHistory,
   };
 }
 
@@ -488,7 +545,7 @@ function policyGradient(
     averageReward,
     convergenceEpisode,
     policy,
-    rewardHistory
+    rewardHistory,
   };
 }
 
@@ -584,13 +641,17 @@ function multiArmedBandit(
   }
 
   return {
-    algorithm: algorithm === 'epsilon_greedy' ? `epsilon-greedy (e=${epsilon})` :
-      algorithm === 'ucb' ? 'UCB1' : 'Thompson Sampling',
+    algorithm:
+      algorithm === 'epsilon_greedy'
+        ? `epsilon-greedy (e=${epsilon})`
+        : algorithm === 'ucb'
+          ? 'UCB1'
+          : 'Thompson Sampling',
     steps,
     totalReward,
     optimalActionRate: optimalActions / steps,
     armValues: qValues,
-    armCounts: counts
+    armCounts: counts,
   };
 }
 
@@ -601,7 +662,11 @@ function multiArmedBandit(
 function valueIteration(
   env: Environment,
   options: { gamma?: number; threshold?: number; maxIterations?: number } = {}
-): { values: { [state: string]: number }; policy: { [state: string]: string }; iterations: number } {
+): {
+  values: { [state: string]: number };
+  policy: { [state: string]: string };
+  iterations: number;
+} {
   const { gamma = 0.99, threshold = 0.0001, maxIterations = 1000 } = options;
 
   const values: { [state: string]: number } = {};
@@ -684,13 +749,22 @@ export const reinforcementlearningTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['q_learning', 'sarsa', 'policy_gradient', 'value_iteration', 'bandit', 'environments', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'q_learning',
+          'sarsa',
+          'policy_gradient',
+          'value_iteration',
+          'bandit',
+          'environments',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       environment: {
         type: 'string',
         enum: ['gridworld', 'cliffwalk', 'frozenlake'],
-        description: 'Environment name'
+        description: 'Environment name',
       },
       episodes: { type: 'number', description: 'Number of training episodes' },
       alpha: { type: 'number', description: 'Learning rate (0.01-0.5)' },
@@ -699,15 +773,17 @@ export const reinforcementlearningTool: UnifiedTool = {
       algorithm: {
         type: 'string',
         enum: ['epsilon_greedy', 'ucb', 'thompson'],
-        description: 'Bandit algorithm'
+        description: 'Bandit algorithm',
       },
-      steps: { type: 'number', description: 'Number of steps for bandits' }
+      steps: { type: 'number', description: 'Number of steps for bandits' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executereinforcementlearning(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executereinforcementlearning(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
@@ -716,71 +792,94 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Reinforcement Learning',
-            description: 'Implementations of core RL algorithms',
-            algorithms: {
-              q_learning: 'Off-policy TD control - learns optimal Q*(s,a) regardless of behavior policy',
-              sarsa: 'On-policy TD control - learns Q^pi(s,a) for current policy',
-              policy_gradient: 'REINFORCE - direct policy optimization via gradient ascent',
-              value_iteration: 'Dynamic programming for known MDPs - computes V* iteratively',
-              bandit: 'Multi-armed bandit exploration algorithms'
+          content: JSON.stringify(
+            {
+              tool: 'Reinforcement Learning',
+              description: 'Implementations of core RL algorithms',
+              algorithms: {
+                q_learning:
+                  'Off-policy TD control - learns optimal Q*(s,a) regardless of behavior policy',
+                sarsa: 'On-policy TD control - learns Q^pi(s,a) for current policy',
+                policy_gradient: 'REINFORCE - direct policy optimization via gradient ascent',
+                value_iteration: 'Dynamic programming for known MDPs - computes V* iteratively',
+                bandit: 'Multi-armed bandit exploration algorithms',
+              },
+              concepts: {
+                exploration_vs_exploitation:
+                  'Balance between trying new actions and using known good ones',
+                temporal_difference: 'Bootstrap value estimates from successor states',
+                bellman_equation: "Q(s,a) = R(s,a) + gamma * max_a Q(s',a')",
+                on_vs_off_policy: 'SARSA follows behavior policy; Q-learning learns optimal policy',
+              },
+              hyperparameters: {
+                alpha: 'Learning rate - higher values learn faster but less stable (0.01-0.5)',
+                gamma: 'Discount factor - how much to value future rewards (0.9-0.999)',
+                epsilon: 'Exploration rate - probability of random action (decays over time)',
+              },
             },
-            concepts: {
-              exploration_vs_exploitation: 'Balance between trying new actions and using known good ones',
-              temporal_difference: 'Bootstrap value estimates from successor states',
-              bellman_equation: 'Q(s,a) = R(s,a) + gamma * max_a Q(s\',a\')',
-              on_vs_off_policy: 'SARSA follows behavior policy; Q-learning learns optimal policy'
-            },
-            hyperparameters: {
-              alpha: 'Learning rate - higher values learn faster but less stable (0.01-0.5)',
-              gamma: 'Discount factor - how much to value future rewards (0.9-0.999)',
-              epsilon: 'Exploration rate - probability of random action (decays over time)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                description: 'Train Q-learning on GridWorld',
-                call: { operation: 'q_learning', environment: 'gridworld', episodes: 500, alpha: 0.1, gamma: 0.99 }
-              },
-              {
-                description: 'Compare SARSA on Cliff Walking (more conservative)',
-                call: { operation: 'sarsa', environment: 'cliffwalk', episodes: 500 }
-              },
-              {
-                description: 'Run Thompson Sampling bandit',
-                call: { operation: 'bandit', algorithm: 'thompson', steps: 1000 }
-              },
-              {
-                description: 'Value iteration for optimal policy',
-                call: { operation: 'value_iteration', environment: 'gridworld', gamma: 0.99 }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  description: 'Train Q-learning on GridWorld',
+                  call: {
+                    operation: 'q_learning',
+                    environment: 'gridworld',
+                    episodes: 500,
+                    alpha: 0.1,
+                    gamma: 0.99,
+                  },
+                },
+                {
+                  description: 'Compare SARSA on Cliff Walking (more conservative)',
+                  call: { operation: 'sarsa', environment: 'cliffwalk', episodes: 500 },
+                },
+                {
+                  description: 'Run Thompson Sampling bandit',
+                  call: { operation: 'bandit', algorithm: 'thompson', steps: 1000 },
+                },
+                {
+                  description: 'Value iteration for optimal policy',
+                  call: { operation: 'value_iteration', environment: 'gridworld', gamma: 0.99 },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'environments': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            environments: Object.entries(ENVIRONMENTS).map(([key, env]) => ({
-              id: key,
-              name: env.name,
-              states: env.states.length,
-              actions: env.actions,
-              description: key === 'gridworld' ? '4x4 grid, navigate to goal at (3,3), small step penalty' :
-                key === 'cliffwalk' ? 'Navigate cliff edge - classic SARSA vs Q-learning comparison' :
-                  '4x4 frozen lake with holes - stochastic environment'
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              environments: Object.entries(ENVIRONMENTS).map(([key, env]) => ({
+                id: key,
+                name: env.name,
+                states: env.states.length,
+                actions: env.actions,
+                description:
+                  key === 'gridworld'
+                    ? '4x4 grid, navigate to goal at (3,3), small step penalty'
+                    : key === 'cliffwalk'
+                      ? 'Navigate cliff edge - classic SARSA vs Q-learning comparison'
+                      : '4x4 frozen lake with holes - stochastic environment',
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -793,7 +892,7 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
           episodes: args.episodes || 500,
           alpha: args.alpha || 0.1,
           gamma: args.gamma || 0.99,
-          epsilon: args.epsilon || 1.0
+          epsilon: args.epsilon || 1.0,
         });
 
         const optimalPolicy: { [state: string]: string } = {};
@@ -812,21 +911,31 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: result.algorithm,
-            environment: envName,
-            training: {
-              episodes: result.episodes,
-              averageReward: result.averageReward.toFixed(4),
-              convergenceEpisode: result.convergenceEpisode,
-              finalReward: (result.rewardHistory.slice(-10).reduce((a, b) => a + b, 0) / 10).toFixed(4)
+          content: JSON.stringify(
+            {
+              algorithm: result.algorithm,
+              environment: envName,
+              training: {
+                episodes: result.episodes,
+                averageReward: result.averageReward.toFixed(4),
+                convergenceEpisode: result.convergenceEpisode,
+                finalReward: (
+                  result.rewardHistory.slice(-10).reduce((a, b) => a + b, 0) / 10
+                ).toFixed(4),
+              },
+              learnedPolicy: optimalPolicy,
+              improvement: {
+                first100Avg: (
+                  result.rewardHistory.slice(0, 100).reduce((a, b) => a + b, 0) / 100
+                ).toFixed(4),
+                last100Avg: (
+                  result.rewardHistory.slice(-100).reduce((a, b) => a + b, 0) / 100
+                ).toFixed(4),
+              },
             },
-            learnedPolicy: optimalPolicy,
-            improvement: {
-              first100Avg: (result.rewardHistory.slice(0, 100).reduce((a, b) => a + b, 0) / 100).toFixed(4),
-              last100Avg: (result.rewardHistory.slice(-100).reduce((a, b) => a + b, 0) / 100).toFixed(4)
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -839,7 +948,7 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
           episodes: args.episodes || 500,
           alpha: args.alpha || 0.1,
           gamma: args.gamma || 0.99,
-          epsilon: args.epsilon || 1.0
+          epsilon: args.epsilon || 1.0,
         });
 
         const optimalPolicy: { [state: string]: string } = {};
@@ -858,17 +967,21 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: result.algorithm,
-            environment: envName,
-            training: {
-              episodes: result.episodes,
-              averageReward: result.averageReward.toFixed(4),
-              convergenceEpisode: result.convergenceEpisode
+          content: JSON.stringify(
+            {
+              algorithm: result.algorithm,
+              environment: envName,
+              training: {
+                episodes: result.episodes,
+                averageReward: result.averageReward.toFixed(4),
+                convergenceEpisode: result.convergenceEpisode,
+              },
+              learnedPolicy: optimalPolicy,
+              note: 'SARSA learns safer policies than Q-learning (avoids cliff edge)',
             },
-            learnedPolicy: optimalPolicy,
-            note: 'SARSA learns safer policies than Q-learning (avoids cliff edge)'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -880,7 +993,7 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
         const result = policyGradient(env, {
           episodes: args.episodes || 1000,
           alpha: args.alpha || 0.01,
-          gamma: args.gamma || 0.99
+          gamma: args.gamma || 0.99,
         });
 
         const deterministicPolicy: { [state: string]: string } = {};
@@ -899,17 +1012,21 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: result.algorithm,
-            environment: envName,
-            training: {
-              episodes: result.episodes,
-              averageReward: result.averageReward.toFixed(4),
-              convergenceEpisode: result.convergenceEpisode
+          content: JSON.stringify(
+            {
+              algorithm: result.algorithm,
+              environment: envName,
+              training: {
+                episodes: result.episodes,
+                averageReward: result.averageReward.toFixed(4),
+                convergenceEpisode: result.convergenceEpisode,
+              },
+              learnedPolicy: deterministicPolicy,
+              note: 'Policy gradient learns stochastic policies directly',
             },
-            learnedPolicy: deterministicPolicy,
-            note: 'Policy gradient learns stochastic policies directly'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -922,14 +1039,18 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: 'Value Iteration (Dynamic Programming)',
-            environment: envName,
-            iterations: result.iterations,
-            optimalValues: result.values,
-            optimalPolicy: result.policy,
-            note: 'Requires known transition dynamics (model-based)'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              algorithm: 'Value Iteration (Dynamic Programming)',
+              environment: envName,
+              iterations: result.iterations,
+              optimalValues: result.values,
+              optimalPolicy: result.policy,
+              note: 'Requires known transition dynamics (model-based)',
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -938,26 +1059,30 @@ export async function executereinforcementlearning(toolCall: UnifiedToolCall): P
           arms: 10,
           steps: args.steps || 1000,
           algorithm: args.algorithm || 'epsilon_greedy',
-          epsilon: args.epsilon || 0.1
+          epsilon: args.epsilon || 0.1,
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            algorithm: result.algorithm,
-            results: {
-              totalSteps: result.steps,
-              totalReward: result.totalReward.toFixed(4),
-              optimalActionRate: (result.optimalActionRate * 100).toFixed(2) + '%',
-              averageReward: (result.totalReward / result.steps).toFixed(4)
+          content: JSON.stringify(
+            {
+              algorithm: result.algorithm,
+              results: {
+                totalSteps: result.steps,
+                totalReward: result.totalReward.toFixed(4),
+                optimalActionRate: (result.optimalActionRate * 100).toFixed(2) + '%',
+                averageReward: (result.totalReward / result.steps).toFixed(4),
+              },
+              armStatistics: result.armValues.map((q, i) => ({
+                arm: i,
+                estimatedValue: q.toFixed(4),
+                pullCount: result.armCounts[i],
+              })),
+              bestArm: result.armValues.indexOf(Math.max(...result.armValues)),
             },
-            armStatistics: result.armValues.map((q, i) => ({
-              arm: i,
-              estimatedValue: q.toFixed(4),
-              pullCount: result.armCounts[i]
-            })),
-            bestArm: result.armValues.indexOf(Math.max(...result.armValues))
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 

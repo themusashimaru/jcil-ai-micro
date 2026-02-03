@@ -21,20 +21,17 @@ export const voronoidiagramTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['compute', 'delaunay', 'nearest_neighbor', 'cell_properties', 'analyze', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       sites: {
         type: 'array',
-        items: {
-          type: 'array',
-          items: { type: 'number' }
-        },
-        description: 'Array of 2D site points'
+        items: { type: 'array' },
+        description: 'Array of 2D site points (2D array of numbers)',
       },
       query_point: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Query point for nearest neighbor'
+        description: 'Query point for nearest neighbor',
       },
       bounds: {
         type: 'object',
@@ -42,13 +39,13 @@ export const voronoidiagramTool: UnifiedTool = {
           min_x: { type: 'number' },
           max_x: { type: 'number' },
           min_y: { type: 'number' },
-          max_y: { type: 'number' }
+          max_y: { type: 'number' },
         },
-        description: 'Bounding box for clipping'
-      }
+        description: 'Bounding box for clipping',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // Point interface
@@ -86,16 +83,18 @@ function distance(a: Point, b: Point): number {
 }
 
 // Cross product for orientation test
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cross(o: Point, a: Point, b: Point): number {
+export function cross(o: Point, a: Point, b: Point): number {
   return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 }
 
 // Compute circumcenter of triangle
 function circumcenter(a: Point, b: Point, c: Point): { center: Point; radius: number } {
-  const ax = a.x, ay = a.y;
-  const bx = b.x, by = b.y;
-  const cx = c.x, cy = c.y;
+  const ax = a.x,
+    ay = a.y;
+  const bx = b.x,
+    by = b.y;
+  const cx = c.x,
+    cy = c.y;
 
   const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
   if (Math.abs(d) < 1e-10) {
@@ -103,8 +102,16 @@ function circumcenter(a: Point, b: Point, c: Point): { center: Point; radius: nu
     return { center: { x: (ax + bx + cx) / 3, y: (ay + by + cy) / 3 }, radius: Infinity };
   }
 
-  const ux = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d;
-  const uy = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d;
+  const ux =
+    ((ax * ax + ay * ay) * (by - cy) +
+      (bx * bx + by * by) * (cy - ay) +
+      (cx * cx + cy * cy) * (ay - by)) /
+    d;
+  const uy =
+    ((ax * ax + ay * ay) * (cx - bx) +
+      (bx * bx + by * by) * (ax - cx) +
+      (cx * cx + cy * cy) * (bx - ax)) /
+    d;
 
   const center = { x: ux, y: uy };
   const radius = distance(center, a);
@@ -114,13 +121,17 @@ function circumcenter(a: Point, b: Point, c: Point): { center: Point; radius: nu
 
 // Check if point is inside circumcircle of triangle
 function inCircumcircle(p: Point, a: Point, b: Point, c: Point): boolean {
-  const ax = a.x - p.x, ay = a.y - p.y;
-  const bx = b.x - p.x, by = b.y - p.y;
-  const cx = c.x - p.x, cy = c.y - p.y;
+  const ax = a.x - p.x,
+    ay = a.y - p.y;
+  const bx = b.x - p.x,
+    by = b.y - p.y;
+  const cx = c.x - p.x,
+    cy = c.y - p.y;
 
-  const det = (ax * ax + ay * ay) * (bx * cy - cx * by) -
-              (bx * bx + by * by) * (ax * cy - cx * ay) +
-              (cx * cx + cy * cy) * (ax * by - bx * ay);
+  const det =
+    (ax * ax + ay * ay) * (bx * cy - cx * by) -
+    (bx * bx + by * by) * (ax * cy - cx * ay) +
+    (cx * cx + cy * cy) * (ax * by - bx * ay);
 
   return det > 0;
 }
@@ -130,7 +141,10 @@ function delaunayTriangulation(sites: Point[]): DelaunayTriangle[] {
   if (sites.length < 3) return [];
 
   // Create super-triangle that contains all points
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
   for (const p of sites) {
     if (p.x < minX) minX = p.x;
     if (p.x > maxX) maxX = p.x;
@@ -178,8 +192,10 @@ function delaunayTriangulation(sites: Point[]): DelaunayTriangle[] {
           if (other === tri) continue;
           for (let j = 0; j < 3; j++) {
             const otherEdge: [Point, Point] = [other.v[j], other.v[(j + 1) % 3]];
-            if ((edge[0] === otherEdge[0] && edge[1] === otherEdge[1]) ||
-                (edge[0] === otherEdge[1] && edge[1] === otherEdge[0])) {
+            if (
+              (edge[0] === otherEdge[0] && edge[1] === otherEdge[1]) ||
+              (edge[0] === otherEdge[1] && edge[1] === otherEdge[0])
+            ) {
               shared = true;
               break;
             }
@@ -193,7 +209,7 @@ function delaunayTriangulation(sites: Point[]): DelaunayTriangle[] {
     }
 
     // Remove bad triangles
-    triangles = triangles.filter(t => !t.bad);
+    triangles = triangles.filter((t) => !t.bad);
 
     // Retriangulate
     for (const edge of polygon) {
@@ -202,7 +218,7 @@ function delaunayTriangulation(sites: Point[]): DelaunayTriangle[] {
   }
 
   // Remove triangles that share vertices with super-triangle
-  triangles = triangles.filter(tri => {
+  triangles = triangles.filter((tri) => {
     for (const v of tri.v) {
       if (v.index !== undefined && v.index < 0) return false;
     }
@@ -210,16 +226,12 @@ function delaunayTriangulation(sites: Point[]): DelaunayTriangle[] {
   });
 
   // Convert to output format
-  return triangles.map(tri => {
+  return triangles.map((tri) => {
     const cc = circumcenter(tri.v[0], tri.v[1], tri.v[2]);
     return {
-      vertices: [
-        tri.v[0].index!,
-        tri.v[1].index!,
-        tri.v[2].index!
-      ] as [number, number, number],
+      vertices: [tri.v[0].index!, tri.v[1].index!, tri.v[2].index!] as [number, number, number],
       circumcenter: cc.center,
-      circumradius: cc.radius
+      circumradius: cc.radius,
     };
   });
 }
@@ -264,7 +276,7 @@ function voronoiFromDelaunay(
         start: tris[0].circumcenter,
         end: tris[1].circumcenter,
         site1,
-        site2
+        site2,
       });
     } else if (tris.length === 1) {
       // Boundary edge - extend to infinity (or bounds)
@@ -287,15 +299,19 @@ function voronoiFromDelaunay(
 
         const extendDir = dot > 0 ? -1 : 1;
         const farPoint = {
-          x: cc.x + extendDir * dirX * Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 2,
-          y: cc.y + extendDir * dirY * Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 2
+          x:
+            cc.x +
+            extendDir * dirX * Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 2,
+          y:
+            cc.y +
+            extendDir * dirY * Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 2,
         };
 
         edges.push({
           start: cc,
           end: farPoint,
           site1,
-          site2
+          site2,
         });
       }
     }
@@ -333,7 +349,7 @@ function voronoiFromDelaunay(
     cells.push({
       site,
       vertices,
-      neighbors: [...cellNeighbors.get(i)!]
+      neighbors: [...cellNeighbors.get(i)!],
     });
   }
 
@@ -341,7 +357,10 @@ function voronoiFromDelaunay(
 }
 
 // Find nearest site to a query point
-function nearestNeighbor(sites: Point[], query: Point): { index: number; site: Point; distance: number } {
+function nearestNeighbor(
+  sites: Point[],
+  query: Point
+): { index: number; site: Point; distance: number } {
   let minDist = Infinity;
   let nearest = 0;
 
@@ -356,7 +375,7 @@ function nearestNeighbor(sites: Point[], query: Point): { index: number; site: P
   return {
     index: nearest,
     site: sites[nearest],
-    distance: minDist
+    distance: minDist,
   };
 }
 
@@ -378,7 +397,8 @@ function cellArea(vertices: Point[]): number {
 function cellCentroid(vertices: Point[]): Point {
   if (vertices.length === 0) return { x: 0, y: 0 };
 
-  let cx = 0, cy = 0;
+  let cx = 0,
+    cy = 0;
   for (const v of vertices) {
     cx += v.x;
     cy += v.y;
@@ -386,12 +406,16 @@ function cellCentroid(vertices: Point[]): Point {
 
   return {
     x: cx / vertices.length,
-    y: cy / vertices.length
+    y: cy / vertices.length,
   };
 }
 
 // Generate sample sites
-function generateSites(type: string, n: number, bounds: { minX: number; maxX: number; minY: number; maxY: number }): Point[] {
+function generateSites(
+  type: string,
+  n: number,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number }
+): Point[] {
   const sites: Point[] = [];
   const width = bounds.maxX - bounds.minX;
   const height = bounds.maxY - bounds.minY;
@@ -402,7 +426,7 @@ function generateSites(type: string, n: number, bounds: { minX: number; maxX: nu
         sites.push({
           x: bounds.minX + Math.random() * width,
           y: bounds.minY + Math.random() * height,
-          index: i
+          index: i,
         });
       }
       break;
@@ -414,9 +438,9 @@ function generateSites(type: string, n: number, bounds: { minX: number; maxX: nu
       for (let r = 0; r < rows && idx < n; r++) {
         for (let c = 0; c < cols && idx < n; c++) {
           sites.push({
-            x: bounds.minX + (c + 0.5) * width / cols,
-            y: bounds.minY + (r + 0.5) * height / rows,
-            index: idx++
+            x: bounds.minX + ((c + 0.5) * width) / cols,
+            y: bounds.minY + ((r + 0.5) * height) / rows,
+            index: idx++,
           });
         }
       }
@@ -424,12 +448,12 @@ function generateSites(type: string, n: number, bounds: { minX: number; maxX: nu
 
     case 'poisson':
       // Simple Poisson disk sampling approximation
-      const minDist = Math.sqrt(width * height / n) * 0.7;
+      const minDist = Math.sqrt((width * height) / n) * 0.7;
       const maxAttempts = 30;
       sites.push({
         x: bounds.minX + Math.random() * width,
         y: bounds.minY + Math.random() * height,
-        index: 0
+        index: 0,
       });
 
       while (sites.length < n) {
@@ -438,7 +462,7 @@ function generateSites(type: string, n: number, bounds: { minX: number; maxX: nu
           const candidate = {
             x: bounds.minX + Math.random() * width,
             y: bounds.minY + Math.random() * height,
-            index: sites.length
+            index: sites.length,
           };
 
           let valid = true;
@@ -460,7 +484,7 @@ function generateSites(type: string, n: number, bounds: { minX: number; maxX: nu
           sites.push({
             x: bounds.minX + Math.random() * width,
             y: bounds.minY + Math.random() * height,
-            index: sites.length
+            index: sites.length,
           });
         }
       }
@@ -471,7 +495,7 @@ function generateSites(type: string, n: number, bounds: { minX: number; maxX: nu
         sites.push({
           x: bounds.minX + Math.random() * width,
           y: bounds.minY + Math.random() * height,
-          index: i
+          index: i,
         });
       }
   }
@@ -489,35 +513,45 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'voronoi_diagram',
-          description: 'Voronoi diagram and Delaunay triangulation computation',
-          operations: {
-            compute: 'Compute Voronoi diagram from sites',
-            delaunay: 'Compute Delaunay triangulation',
-            nearest_neighbor: 'Find nearest site to query point',
-            cell_properties: 'Analyze Voronoi cell properties',
-            analyze: 'Full spatial analysis'
+        content: JSON.stringify(
+          {
+            tool: 'voronoi_diagram',
+            description: 'Voronoi diagram and Delaunay triangulation computation',
+            operations: {
+              compute: 'Compute Voronoi diagram from sites',
+              delaunay: 'Compute Delaunay triangulation',
+              nearest_neighbor: 'Find nearest site to query point',
+              cell_properties: 'Analyze Voronoi cell properties',
+              analyze: 'Full spatial analysis',
+            },
+            features: [
+              'Bowyer-Watson incremental Delaunay triangulation',
+              'Voronoi diagram as dual of Delaunay',
+              'Cell area and centroid computation',
+              'Nearest neighbor queries',
+              'Multiple site distributions (random, grid, Poisson)',
+            ],
+            applications: [
+              'Nearest neighbor search',
+              'Spatial clustering',
+              'Mesh generation',
+              'Territory assignment',
+              'Coverage analysis',
+            ],
+            example: {
+              operation: 'compute',
+              sites: [
+                [10, 10],
+                [50, 20],
+                [30, 60],
+                [70, 50],
+                [20, 40],
+              ],
+            },
           },
-          features: [
-            'Bowyer-Watson incremental Delaunay triangulation',
-            'Voronoi diagram as dual of Delaunay',
-            'Cell area and centroid computation',
-            'Nearest neighbor queries',
-            'Multiple site distributions (random, grid, Poisson)'
-          ],
-          applications: [
-            'Nearest neighbor search',
-            'Spatial clustering',
-            'Mesh generation',
-            'Territory assignment',
-            'Coverage analysis'
-          ],
-          example: {
-            operation: 'compute',
-            sites: [[10,10], [50,20], [30,60], [70,50], [20,40]]
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -527,7 +561,7 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
       minX: bounds.min_x || bounds.minX || 0,
       maxX: bounds.max_x || bounds.maxX || 100,
       minY: bounds.min_y || bounds.minY || 0,
-      maxY: bounds.max_y || bounds.maxY || 100
+      maxY: bounds.max_y || bounds.maxY || 100,
     };
 
     // Parse or generate sites
@@ -546,24 +580,30 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'compute',
-          num_sites: sites.length,
-          sites: sites.map(s => [parseFloat(s.x.toFixed(2)), parseFloat(s.y.toFixed(2))]),
-          voronoi_edges: voronoi.edges.slice(0, 30).map(e => ({
-            start: [parseFloat(e.start.x.toFixed(2)), parseFloat(e.start.y.toFixed(2))],
-            end: e.end ? [parseFloat(e.end.x.toFixed(2)), parseFloat(e.end.y.toFixed(2))] : null,
-            sites: [e.site1, e.site2]
-          })),
-          num_edges: voronoi.edges.length,
-          cells_summary: voronoi.cells.map((c, i) => ({
-            site_index: i,
-            num_vertices: c.vertices.length,
-            num_neighbors: c.neighbors.length,
-            neighbors: c.neighbors
-          })).slice(0, 10),
-          truncated: voronoi.edges.length > 30
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'compute',
+            num_sites: sites.length,
+            sites: sites.map((s) => [parseFloat(s.x.toFixed(2)), parseFloat(s.y.toFixed(2))]),
+            voronoi_edges: voronoi.edges.slice(0, 30).map((e) => ({
+              start: [parseFloat(e.start.x.toFixed(2)), parseFloat(e.start.y.toFixed(2))],
+              end: e.end ? [parseFloat(e.end.x.toFixed(2)), parseFloat(e.end.y.toFixed(2))] : null,
+              sites: [e.site1, e.site2],
+            })),
+            num_edges: voronoi.edges.length,
+            cells_summary: voronoi.cells
+              .map((c, i) => ({
+                site_index: i,
+                num_vertices: c.vertices.length,
+                num_neighbors: c.neighbors.length,
+                neighbors: c.neighbors,
+              }))
+              .slice(0, 10),
+            truncated: voronoi.edges.length > 30,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -572,21 +612,35 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'delaunay',
-          num_sites: sites.length,
-          num_triangles: triangles.length,
-          triangles: triangles.slice(0, 30).map(t => ({
-            vertices: t.vertices,
-            circumcenter: [parseFloat(t.circumcenter.x.toFixed(2)), parseFloat(t.circumcenter.y.toFixed(2))],
-            circumradius: parseFloat(t.circumradius.toFixed(2))
-          })),
-          properties: {
-            expected_triangles: 2 * sites.length - 5,  // Approximate for convex hull
-            avg_circumradius: parseFloat((triangles.reduce((s, t) => s + (isFinite(t.circumradius) ? t.circumradius : 0), 0) / triangles.length).toFixed(2))
+        content: JSON.stringify(
+          {
+            operation: 'delaunay',
+            num_sites: sites.length,
+            num_triangles: triangles.length,
+            triangles: triangles.slice(0, 30).map((t) => ({
+              vertices: t.vertices,
+              circumcenter: [
+                parseFloat(t.circumcenter.x.toFixed(2)),
+                parseFloat(t.circumcenter.y.toFixed(2)),
+              ],
+              circumradius: parseFloat(t.circumradius.toFixed(2)),
+            })),
+            properties: {
+              expected_triangles: 2 * sites.length - 5, // Approximate for convex hull
+              avg_circumradius: parseFloat(
+                (
+                  triangles.reduce(
+                    (s, t) => s + (isFinite(t.circumradius) ? t.circumradius : 0),
+                    0
+                  ) / triangles.length
+                ).toFixed(2)
+              ),
+            },
+            truncated: triangles.length > 30,
           },
-          truncated: triangles.length > 30
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -607,20 +661,24 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'nearest_neighbor',
-          query_point: queryPoint,
-          nearest: {
-            index: result.index,
-            site: [result.site.x, result.site.y],
-            distance: parseFloat(result.distance.toFixed(4))
+        content: JSON.stringify(
+          {
+            operation: 'nearest_neighbor',
+            query_point: queryPoint,
+            nearest: {
+              index: result.index,
+              site: [result.site.x, result.site.y],
+              distance: parseFloat(result.distance.toFixed(4)),
+            },
+            k_nearest: kNearest.map((n) => ({
+              index: n.index,
+              site: [sites[n.index].x, sites[n.index].y],
+              distance: parseFloat(n.distance.toFixed(4)),
+            })),
           },
-          k_nearest: kNearest.map(n => ({
-            index: n.index,
-            site: [sites[n.index].x, sites[n.index].y],
-            distance: parseFloat(n.distance.toFixed(4))
-          }))
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -639,28 +697,34 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
           num_neighbors: cell.neighbors.length,
           area: isFinite(area) ? parseFloat(area.toFixed(2)) : 'unbounded',
           centroid: [parseFloat(centroid.x.toFixed(2)), parseFloat(centroid.y.toFixed(2))],
-          centroid_offset: parseFloat(distance(cell.site, centroid).toFixed(2))
+          centroid_offset: parseFloat(distance(cell.site, centroid).toFixed(2)),
         };
       });
 
-      const boundedCells = cellProps.filter(c => typeof c.area === 'number');
+      const boundedCells = cellProps.filter((c) => typeof c.area === 'number');
       const totalArea = boundedCells.reduce((s, c) => s + (c.area as number), 0);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'cell_properties',
-          cells: cellProps.slice(0, 15),
-          summary: {
-            total_cells: cellProps.length,
-            bounded_cells: boundedCells.length,
-            unbounded_cells: cellProps.length - boundedCells.length,
-            total_bounded_area: parseFloat(totalArea.toFixed(2)),
-            avg_cell_area: parseFloat((totalArea / boundedCells.length).toFixed(2)),
-            avg_neighbors: parseFloat((cellProps.reduce((s, c) => s + c.num_neighbors, 0) / cellProps.length).toFixed(2))
+        content: JSON.stringify(
+          {
+            operation: 'cell_properties',
+            cells: cellProps.slice(0, 15),
+            summary: {
+              total_cells: cellProps.length,
+              bounded_cells: boundedCells.length,
+              unbounded_cells: cellProps.length - boundedCells.length,
+              total_bounded_area: parseFloat(totalArea.toFixed(2)),
+              avg_cell_area: parseFloat((totalArea / boundedCells.length).toFixed(2)),
+              avg_neighbors: parseFloat(
+                (cellProps.reduce((s, c) => s + c.num_neighbors, 0) / cellProps.length).toFixed(2)
+              ),
+            },
+            truncated: cellProps.length > 15,
           },
-          truncated: cellProps.length > 15
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -683,49 +747,75 @@ export async function executevoronoidiagram(toolCall: UnifiedToolCall): Promise<
 
       // Edge length statistics
       const edgeLengths = voronoi.edges
-        .filter(e => e.end !== null)
-        .map(e => distance(e.start, e.end!))
-        .filter(l => isFinite(l) && l < (boundsObj.maxX - boundsObj.minX) * 2);
+        .filter((e) => e.end !== null)
+        .map((e) => distance(e.start, e.end!))
+        .filter((l) => isFinite(l) && l < (boundsObj.maxX - boundsObj.minX) * 2);
 
-      const avgEdgeLength = edgeLengths.length > 0 ? edgeLengths.reduce((a, b) => a + b, 0) / edgeLengths.length : 0;
+      const avgEdgeLength =
+        edgeLengths.length > 0 ? edgeLengths.reduce((a, b) => a + b, 0) / edgeLengths.length : 0;
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'analyze',
-          input: {
-            num_sites: sites.length,
-            bounds: boundsObj
+        content: JSON.stringify(
+          {
+            operation: 'analyze',
+            input: {
+              num_sites: sites.length,
+              bounds: boundsObj,
+            },
+            delaunay: {
+              num_triangles: triangles.length,
+              avg_circumradius: parseFloat(
+                (
+                  triangles.reduce(
+                    (s, t) => s + (isFinite(t.circumradius) ? t.circumradius : 0),
+                    0
+                  ) / triangles.length
+                ).toFixed(2)
+              ),
+            },
+            voronoi: {
+              num_edges: voronoi.edges.length,
+              num_cells: voronoi.cells.length,
+              bounded_cells: areas.length,
+              avg_cell_area: parseFloat(avgArea.toFixed(2)),
+              avg_neighbors: parseFloat(avgNeighbors.toFixed(2)),
+              avg_edge_length: parseFloat(avgEdgeLength.toFixed(2)),
+            },
+            spatial_distribution: {
+              site_density:
+                sites.length /
+                ((boundsObj.maxX - boundsObj.minX) * (boundsObj.maxY - boundsObj.minY)),
+              regularity_index: parseFloat(
+                (avgArea / (Math.pow(avgEdgeLength, 2) || 1)).toFixed(4)
+              ),
+            },
           },
-          delaunay: {
-            num_triangles: triangles.length,
-            avg_circumradius: parseFloat((triangles.reduce((s, t) => s + (isFinite(t.circumradius) ? t.circumradius : 0), 0) / triangles.length).toFixed(2))
-          },
-          voronoi: {
-            num_edges: voronoi.edges.length,
-            num_cells: voronoi.cells.length,
-            bounded_cells: areas.length,
-            avg_cell_area: parseFloat(avgArea.toFixed(2)),
-            avg_neighbors: parseFloat(avgNeighbors.toFixed(2)),
-            avg_edge_length: parseFloat(avgEdgeLength.toFixed(2))
-          },
-          spatial_distribution: {
-            site_density: sites.length / ((boundsObj.maxX - boundsObj.minX) * (boundsObj.maxY - boundsObj.minY)),
-            regularity_index: parseFloat((avgArea / (Math.pow(avgEdgeLength, 2) || 1)).toFixed(4))
-          }
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: `Unknown operation: ${operation}`,
-        available_operations: ['compute', 'delaunay', 'nearest_neighbor', 'cell_properties', 'analyze', 'info']
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: `Unknown operation: ${operation}`,
+          available_operations: [
+            'compute',
+            'delaunay',
+            'nearest_neighbor',
+            'cell_properties',
+            'analyze',
+            'info',
+          ],
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

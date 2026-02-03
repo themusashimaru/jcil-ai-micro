@@ -30,7 +30,7 @@ class GaloisField {
   readonly expTable: number[];
   readonly logTable: number[];
 
-  constructor(primitive: number = 0x11D, generator: number = 2) {
+  constructor(primitive: number = 0x11d, generator: number = 2) {
     this.size = 256;
     this.primitive = primitive;
     this.expTable = new Array(512);
@@ -149,7 +149,7 @@ class GFPolynomial {
   }
 
   multiplyScalar(scalar: number): GFPolynomial {
-    const result = this.coefficients.map(c => this.gf.multiply(c, scalar));
+    const result = this.coefficients.map((c) => this.gf.multiply(c, scalar));
     return new GFPolynomial(result, this.gf);
   }
 
@@ -172,7 +172,9 @@ class GFPolynomial {
       throw new Error('Division by zero polynomial');
     }
 
-    const quotient = new Array(Math.max(this.coefficients.length - divisor.coefficients.length + 1, 1)).fill(0);
+    const quotient = new Array(
+      Math.max(this.coefficients.length - divisor.coefficients.length + 1, 1)
+    ).fill(0);
     const remainder = [...this.coefficients];
 
     const divisorLeadingCoeff = divisor.coefficients[0];
@@ -194,7 +196,7 @@ class GFPolynomial {
     const remainderStart = remainder.length - divisorDegree + 1;
     return {
       quotient: new GFPolynomial(quotient, this.gf),
-      remainder: new GFPolynomial(remainder.slice(remainderStart), this.gf)
+      remainder: new GFPolynomial(remainder.slice(remainderStart), this.gf),
     };
   }
 }
@@ -206,10 +208,10 @@ class GFPolynomial {
 class ReedSolomonCodec {
   readonly gf: GaloisField;
   readonly nsym: number; // Number of error correction symbols
-  readonly fcr: number;  // First consecutive root
+  readonly fcr: number; // First consecutive root
   readonly generator: GFPolynomial;
 
-  constructor(nsym: number = 10, fcr: number = 0, primitive: number = 0x11D) {
+  constructor(nsym: number = 10, fcr: number = 0, primitive: number = 0x11d) {
     this.gf = new GaloisField(primitive);
     this.nsym = nsym;
     this.fcr = fcr;
@@ -229,8 +231,6 @@ class ReedSolomonCodec {
     // Systematic encoding: message + parity
     // Parity = -(data * x^nsym) mod generator
     const dataWithParity = [...data, ...new Array(this.nsym).fill(0)];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const dataPoly = new GFPolynomial(data, this.gf);
 
     // Multiply by x^nsym
     const shifted = new GFPolynomial([...data, ...new Array(this.nsym).fill(0)], this.gf);
@@ -241,7 +241,8 @@ class ReedSolomonCodec {
     // XOR remainder into parity positions
     const parityStart = data.length;
     for (let i = 0; i < remainder.coefficients.length; i++) {
-      dataWithParity[parityStart + (this.nsym - remainder.coefficients.length) + i] = remainder.coefficients[i];
+      dataWithParity[parityStart + (this.nsym - remainder.coefficients.length) + i] =
+        remainder.coefficients[i];
     }
 
     return dataWithParity;
@@ -259,7 +260,7 @@ class ReedSolomonCodec {
   }
 
   hasErrors(syndromes: number[]): boolean {
-    return syndromes.some(s => s !== 0);
+    return syndromes.some((s) => s !== 0);
   }
 
   // Berlekamp-Massey algorithm to find error locator polynomial
@@ -274,10 +275,7 @@ class ReedSolomonCodec {
       // Compute discrepancy
       let delta = syndromes[i];
       for (let j = 1; j <= sigma.degree; j++) {
-        delta = this.gf.add(delta, this.gf.multiply(
-          sigma.getCoefficient(j),
-          syndromes[i - j]
-        ));
+        delta = this.gf.add(delta, this.gf.multiply(sigma.getCoefficient(j), syndromes[i - j]));
       }
 
       // Shift old sigma
@@ -335,7 +333,10 @@ class ReedSolomonCodec {
       }
     }
     sigmaDerivCoeffs.reverse();
-    const sigmaDeriv = new GFPolynomial(sigmaDerivCoeffs.length > 0 ? sigmaDerivCoeffs : [0], this.gf);
+    const sigmaDeriv = new GFPolynomial(
+      sigmaDerivCoeffs.length > 0 ? sigmaDerivCoeffs : [0],
+      this.gf
+    );
 
     // Compute error magnitudes
     const magnitudes: number[] = [];
@@ -370,7 +371,7 @@ class ReedSolomonCodec {
       return {
         data: received.slice(0, received.length - this.nsym),
         corrected: 0,
-        errors: []
+        errors: [],
       };
     }
 
@@ -382,12 +383,16 @@ class ReedSolomonCodec {
 
     // Check if number of errors matches degree of sigma
     if (errorPositions.length !== sigma.degree) {
-      throw new Error(`Decoding failed: found ${errorPositions.length} errors but sigma degree is ${sigma.degree}`);
+      throw new Error(
+        `Decoding failed: found ${errorPositions.length} errors but sigma degree is ${sigma.degree}`
+      );
     }
 
     // Check if we can correct this many errors
     if (errorPositions.length > this.nsym / 2) {
-      throw new Error(`Too many errors to correct: ${errorPositions.length} > ${Math.floor(this.nsym / 2)}`);
+      throw new Error(
+        `Too many errors to correct: ${errorPositions.length} > ${Math.floor(this.nsym / 2)}`
+      );
     }
 
     // Find error magnitudes
@@ -402,7 +407,7 @@ class ReedSolomonCodec {
     return {
       data: corrected.slice(0, corrected.length - this.nsym),
       corrected: errorPositions.length,
-      errors: errorPositions
+      errors: errorPositions,
     };
   }
 }
@@ -420,38 +425,38 @@ export const reedsolomonTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['encode', 'decode', 'syndrome', 'analyze', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       data: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Input data bytes (0-255)'
+        description: 'Input data bytes (0-255)',
       },
       nsym: {
         type: 'number',
-        description: 'Number of error correction symbols (default: 10)'
+        description: 'Number of error correction symbols (default: 10)',
       },
       fcr: {
         type: 'number',
-        description: 'First consecutive root (default: 0)'
+        description: 'First consecutive root (default: 0)',
       },
       primitive: {
         type: 'number',
-        description: 'Primitive polynomial (default: 0x11D for QR codes)'
+        description: 'Primitive polynomial (default: 0x11D for QR codes)',
       },
       error_positions: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Positions to introduce errors (for testing)'
+        description: 'Positions to introduce errors (for testing)',
       },
       error_values: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Error values to XOR at error positions'
-      }
+        description: 'Error values to XOR at error positions',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -459,7 +464,15 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { operation, data, nsym = 10, fcr = 0, primitive = 0x11D, error_positions, error_values } = args;
+    const {
+      operation,
+      data,
+      nsym = 10,
+      fcr = 0,
+      primitive = 0x11d,
+      error_positions,
+      error_values,
+    } = args;
 
     // Info operation
     if (operation === 'info') {
@@ -470,28 +483,28 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
           encode: 'Encode data with RS parity symbols',
           decode: 'Decode and correct errors in received data',
           syndrome: 'Compute error syndromes',
-          analyze: 'Analyze RS parameters and capabilities'
+          analyze: 'Analyze RS parameters and capabilities',
         },
         parameters: {
           nsym: 'Number of parity symbols (can correct nsym/2 errors)',
           fcr: 'First consecutive root of generator polynomial',
-          primitive: 'Primitive polynomial for GF(2^8)'
+          primitive: 'Primitive polynomial for GF(2^8)',
         },
         commonConfigs: {
           'QR Code': { nsym: 'varies by level', primitive: '0x11D', fcr: 0 },
-          'DVD': { nsym: 16, primitive: '0x11D', fcr: 0 },
-          'CD (CIRC)': { nsym: 4, primitive: '0x11D', fcr: 0 }
+          DVD: { nsym: 16, primitive: '0x11D', fcr: 0 },
+          'CD (CIRC)': { nsym: 4, primitive: '0x11D', fcr: 0 },
         },
         galoisField: {
           size: 256,
           defaultPrimitive: '0x11D (x^8 + x^4 + x^3 + x^2 + 1)',
-          generator: 2
+          generator: 2,
         },
         capabilities: {
           maxCorrectableErrors: 'floor(nsym / 2)',
           maxDetectableErrors: 'nsym',
-          erasureCorrection: 'Up to nsym erasures if positions known'
-        }
+          erasureCorrection: 'Up to nsym erasures if positions known',
+        },
       };
       return { toolCallId: id, content: JSON.stringify(info, null, 2) };
     }
@@ -503,36 +516,46 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
         parameters: {
           nsym,
           fcr,
-          primitive: `0x${primitive.toString(16).toUpperCase()}`
+          primitive: `0x${primitive.toString(16).toUpperCase()}`,
         },
         generatorPolynomial: {
           degree: codec.generator.degree,
-          coefficients: codec.generator.coefficients.map(c => `0x${c.toString(16).toUpperCase()}`)
+          coefficients: codec.generator.coefficients.map(
+            (c) => `0x${c.toString(16).toUpperCase()}`
+          ),
         },
         capabilities: {
           errorCorrectionCapability: Math.floor(nsym / 2),
           errorDetectionCapability: nsym,
           erasureCorrectionCapability: nsym,
-          codeRate: data ? `${data.length}/${data.length + nsym}` : `k/(k+${nsym})`
+          codeRate: data ? `${data.length}/${data.length + nsym}` : `k/(k+${nsym})`,
         },
         galoisField: {
           size: 256,
           primitive: `0x${primitive.toString(16).toUpperCase()}`,
-          firstElements: Array.from({ length: 10 }, (_, i) => codec.gf.exp(i))
-        }
+          firstElements: Array.from({ length: 10 }, (_, i) => codec.gf.exp(i)),
+        },
       };
       return { toolCallId: id, content: JSON.stringify(analysis, null, 2) };
     }
 
     // Validate data for other operations
     if (!data || !Array.isArray(data)) {
-      return { toolCallId: id, content: 'Error: data array required for encode/decode/syndrome operations', isError: true };
+      return {
+        toolCallId: id,
+        content: 'Error: data array required for encode/decode/syndrome operations',
+        isError: true,
+      };
     }
 
     // Validate data values
     for (const byte of data) {
       if (byte < 0 || byte > 255 || !Number.isInteger(byte)) {
-        return { toolCallId: id, content: `Error: data values must be integers 0-255, got ${byte}`, isError: true };
+        return {
+          toolCallId: id,
+          content: `Error: data values must be integers 0-255, got ${byte}`,
+          isError: true,
+        };
       }
     }
 
@@ -543,39 +566,44 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
       const encoded = codec.encode(data);
 
       // Optionally introduce errors for testing
-      const withErrors = error_positions && error_values ? (() => {
-        const errored = [...encoded];
-        for (let i = 0; i < Math.min(error_positions.length, error_values.length); i++) {
-          const pos = error_positions[i];
-          if (pos >= 0 && pos < errored.length) {
-            errored[pos] ^= error_values[i];
-          }
-        }
-        return errored;
-      })() : encoded;
+      const withErrors =
+        error_positions && error_values
+          ? (() => {
+              const errored = [...encoded];
+              for (let i = 0; i < Math.min(error_positions.length, error_values.length); i++) {
+                const pos = error_positions[i];
+                if (pos >= 0 && pos < errored.length) {
+                  errored[pos] ^= error_values[i];
+                }
+              }
+              return errored;
+            })()
+          : encoded;
 
       const result = {
         operation: 'encode',
         input: {
           data,
-          length: data.length
+          length: data.length,
         },
         output: {
           encoded: withErrors,
           length: withErrors.length,
           dataBytes: data.length,
-          parityBytes: nsym
+          parityBytes: nsym,
         },
-        ...(error_positions ? {
-          errorsIntroduced: {
-            positions: error_positions.slice(0, error_values?.length || 0),
-            values: error_values?.slice(0, error_positions.length) || []
-          }
-        } : {}),
+        ...(error_positions
+          ? {
+              errorsIntroduced: {
+                positions: error_positions.slice(0, error_values?.length || 0),
+                values: error_values?.slice(0, error_positions.length) || [],
+              },
+            }
+          : {}),
         generator: {
           degree: codec.generator.degree,
-          roots: Array.from({ length: nsym }, (_, i) => codec.gf.exp(i + fcr))
-        }
+          roots: Array.from({ length: nsym }, (_, i) => codec.gf.exp(i + fcr)),
+        },
       };
 
       return { toolCallId: id, content: JSON.stringify(result, null, 2) };
@@ -590,17 +618,17 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
         operation: 'syndrome',
         input: {
           received: data,
-          length: data.length
+          length: data.length,
         },
         syndromes: {
           values: syndromes,
-          hex: syndromes.map(s => `0x${s.toString(16).toUpperCase().padStart(2, '0')}`),
-          allZero: !hasErrors
+          hex: syndromes.map((s) => `0x${s.toString(16).toUpperCase().padStart(2, '0')}`),
+          allZero: !hasErrors,
         },
         errorDetected: hasErrors,
         interpretation: hasErrors
           ? 'Non-zero syndromes indicate errors in received data'
-          : 'All syndromes are zero, data appears error-free'
+          : 'All syndromes are zero, data appears error-free',
       };
 
       return { toolCallId: id, content: JSON.stringify(result, null, 2) };
@@ -615,24 +643,25 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'decode',
           input: {
             received: data,
-            length: data.length
+            length: data.length,
           },
           output: {
             data: decoded.data,
-            dataLength: decoded.data.length
+            dataLength: decoded.data.length,
           },
           correction: {
             errorsFound: decoded.corrected,
             errorPositions: decoded.errors,
             maxCorrectable: Math.floor(nsym / 2),
-            success: true
+            success: true,
           },
           syndromes: {
             before: codec.computeSyndromes(data),
-            after: decoded.corrected > 0
-              ? codec.computeSyndromes([...decoded.data, ...data.slice(-nsym)])
-              : 'N/A (no corrections needed)'
-          }
+            after:
+              decoded.corrected > 0
+                ? codec.computeSyndromes([...decoded.data, ...data.slice(-nsym)])
+                : 'N/A (no corrections needed)',
+          },
         };
 
         return { toolCallId: id, content: JSON.stringify(result, null, 2) };
@@ -642,21 +671,20 @@ export async function executereedsolomon(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'decode',
           input: {
             received: data,
-            length: data.length
+            length: data.length,
           },
           error: decodeError instanceof Error ? decodeError.message : 'Decoding failed',
           syndromes: {
             values: syndromes,
-            nonZeroCount: syndromes.filter(s => s !== 0).length
+            nonZeroCount: syndromes.filter((s) => s !== 0).length,
           },
-          suggestion: 'Too many errors to correct. Ensure error count ≤ ' + Math.floor(nsym / 2)
+          suggestion: 'Too many errors to correct. Ensure error count ≤ ' + Math.floor(nsym / 2),
         };
         return { toolCallId: id, content: JSON.stringify(result, null, 2) };
       }
     }
 
     return { toolCallId: id, content: `Error: Unknown operation '${operation}'`, isError: true };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

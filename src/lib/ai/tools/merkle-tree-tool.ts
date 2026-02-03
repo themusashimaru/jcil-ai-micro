@@ -43,7 +43,7 @@ interface MerkleNode {
   hash: string;
   left: MerkleNode | null;
   right: MerkleNode | null;
-  data?: string;  // Only for leaf nodes
+  data?: string; // Only for leaf nodes
   index?: number; // Leaf index
 }
 
@@ -64,7 +64,7 @@ function buildTree(dataBlocks: string[]): MerkleNode | null {
     left: null,
     right: null,
     data,
-    index
+    index,
   }));
 
   // Pad to power of 2 if needed
@@ -85,7 +85,7 @@ function buildTree(dataBlocks: string[]): MerkleNode | null {
       newLevel.push({
         hash: hashPair(left.hash, right.hash),
         left,
-        right: nodes[i + 1] ? right : null
+        right: nodes[i + 1] ? right : null,
       });
     }
 
@@ -110,7 +110,11 @@ function getLeaves(root: MerkleNode | null): string[] {
 }
 
 // Generate Merkle proof for a specific leaf index
-function generateProof(root: MerkleNode | null, leafIndex: number, totalLeaves: number): ProofElement[] {
+function generateProof(
+  root: MerkleNode | null,
+  leafIndex: number,
+  totalLeaves: number
+): ProofElement[] {
   if (!root) return [];
 
   const proof: ProofElement[] = [];
@@ -133,7 +137,7 @@ function generateProof(root: MerkleNode | null, leafIndex: number, totalLeaves: 
         proof.push({
           hash: node.right.hash,
           position: 'right',
-          level
+          level,
         });
       }
       level++;
@@ -144,7 +148,7 @@ function generateProof(root: MerkleNode | null, leafIndex: number, totalLeaves: 
         proof.push({
           hash: node.left.hash,
           position: 'left',
-          level
+          level,
         });
       }
       level++;
@@ -158,11 +162,7 @@ function generateProof(root: MerkleNode | null, leafIndex: number, totalLeaves: 
 }
 
 // Verify Merkle proof
-function verifyProof(
-  leafHash: string,
-  proof: ProofElement[],
-  rootHash: string
-): boolean {
+function verifyProof(leafHash: string, proof: ProofElement[], rootHash: string): boolean {
   let currentHash = leafHash;
 
   for (const element of proof) {
@@ -181,7 +181,7 @@ function calculateRoot(dataBlocks: string[]): string {
   if (dataBlocks.length === 0) return '';
   if (dataBlocks.length === 1) return hash(dataBlocks[0]);
 
-  let hashes = dataBlocks.map(data => hash(data));
+  let hashes = dataBlocks.map((data) => hash(data));
 
   // Pad to power of 2
   while (hashes.length > 1 && (hashes.length & (hashes.length - 1)) !== 0) {
@@ -202,7 +202,11 @@ function calculateRoot(dataBlocks: string[]): string {
 }
 
 // Visualize tree structure
-function visualizeTree(root: MerkleNode | null, prefix: string = '', isLeft: boolean = true): string[] {
+function visualizeTree(
+  root: MerkleNode | null,
+  prefix: string = '',
+  isLeft: boolean = true
+): string[] {
   if (!root) return [];
 
   const lines: string[] = [];
@@ -227,10 +231,17 @@ function visualizeTree(root: MerkleNode | null, prefix: string = '', isLeft: boo
 }
 
 // Get tree statistics
-function getTreeStats(root: MerkleNode | null): { depth: number; nodeCount: number; leafCount: number } {
+function getTreeStats(root: MerkleNode | null): {
+  depth: number;
+  nodeCount: number;
+  leafCount: number;
+} {
   if (!root) return { depth: 0, nodeCount: 0, leafCount: 0 };
 
-  function traverse(node: MerkleNode | null, depth: number): { maxDepth: number; nodes: number; leaves: number } {
+  function traverse(
+    node: MerkleNode | null,
+    depth: number
+  ): { maxDepth: number; nodes: number; leaves: number } {
     if (!node) return { maxDepth: depth - 1, nodes: 0, leaves: 0 };
 
     if (!node.left && !node.right) {
@@ -243,7 +254,7 @@ function getTreeStats(root: MerkleNode | null): { depth: number; nodeCount: numb
     return {
       maxDepth: Math.max(leftStats.maxDepth, rightStats.maxDepth),
       nodes: 1 + leftStats.nodes + rightStats.nodes,
-      leaves: leftStats.leaves + rightStats.leaves
+      leaves: leftStats.leaves + rightStats.leaves,
     };
   }
 
@@ -251,7 +262,7 @@ function getTreeStats(root: MerkleNode | null): { depth: number; nodeCount: numb
   return {
     depth: stats.maxDepth,
     nodeCount: stats.nodes,
-    leafCount: stats.leaves
+    leafCount: stats.leaves,
   };
 }
 
@@ -287,7 +298,7 @@ class SparseMerkleTree {
 
     // Simplified root calculation for demonstration
     const sortedKeys = Array.from(this.leaves.keys()).sort();
-    let currentLevel = sortedKeys.map(k => this.leaves.get(k)!);
+    let currentLevel = sortedKeys.map((k) => this.leaves.get(k)!);
 
     for (let i = 0; i < Math.min(this.depth, 10); i++) {
       const newLevel: string[] = [];
@@ -310,14 +321,13 @@ class SparseMerkleTree {
     // For demonstration, return simplified proof
     return {
       exists,
-      proof: []
+      proof: [],
     };
   }
 }
 
 // Multi-proof for batch verification
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function generateMultiProof(
+export function generateMultiProof(
   root: MerkleNode | null,
   leafIndices: number[],
   totalLeaves: number
@@ -328,12 +338,12 @@ function generateMultiProof(
   for (const index of leafIndices) {
     const proof = generateProof(root, index, totalLeaves);
     proofs.set(index, proof);
-    proof.forEach(p => allHashes.add(p.hash));
+    proof.forEach((p) => allHashes.add(p.hash));
   }
 
   return {
     proofs,
-    commonHashes: Array.from(allHashes)
+    commonHashes: Array.from(allHashes),
   };
 }
 
@@ -346,26 +356,26 @@ export const merkletreeTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['build', 'verify', 'get_proof', 'get_root', 'visualize', 'sparse', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       data: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Data blocks to build tree from'
+        description: 'Data blocks to build tree from',
       },
       leafIndex: { type: 'number', description: 'Index of leaf for proof generation' },
       leafHash: { type: 'string', description: 'Hash of leaf to verify' },
       rootHash: { type: 'string', description: 'Root hash for verification' },
       proof: {
         type: 'array',
-        description: 'Merkle proof for verification'
+        description: 'Merkle proof for verification',
       },
       // Sparse tree parameters
       key: { type: 'string', description: 'Key for sparse Merkle tree' },
-      value: { type: 'string', description: 'Value for sparse Merkle tree' }
+      value: { type: 'string', description: 'Value for sparse Merkle tree' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executemerkletree(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -378,30 +388,34 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
     if (operation === 'info') {
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          tool: 'merkle-tree',
-          description: 'Merkle tree implementation for data verification',
-          capabilities: [
-            'Build Merkle tree from data blocks',
-            'Compute root hash',
-            'Generate inclusion proofs',
-            'Verify Merkle proofs',
-            'Tree visualization',
-            'Sparse Merkle trees for key-value storage',
-            'Multi-proof generation'
-          ],
-          properties: {
-            security: 'Tamper-evident - any change affects root hash',
-            efficiency: 'O(log n) proof size and verification',
-            applications: [
-              'Blockchain (Bitcoin, Ethereum)',
-              'Git version control',
-              'Certificate transparency',
-              'Database integrity'
-            ]
+        content: JSON.stringify(
+          {
+            tool: 'merkle-tree',
+            description: 'Merkle tree implementation for data verification',
+            capabilities: [
+              'Build Merkle tree from data blocks',
+              'Compute root hash',
+              'Generate inclusion proofs',
+              'Verify Merkle proofs',
+              'Tree visualization',
+              'Sparse Merkle trees for key-value storage',
+              'Multi-proof generation',
+            ],
+            properties: {
+              security: 'Tamper-evident - any change affects root hash',
+              efficiency: 'O(log n) proof size and verification',
+              applications: [
+                'Blockchain (Bitcoin, Ethereum)',
+                'Git version control',
+                'Certificate transparency',
+                'Database integrity',
+              ],
+            },
+            hashFunction: 'FNV-1a based (demonstration - use SHA-256 in production)',
           },
-          hashFunction: 'FNV-1a based (demonstration - use SHA-256 in production)'
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -413,7 +427,7 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
         return {
           toolCallId: id,
           content: JSON.stringify({ error: 'Failed to build tree - no data provided' }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -422,22 +436,26 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'build',
-          rootHash: tree.hash,
-          statistics: {
-            depth: stats.depth,
-            totalNodes: stats.nodeCount,
-            leafCount: stats.leafCount,
-            dataBlocks: data.length
+        content: JSON.stringify(
+          {
+            operation: 'build',
+            rootHash: tree.hash,
+            statistics: {
+              depth: stats.depth,
+              totalNodes: stats.nodeCount,
+              leafCount: stats.leafCount,
+              dataBlocks: data.length,
+            },
+            leaves: leaves.map((h, i) => ({
+              index: i,
+              hash: h.substring(0, 16) + '...',
+              data: data[i] ? data[i].substring(0, 30) : 'padding',
+            })),
+            tree: visualizeTree(tree).join('\n'),
           },
-          leaves: leaves.map((h, i) => ({
-            index: i,
-            hash: h.substring(0, 16) + '...',
-            data: data[i] ? data[i].substring(0, 30) : 'padding'
-          })),
-          tree: visualizeTree(tree).join('\n')
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
@@ -447,12 +465,16 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'get_root',
-          dataBlocks: data.length,
-          rootHash,
-          method: 'Bottom-up hash aggregation'
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'get_root',
+            dataBlocks: data.length,
+            rootHash,
+            method: 'Bottom-up hash aggregation',
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -465,9 +487,9 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
           toolCallId: id,
           content: JSON.stringify({
             error: 'Invalid leaf index',
-            validRange: `0 to ${data.length - 1}`
+            validRange: `0 to ${data.length - 1}`,
           }),
-          isError: true
+          isError: true,
         };
       }
 
@@ -477,23 +499,27 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'get_proof',
-          leafIndex,
-          leafData: data[leafIndex],
-          leafHash,
-          rootHash: tree?.hash,
-          proof: proof.map(p => ({
-            siblingHash: p.hash.substring(0, 16) + '...',
-            position: p.position,
-            level: p.level
-          })),
-          proofSize: proof.length,
-          verification: {
-            formula: 'Start with leaf hash, combine with siblings from bottom to top',
-            expectedResult: tree?.hash
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'get_proof',
+            leafIndex,
+            leafData: data[leafIndex],
+            leafHash,
+            rootHash: tree?.hash,
+            proof: proof.map((p) => ({
+              siblingHash: p.hash.substring(0, 16) + '...',
+              position: p.position,
+              level: p.level,
+            })),
+            proofSize: proof.length,
+            verification: {
+              formula: 'Start with leaf hash, combine with siblings from bottom to top',
+              expectedResult: tree?.hash,
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -511,38 +537,48 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'verify (demonstration)',
-            leafIndex,
-            leafData: data[leafIndex],
-            leafHash: leafHash.substring(0, 32) + '...',
-            rootHash: tree?.hash.substring(0, 32) + '...',
-            proofLength: proof.length,
-            verified: isValid,
-            explanation: isValid
-              ? 'Proof is valid - leaf is included in the tree'
-              : 'Proof is invalid - leaf may have been tampered with'
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'verify (demonstration)',
+              leafIndex,
+              leafData: data[leafIndex],
+              leafHash: leafHash.substring(0, 32) + '...',
+              rootHash: tree?.hash.substring(0, 32) + '...',
+              proofLength: proof.length,
+              verified: isValid,
+              explanation: isValid
+                ? 'Proof is valid - leaf is included in the tree'
+                : 'Proof is invalid - leaf may have been tampered with',
+            },
+            null,
+            2
+          ),
         };
       }
 
-      const proof: ProofElement[] = args.proof.map((p: { hash: string; position: string; level?: number }) => ({
-        hash: p.hash,
-        position: p.position as 'left' | 'right',
-        level: p.level ?? 0
-      }));
+      const proof: ProofElement[] = args.proof.map(
+        (p: { hash: string; position: string; level?: number }) => ({
+          hash: p.hash,
+          position: p.position as 'left' | 'right',
+          level: p.level ?? 0,
+        })
+      );
 
       const isValid = verifyProof(args.leafHash, proof, args.rootHash);
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'verify',
-          leafHash: args.leafHash.substring(0, 32) + '...',
-          rootHash: args.rootHash.substring(0, 32) + '...',
-          proofLength: proof.length,
-          verified: isValid
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'verify',
+            leafHash: args.leafHash.substring(0, 32) + '...',
+            rootHash: args.rootHash.substring(0, 32) + '...',
+            proofLength: proof.length,
+            verified: isValid,
+          },
+          null,
+          2
+        ),
       };
     }
 
@@ -553,29 +589,33 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'visualize',
-          dataBlocks: data,
-          tree: visualizeTree(tree).join('\n'),
-          legend: {
-            '(hash...)': 'Internal node',
-            '[hash...] "data"': 'Leaf node with data',
-            '└──': 'Left child',
-            '┌──': 'Right child'
+        content: JSON.stringify(
+          {
+            operation: 'visualize',
+            dataBlocks: data,
+            tree: visualizeTree(tree).join('\n'),
+            legend: {
+              '(hash...)': 'Internal node',
+              '[hash...] "data"': 'Leaf node with data',
+              '└──': 'Left child',
+              '┌──': 'Right child',
+            },
+            statistics: stats,
           },
-          statistics: stats
-        }, null, 2)
+          null,
+          2
+        ),
       };
     }
 
     if (operation === 'sparse') {
-      const smt = new SparseMerkleTree(16);  // Small depth for demo
+      const smt = new SparseMerkleTree(16); // Small depth for demo
 
       // Insert some key-value pairs
       const entries = [
         { key: args.key ?? 'user1', value: args.value ?? 'balance:100' },
         { key: 'user2', value: 'balance:250' },
-        { key: 'user3', value: 'balance:50' }
+        { key: 'user3', value: 'balance:50' },
       ];
 
       for (const entry of entries) {
@@ -586,32 +626,35 @@ export async function executemerkletree(toolCall: UnifiedToolCall): Promise<Unif
 
       return {
         toolCallId: id,
-        content: JSON.stringify({
-          operation: 'sparse_merkle_tree',
-          description: 'Sparse Merkle tree for efficient key-value proofs',
-          entries: entries.map(e => ({
-            key: e.key,
-            keyHash: hash(e.key).substring(0, 16) + '...',
-            value: e.value,
-            valueHash: hash(e.value).substring(0, 16) + '...'
-          })),
-          rootHash,
-          properties: {
-            depth: 16,
-            keySpace: '2^16 possible keys',
-            efficiency: 'O(log n) proof for any key',
-            feature: 'Can prove non-inclusion of keys'
-          }
-        }, null, 2)
+        content: JSON.stringify(
+          {
+            operation: 'sparse_merkle_tree',
+            description: 'Sparse Merkle tree for efficient key-value proofs',
+            entries: entries.map((e) => ({
+              key: e.key,
+              keyHash: hash(e.key).substring(0, 16) + '...',
+              value: e.value,
+              valueHash: hash(e.value).substring(0, 16) + '...',
+            })),
+            rootHash,
+            properties: {
+              depth: 16,
+              keySpace: '2^16 possible keys',
+              efficiency: 'O(log n) proof for any key',
+              feature: 'Can prove non-inclusion of keys',
+            },
+          },
+          null,
+          2
+        ),
       };
     }
 
     return {
       toolCallId: id,
       content: JSON.stringify({ error: 'Unknown operation', operation }),
-      isError: true
+      isError: true,
     };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: 'Error: ' + err, isError: true };

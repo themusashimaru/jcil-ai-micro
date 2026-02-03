@@ -26,7 +26,7 @@ function cAdd(a: Complex, b: Complex): Complex {
 function cMul(a: Complex, b: Complex): Complex {
   return {
     re: a.re * b.re - a.im * b.im,
-    im: a.re * b.im + a.im * b.re
+    im: a.re * b.im + a.im * b.re,
   };
 }
 
@@ -34,8 +34,7 @@ function cScale(a: Complex, s: number): Complex {
   return { re: a.re * s, im: a.im * s };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function cConj(a: Complex): Complex {
+export function cConj(a: Complex): Complex {
   return { re: a.re, im: -a.im };
 }
 
@@ -61,22 +60,25 @@ function createZeroState(numQubits: number): StateVector {
 }
 
 function copyState(state: StateVector): StateVector {
-  return state.map(c => ({ ...c }));
+  return state.map((c) => ({ ...c }));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalizeState(state: StateVector): StateVector {
+export function normalizeState(state: StateVector): StateVector {
   const norm = Math.sqrt(state.reduce((sum, c) => sum + cMag2(c), 0));
   if (norm < 1e-10) return state;
-  return state.map(c => cScale(c, 1 / norm));
+  return state.map((c) => cScale(c, 1 / norm));
 }
 
 // =============================================================================
 // QUANTUM GATES FOR VQE
 // =============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function applyRx(state: StateVector, qubit: number, numQubits: number, theta: number): StateVector {
+export function applyRx(
+  state: StateVector,
+  qubit: number,
+  numQubits: number,
+  theta: number
+): StateVector {
   const newState = copyState(state);
   const size = 1 << numQubits;
   const mask = 1 << (numQubits - 1 - qubit);
@@ -89,14 +91,8 @@ function applyRx(state: StateVector, qubit: number, numQubits: number, theta: nu
       const a = state[i];
       const b = state[j];
       // Rx gate: [[cos(θ/2), -i*sin(θ/2)], [-i*sin(θ/2), cos(θ/2)]]
-      newState[i] = cAdd(
-        cScale(a, cosHalf),
-        cMul(b, complex(0, -sinHalf))
-      );
-      newState[j] = cAdd(
-        cMul(a, complex(0, -sinHalf)),
-        cScale(b, cosHalf)
-      );
+      newState[i] = cAdd(cScale(a, cosHalf), cMul(b, complex(0, -sinHalf)));
+      newState[j] = cAdd(cMul(a, complex(0, -sinHalf)), cScale(b, cosHalf));
     }
   }
   return newState;
@@ -138,7 +134,12 @@ function applyRz(state: StateVector, qubit: number, numQubits: number, theta: nu
   return newState;
 }
 
-function applyCNOT(state: StateVector, control: number, target: number, numQubits: number): StateVector {
+function applyCNOT(
+  state: StateVector,
+  control: number,
+  target: number,
+  numQubits: number
+): StateVector {
   const newState = copyState(state);
   const size = 1 << numQubits;
   const controlMask = 1 << (numQubits - 1 - control);
@@ -171,8 +172,7 @@ function applyX(state: StateVector, qubit: number, numQubits: number): StateVect
   return newState;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function applyZ(state: StateVector, qubit: number, numQubits: number): StateVector {
+export function applyZ(state: StateVector, qubit: number, numQubits: number): StateVector {
   const newState = copyState(state);
   const size = 1 << numQubits;
   const mask = 1 << (numQubits - 1 - qubit);
@@ -226,12 +226,48 @@ function getH2Hamiltonian(bondLength: number = 0.74): Hamiltonian {
       { coefficient: g1, paulis: [{ qubit: 1, operator: 'Z' }] },
       { coefficient: g2, paulis: [{ qubit: 2, operator: 'Z' }] },
       { coefficient: g2, paulis: [{ qubit: 3, operator: 'Z' }] },
-      { coefficient: g3, paulis: [{ qubit: 0, operator: 'Z' }, { qubit: 1, operator: 'Z' }] },
-      { coefficient: g3, paulis: [{ qubit: 0, operator: 'Z' }, { qubit: 2, operator: 'Z' }] },
-      { coefficient: g4, paulis: [{ qubit: 1, operator: 'Z' }, { qubit: 2, operator: 'Z' }] },
-      { coefficient: g3, paulis: [{ qubit: 0, operator: 'Z' }, { qubit: 3, operator: 'Z' }] },
-      { coefficient: g4, paulis: [{ qubit: 1, operator: 'Z' }, { qubit: 3, operator: 'Z' }] },
-      { coefficient: g3, paulis: [{ qubit: 2, operator: 'Z' }, { qubit: 3, operator: 'Z' }] },
+      {
+        coefficient: g3,
+        paulis: [
+          { qubit: 0, operator: 'Z' },
+          { qubit: 1, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: g3,
+        paulis: [
+          { qubit: 0, operator: 'Z' },
+          { qubit: 2, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: g4,
+        paulis: [
+          { qubit: 1, operator: 'Z' },
+          { qubit: 2, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: g3,
+        paulis: [
+          { qubit: 0, operator: 'Z' },
+          { qubit: 3, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: g4,
+        paulis: [
+          { qubit: 1, operator: 'Z' },
+          { qubit: 3, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: g3,
+        paulis: [
+          { qubit: 2, operator: 'Z' },
+          { qubit: 3, operator: 'Z' },
+        ],
+      },
       // XX + YY terms (fermionic hopping)
       {
         coefficient: 0.0452,
@@ -239,8 +275,8 @@ function getH2Hamiltonian(bondLength: number = 0.74): Hamiltonian {
           { qubit: 0, operator: 'X' },
           { qubit: 1, operator: 'X' },
           { qubit: 2, operator: 'X' },
-          { qubit: 3, operator: 'X' }
-        ]
+          { qubit: 3, operator: 'X' },
+        ],
       },
       {
         coefficient: 0.0452,
@@ -248,8 +284,8 @@ function getH2Hamiltonian(bondLength: number = 0.74): Hamiltonian {
           { qubit: 0, operator: 'Y' },
           { qubit: 1, operator: 'Y' },
           { qubit: 2, operator: 'X' },
-          { qubit: 3, operator: 'X' }
-        ]
+          { qubit: 3, operator: 'X' },
+        ],
       },
       {
         coefficient: 0.0452,
@@ -257,8 +293,8 @@ function getH2Hamiltonian(bondLength: number = 0.74): Hamiltonian {
           { qubit: 0, operator: 'X' },
           { qubit: 1, operator: 'X' },
           { qubit: 2, operator: 'Y' },
-          { qubit: 3, operator: 'Y' }
-        ]
+          { qubit: 3, operator: 'Y' },
+        ],
       },
       {
         coefficient: 0.0452,
@@ -266,10 +302,10 @@ function getH2Hamiltonian(bondLength: number = 0.74): Hamiltonian {
           { qubit: 0, operator: 'Y' },
           { qubit: 1, operator: 'Y' },
           { qubit: 2, operator: 'Y' },
-          { qubit: 3, operator: 'Y' }
-        ]
-      }
-    ]
+          { qubit: 3, operator: 'Y' },
+        ],
+      },
+    ],
   };
 }
 
@@ -290,18 +326,30 @@ function getLiHHamiltonian(bondLength: number = 1.6): Hamiltonian {
       { coefficient: 0.18, paulis: [{ qubit: 1, operator: 'Z' }] },
       { coefficient: -0.22, paulis: [{ qubit: 2, operator: 'Z' }] },
       { coefficient: -0.22, paulis: [{ qubit: 3, operator: 'Z' }] },
-      { coefficient: 0.12, paulis: [{ qubit: 0, operator: 'Z' }, { qubit: 1, operator: 'Z' }] },
-      { coefficient: 0.17, paulis: [{ qubit: 2, operator: 'Z' }, { qubit: 3, operator: 'Z' }] },
+      {
+        coefficient: 0.12,
+        paulis: [
+          { qubit: 0, operator: 'Z' },
+          { qubit: 1, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: 0.17,
+        paulis: [
+          { qubit: 2, operator: 'Z' },
+          { qubit: 3, operator: 'Z' },
+        ],
+      },
       {
         coefficient: 0.04,
         paulis: [
           { qubit: 0, operator: 'X' },
           { qubit: 1, operator: 'X' },
           { qubit: 2, operator: 'X' },
-          { qubit: 3, operator: 'X' }
-        ]
-      }
-    ]
+          { qubit: 3, operator: 'X' },
+        ],
+      },
+    ],
   };
 }
 
@@ -319,9 +367,21 @@ function getBeH2Hamiltonian(): Hamiltonian {
       { coefficient: -0.3, paulis: [{ qubit: 3, operator: 'Z' }] },
       { coefficient: -0.1, paulis: [{ qubit: 4, operator: 'Z' }] },
       { coefficient: -0.1, paulis: [{ qubit: 5, operator: 'Z' }] },
-      { coefficient: 0.15, paulis: [{ qubit: 0, operator: 'Z' }, { qubit: 1, operator: 'Z' }] },
-      { coefficient: 0.12, paulis: [{ qubit: 2, operator: 'Z' }, { qubit: 3, operator: 'Z' }] }
-    ]
+      {
+        coefficient: 0.15,
+        paulis: [
+          { qubit: 0, operator: 'Z' },
+          { qubit: 1, operator: 'Z' },
+        ],
+      },
+      {
+        coefficient: 0.12,
+        paulis: [
+          { qubit: 2, operator: 'Z' },
+          { qubit: 3, operator: 'Z' },
+        ],
+      },
+    ],
   };
 }
 
@@ -355,7 +415,7 @@ function getAnsatzConfig(type: string, numQubits: number, depth: number = 2): An
   switch (type) {
     case 'UCCSD':
       // UCCSD has parameters for single and double excitations
-      numParameters = numQubits + numQubits * (numQubits - 1) / 2;
+      numParameters = numQubits + (numQubits * (numQubits - 1)) / 2;
       break;
     case 'hardware_efficient':
       // Each layer: Ry on each qubit + entangling gates
@@ -372,11 +432,15 @@ function getAnsatzConfig(type: string, numQubits: number, depth: number = 2): An
     type: type as AnsatzConfig['type'],
     numQubits,
     depth,
-    numParameters
+    numParameters,
   };
 }
 
-function applyHartreeFockState(state: StateVector, numQubits: number, numElectrons: number): StateVector {
+function applyHartreeFockState(
+  state: StateVector,
+  numQubits: number,
+  numElectrons: number
+): StateVector {
   // Prepare Hartree-Fock initial state (fill lowest orbitals)
   let newState = state;
   for (let i = 0; i < Math.min(numElectrons, numQubits); i++) {
@@ -495,7 +559,11 @@ function applyAnsatz(
 // ENERGY EXPECTATION VALUE
 // =============================================================================
 
-function measurePauliString(state: StateVector, numQubits: number, paulis: PauliTerm['paulis']): number {
+function measurePauliString(
+  state: StateVector,
+  numQubits: number,
+  paulis: PauliTerm['paulis']
+): number {
   if (paulis.length === 0) {
     // Identity: expectation is 1
     return 1.0;
@@ -522,7 +590,7 @@ function measurePauliString(state: StateVector, numQubits: number, paulis: Pauli
   for (let i = 0; i < size; i++) {
     let parity = 0;
     for (const { qubit } of paulis) {
-      if (paulis.find(p => p.qubit === qubit)?.operator === 'I') continue;
+      if (paulis.find((p) => p.qubit === qubit)?.operator === 'I') continue;
       const bit = (i >> (numQubits - 1 - qubit)) & 1;
       parity ^= bit;
     }
@@ -616,7 +684,7 @@ function gradientDescent(
         energy,
         iterations: iter + 1,
         convergenceHistory,
-        converged: true
+        converged: true,
       };
     }
     prevEnergy = energy;
@@ -629,8 +697,18 @@ function gradientDescent(
       paramsPlus[p] += epsilon;
       paramsMinus[p] -= epsilon;
 
-      const statePlus = applyAnsatz(createZeroState(hamiltonian.numQubits), ansatzConfig, paramsPlus, numElectrons);
-      const stateMinus = applyAnsatz(createZeroState(hamiltonian.numQubits), ansatzConfig, paramsMinus, numElectrons);
+      const statePlus = applyAnsatz(
+        createZeroState(hamiltonian.numQubits),
+        ansatzConfig,
+        paramsPlus,
+        numElectrons
+      );
+      const stateMinus = applyAnsatz(
+        createZeroState(hamiltonian.numQubits),
+        ansatzConfig,
+        paramsMinus,
+        numElectrons
+      );
 
       const energyPlus = computeEnergy(statePlus, hamiltonian);
       const energyMinus = computeEnergy(stateMinus, hamiltonian);
@@ -644,7 +722,12 @@ function gradientDescent(
     }
   }
 
-  const finalState = applyAnsatz(createZeroState(hamiltonian.numQubits), ansatzConfig, parameters, numElectrons);
+  const finalState = applyAnsatz(
+    createZeroState(hamiltonian.numQubits),
+    ansatzConfig,
+    parameters,
+    numElectrons
+  );
   const finalEnergy = computeEnergy(finalState, hamiltonian);
 
   return {
@@ -652,7 +735,7 @@ function gradientDescent(
     energy: finalEnergy,
     iterations: maxIterations,
     convergenceHistory,
-    converged: false
+    converged: false,
   };
 }
 
@@ -668,7 +751,7 @@ function cobyla(
   const n = initialParams.length;
   const alpha = 1.0; // Reflection
   const gamma = 2.0; // Expansion
-  const rho = 0.5;   // Contraction
+  const rho = 0.5; // Contraction
   const sigma = 0.5; // Shrink
 
   // Initialize simplex
@@ -681,7 +764,12 @@ function cobyla(
 
   // Evaluate initial simplex
   const evaluateEnergy = (params: number[]): number => {
-    const state = applyAnsatz(createZeroState(hamiltonian.numQubits), ansatzConfig, params, numElectrons);
+    const state = applyAnsatz(
+      createZeroState(hamiltonian.numQubits),
+      ansatzConfig,
+      params,
+      numElectrons
+    );
     return computeEnergy(state, hamiltonian);
   };
 
@@ -702,7 +790,7 @@ function cobyla(
         energy: values[0],
         iterations: iter + 1,
         convergenceHistory,
-        converged: true
+        converged: true,
       };
     }
 
@@ -765,7 +853,7 @@ function cobyla(
     energy: values[0],
     iterations: maxIterations,
     convergenceHistory,
-    converged: false
+    converged: false,
   };
 }
 
@@ -794,7 +882,8 @@ function computeDissociationCurve(
     const ansatzConfig = getAnsatzConfig(ansatzType, hamiltonian.numQubits, depth);
 
     // Use previous parameters as starting point for smoother curve
-    const initialParams = previousParams ||
+    const initialParams =
+      previousParams ||
       new Array(ansatzConfig.numParameters).fill(0).map(() => Math.random() * 0.1);
 
     const result = gradientDescent(
@@ -810,7 +899,7 @@ function computeDissociationCurve(
     results.push({
       bondLength,
       energy: result.energy,
-      parameters: result.parameters
+      parameters: result.parameters,
     });
 
     previousParams = result.parameters;
@@ -825,55 +914,57 @@ function computeDissociationCurve(
 
 export const vqeTool: UnifiedTool = {
   name: 'vqe',
-  description: 'Variational Quantum Eigensolver for molecular simulation. Computes ground state energies of molecules using hybrid classical-quantum optimization with various ansatz types (UCCSD, hardware-efficient, RY).',
+  description:
+    'Variational Quantum Eigensolver for molecular simulation. Computes ground state energies of molecules using hybrid classical-quantum optimization with various ansatz types (UCCSD, hardware-efficient, RY).',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['optimize', 'compute_energy', 'dissociation_curve', 'info'],
-        description: 'Operation: optimize for ground state, compute energy at given parameters, compute dissociation curve, or get info'
+        description:
+          'Operation: optimize for ground state, compute energy at given parameters, compute dissociation curve, or get info',
       },
       molecule: {
         type: 'string',
         enum: ['H2', 'LiH', 'BeH2'],
-        description: 'Molecule to simulate'
+        description: 'Molecule to simulate',
       },
       ansatz: {
         type: 'string',
         enum: ['UCCSD', 'hardware_efficient', 'RY'],
-        description: 'Ansatz circuit type'
+        description: 'Ansatz circuit type',
       },
       bondLength: {
         type: 'number',
-        description: 'Bond length in Angstroms (for diatomic molecules)'
+        description: 'Bond length in Angstroms (for diatomic molecules)',
       },
       depth: {
         type: 'number',
-        description: 'Circuit depth for hardware-efficient/RY ansatz (default 2)'
+        description: 'Circuit depth for hardware-efficient/RY ansatz (default 2)',
       },
       maxIterations: {
         type: 'number',
-        description: 'Maximum optimization iterations (default 100)'
+        description: 'Maximum optimization iterations (default 100)',
       },
       optimizer: {
         type: 'string',
         enum: ['gradient_descent', 'cobyla'],
-        description: 'Classical optimizer to use'
+        description: 'Classical optimizer to use',
       },
       parameters: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Variational parameters for compute_energy operation'
+        description: 'Variational parameters for compute_energy operation',
       },
       bondLengths: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Bond lengths for dissociation curve'
-      }
+        description: 'Bond lengths for dissociation curve',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 interface VQEArgs {
@@ -900,7 +991,7 @@ export async function executevqe(toolCall: UnifiedToolCall): Promise<UnifiedTool
       bondLength,
       depth = 2,
       maxIterations = 100,
-      optimizer = 'gradient_descent'
+      optimizer = 'gradient_descent',
     } = args;
 
     switch (operation) {
@@ -910,26 +1001,31 @@ export async function executevqe(toolCall: UnifiedToolCall): Promise<UnifiedTool
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'info',
-            molecule,
-            hamiltonian: {
-              numQubits: hamiltonian.numQubits,
-              numTerms: hamiltonian.terms.length,
-              description: hamiltonian.description,
-              bondLength: hamiltonian.bondLength
+          content: JSON.stringify(
+            {
+              operation: 'info',
+              molecule,
+              hamiltonian: {
+                numQubits: hamiltonian.numQubits,
+                numTerms: hamiltonian.terms.length,
+                description: hamiltonian.description,
+                bondLength: hamiltonian.bondLength,
+              },
+              ansatz: {
+                type: ansatzConfig.type,
+                numQubits: ansatzConfig.numQubits,
+                depth: ansatzConfig.depth,
+                numParameters: ansatzConfig.numParameters,
+              },
+              availableMolecules: ['H2', 'LiH', 'BeH2'],
+              availableAnsatze: ['UCCSD', 'hardware_efficient', 'RY'],
+              availableOptimizers: ['gradient_descent', 'cobyla'],
+              description:
+                'VQE finds the ground state energy by variationally optimizing a parameterized quantum circuit (ansatz) to minimize the energy expectation value of the molecular Hamiltonian.',
             },
-            ansatz: {
-              type: ansatzConfig.type,
-              numQubits: ansatzConfig.numQubits,
-              depth: ansatzConfig.depth,
-              numParameters: ansatzConfig.numParameters
-            },
-            availableMolecules: ['H2', 'LiH', 'BeH2'],
-            availableAnsatze: ['UCCSD', 'hardware_efficient', 'RY'],
-            availableOptimizers: ['gradient_descent', 'cobyla'],
-            description: 'VQE finds the ground state energy by variationally optimizing a parameterized quantum circuit (ansatz) to minimize the energy expectation value of the molecular Hamiltonian.'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -938,13 +1034,23 @@ export async function executevqe(toolCall: UnifiedToolCall): Promise<UnifiedTool
         const ansatzConfig = getAnsatzConfig(ansatz, hamiltonian.numQubits, depth);
 
         // Initialize parameters
-        const initialParams = args.parameters ||
+        const initialParams =
+          args.parameters ||
           new Array(ansatzConfig.numParameters).fill(0).map(() => Math.random() * 0.1);
 
         // Run optimization
-        const result = optimizer === 'cobyla'
-          ? cobyla(hamiltonian, ansatzConfig, initialParams, maxIterations, 1e-6, 2)
-          : gradientDescent(hamiltonian, ansatzConfig, initialParams, 0.1, maxIterations, 1e-6, 2);
+        const result =
+          optimizer === 'cobyla'
+            ? cobyla(hamiltonian, ansatzConfig, initialParams, maxIterations, 1e-6, 2)
+            : gradientDescent(
+                hamiltonian,
+                ansatzConfig,
+                initialParams,
+                0.1,
+                maxIterations,
+                1e-6,
+                2
+              );
 
         // Compute final state for analysis
         const finalState = applyAnsatz(
@@ -967,27 +1073,33 @@ export async function executevqe(toolCall: UnifiedToolCall): Promise<UnifiedTool
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'optimize',
-            molecule,
-            bondLength: hamiltonian.bondLength,
-            ansatz: ansatzConfig.type,
-            optimizer,
-            result: {
-              groundStateEnergy: result.energy,
-              energyUnit: 'Hartree',
-              optimizedParameters: result.parameters.map(p => Math.round(p * 10000) / 10000),
-              iterations: result.iterations,
-              converged: result.converged,
-              convergenceHistory: result.convergenceHistory.slice(-10).map(e => Math.round(e * 10000) / 10000)
+          content: JSON.stringify(
+            {
+              operation: 'optimize',
+              molecule,
+              bondLength: hamiltonian.bondLength,
+              ansatz: ansatzConfig.type,
+              optimizer,
+              result: {
+                groundStateEnergy: result.energy,
+                energyUnit: 'Hartree',
+                optimizedParameters: result.parameters.map((p) => Math.round(p * 10000) / 10000),
+                iterations: result.iterations,
+                converged: result.converged,
+                convergenceHistory: result.convergenceHistory
+                  .slice(-10)
+                  .map((e) => Math.round(e * 10000) / 10000),
+              },
+              stateProbabilities: probabilities,
+              circuitInfo: {
+                numQubits: hamiltonian.numQubits,
+                ansatzDepth: ansatzConfig.depth,
+                numParameters: ansatzConfig.numParameters,
+              },
             },
-            stateProbabilities: probabilities,
-            circuitInfo: {
-              numQubits: hamiltonian.numQubits,
-              ansatzDepth: ansatzConfig.depth,
-              numParameters: ansatzConfig.numParameters
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -995,48 +1107,48 @@ export async function executevqe(toolCall: UnifiedToolCall): Promise<UnifiedTool
         const hamiltonian = getHamiltonian(molecule, bondLength);
         const ansatzConfig = getAnsatzConfig(ansatz, hamiltonian.numQubits, depth);
 
-        const params = args.parameters ||
-          new Array(ansatzConfig.numParameters).fill(0);
+        const params = args.parameters || new Array(ansatzConfig.numParameters).fill(0);
 
-        const state = applyAnsatz(
-          createZeroState(hamiltonian.numQubits),
-          ansatzConfig,
-          params,
-          2
-        );
+        const state = applyAnsatz(createZeroState(hamiltonian.numQubits), ansatzConfig, params, 2);
 
         const energy = computeEnergy(state, hamiltonian);
 
         // Compute individual term contributions
-        const termContributions = hamiltonian.terms.slice(0, 10).map(term => {
+        const termContributions = hamiltonian.terms.slice(0, 10).map((term) => {
           const expectation = measurePauliString(state, hamiltonian.numQubits, term.paulis);
-          const pauliStr = term.paulis.length === 0 ? 'I' :
-            term.paulis.map(p => `${p.operator}${p.qubit}`).join('');
+          const pauliStr =
+            term.paulis.length === 0
+              ? 'I'
+              : term.paulis.map((p) => `${p.operator}${p.qubit}`).join('');
           return {
             pauli: pauliStr,
             coefficient: term.coefficient,
             expectation,
-            contribution: term.coefficient * expectation
+            contribution: term.coefficient * expectation,
           };
         });
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compute_energy',
-            molecule,
-            bondLength: hamiltonian.bondLength,
-            ansatz: ansatzConfig.type,
-            parameters: params,
-            energy,
-            energyUnit: 'Hartree',
-            termContributions: termContributions.map(t => ({
-              ...t,
-              coefficient: Math.round(t.coefficient * 10000) / 10000,
-              expectation: Math.round(t.expectation * 10000) / 10000,
-              contribution: Math.round(t.contribution * 10000) / 10000
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'compute_energy',
+              molecule,
+              bondLength: hamiltonian.bondLength,
+              ansatz: ansatzConfig.type,
+              parameters: params,
+              energy,
+              energyUnit: 'Hartree',
+              termContributions: termContributions.map((t) => ({
+                ...t,
+                coefficient: Math.round(t.coefficient * 10000) / 10000,
+                expectation: Math.round(t.expectation * 10000) / 10000,
+                contribution: Math.round(t.contribution * 10000) / 10000,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1063,34 +1175,42 @@ export async function executevqe(toolCall: UnifiedToolCall): Promise<UnifiedTool
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'dissociation_curve',
-            molecule,
-            ansatz,
-            curve: curve.map(p => ({
-              bondLength: p.bondLength,
-              energy: Math.round(p.energy * 10000) / 10000
-            })),
-            equilibrium: {
-              bondLength: equilibriumBondLength,
-              energy: Math.round(minEnergy * 10000) / 10000
+          content: JSON.stringify(
+            {
+              operation: 'dissociation_curve',
+              molecule,
+              ansatz,
+              curve: curve.map((p) => ({
+                bondLength: p.bondLength,
+                energy: Math.round(p.energy * 10000) / 10000,
+              })),
+              equilibrium: {
+                bondLength: equilibriumBondLength,
+                energy: Math.round(minEnergy * 10000) / 10000,
+              },
+              dissociationEnergy:
+                Math.round((curve[curve.length - 1].energy - minEnergy) * 10000) / 10000,
+              energyUnit: 'Hartree',
             },
-            dissociationEnergy: Math.round((curve[curve.length - 1].energy - minEnergy) * 10000) / 10000,
-            energyUnit: 'Hartree'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            supportedOperations: ['optimize', 'compute_energy', 'dissociation_curve', 'info']
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              supportedOperations: ['optimize', 'compute_energy', 'dissociation_curve', 'info'],
+            },
+            null,
+            2
+          ),
         };
     }
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

@@ -20,20 +20,20 @@ function simpleHash(data: string, algorithm: string): string {
   if (algorithm === 'djb2') {
     hash = 5381;
     for (let i = 0; i < data.length; i++) {
-      hash = ((hash << 5) + hash) + data.charCodeAt(i);
-      hash = hash & 0xFFFFFFFF;
+      hash = (hash << 5) + hash + data.charCodeAt(i);
+      hash = hash & 0xffffffff;
     }
   } else if (algorithm === 'sdbm') {
     for (let i = 0; i < data.length; i++) {
       hash = data.charCodeAt(i) + (hash << 6) + (hash << 16) - hash;
-      hash = hash & 0xFFFFFFFF;
+      hash = hash & 0xffffffff;
     }
   } else {
     // FNV-1a
     hash = 2166136261;
     for (let i = 0; i < data.length; i++) {
       hash ^= data.charCodeAt(i);
-      hash = (hash * 16777619) & 0xFFFFFFFF;
+      hash = (hash * 16777619) & 0xffffffff;
     }
   }
 
@@ -50,11 +50,15 @@ function checksumVerify(data: string, expectedHash: string, algorithm: string): 
 // ============================================================================
 
 const FILE_SIGNATURES: Record<string, { hex: string; extension: string; description: string }> = {
-  'FFD8FF': { hex: 'FFD8FF', extension: 'jpg/jpeg', description: 'JPEG image' },
+  FFD8FF: { hex: 'FFD8FF', extension: 'jpg/jpeg', description: 'JPEG image' },
   '89504E47': { hex: '89504E47', extension: 'png', description: 'PNG image' },
   '47494638': { hex: '47494638', extension: 'gif', description: 'GIF image' },
   '25504446': { hex: '25504446', extension: 'pdf', description: 'PDF document' },
-  '504B0304': { hex: '504B0304', extension: 'zip/docx/xlsx', description: 'ZIP archive or Office document' },
+  '504B0304': {
+    hex: '504B0304',
+    extension: 'zip/docx/xlsx',
+    description: 'ZIP archive or Office document',
+  },
   '7F454C46': { hex: '7F454C46', extension: 'elf', description: 'Linux executable (ELF)' },
   '4D5A': { hex: '4D5A', extension: 'exe/dll', description: 'Windows executable (PE)' },
   '52617221': { hex: '52617221', extension: 'rar', description: 'RAR archive' },
@@ -85,7 +89,7 @@ function parseTimestamp(timestamp: number, format: string): Record<string, unkno
     date = new Date(timestamp);
   } else if (format === 'filetime') {
     // Windows FILETIME (100ns intervals since 1601)
-    const unixMs = (timestamp / 10000) - 11644473600000;
+    const unixMs = timestamp / 10000 - 11644473600000;
     date = new Date(unixMs);
   } else if (format === 'mac_absolute') {
     // Mac absolute time (seconds since 2001-01-01)
@@ -226,7 +230,11 @@ Operations:
       algorithm: { type: 'string', enum: ['fnv1a', 'djb2', 'sdbm'], description: 'Hash algorithm' },
       expected_hash: { type: 'string', description: 'Expected hash for verification' },
       timestamp: { type: 'number', description: 'Timestamp value' },
-      timestamp_format: { type: 'string', enum: ['unix', 'unix_ms', 'filetime', 'mac_absolute'], description: 'Timestamp format' },
+      timestamp_format: {
+        type: 'string',
+        enum: ['unix', 'unix_ms', 'filetime', 'mac_absolute'],
+        description: 'Timestamp format',
+      },
       min_string_length: { type: 'number', description: 'Minimum string length to extract' },
     },
     required: ['operation'],
@@ -383,11 +391,14 @@ export async function executeForensics(toolCall: UnifiedToolCall): Promise<Unifi
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
   } catch (error) {
-    return { toolCallId: id, content: `Forensics Error: ${error instanceof Error ? error.message : 'Unknown'}`, isError: true };
+    return {
+      toolCallId: id,
+      content: `Forensics Error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      isError: true,
+    };
   }
 }
 
-export function isForensicsAvailable(): boolean { return true; }
-
-// ESLint unused function references
-void _timelineDiff;
+export function isForensicsAvailable(): boolean {
+  return true;
+}

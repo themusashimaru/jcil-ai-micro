@@ -19,21 +19,21 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 interface HDRPixel {
-  r: number;  // Can exceed 1.0 for HDR
+  r: number; // Can exceed 1.0 for HDR
   g: number;
   b: number;
   luminance: number;
 }
 
 interface BloomSettings {
-  threshold: number;      // Brightness threshold (0-1 for SDR, >1 for HDR)
-  softKnee: number;       // Soft knee width (0 = hard, 1 = very soft)
-  intensity: number;      // Bloom intensity multiplier
-  radius: number;         // Blur radius in pixels
-  iterations: number;     // Number of blur passes
-  tint: { r: number; g: number; b: number };  // Color tint
-  dirtMask?: number[][];  // Optional lens dirt texture
-  anamorphic: number;     // Anamorphic ratio (1 = normal, 2 = 2x horizontal stretch)
+  threshold: number; // Brightness threshold (0-1 for SDR, >1 for HDR)
+  softKnee: number; // Soft knee width (0 = hard, 1 = very soft)
+  intensity: number; // Bloom intensity multiplier
+  radius: number; // Blur radius in pixels
+  iterations: number; // Number of blur passes
+  tint: { r: number; g: number; b: number }; // Color tint
+  dirtMask?: number[][]; // Optional lens dirt texture
+  anamorphic: number; // Anamorphic ratio (1 = normal, 2 = 2x horizontal stretch)
 }
 
 interface BloomMip {
@@ -96,10 +96,13 @@ class GaussianBlur {
     for (let y = 0; y < height; y++) {
       result[y] = [];
       for (let x = 0; x < width; x++) {
-        let r = 0, g = 0, b = 0, weightSum = 0;
+        let r = 0,
+          g = 0,
+          b = 0,
+          weightSum = 0;
 
         for (let k = -effectiveRadius; k <= effectiveRadius; k++) {
-          const kernelIdx = Math.floor((k / stretch) + radius);
+          const kernelIdx = Math.floor(k / stretch + radius);
           if (kernelIdx < 0 || kernelIdx >= kernel.length) continue;
 
           const sampleX = Math.min(Math.max(x + k, 0), width - 1);
@@ -116,7 +119,7 @@ class GaussianBlur {
           r: r / weightSum,
           g: g / weightSum,
           b: b / weightSum,
-          luminance
+          luminance,
         };
       }
     }
@@ -139,7 +142,10 @@ class GaussianBlur {
     for (let y = 0; y < height; y++) {
       result[y] = [];
       for (let x = 0; x < width; x++) {
-        let r = 0, g = 0, b = 0, weightSum = 0;
+        let r = 0,
+          g = 0,
+          b = 0,
+          weightSum = 0;
 
         for (let k = -radius; k <= radius; k++) {
           const sampleY = Math.min(Math.max(y + k, 0), height - 1);
@@ -156,7 +162,7 @@ class GaussianBlur {
           r: r / weightSum,
           g: g / weightSum,
           b: b / weightSum,
-          luminance
+          luminance,
         };
       }
     }
@@ -189,12 +195,7 @@ class KawaseBlur {
    * Single Kawase blur pass
    * Samples 4 corners at increasing distances
    */
-  static pass(
-    pixels: HDRPixel[][],
-    width: number,
-    height: number,
-    offset: number
-  ): HDRPixel[][] {
+  static pass(pixels: HDRPixel[][], width: number, height: number, offset: number): HDRPixel[][] {
     const result: HDRPixel[][] = [];
     const halfOffset = offset + 0.5;
 
@@ -206,10 +207,12 @@ class KawaseBlur {
           { x: x - halfOffset, y: y - halfOffset },
           { x: x + halfOffset, y: y - halfOffset },
           { x: x - halfOffset, y: y + halfOffset },
-          { x: x + halfOffset, y: y + halfOffset }
+          { x: x + halfOffset, y: y + halfOffset },
         ];
 
-        let r = 0, g = 0, b = 0;
+        let r = 0,
+          g = 0,
+          b = 0;
 
         for (const sample of samples) {
           const sx = Math.min(Math.max(Math.floor(sample.x), 0), width - 1);
@@ -277,7 +280,9 @@ class DualFilterBloom {
         const srcY = y * 2;
 
         // 4x4 tap with center weighted
-        let r = 0, g = 0, b = 0;
+        let r = 0,
+          g = 0,
+          b = 0;
         let weightSum = 0;
 
         const taps = [
@@ -289,7 +294,7 @@ class DualFilterBloom {
           { dx: 0, dy: -1, w: 2 },
           { dx: 0, dy: 1, w: 2 },
           { dx: -1, dy: 0, w: 2 },
-          { dx: 1, dy: 0, w: 2 }
+          { dx: 1, dy: 0, w: 2 },
         ];
 
         for (const tap of taps) {
@@ -347,12 +352,21 @@ class DualFilterBloom {
         const w01 = (1 - fx) * fy;
         const w11 = fx * fy;
 
-        let r = pixels[y0][x0].r * w00 + pixels[y0][x1].r * w10 +
-                pixels[y1][x0].r * w01 + pixels[y1][x1].r * w11;
-        let g = pixels[y0][x0].g * w00 + pixels[y0][x1].g * w10 +
-                pixels[y1][x0].g * w01 + pixels[y1][x1].g * w11;
-        let b = pixels[y0][x0].b * w00 + pixels[y0][x1].b * w10 +
-                pixels[y1][x0].b * w01 + pixels[y1][x1].b * w11;
+        let r =
+          pixels[y0][x0].r * w00 +
+          pixels[y0][x1].r * w10 +
+          pixels[y1][x0].r * w01 +
+          pixels[y1][x1].r * w11;
+        let g =
+          pixels[y0][x0].g * w00 +
+          pixels[y0][x1].g * w10 +
+          pixels[y1][x0].g * w01 +
+          pixels[y1][x1].g * w11;
+        let b =
+          pixels[y0][x0].b * w00 +
+          pixels[y0][x1].b * w10 +
+          pixels[y1][x0].b * w01 +
+          pixels[y1][x1].b * w11;
 
         // Add existing if provided
         if (existing && existing[y] && existing[y][x]) {
@@ -471,7 +485,7 @@ class BrightnessExtractor {
           r: pixel.r * scale,
           g: pixel.g * scale,
           b: pixel.b * scale,
-          luminance: lum * scale
+          luminance: lum * scale,
         };
       }
     }
@@ -524,7 +538,7 @@ class LensEffects {
           r: b.r * (1 + dirtValue),
           g: b.g * (1 + dirtValue),
           b: b.b * (1 + dirtValue),
-          luminance: b.luminance * (1 + dirtValue)
+          luminance: b.luminance * (1 + dirtValue),
         };
       }
     }
@@ -547,9 +561,10 @@ class LensEffects {
         const radial = Math.sqrt(cx * cx + cy * cy);
 
         // Procedural noise (simplified)
-        const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 0.5 +
-                     Math.sin(x * 0.3 + y * 0.2) * 0.3 +
-                     Math.sin(x * 0.05 - y * 0.05) * 0.2;
+        const noise =
+          Math.sin(x * 0.1) * Math.cos(y * 0.1) * 0.5 +
+          Math.sin(x * 0.3 + y * 0.2) * 0.3 +
+          Math.sin(x * 0.05 - y * 0.05) * 0.2;
 
         mask[y][x] = Math.max(0, (noise + radial) * density);
       }
@@ -577,7 +592,7 @@ class LensEffects {
           r: b.r * tint.r,
           g: b.g * tint.g,
           b: b.b * tint.b,
-          luminance: BrightnessExtractor.luminance(b.r * tint.r, b.g * tint.g, b.b * tint.b)
+          luminance: BrightnessExtractor.luminance(b.r * tint.r, b.g * tint.g, b.b * tint.b),
         };
       }
     }
@@ -724,7 +739,7 @@ class BloomEffectProcessor {
       inputHeight: height,
       mipChain,
       settings,
-      combinedResult: combined
+      combinedResult: combined,
     };
   }
 
@@ -746,7 +761,9 @@ class BloomEffectProcessor {
       inputScene[y] = [];
       for (let x = 0; x < width; x++) {
         // Dark background
-        let r = 0.1, g = 0.1, b = 0.15;
+        let r = 0.1,
+          g = 0.1,
+          b = 0.15;
 
         // Bright HDR light source at center
         const dx = x - width / 2;
@@ -789,7 +806,7 @@ class BloomEffectProcessor {
       radius: 4,
       iterations: 5,
       tint: { r: 1.0, g: 0.95, b: 0.9 },
-      anamorphic: 1.0
+      anamorphic: 1.0,
     };
 
     const pipeline = this.process(inputScene, settings);
@@ -798,7 +815,7 @@ class BloomEffectProcessor {
       description: 'HDR bloom demo with two light sources',
       inputScene,
       bloomResult: pipeline.combinedResult || [],
-      pipeline
+      pipeline,
     };
   }
 }
@@ -809,44 +826,49 @@ class BloomEffectProcessor {
 
 export const bloomeffectTool: UnifiedTool = {
   name: 'bloom_effect',
-  description: 'HDR bloom post-processing tool with physically-based light scattering simulation. Supports brightness thresholding, multi-pass blur, lens dirt effects, anamorphic bloom, and HDR tone mapping.',
+  description:
+    'HDR bloom post-processing tool with physically-based light scattering simulation. Supports brightness thresholding, multi-pass blur, lens dirt effects, anamorphic bloom, and HDR tone mapping.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['extract_bright', 'blur_gaussian', 'blur_kawase', 'blur_dual', 'apply_dirt', 'composite', 'tone_map', 'full_pipeline', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'extract_bright',
+          'blur_gaussian',
+          'blur_kawase',
+          'blur_dual',
+          'apply_dirt',
+          'composite',
+          'tone_map',
+          'full_pipeline',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       image: {
         type: 'array',
-        description: 'Input image as 2D array of {r, g, b} pixels (HDR values can exceed 1.0)'
+        description: 'Input image as 2D array of {r, g, b} pixels (HDR values can exceed 1.0)',
       },
       settings: {
         type: 'object',
-        properties: {
-          threshold: { type: 'number', description: 'Brightness threshold (default: 1.0)' },
-          softKnee: { type: 'number', description: 'Soft knee transition (0-1, default: 0.5)' },
-          intensity: { type: 'number', description: 'Bloom intensity (default: 0.8)' },
-          radius: { type: 'number', description: 'Blur radius in pixels (default: 4)' },
-          iterations: { type: 'number', description: 'Number of blur passes (default: 5)' },
-          tint: { type: 'object', description: 'RGB tint color (default: {r:1, g:1, b:1})' },
-          anamorphic: { type: 'number', description: 'Anamorphic ratio (1=normal, 2=2x horizontal stretch)' }
-        },
-        description: 'Bloom processing settings'
+        description:
+          'Bloom settings: { threshold?: number (1.0), softKnee?: number (0.5), intensity?: number (0.8), radius?: number (4), iterations?: number (5), tint?: {r,g,b} (1,1,1), anamorphic?: number (1) }',
       },
       toneMapping: {
         type: 'string',
         enum: ['none', 'reinhard', 'aces'],
-        description: 'Tone mapping operator to apply'
+        description: 'Tone mapping operator to apply',
       },
       exposure: {
         type: 'number',
-        description: 'Exposure value for tone mapping (default: 1.0)'
-      }
+        description: 'Exposure value for tone mapping (default: 1.0)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -871,36 +893,45 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
             brightnessExtraction: {
               description: 'Extract pixels above brightness threshold',
               methods: ['hard_threshold', 'soft_knee'],
-              parameters: ['threshold', 'softKnee']
+              parameters: ['threshold', 'softKnee'],
             },
             gaussianBlur: {
               description: 'Separable Gaussian blur with configurable kernel',
               features: ['separable_kernel', 'anamorphic_stretch'],
-              complexity: 'O(n * kernel_size)'
+              complexity: 'O(n * kernel_size)',
             },
             kawaseBlur: {
               description: 'Fast approximate blur using corner sampling',
               features: ['gpu_friendly', 'progressive_offsets'],
-              complexity: 'O(n * iterations)'
+              complexity: 'O(n * iterations)',
             },
             dualFiltering: {
               description: 'Pyramid-based blur with down/upsample chain',
               features: ['mip_chain', 'quality_vs_performance'],
-              complexity: 'O(n * log(size))'
+              complexity: 'O(n * log(size))',
             },
             lensEffects: {
               description: 'Post-process lens simulation',
-              features: ['dirt_mask', 'procedural_noise', 'color_tint']
+              features: ['dirt_mask', 'procedural_noise', 'color_tint'],
             },
             toneMapping: {
               description: 'HDR to LDR conversion',
-              operators: ['reinhard', 'aces_filmic']
-            }
+              operators: ['reinhard', 'aces_filmic'],
+            },
           },
           operations: [
-            'extract_bright', 'blur_gaussian', 'blur_kawase', 'blur_dual',
-            'apply_dirt', 'composite', 'tone_map', 'full_pipeline', 'demo', 'info', 'examples'
-          ]
+            'extract_bright',
+            'blur_gaussian',
+            'blur_kawase',
+            'blur_dual',
+            'apply_dirt',
+            'composite',
+            'tone_map',
+            'full_pipeline',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
         break;
       }
@@ -912,33 +943,33 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
               name: 'Basic bloom',
               operation: 'full_pipeline',
               settings: { threshold: 1.0, intensity: 0.8, radius: 4 },
-              description: 'Apply standard bloom to HDR image'
+              description: 'Apply standard bloom to HDR image',
             },
             {
               name: 'Soft dreamy bloom',
               operation: 'full_pipeline',
               settings: { threshold: 0.7, softKnee: 0.8, intensity: 1.2, radius: 8 },
-              description: 'Soft, dreamy bloom effect'
+              description: 'Soft, dreamy bloom effect',
             },
             {
               name: 'Anamorphic flare',
               operation: 'full_pipeline',
               settings: { threshold: 1.2, intensity: 0.6, radius: 4, anamorphic: 2.5 },
-              description: 'Cinematic anamorphic bloom streaks'
+              description: 'Cinematic anamorphic bloom streaks',
             },
             {
               name: 'Lens dirt effect',
               operation: 'full_pipeline',
               settings: { threshold: 1.0, intensity: 0.8, dirtMask: 'procedural' },
-              description: 'Bloom with lens dirt overlay'
+              description: 'Bloom with lens dirt overlay',
             },
             {
               name: 'Warm tinted bloom',
               operation: 'full_pipeline',
               settings: { threshold: 1.0, intensity: 0.8, tint: { r: 1.0, g: 0.9, b: 0.7 } },
-              description: 'Bloom with warm color tint'
-            }
-          ]
+              description: 'Bloom with warm color tint',
+            },
+          ],
         };
         break;
       }
@@ -953,9 +984,9 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           sampleOutput: {
             center: demo.bloomResult[16]?.[16] || null,
             lightSource: demo.bloomResult[16]?.[16] || null,
-            edge: demo.bloomResult[0]?.[0] || null
+            edge: demo.bloomResult[0]?.[0] || null,
           },
-          message: 'Demo processed successfully with HDR light sources and bloom effect'
+          message: 'Demo processed successfully with HDR light sources and bloom effect',
         };
         break;
       }
@@ -970,13 +1001,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
         const height = image.length;
         const width = image[0]?.length || 0;
 
-        const brightPass = BrightnessExtractor.extract(
-          image,
-          width,
-          height,
-          threshold,
-          softKnee
-        );
+        const brightPass = BrightnessExtractor.extract(image, width, height, threshold, softKnee);
 
         // Count pixels above threshold
         let brightPixelCount = 0;
@@ -997,9 +1022,12 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           threshold,
           softKnee,
           brightPixelCount,
-          brightPercentage: (brightPixelCount / (width * height) * 100).toFixed(2) + '%',
+          brightPercentage: ((brightPixelCount / (width * height)) * 100).toFixed(2) + '%',
           maxLuminance,
-          brightPass: brightPass.length <= 16 ? brightPass : 'Output truncated (use smaller image for full output)'
+          brightPass:
+            brightPass.length <= 16
+              ? brightPass
+              : 'Output truncated (use smaller image for full output)',
         };
         break;
       }
@@ -1015,10 +1043,10 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
         const width = image[0]?.length || 0;
 
         // Convert to HDRPixel format if needed
-        const hdrImage: HDRPixel[][] = image.map(row =>
+        const hdrImage: HDRPixel[][] = image.map((row) =>
           row.map((p: { r: number; g: number; b: number }) => ({
             ...p,
-            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b)
+            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b),
           }))
         );
 
@@ -1031,7 +1059,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           radius,
           anamorphic,
           kernelSize: kernel.length,
-          blurred: blurred.length <= 16 ? blurred : 'Output truncated'
+          blurred: blurred.length <= 16 ? blurred : 'Output truncated',
         };
         break;
       }
@@ -1045,10 +1073,10 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
         const height = image.length;
         const width = image[0]?.length || 0;
 
-        const hdrImage: HDRPixel[][] = image.map(row =>
+        const hdrImage: HDRPixel[][] = image.map((row) =>
           row.map((p: { r: number; g: number; b: number }) => ({
             ...p,
-            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b)
+            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b),
           }))
         );
 
@@ -1059,7 +1087,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           inputSize: { width, height },
           iterations,
           description: 'Fast approximation using corner sampling',
-          blurred: blurred.length <= 16 ? blurred : 'Output truncated'
+          blurred: blurred.length <= 16 ? blurred : 'Output truncated',
         };
         break;
       }
@@ -1073,10 +1101,10 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
         const height = image.length;
         const width = image[0]?.length || 0;
 
-        const hdrImage: HDRPixel[][] = image.map(row =>
+        const hdrImage: HDRPixel[][] = image.map((row) =>
           row.map((p: { r: number; g: number; b: number }) => ({
             ...p,
-            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b)
+            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b),
           }))
         );
 
@@ -1086,8 +1114,8 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'blur_dual',
           inputSize: { width, height },
           mipLevels: mipChain.length,
-          mipSizes: mipChain.map(m => ({ width: m.width, height: m.height })),
-          description: 'Pyramid-based blur with down/upsample chain'
+          mipSizes: mipChain.map((m) => ({ width: m.width, height: m.height })),
+          description: 'Pyramid-based blur with down/upsample chain',
         };
         break;
       }
@@ -1101,10 +1129,10 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
         const height = image.length;
         const width = image[0]?.length || 0;
 
-        const hdrImage: HDRPixel[][] = image.map(row =>
+        const hdrImage: HDRPixel[][] = image.map((row) =>
           row.map((p: { r: number; g: number; b: number }) => ({
             ...p,
-            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b)
+            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b),
           }))
         );
 
@@ -1115,8 +1143,8 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'apply_dirt',
           inputSize: { width, height },
           dirtDensity: density,
-          dirtMaskSample: dirtMask.slice(0, 4).map(row => row.slice(0, 4)),
-          withDirt: withDirt.length <= 8 ? withDirt : 'Output truncated'
+          dirtMaskSample: dirtMask.slice(0, 4).map((row) => row.slice(0, 4)),
+          withDirt: withDirt.length <= 8 ? withDirt : 'Output truncated',
         };
         break;
       }
@@ -1136,7 +1164,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           operation: 'composite',
           inputSize: { width, height },
           intensity,
-          combined: combined.length <= 16 ? combined : 'Output truncated'
+          combined: combined.length <= 16 ? combined : 'Output truncated',
         };
         break;
       }
@@ -1146,10 +1174,10 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           throw new Error('Image array required');
         }
 
-        const hdrImage: HDRPixel[][] = image.map(row =>
+        const hdrImage: HDRPixel[][] = image.map((row) =>
           row.map((p: { r: number; g: number; b: number }) => ({
             ...p,
-            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b)
+            luminance: BrightnessExtractor.luminance(p.r, p.g, p.b),
           }))
         );
 
@@ -1170,7 +1198,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           inputSize: { width: image[0]?.length || 0, height: image.length },
           operator: toneMapping || 'reinhard',
           exposure: exp,
-          mapped: mapped.length <= 16 ? mapped : 'Output truncated'
+          mapped: mapped.length <= 16 ? mapped : 'Output truncated',
         };
         break;
       }
@@ -1187,7 +1215,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           radius: settings?.radius ?? 4,
           iterations: settings?.iterations ?? 5,
           tint: settings?.tint ?? { r: 1, g: 1, b: 1 },
-          anamorphic: settings?.anamorphic ?? 1.0
+          anamorphic: settings?.anamorphic ?? 1.0,
         };
 
         const pipeline = BloomEffectProcessor.process(image, bloomSettings);
@@ -1195,9 +1223,10 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
         // Optionally tone map
         let finalOutput = pipeline.combinedResult || [];
         if (toneMapping && toneMapping !== 'none') {
-          finalOutput = toneMapping === 'aces'
-            ? BloomCompositor.toneMapACES(finalOutput)
-            : BloomCompositor.toneMapReinhard(finalOutput, exposure ?? 1.0);
+          finalOutput =
+            toneMapping === 'aces'
+              ? BloomCompositor.toneMapACES(finalOutput)
+              : BloomCompositor.toneMapReinhard(finalOutput, exposure ?? 1.0);
         }
 
         result = {
@@ -1206,7 +1235,7 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
           settings: bloomSettings,
           mipLevels: pipeline.mipChain.length,
           toneMapping: toneMapping || 'none',
-          output: finalOutput.length <= 16 ? finalOutput : 'Output truncated (use smaller image)'
+          output: finalOutput.length <= 16 ? finalOutput : 'Output truncated (use smaller image)',
         };
         break;
       }
@@ -1216,7 +1245,6 @@ export async function executebloomeffect(toolCall: UnifiedToolCall): Promise<Uni
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${error}`, isError: true };

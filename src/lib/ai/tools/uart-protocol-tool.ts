@@ -11,8 +11,26 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // ============================================================================
 
 /** Standard baud rates (used for type documentation) */
-export type StandardBaudRate = 300 | 600 | 1200 | 2400 | 4800 | 9600 | 14400 | 19200 | 28800 | 38400 |
-  57600 | 76800 | 115200 | 230400 | 460800 | 921600 | 1000000 | 2000000 | 4000000;
+export type StandardBaudRate =
+  | 300
+  | 600
+  | 1200
+  | 2400
+  | 4800
+  | 9600
+  | 14400
+  | 19200
+  | 28800
+  | 38400
+  | 57600
+  | 76800
+  | 115200
+  | 230400
+  | 460800
+  | 921600
+  | 1000000
+  | 2000000
+  | 4000000;
 
 /** Data bits options */
 type DataBits = 5 | 6 | 7 | 8 | 9;
@@ -53,7 +71,7 @@ interface UARTFrame {
   character?: string;
   valid: boolean;
   errors: string[];
-  bitDuration: number;  // microseconds
+  bitDuration: number; // microseconds
 }
 
 interface UARTTransmission {
@@ -63,7 +81,7 @@ interface UARTTransmission {
   frames: UARTFrame[];
   data: number[];
   text?: string;
-  duration: number;     // microseconds
+  duration: number; // microseconds
   errors: string[];
 }
 
@@ -84,12 +102,12 @@ interface UARTErrors {
 }
 
 interface TimingAnalysis {
-  bitDuration: number;          // microseconds
-  frameDuration: number;        // microseconds
+  bitDuration: number; // microseconds
+  frameDuration: number; // microseconds
   bitsPerFrame: number;
-  effectiveBitrate: number;     // bps
-  efficiency: number;           // percentage
-  maxThroughput: number;        // bytes per second
+  effectiveBitrate: number; // bps
+  efficiency: number; // percentage
+  maxThroughput: number; // bytes per second
 }
 
 interface ModbusRTUFrame {
@@ -118,11 +136,11 @@ interface ATResponse {
 // ============================================================================
 
 const STANDARD_BAUD_RATES: number[] = [
-  300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400,
-  57600, 76800, 115200, 230400, 460800, 921600, 1000000, 2000000, 4000000
+  300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 76800, 115200, 230400,
+  460800, 921600, 1000000, 2000000, 4000000,
 ];
 
-const XON = 0x11;  // DC1 - resume transmission
+const XON = 0x11; // DC1 - resume transmission
 const XOFF = 0x13; // DC3 - pause transmission
 
 // ============================================================================
@@ -136,12 +154,11 @@ class UARTSimulator {
   private transmissions: UARTTransmission[] = [];
   private transmissionCounter: number = 0;
   private errors: UARTErrors;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private _rtsState: boolean = true;   // Ready to send (future use)
-  private ctsState: boolean = true;   // Clear to send
-  private xonState: boolean = true;   // XON active (can transmit)
+  private _rtsState: boolean = true; // Ready to send (future use)
+  private ctsState: boolean = true; // Clear to send
+  private xonState: boolean = true; // XON active (can transmit)
   private breakCondition: boolean = false;
-  private noiseLevel: number = 0;     // 0-100
+  private noiseLevel: number = 0; // 0-100
 
   constructor(config?: Partial<UARTConfig>) {
     this.config = {
@@ -152,7 +169,7 @@ class UARTSimulator {
       flowControl: 'none',
       mode: 'rs232',
       halfDuplex: false,
-      ...config
+      ...config,
     };
 
     this.txBuffer = this.createFIFO(256);
@@ -163,7 +180,7 @@ class UARTSimulator {
       parityErrors: 0,
       overrunErrors: 0,
       breakConditions: 0,
-      noiseErrors: 0
+      noiseErrors: 0,
     };
   }
 
@@ -173,7 +190,7 @@ class UARTSimulator {
       capacity,
       readPointer: 0,
       writePointer: 0,
-      overrun: false
+      overrun: false,
     };
   }
 
@@ -199,9 +216,9 @@ class UARTSimulator {
 
     switch (this.config.parity) {
       case 'odd':
-        return (ones % 2 === 0) ? 1 : 0;
+        return ones % 2 === 0 ? 1 : 0;
       case 'even':
-        return (ones % 2 === 1) ? 1 : 0;
+        return ones % 2 === 1 ? 1 : 0;
       case 'mark':
         return 1;
       case 'space':
@@ -225,7 +242,7 @@ class UARTSimulator {
       let bit = (maskedData >> i) & 1;
       // Add noise if enabled
       if (addNoise && this.noiseLevel > 0 && Math.random() * 100 < this.noiseLevel) {
-        bit = 1 - bit;  // Flip bit
+        bit = 1 - bit; // Flip bit
       }
       dataBits.push(bit);
     }
@@ -261,7 +278,7 @@ class UARTSimulator {
     }
 
     // Check framing (stop bits should be high)
-    if (stopBits.some(b => b !== 1)) {
+    if (stopBits.some((b) => b !== 1)) {
       errors.push('Framing error');
       valid = false;
       this.errors.framingErrors++;
@@ -270,15 +287,15 @@ class UARTSimulator {
     return {
       id: `frame_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
-      startBit: false,  // Start bit is always low
+      startBit: false, // Start bit is always low
       dataBits,
       parityBit,
       stopBits,
       rawValue: maskedData,
-      character: (maskedData >= 32 && maskedData < 127) ? String.fromCharCode(maskedData) : undefined,
+      character: maskedData >= 32 && maskedData < 127 ? String.fromCharCode(maskedData) : undefined,
       valid,
       errors,
-      bitDuration
+      bitDuration,
     };
   }
 
@@ -326,7 +343,7 @@ class UARTSimulator {
       data,
       text: this.bytesToString(data),
       duration: frames.length * bitsPerFrame * bitDuration,
-      errors
+      errors,
     };
 
     this.transmissions.push(transmission);
@@ -367,7 +384,7 @@ class UARTSimulator {
       data,
       text: this.bytesToString(data),
       duration: frames.length * bitsPerFrame * bitDuration,
-      errors
+      errors,
     };
 
     this.transmissions.push(transmission);
@@ -418,7 +435,7 @@ class UARTSimulator {
 
     // Waveform representation
     let waveform = '     ';
-    waveform += '_';  // Start bit (low)
+    waveform += '_'; // Start bit (low)
     for (const bit of frame.dataBits) {
       waveform += bit ? '-' : '_';
     }
@@ -436,8 +453,8 @@ class UARTSimulator {
       timing: {
         bitDuration,
         frameDuration: bitsPerFrame * bitDuration,
-        bitsPerFrame
-      }
+        bitsPerFrame,
+      },
     };
   }
 
@@ -452,7 +469,10 @@ class UARTSimulator {
   } {
     // Find the shortest pulse which should be one bit time
     const sortedWidths = [...pulseWidthsUs].sort((a, b) => a - b);
-    const shortestPulses = sortedWidths.slice(0, Math.max(5, Math.floor(sortedWidths.length * 0.2)));
+    const shortestPulses = sortedWidths.slice(
+      0,
+      Math.max(5, Math.floor(sortedWidths.length * 0.2))
+    );
     const avgBitTime = shortestPulses.reduce((a, b) => a + b, 0) / shortestPulses.length;
 
     const measuredRate = 1e6 / avgBitTime;
@@ -473,16 +493,16 @@ class UARTSimulator {
     const deviation = Math.abs(measuredRate - nearestStandard) / nearestStandard;
     const confidence = Math.max(0, 100 - deviation * 200);
 
-    const measurements = pulseWidthsUs.slice(0, 10).map(width => ({
+    const measurements = pulseWidthsUs.slice(0, 10).map((width) => ({
       bitTime: width,
-      measuredRate: 1e6 / width
+      measuredRate: 1e6 / width,
     }));
 
     return {
       detectedBaudRate: nearestStandard,
       confidence,
       nearestStandard,
-      measurements
+      measurements,
     };
   }
 
@@ -523,21 +543,25 @@ class UARTSimulator {
     const sent = this.send(data);
     const received = this.receive(data);
 
-    const match = sent.data.length === received.data.length &&
+    const match =
+      sent.data.length === received.data.length &&
       sent.data.every((b, i) => b === received.data[i]);
 
     return {
       sent,
       received,
       match,
-      errors: [...sent.errors, ...received.errors]
+      errors: [...sent.errors, ...received.errors],
     };
   }
 
   /**
    * Decode protocol-specific data
    */
-  decodeProtocol(data: number[], protocol: ProtocolType): {
+  decodeProtocol(
+    data: number[],
+    protocol: ProtocolType
+  ): {
     protocol: string;
     decoded: ATResponse | ModbusRTUFrame | NMEASentence | { raw: string };
     valid: boolean;
@@ -549,28 +573,28 @@ class UARTSimulator {
         return {
           protocol: 'AT Commands',
           decoded: this.decodeATCommand(text),
-          valid: true
+          valid: true,
         };
 
       case 'nmea':
         return {
           protocol: 'NMEA 0183',
           decoded: this.decodeNMEA(text),
-          valid: text.startsWith('$')
+          valid: text.startsWith('$'),
         };
 
       case 'modbus_rtu':
         return {
           protocol: 'Modbus RTU',
           decoded: this.decodeModbusRTU(data),
-          valid: data.length >= 4
+          valid: data.length >= 4,
         };
 
       default:
         return {
           protocol: 'Raw',
           decoded: { raw: text },
-          valid: true
+          valid: true,
         };
     }
   }
@@ -579,7 +603,7 @@ class UARTSimulator {
    * Decode AT commands
    */
   private decodeATCommand(text: string): ATResponse {
-    const lines = text.split('\r\n').filter(l => l.trim());
+    const lines = text.split('\r\n').filter((l) => l.trim());
     const command = lines[0] || '';
 
     let response = '';
@@ -587,10 +611,10 @@ class UARTSimulator {
 
     if (lines.includes('OK')) {
       status = 'OK';
-      response = lines.filter(l => l !== 'OK' && l !== command).join('\n');
-    } else if (lines.some(l => l.startsWith('ERROR') || l.startsWith('+CME ERROR'))) {
+      response = lines.filter((l) => l !== 'OK' && l !== command).join('\n');
+    } else if (lines.some((l) => l.startsWith('ERROR') || l.startsWith('+CME ERROR'))) {
       status = 'ERROR';
-      response = lines.filter(l => l !== command).join('\n');
+      response = lines.filter((l) => l !== command).join('\n');
     } else {
       response = lines.slice(1).join('\n');
     }
@@ -610,7 +634,7 @@ class UARTSimulator {
         type: 'UNKNOWN',
         fields: [],
         checksum: '',
-        valid: false
+        valid: false,
       };
     }
 
@@ -639,7 +663,7 @@ class UARTSimulator {
         functionCode: 0,
         data: [],
         crc: 0,
-        valid: false
+        valid: false,
       };
     }
 
@@ -659,7 +683,7 @@ class UARTSimulator {
       functionCode,
       data: frameData,
       crc: receivedCRC,
-      valid
+      valid,
     };
   }
 
@@ -667,13 +691,13 @@ class UARTSimulator {
    * Calculate Modbus CRC16
    */
   private calculateModbusCRC(data: number[]): number {
-    let crc = 0xFFFF;
+    let crc = 0xffff;
 
     for (const byte of data) {
       crc ^= byte;
       for (let i = 0; i < 8; i++) {
         if (crc & 1) {
-          crc = (crc >> 1) ^ 0xA001;
+          crc = (crc >> 1) ^ 0xa001;
         } else {
           crc >>= 1;
         }
@@ -687,7 +711,7 @@ class UARTSimulator {
    * Calculate bits per frame
    */
   private calculateBitsPerFrame(): number {
-    let bits = 1;  // Start bit
+    let bits = 1; // Start bit
     bits += this.config.dataBits;
     if (this.config.parity !== 'none') bits += 1;
     bits += this.config.stopBits;
@@ -710,9 +734,9 @@ class UARTSimulator {
       bitDuration,
       frameDuration,
       bitsPerFrame,
-      effectiveBitrate: this.config.baudRate * efficiency / 100,
+      effectiveBitrate: (this.config.baudRate * efficiency) / 100,
       efficiency,
-      maxThroughput: Math.floor(this.config.baudRate / bitsPerFrame)
+      maxThroughput: Math.floor(this.config.baudRate / bitsPerFrame),
     };
   }
 
@@ -732,7 +756,7 @@ class UARTSimulator {
       parityErrors: 0,
       overrunErrors: 0,
       breakConditions: 0,
-      noiseErrors: 0
+      noiseErrors: 0,
     };
   }
 
@@ -777,13 +801,13 @@ class UARTSimulator {
       tx: {
         used: this.getBufferUsed(this.txBuffer),
         capacity: this.txBuffer.capacity,
-        overrun: this.txBuffer.overrun
+        overrun: this.txBuffer.overrun,
       },
       rx: {
         used: this.getBufferUsed(this.rxBuffer),
         capacity: this.rxBuffer.capacity,
-        overrun: this.rxBuffer.overrun
-      }
+        overrun: this.rxBuffer.overrun,
+      },
     };
   }
 
@@ -806,7 +830,7 @@ class UARTSimulator {
   }
 
   private bytesToString(data: number[]): string {
-    return data.map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join('');
+    return data.map((b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : '.')).join('');
   }
 
   getTransmissions(): UARTTransmission[] {
@@ -833,87 +857,100 @@ function getSimulator(): UARTSimulator {
 
 export const uartprotocolTool: UnifiedTool = {
   name: 'uart_protocol',
-  description: 'Full UART serial communication simulator with frame analysis, error detection, flow control, and protocol decoding',
+  description:
+    'Full UART serial communication simulator with frame analysis, error detection, flow control, and protocol decoding',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: [
-          'configure', 'send', 'receive', 'analyze_frame', 'detect_baud',
-          'simulate_noise', 'check_errors', 'loopback_test', 'protocol_decode',
-          'analyze_timing', 'flow_control', 'send_break', 'get_status', 'info', 'examples'
+          'configure',
+          'send',
+          'receive',
+          'analyze_frame',
+          'detect_baud',
+          'simulate_noise',
+          'check_errors',
+          'loopback_test',
+          'protocol_decode',
+          'analyze_timing',
+          'flow_control',
+          'send_break',
+          'get_status',
+          'info',
+          'examples',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       baudRate: {
         type: 'number',
-        description: 'Baud rate (300 to 4000000)'
+        description: 'Baud rate (300 to 4000000)',
       },
       dataBits: {
         type: 'number',
         enum: ['5', '6', '7', '8', '9'],
-        description: 'Number of data bits per frame'
+        description: 'Number of data bits per frame',
       },
       parity: {
         type: 'string',
         enum: ['none', 'odd', 'even', 'mark', 'space'],
-        description: 'Parity type'
+        description: 'Parity type',
       },
       stopBits: {
         type: 'number',
         enum: ['1', '1.5', '2'],
-        description: 'Number of stop bits'
+        description: 'Number of stop bits',
       },
       flowControl: {
         type: 'string',
         enum: ['none', 'rts_cts', 'xon_xoff'],
-        description: 'Flow control mode'
+        description: 'Flow control mode',
       },
       mode: {
         type: 'string',
         enum: ['rs232', 'rs485'],
-        description: 'UART operating mode'
+        description: 'UART operating mode',
       },
       halfDuplex: {
         type: 'boolean',
-        description: 'Enable half-duplex mode'
+        description: 'Enable half-duplex mode',
       },
       data: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Data bytes to send/receive'
+        description: 'Data bytes to send/receive',
       },
       text: {
         type: 'string',
-        description: 'Text to send (converted to bytes)'
+        description: 'Text to send (converted to bytes)',
       },
       byte: {
         type: 'number',
-        description: 'Single byte value for frame analysis'
+        description: 'Single byte value for frame analysis',
       },
       pulseWidths: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Pulse widths in microseconds for baud rate detection'
+        description: 'Pulse widths in microseconds for baud rate detection',
       },
       noiseLevel: {
         type: 'number',
-        description: 'Noise level 0-100 percent'
+        description: 'Noise level 0-100 percent',
       },
       protocol: {
         type: 'string',
         enum: ['raw', 'at_commands', 'nmea', 'modbus_rtu'],
-        description: 'Protocol type for decoding'
+        description: 'Protocol type for decoding',
       },
       flowAction: {
         type: 'string',
         enum: ['set_rts', 'clear_rts', 'set_cts', 'clear_cts', 'send_xon', 'send_xoff'],
-        description: 'Flow control action'
-      }
+        description: 'Flow control action',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -933,26 +970,30 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
           stopBits: args.stopBits,
           flowControl: args.flowControl,
           mode: args.mode,
-          halfDuplex: args.halfDuplex
+          halfDuplex: args.halfDuplex,
         });
 
         const timing = sim.analyzeTiming();
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'configure',
-            config,
-            timing: {
-              bitDurationUs: timing.bitDuration.toFixed(2),
-              frameDurationUs: timing.frameDuration.toFixed(2),
-              bitsPerFrame: timing.bitsPerFrame,
-              maxThroughputBps: timing.maxThroughput,
-              efficiency: `${timing.efficiency.toFixed(1)}%`
+          content: JSON.stringify(
+            {
+              operation: 'configure',
+              config,
+              timing: {
+                bitDurationUs: timing.bitDuration.toFixed(2),
+                frameDurationUs: timing.frameDuration.toFixed(2),
+                bitsPerFrame: timing.bitsPerFrame,
+                maxThroughputBps: timing.maxThroughput,
+                efficiency: `${timing.efficiency.toFixed(1)}%`,
+              },
+              frameFormat: `${config.dataBits}${config.parity.charAt(0).toUpperCase()}${config.stopBits}`,
+              standardNotation: `${config.baudRate} ${config.dataBits}-${config.parity.charAt(0).toUpperCase()}-${config.stopBits}`,
             },
-            frameFormat: `${config.dataBits}${config.parity.charAt(0).toUpperCase()}${config.stopBits}`,
-            standardNotation: `${config.baudRate} ${config.dataBits}-${config.parity.charAt(0).toUpperCase()}-${config.stopBits}`
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -963,7 +1004,7 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
         } else if (args.text) {
           data = Array.from(args.text as string).map((c: string) => c.charCodeAt(0));
         } else {
-          data = [0x48, 0x65, 0x6C, 0x6C, 0x6F]; // "Hello"
+          data = [0x48, 0x65, 0x6c, 0x6c, 0x6f]; // "Hello"
         }
 
         try {
@@ -971,26 +1012,34 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'send',
-              transmissionId: transmission.id,
-              direction: transmission.direction,
-              bytessSent: data.length,
-              data: data.map(b => `0x${b.toString(16).padStart(2, '0')}`),
-              text: transmission.text,
-              durationUs: transmission.duration.toFixed(2),
-              framesGenerated: transmission.frames.length,
-              errors: transmission.errors
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'send',
+                transmissionId: transmission.id,
+                direction: transmission.direction,
+                bytessSent: data.length,
+                data: data.map((b) => `0x${b.toString(16).padStart(2, '0')}`),
+                text: transmission.text,
+                durationUs: transmission.duration.toFixed(2),
+                framesGenerated: transmission.frames.length,
+                errors: transmission.errors,
+              },
+              null,
+              2
+            ),
           };
         } catch (e) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'send',
-              error: e instanceof Error ? e.message : 'Send failed'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'send',
+                error: e instanceof Error ? e.message : 'Send failed',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
       }
@@ -1002,55 +1051,63 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
         } else if (args.text) {
           data = Array.from(args.text as string).map((c: string) => c.charCodeAt(0));
         } else {
-          data = [0x4F, 0x4B, 0x0D, 0x0A]; // "OK\r\n"
+          data = [0x4f, 0x4b, 0x0d, 0x0a]; // "OK\r\n"
         }
 
         const transmission = sim.receive(data);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'receive',
-            transmissionId: transmission.id,
-            direction: transmission.direction,
-            bytesReceived: data.length,
-            data: data.map(b => `0x${b.toString(16).padStart(2, '0')}`),
-            text: transmission.text,
-            durationUs: transmission.duration.toFixed(2),
-            framesProcessed: transmission.frames.length,
-            errors: transmission.errors
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'receive',
+              transmissionId: transmission.id,
+              direction: transmission.direction,
+              bytesReceived: data.length,
+              data: data.map((b) => `0x${b.toString(16).padStart(2, '0')}`),
+              text: transmission.text,
+              durationUs: transmission.duration.toFixed(2),
+              framesProcessed: transmission.frames.length,
+              errors: transmission.errors,
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'analyze_frame': {
-        const byte = args.byte ?? 0x55;  // 01010101 - good for seeing bit pattern
+        const byte = args.byte ?? 0x55; // 01010101 - good for seeing bit pattern
         const analysis = sim.analyzeFrame(byte);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze_frame',
-            input: {
-              byte: `0x${byte.toString(16).padStart(2, '0')}`,
-              binary: byte.toString(2).padStart(8, '0'),
-              character: analysis.frame.character
+          content: JSON.stringify(
+            {
+              operation: 'analyze_frame',
+              input: {
+                byte: `0x${byte.toString(16).padStart(2, '0')}`,
+                binary: byte.toString(2).padStart(8, '0'),
+                character: analysis.frame.character,
+              },
+              frame: {
+                startBit: analysis.frame.startBit,
+                dataBits: analysis.frame.dataBits,
+                parityBit: analysis.frame.parityBit,
+                stopBits: analysis.frame.stopBits,
+                valid: analysis.frame.valid,
+                errors: analysis.frame.errors,
+              },
+              visualization: analysis.visualization,
+              timing: {
+                bitDurationUs: analysis.timing.bitDuration.toFixed(2),
+                frameDurationUs: analysis.timing.frameDuration.toFixed(2),
+                bitsPerFrame: analysis.timing.bitsPerFrame,
+              },
             },
-            frame: {
-              startBit: analysis.frame.startBit,
-              dataBits: analysis.frame.dataBits,
-              parityBit: analysis.frame.parityBit,
-              stopBits: analysis.frame.stopBits,
-              valid: analysis.frame.valid,
-              errors: analysis.frame.errors
-            },
-            visualization: analysis.visualization,
-            timing: {
-              bitDurationUs: analysis.timing.bitDuration.toFixed(2),
-              frameDurationUs: analysis.timing.frameDuration.toFixed(2),
-              bitsPerFrame: analysis.timing.bitsPerFrame
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1060,17 +1117,21 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'detect_baud',
-            pulseWidthsUs: pulseWidths,
-            detection: {
-              detectedBaudRate: result.detectedBaudRate,
-              confidence: `${result.confidence.toFixed(1)}%`,
-              nearestStandardRate: result.nearestStandard
+          content: JSON.stringify(
+            {
+              operation: 'detect_baud',
+              pulseWidthsUs: pulseWidths,
+              detection: {
+                detectedBaudRate: result.detectedBaudRate,
+                confidence: `${result.confidence.toFixed(1)}%`,
+                nearestStandardRate: result.nearestStandard,
+              },
+              measurements: result.measurements,
+              standardBaudRates: STANDARD_BAUD_RATES,
             },
-            measurements: result.measurements,
-            standardBaudRates: STANDARD_BAUD_RATES
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1079,24 +1140,29 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
         sim.setNoiseLevel(level);
 
         // Send test data with noise
-        const testData = [0xAA, 0x55, 0xFF, 0x00];
+        const testData = [0xaa, 0x55, 0xff, 0x00];
         const transmission = sim.send(testData);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate_noise',
-            noiseLevel: `${level}%`,
-            testTransmission: {
-              sentData: testData.map(b => `0x${b.toString(16).padStart(2, '0')}`),
-              framesWithErrors: transmission.frames.filter(f => !f.valid).length,
-              totalFrames: transmission.frames.length,
-              errors: transmission.errors
+          content: JSON.stringify(
+            {
+              operation: 'simulate_noise',
+              noiseLevel: `${level}%`,
+              testTransmission: {
+                sentData: testData.map((b) => `0x${b.toString(16).padStart(2, '0')}`),
+                framesWithErrors: transmission.frames.filter((f) => !f.valid).length,
+                totalFrames: transmission.frames.length,
+                errors: transmission.errors,
+              },
+              description:
+                level > 0
+                  ? `Noise simulation active: ${level}% chance of bit flip per bit`
+                  : 'Noise simulation disabled',
             },
-            description: level > 0
-              ? `Noise simulation active: ${level}% chance of bit flip per bit`
-              : 'Noise simulation disabled'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1106,38 +1172,42 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'check_errors',
-            errorCounts: {
-              framingErrors: errors.framingErrors,
-              parityErrors: errors.parityErrors,
-              overrunErrors: errors.overrunErrors,
-              breakConditions: errors.breakConditions,
-              noiseErrors: errors.noiseErrors,
-              total: Object.values(errors).reduce((a, b) => a + b, 0)
-            },
-            bufferStatus: {
-              tx: {
-                used: buffers.tx.used,
-                capacity: buffers.tx.capacity,
-                percentFull: `${(buffers.tx.used / buffers.tx.capacity * 100).toFixed(1)}%`,
-                overrun: buffers.tx.overrun
+          content: JSON.stringify(
+            {
+              operation: 'check_errors',
+              errorCounts: {
+                framingErrors: errors.framingErrors,
+                parityErrors: errors.parityErrors,
+                overrunErrors: errors.overrunErrors,
+                breakConditions: errors.breakConditions,
+                noiseErrors: errors.noiseErrors,
+                total: Object.values(errors).reduce((a, b) => a + b, 0),
               },
-              rx: {
-                used: buffers.rx.used,
-                capacity: buffers.rx.capacity,
-                percentFull: `${(buffers.rx.used / buffers.rx.capacity * 100).toFixed(1)}%`,
-                overrun: buffers.rx.overrun
-              }
+              bufferStatus: {
+                tx: {
+                  used: buffers.tx.used,
+                  capacity: buffers.tx.capacity,
+                  percentFull: `${((buffers.tx.used / buffers.tx.capacity) * 100).toFixed(1)}%`,
+                  overrun: buffers.tx.overrun,
+                },
+                rx: {
+                  used: buffers.rx.used,
+                  capacity: buffers.rx.capacity,
+                  percentFull: `${((buffers.rx.used / buffers.rx.capacity) * 100).toFixed(1)}%`,
+                  overrun: buffers.rx.overrun,
+                },
+              },
+              errorDescriptions: {
+                framing: 'Stop bit not detected at expected time',
+                parity: 'Calculated parity does not match received parity bit',
+                overrun: 'New data arrived before previous data was read',
+                break: 'Line held low longer than a full frame',
+                noise: 'Bit flips detected due to line noise',
+              },
             },
-            errorDescriptions: {
-              framing: 'Stop bit not detected at expected time',
-              parity: 'Calculated parity does not match received parity bit',
-              overrun: 'New data arrived before previous data was read',
-              break: 'Line held low longer than a full frame',
-              noise: 'Bit flips detected due to line noise'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1148,29 +1218,33 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
         } else if (args.text) {
           data = Array.from(args.text as string).map((c: string) => c.charCodeAt(0));
         } else {
-          data = [0x55, 0xAA, 0x00, 0xFF]; // Test pattern
+          data = [0x55, 0xaa, 0x00, 0xff]; // Test pattern
         }
 
         const result = sim.loopbackTest(data);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'loopback_test',
-            testData: data.map(b => `0x${b.toString(16).padStart(2, '0')}`),
-            result: {
-              match: result.match,
-              status: result.match ? 'PASSED' : 'FAILED',
-              bytesSent: result.sent.data.length,
-              bytesReceived: result.received.data.length
+          content: JSON.stringify(
+            {
+              operation: 'loopback_test',
+              testData: data.map((b) => `0x${b.toString(16).padStart(2, '0')}`),
+              result: {
+                match: result.match,
+                status: result.match ? 'PASSED' : 'FAILED',
+                bytesSent: result.sent.data.length,
+                bytesReceived: result.received.data.length,
+              },
+              timing: {
+                txDurationUs: result.sent.duration.toFixed(2),
+                rxDurationUs: result.received.duration.toFixed(2),
+                roundTripUs: (result.sent.duration + result.received.duration).toFixed(2),
+              },
+              errors: result.errors,
             },
-            timing: {
-              txDurationUs: result.sent.duration.toFixed(2),
-              rxDurationUs: result.received.duration.toFixed(2),
-              roundTripUs: (result.sent.duration + result.received.duration).toFixed(2)
-            },
-            errors: result.errors
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1186,16 +1260,18 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
           // Default test data based on protocol
           switch (protocol) {
             case 'at_commands':
-              data = Array.from('AT+CGMI\r\nManufacturer\r\nOK\r\n').map(c => c.charCodeAt(0));
+              data = Array.from('AT+CGMI\r\nManufacturer\r\nOK\r\n').map((c) => c.charCodeAt(0));
               break;
             case 'nmea':
-              data = Array.from('$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,47.0,M,,*47').map(c => c.charCodeAt(0));
+              data = Array.from(
+                '$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,47.0,M,,*47'
+              ).map((c) => c.charCodeAt(0));
               break;
             case 'modbus_rtu':
-              data = [0x01, 0x03, 0x00, 0x00, 0x00, 0x0A, 0xC5, 0xCD]; // Read holding registers
+              data = [0x01, 0x03, 0x00, 0x00, 0x00, 0x0a, 0xc5, 0xcd]; // Read holding registers
               break;
             default:
-              data = [0x48, 0x65, 0x6C, 0x6C, 0x6F];
+              data = [0x48, 0x65, 0x6c, 0x6c, 0x6f];
           }
         }
 
@@ -1203,14 +1279,20 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'protocol_decode',
-            protocol: decoded.protocol,
-            rawData: data.map(b => `0x${b.toString(16).padStart(2, '0')}`),
-            rawText: data.map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join(''),
-            decoded: decoded.decoded,
-            valid: decoded.valid
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'protocol_decode',
+              protocol: decoded.protocol,
+              rawData: data.map((b) => `0x${b.toString(16).padStart(2, '0')}`),
+              rawText: data
+                .map((b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : '.'))
+                .join(''),
+              decoded: decoded.decoded,
+              valid: decoded.valid,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1220,37 +1302,41 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'analyze_timing',
-            config: {
-              baudRate: config.baudRate,
-              dataBits: config.dataBits,
-              parity: config.parity,
-              stopBits: config.stopBits
-            },
-            timing: {
-              bitDurationUs: timing.bitDuration.toFixed(4),
-              frameDurationUs: timing.frameDuration.toFixed(2),
-              bitsPerFrame: timing.bitsPerFrame,
-              frameBreakdown: {
-                startBit: 1,
+          content: JSON.stringify(
+            {
+              operation: 'analyze_timing',
+              config: {
+                baudRate: config.baudRate,
                 dataBits: config.dataBits,
-                parityBit: config.parity !== 'none' ? 1 : 0,
-                stopBits: config.stopBits
-              }
+                parity: config.parity,
+                stopBits: config.stopBits,
+              },
+              timing: {
+                bitDurationUs: timing.bitDuration.toFixed(4),
+                frameDurationUs: timing.frameDuration.toFixed(2),
+                bitsPerFrame: timing.bitsPerFrame,
+                frameBreakdown: {
+                  startBit: 1,
+                  dataBits: config.dataBits,
+                  parityBit: config.parity !== 'none' ? 1 : 0,
+                  stopBits: config.stopBits,
+                },
+              },
+              performance: {
+                effectiveBitrateBps: timing.effectiveBitrate.toFixed(0),
+                efficiency: `${timing.efficiency.toFixed(1)}%`,
+                maxThroughputBytesPerSec: timing.maxThroughput,
+                overhead: `${(100 - timing.efficiency).toFixed(1)}%`,
+              },
+              comparison: {
+                configuredBaudRate: config.baudRate,
+                actualDataRate: timing.effectiveBitrate.toFixed(0),
+                lossPercentage: `${((1 - timing.efficiency / 100) * 100).toFixed(1)}%`,
+              },
             },
-            performance: {
-              effectiveBitrateBps: timing.effectiveBitrate.toFixed(0),
-              efficiency: `${timing.efficiency.toFixed(1)}%`,
-              maxThroughputBytesPerSec: timing.maxThroughput,
-              overhead: `${(100 - timing.efficiency).toFixed(1)}%`
-            },
-            comparison: {
-              configuredBaudRate: config.baudRate,
-              actualDataRate: timing.effectiveBitrate.toFixed(0),
-              lossPercentage: `${((1 - timing.efficiency / 100) * 100).toFixed(1)}%`
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1261,11 +1347,15 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
         if (config.flowControl === 'none') {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'flow_control',
-              warning: 'Flow control is disabled in current configuration',
-              currentConfig: config.flowControl
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'flow_control',
+                warning: 'Flow control is disabled in current configuration',
+                currentConfig: config.flowControl,
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -1301,19 +1391,26 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'flow_control',
-            action,
-            result: actionResult,
-            flowControlMode: config.flowControl,
-            signals: config.flowControl === 'rts_cts' ? {
-              RTS: 'Request To Send - Output signal indicating ready to receive',
-              CTS: 'Clear To Send - Input signal indicating remote ready to receive'
-            } : {
-              XON: `0x${XON.toString(16)} (DC1) - Resume transmission`,
-              XOFF: `0x${XOFF.toString(16)} (DC3) - Pause transmission`
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'flow_control',
+              action,
+              result: actionResult,
+              flowControlMode: config.flowControl,
+              signals:
+                config.flowControl === 'rts_cts'
+                  ? {
+                      RTS: 'Request To Send - Output signal indicating ready to receive',
+                      CTS: 'Clear To Send - Input signal indicating remote ready to receive',
+                    }
+                  : {
+                      XON: `0x${XON.toString(16)} (DC1) - Resume transmission`,
+                      XOFF: `0x${XOFF.toString(16)} (DC3) - Pause transmission`,
+                    },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1323,18 +1420,22 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'send_break',
-            durationBits,
-            durationUs: result.duration.toFixed(2),
-            bitDurationUs: result.bitDuration.toFixed(2),
-            description: 'Break condition: line held LOW for duration longer than a frame',
-            usage: [
-              'Signal attention to remote device',
-              'Reset protocol state',
-              'Wake up sleeping device'
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'send_break',
+              durationBits,
+              durationUs: result.duration.toFixed(2),
+              bitDurationUs: result.bitDuration.toFixed(2),
+              description: 'Break condition: line held LOW for duration longer than a frame',
+              usage: [
+                'Signal attention to remote device',
+                'Reset protocol state',
+                'Wake up sleeping device',
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1347,134 +1448,153 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'get_status',
-            configuration: {
-              baudRate: config.baudRate,
-              format: `${config.dataBits}${config.parity.charAt(0).toUpperCase()}${config.stopBits}`,
-              flowControl: config.flowControl,
-              mode: config.mode,
-              halfDuplex: config.halfDuplex
+          content: JSON.stringify(
+            {
+              operation: 'get_status',
+              configuration: {
+                baudRate: config.baudRate,
+                format: `${config.dataBits}${config.parity.charAt(0).toUpperCase()}${config.stopBits}`,
+                flowControl: config.flowControl,
+                mode: config.mode,
+                halfDuplex: config.halfDuplex,
+              },
+              timing: {
+                bitDurationUs: timing.bitDuration.toFixed(2),
+                frameDurationUs: timing.frameDuration.toFixed(2),
+                efficiency: `${timing.efficiency.toFixed(1)}%`,
+              },
+              buffers: {
+                txUsed: buffers.tx.used,
+                rxUsed: buffers.rx.used,
+                capacity: buffers.tx.capacity,
+              },
+              errors: {
+                total: Object.values(errors).reduce((a, b) => a + b, 0),
+                breakdown: errors,
+              },
+              statistics: {
+                totalTransmissions: transmissions.length,
+                txCount: transmissions.filter((t) => t.direction === 'tx').length,
+                rxCount: transmissions.filter((t) => t.direction === 'rx').length,
+              },
             },
-            timing: {
-              bitDurationUs: timing.bitDuration.toFixed(2),
-              frameDurationUs: timing.frameDuration.toFixed(2),
-              efficiency: `${timing.efficiency.toFixed(1)}%`
-            },
-            buffers: {
-              txUsed: buffers.tx.used,
-              rxUsed: buffers.rx.used,
-              capacity: buffers.tx.capacity
-            },
-            errors: {
-              total: Object.values(errors).reduce((a, b) => a + b, 0),
-              breakdown: errors
-            },
-            statistics: {
-              totalTransmissions: transmissions.length,
-              txCount: transmissions.filter(t => t.direction === 'tx').length,
-              rxCount: transmissions.filter(t => t.direction === 'rx').length
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'UART Protocol Simulator',
-            description: 'Full-featured UART serial communication tool for embedded/IoT development',
-            features: {
-              configuration: [
-                'Baud rates from 300 to 4,000,000 bps',
-                'Data bits: 5, 6, 7, 8, or 9',
-                'Parity: none, odd, even, mark, space',
-                'Stop bits: 1, 1.5, or 2',
-                'RS-232 and RS-485 modes'
-              ],
-              flowControl: [
-                'Hardware (RTS/CTS)',
-                'Software (XON/XOFF)',
-                'Half-duplex support'
-              ],
-              errorDetection: [
-                'Framing error detection',
-                'Parity error detection',
-                'Buffer overrun detection',
-                'Break condition handling',
-                'Noise simulation'
-              ],
-              protocolDecoding: [
-                'AT commands',
-                'NMEA 0183 (GPS)',
-                'Modbus RTU'
-              ],
-              analysis: [
-                'Frame structure visualization',
-                'Timing analysis',
-                'Baud rate detection',
-                'Loopback testing'
-              ]
+          content: JSON.stringify(
+            {
+              tool: 'UART Protocol Simulator',
+              description:
+                'Full-featured UART serial communication tool for embedded/IoT development',
+              features: {
+                configuration: [
+                  'Baud rates from 300 to 4,000,000 bps',
+                  'Data bits: 5, 6, 7, 8, or 9',
+                  'Parity: none, odd, even, mark, space',
+                  'Stop bits: 1, 1.5, or 2',
+                  'RS-232 and RS-485 modes',
+                ],
+                flowControl: ['Hardware (RTS/CTS)', 'Software (XON/XOFF)', 'Half-duplex support'],
+                errorDetection: [
+                  'Framing error detection',
+                  'Parity error detection',
+                  'Buffer overrun detection',
+                  'Break condition handling',
+                  'Noise simulation',
+                ],
+                protocolDecoding: ['AT commands', 'NMEA 0183 (GPS)', 'Modbus RTU'],
+                analysis: [
+                  'Frame structure visualization',
+                  'Timing analysis',
+                  'Baud rate detection',
+                  'Loopback testing',
+                ],
+              },
+              frameStructure: {
+                startBit: '1 bit (always LOW)',
+                dataBits: '5-9 bits (LSB first)',
+                parityBit: '0 or 1 bit (optional)',
+                stopBits: '1, 1.5, or 2 bits (always HIGH)',
+              },
+              commonBaudRates: [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600],
             },
-            frameStructure: {
-              startBit: '1 bit (always LOW)',
-              dataBits: '5-9 bits (LSB first)',
-              parityBit: '0 or 1 bit (optional)',
-              stopBits: '1, 1.5, or 2 bits (always HIGH)'
-            },
-            commonBaudRates: [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Configure UART 115200 8N1',
-                call: { operation: 'configure', baudRate: 115200, dataBits: 8, parity: 'none', stopBits: 1 }
-              },
-              {
-                name: 'Send text data',
-                call: { operation: 'send', text: 'Hello UART!' }
-              },
-              {
-                name: 'Send hex data',
-                call: { operation: 'send', data: [0x01, 0x02, 0x03, 0x04] }
-              },
-              {
-                name: 'Analyze single byte frame',
-                call: { operation: 'analyze_frame', byte: 85 }
-              },
-              {
-                name: 'Detect baud rate from pulse widths',
-                call: { operation: 'detect_baud', pulseWidths: [104, 208, 104, 312] }
-              },
-              {
-                name: 'Simulate 5% noise',
-                call: { operation: 'simulate_noise', noiseLevel: 5 }
-              },
-              {
-                name: 'Loopback test',
-                call: { operation: 'loopback_test', data: [0x55, 0xAA, 0xFF, 0x00] }
-              },
-              {
-                name: 'Decode AT command response',
-                call: { operation: 'protocol_decode', protocol: 'at_commands', text: 'AT+CGMI\r\nManufacturer\r\nOK\r\n' }
-              },
-              {
-                name: 'Decode NMEA sentence',
-                call: { operation: 'protocol_decode', protocol: 'nmea', text: '$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,47.0,M,,*47' }
-              },
-              {
-                name: 'Configure with flow control',
-                call: { operation: 'configure', baudRate: 9600, flowControl: 'rts_cts' }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Configure UART 115200 8N1',
+                  call: {
+                    operation: 'configure',
+                    baudRate: 115200,
+                    dataBits: 8,
+                    parity: 'none',
+                    stopBits: 1,
+                  },
+                },
+                {
+                  name: 'Send text data',
+                  call: { operation: 'send', text: 'Hello UART!' },
+                },
+                {
+                  name: 'Send hex data',
+                  call: { operation: 'send', data: [0x01, 0x02, 0x03, 0x04] },
+                },
+                {
+                  name: 'Analyze single byte frame',
+                  call: { operation: 'analyze_frame', byte: 85 },
+                },
+                {
+                  name: 'Detect baud rate from pulse widths',
+                  call: { operation: 'detect_baud', pulseWidths: [104, 208, 104, 312] },
+                },
+                {
+                  name: 'Simulate 5% noise',
+                  call: { operation: 'simulate_noise', noiseLevel: 5 },
+                },
+                {
+                  name: 'Loopback test',
+                  call: { operation: 'loopback_test', data: [0x55, 0xaa, 0xff, 0x00] },
+                },
+                {
+                  name: 'Decode AT command response',
+                  call: {
+                    operation: 'protocol_decode',
+                    protocol: 'at_commands',
+                    text: 'AT+CGMI\r\nManufacturer\r\nOK\r\n',
+                  },
+                },
+                {
+                  name: 'Decode NMEA sentence',
+                  call: {
+                    operation: 'protocol_decode',
+                    protocol: 'nmea',
+                    text: '$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,47.0,M,,*47',
+                  },
+                },
+                {
+                  name: 'Configure with flow control',
+                  call: { operation: 'configure', baudRate: 9600, flowControl: 'rts_cts' },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -1482,7 +1602,7 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {
@@ -1491,4 +1611,6 @@ export async function executeuartprotocol(toolCall: UnifiedToolCall): Promise<Un
   }
 }
 
-export function isuartprotocolAvailable(): boolean { return true; }
+export function isuartprotocolAvailable(): boolean {
+  return true;
+}

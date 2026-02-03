@@ -15,9 +15,8 @@ interface Point2D {
   y: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Pose2D extends Point2D {
-  theta?: number;  // Optional orientation
+export interface Pose2D extends Point2D {
+  theta?: number; // Optional orientation
 }
 
 interface Obstacle {
@@ -63,9 +62,9 @@ interface PlanningResult {
 interface GridCell {
   x: number;
   y: number;
-  g: number;  // Cost from start
-  h: number;  // Heuristic to goal
-  f: number;  // Total cost
+  g: number; // Cost from start
+  h: number; // Heuristic to goal
+  f: number; // Total cost
   parent: GridCell | null;
   walkable: boolean;
 }
@@ -102,7 +101,7 @@ class CollisionChecker {
       const t = i / steps;
       const point = {
         x: start.x + t * dx,
-        y: start.y + t * dy
+        y: start.y + t * dy,
       };
       if (this.isColliding(point)) {
         return false;
@@ -159,9 +158,11 @@ class CollisionChecker {
 
     for (let i = 0; i < vertices.length; i++) {
       if (
-        (vertices[i].y > point.y) !== (vertices[j].y > point.y) &&
-        point.x < (vertices[j].x - vertices[i].x) * (point.y - vertices[i].y) /
-                  (vertices[j].y - vertices[i].y) + vertices[i].x
+        vertices[i].y > point.y !== vertices[j].y > point.y &&
+        point.x <
+          ((vertices[j].x - vertices[i].x) * (point.y - vertices[i].y)) /
+            (vertices[j].y - vertices[i].y) +
+            vertices[i].x
       ) {
         inside = !inside;
       }
@@ -177,12 +178,12 @@ class CollisionChecker {
 // ============================================================================
 
 class RRT {
-  private configSpace: ConfigSpace;
-  private collisionChecker: CollisionChecker;
-  private stepSize: number;
-  private maxIterations: number;
-  private goalBias: number;
-  private nodes: TreeNode[];
+  protected configSpace: ConfigSpace;
+  protected collisionChecker: CollisionChecker;
+  protected stepSize: number;
+  protected maxIterations: number;
+  protected goalBias: number;
+  protected nodes: TreeNode[];
 
   constructor(
     configSpace: ConfigSpace,
@@ -202,19 +203,19 @@ class RRT {
     const startTime = Date.now();
 
     // Initialize tree with start node
-    this.nodes = [{
-      id: 0,
-      position: { ...start },
-      parent: null,
-      cost: 0,
-      children: []
-    }];
+    this.nodes = [
+      {
+        id: 0,
+        position: { ...start },
+        parent: null,
+        cost: 0,
+        children: [],
+      },
+    ];
 
     for (let iter = 0; iter < this.maxIterations; iter++) {
       // Sample random point (with goal bias)
-      const randomPoint = Math.random() < this.goalBias
-        ? { ...goal }
-        : this.sampleRandom();
+      const randomPoint = Math.random() < this.goalBias ? { ...goal } : this.sampleRandom();
 
       // Find nearest node in tree
       const nearestIdx = this.findNearest(randomPoint);
@@ -224,15 +225,17 @@ class RRT {
       const newPoint = this.extend(nearest.position, randomPoint);
 
       // Check collision
-      if (!this.collisionChecker.isColliding(newPoint) &&
-          this.collisionChecker.isPathClear(nearest.position, newPoint)) {
+      if (
+        !this.collisionChecker.isColliding(newPoint) &&
+        this.collisionChecker.isPathClear(nearest.position, newPoint)
+      ) {
         // Add new node
         const newNode: TreeNode = {
           id: this.nodes.length,
           position: newPoint,
           parent: nearestIdx,
           cost: nearest.cost + this.distance(nearest.position, newPoint),
-          children: []
+          children: [],
         };
         this.nodes.push(newNode);
         nearest.children.push(newNode.id);
@@ -245,7 +248,7 @@ class RRT {
             position: { ...goal },
             parent: newNode.id,
             cost: newNode.cost + this.distance(newPoint, goal),
-            children: []
+            children: [],
           };
           this.nodes.push(goalNode);
           newNode.children.push(goalNode.id);
@@ -256,7 +259,7 @@ class RRT {
             pathLength: goalNode.cost,
             nodesExplored: this.nodes.length,
             planningTime: Date.now() - startTime,
-            success: true
+            success: true,
           };
         }
       }
@@ -271,18 +274,18 @@ class RRT {
       pathLength: this.nodes[closestIdx].cost,
       nodesExplored: this.nodes.length,
       planningTime: Date.now() - startTime,
-      success: false
+      success: false,
     };
   }
 
-  private sampleRandom(): Point2D {
+  protected sampleRandom(): Point2D {
     return {
       x: this.configSpace.xMin + Math.random() * (this.configSpace.xMax - this.configSpace.xMin),
-      y: this.configSpace.yMin + Math.random() * (this.configSpace.yMax - this.configSpace.yMin)
+      y: this.configSpace.yMin + Math.random() * (this.configSpace.yMax - this.configSpace.yMin),
     };
   }
 
-  private findNearest(point: Point2D): number {
+  protected findNearest(point: Point2D): number {
     let minDist = Infinity;
     let nearestIdx = 0;
 
@@ -297,7 +300,7 @@ class RRT {
     return nearestIdx;
   }
 
-  private extend(from: Point2D, to: Point2D): Point2D {
+  protected extend(from: Point2D, to: Point2D): Point2D {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -309,7 +312,7 @@ class RRT {
     const ratio = this.stepSize / dist;
     return {
       x: from.x + dx * ratio,
-      y: from.y + dy * ratio
+      y: from.y + dy * ratio,
     };
   }
 
@@ -342,12 +345,6 @@ class RRT {
 
 class RRTStar extends RRT {
   private rewireRadius: number;
-  private nodes: TreeNode[];
-  private configSpace: ConfigSpace;
-  private collisionChecker: CollisionChecker;
-  private stepSize: number;
-  private maxIterations: number;
-  private goalBias: number;
 
   constructor(
     configSpace: ConfigSpace,
@@ -359,32 +356,27 @@ class RRTStar extends RRT {
     super(configSpace, stepSize, maxIterations, goalBias);
     this.rewireRadius = rewireRadius;
     this.nodes = [];
-    this.configSpace = configSpace;
-    this.collisionChecker = new CollisionChecker(configSpace.obstacles);
-    this.stepSize = stepSize;
-    this.maxIterations = maxIterations;
-    this.goalBias = goalBias;
   }
 
   plan(start: Point2D, goal: Point2D, goalThreshold: number = 0.5): PlanningResult {
     const startTime = Date.now();
 
     // Initialize tree
-    this.nodes = [{
-      id: 0,
-      position: { ...start },
-      parent: null,
-      cost: 0,
-      children: []
-    }];
+    this.nodes = [
+      {
+        id: 0,
+        position: { ...start },
+        parent: null,
+        cost: 0,
+        children: [],
+      },
+    ];
 
     let goalNodeIdx: number | null = null;
 
     for (let iter = 0; iter < this.maxIterations; iter++) {
       // Sample random point
-      const randomPoint = Math.random() < this.goalBias
-        ? { ...goal }
-        : this.sampleRandom();
+      const randomPoint = Math.random() < this.goalBias ? { ...goal } : this.sampleRandom();
 
       // Find nearest node
       const nearestIdx = this.findNearest(randomPoint);
@@ -393,9 +385,10 @@ class RRTStar extends RRT {
       // Extend towards random point
       const newPoint = this.extend(nearest.position, randomPoint);
 
-      if (!this.collisionChecker.isColliding(newPoint) &&
-          this.collisionChecker.isPathClear(nearest.position, newPoint)) {
-
+      if (
+        !this.collisionChecker.isColliding(newPoint) &&
+        this.collisionChecker.isPathClear(nearest.position, newPoint)
+      ) {
         // Find nearby nodes for potential rewiring
         const nearbyIndices = this.findNearby(newPoint);
 
@@ -418,7 +411,7 @@ class RRTStar extends RRT {
           position: newPoint,
           parent: bestParentIdx,
           cost: bestCost,
-          children: []
+          children: [],
         };
         this.nodes.push(newNode);
         this.nodes[bestParentIdx].children.push(newNode.id);
@@ -434,7 +427,7 @@ class RRTStar extends RRT {
             // Remove from old parent
             if (node.parent !== null) {
               const oldParent = this.nodes[node.parent];
-              oldParent.children = oldParent.children.filter(c => c !== idx);
+              oldParent.children = oldParent.children.filter((c) => c !== idx);
             }
 
             // Set new parent
@@ -449,14 +442,17 @@ class RRTStar extends RRT {
 
         // Check if goal reached
         if (this.distance(newPoint, goal) < goalThreshold) {
-          if (goalNodeIdx === null || newNode.cost + this.distance(newPoint, goal) < this.nodes[goalNodeIdx].cost) {
+          if (
+            goalNodeIdx === null ||
+            newNode.cost + this.distance(newPoint, goal) < this.nodes[goalNodeIdx].cost
+          ) {
             if (goalNodeIdx === null) {
               const goalNode: TreeNode = {
                 id: this.nodes.length,
                 position: { ...goal },
                 parent: newNode.id,
                 cost: newNode.cost + this.distance(newPoint, goal),
-                children: []
+                children: [],
               };
               this.nodes.push(goalNode);
               newNode.children.push(goalNode.id);
@@ -466,7 +462,7 @@ class RRTStar extends RRT {
               const goalNode = this.nodes[goalNodeIdx];
               if (goalNode.parent !== null) {
                 const oldParent = this.nodes[goalNode.parent];
-                oldParent.children = oldParent.children.filter(c => c !== goalNodeIdx);
+                oldParent.children = oldParent.children.filter((c) => c !== goalNodeIdx);
               }
               goalNode.parent = newNode.id;
               goalNode.cost = newNode.cost + this.distance(newPoint, goal);
@@ -484,7 +480,7 @@ class RRTStar extends RRT {
         pathLength: this.nodes[goalNodeIdx].cost,
         nodesExplored: this.nodes.length,
         planningTime: Date.now() - startTime,
-        success: true
+        success: true,
       };
     }
 
@@ -497,45 +493,7 @@ class RRTStar extends RRT {
       pathLength: this.nodes[closestIdx].cost,
       nodesExplored: this.nodes.length,
       planningTime: Date.now() - startTime,
-      success: false
-    };
-  }
-
-  private sampleRandom(): Point2D {
-    return {
-      x: this.configSpace.xMin + Math.random() * (this.configSpace.xMax - this.configSpace.xMin),
-      y: this.configSpace.yMin + Math.random() * (this.configSpace.yMax - this.configSpace.yMin)
-    };
-  }
-
-  private findNearest(point: Point2D): number {
-    let minDist = Infinity;
-    let nearestIdx = 0;
-
-    for (let i = 0; i < this.nodes.length; i++) {
-      const dist = this.distance(this.nodes[i].position, point);
-      if (dist < minDist) {
-        minDist = dist;
-        nearestIdx = i;
-      }
-    }
-
-    return nearestIdx;
-  }
-
-  private extend(from: Point2D, to: Point2D): Point2D {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist <= this.stepSize) {
-      return { ...to };
-    }
-
-    const ratio = this.stepSize / dist;
-    return {
-      x: from.x + dx * ratio,
-      y: from.y + dy * ratio
+      success: false,
     };
   }
 
@@ -563,18 +521,6 @@ class RRTStar extends RRT {
       this.propagateCostUpdate(childIdx);
     }
   }
-
-  protected extractPath(nodeIdx: number): Point2D[] {
-    const path: Point2D[] = [];
-    let currentIdx: number | null = nodeIdx;
-
-    while (currentIdx !== null) {
-      path.unshift({ ...this.nodes[currentIdx].position });
-      currentIdx = this.nodes[currentIdx].parent;
-    }
-
-    return path;
-  }
 }
 
 // ============================================================================
@@ -588,11 +534,7 @@ class PRM {
   private connectionRadius: number;
   private nodes: RoadmapNode[];
 
-  constructor(
-    configSpace: ConfigSpace,
-    numSamples: number = 500,
-    connectionRadius: number = 2.0
-  ) {
+  constructor(configSpace: ConfigSpace, numSamples: number = 500, connectionRadius: number = 2.0) {
     this.configSpace = configSpace;
     this.collisionChecker = new CollisionChecker(configSpace.obstacles);
     this.numSamples = numSamples;
@@ -610,7 +552,7 @@ class PRM {
         this.nodes.push({
           id: this.nodes.length,
           position: point,
-          neighbors: []
+          neighbors: [],
         });
       }
     }
@@ -619,8 +561,10 @@ class PRM {
     for (let i = 0; i < this.nodes.length; i++) {
       for (let j = i + 1; j < this.nodes.length; j++) {
         const dist = this.distance(this.nodes[i].position, this.nodes[j].position);
-        if (dist <= this.connectionRadius &&
-            this.collisionChecker.isPathClear(this.nodes[i].position, this.nodes[j].position)) {
+        if (
+          dist <= this.connectionRadius &&
+          this.collisionChecker.isPathClear(this.nodes[i].position, this.nodes[j].position)
+        ) {
           this.nodes[i].neighbors.push(j);
           this.nodes[j].neighbors.push(i);
         }
@@ -638,7 +582,7 @@ class PRM {
         pathLength: 0,
         nodesExplored: 0,
         planningTime: Date.now() - startTime,
-        success: false
+        success: false,
       };
     }
 
@@ -649,25 +593,29 @@ class PRM {
     const startNode: RoadmapNode = {
       id: startIdx,
       position: { ...start },
-      neighbors: []
+      neighbors: [],
     };
     const goalNode: RoadmapNode = {
       id: goalIdx,
       position: { ...goal },
-      neighbors: []
+      neighbors: [],
     };
 
     // Connect start and goal to roadmap
     for (let i = 0; i < this.nodes.length; i++) {
       const distStart = this.distance(start, this.nodes[i].position);
-      if (distStart <= this.connectionRadius &&
-          this.collisionChecker.isPathClear(start, this.nodes[i].position)) {
+      if (
+        distStart <= this.connectionRadius &&
+        this.collisionChecker.isPathClear(start, this.nodes[i].position)
+      ) {
         startNode.neighbors.push(i);
       }
 
       const distGoal = this.distance(goal, this.nodes[i].position);
-      if (distGoal <= this.connectionRadius &&
-          this.collisionChecker.isPathClear(goal, this.nodes[i].position)) {
+      if (
+        distGoal <= this.connectionRadius &&
+        this.collisionChecker.isPathClear(goal, this.nodes[i].position)
+      ) {
         goalNode.neighbors.push(i);
       }
     }
@@ -679,7 +627,7 @@ class PRM {
         pathLength: this.distance(start, goal),
         nodesExplored: 2,
         planningTime: Date.now() - startTime,
-        success: true
+        success: true,
       };
     }
 
@@ -696,7 +644,7 @@ class PRM {
 
     return {
       ...result,
-      planningTime: Date.now() - startTime
+      planningTime: Date.now() - startTime,
     };
   }
 
@@ -708,7 +656,10 @@ class PRM {
     const cameFrom = new Map<number, number>();
 
     gScore.set(startIdx, 0);
-    fScore.set(startIdx, this.distance(this.nodes[startIdx].position, this.nodes[goalIdx].position));
+    fScore.set(
+      startIdx,
+      this.distance(this.nodes[startIdx].position, this.nodes[goalIdx].position)
+    );
 
     while (openSet.size > 0) {
       // Find node with lowest fScore
@@ -730,7 +681,7 @@ class PRM {
           pathLength: gScore.get(goalIdx) || 0,
           nodesExplored: closedSet.size,
           planningTime: 0,
-          success: true
+          success: true,
         };
       }
 
@@ -740,7 +691,8 @@ class PRM {
       for (const neighborIdx of this.nodes[current].neighbors) {
         if (closedSet.has(neighborIdx)) continue;
 
-        const tentativeG = (gScore.get(current) || 0) +
+        const tentativeG =
+          (gScore.get(current) || 0) +
           this.distance(this.nodes[current].position, this.nodes[neighborIdx].position);
 
         if (!openSet.has(neighborIdx)) {
@@ -751,8 +703,10 @@ class PRM {
 
         cameFrom.set(neighborIdx, current);
         gScore.set(neighborIdx, tentativeG);
-        fScore.set(neighborIdx, tentativeG +
-          this.distance(this.nodes[neighborIdx].position, this.nodes[goalIdx].position));
+        fScore.set(
+          neighborIdx,
+          tentativeG + this.distance(this.nodes[neighborIdx].position, this.nodes[goalIdx].position)
+        );
       }
     }
 
@@ -761,7 +715,7 @@ class PRM {
       pathLength: 0,
       nodesExplored: closedSet.size,
       planningTime: 0,
-      success: false
+      success: false,
     };
   }
 
@@ -777,7 +731,7 @@ class PRM {
   private sampleRandom(): Point2D {
     return {
       x: this.configSpace.xMin + Math.random() * (this.configSpace.xMax - this.configSpace.xMin),
-      y: this.configSpace.yMin + Math.random() * (this.configSpace.yMax - this.configSpace.yMin)
+      y: this.configSpace.yMin + Math.random() * (this.configSpace.yMax - this.configSpace.yMin),
     };
   }
 
@@ -830,7 +784,7 @@ class AStarPlanner {
           h: 0,
           f: Infinity,
           parent: null,
-          walkable: !this.collisionChecker.isColliding(worldPoint)
+          walkable: !this.collisionChecker.isColliding(worldPoint),
         };
       }
     }
@@ -852,25 +806,26 @@ class AStarPlanner {
     const startCell = this.worldToGrid(start);
     const goalCell = this.worldToGrid(goal);
 
-    if (!this.isValidCell(startCell.x, startCell.y) ||
-        !this.isValidCell(goalCell.x, goalCell.y)) {
+    if (!this.isValidCell(startCell.x, startCell.y) || !this.isValidCell(goalCell.x, goalCell.y)) {
       return {
         path: [],
         pathLength: 0,
         nodesExplored: 0,
         planningTime: Date.now() - startTime,
-        success: false
+        success: false,
       };
     }
 
-    if (!this.grid[startCell.y][startCell.x].walkable ||
-        !this.grid[goalCell.y][goalCell.x].walkable) {
+    if (
+      !this.grid[startCell.y][startCell.x].walkable ||
+      !this.grid[goalCell.y][goalCell.x].walkable
+    ) {
       return {
         path: [],
         pathLength: 0,
         nodesExplored: 0,
         planningTime: Date.now() - startTime,
-        success: false
+        success: false,
       };
     }
 
@@ -884,8 +839,22 @@ class AStarPlanner {
     openSet.push(startNode);
 
     const directions = allowDiagonal
-      ? [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]]
-      : [[-1,0], [0,-1], [0,1], [1,0]];
+      ? [
+          [-1, -1],
+          [-1, 0],
+          [-1, 1],
+          [0, -1],
+          [0, 1],
+          [1, -1],
+          [1, 0],
+          [1, 1],
+        ]
+      : [
+          [-1, 0],
+          [0, -1],
+          [0, 1],
+          [1, 0],
+        ];
 
     while (openSet.length > 0) {
       // Find cell with lowest f
@@ -901,7 +870,7 @@ class AStarPlanner {
           pathLength: current.g * this.resolution,
           nodesExplored: closedSet.size,
           planningTime: Date.now() - startTime,
-          success: true
+          success: true,
         };
       }
 
@@ -912,22 +881,26 @@ class AStarPlanner {
         const ny = current.y + dy;
         const neighborKey = `${nx},${ny}`;
 
-        if (!this.isValidCell(nx, ny) ||
-            !this.grid[ny][nx].walkable ||
-            closedSet.has(neighborKey)) {
+        if (
+          !this.isValidCell(nx, ny) ||
+          !this.grid[ny][nx].walkable ||
+          closedSet.has(neighborKey)
+        ) {
           continue;
         }
 
         // Check diagonal movement
         if (dx !== 0 && dy !== 0) {
-          if (!this.grid[current.y + dy][current.x].walkable ||
-              !this.grid[current.y][current.x + dx].walkable) {
+          if (
+            !this.grid[current.y + dy][current.x].walkable ||
+            !this.grid[current.y][current.x + dx].walkable
+          ) {
             continue;
           }
         }
 
         const neighbor = this.grid[ny][nx];
-        const moveCost = (dx !== 0 && dy !== 0) ? Math.SQRT2 : 1;
+        const moveCost = dx !== 0 && dy !== 0 ? Math.SQRT2 : 1;
         const tentativeG = current.g + moveCost;
 
         if (tentativeG < neighbor.g) {
@@ -948,7 +921,7 @@ class AStarPlanner {
       pathLength: 0,
       nodesExplored: closedSet.size,
       planningTime: Date.now() - startTime,
-      success: false
+      success: false,
     };
   }
 
@@ -956,7 +929,7 @@ class AStarPlanner {
     // Octile distance (allows diagonal movement)
     const dx = Math.abs(b.x - a.x);
     const dy = Math.abs(b.y - a.y);
-    return (dx + dy) + (Math.SQRT2 - 2) * Math.min(dx, dy);
+    return dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy);
   }
 
   private reconstructPath(endCell: GridCell): Point2D[] {
@@ -974,14 +947,14 @@ class AStarPlanner {
   private worldToGrid(point: Point2D): { x: number; y: number } {
     return {
       x: Math.floor((point.x - this.configSpace.xMin) / this.resolution),
-      y: Math.floor((point.y - this.configSpace.yMin) / this.resolution)
+      y: Math.floor((point.y - this.configSpace.yMin) / this.resolution),
     };
   }
 
   private gridToWorld(x: number, y: number): Point2D {
     return {
       x: this.configSpace.xMin + (x + 0.5) * this.resolution,
-      y: this.configSpace.yMin + (y + 0.5) * this.resolution
+      y: this.configSpace.yMin + (y + 0.5) * this.resolution,
     };
   }
 
@@ -1035,7 +1008,7 @@ class PotentialFieldPlanner {
           pathLength,
           nodesExplored: path.length,
           planningTime: Date.now() - startTime,
-          success: true
+          success: true,
         };
       }
 
@@ -1051,17 +1024,21 @@ class PotentialFieldPlanner {
       // Normalize and apply step
       const step = {
         x: (force.x / forceMag) * this.stepSize,
-        y: (force.y / forceMag) * this.stepSize
+        y: (force.y / forceMag) * this.stepSize,
       };
 
       const next = {
         x: current.x + step.x,
-        y: current.y + step.y
+        y: current.y + step.y,
       };
 
       // Check bounds
-      if (next.x < this.configSpace.xMin || next.x > this.configSpace.xMax ||
-          next.y < this.configSpace.yMin || next.y > this.configSpace.yMax) {
+      if (
+        next.x < this.configSpace.xMin ||
+        next.x > this.configSpace.xMax ||
+        next.y < this.configSpace.yMin ||
+        next.y > this.configSpace.yMax
+      ) {
         break;
       }
 
@@ -1075,7 +1052,7 @@ class PotentialFieldPlanner {
       pathLength,
       nodesExplored: path.length,
       planningTime: Date.now() - startTime,
-      success: false
+      success: false,
     };
   }
 
@@ -1097,13 +1074,13 @@ class PotentialFieldPlanner {
       for (let x = 0; x < width; x++) {
         const point = {
           x: this.configSpace.xMin + (x + 0.5) * resolution,
-          y: this.configSpace.yMin + (y + 0.5) * resolution
+          y: this.configSpace.yMin + (y + 0.5) * resolution,
         };
 
         // For visualization, use center as goal
         const goal = {
           x: (this.configSpace.xMin + this.configSpace.xMax) / 2,
-          y: (this.configSpace.yMin + this.configSpace.yMax) / 2
+          y: (this.configSpace.yMin + this.configSpace.yMax) / 2,
         };
 
         const attractive = this.attractivePotential(point, goal);
@@ -1124,7 +1101,7 @@ class PotentialFieldPlanner {
 
     return {
       x: attractive.x + repulsive.x,
-      y: attractive.y + repulsive.y
+      y: attractive.y + repulsive.y,
     };
   }
 
@@ -1136,7 +1113,7 @@ class PotentialFieldPlanner {
   private attractiveForce(point: Point2D, goal: Point2D): Point2D {
     return {
       x: this.attractiveGain * (goal.x - point.x),
-      y: this.attractiveGain * (goal.y - point.y)
+      y: this.attractiveGain * (goal.y - point.y),
     };
   }
 
@@ -1146,10 +1123,9 @@ class PotentialFieldPlanner {
     for (const obstacle of this.configSpace.obstacles) {
       const dist = this.distanceToObstacle(point, obstacle);
       if (dist < this.influenceRadius && dist > 0) {
-        potential += 0.5 * this.repulsiveGain *
-          Math.pow(1 / dist - 1 / this.influenceRadius, 2);
+        potential += 0.5 * this.repulsiveGain * Math.pow(1 / dist - 1 / this.influenceRadius, 2);
       } else if (dist <= 0) {
-        potential += 1e6;  // Very high potential inside obstacle
+        potential += 1e6; // Very high potential inside obstacle
       }
     }
 
@@ -1164,9 +1140,8 @@ class PotentialFieldPlanner {
       const { distance: dist, gradient } = this.distanceAndGradientToObstacle(point, obstacle);
 
       if (dist < this.influenceRadius && dist > 0) {
-        const factor = this.repulsiveGain *
-          (1 / dist - 1 / this.influenceRadius) *
-          (1 / (dist * dist));
+        const factor =
+          this.repulsiveGain * (1 / dist - 1 / this.influenceRadius) * (1 / (dist * dist));
 
         fx += factor * gradient.x;
         fy += factor * gradient.y;
@@ -1188,7 +1163,10 @@ class PotentialFieldPlanner {
     }
   }
 
-  private distanceAndGradientToObstacle(point: Point2D, obstacle: Obstacle): {
+  private distanceAndGradientToObstacle(
+    point: Point2D,
+    obstacle: Obstacle
+  ): {
     distance: number;
     gradient: Point2D;
   } {
@@ -1205,7 +1183,7 @@ class PotentialFieldPlanner {
         }
         return {
           distance: dist - obstacle.radius,
-          gradient: { x: dx / dist, y: dy / dist }
+          gradient: { x: dx / dist, y: dy / dist },
         };
       }
       case 'rectangle': {
@@ -1241,7 +1219,10 @@ class PotentialFieldPlanner {
     return Math.sqrt(distX * distX + distY * distY);
   }
 
-  private distanceAndGradientToRectangle(point: Point2D, obstacle: Obstacle): {
+  private distanceAndGradientToRectangle(
+    point: Point2D,
+    obstacle: Obstacle
+  ): {
     distance: number;
     gradient: Point2D;
   } {
@@ -1285,8 +1266,8 @@ class PotentialFieldPlanner {
       distance: dist,
       gradient: {
         x: localGradX * cosInv - localGradY * sinInv,
-        y: localGradX * sinInv + localGradY * cosInv
-      }
+        y: localGradX * sinInv + localGradY * cosInv,
+      },
     };
   }
 
@@ -1310,7 +1291,7 @@ function smoothPath(
   if (path.length < 3) return path;
 
   const collisionChecker = new CollisionChecker(configSpace.obstacles);
-  const smoothed = path.map(p => ({ ...p }));
+  const smoothed = path.map((p) => ({ ...p }));
 
   for (let iter = 0; iter < iterations; iter++) {
     for (let i = 1; i < smoothed.length - 1; i++) {
@@ -1324,9 +1305,11 @@ function smoothPath(
 
       // Only update if collision-free
       const newPoint = { x: newX, y: newY };
-      if (!collisionChecker.isColliding(newPoint) &&
-          collisionChecker.isPathClear(prev, newPoint) &&
-          collisionChecker.isPathClear(newPoint, next)) {
+      if (
+        !collisionChecker.isColliding(newPoint) &&
+        collisionChecker.isPathClear(prev, newPoint) &&
+        collisionChecker.isPathClear(newPoint, next)
+      ) {
         smoothed[i] = newPoint;
       }
     }
@@ -1341,22 +1324,33 @@ function smoothPath(
 
 export const motionplanningTool: UnifiedTool = {
   name: 'motion_planning',
-  description: 'Motion planning algorithms for robotics including RRT, RRT*, PRM, A*, and potential fields for path planning in configuration space',
+  description:
+    'Motion planning algorithms for robotics including RRT, RRT*, PRM, A*, and potential fields for path planning in configuration space',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['rrt', 'rrt_star', 'prm', 'astar', 'potential_field', 'smooth_path', 'info', 'examples', 'demo'],
-        description: 'Motion planning operation to perform'
+        enum: [
+          'rrt',
+          'rrt_star',
+          'prm',
+          'astar',
+          'potential_field',
+          'smooth_path',
+          'info',
+          'examples',
+          'demo',
+        ],
+        description: 'Motion planning operation to perform',
       },
       parameters: {
         type: 'object',
-        description: 'Operation-specific parameters'
-      }
+        description: 'Operation-specific parameters',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -1379,7 +1373,7 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
           stepSize = 0.5,
           maxIterations = 5000,
           goalBias = 0.1,
-          goalThreshold = 0.5
+          goalThreshold = 0.5,
         } = parameters;
 
         const rrt = new RRT(configSpace, stepSize, maxIterations, goalBias);
@@ -1387,19 +1381,23 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'rrt',
-            algorithm: 'Rapidly-exploring Random Tree',
-            result: {
-              path: result.path,
-              pathLength: result.pathLength,
-              nodesExplored: result.nodesExplored,
-              planningTimeMs: result.planningTime,
-              success: result.success,
-              treeSize: rrt.getTree().length
+          content: JSON.stringify(
+            {
+              operation: 'rrt',
+              algorithm: 'Rapidly-exploring Random Tree',
+              result: {
+                path: result.path,
+                pathLength: result.pathLength,
+                nodesExplored: result.nodesExplored,
+                planningTimeMs: result.planningTime,
+                success: result.success,
+                treeSize: rrt.getTree().length,
+              },
+              description: 'RRT explores configuration space by growing a tree of random samples',
             },
-            description: 'RRT explores configuration space by growing a tree of random samples'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1412,7 +1410,7 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
           maxIterations = 5000,
           goalBias = 0.1,
           rewireRadius = 1.5,
-          goalThreshold = 0.5
+          goalThreshold = 0.5,
         } = parameters;
 
         const rrtStar = new RRTStar(configSpace, stepSize, maxIterations, goalBias, rewireRadius);
@@ -1420,18 +1418,22 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'rrt_star',
-            algorithm: 'Optimal RRT (RRT*)',
-            result: {
-              path: result.path,
-              pathLength: result.pathLength,
-              nodesExplored: result.nodesExplored,
-              planningTimeMs: result.planningTime,
-              success: result.success
+          content: JSON.stringify(
+            {
+              operation: 'rrt_star',
+              algorithm: 'Optimal RRT (RRT*)',
+              result: {
+                path: result.path,
+                pathLength: result.pathLength,
+                nodesExplored: result.nodesExplored,
+                planningTimeMs: result.planningTime,
+                success: result.success,
+              },
+              description: 'RRT* extends RRT with rewiring to find asymptotically optimal paths',
             },
-            description: 'RRT* extends RRT with rewiring to find asymptotically optimal paths'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1441,7 +1443,7 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
           start = { x: 1, y: 1 },
           goal = { x: 9, y: 9 },
           numSamples = 500,
-          connectionRadius = 2.0
+          connectionRadius = 2.0,
         } = parameters;
 
         const prm = new PRM(configSpace, numSamples, connectionRadius);
@@ -1451,20 +1453,25 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'prm',
-            algorithm: 'Probabilistic Roadmap',
-            result: {
-              path: result.path,
-              pathLength: result.pathLength,
-              nodesExplored: result.nodesExplored,
-              planningTimeMs: result.planningTime,
-              success: result.success,
-              roadmapSize: roadmap.length,
-              totalEdges: roadmap.reduce((sum, n) => sum + n.neighbors.length, 0) / 2
+          content: JSON.stringify(
+            {
+              operation: 'prm',
+              algorithm: 'Probabilistic Roadmap',
+              result: {
+                path: result.path,
+                pathLength: result.pathLength,
+                nodesExplored: result.nodesExplored,
+                planningTimeMs: result.planningTime,
+                success: result.success,
+                roadmapSize: roadmap.length,
+                totalEdges: roadmap.reduce((sum, n) => sum + n.neighbors.length, 0) / 2,
+              },
+              description:
+                'PRM builds a roadmap of collision-free configurations for multi-query planning',
             },
-            description: 'PRM builds a roadmap of collision-free configurations for multi-query planning'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1474,7 +1481,7 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
           start = { x: 1, y: 1 },
           goal = { x: 9, y: 9 },
           resolution = 0.5,
-          allowDiagonal = true
+          allowDiagonal = true,
         } = parameters;
 
         const astar = new AStarPlanner(configSpace, resolution);
@@ -1482,20 +1489,24 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'astar',
-            algorithm: 'A* Grid Search',
-            result: {
-              path: result.path,
-              pathLength: result.pathLength,
-              nodesExplored: result.nodesExplored,
-              planningTimeMs: result.planningTime,
-              success: result.success,
-              gridResolution: resolution,
-              diagonalMovement: allowDiagonal
+          content: JSON.stringify(
+            {
+              operation: 'astar',
+              algorithm: 'A* Grid Search',
+              result: {
+                path: result.path,
+                pathLength: result.pathLength,
+                nodesExplored: result.nodesExplored,
+                planningTimeMs: result.planningTime,
+                success: result.success,
+                gridResolution: resolution,
+                diagonalMovement: allowDiagonal,
+              },
+              description: 'A* finds optimal paths on a discretized grid using heuristic search',
             },
-            description: 'A* finds optimal paths on a discretized grid using heuristic search'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1509,34 +1520,43 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
           influenceRadius = 2.0,
           stepSize = 0.1,
           maxIterations = 1000,
-          goalThreshold = 0.5
+          goalThreshold = 0.5,
         } = parameters;
 
         const planner = new PotentialFieldPlanner(
-          configSpace, attractiveGain, repulsiveGain,
-          influenceRadius, stepSize, maxIterations
+          configSpace,
+          attractiveGain,
+          repulsiveGain,
+          influenceRadius,
+          stepSize,
+          maxIterations
         );
         const result = planner.plan(start, goal, goalThreshold);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'potential_field',
-            algorithm: 'Artificial Potential Field',
-            result: {
-              path: result.path,
-              pathLength: result.pathLength,
-              nodesExplored: result.nodesExplored,
-              planningTimeMs: result.planningTime,
-              success: result.success
+          content: JSON.stringify(
+            {
+              operation: 'potential_field',
+              algorithm: 'Artificial Potential Field',
+              result: {
+                path: result.path,
+                pathLength: result.pathLength,
+                nodesExplored: result.nodesExplored,
+                planningTimeMs: result.planningTime,
+                success: result.success,
+              },
+              parameters: {
+                attractiveGain,
+                repulsiveGain,
+                influenceRadius,
+              },
+              description:
+                'Potential fields use attractive goal forces and repulsive obstacle forces for reactive planning',
             },
-            parameters: {
-              attractiveGain,
-              repulsiveGain,
-              influenceRadius
-            },
-            description: 'Potential fields use attractive goal forces and repulsive obstacle forces for reactive planning'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -1545,18 +1565,22 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
           path = [],
           configSpace = { xMin: 0, xMax: 10, yMin: 0, yMax: 10, obstacles: [] },
           iterations = 100,
-          weight = 0.5
+          weight = 0.5,
         } = parameters;
 
         if (path.length < 3) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'smooth_path',
-              error: 'Path must have at least 3 points for smoothing',
-              originalPath: path
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                operation: 'smooth_path',
+                error: 'Path must have at least 3 points for smoothing',
+                originalPath: path,
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -1566,135 +1590,169 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'smooth_path',
-            algorithm: 'Gradient-based Path Smoothing',
-            result: {
-              originalPath: path,
-              smoothedPath: smoothed,
-              originalLength,
-              smoothedLength,
-              improvement: ((originalLength - smoothedLength) / originalLength * 100).toFixed(2) + '%'
+          content: JSON.stringify(
+            {
+              operation: 'smooth_path',
+              algorithm: 'Gradient-based Path Smoothing',
+              result: {
+                originalPath: path,
+                smoothedPath: smoothed,
+                originalLength,
+                smoothedLength,
+                improvement:
+                  (((originalLength - smoothedLength) / originalLength) * 100).toFixed(2) + '%',
+              },
+              description:
+                'Path smoothing iteratively moves waypoints towards a smoother trajectory',
             },
-            description: 'Path smoothing iteratively moves waypoints towards a smoother trajectory'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'motion_planning',
-            description: 'Motion planning algorithms for robotics path planning',
-            algorithms: {
-              rrt: {
-                name: 'Rapidly-exploring Random Tree',
-                description: 'Incrementally builds tree by random sampling',
-                properties: ['probabilistically complete', 'fast exploration'],
-                complexity: 'O(n log n) for nearest neighbor with KD-tree',
-                bestFor: 'High-dimensional spaces, single query'
+          content: JSON.stringify(
+            {
+              tool: 'motion_planning',
+              description: 'Motion planning algorithms for robotics path planning',
+              algorithms: {
+                rrt: {
+                  name: 'Rapidly-exploring Random Tree',
+                  description: 'Incrementally builds tree by random sampling',
+                  properties: ['probabilistically complete', 'fast exploration'],
+                  complexity: 'O(n log n) for nearest neighbor with KD-tree',
+                  bestFor: 'High-dimensional spaces, single query',
+                },
+                rrt_star: {
+                  name: 'Optimal RRT (RRT*)',
+                  description: 'RRT with rewiring for optimal paths',
+                  properties: ['asymptotically optimal', 'probabilistically complete'],
+                  complexity: 'O(n log n) per iteration',
+                  bestFor: 'When path quality matters',
+                },
+                prm: {
+                  name: 'Probabilistic Roadmap',
+                  description: 'Pre-builds roadmap for multiple queries',
+                  properties: ['multi-query efficient', 'probabilistically complete'],
+                  complexity: 'O(n^2) build, O(n log n) query',
+                  bestFor: 'Static environments, multiple queries',
+                },
+                astar: {
+                  name: 'A* Grid Search',
+                  description: 'Optimal grid-based search with heuristics',
+                  properties: ['complete', 'optimal (on grid)'],
+                  complexity: 'O(b^d) worst case',
+                  bestFor: 'Low-dimensional, discretizable spaces',
+                },
+                potential_field: {
+                  name: 'Artificial Potential Field',
+                  description: 'Reactive planning using force fields',
+                  properties: ['real-time', 'simple'],
+                  limitations: ['local minima', 'oscillation near obstacles'],
+                  bestFor: 'Real-time reactive control',
+                },
               },
-              rrt_star: {
-                name: 'Optimal RRT (RRT*)',
-                description: 'RRT with rewiring for optimal paths',
-                properties: ['asymptotically optimal', 'probabilistically complete'],
-                complexity: 'O(n log n) per iteration',
-                bestFor: 'When path quality matters'
-              },
-              prm: {
-                name: 'Probabilistic Roadmap',
-                description: 'Pre-builds roadmap for multiple queries',
-                properties: ['multi-query efficient', 'probabilistically complete'],
-                complexity: 'O(n^2) build, O(n log n) query',
-                bestFor: 'Static environments, multiple queries'
-              },
-              astar: {
-                name: 'A* Grid Search',
-                description: 'Optimal grid-based search with heuristics',
-                properties: ['complete', 'optimal (on grid)'],
-                complexity: 'O(b^d) worst case',
-                bestFor: 'Low-dimensional, discretizable spaces'
-              },
-              potential_field: {
-                name: 'Artificial Potential Field',
-                description: 'Reactive planning using force fields',
-                properties: ['real-time', 'simple'],
-                limitations: ['local minima', 'oscillation near obstacles'],
-                bestFor: 'Real-time reactive control'
-              }
+              operations: [
+                'rrt',
+                'rrt_star',
+                'prm',
+                'astar',
+                'potential_field',
+                'smooth_path',
+                'info',
+                'examples',
+                'demo',
+              ],
             },
-            operations: ['rrt', 'rrt_star', 'prm', 'astar', 'potential_field', 'smooth_path', 'info', 'examples', 'demo']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'RRT with circular obstacles',
-                operation: 'rrt',
-                parameters: {
-                  configSpace: {
-                    xMin: 0, xMax: 10, yMin: 0, yMax: 10,
-                    obstacles: [
-                      { type: 'circle', center: { x: 5, y: 5 }, radius: 1.5 },
-                      { type: 'circle', center: { x: 3, y: 7 }, radius: 1.0 }
-                    ]
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'RRT with circular obstacles',
+                  operation: 'rrt',
+                  parameters: {
+                    configSpace: {
+                      xMin: 0,
+                      xMax: 10,
+                      yMin: 0,
+                      yMax: 10,
+                      obstacles: [
+                        { type: 'circle', center: { x: 5, y: 5 }, radius: 1.5 },
+                        { type: 'circle', center: { x: 3, y: 7 }, radius: 1.0 },
+                      ],
+                    },
+                    start: { x: 1, y: 1 },
+                    goal: { x: 9, y: 9 },
+                    maxIterations: 3000,
                   },
-                  start: { x: 1, y: 1 },
-                  goal: { x: 9, y: 9 },
-                  maxIterations: 3000
-                }
-              },
-              {
-                name: 'A* with rectangular obstacles',
-                operation: 'astar',
-                parameters: {
-                  configSpace: {
-                    xMin: 0, xMax: 10, yMin: 0, yMax: 10,
-                    obstacles: [
-                      { type: 'rectangle', center: { x: 5, y: 5 }, width: 3, height: 1 },
-                      { type: 'rectangle', center: { x: 3, y: 3 }, width: 1, height: 4 }
-                    ]
+                },
+                {
+                  name: 'A* with rectangular obstacles',
+                  operation: 'astar',
+                  parameters: {
+                    configSpace: {
+                      xMin: 0,
+                      xMax: 10,
+                      yMin: 0,
+                      yMax: 10,
+                      obstacles: [
+                        { type: 'rectangle', center: { x: 5, y: 5 }, width: 3, height: 1 },
+                        { type: 'rectangle', center: { x: 3, y: 3 }, width: 1, height: 4 },
+                      ],
+                    },
+                    start: { x: 1, y: 1 },
+                    goal: { x: 9, y: 9 },
+                    resolution: 0.25,
                   },
-                  start: { x: 1, y: 1 },
-                  goal: { x: 9, y: 9 },
-                  resolution: 0.25
-                }
-              },
-              {
-                name: 'PRM for multiple queries',
-                operation: 'prm',
-                parameters: {
-                  configSpace: {
-                    xMin: 0, xMax: 20, yMin: 0, yMax: 20,
-                    obstacles: [
-                      { type: 'circle', center: { x: 10, y: 10 }, radius: 3 }
-                    ]
+                },
+                {
+                  name: 'PRM for multiple queries',
+                  operation: 'prm',
+                  parameters: {
+                    configSpace: {
+                      xMin: 0,
+                      xMax: 20,
+                      yMin: 0,
+                      yMax: 20,
+                      obstacles: [{ type: 'circle', center: { x: 10, y: 10 }, radius: 3 }],
+                    },
+                    start: { x: 2, y: 2 },
+                    goal: { x: 18, y: 18 },
+                    numSamples: 300,
                   },
-                  start: { x: 2, y: 2 },
-                  goal: { x: 18, y: 18 },
-                  numSamples: 300
-                }
-              }
-            ]
-          }, null, 2)
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'demo': {
         // Demo: Compare different planners on same problem
         const configSpace: ConfigSpace = {
-          xMin: 0, xMax: 10, yMin: 0, yMax: 10,
+          xMin: 0,
+          xMax: 10,
+          yMin: 0,
+          yMax: 10,
           obstacles: [
             { type: 'circle', center: { x: 5, y: 5 }, radius: 2 },
             { type: 'circle', center: { x: 3, y: 7 }, radius: 1 },
-            { type: 'circle', center: { x: 7, y: 3 }, radius: 1 }
-          ]
+            { type: 'circle', center: { x: 7, y: 3 }, radius: 1 },
+          ],
         };
         const start = { x: 1, y: 1 };
         const goal = { x: 9, y: 9 };
@@ -1717,53 +1775,71 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            demo: 'Motion Planning Algorithm Comparison',
-            description: 'Comparing RRT, RRT*, A*, and Potential Fields on the same problem',
-            configSpace: {
-              bounds: { xMin: 0, xMax: 10, yMin: 0, yMax: 10 },
-              obstacles: configSpace.obstacles.length
+          content: JSON.stringify(
+            {
+              demo: 'Motion Planning Algorithm Comparison',
+              description: 'Comparing RRT, RRT*, A*, and Potential Fields on the same problem',
+              configSpace: {
+                bounds: { xMin: 0, xMax: 10, yMin: 0, yMax: 10 },
+                obstacles: configSpace.obstacles.length,
+              },
+              start,
+              goal,
+              results: {
+                rrt: {
+                  success: rrtResult.success,
+                  pathLength: rrtResult.pathLength.toFixed(2),
+                  nodesExplored: rrtResult.nodesExplored,
+                  timeMs: rrtResult.planningTime,
+                },
+                rrt_star: {
+                  success: rrtStarResult.success,
+                  pathLength: rrtStarResult.pathLength.toFixed(2),
+                  nodesExplored: rrtStarResult.nodesExplored,
+                  timeMs: rrtStarResult.planningTime,
+                },
+                astar: {
+                  success: astarResult.success,
+                  pathLength: astarResult.pathLength.toFixed(2),
+                  nodesExplored: astarResult.nodesExplored,
+                  timeMs: astarResult.planningTime,
+                },
+                potential_field: {
+                  success: potFieldResult.success,
+                  pathLength: potFieldResult.pathLength.toFixed(2),
+                  nodesExplored: potFieldResult.nodesExplored,
+                  timeMs: potFieldResult.planningTime,
+                },
+              },
             },
-            start,
-            goal,
-            results: {
-              rrt: {
-                success: rrtResult.success,
-                pathLength: rrtResult.pathLength.toFixed(2),
-                nodesExplored: rrtResult.nodesExplored,
-                timeMs: rrtResult.planningTime
-              },
-              rrt_star: {
-                success: rrtStarResult.success,
-                pathLength: rrtStarResult.pathLength.toFixed(2),
-                nodesExplored: rrtStarResult.nodesExplored,
-                timeMs: rrtStarResult.planningTime
-              },
-              astar: {
-                success: astarResult.success,
-                pathLength: astarResult.pathLength.toFixed(2),
-                nodesExplored: astarResult.nodesExplored,
-                timeMs: astarResult.planningTime
-              },
-              potential_field: {
-                success: potFieldResult.success,
-                pathLength: potFieldResult.pathLength.toFixed(2),
-                nodesExplored: potFieldResult.nodesExplored,
-                timeMs: potFieldResult.planningTime
-              }
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            availableOperations: ['rrt', 'rrt_star', 'prm', 'astar', 'potential_field', 'smooth_path', 'info', 'examples', 'demo']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              availableOperations: [
+                'rrt',
+                'rrt_star',
+                'prm',
+                'astar',
+                'potential_field',
+                'smooth_path',
+                'info',
+                'examples',
+                'demo',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -1771,7 +1847,7 @@ export async function executemotionplanning(toolCall: UnifiedToolCall): Promise<
     return {
       toolCallId: id,
       content: JSON.stringify({ error: errorMessage }, null, 2),
-      isError: true
+      isError: true,
     };
   }
 }

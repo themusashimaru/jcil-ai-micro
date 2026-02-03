@@ -27,10 +27,10 @@ interface TokenSpec {
   name: string;
   pattern: string | RegExp;
   priority?: number;
-  skip?: boolean;  // Skip this token (e.g., whitespace)
-  value?: (match: string) => unknown;  // Transform the matched value
-  push?: string;   // Push a new mode
-  pop?: boolean;   // Pop to previous mode
+  skip?: boolean; // Skip this token (e.g., whitespace)
+  value?: (match: string) => unknown; // Transform the matched value
+  push?: string; // Push a new mode
+  pop?: boolean; // Pop to previous mode
 }
 
 interface Token {
@@ -91,7 +91,7 @@ class Lexer {
           line,
           column,
           position: pos,
-          char: input[pos]
+          char: input[pos],
         });
         break;
       }
@@ -102,9 +102,10 @@ class Lexer {
 
       // Try all specs and find best match
       for (const spec of modeSpecs) {
-        const pattern = typeof spec.pattern === 'string'
-          ? new RegExp(`^${spec.pattern}`)
-          : new RegExp(`^${spec.pattern.source}`, spec.pattern.flags.replace('g', ''));
+        const pattern =
+          typeof spec.pattern === 'string'
+            ? new RegExp(`^${spec.pattern}`)
+            : new RegExp(`^${spec.pattern.source}`, spec.pattern.flags.replace('g', ''));
 
         const match = pattern.exec(input.slice(pos));
 
@@ -112,9 +113,11 @@ class Lexer {
           const priority = spec.priority ?? 0;
 
           // Prefer longer matches, then higher priority
-          if (!bestMatch ||
-              match[0].length > bestMatch.match[0].length ||
-              (match[0].length === bestMatch.match[0].length && priority > bestPriority)) {
+          if (
+            !bestMatch ||
+            match[0].length > bestMatch.match[0].length ||
+            (match[0].length === bestMatch.match[0].length && priority > bestPriority)
+          ) {
             bestMatch = { spec, match };
             bestPriority = priority;
           }
@@ -132,7 +135,7 @@ class Lexer {
             line,
             column,
             start: pos,
-            end: pos + matchedText.length
+            end: pos + matchedText.length,
           };
 
           if (spec.value) {
@@ -171,7 +174,7 @@ class Lexer {
           line,
           column,
           position: pos,
-          char: input[pos]
+          char: input[pos],
         });
 
         // Skip the problematic character
@@ -197,8 +200,12 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
   // JSON lexer
   json: [
     { name: 'WHITESPACE', pattern: /\s+/, skip: true },
-    { name: 'STRING', pattern: /"(?:[^"\\]|\\.)*"/, value: s => JSON.parse(s) },
-    { name: 'NUMBER', pattern: /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/, value: s => parseFloat(s) },
+    { name: 'STRING', pattern: /"(?:[^"\\]|\\.)*"/, value: (s) => JSON.parse(s) },
+    {
+      name: 'NUMBER',
+      pattern: /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/,
+      value: (s) => parseFloat(s),
+    },
     { name: 'TRUE', pattern: /true/, value: () => true },
     { name: 'FALSE', pattern: /false/, value: () => false },
     { name: 'NULL', pattern: /null/, value: () => null },
@@ -207,13 +214,13 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'LBRACKET', pattern: /\[/ },
     { name: 'RBRACKET', pattern: /\]/ },
     { name: 'COLON', pattern: /:/ },
-    { name: 'COMMA', pattern: /,/ }
+    { name: 'COMMA', pattern: /,/ },
   ],
 
   // Arithmetic expression lexer
   arithmetic: [
     { name: 'WHITESPACE', pattern: /\s+/, skip: true },
-    { name: 'NUMBER', pattern: /\d+(?:\.\d+)?/, value: s => parseFloat(s) },
+    { name: 'NUMBER', pattern: /\d+(?:\.\d+)?/, value: (s) => parseFloat(s) },
     { name: 'PLUS', pattern: /\+/ },
     { name: 'MINUS', pattern: /-/ },
     { name: 'MULTIPLY', pattern: /\*/ },
@@ -222,7 +229,7 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'MODULO', pattern: /%/ },
     { name: 'LPAREN', pattern: /\(/ },
     { name: 'RPAREN', pattern: /\)/ },
-    { name: 'IDENTIFIER', pattern: /[a-zA-Z_][a-zA-Z0-9_]*/ }
+    { name: 'IDENTIFIER', pattern: /[a-zA-Z_][a-zA-Z0-9_]*/ },
   ],
 
   // Basic programming language lexer
@@ -244,9 +251,13 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'NULL', pattern: /\b(?:null|nil|none)\b/, priority: 10, value: () => null },
 
     // Literals
-    { name: 'STRING', pattern: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: s => s.slice(1, -1) },
-    { name: 'NUMBER', pattern: /\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/, value: s => parseFloat(s) },
-    { name: 'HEX', pattern: /0x[0-9a-fA-F]+/, value: s => parseInt(s, 16) },
+    {
+      name: 'STRING',
+      pattern: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/,
+      value: (s) => s.slice(1, -1),
+    },
+    { name: 'NUMBER', pattern: /\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/, value: (s) => parseFloat(s) },
+    { name: 'HEX', pattern: /0x[0-9a-fA-F]+/, value: (s) => parseInt(s, 16) },
 
     // Identifiers
     { name: 'IDENTIFIER', pattern: /[a-zA-Z_][a-zA-Z0-9_]*/ },
@@ -281,7 +292,7 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'SEMICOLON', pattern: /;/ },
     { name: 'COMMA', pattern: /,/ },
     { name: 'DOT', pattern: /\./ },
-    { name: 'COLON', pattern: /:/ }
+    { name: 'COLON', pattern: /:/ },
   ],
 
   // SQL lexer (simplified)
@@ -315,12 +326,12 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'NULL', pattern: /\bNULL\b/i, priority: 10 },
 
     // Literals
-    { name: 'STRING', pattern: /'(?:[^'\\]|\\.)*'/, value: s => s.slice(1, -1) },
-    { name: 'NUMBER', pattern: /\d+(?:\.\d+)?/, value: s => parseFloat(s) },
+    { name: 'STRING', pattern: /'(?:[^'\\]|\\.)*'/, value: (s) => s.slice(1, -1) },
+    { name: 'NUMBER', pattern: /\d+(?:\.\d+)?/, value: (s) => parseFloat(s) },
 
     // Identifier
     { name: 'IDENTIFIER', pattern: /[a-zA-Z_][a-zA-Z0-9_]*/ },
-    { name: 'QUOTED_IDENTIFIER', pattern: /"[^"]*"|`[^`]*`/, value: s => s.slice(1, -1) },
+    { name: 'QUOTED_IDENTIFIER', pattern: /"[^"]*"|`[^`]*`/, value: (s) => s.slice(1, -1) },
 
     // Operators
     { name: 'EQ', pattern: /=/ },
@@ -336,7 +347,7 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'RPAREN', pattern: /\)/ },
     { name: 'COMMA', pattern: /,/ },
     { name: 'SEMICOLON', pattern: /;/ },
-    { name: 'DOT', pattern: /\./ }
+    { name: 'DOT', pattern: /\./ },
   ],
 
   // Markdown lexer (simplified)
@@ -353,8 +364,8 @@ const PREDEFINED_LEXERS: Record<string, TokenSpec[]> = {
     { name: 'BLOCKQUOTE', pattern: /^>\s+[^\n]*/m },
     { name: 'HORIZONTAL_RULE', pattern: /^[-*_]{3,}$/m },
     { name: 'NEWLINE', pattern: /\n/ },
-    { name: 'TEXT', pattern: /[^\n*_`#\[\]!>-]+/ }
-  ]
+    { name: 'TEXT', pattern: /[^\n*_`#\[\]!>-]+/ },
+  ],
 };
 
 // ============================================================================
@@ -404,33 +415,26 @@ export const lexergeneratorTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: ['generate', 'tokenize', 'validate_spec', 'list_predefined', 'info'],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       input: {
         type: 'string',
-        description: 'Input text to tokenize'
+        description: 'Input text to tokenize',
       },
       language: {
         type: 'string',
         enum: ['json', 'arithmetic', 'programming', 'sql', 'markdown', 'custom'],
-        description: 'Predefined language lexer to use'
+        description: 'Predefined language lexer to use',
       },
       specs: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            pattern: { type: 'string' },
-            skip: { type: 'boolean' },
-            priority: { type: 'number' }
-          }
-        },
-        description: 'Custom token specifications'
-      }
+        items: { type: 'object' },
+        description:
+          'Custom token specifications. Each spec has: name (string), pattern (string regex), skip (boolean, optional), priority (number, optional)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executelexergenerator(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -449,7 +453,7 @@ export async function executelexergenerator(toolCall: UnifiedToolCall): Promise<
           generate: 'Generate a lexer from token specifications',
           tokenize: 'Tokenize input text using a lexer',
           validate_spec: 'Validate token specifications',
-          list_predefined: 'List available predefined lexers'
+          list_predefined: 'List available predefined lexers',
         },
         predefinedLexers: Object.keys(PREDEFINED_LEXERS),
         tokenSpecFormat: {
@@ -457,24 +461,24 @@ export async function executelexergenerator(toolCall: UnifiedToolCall): Promise<
           pattern: 'Regex pattern to match (string or RegExp)',
           skip: 'If true, token is matched but not emitted',
           priority: 'Higher priority specs are preferred for ties',
-          value: 'Optional transformation function'
+          value: 'Optional transformation function',
         },
         examples: {
           tokenize: {
             operation: 'tokenize',
             language: 'arithmetic',
-            input: '2 + 3 * (4 - 1)'
+            input: '2 + 3 * (4 - 1)',
           },
           customLexer: {
             operation: 'tokenize',
             language: 'custom',
             specs: [
               { name: 'WORD', pattern: '\\w+' },
-              { name: 'SPACE', pattern: '\\s+', skip: true }
+              { name: 'SPACE', pattern: '\\s+', skip: true },
             ],
-            input: 'hello world'
-          }
-        }
+            input: 'hello world',
+          },
+        },
       };
       return { toolCallId: id, content: JSON.stringify(info, null, 2) };
     }
@@ -484,69 +488,99 @@ export async function executelexergenerator(toolCall: UnifiedToolCall): Promise<
       const lexers = Object.entries(PREDEFINED_LEXERS).map(([name, specs]) => ({
         name,
         tokenCount: specs.length,
-        tokens: specs.map(s => s.name)
+        tokens: specs.map((s) => s.name),
       }));
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'list_predefined',
-        lexers
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'list_predefined',
+            lexers,
+          },
+          null,
+          2
+        ),
+      };
     }
 
     // Validate specs
     if (operation === 'validate_spec') {
       if (!customSpecs || !Array.isArray(customSpecs)) {
-        return { toolCallId: id, content: 'Error: specs array required for validate_spec', isError: true };
+        return {
+          toolCallId: id,
+          content: 'Error: specs array required for validate_spec',
+          isError: true,
+        };
       }
 
       const validations = customSpecs.map((spec, i) => ({
         index: i,
         spec: { name: spec.name, pattern: spec.pattern },
-        ...validateTokenSpec(spec)
+        ...validateTokenSpec(spec),
       }));
 
-      const allValid = validations.every(v => v.valid);
+      const allValid = validations.every((v) => v.valid);
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'validate_spec',
-        valid: allValid,
-        specCount: customSpecs.length,
-        validations
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'validate_spec',
+            valid: allValid,
+            specCount: customSpecs.length,
+            validations,
+          },
+          null,
+          2
+        ),
+      };
     }
 
     // Generate lexer (just return the specs)
     if (operation === 'generate') {
-      const specs = language === 'custom'
-        ? customSpecs
-        : PREDEFINED_LEXERS[language] || PREDEFINED_LEXERS.programming;
+      const specs =
+        language === 'custom'
+          ? customSpecs
+          : PREDEFINED_LEXERS[language] || PREDEFINED_LEXERS.programming;
 
-      const specSummary = (Array.isArray(specs) ? specs : []).map(s => ({
+      const specSummary = (Array.isArray(specs) ? specs : []).map((s) => ({
         name: s.name,
         pattern: typeof s.pattern === 'string' ? s.pattern : s.pattern.source,
         skip: s.skip || false,
-        priority: s.priority || 0
+        priority: s.priority || 0,
       }));
 
-      return { toolCallId: id, content: JSON.stringify({
-        operation: 'generate',
-        language: language === 'custom' ? 'custom' : language,
-        specs: specSummary,
-        tokenCount: specSummary.length
-      }, null, 2) };
+      return {
+        toolCallId: id,
+        content: JSON.stringify(
+          {
+            operation: 'generate',
+            language: language === 'custom' ? 'custom' : language,
+            specs: specSummary,
+            tokenCount: specSummary.length,
+          },
+          null,
+          2
+        ),
+      };
     }
 
     // Tokenize
     if (operation === 'tokenize') {
       if (!input) {
-        return { toolCallId: id, content: 'Error: input text required for tokenize', isError: true };
+        return {
+          toolCallId: id,
+          content: 'Error: input text required for tokenize',
+          isError: true,
+        };
       }
 
       let specs: TokenSpec[];
       if (language === 'custom' && customSpecs) {
-        specs = customSpecs.map(s => ({
+        specs = customSpecs.map((s: TokenSpec) => ({
           ...s,
-          pattern: typeof s.pattern === 'string' ? new RegExp(s.pattern) : s.pattern
+          pattern: typeof s.pattern === 'string' ? new RegExp(s.pattern) : s.pattern,
         }));
       } else {
         specs = PREDEFINED_LEXERS[language] || PREDEFINED_LEXERS.programming;
@@ -562,34 +596,35 @@ export async function executelexergenerator(toolCall: UnifiedToolCall): Promise<
         language: language === 'custom' ? 'custom' : language,
         input: {
           text: input.slice(0, 100) + (input.length > 100 ? '...' : ''),
-          length: input.length
+          length: input.length,
         },
         output: {
-          tokens: tokens.slice(0, 50).map(t => ({
+          tokens: tokens.slice(0, 50).map((t) => ({
             type: t.type,
             value: t.value.length > 30 ? t.value.slice(0, 30) + '...' : t.value,
             ...(t.transformed !== undefined ? { transformed: t.transformed } : {}),
             line: t.line,
-            column: t.column
+            column: t.column,
           })),
           tokenCount: tokens.length,
-          ...(tokens.length > 50 ? { truncated: true } : {})
+          ...(tokens.length > 50 ? { truncated: true } : {}),
         },
         stats: {
           byType: stats,
-          uniqueTypes: Object.keys(stats).length
+          uniqueTypes: Object.keys(stats).length,
         },
-        ...(errors.length > 0 ? {
-          errors: errors.slice(0, 10),
-          errorCount: errors.length
-        } : { errors: [], errorCount: 0 })
+        ...(errors.length > 0
+          ? {
+              errors: errors.slice(0, 10),
+              errorCount: errors.length,
+            }
+          : { errors: [], errorCount: 0 }),
       };
 
       return { toolCallId: id, content: JSON.stringify(result, null, 2) };
     }
 
     return { toolCallId: id, content: `Error: Unknown operation '${operation}'`, isError: true };
-
   } catch (e) {
     const err = e instanceof Error ? e.message : 'Unknown error';
     return { toolCallId: id, content: `Error: ${err}`, isError: true };

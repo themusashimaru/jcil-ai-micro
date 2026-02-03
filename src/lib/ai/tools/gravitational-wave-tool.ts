@@ -15,19 +15,30 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 
 export const gravitationalwaveTool: UnifiedTool = {
   name: 'gravitational_wave',
-  description: 'Gravitational wave physics - waveform generation, chirp mass, strain calculation, detection analysis.',
+  description:
+    'Gravitational wave physics - waveform generation, chirp mass, strain calculation, detection analysis.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['waveform', 'chirp_mass', 'strain', 'frequency', 'detection', 'merger_time', 'energy', 'info'],
-        description: 'Operation: waveform (generate signal), chirp_mass (compute M_c), strain (amplitude), frequency (evolution), detection (SNR), merger_time (time to coalescence), energy (radiated)'
+        enum: [
+          'waveform',
+          'chirp_mass',
+          'strain',
+          'frequency',
+          'detection',
+          'merger_time',
+          'energy',
+          'info',
+        ],
+        description:
+          'Operation: waveform (generate signal), chirp_mass (compute M_c), strain (amplitude), frequency (evolution), detection (SNR), merger_time (time to coalescence), energy (radiated)',
       },
       source: {
         type: 'string',
         enum: ['binary_blackhole', 'binary_neutron_star', 'neutron_star_blackhole', 'pulsar'],
-        description: 'Gravitational wave source type'
+        description: 'Gravitational wave source type',
       },
       m1: { type: 'number', description: 'Mass of first object in solar masses M☉' },
       m2: { type: 'number', description: 'Mass of second object in solar masses M☉' },
@@ -37,10 +48,10 @@ export const gravitationalwaveTool: UnifiedTool = {
       f_start: { type: 'number', description: 'Starting frequency in Hz' },
       f_end: { type: 'number', description: 'Ending frequency in Hz (or ISCO)' },
       duration: { type: 'number', description: 'Waveform duration in seconds' },
-      sample_rate: { type: 'number', description: 'Sample rate in Hz' }
+      sample_rate: { type: 'number', description: 'Sample rate in Hz' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -52,7 +63,7 @@ const CONSTANTS = {
   c: 299792458,
 
   // Gravitational constant (m³/kg/s²)
-  G: 6.67430e-11,
+  G: 6.6743e-11,
 
   // Solar mass (kg)
   M_sun: 1.989e30,
@@ -64,7 +75,7 @@ const CONSTANTS = {
   PI: Math.PI,
 
   // Schwarzschild radius of Sun (m)
-  R_sun: 2953.25
+  R_sun: 2953.25,
 };
 
 // ============================================================================
@@ -92,16 +103,14 @@ function symmetricMassRatio(m1: number, m2: number): number {
 /**
  * Reduced mass: μ = m1*m2/(m1+m2)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function reducedMass(m1: number, m2: number): number {
+export function reducedMass(m1: number, m2: number): number {
   return (m1 * m2) / (m1 + m2);
 }
 
 /**
  * Total mass in geometric units (seconds)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function totalMassSeconds(m1_msun: number, m2_msun: number): number {
+export function totalMassSeconds(m1_msun: number, m2_msun: number): number {
   const M_kg = (m1_msun + m2_msun) * CONSTANTS.M_sun;
   return (CONSTANTS.G * M_kg) / (CONSTANTS.c * CONSTANTS.c * CONSTANTS.c);
 }
@@ -147,16 +156,12 @@ function iscoFrequencyKerr(M_msun: number, chi: number): number {
  * Characteristic strain amplitude
  * h_0 = (4/d) * (G*M_c/c²)^(5/3) * (π*f/c)^(2/3)
  */
-function strainAmplitude(
-  Mc_msun: number,
-  f_hz: number,
-  distance_Mpc: number
-): number {
+function strainAmplitude(Mc_msun: number, f_hz: number, distance_Mpc: number): number {
   const Mc_kg = Mc_msun * CONSTANTS.M_sun;
   const d_m = distance_Mpc * CONSTANTS.Mpc;
 
-  const Mc_factor = Math.pow(CONSTANTS.G * Mc_kg / Math.pow(CONSTANTS.c, 2), 5 / 3);
-  const freq_factor = Math.pow(CONSTANTS.PI * f_hz / CONSTANTS.c, 2 / 3);
+  const Mc_factor = Math.pow((CONSTANTS.G * Mc_kg) / Math.pow(CONSTANTS.c, 2), 5 / 3);
+  const freq_factor = Math.pow((CONSTANTS.PI * f_hz) / CONSTANTS.c, 2 / 3);
 
   return (4 / d_m) * Mc_factor * freq_factor * CONSTANTS.c;
 }
@@ -207,8 +212,8 @@ function generateWaveform(
 
     // Frequency evolution (Newtonian chirp)
     // df/dt = (96/5) * π^(8/3) * M_c^(5/3) * f^(11/3)
-    const dfdt = (96 / 5) * Math.pow(CONSTANTS.PI, 8 / 3) *
-      Math.pow(Mc_sec, 5 / 3) * Math.pow(f, 11 / 3);
+    const dfdt =
+      (96 / 5) * Math.pow(CONSTANTS.PI, 8 / 3) * Math.pow(Mc_sec, 5 / 3) * Math.pow(f, 11 / 3);
     f += dfdt * dt;
   }
 
@@ -233,7 +238,7 @@ function timeToMerger(m1_msun: number, m2_msun: number, f_hz: number): number {
  */
 function frequencyAtTime(m1_msun: number, m2_msun: number, tau: number): number {
   const Mc_sec = chirpMassSeconds(m1_msun, m2_msun);
-  return (1 / CONSTANTS.PI) * Math.pow((256 / 5) * Math.pow(Mc_sec, 5 / 3) / tau, 3 / 8);
+  return (1 / CONSTANTS.PI) * Math.pow(((256 / 5) * Math.pow(Mc_sec, 5 / 3)) / tau, 3 / 8);
 }
 
 // ============================================================================
@@ -244,7 +249,10 @@ function frequencyAtTime(m1_msun: number, m2_msun: number, tau: number): number 
  * Total energy radiated during inspiral (to ISCO)
  * E_rad ≈ η * M * c² * (useful approximation)
  */
-function energyRadiated(m1_msun: number, m2_msun: number): {
+function energyRadiated(
+  m1_msun: number,
+  m2_msun: number
+): {
   joules: number;
   solar_masses: number;
   fraction: number;
@@ -263,7 +271,7 @@ function energyRadiated(m1_msun: number, m2_msun: number): {
   return {
     joules: E_joules,
     solar_masses: E_msun,
-    fraction
+    fraction,
   };
 }
 
@@ -293,7 +301,7 @@ const DETECTORS: Record<string, DetectorSensitivity> = {
   Virgo: { name: 'Virgo', f_min: 10, f_max: 5000, h_min: 2e-23 },
   KAGRA: { name: 'KAGRA', f_min: 10, f_max: 5000, h_min: 3e-23 },
   LISA: { name: 'LISA', f_min: 1e-4, f_max: 0.1, h_min: 1e-20 },
-  ET: { name: 'Einstein Telescope', f_min: 1, f_max: 10000, h_min: 1e-24 }
+  ET: { name: 'Einstein Telescope', f_min: 1, f_max: 10000, h_min: 1e-24 },
 };
 
 /**
@@ -320,7 +328,7 @@ function calculateSNR(
   const h_char = strainAmplitude(Mc, f_char, distance_Mpc);
 
   // Simple SNR estimate (more accurate would integrate over frequency)
-  const snr = h_char / det.h_min * Math.sqrt(f_char / 100);
+  const snr = (h_char / det.h_min) * Math.sqrt(f_char / 100);
 
   return snr;
 }
@@ -328,11 +336,7 @@ function calculateSNR(
 /**
  * Estimate detection horizon (distance at SNR=8)
  */
-function detectionHorizon(
-  m1_msun: number,
-  m2_msun: number,
-  detector: string
-): number {
+function detectionHorizon(m1_msun: number, m2_msun: number, detector: string): number {
   // Binary search for SNR=8 distance
   let d_low = 1; // 1 Mpc
   let d_high = 10000; // 10 Gpc
@@ -355,7 +359,9 @@ function detectionHorizon(
 // MAIN EXECUTOR
 // ============================================================================
 
-export async function executegravitationalwave(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executegravitationalwave(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -371,7 +377,7 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
       f_start = 20, // LIGO band
       f_end,
       duration = 1,
-      sample_rate = 4096
+      sample_rate = 4096,
     } = args;
 
     // Calculate ISCO frequency as default end
@@ -400,10 +406,11 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
           formulas: {
             chirp_mass: 'M_c = (m₁m₂)^(3/5) / (m₁+m₂)^(1/5)',
             eta: 'η = m₁m₂/(m₁+m₂)² ∈ (0, 0.25]',
-            meaning: 'Chirp mass determines leading-order frequency evolution'
+            meaning: 'Chirp mass determines leading-order frequency evolution',
           },
-          description: `Binary with m₁=${m1}M☉, m₂=${m2}M☉: ` +
-            `M_c = ${Mc.toFixed(2)}M☉, η = ${eta.toFixed(4)}`
+          description:
+            `Binary with m₁=${m1}M☉, m₂=${m2}M☉: ` +
+            `M_c = ${Mc.toFixed(2)}M☉, η = ${eta.toFixed(4)}`,
         };
         break;
       }
@@ -411,11 +418,13 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
       case 'strain': {
         const Mc = chirpMass(m1, m2);
         const frequencies = [10, 20, 50, 100, 200, 500, f_isco];
-        const strains = frequencies.filter(f => f < f_isco).map(f => ({
-          frequency_hz: f,
-          strain: strainAmplitude(Mc, f, distance),
-          strain_log10: Math.log10(strainAmplitude(Mc, f, distance))
-        }));
+        const strains = frequencies
+          .filter((f) => f < f_isco)
+          .map((f) => ({
+            frequency_hz: f,
+            strain: strainAmplitude(Mc, f, distance),
+            strain_log10: Math.log10(strainAmplitude(Mc, f, distance)),
+          }));
 
         result = {
           operation: 'strain',
@@ -427,14 +436,22 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
           strain_at_frequencies: strains,
           formula: 'h₀ = (4/d)(GM_c/c²)^(5/3)(πf/c)^(2/3)',
           typical_LIGO_sensitivity: '~10⁻²³ at 100 Hz',
-          detectable: strains.some(s => s.strain > 1e-23) ? 'Yes' : 'No',
-          description: `Strain amplitude for ${Mc.toFixed(1)}M☉ chirp mass at ${distance} Mpc`
+          detectable: strains.some((s) => s.strain > 1e-23) ? 'Yes' : 'No',
+          description: `Strain amplitude for ${Mc.toFixed(1)}M☉ chirp mass at ${distance} Mpc`,
         };
         break;
       }
 
       case 'waveform': {
-        const waveform = generateWaveform(m1, m2, distance, f_start, f_end_actual, sample_rate, duration);
+        const waveform = generateWaveform(
+          m1,
+          m2,
+          distance,
+          f_start,
+          f_end_actual,
+          sample_rate,
+          duration
+        );
 
         // Sample for output
         const sampleInterval = Math.max(1, Math.floor(waveform.time.length / 100));
@@ -442,7 +459,7 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
           time: waveform.time.filter((_, i) => i % sampleInterval === 0),
           h_plus: waveform.h_plus.filter((_, i) => i % sampleInterval === 0),
           h_cross: waveform.h_cross.filter((_, i) => i % sampleInterval === 0),
-          frequency: waveform.frequency.filter((_, i) => i % sampleInterval === 0)
+          frequency: waveform.frequency.filter((_, i) => i % sampleInterval === 0),
         };
 
         result = {
@@ -463,18 +480,18 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
             time_s: t,
             h_plus: sampledData.h_plus[i],
             h_cross: sampledData.h_cross[i],
-            f_hz: sampledData.frequency[i]
+            f_hz: sampledData.frequency[i],
           })),
-          description: `Generated inspiral waveform: ${f_start} Hz → ${waveform.frequency[waveform.frequency.length - 1].toFixed(1)} Hz`
+          description: `Generated inspiral waveform: ${f_start} Hz → ${waveform.frequency[waveform.frequency.length - 1].toFixed(1)} Hz`,
         };
         break;
       }
 
       case 'frequency': {
         const tau_values = [100, 10, 1, 0.1, 0.01]; // seconds to merger
-        const frequencies = tau_values.map(tau => ({
+        const frequencies = tau_values.map((tau) => ({
           time_to_merger_s: tau,
-          frequency_hz: frequencyAtTime(m1, m2, tau)
+          frequency_hz: frequencyAtTime(m1, m2, tau),
         }));
 
         const time_from_20hz = timeToMerger(m1, m2, 20);
@@ -490,13 +507,13 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
           frequency_at_times_to_merger: frequencies,
           time_in_LIGO_band: {
             from_20hz_seconds: time_from_20hz,
-            from_40hz_seconds: time_from_40hz
+            from_40hz_seconds: time_from_40hz,
           },
           formula: {
             frequency: 'f(τ) = (1/π)(256/5 × M_c^(5/3) / τ)^(3/8)',
-            chirp: 'df/dt = (96/5)π^(8/3) M_c^(5/3) f^(11/3)'
+            chirp: 'df/dt = (96/5)π^(8/3) M_c^(5/3) f^(11/3)',
           },
-          description: `Frequency evolution: ${time_from_20hz.toFixed(2)}s from 20 Hz to ISCO at ${f_isco.toFixed(1)} Hz`
+          description: `Frequency evolution: ${time_from_20hz.toFixed(2)}s from 20 Hz to ISCO at ${f_isco.toFixed(1)} Hz`,
         };
         break;
       }
@@ -516,7 +533,7 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
           time_to_merger_hours: tau / 3600,
           f_isco_hz: f_isco,
           formula: 'τ = (5/256)(GM_c/c³)^(-5/3)(πf)^(-8/3)',
-          description: `Time to merger from ${f_start} Hz: ${tau.toFixed(2)} seconds (${(tau / 60).toFixed(2)} minutes)`
+          description: `Time to merger from ${f_start} Hz: ${tau.toFixed(2)} seconds (${(tau / 60).toFixed(2)} minutes)`,
         };
         break;
       }
@@ -536,33 +553,34 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
             joules: energy.joules,
             solar_masses: energy.solar_masses,
             fraction_of_total_mass: energy.fraction,
-            solar_luminosities_equivalent: energy.joules / L_sun / 3.15e7 // per year
+            solar_luminosities_equivalent: energy.joules / L_sun / 3.15e7, // per year
           },
           peak_luminosity: {
             watts: L_peak,
             solar_luminosities: L_peak / L_sun,
-            description: 'Brief moment at merger, brighter than all stars in observable universe'
+            description: 'Brief moment at merger, brighter than all stars in observable universe',
           },
           context: {
             entire_universe_luminosity: '~10^47 W from all stars',
-            peak_GW_luminosity: `~${(L_peak).toExponential(2)} W`
+            peak_GW_luminosity: `~${L_peak.toExponential(2)} W`,
           },
-          description: `Radiated ${energy.solar_masses.toFixed(2)}M☉ (${(energy.fraction * 100).toFixed(1)}% of total mass). ` +
-            `Peak luminosity: ${L_peak.toExponential(2)} W`
+          description:
+            `Radiated ${energy.solar_masses.toFixed(2)}M☉ (${(energy.fraction * 100).toFixed(1)}% of total mass). ` +
+            `Peak luminosity: ${L_peak.toExponential(2)} W`,
         };
         break;
       }
 
       case 'detection': {
         const detectorNames = ['LIGO', 'Virgo', 'KAGRA', 'LISA', 'ET'];
-        const detectability = detectorNames.map(det => {
+        const detectability = detectorNames.map((det) => {
           const snr = calculateSNR(m1, m2, distance, det);
           const horizon = detectionHorizon(m1, m2, det);
           return {
             detector: det,
             snr: snr,
             detectable: snr >= 8,
-            detection_horizon_Mpc: horizon
+            detection_horizon_Mpc: horizon,
           };
         });
 
@@ -574,14 +592,20 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
           distance_Mpc: distance,
           f_isco_hz: f_isco,
           detectability,
-          best_detector: detectability.reduce((best, d) => d.snr > best.snr ? d : best),
+          best_detector: detectability.reduce((best, d) => (d.snr > best.snr ? d : best)),
           threshold: 'SNR ≥ 8 typically required for confident detection',
           famous_detections: [
             { event: 'GW150914', masses: '36+29 M☉', distance: '410 Mpc', snr: 24 },
-            { event: 'GW170817', masses: 'NS-NS', distance: '40 Mpc', snr: 32.4 }
+            { event: 'GW170817', masses: 'NS-NS', distance: '40 Mpc', snr: 32.4 },
           ],
-          description: `Detection analysis at ${distance} Mpc: ` +
-            `${detectability.filter(d => d.detectable).map(d => d.detector).join(', ') || 'None'} can detect`
+          description:
+            `Detection analysis at ${distance} Mpc: ` +
+            `${
+              detectability
+                .filter((d) => d.detectable)
+                .map((d) => d.detector)
+                .join(', ') || 'None'
+            } can detect`,
         };
         break;
       }
@@ -591,25 +615,26 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
         result = {
           operation: 'info',
           tool: 'gravitational_wave',
-          description: 'Gravitational wave physics tool - analyze ripples in spacetime from massive accelerating objects',
+          description:
+            'Gravitational wave physics tool - analyze ripples in spacetime from massive accelerating objects',
           sources: {
             binary_blackhole: 'Two black holes spiraling together (GW150914 type)',
             binary_neutron_star: 'Two neutron stars merging (GW170817 type)',
             neutron_star_blackhole: 'Neutron star + black hole system',
-            pulsar: 'Continuous waves from rotating neutron stars'
+            pulsar: 'Continuous waves from rotating neutron stars',
           },
           key_physics: {
             chirp_mass: 'M_c = (m₁m₂)^(3/5)/(m₁+m₂)^(1/5) - determines frequency evolution',
             strain: 'h ~ 10⁻²¹ - fractional length change (1/1000 proton width)',
             frequency: 'Sweeps from ~10 Hz to kHz as objects spiral closer',
-            ISCO: 'Innermost Stable Circular Orbit - merger begins'
+            ISCO: 'Innermost Stable Circular Orbit - merger begins',
           },
           detectors: {
             LIGO: 'Two 4km interferometers in USA',
             Virgo: '3km interferometer in Italy',
             KAGRA: '3km underground detector in Japan',
             LISA: 'Space-based, 2.5 million km arms (future)',
-            ET: 'Einstein Telescope, underground (future)'
+            ET: 'Einstein Telescope, underground (future)',
           },
           operations: {
             chirp_mass: 'Calculate chirp mass and mass ratios',
@@ -618,28 +643,31 @@ export async function executegravitationalwave(toolCall: UnifiedToolCall): Promi
             frequency: 'Analyze frequency evolution',
             merger_time: 'Time until coalescence',
             energy: 'Energy radiated as gravitational waves',
-            detection: 'SNR and detectability analysis'
+            detection: 'SNR and detectability analysis',
           },
           famous_events: [
             'GW150914: First detection (Sep 14, 2015)',
-            'GW170817: First neutron star merger with EM counterpart'
-          ]
+            'GW170817: First neutron star merger with EM counterpart',
+          ],
         };
       }
     }
 
     return { toolCallId: id, content: JSON.stringify(result, null, 2) };
-
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
-      content: JSON.stringify({
-        error: errorMessage,
-        tool: 'gravitational_wave',
-        hint: 'Use operation="info" for documentation'
-      }, null, 2),
-      isError: true
+      content: JSON.stringify(
+        {
+          error: errorMessage,
+          tool: 'gravitational_wave',
+          hint: 'Use operation="info" for documentation',
+        },
+        null,
+        2
+      ),
+      isError: true,
     };
   }
 }

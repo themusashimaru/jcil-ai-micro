@@ -62,14 +62,17 @@ function blendPixels(p1: Pixel, p2: Pixel, t: number): Pixel {
     r: p1.r * (1 - t) + p2.r * t,
     g: p1.g * (1 - t) + p2.g * t,
     b: p1.b * (1 - t) + p2.b * t,
-    a: ((p1.a ?? 255) * (1 - t) + (p2.a ?? 255) * t)
+    a: (p1.a ?? 255) * (1 - t) + (p2.a ?? 255) * t,
   };
 }
 
 function averagePixels(pixels: Pixel[]): Pixel {
   if (pixels.length === 0) return { r: 0, g: 0, b: 0, a: 255 };
 
-  let r = 0, g = 0, b = 0, a = 0;
+  let r = 0,
+    g = 0,
+    b = 0,
+    a = 0;
   for (const p of pixels) {
     r += p.r;
     g += p.g;
@@ -94,7 +97,7 @@ function setPixel(image: Image, x: number, y: number, pixel: Pixel): void {
       clamp(Math.round(pixel.r)),
       clamp(Math.round(pixel.g)),
       clamp(Math.round(pixel.b)),
-      clamp(Math.round(pixel.a ?? 255))
+      clamp(Math.round(pixel.a ?? 255)),
     ];
   }
 }
@@ -164,7 +167,7 @@ class FXAAFilter {
       height,
       data: Array.from({ length: height }, () =>
         Array.from({ length: width }, () => [0, 0, 0, 255])
-      )
+      ),
     };
 
     for (let y = 0; y < height; y++) {
@@ -212,12 +215,14 @@ class FXAAFilter {
     const lSW = luminance(sw.r, sw.g, sw.b) / 255;
 
     // Compute edge direction
-    const edgeH = Math.abs(-2 * lW + lNW + lSW) +
-                  Math.abs(-2 * lC + lN + lS) * 2 +
-                  Math.abs(-2 * lE + lNE + lSE);
-    const edgeV = Math.abs(-2 * lN + lNW + lNE) +
-                  Math.abs(-2 * lC + lW + lE) * 2 +
-                  Math.abs(-2 * lS + lSW + lSE);
+    const edgeH =
+      Math.abs(-2 * lW + lNW + lSW) +
+      Math.abs(-2 * lC + lN + lS) * 2 +
+      Math.abs(-2 * lE + lNE + lSE);
+    const edgeV =
+      Math.abs(-2 * lN + lNW + lNE) +
+      Math.abs(-2 * lC + lW + lE) * 2 +
+      Math.abs(-2 * lS + lSW + lSE);
 
     const isHorizontal = edgeH >= edgeV;
 
@@ -230,9 +235,9 @@ class FXAAFilter {
     const is1Steeper = gradient1 >= gradient2;
 
     // Subpixel AA
-    const subpixelOffset = Math.abs(
-      ((lN + lS + lE + lW) * 0.25 + (lNE + lNW + lSE + lSW) * 0.25 * 0.5) * 0.5 - lC
-    ) / range;
+    const subpixelOffset =
+      Math.abs(((lN + lS + lE + lW) * 0.25 + (lNE + lNW + lSE + lSW) * 0.25 * 0.5) * 0.5 - lC) /
+      range;
     const subpixelOffsetFinal = Math.pow(subpixelOffset * 2, 2) * this.subpixelQuality;
 
     // Compute final blend
@@ -276,7 +281,7 @@ class MSAAFilter {
       height,
       data: Array.from({ length: height }, () =>
         Array.from({ length: width }, () => [0, 0, 0, 255])
-      )
+      ),
     };
 
     for (let y = 0; y < height; y++) {
@@ -321,17 +326,17 @@ class MSAAFilter {
         const r = 0.3;
         offsets.push({
           x: Math.cos(angle) * r,
-          y: Math.sin(angle) * r
+          y: Math.sin(angle) * r,
         });
       }
     } else {
       // 16x MSAA
       for (let i = 0; i < 16; i++) {
         const angle = (i / 16) * Math.PI * 2 + Math.PI / 32;
-        const r = 0.35 * (0.7 + 0.3 * ((i % 2) === 0 ? 1 : 0.5));
+        const r = 0.35 * (0.7 + 0.3 * (i % 2 === 0 ? 1 : 0.5));
         offsets.push({
           x: Math.cos(angle) * r,
-          y: Math.sin(angle) * r
+          y: Math.sin(angle) * r,
         });
       }
     }
@@ -394,7 +399,7 @@ class SMAAFilter {
       height,
       data: Array.from({ length: height }, () =>
         Array.from({ length: width }, () => [0, 0, 0, 255])
-      )
+      ),
     };
 
     for (let y = 0; y < height; y++) {
@@ -444,7 +449,10 @@ class SMAAFilter {
       for (let x = 0; x < width; x++) {
         const [edgeH, edgeV] = edges[y]?.[x] ?? [false, false];
 
-        let wLeft = 0, wRight = 0, wTop = 0, wBottom = 0;
+        let wLeft = 0,
+          wRight = 0,
+          wTop = 0,
+          wBottom = 0;
 
         if (edgeH) {
           // Search along horizontal edge
@@ -503,12 +511,7 @@ class SMAAFilter {
     return steps;
   }
 
-  private blendNeighborhood(
-    image: Image,
-    weights: number[][][],
-    x: number,
-    y: number
-  ): Pixel {
+  private blendNeighborhood(image: Image, weights: number[][][], x: number, y: number): Pixel {
     const [wLeft, wRight, wTop, wBottom] = weights[y]?.[x] ?? [0, 0, 0, 0];
 
     const c = getPixel(image, x, y);
@@ -521,10 +524,16 @@ class SMAAFilter {
     if (totalWeight < 0.001) return c;
 
     return {
-      r: c.r * (1 - totalWeight * 0.25) + (l.r * wLeft + r.r * wRight + t.r * wTop + b.r * wBottom) * 0.25,
-      g: c.g * (1 - totalWeight * 0.25) + (l.g * wLeft + r.g * wRight + t.g * wTop + b.g * wBottom) * 0.25,
-      b: c.b * (1 - totalWeight * 0.25) + (l.b * wLeft + r.b * wRight + t.b * wTop + b.b * wBottom) * 0.25,
-      a: c.a
+      r:
+        c.r * (1 - totalWeight * 0.25) +
+        (l.r * wLeft + r.r * wRight + t.r * wTop + b.r * wBottom) * 0.25,
+      g:
+        c.g * (1 - totalWeight * 0.25) +
+        (l.g * wLeft + r.g * wRight + t.g * wTop + b.g * wBottom) * 0.25,
+      b:
+        c.b * (1 - totalWeight * 0.25) +
+        (l.b * wLeft + r.b * wRight + t.b * wTop + b.b * wBottom) * 0.25,
+      a: c.a,
     };
   }
 }
@@ -553,7 +562,7 @@ class SupersamplingAA {
       height,
       data: Array.from({ length: height }, () =>
         Array.from({ length: width }, () => [0, 0, 0, 255])
-      )
+      ),
     };
 
     const radius = Math.floor(this.factor / 2);
@@ -588,9 +597,7 @@ function applyEdgeSmoothing(image: Image, threshold: number = 0.1, strength: num
   const output: Image = {
     width,
     height,
-    data: Array.from({ length: height }, () =>
-      Array.from({ length: width }, () => [0, 0, 0, 255])
-    )
+    data: Array.from({ length: height }, () => Array.from({ length: width }, () => [0, 0, 0, 255])),
   };
 
   for (let y = 0; y < height; y++) {
@@ -628,15 +635,13 @@ function applyEdgeSmoothing(image: Image, threshold: number = 0.1, strength: num
 // TEMPORAL AA CONCEPTS
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface TemporalAAState {
+export interface TemporalAAState {
   previousFrame?: Image;
   jitterIndex: number;
   jitterPattern: { x: number; y: number }[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function createTemporalAAState(): TemporalAAState {
+export function createTemporalAAState(): TemporalAAState {
   return {
     jitterIndex: 0,
     jitterPattern: [
@@ -647,13 +652,12 @@ function createTemporalAAState(): TemporalAAState {
       { x: 0.125, y: 0.375 },
       { x: -0.125, y: 0.375 },
       { x: 0.375, y: -0.125 },
-      { x: -0.375, y: -0.125 }
-    ]
+      { x: -0.375, y: -0.125 },
+    ],
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function applyTemporalAA(
+export function applyTemporalAA(
   currentFrame: Image,
   state: TemporalAAState,
   blendFactor: number = 0.1
@@ -663,16 +667,18 @@ function applyTemporalAA(
   if (!state.previousFrame) {
     return {
       output: currentFrame,
-      state: { ...state, previousFrame: currentFrame, jitterIndex: (state.jitterIndex + 1) % state.jitterPattern.length }
+      state: {
+        ...state,
+        previousFrame: currentFrame,
+        jitterIndex: (state.jitterIndex + 1) % state.jitterPattern.length,
+      },
     };
   }
 
   const output: Image = {
     width,
     height,
-    data: Array.from({ length: height }, () =>
-      Array.from({ length: width }, () => [0, 0, 0, 255])
-    )
+    data: Array.from({ length: height }, () => Array.from({ length: width }, () => [0, 0, 0, 255])),
   };
 
   for (let y = 0; y < height; y++) {
@@ -691,8 +697,8 @@ function applyTemporalAA(
     state: {
       ...state,
       previousFrame: output,
-      jitterIndex: (state.jitterIndex + 1) % state.jitterPattern.length
-    }
+      jitterIndex: (state.jitterIndex + 1) % state.jitterPattern.length,
+    },
   };
 }
 
@@ -726,7 +732,7 @@ function generateTestImage(width: number, height: number, pattern: string): Imag
     case 'checkerboard':
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          const checker = ((x + y) % 2) === 0;
+          const checker = (x + y) % 2 === 0;
           data[y][x] = checker ? [255, 255, 255, 255] : [0, 0, 0, 255];
         }
       }
@@ -786,38 +792,38 @@ export const antialiasingTool: UnifiedTool = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['fxaa', 'msaa', 'smaa', 'supersample', 'edge_smooth', 'detect_edges', 'compare', 'demo', 'info', 'examples'],
-        description: 'Anti-aliasing algorithm to apply'
+        enum: [
+          'fxaa',
+          'msaa',
+          'smaa',
+          'supersample',
+          'edge_smooth',
+          'detect_edges',
+          'compare',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Anti-aliasing algorithm to apply',
       },
       image: {
         type: 'object',
-        description: 'Image data { width, height, data: number[][][] [y][x][rgba] }',
-        properties: {
-          width: { type: 'number' },
-          height: { type: 'number' },
-          data: { type: 'array' }
-        }
+        description:
+          'Image data: { width: number, height: number, data: number[][][] [y][x][rgba] }',
       },
       params: {
         type: 'object',
-        description: 'Algorithm parameters',
-        properties: {
-          threshold: { type: 'number', description: 'Edge detection threshold' },
-          subpixelQuality: { type: 'number', description: 'FXAA subpixel quality 0-1' },
-          samples: { type: 'number', description: 'MSAA sample count (2,4,8,16)' },
-          searchSteps: { type: 'number', description: 'SMAA search steps' },
-          factor: { type: 'number', description: 'Supersampling factor' },
-          strength: { type: 'number', description: 'Smoothing strength' }
-        }
+        description:
+          'Algorithm parameters: { threshold?: number, subpixelQuality?: number (0-1), samples?: number (2,4,8,16), searchSteps?: number, factor?: number, strength?: number }',
       },
       testPattern: {
         type: 'string',
         enum: ['diagonal', 'checkerboard', 'edges', 'gradient', 'circle'],
-        description: 'Test pattern for demo'
-      }
+        description: 'Test pattern for demo',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -837,21 +843,18 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
       case 'fxaa': {
         if (!image) throw new Error('Image required');
 
-        const filter = new FXAAFilter(
-          params?.threshold ?? 0.0833,
-          params?.subpixelQuality ?? 0.75
-        );
+        const filter = new FXAAFilter(params?.threshold ?? 0.0833, params?.subpixelQuality ?? 0.75);
         const output = filter.apply(image);
 
         result = {
           operation: 'fxaa',
           parameters: {
             threshold: params?.threshold ?? 0.0833,
-            subpixelQuality: params?.subpixelQuality ?? 0.75
+            subpixelQuality: params?.subpixelQuality ?? 0.75,
           },
           inputSize: { width: image.width, height: image.height },
           outputSize: { width: output.width, height: output.height },
-          sampleOutput: output.data.slice(0, 5).map(row => row.slice(0, 5))
+          sampleOutput: output.data.slice(0, 5).map((row) => row.slice(0, 5)),
         };
         break;
       }
@@ -867,7 +870,7 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
           samples: params?.samples ?? 4,
           inputSize: { width: image.width, height: image.height },
           outputSize: { width: output.width, height: output.height },
-          sampleOutput: output.data.slice(0, 5).map(row => row.slice(0, 5))
+          sampleOutput: output.data.slice(0, 5).map((row) => row.slice(0, 5)),
         };
         break;
       }
@@ -875,21 +878,18 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
       case 'smaa': {
         if (!image) throw new Error('Image required');
 
-        const filter = new SMAAFilter(
-          params?.threshold ?? 0.1,
-          params?.searchSteps ?? 16
-        );
+        const filter = new SMAAFilter(params?.threshold ?? 0.1, params?.searchSteps ?? 16);
         const output = filter.apply(image);
 
         result = {
           operation: 'smaa',
           parameters: {
             threshold: params?.threshold ?? 0.1,
-            searchSteps: params?.searchSteps ?? 16
+            searchSteps: params?.searchSteps ?? 16,
           },
           inputSize: { width: image.width, height: image.height },
           outputSize: { width: output.width, height: output.height },
-          sampleOutput: output.data.slice(0, 5).map(row => row.slice(0, 5))
+          sampleOutput: output.data.slice(0, 5).map((row) => row.slice(0, 5)),
         };
         break;
       }
@@ -905,7 +905,7 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
           factor: params?.factor ?? 2,
           inputSize: { width: image.width, height: image.height },
           outputSize: { width: output.width, height: output.height },
-          sampleOutput: output.data.slice(0, 5).map(row => row.slice(0, 5))
+          sampleOutput: output.data.slice(0, 5).map((row) => row.slice(0, 5)),
         };
         break;
       }
@@ -913,21 +913,17 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
       case 'edge_smooth': {
         if (!image) throw new Error('Image required');
 
-        const output = applyEdgeSmoothing(
-          image,
-          params?.threshold ?? 0.1,
-          params?.strength ?? 0.5
-        );
+        const output = applyEdgeSmoothing(image, params?.threshold ?? 0.1, params?.strength ?? 0.5);
 
         result = {
           operation: 'edge_smooth',
           parameters: {
             threshold: params?.threshold ?? 0.1,
-            strength: params?.strength ?? 0.5
+            strength: params?.strength ?? 0.5,
           },
           inputSize: { width: image.width, height: image.height },
           outputSize: { width: output.width, height: output.height },
-          sampleOutput: output.data.slice(0, 5).map(row => row.slice(0, 5))
+          sampleOutput: output.data.slice(0, 5).map((row) => row.slice(0, 5)),
         };
         break;
       }
@@ -954,13 +950,15 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
           statistics: {
             edgePixels: edgeCount,
             edgeRatio: (edgeCount / (image.width * image.height)).toFixed(4),
-            averageStrength: (totalStrength / (image.width * image.height)).toFixed(4)
+            averageStrength: (totalStrength / (image.width * image.height)).toFixed(4),
           },
-          sampleEdges: edges.slice(0, 10).map(row => row.slice(0, 10).map(e => ({
-            h: e.horizontal,
-            v: e.vertical,
-            s: e.strength.toFixed(3)
-          })))
+          sampleEdges: edges.slice(0, 10).map((row) =>
+            row.slice(0, 10).map((e) => ({
+              h: e.horizontal,
+              v: e.vertical,
+              s: e.strength.toFixed(3),
+            }))
+          ),
         };
         break;
       }
@@ -984,21 +982,21 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
               description: 'Fast Approximate AA - edge detection + blending',
               complexity: 'O(n)',
               quality: 'Good',
-              performance: 'Fast'
+              performance: 'Fast',
             },
             msaa: {
               description: 'Multi-Sample AA - supersampling simulation',
               complexity: 'O(n * samples)',
               quality: 'Very Good',
-              performance: 'Moderate'
+              performance: 'Moderate',
             },
             smaa: {
               description: 'Subpixel Morphological AA - edge detection + morphological search',
               complexity: 'O(n * searchSteps)',
               quality: 'Excellent',
-              performance: 'Moderate'
-            }
-          }
+              performance: 'Moderate',
+            },
+          },
         };
         break;
       }
@@ -1019,13 +1017,13 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
           imageSize: { width: 50, height: 50 },
           algorithms: {
             fxaa: {
-              samplePixels: fxaaOut.data.slice(20, 25).map(row => row.slice(20, 25))
+              samplePixels: fxaaOut.data.slice(20, 25).map((row) => row.slice(20, 25)),
             },
             msaa: {
-              samplePixels: msaaOut.data.slice(20, 25).map(row => row.slice(20, 25))
-            }
+              samplePixels: msaaOut.data.slice(20, 25).map((row) => row.slice(20, 25)),
+            },
           },
-          originalSample: testImage.data.slice(20, 25).map(row => row.slice(20, 25))
+          originalSample: testImage.data.slice(20, 25).map((row) => row.slice(20, 25)),
         };
         break;
       }
@@ -1040,7 +1038,7 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
   "operation": "fxaa",
   "image": { "width": 100, "height": 100, "data": [...] },
   "params": { "threshold": 0.0833, "subpixelQuality": 0.75 }
-}`
+}`,
             },
             {
               name: 'Apply MSAA (4x)',
@@ -1048,7 +1046,7 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
   "operation": "msaa",
   "image": { ... },
   "params": { "samples": 4 }
-}`
+}`,
             },
             {
               name: 'Apply SMAA',
@@ -1056,23 +1054,23 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
   "operation": "smaa",
   "image": { ... },
   "params": { "threshold": 0.1, "searchSteps": 16 }
-}`
+}`,
             },
             {
               name: 'Compare algorithms',
               code: `{
   "operation": "compare",
   "image": { ... }
-}`
+}`,
             },
             {
               name: 'Demo with test pattern',
               code: `{
   "operation": "demo",
   "testPattern": "diagonal"
-}`
-            }
-          ]
+}`,
+            },
+          ],
         };
         break;
       }
@@ -1088,43 +1086,53 @@ export async function executeantialiasing(toolCall: UnifiedToolCall): Promise<Un
               name: 'Fast Approximate Anti-Aliasing',
               description: 'Shader-based AA using edge detection and blending',
               pros: ['Very fast', 'Simple to implement', 'No VRAM overhead'],
-              cons: ['Can blur textures', 'Less accurate']
+              cons: ['Can blur textures', 'Less accurate'],
             },
             msaa: {
               name: 'Multi-Sample Anti-Aliasing',
               description: 'Hardware-level AA using multiple samples per pixel',
               pros: ['High quality', 'Preserves textures'],
-              cons: ['Higher memory usage', 'Slower']
+              cons: ['Higher memory usage', 'Slower'],
             },
             smaa: {
               name: 'Subpixel Morphological Anti-Aliasing',
               description: 'Morphological-based AA with edge search',
               pros: ['Excellent quality', 'Good performance'],
-              cons: ['More complex', 'Multiple passes']
+              cons: ['More complex', 'Multiple passes'],
             },
             supersampling: {
               name: 'Supersampling Anti-Aliasing',
               description: 'Render at higher resolution and downsample',
               pros: ['Highest quality'],
-              cons: ['Very expensive', 'Memory intensive']
-            }
+              cons: ['Very expensive', 'Memory intensive'],
+            },
           },
-          operations: ['fxaa', 'msaa', 'smaa', 'supersample', 'edge_smooth', 'detect_edges', 'compare', 'demo', 'info', 'examples']
+          operations: [
+            'fxaa',
+            'msaa',
+            'smaa',
+            'supersample',
+            'edge_smooth',
+            'detect_edges',
+            'compare',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
       }
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error in anti_aliasing: ${error}`,
-      isError: true
+      isError: true,
     };
   }
 }

@@ -3,7 +3,13 @@
  * Provides comprehensive morphological image processing operations
  */
 
-import { UnifiedTool, ToolResult } from './types';
+import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
+
+interface ToolResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 // ============================================================================
 // IMAGE AND STRUCTURING ELEMENT TYPES
@@ -43,7 +49,7 @@ class StructuringElementGenerator {
     return {
       data,
       originX: Math.floor(width / 2),
-      originY: Math.floor(height / 2)
+      originY: Math.floor(height / 2),
     };
   }
 
@@ -60,7 +66,7 @@ class StructuringElementGenerator {
     return {
       data,
       originX: Math.floor(size / 2),
-      originY: Math.floor(size / 2)
+      originY: Math.floor(size / 2),
     };
   }
 
@@ -83,7 +89,7 @@ class StructuringElementGenerator {
     return {
       data,
       originX: Math.floor(width / 2),
-      originY: Math.floor(height / 2)
+      originY: Math.floor(height / 2),
     };
   }
 
@@ -102,7 +108,7 @@ class StructuringElementGenerator {
     return {
       data,
       originX: center,
-      originY: center
+      originY: center,
     };
   }
 
@@ -122,7 +128,7 @@ class StructuringElementGenerator {
     return {
       data,
       originX: radius,
-      originY: radius
+      originY: radius,
     };
   }
 }
@@ -344,18 +350,18 @@ class Skeletonization {
     const width = image[0].length;
 
     // Create working copy
-    const current: BinaryImage = image.map(row => [...row]);
+    const current: BinaryImage = image.map((row) => [...row]);
 
     // Neighbors in clockwise order starting from top
     const neighbors = [
-      [-1, 0],  // P2 - top
-      [-1, 1],  // P3 - top right
-      [0, 1],   // P4 - right
-      [1, 1],   // P5 - bottom right
-      [1, 0],   // P6 - bottom
-      [1, -1],  // P7 - bottom left
-      [0, -1],  // P8 - left
-      [-1, -1]  // P9 - top left
+      [-1, 0], // P2 - top
+      [-1, 1], // P3 - top right
+      [0, 1], // P4 - right
+      [1, 1], // P5 - bottom right
+      [1, 0], // P6 - bottom
+      [1, -1], // P7 - bottom left
+      [0, -1], // P8 - left
+      [-1, -1], // P9 - top left
     ];
 
     const getNeighbors = (img: BinaryImage, y: number, x: number): number[] => {
@@ -404,10 +410,14 @@ class Skeletonization {
           const A = countTransitions(n);
 
           // Conditions for step 1
-          if (B >= 2 && B <= 6 &&
-              A === 1 &&
-              n[0] * n[2] * n[4] === 0 &&  // P2 * P4 * P6 = 0
-              n[2] * n[4] * n[6] === 0) {  // P4 * P6 * P8 = 0
+          if (
+            B >= 2 &&
+            B <= 6 &&
+            A === 1 &&
+            n[0] * n[2] * n[4] === 0 && // P2 * P4 * P6 = 0
+            n[2] * n[4] * n[6] === 0
+          ) {
+            // P4 * P6 * P8 = 0
             toRemove1.push([y, x]);
           }
         }
@@ -429,10 +439,14 @@ class Skeletonization {
           const A = countTransitions(n);
 
           // Conditions for step 2
-          if (B >= 2 && B <= 6 &&
-              A === 1 &&
-              n[0] * n[2] * n[6] === 0 &&  // P2 * P4 * P8 = 0
-              n[0] * n[4] * n[6] === 0) {  // P2 * P6 * P8 = 0
+          if (
+            B >= 2 &&
+            B <= 6 &&
+            A === 1 &&
+            n[0] * n[2] * n[6] === 0 && // P2 * P4 * P8 = 0
+            n[0] * n[4] * n[6] === 0
+          ) {
+            // P2 * P6 * P8 = 0
             toRemove2.push([y, x]);
           }
         }
@@ -454,11 +468,9 @@ class Skeletonization {
   static morphologicalSkeleton(image: BinaryImage, se: StructuringElement): BinaryImage {
     const height = image.length;
     const width = image[0].length;
-    const skeleton: BinaryImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const skeleton: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
-    let eroded = image.map(row => [...row]);
+    let eroded = image.map((row) => [...row]);
     let iteration = 0;
     const maxIterations = Math.max(width, height) / 2;
 
@@ -502,9 +514,7 @@ class Skeletonization {
     const dist: GrayscaleImage = this.distanceTransform(image);
 
     // Find ridge points (local maxima in distance)
-    const skeleton: BinaryImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const skeleton: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
@@ -615,9 +625,7 @@ class ConnectedComponentLabeler {
   } {
     const height = image.length;
     const width = image[0].length;
-    const labels: number[][] = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const labels: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
 
     // Union-Find data structure
     const parent: Map<number, number> = new Map();
@@ -712,7 +720,7 @@ class ConnectedComponentLabeler {
             pixels: [],
             area: 0,
             boundingBox: { x: x, y: y, width: 1, height: 1 },
-            centroid: { x: 0, y: 0 }
+            centroid: { x: 0, y: 0 },
           });
         }
 
@@ -744,7 +752,7 @@ class ConnectedComponentLabeler {
 
     return {
       labels,
-      components: Array.from(componentMap.values()).sort((a, b) => a.label - b.label)
+      components: Array.from(componentMap.values()).sort((a, b) => a.label - b.label),
     };
   }
 
@@ -757,9 +765,7 @@ class ConnectedComponentLabeler {
   } {
     const height = image.length;
     const width = image[0].length;
-    const labels: number[][] = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const labels: number[][] = Array.from({ length: height }, () => Array(width).fill(0));
 
     const parent: Map<number, number> = new Map();
 
@@ -840,7 +846,7 @@ class ConnectedComponentLabeler {
             pixels: [],
             area: 0,
             boundingBox: { x: x, y: y, width: 1, height: 1 },
-            centroid: { x: 0, y: 0 }
+            centroid: { x: 0, y: 0 },
           });
         }
 
@@ -870,7 +876,7 @@ class ConnectedComponentLabeler {
 
     return {
       labels,
-      components: Array.from(componentMap.values()).sort((a, b) => a.label - b.label)
+      components: Array.from(componentMap.values()).sort((a, b) => a.label - b.label),
     };
   }
 }
@@ -895,15 +901,11 @@ class AdvancedMorphOps {
     // Erode complement with miss pattern
     const height = image.length;
     const width = image[0].length;
-    const complement: BinaryImage = image.map(row =>
-      row.map(v => (v > 0 ? 0 : 255))
-    );
+    const complement: BinaryImage = image.map((row) => row.map((v) => (v > 0 ? 0 : 255)));
     const erodedMiss = MorphologicalOps.erode(complement, miss);
 
     // Intersection
-    const result: BinaryImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const result: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -924,7 +926,7 @@ class AdvancedMorphOps {
     const height = marker.length;
     const width = marker[0].length;
 
-    let current = marker.map(row => [...row]);
+    let current = marker.map((row) => [...row]);
     let changed = true;
     let iteration = 0;
     const maxIterations = width * height;
@@ -937,9 +939,7 @@ class AdvancedMorphOps {
 
       // Geodesic dilation: dilate marker, then intersect with mask
       const dilated = MorphologicalOps.dilate(current, se);
-      const next: BinaryImage = Array.from({ length: height }, () =>
-        Array(width).fill(0)
-      );
+      const next: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -965,9 +965,7 @@ class AdvancedMorphOps {
     const width = image[0].length;
 
     // Create marker: complement of image with border pixels set
-    const marker: BinaryImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const marker: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
     // Set border pixels to complement values
     for (let y = 0; y < height; y++) {
@@ -980,13 +978,13 @@ class AdvancedMorphOps {
     }
 
     // Mask is complement of image
-    const mask = image.map(row => row.map(v => (v > 0 ? 0 : 255)));
+    const mask = image.map((row) => row.map((v) => (v > 0 ? 0 : 255)));
 
     // Reconstruct
     const reconstructed = this.reconstruct(marker, mask);
 
     // Result is complement of reconstruction
-    return reconstructed.map(row => row.map(v => (v > 0 ? 0 : 255)));
+    return reconstructed.map((row) => row.map((v) => (v > 0 ? 0 : 255)));
   }
 
   /**
@@ -996,13 +994,9 @@ class AdvancedMorphOps {
     const { labels, components } = ConnectedComponentLabeler.label8Connected(image);
     const height = image.length;
     const width = image[0].length;
-    const result: BinaryImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const result: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
-    const validLabels = new Set(
-      components.filter(c => c.area >= minArea).map(c => c.label)
-    );
+    const validLabels = new Set(components.filter((c) => c.area >= minArea).map((c) => c.label));
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -1024,9 +1018,7 @@ class AdvancedMorphOps {
     const height = image.length;
     const width = image[0].length;
 
-    const result: BinaryImage = Array.from({ length: height }, () =>
-      Array(width).fill(0)
-    );
+    const result: BinaryImage = Array.from({ length: height }, () => Array(width).fill(0));
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -1046,7 +1038,7 @@ class AdvancedMorphOps {
     const height = image.length;
     const width = image[0].length;
 
-    const current = image.map(row => [...row]);
+    const current = image.map((row) => [...row]);
     let changed = true;
     let iteration = 0;
     const maxIterations = Math.max(width, height);
@@ -1062,12 +1054,17 @@ class AdvancedMorphOps {
 
           // Check if filling this pixel would make shape more convex
           const neighbors = [
-            current[y - 1][x - 1], current[y - 1][x], current[y - 1][x + 1],
-            current[y][x - 1], current[y][x + 1],
-            current[y + 1][x - 1], current[y + 1][x], current[y + 1][x + 1]
+            current[y - 1][x - 1],
+            current[y - 1][x],
+            current[y - 1][x + 1],
+            current[y][x - 1],
+            current[y][x + 1],
+            current[y + 1][x - 1],
+            current[y + 1][x],
+            current[y + 1][x + 1],
           ];
 
-          const count = neighbors.filter(n => n > 0).length;
+          const count = neighbors.filter((n) => n > 0).length;
 
           // Fill if surrounded by many foreground pixels
           if (count >= 6) {
@@ -1088,9 +1085,7 @@ class AdvancedMorphOps {
 
 function generateTestImage(): BinaryImage {
   const size = 64;
-  const image: BinaryImage = Array.from({ length: size }, () =>
-    Array(size).fill(0)
-  );
+  const image: BinaryImage = Array.from({ length: size }, () => Array(size).fill(0));
 
   // Draw a rectangle with some holes and noise
   for (let y = 10; y < 40; y++) {
@@ -1133,9 +1128,7 @@ function generateTestImage(): BinaryImage {
 
 function generateGrayscaleTestImage(): GrayscaleImage {
   const size = 64;
-  const image: GrayscaleImage = Array.from({ length: size }, () =>
-    Array(size).fill(128)
-  );
+  const image: GrayscaleImage = Array.from({ length: size }, () => Array(size).fill(128));
 
   // Create gradient region
   for (let y = 10; y < 50; y++) {
@@ -1196,10 +1189,17 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
             basic: ['erode', 'dilate', 'opening', 'closing', 'gradient', 'top_hat', 'black_hat'],
             skeletonization: ['zhang_suen', 'morphological_skeleton', 'medial_axis'],
             connected_components: ['label_8connected', 'label_4connected'],
-            advanced: ['hit_or_miss', 'reconstruct', 'fill_holes', 'remove_small_objects', 'extract_boundary', 'convex_hull']
+            advanced: [
+              'hit_or_miss',
+              'reconstruct',
+              'fill_holes',
+              'remove_small_objects',
+              'extract_boundary',
+              'convex_hull',
+            ],
           },
-          structuring_elements: ['rectangle', 'cross', 'ellipse', 'diamond', 'disk']
-        }
+          structuring_elements: ['rectangle', 'cross', 'ellipse', 'diamond', 'disk'],
+        },
       };
     }
 
@@ -1236,65 +1236,65 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
           input: {
             binary_image: {
               size: `${binaryImage[0].length}x${binaryImage.length}`,
-              preview: formatImageAscii(binaryImage, 32, 16)
+              preview: formatImageAscii(binaryImage, 32, 16),
             },
             structuring_element: {
               type: 'disk',
-              radius: 2
-            }
+              radius: 2,
+            },
           },
           results: {
             erosion: {
               description: 'Shrinks foreground regions',
-              preview: formatImageAscii(eroded, 32, 16)
+              preview: formatImageAscii(eroded, 32, 16),
             },
             dilation: {
               description: 'Expands foreground regions',
-              preview: formatImageAscii(dilated, 32, 16)
+              preview: formatImageAscii(dilated, 32, 16),
             },
             opening: {
               description: 'Removes small bright regions',
-              preview: formatImageAscii(opened, 32, 16)
+              preview: formatImageAscii(opened, 32, 16),
             },
             closing: {
               description: 'Fills small dark holes',
-              preview: formatImageAscii(closed, 32, 16)
+              preview: formatImageAscii(closed, 32, 16),
             },
             gradient: {
               description: 'Edge detection via morphology',
-              preview: formatImageAscii(gradient, 32, 16)
+              preview: formatImageAscii(gradient, 32, 16),
             },
             top_hat: {
               description: 'Extracts bright features',
-              sample_values: topHat.slice(0, 3).map(row => row.slice(0, 10))
+              sample_values: topHat.slice(0, 3).map((row) => row.slice(0, 10)),
             },
             black_hat: {
               description: 'Extracts dark features',
-              sample_values: blackHat.slice(0, 3).map(row => row.slice(0, 10))
+              sample_values: blackHat.slice(0, 3).map((row) => row.slice(0, 10)),
             },
             skeleton: {
               description: 'Zhang-Suen thinning',
-              preview: formatImageAscii(skeleton, 32, 16)
+              preview: formatImageAscii(skeleton, 32, 16),
             },
             connected_components: {
               count: components.length,
-              components: components.map(c => ({
+              components: components.map((c) => ({
                 label: c.label,
                 area: c.area,
                 centroid: c.centroid,
-                bounding_box: c.boundingBox
-              }))
+                bounding_box: c.boundingBox,
+              })),
             },
             filled_holes: {
               description: 'Binary image with holes filled',
-              preview: formatImageAscii(filled, 32, 16)
+              preview: formatImageAscii(filled, 32, 16),
             },
             boundary: {
               description: 'Extracted boundary pixels',
-              preview: formatImageAscii(boundary, 32, 16)
-            }
-          }
-        }
+              preview: formatImageAscii(boundary, 32, 16),
+            },
+          },
+        },
       };
     }
 
@@ -1333,8 +1333,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
           operation: 'erosion',
           input_size: `${image[0].length}x${image.length}`,
           structuring_element: { type: seType, size: seSize },
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1373,8 +1373,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
           operation: 'dilation',
           input_size: `${image[0].length}x${image.length}`,
           structuring_element: { type: seType, size: seSize },
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1406,8 +1406,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'opening',
           description: 'Erosion followed by dilation - removes small bright regions',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1439,8 +1439,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'closing',
           description: 'Dilation followed by erosion - fills small dark holes',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1460,8 +1460,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'morphological_gradient',
           description: 'Difference between dilation and erosion - edge detection',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1481,8 +1481,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'top_hat',
           description: 'Original minus opening - extracts bright features smaller than SE',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1502,8 +1502,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'black_hat',
           description: 'Closing minus original - extracts dark features smaller than SE',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1549,8 +1549,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
           method: method,
           skeleton: skeleton,
           skeleton_pixels: skeletonPixels,
-          ...additionalData
-        }
+          ...additionalData,
+        },
       };
     }
 
@@ -1562,9 +1562,10 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         return { success: false, error: 'Binary image required' };
       }
 
-      const result = connectivity === 4
-        ? ConnectedComponentLabeler.label4Connected(image)
-        : ConnectedComponentLabeler.label8Connected(image);
+      const result =
+        connectivity === 4
+          ? ConnectedComponentLabeler.label4Connected(image)
+          : ConnectedComponentLabeler.label8Connected(image);
 
       return {
         success: true,
@@ -1573,13 +1574,13 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
           connectivity: connectivity,
           num_components: result.components.length,
           labels: result.labels,
-          components: result.components.map(c => ({
+          components: result.components.map((c) => ({
             label: c.label,
             area: c.area,
             centroid: { x: c.centroid.x.toFixed(2), y: c.centroid.y.toFixed(2) },
-            bounding_box: c.boundingBox
-          }))
-        }
+            bounding_box: c.boundingBox,
+          })),
+        },
       };
     }
 
@@ -1597,8 +1598,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'fill_holes',
           description: 'Fills enclosed dark regions in binary image',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1617,8 +1618,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'remove_small_objects',
           min_area: minArea,
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1635,8 +1636,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         success: true,
         data: {
           operation: 'boundary_extraction',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1663,8 +1664,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
           operation: 'distance_transform',
           description: 'Chamfer 3-4 distance transform',
           max_distance: maxDist,
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1680,13 +1681,13 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
       const hit: StructuringElement = {
         data: hitPattern,
         originX: Math.floor(hitPattern[0].length / 2),
-        originY: Math.floor(hitPattern.length / 2)
+        originY: Math.floor(hitPattern.length / 2),
       };
 
       const miss: StructuringElement = {
         data: missPattern,
         originX: Math.floor(missPattern[0].length / 2),
-        originY: Math.floor(missPattern.length / 2)
+        originY: Math.floor(missPattern.length / 2),
       };
 
       const result = AdvancedMorphOps.hitOrMiss(image, hit, miss);
@@ -1696,8 +1697,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'hit_or_miss_transform',
           description: 'Pattern detection using hit-or-miss transform',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1716,8 +1717,8 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
         data: {
           operation: 'morphological_reconstruction',
           description: 'Geodesic reconstruction of mask from marker',
-          result: result
-        }
+          result: result,
+        },
       };
     }
 
@@ -1729,52 +1730,52 @@ async function executemorphologicalops(params: Record<string, unknown>): Promise
             {
               title: 'Basic Erosion',
               code: 'executemorphologicalops({ operation: "erode", image: binaryImage, structuring_element: "disk", size: 3 })',
-              description: 'Erodes image using disk-shaped structuring element'
+              description: 'Erodes image using disk-shaped structuring element',
             },
             {
               title: 'Opening for Noise Removal',
               code: 'executemorphologicalops({ operation: "opening", image: noisyImage, size: 5 })',
-              description: 'Removes small bright noise while preserving shape'
+              description: 'Removes small bright noise while preserving shape',
             },
             {
               title: 'Skeletonization',
               code: 'executemorphologicalops({ operation: "skeletonize", image: binaryShape, method: "zhang_suen" })',
-              description: 'Extracts skeleton using Zhang-Suen algorithm'
+              description: 'Extracts skeleton using Zhang-Suen algorithm',
             },
             {
               title: 'Connected Component Analysis',
               code: 'executemorphologicalops({ operation: "connected_components", image: binaryImage, connectivity: 8 })',
-              description: 'Labels and analyzes connected regions'
+              description: 'Labels and analyzes connected regions',
             },
             {
               title: 'Fill Holes',
               code: 'executemorphologicalops({ operation: "fill_holes", image: imageWithHoles })',
-              description: 'Fills enclosed holes in binary objects'
+              description: 'Fills enclosed holes in binary objects',
             },
             {
               title: 'Morphological Gradient (Edge Detection)',
               code: 'executemorphologicalops({ operation: "gradient", image: grayscaleImage, size: 3 })',
-              description: 'Detects edges using morphological gradient'
+              description: 'Detects edges using morphological gradient',
             },
             {
               title: 'Top-Hat Transform',
               code: 'executemorphologicalops({ operation: "top_hat", image: grayscaleImage, size: 15 })',
-              description: 'Extracts bright features smaller than structuring element'
+              description: 'Extracts bright features smaller than structuring element',
             },
             {
               title: 'Distance Transform',
               code: 'executemorphologicalops({ operation: "distance_transform", image: binaryImage })',
-              description: 'Computes distance from background for each pixel'
-            }
-          ]
-        }
+              description: 'Computes distance from background for each pixel',
+            },
+          ],
+        },
       };
     }
 
     default:
       return {
         success: false,
-        error: `Unknown operation: ${operation}. Use "info" to see available operations.`
+        error: `Unknown operation: ${operation}. Use "info" to see available operations.`,
       };
   }
 }
@@ -1814,52 +1815,73 @@ STRUCTURING ELEMENTS: rectangle, cross, ellipse, diamond, disk`,
     properties: {
       operation: {
         type: 'string',
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       image: {
         type: 'array',
-        description: '2D array of pixel values (binary or grayscale)'
+        description: '2D array of pixel values (binary or grayscale)',
       },
       structuring_element: {
         type: 'string',
-        description: 'Type: rectangle, cross, ellipse, diamond, disk'
+        description: 'Type: rectangle, cross, ellipse, diamond, disk',
       },
       size: {
         type: 'number',
-        description: 'Structuring element size'
+        description: 'Structuring element size',
       },
       method: {
         type: 'string',
-        description: 'Algorithm method for operations with variants'
+        description: 'Algorithm method for operations with variants',
       },
       connectivity: {
         type: 'number',
-        description: '4 or 8 connectivity for connected components'
+        description: '4 or 8 connectivity for connected components',
       },
       min_area: {
         type: 'number',
-        description: 'Minimum area for small object removal'
+        description: 'Minimum area for small object removal',
       },
       marker: {
         type: 'array',
-        description: 'Marker image for reconstruction'
+        description: 'Marker image for reconstruction',
       },
       mask: {
         type: 'array',
-        description: 'Mask image for reconstruction'
+        description: 'Mask image for reconstruction',
       },
       hit: {
         type: 'array',
-        description: 'Hit pattern for hit-or-miss'
+        description: 'Hit pattern for hit-or-miss',
       },
       miss: {
         type: 'array',
-        description: 'Miss pattern for hit-or-miss'
-      }
+        description: 'Miss pattern for hit-or-miss',
+      },
     },
-    required: []
+    required: [],
   },
-  execute: executemorphologicalops
 };
 
-export { executemorphologicalops, ismorphologicalopsAvailable };
+// Wrapper for UnifiedToolCall signature
+export async function executemorphologicalopsUnified(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
+  const { id, arguments: rawArgs } = toolCall;
+  try {
+    const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
+    const result = await executemorphologicalops(args as Record<string, unknown>);
+    return {
+      toolCallId: id,
+      content: JSON.stringify(result.data || result, null, 2),
+      isError: !result.success,
+    };
+  } catch (error) {
+    return {
+      toolCallId: id,
+      content: `Morphological Ops Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      isError: true,
+    };
+  }
+}
+
+export { executemorphologicalopsUnified as executemorphologicalops, ismorphologicalopsAvailable };

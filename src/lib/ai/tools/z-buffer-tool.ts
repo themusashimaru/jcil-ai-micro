@@ -42,7 +42,15 @@ interface ZBuffer {
   depthFunc: DepthFunction;
 }
 
-type DepthFunction = 'less' | 'lequal' | 'greater' | 'gequal' | 'equal' | 'notequal' | 'always' | 'never';
+type DepthFunction =
+  | 'less'
+  | 'lequal'
+  | 'greater'
+  | 'gequal'
+  | 'equal'
+  | 'notequal'
+  | 'always'
+  | 'never';
 
 interface Triangle {
   v0: Vec3;
@@ -65,7 +73,12 @@ interface DepthStats {
 // Z-BUFFER CORE
 // ============================================================================
 
-function createZBuffer(width: number, height: number, nearPlane: number = 0.1, farPlane: number = 1000): ZBuffer {
+function createZBuffer(
+  width: number,
+  height: number,
+  nearPlane: number = 0.1,
+  farPlane: number = 1000
+): ZBuffer {
   const size = width * height;
   const clearDepth = 1.0; // Far plane in normalized coordinates
 
@@ -77,7 +90,7 @@ function createZBuffer(width: number, height: number, nearPlane: number = 0.1, f
     nearPlane,
     farPlane,
     clearDepth,
-    depthFunc: 'less'
+    depthFunc: 'less',
   };
 }
 
@@ -98,15 +111,24 @@ function getPixelIndex(buffer: ZBuffer, x: number, y: number): number {
 
 function depthTest(buffer: ZBuffer, currentDepth: number, storedDepth: number): boolean {
   switch (buffer.depthFunc) {
-    case 'less': return currentDepth < storedDepth;
-    case 'lequal': return currentDepth <= storedDepth;
-    case 'greater': return currentDepth > storedDepth;
-    case 'gequal': return currentDepth >= storedDepth;
-    case 'equal': return Math.abs(currentDepth - storedDepth) < 1e-6;
-    case 'notequal': return Math.abs(currentDepth - storedDepth) >= 1e-6;
-    case 'always': return true;
-    case 'never': return false;
-    default: return currentDepth < storedDepth;
+    case 'less':
+      return currentDepth < storedDepth;
+    case 'lequal':
+      return currentDepth <= storedDepth;
+    case 'greater':
+      return currentDepth > storedDepth;
+    case 'gequal':
+      return currentDepth >= storedDepth;
+    case 'equal':
+      return Math.abs(currentDepth - storedDepth) < 1e-6;
+    case 'notequal':
+      return Math.abs(currentDepth - storedDepth) >= 1e-6;
+    case 'always':
+      return true;
+    case 'never':
+      return false;
+    default:
+      return currentDepth < storedDepth;
   }
 }
 
@@ -188,9 +210,11 @@ function rasterizeTriangle(buffer: ZBuffer, triangle: Triangle, stats: DepthStat
         const z = interpolateZ(v0, v1, v2, w0, w1, w2);
 
         const fragment: Fragment = {
-          x, y, z,
+          x,
+          y,
+          z,
           color,
-          primitiveId: triangle.id
+          primitiveId: triangle.id,
         };
 
         writeFragment(buffer, fragment, stats);
@@ -203,14 +227,12 @@ function rasterizeTriangle(buffer: ZBuffer, triangle: Triangle, stats: DepthStat
 // DEPTH OPERATIONS
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function linearizeDepth(depth: number, near: number, far: number): number {
+export function linearizeDepth(depth: number, near: number, far: number): number {
   // Convert from [0,1] NDC depth to linear view space depth
   return (2.0 * near * far) / (far + near - depth * (far - near));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function normalizeDepth(z: number, near: number, far: number): number {
+export function normalizeDepth(z: number, near: number, far: number): number {
   // Convert linear z to [0,1] range
   return (z - near) / (far - near);
 }
@@ -237,11 +259,15 @@ function computeDepthStats(buffer: ZBuffer): DepthStats {
     avgDepth: count > 0 ? sum / count : 0,
     fragmentsWritten: count,
     fragmentsRejected: 0,
-    overdraw: 0
+    overdraw: 0,
   };
 }
 
-function generateDepthVisualization(buffer: ZBuffer, width: number = 40, height: number = 20): string[] {
+function generateDepthVisualization(
+  buffer: ZBuffer,
+  width: number = 40,
+  height: number = 20
+): string[] {
   const lines: string[] = [];
   const chars = ' .:-=+*#%@';
 
@@ -278,23 +304,30 @@ function sortTrianglesByDepth(triangles: Triangle[]): Triangle[] {
   });
 }
 
-function compareWithPaintersAlgorithm(buffer: ZBuffer, triangles: Triangle[]): {
+function compareWithPaintersAlgorithm(
+  buffer: ZBuffer,
+  triangles: Triangle[]
+): {
   zbufferResult: DepthStats;
   paintersOrder: number[];
   zbufferAdvantages: string[];
 } {
   // Z-buffer rendering
   const zbufferStats: DepthStats = {
-    minDepth: 1, maxDepth: 0, avgDepth: 0,
-    fragmentsWritten: 0, fragmentsRejected: 0, overdraw: 0
+    minDepth: 1,
+    maxDepth: 0,
+    avgDepth: 0,
+    fragmentsWritten: 0,
+    fragmentsRejected: 0,
+    overdraw: 0,
   };
 
   clearZBuffer(buffer);
-  triangles.forEach(t => rasterizeTriangle(buffer, t, zbufferStats));
+  triangles.forEach((t) => rasterizeTriangle(buffer, t, zbufferStats));
 
   // Painter's algorithm order
   const sorted = sortTrianglesByDepth(triangles);
-  const paintersOrder = sorted.map(t => t.id);
+  const paintersOrder = sorted.map((t) => t.id);
 
   return {
     zbufferResult: zbufferStats,
@@ -304,8 +337,8 @@ function compareWithPaintersAlgorithm(buffer: ZBuffer, triangles: Triangle[]): {
       'No sorting required (O(n) vs O(n log n))',
       'Works with cyclic overlaps',
       'Per-pixel accuracy vs per-primitive',
-      'Supports early-z optimization'
-    ]
+      'Supports early-z optimization',
+    ],
   };
 }
 
@@ -336,7 +369,8 @@ function buildHierarchicalZBuffer(buffer: ZBuffer): HierarchicalZBuffer {
 
     for (let y = 0; y < newH; y++) {
       for (let x = 0; x < newW; x++) {
-        const x0 = x * 2, y0 = y * 2;
+        const x0 = x * 2,
+          y0 = y * 2;
         const x1 = Math.min(x0 + 1, w - 1);
         const y1 = Math.min(y0 + 1, h - 1);
 
@@ -361,10 +395,12 @@ function buildHierarchicalZBuffer(buffer: ZBuffer): HierarchicalZBuffer {
   return { levels, levelWidths, levelHeights };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function hierarchicalOcclusionTest(
+export function hierarchicalOcclusionTest(
   hzb: HierarchicalZBuffer,
-  minX: number, minY: number, maxX: number, maxY: number,
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
   nearZ: number
 ): boolean {
   // Start from coarsest level
@@ -397,24 +433,38 @@ function hierarchicalOcclusionTest(
 
 export const zbufferTool: UnifiedTool = {
   name: 'z_buffer',
-  description: 'Comprehensive z-buffer depth testing with depth buffer management, visibility determination, hierarchical z-buffer, and depth visualization',
+  description:
+    'Comprehensive z-buffer depth testing with depth buffer management, visibility determination, hierarchical z-buffer, and depth visualization',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['create', 'render', 'visualize', 'stats', 'hierarchical', 'compare', 'demo', 'info', 'examples'],
-        description: 'Operation to perform'
+        enum: [
+          'create',
+          'render',
+          'visualize',
+          'stats',
+          'hierarchical',
+          'compare',
+          'demo',
+          'info',
+          'examples',
+        ],
+        description: 'Operation to perform',
       },
       width: { type: 'number', description: 'Buffer width' },
       height: { type: 'number', description: 'Buffer height' },
       triangles: { type: 'array', description: 'Triangles to render' },
-      depthFunc: { type: 'string', enum: ['less', 'lequal', 'greater', 'gequal', 'equal', 'notequal', 'always', 'never'] },
+      depthFunc: {
+        type: 'string',
+        enum: ['less', 'lequal', 'greater', 'gequal', 'equal', 'notequal', 'always', 'never'],
+      },
       nearPlane: { type: 'number' },
-      farPlane: { type: 'number' }
+      farPlane: { type: 'number' },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -426,67 +476,102 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { operation, width = 64, height = 64, triangles, depthFunc = 'less', nearPlane = 0.1, farPlane = 1000 } = args;
+    const {
+      operation,
+      width = 64,
+      height = 64,
+      triangles,
+      depthFunc = 'less',
+      nearPlane = 0.1,
+      farPlane = 1000,
+    } = args;
 
     switch (operation) {
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Z-Buffer Depth Testing',
-            description: 'Hardware-accelerated visibility determination technique',
-            capabilities: [
-              'Per-pixel depth testing',
-              'Multiple depth comparison functions',
-              'Triangle rasterization with depth',
-              'Depth visualization',
-              'Hierarchical z-buffer (HZB)',
-              'Occlusion culling support',
-              'Overdraw statistics'
-            ],
-            depthFunctions: {
-              'less': 'Pass if new < stored (default)',
-              'lequal': 'Pass if new <= stored',
-              'greater': 'Pass if new > stored',
-              'gequal': 'Pass if new >= stored',
-              'equal': 'Pass if new == stored',
-              'never': 'Always fail',
-              'always': 'Always pass'
+          content: JSON.stringify(
+            {
+              tool: 'Z-Buffer Depth Testing',
+              description: 'Hardware-accelerated visibility determination technique',
+              capabilities: [
+                'Per-pixel depth testing',
+                'Multiple depth comparison functions',
+                'Triangle rasterization with depth',
+                'Depth visualization',
+                'Hierarchical z-buffer (HZB)',
+                'Occlusion culling support',
+                'Overdraw statistics',
+              ],
+              depthFunctions: {
+                less: 'Pass if new < stored (default)',
+                lequal: 'Pass if new <= stored',
+                greater: 'Pass if new > stored',
+                gequal: 'Pass if new >= stored',
+                equal: 'Pass if new == stored',
+                never: 'Always fail',
+                always: 'Always pass',
+              },
+              concepts: {
+                zbuffer: 'Per-pixel depth storage for visibility',
+                earlyZ: 'Reject fragments before shading',
+                hierarchical: 'Multi-resolution depth for culling',
+                depthPrecision: 'More precision near camera',
+              },
+              operations: [
+                'create',
+                'render',
+                'visualize',
+                'stats',
+                'hierarchical',
+                'compare',
+                'demo',
+                'examples',
+              ],
             },
-            concepts: {
-              zbuffer: 'Per-pixel depth storage for visibility',
-              earlyZ: 'Reject fragments before shading',
-              hierarchical: 'Multi-resolution depth for culling',
-              depthPrecision: 'More precision near camera'
-            },
-            operations: ['create', 'render', 'visualize', 'stats', 'hierarchical', 'compare', 'demo', 'examples']
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       case 'examples': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            examples: [
-              {
-                name: 'Render Triangles',
-                params: {
-                  operation: 'render',
-                  width: 100,
-                  height: 100,
-                  triangles: [
-                    { v0: { x: 10, y: 10, z: 0.3 }, v1: { x: 50, y: 10, z: 0.3 }, v2: { x: 30, y: 50, z: 0.3 }, color: { r: 255, g: 0, b: 0 } },
-                    { v0: { x: 20, y: 20, z: 0.5 }, v1: { x: 60, y: 20, z: 0.5 }, v2: { x: 40, y: 60, z: 0.5 }, color: { r: 0, g: 255, b: 0 } }
-                  ]
-                }
-              },
-              {
-                name: 'Compare with Painters',
-                params: { operation: 'compare', width: 64, height: 64 }
-              }
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              examples: [
+                {
+                  name: 'Render Triangles',
+                  params: {
+                    operation: 'render',
+                    width: 100,
+                    height: 100,
+                    triangles: [
+                      {
+                        v0: { x: 10, y: 10, z: 0.3 },
+                        v1: { x: 50, y: 10, z: 0.3 },
+                        v2: { x: 30, y: 50, z: 0.3 },
+                        color: { r: 255, g: 0, b: 0 },
+                      },
+                      {
+                        v0: { x: 20, y: 20, z: 0.5 },
+                        v1: { x: 60, y: 20, z: 0.5 },
+                        v2: { x: 40, y: 60, z: 0.5 },
+                        color: { r: 0, g: 255, b: 0 },
+                      },
+                    ],
+                  },
+                },
+                {
+                  name: 'Compare with Painters',
+                  params: { operation: 'compare', width: 64, height: 64 },
+                },
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -495,19 +580,23 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'create',
-            buffer: {
-              width: buffer.width,
-              height: buffer.height,
-              totalPixels: buffer.width * buffer.height,
-              clearDepth: buffer.clearDepth,
-              depthFunc: buffer.depthFunc,
-              nearPlane: buffer.nearPlane,
-              farPlane: buffer.farPlane,
-              memoryEstimate: `${(buffer.width * buffer.height * 8 / 1024).toFixed(2)} KB (depth + color)`
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'create',
+              buffer: {
+                width: buffer.width,
+                height: buffer.height,
+                totalPixels: buffer.width * buffer.height,
+                clearDepth: buffer.clearDepth,
+                depthFunc: buffer.depthFunc,
+                nearPlane: buffer.nearPlane,
+                farPlane: buffer.farPlane,
+                memoryEstimate: `${((buffer.width * buffer.height * 8) / 1024).toFixed(2)} KB (depth + color)`,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -516,18 +605,24 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
         buffer.depthFunc = depthFunc;
 
         const stats: DepthStats = {
-          minDepth: 1, maxDepth: 0, avgDepth: 0,
-          fragmentsWritten: 0, fragmentsRejected: 0, overdraw: 0
+          minDepth: 1,
+          maxDepth: 0,
+          avgDepth: 0,
+          fragmentsWritten: 0,
+          fragmentsRejected: 0,
+          overdraw: 0,
         };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const inputTriangles: Triangle[] = (triangles || []).map((t: any, i: number) => ({
-          v0: t.v0, v1: t.v1, v2: t.v2,
+          v0: t.v0,
+          v1: t.v1,
+          v2: t.v2,
           color: t.color || { r: 255, g: 255, b: 255 },
-          id: i
+          id: i,
         }));
 
-        inputTriangles.forEach(t => rasterizeTriangle(buffer, t, stats));
+        inputTriangles.forEach((t) => rasterizeTriangle(buffer, t, stats));
 
         // Compute final stats
         const finalStats = computeDepthStats(buffer);
@@ -537,13 +632,17 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'render',
-            bufferSize: { width, height },
-            trianglesRendered: inputTriangles.length,
-            stats,
-            depthVisualization: generateDepthVisualization(buffer, 40, 20)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'render',
+              bufferSize: { width, height },
+              trianglesRendered: inputTriangles.length,
+              stats,
+              depthVisualization: generateDepthVisualization(buffer, 40, 20),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -553,7 +652,8 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
         // Create sample depth pattern
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
-            const cx = width / 2, cy = height / 2;
+            const cx = width / 2,
+              cy = height / 2;
             const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
             const maxDist = Math.sqrt(cx ** 2 + cy ** 2);
             buffer.depthBuffer[y * width + x] = dist / maxDist;
@@ -562,16 +662,20 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'visualize',
-            description: 'Sample radial depth pattern',
-            visualization: generateDepthVisualization(buffer, 50, 25),
-            legend: {
-              ' ': 'No depth (background)',
-              '.': 'Near (low depth)',
-              '@': 'Far (high depth)'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'visualize',
+              description: 'Sample radial depth pattern',
+              visualization: generateDepthVisualization(buffer, 50, 25),
+              legend: {
+                ' ': 'No depth (background)',
+                '.': 'Near (low depth)',
+                '@': 'Far (high depth)',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -581,17 +685,21 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'stats',
-            bufferStats: {
-              width: buffer.width,
-              height: buffer.height,
-              totalPixels: buffer.width * buffer.height,
-              depthPrecision: '32-bit float equivalent',
-              depthRange: [0, 1],
-              depthDistribution: stats
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'stats',
+              bufferStats: {
+                width: buffer.width,
+                height: buffer.height,
+                totalPixels: buffer.width * buffer.height,
+                depthPrecision: '32-bit float equivalent',
+                depthRange: [0, 1],
+                depthDistribution: stats,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -600,36 +708,50 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
         // Fill with sample data
         const stats: DepthStats = {
-          minDepth: 1, maxDepth: 0, avgDepth: 0,
-          fragmentsWritten: 0, fragmentsRejected: 0, overdraw: 0
+          minDepth: 1,
+          maxDepth: 0,
+          avgDepth: 0,
+          fragmentsWritten: 0,
+          fragmentsRejected: 0,
+          overdraw: 0,
         };
 
         const sampleTriangles: Triangle[] = [
-          { v0: { x: 10, y: 10, z: 0.2 }, v1: { x: 50, y: 10, z: 0.2 }, v2: { x: 30, y: 40, z: 0.2 }, color: { r: 255, g: 0, b: 0 }, id: 0 }
+          {
+            v0: { x: 10, y: 10, z: 0.2 },
+            v1: { x: 50, y: 10, z: 0.2 },
+            v2: { x: 30, y: 40, z: 0.2 },
+            color: { r: 255, g: 0, b: 0 },
+            id: 0,
+          },
         ];
 
-        sampleTriangles.forEach(t => rasterizeTriangle(buffer, t, stats));
+        sampleTriangles.forEach((t) => rasterizeTriangle(buffer, t, stats));
 
         const hzb = buildHierarchicalZBuffer(buffer);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'hierarchical',
-            description: 'Hierarchical Z-Buffer (HZB)',
-            levels: hzb.levels.length,
-            levelDimensions: hzb.levelWidths.map((w, i) => ({
-              level: i,
-              width: w,
-              height: hzb.levelHeights[i],
-              pixels: w * hzb.levelHeights[i]
-            })),
-            uses: [
-              'Fast occlusion culling',
-              'GPU-based visibility queries',
-              'Hierarchical screen-space effects'
-            ]
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'hierarchical',
+              description: 'Hierarchical Z-Buffer (HZB)',
+              levels: hzb.levels.length,
+              levelDimensions: hzb.levelWidths.map((w, i) => ({
+                level: i,
+                width: w,
+                height: hzb.levelHeights[i],
+                pixels: w * hzb.levelHeights[i],
+              })),
+              uses: [
+                'Fast occlusion culling',
+                'GPU-based visibility queries',
+                'Hierarchical screen-space effects',
+              ],
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -638,30 +760,52 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
 
         // Create overlapping triangles
         const testTriangles: Triangle[] = [
-          { v0: { x: 5, y: 5, z: 0.7 }, v1: { x: 35, y: 5, z: 0.7 }, v2: { x: 20, y: 35, z: 0.7 }, color: { r: 255, g: 0, b: 0 }, id: 0 },
-          { v0: { x: 15, y: 10, z: 0.3 }, v1: { x: 45, y: 10, z: 0.3 }, v2: { x: 30, y: 40, z: 0.3 }, color: { r: 0, g: 255, b: 0 }, id: 1 },
-          { v0: { x: 25, y: 15, z: 0.5 }, v1: { x: 55, y: 15, z: 0.5 }, v2: { x: 40, y: 45, z: 0.5 }, color: { r: 0, g: 0, b: 255 }, id: 2 }
+          {
+            v0: { x: 5, y: 5, z: 0.7 },
+            v1: { x: 35, y: 5, z: 0.7 },
+            v2: { x: 20, y: 35, z: 0.7 },
+            color: { r: 255, g: 0, b: 0 },
+            id: 0,
+          },
+          {
+            v0: { x: 15, y: 10, z: 0.3 },
+            v1: { x: 45, y: 10, z: 0.3 },
+            v2: { x: 30, y: 40, z: 0.3 },
+            color: { r: 0, g: 255, b: 0 },
+            id: 1,
+          },
+          {
+            v0: { x: 25, y: 15, z: 0.5 },
+            v1: { x: 55, y: 15, z: 0.5 },
+            v2: { x: 40, y: 45, z: 0.5 },
+            color: { r: 0, g: 0, b: 255 },
+            id: 2,
+          },
         ];
 
         const result = compareWithPaintersAlgorithm(buffer, testTriangles);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'compare',
-            title: 'Z-Buffer vs Painter\'s Algorithm',
-            triangleCount: testTriangles.length,
-            zbuffer: {
-              stats: result.zbufferResult,
-              method: 'Per-pixel depth test'
+          content: JSON.stringify(
+            {
+              operation: 'compare',
+              title: "Z-Buffer vs Painter's Algorithm",
+              triangleCount: testTriangles.length,
+              zbuffer: {
+                stats: result.zbufferResult,
+                method: 'Per-pixel depth test',
+              },
+              paintersAlgorithm: {
+                renderOrder: result.paintersOrder,
+                method: 'Sort by average depth, render back-to-front',
+              },
+              zbufferAdvantages: result.zbufferAdvantages,
+              visualization: generateDepthVisualization(buffer, 40, 20),
             },
-            paintersAlgorithm: {
-              renderOrder: result.paintersOrder,
-              method: 'Sort by average depth, render back-to-front'
-            },
-            zbufferAdvantages: result.zbufferAdvantages,
-            visualization: generateDepthVisualization(buffer, 40, 20)
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -669,47 +813,73 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
         const buffer = createZBuffer(64, 64, 0.1, 100);
 
         const demoTriangles: Triangle[] = [
-          { v0: { x: 5, y: 5, z: 0.8 }, v1: { x: 30, y: 5, z: 0.8 }, v2: { x: 17, y: 30, z: 0.4 }, color: { r: 255, g: 100, b: 100 }, id: 0 },
-          { v0: { x: 20, y: 10, z: 0.2 }, v1: { x: 55, y: 10, z: 0.6 }, v2: { x: 37, y: 50, z: 0.3 }, color: { r: 100, g: 255, b: 100 }, id: 1 },
-          { v0: { x: 35, y: 5, z: 0.5 }, v1: { x: 60, y: 5, z: 0.5 }, v2: { x: 47, y: 35, z: 0.5 }, color: { r: 100, g: 100, b: 255 }, id: 2 }
+          {
+            v0: { x: 5, y: 5, z: 0.8 },
+            v1: { x: 30, y: 5, z: 0.8 },
+            v2: { x: 17, y: 30, z: 0.4 },
+            color: { r: 255, g: 100, b: 100 },
+            id: 0,
+          },
+          {
+            v0: { x: 20, y: 10, z: 0.2 },
+            v1: { x: 55, y: 10, z: 0.6 },
+            v2: { x: 37, y: 50, z: 0.3 },
+            color: { r: 100, g: 255, b: 100 },
+            id: 1,
+          },
+          {
+            v0: { x: 35, y: 5, z: 0.5 },
+            v1: { x: 60, y: 5, z: 0.5 },
+            v2: { x: 47, y: 35, z: 0.5 },
+            color: { r: 100, g: 100, b: 255 },
+            id: 2,
+          },
         ];
 
         const stats: DepthStats = {
-          minDepth: 1, maxDepth: 0, avgDepth: 0,
-          fragmentsWritten: 0, fragmentsRejected: 0, overdraw: 0
+          minDepth: 1,
+          maxDepth: 0,
+          avgDepth: 0,
+          fragmentsWritten: 0,
+          fragmentsRejected: 0,
+          overdraw: 0,
         };
 
-        demoTriangles.forEach(t => rasterizeTriangle(buffer, t, stats));
+        demoTriangles.forEach((t) => rasterizeTriangle(buffer, t, stats));
 
         const finalStats = computeDepthStats(buffer);
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'demo',
-            title: 'Z-Buffer Demo',
-            description: 'Rendering three overlapping triangles with depth testing',
-            bufferSize: { width: 64, height: 64 },
-            triangles: demoTriangles.map(t => ({
-              id: t.id,
-              averageZ: ((t.v0.z + t.v1.z + t.v2.z) / 3).toFixed(3),
-              color: `rgb(${t.color.r},${t.color.g},${t.color.b})`
-            })),
-            renderingStats: {
-              fragmentsWritten: stats.fragmentsWritten,
-              fragmentsRejected: stats.fragmentsRejected,
-              overdrawPixels: stats.overdraw,
-              depthRange: [finalStats.minDepth.toFixed(3), finalStats.maxDepth.toFixed(3)]
+          content: JSON.stringify(
+            {
+              operation: 'demo',
+              title: 'Z-Buffer Demo',
+              description: 'Rendering three overlapping triangles with depth testing',
+              bufferSize: { width: 64, height: 64 },
+              triangles: demoTriangles.map((t) => ({
+                id: t.id,
+                averageZ: ((t.v0.z + t.v1.z + t.v2.z) / 3).toFixed(3),
+                color: `rgb(${t.color.r},${t.color.g},${t.color.b})`,
+              })),
+              renderingStats: {
+                fragmentsWritten: stats.fragmentsWritten,
+                fragmentsRejected: stats.fragmentsRejected,
+                overdrawPixels: stats.overdraw,
+                depthRange: [finalStats.minDepth.toFixed(3), finalStats.maxDepth.toFixed(3)],
+              },
+              depthVisualization: generateDepthVisualization(buffer, 40, 20),
+              concepts: [
+                'Z-buffer stores depth per pixel',
+                'New fragments are tested against stored depth',
+                'Only closest fragment color is kept',
+                'Handles any triangle ordering automatically',
+                'Essential for 3D graphics rendering',
+              ],
             },
-            depthVisualization: generateDepthVisualization(buffer, 40, 20),
-            concepts: [
-              'Z-buffer stores depth per pixel',
-              'New fragments are tested against stored depth',
-              'Only closest fragment color is kept',
-              'Handles any triangle ordering automatically',
-              'Essential for 3D graphics rendering'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -717,7 +887,7 @@ export async function executezbuffer(toolCall: UnifiedToolCall): Promise<Unified
         return {
           toolCallId: id,
           content: `Unknown operation: ${operation}. Use 'info' for available operations.`,
-          isError: true
+          isError: true,
         };
     }
   } catch (e) {

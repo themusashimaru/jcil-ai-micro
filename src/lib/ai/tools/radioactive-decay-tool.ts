@@ -14,8 +14,7 @@ const AVOGADRO = 6.02214076e23; // mol^-1
 const SECONDS_PER_YEAR = 3.156e7;
 const SECONDS_PER_DAY = 86400;
 const SECONDS_PER_HOUR = 3600;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const SECONDS_PER_MINUTE = 60;
+export const SECONDS_PER_MINUTE = 60;
 
 // Decay types with their characteristics
 interface DecayType {
@@ -36,7 +35,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: -4,
     emittedParticle: 'He-4 nucleus (2p + 2n)',
     typicalEnergy: '4-9 MeV',
-    description: 'Emission of helium-4 nucleus, common in heavy nuclei'
+    description: 'Emission of helium-4 nucleus, common in heavy nuclei',
   },
   beta_minus: {
     name: 'Beta-minus Decay',
@@ -45,7 +44,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: 0,
     emittedParticle: 'electron + antineutrino',
     typicalEnergy: '0.01-10 MeV',
-    description: 'Neutron converts to proton, emits electron and antineutrino'
+    description: 'Neutron converts to proton, emits electron and antineutrino',
   },
   beta_plus: {
     name: 'Beta-plus Decay',
@@ -54,7 +53,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: 0,
     emittedParticle: 'positron + neutrino',
     typicalEnergy: '0.01-10 MeV',
-    description: 'Proton converts to neutron, emits positron and neutrino'
+    description: 'Proton converts to neutron, emits positron and neutrino',
   },
   gamma: {
     name: 'Gamma Decay',
@@ -63,7 +62,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: 0,
     emittedParticle: 'high-energy photon',
     typicalEnergy: '0.1-10 MeV',
-    description: 'Excited nucleus releases energy as electromagnetic radiation'
+    description: 'Excited nucleus releases energy as electromagnetic radiation',
   },
   electron_capture: {
     name: 'Electron Capture',
@@ -72,7 +71,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: 0,
     emittedParticle: 'neutrino (+ X-rays)',
     typicalEnergy: '0.01-5 MeV',
-    description: 'Nucleus absorbs inner orbital electron, proton becomes neutron'
+    description: 'Nucleus absorbs inner orbital electron, proton becomes neutron',
   },
   neutron_emission: {
     name: 'Neutron Emission',
@@ -81,7 +80,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: -1,
     emittedParticle: 'neutron',
     typicalEnergy: '0.1-5 MeV',
-    description: 'Direct emission of neutron from neutron-rich nucleus'
+    description: 'Direct emission of neutron from neutron-rich nucleus',
   },
   proton_emission: {
     name: 'Proton Emission',
@@ -90,7 +89,7 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: -1,
     emittedParticle: 'proton',
     typicalEnergy: '1-10 MeV',
-    description: 'Direct emission of proton from proton-rich nucleus'
+    description: 'Direct emission of proton from proton-rich nucleus',
   },
   spontaneous_fission: {
     name: 'Spontaneous Fission',
@@ -99,8 +98,8 @@ const DECAY_TYPES: Record<string, DecayType> = {
     deltaA: -118,
     emittedParticle: 'fission fragments + neutrons',
     typicalEnergy: '~200 MeV',
-    description: 'Nucleus splits into two smaller nuclei plus neutrons'
-  }
+    description: 'Nucleus splits into two smaller nuclei plus neutrons',
+  },
 };
 
 // Common isotopes database
@@ -125,7 +124,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 4.468e9 * SECONDS_PER_YEAR,
     halfLifeUnit: '4.468 billion years',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'Th-234' }],
-    atomicMass: 238.05079
+    atomicMass: 238.05079,
   },
   'U-235': {
     symbol: 'U-235',
@@ -135,7 +134,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 7.04e8 * SECONDS_PER_YEAR,
     halfLifeUnit: '704 million years',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'Th-231' }],
-    atomicMass: 235.04393
+    atomicMass: 235.04393,
   },
   'Th-234': {
     symbol: 'Th-234',
@@ -145,7 +144,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 24.1 * SECONDS_PER_DAY,
     halfLifeUnit: '24.1 days',
     decayModes: [{ type: 'beta_minus', branchingRatio: 1.0, daughter: 'Pa-234m' }],
-    atomicMass: 234.04360
+    atomicMass: 234.0436,
   },
   'Ra-226': {
     symbol: 'Ra-226',
@@ -155,7 +154,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 1600 * SECONDS_PER_YEAR,
     halfLifeUnit: '1600 years',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'Rn-222' }],
-    atomicMass: 226.02541
+    atomicMass: 226.02541,
   },
   'Rn-222': {
     symbol: 'Rn-222',
@@ -165,7 +164,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 3.8235 * SECONDS_PER_DAY,
     halfLifeUnit: '3.8235 days',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'Po-218' }],
-    atomicMass: 222.01758
+    atomicMass: 222.01758,
   },
   'Po-210': {
     symbol: 'Po-210',
@@ -175,7 +174,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 138.376 * SECONDS_PER_DAY,
     halfLifeUnit: '138.376 days',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'Pb-206' }],
-    atomicMass: 209.98287
+    atomicMass: 209.98287,
   },
   'Pb-210': {
     symbol: 'Pb-210',
@@ -185,7 +184,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 22.3 * SECONDS_PER_YEAR,
     halfLifeUnit: '22.3 years',
     decayModes: [{ type: 'beta_minus', branchingRatio: 1.0, daughter: 'Bi-210' }],
-    atomicMass: 209.98419
+    atomicMass: 209.98419,
   },
   'C-14': {
     symbol: 'C-14',
@@ -195,7 +194,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 5730 * SECONDS_PER_YEAR,
     halfLifeUnit: '5730 years',
     decayModes: [{ type: 'beta_minus', branchingRatio: 1.0, daughter: 'N-14' }],
-    atomicMass: 14.00324
+    atomicMass: 14.00324,
   },
   'Co-60': {
     symbol: 'Co-60',
@@ -206,9 +205,9 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLifeUnit: '5.2714 years',
     decayModes: [
       { type: 'beta_minus', branchingRatio: 1.0, daughter: 'Ni-60' },
-      { type: 'gamma', branchingRatio: 1.0 }
+      { type: 'gamma', branchingRatio: 1.0 },
     ],
-    atomicMass: 59.93382
+    atomicMass: 59.93382,
   },
   'I-131': {
     symbol: 'I-131',
@@ -218,7 +217,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 8.02 * SECONDS_PER_DAY,
     halfLifeUnit: '8.02 days',
     decayModes: [{ type: 'beta_minus', branchingRatio: 1.0, daughter: 'Xe-131' }],
-    atomicMass: 130.90612
+    atomicMass: 130.90612,
   },
   'Cs-137': {
     symbol: 'Cs-137',
@@ -228,7 +227,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 30.17 * SECONDS_PER_YEAR,
     halfLifeUnit: '30.17 years',
     decayModes: [{ type: 'beta_minus', branchingRatio: 1.0, daughter: 'Ba-137m' }],
-    atomicMass: 136.90709
+    atomicMass: 136.90709,
   },
   'Sr-90': {
     symbol: 'Sr-90',
@@ -238,7 +237,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 28.8 * SECONDS_PER_YEAR,
     halfLifeUnit: '28.8 years',
     decayModes: [{ type: 'beta_minus', branchingRatio: 1.0, daughter: 'Y-90' }],
-    atomicMass: 89.90773
+    atomicMass: 89.90773,
   },
   'Pu-239': {
     symbol: 'Pu-239',
@@ -248,7 +247,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 24110 * SECONDS_PER_YEAR,
     halfLifeUnit: '24,110 years',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'U-235' }],
-    atomicMass: 239.05216
+    atomicMass: 239.05216,
   },
   'Am-241': {
     symbol: 'Am-241',
@@ -258,7 +257,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 432.2 * SECONDS_PER_YEAR,
     halfLifeUnit: '432.2 years',
     decayModes: [{ type: 'alpha', branchingRatio: 1.0, daughter: 'Np-237' }],
-    atomicMass: 241.05682
+    atomicMass: 241.05682,
   },
   'Tc-99m': {
     symbol: 'Tc-99m',
@@ -268,7 +267,7 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLife: 6.01 * SECONDS_PER_HOUR,
     halfLifeUnit: '6.01 hours',
     decayModes: [{ type: 'gamma', branchingRatio: 0.88, daughter: 'Tc-99' }],
-    atomicMass: 98.9063
+    atomicMass: 98.9063,
   },
   'K-40': {
     symbol: 'K-40',
@@ -279,10 +278,10 @@ const ISOTOPES: Record<string, Isotope> = {
     halfLifeUnit: '1.248 billion years',
     decayModes: [
       { type: 'beta_minus', branchingRatio: 0.893, daughter: 'Ca-40' },
-      { type: 'electron_capture', branchingRatio: 0.107, daughter: 'Ar-40' }
+      { type: 'electron_capture', branchingRatio: 0.107, daughter: 'Ar-40' },
     ],
-    atomicMass: 39.96400
-  }
+    atomicMass: 39.964,
+  },
 };
 
 // ============================================================================
@@ -307,8 +306,7 @@ function remainingAmount(N0: number, lambda: number, time: number): number {
 /**
  * Calculate time for amount to decay to fraction
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function timeToDecay(fraction: number, lambda: number): number {
+export function timeToDecay(fraction: number, lambda: number): number {
   return -Math.log(fraction) / lambda;
 }
 
@@ -467,7 +465,7 @@ function buildDecayChain(parentSymbol: string): DecayChainResult {
       isotope: current,
       decayType: primaryDecay.type,
       halfLife: isotope.halfLifeUnit,
-      daughter: primaryDecay.daughter
+      daughter: primaryDecay.daughter,
     });
 
     current = primaryDecay.daughter;
@@ -477,7 +475,7 @@ function buildDecayChain(parentSymbol: string): DecayChainResult {
     parent: parentSymbol,
     chain,
     stableEnd: current,
-    totalSteps: chain.length
+    totalSteps: chain.length,
   };
 }
 
@@ -489,10 +487,14 @@ function simulateDecayChain(
   initialAtoms: number,
   time: number,
   steps: number
-): Array<{ time: number; populations: Record<string, number>; activities: Record<string, number> }> {
+): Array<{
+  time: number;
+  populations: Record<string, number>;
+  activities: Record<string, number>;
+}> {
   // Build chain first
   const chainInfo = buildDecayChain(parentSymbol);
-  const isotopes = [parentSymbol, ...chainInfo.chain.map(c => c.daughter)];
+  const isotopes = [parentSymbol, ...chainInfo.chain.map((c) => c.daughter)];
 
   // Initialize populations
   const populations: Record<string, number> = {};
@@ -500,7 +502,11 @@ function simulateDecayChain(
     populations[iso] = iso === parentSymbol ? initialAtoms : 0;
   }
 
-  const results: Array<{ time: number; populations: Record<string, number>; activities: Record<string, number> }> = [];
+  const results: Array<{
+    time: number;
+    populations: Record<string, number>;
+    activities: Record<string, number>;
+  }> = [];
   const dt = time / steps;
 
   for (let i = 0; i <= steps; i++) {
@@ -519,7 +525,7 @@ function simulateDecayChain(
     results.push({
       time: t,
       populations: { ...currentPop },
-      activities
+      activities,
     });
 
     // Update populations using Bateman equations (simple Euler for now)
@@ -549,13 +555,7 @@ function simulateDecayChain(
  * Bateman equation for nth member of decay chain
  * Exact solution for chain: A -> B -> C -> ...
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function batemanNth(
-  lambdas: number[],
-  N0: number,
-  n: number,
-  t: number
-): number {
+export function batemanNth(lambdas: number[], N0: number, n: number, t: number): number {
   if (n === 0) {
     return N0 * Math.exp(-lambdas[0] * t);
   }
@@ -621,7 +621,7 @@ function radiometricDating(
     parentIsotope: parentSymbol,
     daughterIsotope: daughter,
     halfLife: isotope.halfLifeUnit,
-    ratio
+    ratio,
   };
 }
 
@@ -631,66 +631,79 @@ function radiometricDating(
 
 export const radioactivedecayTool: UnifiedTool = {
   name: 'radioactive_decay',
-  description: 'Radioactive decay - half-life calculations, decay chains, activity, Bateman equations, radiometric dating, and isotope database',
+  description:
+    'Radioactive decay - half-life calculations, decay chains, activity, Bateman equations, radiometric dating, and isotope database',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['decay', 'half_life', 'chain', 'activity', 'dating', 'isotope', 'simulate', 'info'],
-        description: 'Operation: decay (calculate remaining), half_life (decay constant), chain (build decay chain), activity (calculate activity), dating (radiometric age), isotope (lookup), simulate (chain dynamics), info (documentation)'
+        description:
+          'Operation: decay (calculate remaining), half_life (decay constant), chain (build decay chain), activity (calculate activity), dating (radiometric age), isotope (lookup), simulate (chain dynamics), info (documentation)',
       },
       isotope: {
         type: 'string',
-        description: 'Isotope symbol (e.g., "U-238", "C-14", "Co-60")'
+        description: 'Isotope symbol (e.g., "U-238", "C-14", "Co-60")',
       },
       initial_amount: {
         type: 'number',
-        description: 'Initial amount (atoms or mass in grams)'
+        description: 'Initial amount (atoms or mass in grams)',
       },
       time: {
         type: 'number',
-        description: 'Time elapsed'
+        description: 'Time elapsed',
       },
       time_unit: {
         type: 'string',
-        description: 'Time unit (seconds, minutes, hours, days, years)'
+        description: 'Time unit (seconds, minutes, hours, days, years)',
       },
       decay_type: {
         type: 'string',
-        enum: ['alpha', 'beta_minus', 'beta_plus', 'gamma', 'electron_capture', 'neutron_emission', 'proton_emission', 'spontaneous_fission'],
-        description: 'Type of decay'
+        enum: [
+          'alpha',
+          'beta_minus',
+          'beta_plus',
+          'gamma',
+          'electron_capture',
+          'neutron_emission',
+          'proton_emission',
+          'spontaneous_fission',
+        ],
+        description: 'Type of decay',
       },
       activity_value: {
         type: 'number',
-        description: 'Activity value for conversion'
+        description: 'Activity value for conversion',
       },
       from_unit: {
         type: 'string',
-        description: 'Source activity unit (Bq, kBq, MBq, GBq, Ci, mCi, μCi)'
+        description: 'Source activity unit (Bq, kBq, MBq, GBq, Ci, mCi, μCi)',
       },
       to_unit: {
         type: 'string',
-        description: 'Target activity unit'
+        description: 'Target activity unit',
       },
       parent_amount: {
         type: 'number',
-        description: 'Parent isotope amount for dating'
+        description: 'Parent isotope amount for dating',
       },
       daughter_amount: {
         type: 'number',
-        description: 'Daughter isotope amount for dating'
+        description: 'Daughter isotope amount for dating',
       },
       simulation_steps: {
         type: 'number',
-        description: 'Number of time steps for simulation'
-      }
+        description: 'Number of time steps for simulation',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executeradioactivedecay(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -703,11 +716,15 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
         if (!isoSymbol || !ISOTOPES[isoSymbol]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Unknown or missing isotope',
-              availableIsotopes: Object.keys(ISOTOPES)
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Unknown or missing isotope',
+                availableIsotopes: Object.keys(ISOTOPES),
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -725,30 +742,34 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'decay',
-            isotope: {
-              symbol: isotope.symbol,
-              name: isotope.name,
-              halfLife: isotope.halfLifeUnit,
-              decayModes: isotope.decayModes.map(d => d.type)
+          content: JSON.stringify(
+            {
+              operation: 'decay',
+              isotope: {
+                symbol: isotope.symbol,
+                name: isotope.name,
+                halfLife: isotope.halfLifeUnit,
+                decayModes: isotope.decayModes.map((d) => d.type),
+              },
+              calculation: {
+                initialAmount: N0,
+                timeElapsed: `${timeValue} ${timeUnit}`,
+                timeInSeconds: time,
+                decayConstant: lambda,
+                remainingAmount: remaining,
+                decayedAmount: decayed,
+                fractionRemaining: remaining / N0,
+                percentRemaining: ((remaining / N0) * 100).toFixed(4) + '%',
+                halfLivesElapsed: (time / isotope.halfLife).toFixed(4),
+              },
+              activity: {
+                initial: { Bq: activityInitial, Ci: convertActivity(activityInitial, 'Bq', 'Ci') },
+                final: { Bq: activityFinal, Ci: convertActivity(activityFinal, 'Bq', 'Ci') },
+              },
             },
-            calculation: {
-              initialAmount: N0,
-              timeElapsed: `${timeValue} ${timeUnit}`,
-              timeInSeconds: time,
-              decayConstant: lambda,
-              remainingAmount: remaining,
-              decayedAmount: decayed,
-              fractionRemaining: remaining / N0,
-              percentRemaining: ((remaining / N0) * 100).toFixed(4) + '%',
-              halfLivesElapsed: (time / isotope.halfLife).toFixed(4)
-            },
-            activity: {
-              initial: { Bq: activityInitial, Ci: convertActivity(activityInitial, 'Bq', 'Ci') },
-              final: { Bq: activityFinal, Ci: convertActivity(activityFinal, 'Bq', 'Ci') }
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -757,11 +778,15 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
         if (!isoSymbol || !ISOTOPES[isoSymbol]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Unknown or missing isotope',
-              availableIsotopes: Object.keys(ISOTOPES)
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Unknown or missing isotope',
+                availableIsotopes: Object.keys(ISOTOPES),
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -772,34 +797,38 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'half_life',
-            isotope: {
-              symbol: isotope.symbol,
-              name: isotope.name,
-              atomicNumber: isotope.atomicNumber,
-              massNumber: isotope.massNumber,
-              atomicMass: isotope.atomicMass
+          content: JSON.stringify(
+            {
+              operation: 'half_life',
+              isotope: {
+                symbol: isotope.symbol,
+                name: isotope.name,
+                atomicNumber: isotope.atomicNumber,
+                massNumber: isotope.massNumber,
+                atomicMass: isotope.atomicMass,
+              },
+              decay: {
+                halfLife: isotope.halfLifeUnit,
+                halfLifeSeconds: isotope.halfLife,
+                decayConstant: lambda,
+                decayConstantUnit: 'per second',
+                meanLifetime: formatTime(meanLife),
+                meanLifetimeSeconds: meanLife,
+              },
+              specificActivity: {
+                BqPerGram: specActivity,
+                CiPerGram: specActivity / 3.7e10,
+              },
+              decayModes: isotope.decayModes.map((d) => ({
+                type: d.type,
+                branchingRatio: d.branchingRatio,
+                daughter: d.daughter,
+                ...DECAY_TYPES[d.type],
+              })),
             },
-            decay: {
-              halfLife: isotope.halfLifeUnit,
-              halfLifeSeconds: isotope.halfLife,
-              decayConstant: lambda,
-              decayConstantUnit: 'per second',
-              meanLifetime: formatTime(meanLife),
-              meanLifetimeSeconds: meanLife
-            },
-            specificActivity: {
-              BqPerGram: specActivity,
-              CiPerGram: specActivity / 3.7e10
-            },
-            decayModes: isotope.decayModes.map(d => ({
-              type: d.type,
-              branchingRatio: d.branchingRatio,
-              daughter: d.daughter,
-              ...DECAY_TYPES[d.type]
-            }))
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -809,11 +838,15 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
         if (!ISOTOPES[isoSymbol]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Unknown isotope',
-              availableIsotopes: Object.keys(ISOTOPES)
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Unknown isotope',
+                availableIsotopes: Object.keys(ISOTOPES),
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -821,13 +854,20 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'chain',
-            result: chain,
-            chainDescription: chain.chain.map((step, i) =>
-              `${i + 1}. ${step.isotope} --[${step.decayType}, t½=${step.halfLife}]--> ${step.daughter}`
-            ).join('\n')
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'chain',
+              result: chain,
+              chainDescription: chain.chain
+                .map(
+                  (step, i) =>
+                    `${i + 1}. ${step.isotope} --[${step.decayType}, t½=${step.halfLife}]--> ${step.daughter}`
+                )
+                .join('\n'),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -836,11 +876,15 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
           const converted = convertActivity(args.activity_value, args.from_unit, args.to_unit);
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'activity_conversion',
-              original: { value: args.activity_value, unit: args.from_unit },
-              converted: { value: converted, unit: args.to_unit }
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'activity_conversion',
+                original: { value: args.activity_value, unit: args.from_unit },
+                converted: { value: converted, unit: args.to_unit },
+              },
+              null,
+              2
+            ),
           };
         }
 
@@ -848,11 +892,16 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
         if (!isoSymbol || !ISOTOPES[isoSymbol]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Provide isotope for activity calculation or value/from_unit/to_unit for conversion',
-              example: { isotope: 'Co-60', initial_amount: 1e15 }
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error:
+                  'Provide isotope for activity calculation or value/from_unit/to_unit for conversion',
+                example: { isotope: 'Co-60', initial_amount: 1e15 },
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -863,21 +912,25 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'activity',
-            isotope: isotope.symbol,
-            numberOfAtoms: amount,
-            decayConstant: lambda,
-            activity: {
-              Bq: act,
-              kBq: act / 1e3,
-              MBq: act / 1e6,
-              GBq: act / 1e9,
-              Ci: act / 3.7e10,
-              mCi: act / 3.7e7
+          content: JSON.stringify(
+            {
+              operation: 'activity',
+              isotope: isotope.symbol,
+              numberOfAtoms: amount,
+              decayConstant: lambda,
+              activity: {
+                Bq: act,
+                kBq: act / 1e3,
+                MBq: act / 1e6,
+                GBq: act / 1e9,
+                Ci: act / 3.7e10,
+                mCi: act / 3.7e7,
+              },
+              formula: 'A = λN where λ = ln(2)/t½',
             },
-            formula: 'A = λN where λ = ln(2)/t½'
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -889,11 +942,15 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
         if (parentAmt === undefined || daughterAmt === undefined) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Both parent_amount and daughter_amount are required',
-              example: { isotope: 'C-14', parent_amount: 0.5, daughter_amount: 0.5 }
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Both parent_amount and daughter_amount are required',
+                example: { isotope: 'C-14', parent_amount: 0.5, daughter_amount: 0.5 },
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -901,14 +958,19 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'dating',
-            result: dating,
-            interpretation: {
-              formula: 'Age = (1/λ) × ln(1 + D/P)',
-              explanation: 'The age is calculated from the ratio of daughter to parent isotope amounts'
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'dating',
+              result: dating,
+              interpretation: {
+                formula: 'Age = (1/λ) × ln(1 + D/P)',
+                explanation:
+                  'The age is calculated from the ratio of daughter to parent isotope amounts',
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -918,24 +980,32 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
           const isotope = ISOTOPES[isoSymbol];
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              operation: 'isotope',
-              data: isotope,
-              decayTypes: isotope.decayModes.map(d => DECAY_TYPES[d.type])
-            }, null, 2)
+            content: JSON.stringify(
+              {
+                operation: 'isotope',
+                data: isotope,
+                decayTypes: isotope.decayModes.map((d) => DECAY_TYPES[d.type]),
+              },
+              null,
+              2
+            ),
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'isotope',
-            availableIsotopes: Object.entries(ISOTOPES).map(([k, v]) => ({
-              symbol: k,
-              name: v.name,
-              halfLife: v.halfLifeUnit
-            }))
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'isotope',
+              availableIsotopes: Object.entries(ISOTOPES).map(([k, v]) => ({
+                symbol: k,
+                name: v.name,
+                halfLife: v.halfLifeUnit,
+              })),
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -950,11 +1020,15 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
         if (!ISOTOPES[isoSymbol]) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Unknown isotope',
-              availableIsotopes: Object.keys(ISOTOPES)
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Unknown isotope',
+                availableIsotopes: Object.keys(ISOTOPES),
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -966,9 +1040,9 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
           simulation[0],
           simulation[Math.floor(steps / 4)],
           simulation[Math.floor(steps / 2)],
-          simulation[Math.floor(3 * steps / 4)],
-          simulation[steps]
-        ].map(s => ({
+          simulation[Math.floor((3 * steps) / 4)],
+          simulation[steps],
+        ].map((s) => ({
           time: formatTime(s.time),
           populations: Object.fromEntries(
             Object.entries(s.populations).map(([k, v]) => [k, v.toExponential(3)])
@@ -977,75 +1051,105 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
             Object.entries(s.activities)
               .filter(([_, v]) => v > 0)
               .map(([k, v]) => [k, v.toExponential(3) + ' Bq'])
-          )
+          ),
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'simulate',
-            parent: isoSymbol,
-            decayChain: chain.chain.map(c => c.isotope + ' → ' + c.daughter).join(' → ') + ' → ' + chain.stableEnd,
-            initialAtoms: N0,
-            totalTime: `${timeValue} ${timeUnit}`,
-            timeSteps: steps,
-            summary
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'simulate',
+              parent: isoSymbol,
+              decayChain:
+                chain.chain.map((c) => c.isotope + ' → ' + c.daughter).join(' → ') +
+                ' → ' +
+                chain.stableEnd,
+              initialAtoms: N0,
+              totalTime: `${timeValue} ${timeUnit}`,
+              timeSteps: steps,
+              summary,
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Radioactive Decay',
-            description: 'Nuclear decay calculations, chain simulation, and radiometric dating',
+          content: JSON.stringify(
+            {
+              tool: 'Radioactive Decay',
+              description: 'Nuclear decay calculations, chain simulation, and radiometric dating',
 
-            fundamentalLaws: {
-              decayLaw: 'N(t) = N₀e^(-λt) where λ = ln(2)/t½',
-              activity: 'A = λN (disintegrations per second)',
-              specificActivity: 'A/m = λNₐ/M (Bq/g)',
-              batemanEquations: 'Exact solution for secular equilibrium in decay chains'
+              fundamentalLaws: {
+                decayLaw: 'N(t) = N₀e^(-λt) where λ = ln(2)/t½',
+                activity: 'A = λN (disintegrations per second)',
+                specificActivity: 'A/m = λNₐ/M (Bq/g)',
+                batemanEquations: 'Exact solution for secular equilibrium in decay chains',
+              },
+
+              decayTypes: Object.values(DECAY_TYPES),
+
+              operations: [
+                'decay: Calculate remaining amount and activity after time',
+                'half_life: Get decay constants and specific activity',
+                'chain: Build decay chain from parent isotope',
+                'activity: Calculate or convert activity units',
+                'dating: Radiometric age from parent/daughter ratio',
+                'isotope: Lookup isotope data',
+                'simulate: Simulate decay chain dynamics over time',
+                'info: This documentation',
+              ],
+
+              activityUnits: {
+                SI: ['Bq (becquerel)', 'kBq', 'MBq', 'GBq'],
+                conventional: ['Ci (curie) = 3.7×10¹⁰ Bq', 'mCi', 'μCi'],
+              },
+
+              availableIsotopes: Object.keys(ISOTOPES),
+
+              examples: [
+                {
+                  operation: 'decay',
+                  isotope: 'C-14',
+                  initial_amount: 1e6,
+                  time: 5730,
+                  time_unit: 'years',
+                },
+                { operation: 'chain', isotope: 'U-238' },
+                { operation: 'activity', isotope: 'Co-60', initial_amount: 1e15 },
+                { operation: 'dating', isotope: 'K-40', parent_amount: 0.8, daughter_amount: 0.2 },
+              ],
             },
-
-            decayTypes: Object.values(DECAY_TYPES),
-
-            operations: [
-              'decay: Calculate remaining amount and activity after time',
-              'half_life: Get decay constants and specific activity',
-              'chain: Build decay chain from parent isotope',
-              'activity: Calculate or convert activity units',
-              'dating: Radiometric age from parent/daughter ratio',
-              'isotope: Lookup isotope data',
-              'simulate: Simulate decay chain dynamics over time',
-              'info: This documentation'
-            ],
-
-            activityUnits: {
-              SI: ['Bq (becquerel)', 'kBq', 'MBq', 'GBq'],
-              conventional: ['Ci (curie) = 3.7×10¹⁰ Bq', 'mCi', 'μCi']
-            },
-
-            availableIsotopes: Object.keys(ISOTOPES),
-
-            examples: [
-              { operation: 'decay', isotope: 'C-14', initial_amount: 1e6, time: 5730, time_unit: 'years' },
-              { operation: 'chain', isotope: 'U-238' },
-              { operation: 'activity', isotope: 'Co-60', initial_amount: 1e15 },
-              { operation: 'dating', isotope: 'K-40', parent_amount: 0.8, daughter_amount: 0.2 }
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            validOperations: ['decay', 'half_life', 'chain', 'activity', 'dating', 'isotope', 'simulate', 'info']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              validOperations: [
+                'decay',
+                'half_life',
+                'chain',
+                'activity',
+                'dating',
+                'isotope',
+                'simulate',
+                'info',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -1053,7 +1157,7 @@ export async function executeradioactivedecay(toolCall: UnifiedToolCall): Promis
     return {
       toolCallId: id,
       content: `Error in radioactive decay: ${errorMessage}`,
-      isError: true
+      isError: true,
     };
   }
 }

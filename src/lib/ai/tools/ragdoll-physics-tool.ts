@@ -129,8 +129,7 @@ interface SimulationResult {
 const GRAVITY = 9.80665;
 const BAUMGARTE_FACTOR = 0.2; // Position correction factor
 const PENETRATION_SLOP = 0.01; // Allowed penetration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const MAX_CONTACT_POINTS = 4;
+export const MAX_CONTACT_POINTS = 4;
 const VELOCITY_THRESHOLD = 0.01;
 
 // ============================================================================
@@ -161,7 +160,7 @@ function vec3Cross(a: Vector3, b: Vector3): Vector3 {
   return {
     x: a.y * b.z - a.z * b.y,
     y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x
+    z: a.x * b.y - a.y * b.x,
   };
 }
 
@@ -179,8 +178,7 @@ function vec3Negate(v: Vector3): Vector3 {
   return { x: -v.x, y: -v.y, z: -v.z };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function vec3Distance(a: Vector3, b: Vector3): number {
+export function vec3Distance(a: Vector3, b: Vector3): number {
   return vec3Length(vec3Sub(a, b));
 }
 
@@ -197,7 +195,7 @@ function quatMultiply(a: Quaternion, b: Quaternion): Quaternion {
     w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
     x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
     y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
-    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
   };
 }
 
@@ -218,8 +216,7 @@ function quatRotateVector(q: Quaternion, v: Vector3): Vector3 {
   return { x: result.x, y: result.y, z: result.z };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function quatFromAxisAngle(axis: Vector3, angle: number): Quaternion {
+export function quatFromAxisAngle(axis: Vector3, angle: number): Quaternion {
   const halfAngle = angle * 0.5;
   const s = Math.sin(halfAngle);
   const normalized = vec3Normalize(axis);
@@ -227,17 +224,16 @@ function quatFromAxisAngle(axis: Vector3, angle: number): Quaternion {
     w: Math.cos(halfAngle),
     x: normalized.x * s,
     y: normalized.y * s,
-    z: normalized.z * s
+    z: normalized.z * s,
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function quatToMatrix3(q: Quaternion): number[][] {
+export function quatToMatrix3(q: Quaternion): number[][] {
   const { w, x, y, z } = q;
   return [
-    [1 - 2*(y*y + z*z), 2*(x*y - w*z), 2*(x*z + w*y)],
-    [2*(x*y + w*z), 1 - 2*(x*x + z*z), 2*(y*z - w*x)],
-    [2*(x*z - w*y), 2*(y*z + w*x), 1 - 2*(x*x + y*y)]
+    [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+    [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+    [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)],
   ];
 }
 
@@ -274,7 +270,7 @@ function createRigidBody(params: {
         const r = params.shape.radius || 0.1;
         const h = params.shape.height || 0.5;
         // Approximation for capsule
-        const cylinderI = (1/12) * mass * (3 * r * r + h * h);
+        const cylinderI = (1 / 12) * mass * (3 * r * r + h * h);
         const sphereI = 0.4 * mass * r * r;
         inertia = { x: cylinderI, y: sphereI, z: cylinderI };
         break;
@@ -282,9 +278,9 @@ function createRigidBody(params: {
       case 'box': {
         const e = params.shape.halfExtents || { x: 0.1, y: 0.1, z: 0.1 };
         inertia = {
-          x: (1/12) * mass * (4 * e.y * e.y + 4 * e.z * e.z),
-          y: (1/12) * mass * (4 * e.x * e.x + 4 * e.z * e.z),
-          z: (1/12) * mass * (4 * e.x * e.x + 4 * e.y * e.y)
+          x: (1 / 12) * mass * (4 * e.y * e.y + 4 * e.z * e.z),
+          y: (1 / 12) * mass * (4 * e.x * e.x + 4 * e.z * e.z),
+          z: (1 / 12) * mass * (4 * e.x * e.x + 4 * e.y * e.y),
         };
         break;
       }
@@ -294,9 +290,9 @@ function createRigidBody(params: {
     }
   }
 
-  const inverseInertia = params.isStatic ?
-    { x: 0, y: 0, z: 0 } :
-    { x: 1 / inertia.x, y: 1 / inertia.y, z: 1 / inertia.z };
+  const inverseInertia = params.isStatic
+    ? { x: 0, y: 0, z: 0 }
+    : { x: 1 / inertia.x, y: 1 / inertia.y, z: 1 / inertia.z };
 
   return {
     id: params.id,
@@ -314,7 +310,7 @@ function createRigidBody(params: {
     friction: params.friction ?? 0.5,
     restitution: params.restitution ?? 0.3,
     isStatic: params.isStatic ?? false,
-    shape: params.shape
+    shape: params.shape,
   };
 }
 
@@ -327,8 +323,7 @@ function getWorldPoint(body: RigidBody, localPoint: Vector3): Vector3 {
   return vec3Add(body.position, rotated);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function getLocalPoint(body: RigidBody, worldPoint: Vector3): Vector3 {
+export function getLocalPoint(body: RigidBody, worldPoint: Vector3): Vector3 {
   const relative = vec3Sub(worldPoint, body.position);
   return quatRotateVector(quatConjugate(body.orientation), relative);
 }
@@ -354,7 +349,7 @@ function sphereVsSphere(a: RigidBody, b: RigidBody): Contact | null {
     normal,
     penetration,
     restitution: Math.min(a.restitution, b.restitution),
-    friction: Math.sqrt(a.friction * b.friction)
+    friction: Math.sqrt(a.friction * b.friction),
   };
 }
 
@@ -385,7 +380,8 @@ function capsuleVsCapsule(a: RigidBody, b: RigidBody): Contact | null {
   const e = vec3Dot(d2, d2);
   const f = vec3Dot(d2, r);
 
-  let s = 0, t = 0;
+  let s = 0,
+    t = 0;
 
   if (a_ > 1e-10 && e > 1e-10) {
     const b_ = vec3Dot(d1, d2);
@@ -427,7 +423,7 @@ function capsuleVsCapsule(a: RigidBody, b: RigidBody): Contact | null {
     normal,
     penetration,
     restitution: Math.min(a.restitution, b.restitution),
-    friction: Math.sqrt(a.friction * b.friction)
+    friction: Math.sqrt(a.friction * b.friction),
   };
 }
 
@@ -444,7 +440,7 @@ function sphereVsPlane(sphere: RigidBody, planeY: number): Contact | null {
     normal: { x: 0, y: 1, z: 0 },
     penetration: radius - dist,
     restitution: sphere.restitution * 0.8, // Ground restitution
-    friction: sphere.friction
+    friction: sphere.friction,
   };
 }
 
@@ -474,7 +470,7 @@ function capsuleVsPlane(capsule: RigidBody, planeY: number): Contact | null {
     normal: { x: 0, y: 1, z: 0 },
     penetration: radius - minDist,
     restitution: capsule.restitution * 0.8,
-    friction: capsule.friction
+    friction: capsule.friction,
   };
 }
 
@@ -498,10 +494,16 @@ function detectCollisions(state: RagdollState, groundLevel: number): Contact[] {
         contact = capsuleVsCapsule(a, b);
       } else if (a.shape.type === 'sphere' && b.shape.type === 'capsule') {
         // Treat sphere as capsule with 0 height
-        const sphereAsCapsule = { ...a, shape: { ...a.shape, type: 'capsule' as const, height: 0 } };
+        const sphereAsCapsule = {
+          ...a,
+          shape: { ...a.shape, type: 'capsule' as const, height: 0 },
+        };
         contact = capsuleVsCapsule(sphereAsCapsule, b);
       } else if (a.shape.type === 'capsule' && b.shape.type === 'sphere') {
-        const sphereAsCapsule = { ...b, shape: { ...b.shape, type: 'capsule' as const, height: 0 } };
+        const sphereAsCapsule = {
+          ...b,
+          shape: { ...b.shape, type: 'capsule' as const, height: 0 },
+        };
         contact = capsuleVsCapsule(a, sphereAsCapsule);
       }
 
@@ -550,7 +552,7 @@ function applyImpulse(body: RigidBody, impulse: Vector3, worldPoint: Vector3): v
   body.angularVelocity = vec3Add(body.angularVelocity, {
     x: angularImpulse.x * body.inverseInertia.x,
     y: angularImpulse.y * body.inverseInertia.y,
-    z: angularImpulse.z * body.inverseInertia.z
+    z: angularImpulse.z * body.inverseInertia.z,
   });
 }
 
@@ -585,7 +587,7 @@ function resolveContact(contact: Contact, state: RagdollState, dt: number): void
   const angularTermA = vec3Dot(rAxN, {
     x: rAxN.x * bodyA.inverseInertia.x,
     y: rAxN.y * bodyA.inverseInertia.y,
-    z: rAxN.z * bodyA.inverseInertia.z
+    z: rAxN.z * bodyA.inverseInertia.z,
   });
 
   let angularTermB = 0;
@@ -593,7 +595,7 @@ function resolveContact(contact: Contact, state: RagdollState, dt: number): void
     angularTermB = vec3Dot(rBxN, {
       x: rBxN.x * bodyB.inverseInertia.x,
       y: rBxN.y * bodyB.inverseInertia.y,
-      z: rBxN.z * bodyB.inverseInertia.z
+      z: rBxN.z * bodyB.inverseInertia.z,
     });
   }
 
@@ -663,7 +665,7 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
         const invMass = bodyA.inverseMass + bodyB.inverseMass;
 
         // Impulse to correct position error
-        const biasFactor = joint.stiffness * BAUMGARTE_FACTOR / dt;
+        const biasFactor = (joint.stiffness * BAUMGARTE_FACTOR) / dt;
         const bias = biasFactor * errorMag;
 
         // Relative velocity at anchor points
@@ -692,7 +694,7 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
       if (errorMag > 1e-6) {
         const normal = vec3Scale(error, 1 / errorMag);
         const invMass = bodyA.inverseMass + bodyB.inverseMass;
-        const biasFactor = joint.stiffness * BAUMGARTE_FACTOR / dt;
+        const biasFactor = (joint.stiffness * BAUMGARTE_FACTOR) / dt;
         const bias = biasFactor * errorMag;
 
         const velA = getVelocityAtPoint(bodyA, worldAnchorA);
@@ -709,9 +711,9 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
       // Then, constrain rotation around hinge axis
       if (joint.axisA && joint.limits) {
         const worldAxisA = quatRotateVector(bodyA.orientation, joint.axisA);
-        const worldAxisB = joint.axisB ?
-          quatRotateVector(bodyB.orientation, joint.axisB) :
-          worldAxisA;
+        const worldAxisB = joint.axisB
+          ? quatRotateVector(bodyB.orientation, joint.axisB)
+          : worldAxisA;
 
         // Calculate angle between axes (simplified)
         const dot = vec3Dot(worldAxisA, worldAxisB);
@@ -740,7 +742,7 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
       if (errorMag > 1e-6) {
         const normal = vec3Scale(error, 1 / errorMag);
         const invMass = bodyA.inverseMass + bodyB.inverseMass;
-        const lambda = errorMag * joint.stiffness / (invMass + 1e-10) / dt;
+        const lambda = (errorMag * joint.stiffness) / (invMass + 1e-10) / dt;
         const impulse = vec3Scale(normal, lambda);
 
         applyImpulse(bodyA, impulse, worldAnchorA);
@@ -768,7 +770,7 @@ function resolveJoint(joint: Joint, state: RagdollState, dt: number): number {
       if (perpErrorMag > 1e-6) {
         const normal = vec3Scale(perpError, 1 / perpErrorMag);
         const invMass = bodyA.inverseMass + bodyB.inverseMass;
-        const lambda = perpErrorMag * joint.stiffness / (invMass + 1e-10) / dt;
+        const lambda = (perpErrorMag * joint.stiffness) / (invMass + 1e-10) / dt;
         const impulse = vec3Scale(normal, lambda);
 
         applyImpulse(bodyA, impulse, worldAnchorA);
@@ -810,7 +812,7 @@ function integrateBody(body: RigidBody, dt: number, gravity: Vector3): void {
   const angularAccel = {
     x: body.torque.x * body.inverseInertia.x,
     y: body.torque.y * body.inverseInertia.y,
-    z: body.torque.z * body.inverseInertia.z
+    z: body.torque.z * body.inverseInertia.z,
   };
   body.angularVelocity = vec3Add(body.angularVelocity, vec3Scale(angularAccel, dt));
 
@@ -826,14 +828,14 @@ function integrateBody(body: RigidBody, dt: number, gravity: Vector3): void {
     w: 0,
     x: body.angularVelocity.x * 0.5 * dt,
     y: body.angularVelocity.y * 0.5 * dt,
-    z: body.angularVelocity.z * 0.5 * dt
+    z: body.angularVelocity.z * 0.5 * dt,
   };
   const dq = quatMultiply(angVelQuat, body.orientation);
   body.orientation = quatNormalize({
     w: body.orientation.w + dq.w,
     x: body.orientation.x + dq.x,
     y: body.orientation.y + dq.y,
-    z: body.orientation.z + dq.z
+    z: body.orientation.z + dq.z,
   });
 
   // Clear forces
@@ -848,31 +850,148 @@ function integrateBody(body: RigidBody, dt: number, gravity: Vector3): void {
 const HUMANOID_CONFIG: RagdollConfig = {
   bones: [
     { name: 'pelvis', mass: 5, length: 0.15, radius: 0.1, localPosition: { x: 0, y: 1, z: 0 } },
-    { name: 'spine', parent: 'pelvis', mass: 3, length: 0.2, radius: 0.08, localPosition: { x: 0, y: 0.175, z: 0 } },
-    { name: 'chest', parent: 'spine', mass: 5, length: 0.25, radius: 0.12, localPosition: { x: 0, y: 0.225, z: 0 } },
-    { name: 'head', parent: 'chest', mass: 4, length: 0.2, radius: 0.1, localPosition: { x: 0, y: 0.225, z: 0 } },
-    { name: 'leftUpperArm', parent: 'chest', mass: 2, length: 0.25, radius: 0.04, localPosition: { x: -0.2, y: 0.1, z: 0 } },
-    { name: 'leftForearm', parent: 'leftUpperArm', mass: 1.5, length: 0.22, radius: 0.035, localPosition: { x: 0, y: -0.235, z: 0 } },
-    { name: 'rightUpperArm', parent: 'chest', mass: 2, length: 0.25, radius: 0.04, localPosition: { x: 0.2, y: 0.1, z: 0 } },
-    { name: 'rightForearm', parent: 'rightUpperArm', mass: 1.5, length: 0.22, radius: 0.035, localPosition: { x: 0, y: -0.235, z: 0 } },
-    { name: 'leftThigh', parent: 'pelvis', mass: 4, length: 0.4, radius: 0.06, localPosition: { x: -0.1, y: -0.275, z: 0 } },
-    { name: 'leftCalf', parent: 'leftThigh', mass: 3, length: 0.38, radius: 0.05, localPosition: { x: 0, y: -0.39, z: 0 } },
-    { name: 'rightThigh', parent: 'pelvis', mass: 4, length: 0.4, radius: 0.06, localPosition: { x: 0.1, y: -0.275, z: 0 } },
-    { name: 'rightCalf', parent: 'rightThigh', mass: 3, length: 0.38, radius: 0.05, localPosition: { x: 0, y: -0.39, z: 0 } },
+    {
+      name: 'spine',
+      parent: 'pelvis',
+      mass: 3,
+      length: 0.2,
+      radius: 0.08,
+      localPosition: { x: 0, y: 0.175, z: 0 },
+    },
+    {
+      name: 'chest',
+      parent: 'spine',
+      mass: 5,
+      length: 0.25,
+      radius: 0.12,
+      localPosition: { x: 0, y: 0.225, z: 0 },
+    },
+    {
+      name: 'head',
+      parent: 'chest',
+      mass: 4,
+      length: 0.2,
+      radius: 0.1,
+      localPosition: { x: 0, y: 0.225, z: 0 },
+    },
+    {
+      name: 'leftUpperArm',
+      parent: 'chest',
+      mass: 2,
+      length: 0.25,
+      radius: 0.04,
+      localPosition: { x: -0.2, y: 0.1, z: 0 },
+    },
+    {
+      name: 'leftForearm',
+      parent: 'leftUpperArm',
+      mass: 1.5,
+      length: 0.22,
+      radius: 0.035,
+      localPosition: { x: 0, y: -0.235, z: 0 },
+    },
+    {
+      name: 'rightUpperArm',
+      parent: 'chest',
+      mass: 2,
+      length: 0.25,
+      radius: 0.04,
+      localPosition: { x: 0.2, y: 0.1, z: 0 },
+    },
+    {
+      name: 'rightForearm',
+      parent: 'rightUpperArm',
+      mass: 1.5,
+      length: 0.22,
+      radius: 0.035,
+      localPosition: { x: 0, y: -0.235, z: 0 },
+    },
+    {
+      name: 'leftThigh',
+      parent: 'pelvis',
+      mass: 4,
+      length: 0.4,
+      radius: 0.06,
+      localPosition: { x: -0.1, y: -0.275, z: 0 },
+    },
+    {
+      name: 'leftCalf',
+      parent: 'leftThigh',
+      mass: 3,
+      length: 0.38,
+      radius: 0.05,
+      localPosition: { x: 0, y: -0.39, z: 0 },
+    },
+    {
+      name: 'rightThigh',
+      parent: 'pelvis',
+      mass: 4,
+      length: 0.4,
+      radius: 0.06,
+      localPosition: { x: 0.1, y: -0.275, z: 0 },
+    },
+    {
+      name: 'rightCalf',
+      parent: 'rightThigh',
+      mass: 3,
+      length: 0.38,
+      radius: 0.05,
+      localPosition: { x: 0, y: -0.39, z: 0 },
+    },
   ],
   joints: [
     { boneA: 'pelvis', boneB: 'spine', type: 'ball', limits: { minAngle: -0.3, maxAngle: 0.3 } },
     { boneA: 'spine', boneB: 'chest', type: 'ball', limits: { minAngle: -0.3, maxAngle: 0.3 } },
     { boneA: 'chest', boneB: 'head', type: 'ball', limits: { minAngle: -0.5, maxAngle: 0.5 } },
-    { boneA: 'chest', boneB: 'leftUpperArm', type: 'ball', limits: { minAngle: -Math.PI, maxAngle: Math.PI } },
-    { boneA: 'leftUpperArm', boneB: 'leftForearm', type: 'hinge', limits: { minAngle: 0, maxAngle: 2.5 } },
-    { boneA: 'chest', boneB: 'rightUpperArm', type: 'ball', limits: { minAngle: -Math.PI, maxAngle: Math.PI } },
-    { boneA: 'rightUpperArm', boneB: 'rightForearm', type: 'hinge', limits: { minAngle: 0, maxAngle: 2.5 } },
-    { boneA: 'pelvis', boneB: 'leftThigh', type: 'ball', limits: { minAngle: -1.5, maxAngle: 1.5 } },
-    { boneA: 'leftThigh', boneB: 'leftCalf', type: 'hinge', limits: { minAngle: 0, maxAngle: 2.5 } },
-    { boneA: 'pelvis', boneB: 'rightThigh', type: 'ball', limits: { minAngle: -1.5, maxAngle: 1.5 } },
-    { boneA: 'rightThigh', boneB: 'rightCalf', type: 'hinge', limits: { minAngle: 0, maxAngle: 2.5 } },
-  ]
+    {
+      boneA: 'chest',
+      boneB: 'leftUpperArm',
+      type: 'ball',
+      limits: { minAngle: -Math.PI, maxAngle: Math.PI },
+    },
+    {
+      boneA: 'leftUpperArm',
+      boneB: 'leftForearm',
+      type: 'hinge',
+      limits: { minAngle: 0, maxAngle: 2.5 },
+    },
+    {
+      boneA: 'chest',
+      boneB: 'rightUpperArm',
+      type: 'ball',
+      limits: { minAngle: -Math.PI, maxAngle: Math.PI },
+    },
+    {
+      boneA: 'rightUpperArm',
+      boneB: 'rightForearm',
+      type: 'hinge',
+      limits: { minAngle: 0, maxAngle: 2.5 },
+    },
+    {
+      boneA: 'pelvis',
+      boneB: 'leftThigh',
+      type: 'ball',
+      limits: { minAngle: -1.5, maxAngle: 1.5 },
+    },
+    {
+      boneA: 'leftThigh',
+      boneB: 'leftCalf',
+      type: 'hinge',
+      limits: { minAngle: 0, maxAngle: 2.5 },
+    },
+    {
+      boneA: 'pelvis',
+      boneB: 'rightThigh',
+      type: 'ball',
+      limits: { minAngle: -1.5, maxAngle: 1.5 },
+    },
+    {
+      boneA: 'rightThigh',
+      boneB: 'rightCalf',
+      type: 'hinge',
+      limits: { minAngle: 0, maxAngle: 2.5 },
+    },
+  ],
 };
 
 function createRagdoll(config: RagdollConfig, startPosition: Vector3): RagdollState {
@@ -902,10 +1021,10 @@ function createRagdoll(config: RagdollConfig, startPosition: Vector3): RagdollSt
       shape: {
         type: 'capsule',
         radius: bone.radius,
-        height: bone.length
+        height: bone.length,
       },
       friction: 0.5,
-      restitution: 0.2
+      restitution: 0.2,
     });
 
     bodies.set(bone.name, body);
@@ -919,7 +1038,7 @@ function createRagdoll(config: RagdollConfig, startPosition: Vector3): RagdollSt
     if (!bodyA || !bodyB) continue;
 
     // Calculate anchor points (at the connection point between bones)
-    const boneB = config.bones.find(b => b.name === jointDef.boneB);
+    const boneB = config.bones.find((b) => b.name === jointDef.boneB);
     const anchorOffset = boneB?.localPosition || vec3Zero();
 
     joints.push({
@@ -932,7 +1051,7 @@ function createRagdoll(config: RagdollConfig, startPosition: Vector3): RagdollSt
       axisA: { x: 0, y: 1, z: 0 },
       limits: jointDef.limits,
       stiffness: 0.8,
-      damping: 0.1
+      damping: 0.1,
     });
   }
 
@@ -941,7 +1060,7 @@ function createRagdoll(config: RagdollConfig, startPosition: Vector3): RagdollSt
     joints,
     time: 0,
     gravity: { x: 0, y: -GRAVITY, z: 0 },
-    contacts: []
+    contacts: [],
   };
 }
 
@@ -961,7 +1080,7 @@ function simulateRagdoll(params: {
   const config = params.config || HUMANOID_CONFIG;
   const startPos = params.startPosition || { x: 0, y: 2, z: 0 };
   const groundLevel = params.groundLevel ?? 0;
-  const dt = params.timestep || 1/120;
+  const dt = params.timestep || 1 / 120;
   const iterations = params.iterations || 10;
   const steps = Math.floor(params.duration / dt);
 
@@ -975,7 +1094,7 @@ function simulateRagdoll(params: {
   }
 
   const frames: SimulationResult['frames'] = [];
-  const recordInterval = Math.max(1, Math.floor(1/60 / dt)); // ~60 FPS
+  const recordInterval = Math.max(1, Math.floor(1 / 60 / dt)); // ~60 FPS
 
   let totalCollisions = 0;
   let totalViolations = 0;
@@ -1012,12 +1131,12 @@ function simulateRagdoll(params: {
     if (step % recordInterval === 0) {
       frames.push({
         time: state.time,
-        bodies: Array.from(state.bodies.values()).map(b => ({
+        bodies: Array.from(state.bodies.values()).map((b) => ({
           id: b.id,
           position: { ...b.position },
           orientation: { ...b.orientation },
-          velocity: { ...b.velocity }
-        }))
+          velocity: { ...b.velocity },
+        })),
       });
     }
   }
@@ -1026,7 +1145,7 @@ function simulateRagdoll(params: {
     frames,
     finalState: state,
     collisionCount: totalCollisions,
-    jointViolations: totalViolations
+    jointViolations: totalViolations,
   };
 }
 
@@ -1036,27 +1155,28 @@ function simulateRagdoll(params: {
 
 export const ragdollphysicsTool: UnifiedTool = {
   name: 'ragdoll_physics',
-  description: 'Comprehensive ragdoll physics simulation with multi-body dynamics. Features joint constraints (ball, hinge, slider, fixed), collision detection, impulse-based physics, angular limits, bone hierarchy, and contact response.',
+  description:
+    'Comprehensive ragdoll physics simulation with multi-body dynamics. Features joint constraints (ball, hinge, slider, fixed), collision detection, impulse-based physics, angular limits, bone hierarchy, and contact response.',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['simulate', 'create_preset', 'analyze', 'info'],
-        description: 'Operation type'
+        description: 'Operation type',
       },
       preset: {
         type: 'string',
         enum: ['humanoid', 'custom'],
-        description: 'Ragdoll preset'
+        description: 'Ragdoll preset',
       },
       startPosition: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Starting position: { x: number, y: number, z: number }',
       },
       initialVelocity: {
         type: 'object',
-        properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }
+        description: 'Initial velocity: { x: number, y: number, z: number }',
       },
       duration: { type: 'number', description: 'Simulation duration in seconds' },
       timestep: { type: 'number', description: 'Physics timestep (default: 1/120)' },
@@ -1064,33 +1184,19 @@ export const ragdollphysicsTool: UnifiedTool = {
       iterations: { type: 'number', description: 'Constraint solver iterations per step' },
       customBones: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            parent: { type: 'string' },
-            mass: { type: 'number' },
-            length: { type: 'number' },
-            radius: { type: 'number' },
-            localPosition: { type: 'object' }
-          }
-        }
+        items: { type: 'object' },
+        description:
+          'Custom bones. Each bone has: name (string), parent (string), mass (number), length (number), radius (number), localPosition (object)',
       },
       customJoints: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            boneA: { type: 'string' },
-            boneB: { type: 'string' },
-            type: { type: 'string', enum: ['ball', 'hinge', 'slider', 'fixed'] },
-            limits: { type: 'object' }
-          }
-        }
-      }
+        items: { type: 'object' },
+        description:
+          'Custom joints. Each joint has: boneA (string), boneB (string), type (ball|hinge|slider|fixed), limits (object)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
@@ -1109,7 +1215,7 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
         if (args.preset === 'custom' && args.customBones && args.customJoints) {
           config = {
             bones: args.customBones,
-            joints: args.customJoints
+            joints: args.customJoints,
           };
         } else {
           config = HUMANOID_CONFIG;
@@ -1120,9 +1226,9 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
           startPosition: args.startPosition,
           initialVelocity: args.initialVelocity,
           duration: args.duration || 3,
-          timestep: args.timestep || 1/120,
+          timestep: args.timestep || 1 / 120,
           groundLevel: args.groundLevel,
-          iterations: args.iterations
+          iterations: args.iterations,
         });
         break;
       }
@@ -1134,8 +1240,8 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
             joints: HUMANOID_CONFIG.joints,
             totalMass: HUMANOID_CONFIG.bones.reduce((sum, b) => sum + b.mass, 0),
             boneCount: HUMANOID_CONFIG.bones.length,
-            jointCount: HUMANOID_CONFIG.joints.length
-          }
+            jointCount: HUMANOID_CONFIG.joints.length,
+          },
         };
         break;
       }
@@ -1145,16 +1251,18 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
           startPosition: args.startPosition || { x: 0, y: 2, z: 0 },
           initialVelocity: args.initialVelocity,
           duration: args.duration || 3,
-          timestep: args.timestep || 1/120,
+          timestep: args.timestep || 1 / 120,
           groundLevel: args.groundLevel ?? 0,
-          iterations: args.iterations
+          iterations: args.iterations,
         });
 
         const frames = simResult.frames;
-        const pelvisTrajectory = frames.map(f => {
-          const pelvis = f.bodies.find(b => b.id === 'pelvis');
-          return pelvis ? pelvis.position : null;
-        }).filter(p => p !== null);
+        const pelvisTrajectory = frames
+          .map((f) => {
+            const pelvis = f.bodies.find((b) => b.id === 'pelvis');
+            return pelvis ? pelvis.position : null;
+          })
+          .filter((p) => p !== null);
 
         result = {
           simulationTime: frames[frames.length - 1]?.time || 0,
@@ -1163,9 +1271,10 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
           jointViolations: simResult.jointViolations.toFixed(4),
           pelvisStartHeight: pelvisTrajectory[0]?.y || 0,
           pelvisEndHeight: pelvisTrajectory[pelvisTrajectory.length - 1]?.y || 0,
-          pelvisLowestPoint: Math.min(...pelvisTrajectory.map(p => p!.y)),
-          atRest: simResult.finalState.bodies.get('pelvis')?.velocity ?
-            vec3Length(simResult.finalState.bodies.get('pelvis')!.velocity) < VELOCITY_THRESHOLD : false
+          pelvisLowestPoint: Math.min(...pelvisTrajectory.map((p) => p!.y)),
+          atRest: simResult.finalState.bodies.get('pelvis')?.velocity
+            ? vec3Length(simResult.finalState.bodies.get('pelvis')!.velocity) < VELOCITY_THRESHOLD
+            : false,
         };
         break;
       }
@@ -1183,21 +1292,21 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
             'Body-to-body collision',
             'Friction and restitution',
             'Baumgarte stabilization',
-            'Humanoid preset with 12 bones'
+            'Humanoid preset with 12 bones',
           ],
           jointTypes: {
             ball: 'Free rotation in all axes (e.g., shoulder)',
             hinge: 'Single axis rotation (e.g., elbow, knee)',
             slider: 'Linear motion along axis',
-            fixed: 'No relative motion allowed'
+            fixed: 'No relative motion allowed',
           },
           presets: ['humanoid'],
           physicsConstants: {
             gravity: GRAVITY,
             baumgarteFactor: BAUMGARTE_FACTOR,
-            penetrationSlop: PENETRATION_SLOP
+            penetrationSlop: PENETRATION_SLOP,
           },
-          operations: ['simulate', 'create_preset', 'analyze', 'info']
+          operations: ['simulate', 'create_preset', 'analyze', 'info'],
         };
       }
     }
@@ -1209,4 +1318,6 @@ export async function executeragdollphysics(toolCall: UnifiedToolCall): Promise<
   }
 }
 
-export function isragdollphysicsAvailable(): boolean { return true; }
+export function isragdollphysicsAvailable(): boolean {
+  return true;
+}

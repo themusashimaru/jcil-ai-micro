@@ -17,8 +17,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TYPE DEFINITIONS
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface HomographyMatrix {
+export interface HomographyMatrix {
   data: number[][]; // 3x3 matrix
 }
 
@@ -48,9 +47,9 @@ interface NormalizationParams {
 
 interface DecompositionResult {
   R: number[][]; // Rotation matrix (3x3)
-  t: number[];   // Translation vector
-  n: number[];   // Normal vector
-  d: number;     // Distance to plane
+  t: number[]; // Translation vector
+  n: number[]; // Normal vector
+  d: number; // Distance to plane
   valid: boolean;
 }
 
@@ -140,8 +139,7 @@ function transpose(A: number[][]): number[][] {
 /**
  * Frobenius norm
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function frobeniusNorm(A: number[][]): number {
+export function frobeniusNorm(A: number[][]): number {
   let sum = 0;
   for (let i = 0; i < A.length; i++) {
     for (let j = 0; j < A[i].length; j++) {
@@ -168,25 +166,20 @@ function vectorNorm(v: number[]): number {
 function normalizeVector(v: number[]): number[] {
   const norm = vectorNorm(v);
   if (norm < 1e-10) return v.slice();
-  return v.map(x => x / norm);
+  return v.map((x) => x / norm);
 }
 
 /**
  * Cross product of 3D vectors
  */
 function cross(a: number[], b: number[]): number[] {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0]
-  ];
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 
 /**
  * Dot product
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function dot(a: number[], b: number[]): number {
+export function dot(a: number[], b: number[]): number {
   let sum = 0;
   for (let i = 0; i < a.length; i++) {
     sum += a[i] * b[i];
@@ -216,7 +209,7 @@ function computeSVD(A: number[][]): { U: number[][]; S: number[]; V: number[][] 
   const indices = eigenvalues.map((v, i) => ({ v, i }));
   indices.sort((a, b) => b.v - a.v);
 
-  const S = indices.map(x => Math.sqrt(Math.max(0, x.v)));
+  const S = indices.map((x) => Math.sqrt(Math.max(0, x.v)));
   const V: number[][] = [];
 
   for (let i = 0; i < n; i++) {
@@ -266,13 +259,14 @@ function jacobiEigen(A: number[][]): { eigenvalues: number[]; eigenvectors: numb
   const tolerance = 1e-10;
 
   // Copy A
-  const M: number[][] = A.map(row => [...row]);
+  const M: number[][] = A.map((row) => [...row]);
   const V = eye(n);
 
   for (let iter = 0; iter < maxIter; iter++) {
     // Find largest off-diagonal element
     let maxVal = 0;
-    let p = 0, q = 1;
+    let p = 0,
+      q = 1;
 
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
@@ -345,18 +339,18 @@ function inverse3x3(M: number[][]): number[][] | null {
     [
       (M[1][1] * M[2][2] - M[1][2] * M[2][1]) * invDet,
       (M[0][2] * M[2][1] - M[0][1] * M[2][2]) * invDet,
-      (M[0][1] * M[1][2] - M[0][2] * M[1][1]) * invDet
+      (M[0][1] * M[1][2] - M[0][2] * M[1][1]) * invDet,
     ],
     [
       (M[1][2] * M[2][0] - M[1][0] * M[2][2]) * invDet,
       (M[0][0] * M[2][2] - M[0][2] * M[2][0]) * invDet,
-      (M[0][2] * M[1][0] - M[0][0] * M[1][2]) * invDet
+      (M[0][2] * M[1][0] - M[0][0] * M[1][2]) * invDet,
     ],
     [
       (M[1][0] * M[2][1] - M[1][1] * M[2][0]) * invDet,
       (M[0][1] * M[2][0] - M[0][0] * M[2][1]) * invDet,
-      (M[0][0] * M[1][1] - M[0][1] * M[1][0]) * invDet
-    ]
+      (M[0][0] * M[1][1] - M[0][1] * M[1][0]) * invDet,
+    ],
   ];
 }
 
@@ -368,11 +362,15 @@ function inverse3x3(M: number[][]): number[][] | null {
  * Normalize points for numerical stability
  * Centers points at origin and scales so average distance from origin is sqrt(2)
  */
-function normalizePoints(points: Point2D[]): { normalized: Point2D[]; params: NormalizationParams } {
+function normalizePoints(points: Point2D[]): {
+  normalized: Point2D[];
+  params: NormalizationParams;
+} {
   const n = points.length;
 
   // Compute centroid
-  let cx = 0, cy = 0;
+  let cx = 0,
+    cy = 0;
   for (const p of points) {
     cx += p.x;
     cy += p.y;
@@ -394,18 +392,18 @@ function normalizePoints(points: Point2D[]): { normalized: Point2D[]; params: No
   const T = [
     [scale, 0, -scale * cx],
     [0, scale, -scale * cy],
-    [0, 0, 1]
+    [0, 0, 1],
   ];
 
   // Apply normalization
-  const normalized: Point2D[] = points.map(p => ({
+  const normalized: Point2D[] = points.map((p) => ({
     x: scale * (p.x - cx),
-    y: scale * (p.y - cy)
+    y: scale * (p.y - cy),
   }));
 
   return {
     normalized,
-    params: { T, centroid: { x: cx, y: cy }, scale }
+    params: { T, centroid: { x: cx, y: cy }, scale },
   };
 }
 
@@ -425,15 +423,13 @@ function computeHomographyDLT(correspondences: PointCorrespondence[]): number[][
   const A: number[][] = [];
 
   for (const { src, dst } of correspondences) {
-    const x = src.x, y = src.y;
-    const xp = dst.x, yp = dst.y;
+    const x = src.x,
+      y = src.y;
+    const xp = dst.x,
+      yp = dst.y;
 
-    A.push([
-      -x, -y, -1, 0, 0, 0, x * xp, y * xp, xp
-    ]);
-    A.push([
-      0, 0, 0, -x, -y, -1, x * yp, y * yp, yp
-    ]);
+    A.push([-x, -y, -1, 0, 0, 0, x * xp, y * xp, xp]);
+    A.push([0, 0, 0, -x, -y, -1, x * yp, y * yp, yp]);
   }
 
   // Solve using SVD: find null space of A
@@ -449,7 +445,7 @@ function computeHomographyDLT(correspondences: PointCorrespondence[]): number[][
   const H = [
     [h[0], h[1], h[2]],
     [h[3], h[4], h[5]],
-    [h[6], h[7], h[8]]
+    [h[6], h[7], h[8]],
   ];
 
   // Normalize so H[2][2] = 1
@@ -469,8 +465,8 @@ function computeHomographyDLT(correspondences: PointCorrespondence[]): number[][
  * Normalized DLT for better numerical stability
  */
 function computeHomographyNormalizedDLT(correspondences: PointCorrespondence[]): number[][] | null {
-  const srcPoints = correspondences.map(c => c.src);
-  const dstPoints = correspondences.map(c => c.dst);
+  const srcPoints = correspondences.map((c) => c.src);
+  const dstPoints = correspondences.map((c) => c.dst);
 
   // Normalize points
   const { normalized: normSrc, params: paramsSrc } = normalizePoints(srcPoints);
@@ -481,7 +477,7 @@ function computeHomographyNormalizedDLT(correspondences: PointCorrespondence[]):
   for (let i = 0; i < correspondences.length; i++) {
     normCorrespondences.push({
       src: normSrc[i],
-      dst: normDst[i]
+      dst: normDst[i],
     });
   }
 
@@ -519,7 +515,7 @@ function transformPoint(H: number[][], p: Point2D): Point2D {
   }
   return {
     x: (H[0][0] * p.x + H[0][1] * p.y + H[0][2]) / w,
-    y: (H[1][0] * p.x + H[1][1] * p.y + H[1][2]) / w
+    y: (H[1][0] * p.x + H[1][1] * p.y + H[1][2]) / w,
   };
 }
 
@@ -555,11 +551,13 @@ function computeHomographyRANSAC(
   for (let iter = 0; iter < numIterations; iter++) {
     // Randomly select 4 correspondences
     const indices = selectRandomSample(n, 4);
-    const sample = indices.map(i => correspondences[i]);
+    const sample = indices.map((i) => correspondences[i]);
 
     // Check if points are not collinear
-    if (arePointsCollinear(sample.map(c => c.src)) ||
-        arePointsCollinear(sample.map(c => c.dst))) {
+    if (
+      arePointsCollinear(sample.map((c) => c.src)) ||
+      arePointsCollinear(sample.map((c) => c.dst))
+    ) {
       continue;
     }
 
@@ -579,8 +577,10 @@ function computeHomographyRANSAC(
       }
     }
 
-    if (inliers.length > bestInliers.length ||
-        (inliers.length === bestInliers.length && totalError < bestError)) {
+    if (
+      inliers.length > bestInliers.length ||
+      (inliers.length === bestInliers.length && totalError < bestError)
+    ) {
       bestH = H;
       bestInliers = inliers;
       bestError = totalError;
@@ -600,7 +600,7 @@ function computeHomographyRANSAC(
   if (!bestH || bestInliers.length < 4) return null;
 
   // Refine using all inliers
-  const inlierCorrespondences = bestInliers.map(i => correspondences[i]);
+  const inlierCorrespondences = bestInliers.map((i) => correspondences[i]);
   const refinedH = computeHomographyNormalizedDLT(inlierCorrespondences);
 
   if (refinedH) {
@@ -620,7 +620,7 @@ function computeHomographyRANSAC(
     Hinv: Hinv || undefined,
     inliers: bestInliers,
     error: bestError / bestInliers.length,
-    numIterations
+    numIterations,
   };
 }
 
@@ -651,9 +651,7 @@ function arePointsCollinear(points: Point2D[], tolerance: number = 1e-6): boolea
 
   for (let i = 2; i < points.length; i++) {
     const p2 = points[i];
-    const area = Math.abs(
-      (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
-    );
+    const area = Math.abs((p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y));
     if (area > tolerance) return false;
   }
 
@@ -701,7 +699,7 @@ function decomposeHomography(H: number[][], K?: number[][]): DecompositionResult
       t: [0, 0, 0],
       n: [0, 0, 1],
       d: Infinity,
-      valid: true
+      valid: true,
     });
     return results;
   }
@@ -714,26 +712,33 @@ function decomposeHomography(H: number[][], K?: number[][]): DecompositionResult
   const cos_theta = (x1 * x1 + d1 * d3 * x3 * x3) / ((d1 + d3) * x1 * x3);
 
   // Four possible solutions
-  const signs = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  const signs = [
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+  ];
 
   for (const [s1, s3] of signs) {
     const n_prime = [s1 * x1, 0, s3 * x3];
-    const t_prime = [
-      (d1 - d3) * s1 * x1,
-      0,
-      (d1 - d3) * s3 * x3
-    ];
+    const t_prime = [(d1 - d3) * s1 * x1, 0, (d1 - d3) * s3 * x3];
 
     // Transform back
     const n = matvec(V, n_prime);
     const t = matvec(U, t_prime);
 
     // Compute R
-    const R = matmul(U, matmul([
-      [cos_theta, 0, -sin_theta * s1 * s3],
-      [0, 1, 0],
-      [sin_theta * s1 * s3, 0, cos_theta]
-    ], transpose(V)));
+    const R = matmul(
+      U,
+      matmul(
+        [
+          [cos_theta, 0, -sin_theta * s1 * s3],
+          [0, 1, 0],
+          [sin_theta * s1 * s3, 0, cos_theta],
+        ],
+        transpose(V)
+      )
+    );
 
     // Check validity: n[2] should be positive (normal pointing towards camera)
     // and t[2] can be either positive or negative
@@ -744,7 +749,7 @@ function decomposeHomography(H: number[][], K?: number[][]): DecompositionResult
       t,
       n: normalizeVector(n),
       d: 1, // Normalized distance
-      valid
+      valid,
     });
   }
 
@@ -785,8 +790,7 @@ function warpPerspective(
       // Transform destination to source
       const srcPt = transformPoint(Hinv, { x, y });
 
-      if (srcPt.x < 0 || srcPt.x >= srcWidth - 1 ||
-          srcPt.y < 0 || srcPt.y >= srcHeight - 1) {
+      if (srcPt.x < 0 || srcPt.x >= srcWidth - 1 || srcPt.y < 0 || srcPt.y >= srcHeight - 1) {
         dst[y][x] = 0;
         continue;
       }
@@ -811,10 +815,7 @@ function warpPerspective(
         const v11 = src[y1][x1];
 
         dst[y][x] =
-          v00 * (1 - dx) * (1 - dy) +
-          v10 * dx * (1 - dy) +
-          v01 * (1 - dx) * dy +
-          v11 * dx * dy;
+          v00 * (1 - dx) * (1 - dy) + v10 * dx * (1 - dy) + v01 * (1 - dx) * dy + v11 * dx * dy;
       }
     }
   }
@@ -834,11 +835,13 @@ function computeWarpBounds(
     { x: 0, y: 0 },
     { x: srcWidth, y: 0 },
     { x: srcWidth, y: srcHeight },
-    { x: 0, y: srcHeight }
+    { x: 0, y: srcHeight },
   ];
 
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity;
 
   for (const corner of corners) {
     const transformed = transformPoint(H, corner);
@@ -869,8 +872,7 @@ function transformLine(H: number[][], line: number[]): number[] | null {
 /**
  * Compute line from two points
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function lineFromPoints(p1: Point2D, p2: Point2D): number[] {
+export function lineFromPoints(p1: Point2D, p2: Point2D): number[] {
   // Cross product of homogeneous points
   const h1 = [p1.x, p1.y, 1];
   const h2 = [p2.x, p2.y, 1];
@@ -880,13 +882,12 @@ function lineFromPoints(p1: Point2D, p2: Point2D): number[] {
 /**
  * Compute intersection of two lines
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function lineIntersection(l1: number[], l2: number[]): Point2D | null {
+export function lineIntersection(l1: number[], l2: number[]): Point2D | null {
   const h = cross(l1, l2);
   if (Math.abs(h[2]) < 1e-10) return null; // Parallel lines
   return {
     x: h[0] / h[2],
-    y: h[1] / h[2]
+    y: h[1] / h[2],
   };
 }
 
@@ -907,14 +908,14 @@ function generateTestCorrespondences(
       H = [
         [1.2, 0.1, 50],
         [0.15, 1.1, 30],
-        [0.001, 0.0005, 1]
+        [0.001, 0.0005, 1],
       ];
       break;
     case 'affine':
       H = [
         [Math.cos(0.2), -Math.sin(0.2), 20],
         [Math.sin(0.2), Math.cos(0.2), 15],
-        [0, 0, 1]
+        [0, 0, 1],
       ];
       break;
     case 'rotation':
@@ -923,20 +924,20 @@ function generateTestCorrespondences(
       H = [
         [Math.cos(theta), -Math.sin(theta), 0],
         [Math.sin(theta), Math.cos(theta), 0],
-        [0, 0, 1]
+        [0, 0, 1],
       ];
   }
 
   for (let i = 0; i < numPoints; i++) {
     const src = {
       x: Math.random() * 200 + 50,
-      y: Math.random() * 200 + 50
+      y: Math.random() * 200 + 50,
     };
 
     const dstExact = transformPoint(H, src);
     const dst = {
       x: dstExact.x + (Math.random() - 0.5) * noiseLevel,
-      y: dstExact.y + (Math.random() - 0.5) * noiseLevel
+      y: dstExact.y + (Math.random() - 0.5) * noiseLevel,
     };
 
     correspondences.push({ src, dst });
@@ -958,67 +959,62 @@ export const homographyTool: UnifiedTool = {
       operation: {
         type: 'string',
         enum: [
-          'estimate', 'estimate_ransac', 'transform_points', 'transform_line',
-          'warp_image', 'decompose', 'compute_bounds', 'demo', 'info', 'examples'
+          'estimate',
+          'estimate_ransac',
+          'transform_points',
+          'transform_line',
+          'warp_image',
+          'decompose',
+          'compute_bounds',
+          'demo',
+          'info',
+          'examples',
         ],
-        description: 'Operation to perform'
+        description: 'Operation to perform',
       },
       correspondences: {
         type: 'array',
-        description: 'Point correspondences [{ src: {x, y}, dst: {x, y} }, ...]',
-        items: {
-          type: 'object',
-          properties: {
-            src: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } },
-            dst: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } }
-          }
-        }
+        items: { type: 'object' },
+        description:
+          'Point correspondences. Each entry has: src (object with x, y), dst (object with x, y)',
       },
       H: {
         type: 'array',
-        description: 'Homography matrix (3x3)'
+        description: 'Homography matrix (3x3)',
       },
       points: {
         type: 'array',
-        description: 'Points to transform [{x, y}, ...]'
+        description: 'Points to transform [{x, y}, ...]',
       },
       line: {
         type: 'array',
-        description: 'Line coefficients [a, b, c] for ax + by + c = 0'
+        description: 'Line coefficients [a, b, c] for ax + by + c = 0',
       },
       image: {
         type: 'object',
-        description: 'Image data { width, height, data: number[][] }'
+        description: 'Image data { width, height, data: number[][] }',
       },
       outputSize: {
         type: 'object',
-        description: 'Output size { width, height }'
+        description: 'Output size { width, height }',
       },
       ransacParams: {
         type: 'object',
-        description: 'RANSAC parameters { threshold, maxIterations, confidence }',
-        properties: {
-          threshold: { type: 'number' },
-          maxIterations: { type: 'number' },
-          confidence: { type: 'number' }
-        }
+        description:
+          'RANSAC parameters: threshold (number), maxIterations (number), confidence (number)',
       },
       intrinsics: {
         type: 'array',
-        description: 'Camera intrinsic matrix (3x3) for decomposition'
+        description: 'Camera intrinsic matrix (3x3) for decomposition',
       },
       testParams: {
         type: 'object',
-        description: 'Parameters for demo { numPoints, transform, noiseLevel }',
-        properties: {
-          numPoints: { type: 'number' },
-          transform: { type: 'string', enum: ['perspective', 'affine', 'rotation'] },
-          noiseLevel: { type: 'number' }
-        }
-      }
+        description:
+          'Demo parameters: numPoints (number), transform (perspective/affine/rotation), noiseLevel (number)',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
 // ============================================================================
@@ -1031,8 +1027,16 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
     const {
-      operation, correspondences, H, points, line, image,
-      outputSize, ransacParams, intrinsics, testParams
+      operation,
+      correspondences,
+      H,
+      points,
+      line,
+      image,
+      outputSize,
+      ransacParams,
+      intrinsics,
+      testParams,
     } = args;
 
     let result: unknown;
@@ -1062,8 +1066,8 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
             numPoints: correspondences.length,
             meanError: errors.reduce((a: number, b: number) => a + b, 0) / errors.length,
             maxError: Math.max(...errors),
-            minError: Math.min(...errors)
-          }
+            minError: Math.min(...errors),
+          },
         };
         break;
       }
@@ -1078,7 +1082,10 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
         const confidence = ransacParams?.confidence ?? 0.99;
 
         const ransacResult = computeHomographyRANSAC(
-          correspondences, threshold, maxIterations, confidence
+          correspondences,
+          threshold,
+          maxIterations,
+          confidence
         );
 
         if (!ransacResult) {
@@ -1094,7 +1101,7 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
           inlierIndices: ransacResult.inliers,
           meanError: ransacResult.error,
           numIterations: ransacResult.numIterations,
-          parameters: { threshold, maxIterations, confidence }
+          parameters: { threshold, maxIterations, confidence },
         };
         break;
       }
@@ -1110,7 +1117,7 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
           operation: 'transform_points',
           numPoints: points.length,
           original: points,
-          transformed
+          transformed,
         };
         break;
       }
@@ -1126,7 +1133,7 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
           operation: 'transform_line',
           original: line,
           transformed: transformedLine,
-          explanation: 'Line [a,b,c] represents ax + by + c = 0'
+          explanation: 'Line [a,b,c] represents ax + by + c = 0',
         };
         break;
       }
@@ -1146,8 +1153,11 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
           inputSize: { width: image.width, height: image.height },
           outputSize: { width: dstWidth, height: dstHeight },
           // Return downsampled for output
-          sampleData: warped.filter((_: number[], i: number) => i % 4 === 0)
-            .map((row: number[]) => row.filter((_: number, i: number) => i % 4 === 0).map((v: number) => Math.round(v)))
+          sampleData: warped
+            .filter((_: number[], i: number) => i % 4 === 0)
+            .map((row: number[]) =>
+              row.filter((_: number, i: number) => i % 4 === 0).map((v: number) => Math.round(v))
+            ),
         };
         break;
       }
@@ -1158,7 +1168,7 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
         }
 
         const decompositions = decomposeHomography(H, intrinsics);
-        const validDecomps = decompositions.filter(d => d.valid);
+        const validDecomps = decompositions.filter((d) => d.valid);
 
         result = {
           operation: 'decompose',
@@ -1169,9 +1179,9 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
             rotation: d.R,
             translation: d.t,
             planeNormal: d.n,
-            distance: d.d
+            distance: d.d,
           })),
-          note: 'Multiple valid solutions possible; use additional constraints to disambiguate'
+          note: 'Multiple valid solutions possible; use additional constraints to disambiguate',
         };
         break;
       }
@@ -1189,9 +1199,9 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
           bounds,
           outputSize: {
             width: Math.ceil(bounds.maxX - bounds.minX),
-            height: Math.ceil(bounds.maxY - bounds.minY)
+            height: Math.ceil(bounds.maxY - bounds.minY),
           },
-          offset: { x: -bounds.minX, y: -bounds.minY }
+          offset: { x: -bounds.minX, y: -bounds.minY },
         };
         break;
       }
@@ -1202,7 +1212,9 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
         const noiseLevel = testParams?.noiseLevel ?? 1.0;
 
         const { correspondences: testCorr, groundTruth } = generateTestCorrespondences(
-          numPoints, transform, noiseLevel
+          numPoints,
+          transform,
+          noiseLevel
         );
 
         // Estimate with DLT
@@ -1212,10 +1224,10 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
         const ransacResult = computeHomographyRANSAC(testCorr, 5.0);
 
         // Compute errors
-        const dltErrors = testCorr.map(c =>
+        const dltErrors = testCorr.map((c) =>
           estimatedH ? computeReprojectionError(estimatedH, c) : Infinity
         );
-        const ransacErrors = testCorr.map(c =>
+        const ransacErrors = testCorr.map((c) =>
           ransacResult ? computeReprojectionError(ransacResult.H, c) : Infinity
         );
 
@@ -1223,23 +1235,23 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
           operation: 'demo',
           testParameters: { numPoints, transform, noiseLevel },
           groundTruth: {
-            H: groundTruth
+            H: groundTruth,
           },
           dltEstimate: {
             H: estimatedH,
             meanError: dltErrors.reduce((a, b) => a + b, 0) / dltErrors.length,
-            maxError: Math.max(...dltErrors)
+            maxError: Math.max(...dltErrors),
           },
           ransacEstimate: {
             H: ransacResult?.H,
             inlierCount: ransacResult?.inliers?.length,
             meanError: ransacErrors.reduce((a, b) => a + b, 0) / ransacErrors.length,
-            maxError: Math.max(...ransacErrors)
+            maxError: Math.max(...ransacErrors),
           },
-          sampleCorrespondences: testCorr.slice(0, 5).map(c => ({
+          sampleCorrespondences: testCorr.slice(0, 5).map((c) => ({
             src: { x: c.src.x.toFixed(2), y: c.src.y.toFixed(2) },
-            dst: { x: c.dst.x.toFixed(2), y: c.dst.y.toFixed(2) }
-          }))
+            dst: { x: c.dst.x.toFixed(2), y: c.dst.y.toFixed(2) },
+          })),
         };
         break;
       }
@@ -1258,7 +1270,7 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
     { "src": { "x": 100, "y": 100 }, "dst": { "x": 120, "y": 110 } },
     { "src": { "x": 0, "y": 100 }, "dst": { "x": 12, "y": 108 } }
   ]
-}`
+}`,
             },
             {
               name: 'RANSAC with outlier rejection',
@@ -1266,7 +1278,7 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
   "operation": "estimate_ransac",
   "correspondences": [...],
   "ransacParams": { "threshold": 3.0, "maxIterations": 1000 }
-}`
+}`,
             },
             {
               name: 'Transform points',
@@ -1274,23 +1286,23 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
   "operation": "transform_points",
   "H": [[1.2, 0.1, 50], [0.15, 1.1, 30], [0.001, 0.0005, 1]],
   "points": [{ "x": 100, "y": 100 }, { "x": 200, "y": 150 }]
-}`
+}`,
             },
             {
               name: 'Decompose homography',
               code: `{
   "operation": "decompose",
   "H": [[1.2, 0.1, 50], [0.15, 1.1, 30], [0.001, 0.0005, 1]]
-}`
+}`,
             },
             {
               name: 'Demo with test data',
               code: `{
   "operation": "demo",
   "testParams": { "numPoints": 50, "transform": "perspective", "noiseLevel": 2.0 }
-}`
-            }
-          ]
+}`,
+            },
+          ],
         };
         break;
       }
@@ -1309,34 +1321,41 @@ export async function executehomography(toolCall: UnifiedToolCall): Promise<Unif
             'Line transformation',
             'Image warping with bilinear interpolation',
             'Homography decomposition (R, t, n)',
-            'Output bounds computation'
+            'Output bounds computation',
           ],
           mathematicalBackground: {
-            homography: 'H is a 3x3 matrix relating points: x\' ~ H * x',
+            homography: "H is a 3x3 matrix relating points: x' ~ H * x",
             dlt: 'Solves A*h = 0 using SVD null space',
             ransac: 'Random Sample Consensus for outlier rejection',
-            decomposition: 'H = R + t*n^T/d decomposes into rotation, translation, plane normal'
+            decomposition: 'H = R + t*n^T/d decomposes into rotation, translation, plane normal',
           },
           minimumPoints: 4,
           operations: [
-            'estimate', 'estimate_ransac', 'transform_points', 'transform_line',
-            'warp_image', 'decompose', 'compute_bounds', 'demo', 'info', 'examples'
-          ]
+            'estimate',
+            'estimate_ransac',
+            'transform_points',
+            'transform_line',
+            'warp_image',
+            'decompose',
+            'compute_bounds',
+            'demo',
+            'info',
+            'examples',
+          ],
         };
       }
     }
 
     return {
       toolCallId: id,
-      content: JSON.stringify(result, null, 2)
+      content: JSON.stringify(result, null, 2),
     };
-
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
     return {
       toolCallId: id,
       content: `Error in homography: ${error}`,
-      isError: true
+      isError: true,
     };
   }
 }
