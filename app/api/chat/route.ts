@@ -851,6 +851,7 @@ import {
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
+import { getDefaultModel, isProviderAvailable } from '@/lib/ai/providers/registry';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
@@ -2558,7 +2559,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, temperature, max_tokens, searchMode, conversationId } = validation.data;
+    const { messages, temperature, max_tokens, searchMode, conversationId, provider } =
+      validation.data;
 
     // Get user auth and plan info
     let rateLimitIdentifier: string;
@@ -5801,16 +5803,32 @@ SECURITY:
 
     // ========================================
     // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
-    // Primary: Claude Sonnet 4.5 (intelligent orchestration, tool use)
+    // User can select provider: Claude, xAI, DeepSeek, OpenAI, Google
+    // Default: Claude Sonnet 4.5 (intelligent orchestration, tool use)
     // Fallback: xAI Grok 4.1 (full capability parity)
     // Claude can call tools autonomously when needed
     // ========================================
+
+    // Determine which model to use based on provider selection
+    let selectedModel = 'claude-sonnet-4-5-20250929'; // Default to Claude
+
+    // If user selected a specific provider, get its default model
+    if (provider && isProviderAvailable(provider)) {
+      const providerModel = getDefaultModel(provider);
+      if (providerModel) {
+        selectedModel = providerModel.id;
+        log.info('Using user-selected provider', { provider, model: selectedModel });
+      }
+    } else if (provider && !isProviderAvailable(provider)) {
+      log.warn('Selected provider not available, falling back to Claude', { provider });
+    }
+
     const routeOptions: ChatRouteOptions = {
-      model: 'claude-sonnet-4-5-20250929', // Upgraded to Sonnet 4.5 for intelligent orchestration (tools, parallel agents, workflows)
+      model: selectedModel,
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
-      tools, // Give Claude all 58 available tools for autonomous use
+      tools, // Give AI all 58 available tools for autonomous use
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });
       },

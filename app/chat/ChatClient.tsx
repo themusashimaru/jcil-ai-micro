@@ -59,6 +59,7 @@ import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 // Inline creative components removed - all creative features now work through natural chat flow
 import type { Chat, Message, Attachment, GeneratedImage } from './types';
+import type { ProviderId } from '@/lib/ai/providers';
 
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';
@@ -185,6 +186,9 @@ export function ChatClient() {
   const [openEditImage, setOpenEditImage] = useState(false);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
+  // AI Provider selection - allows users to choose between Claude, xAI, DeepSeek, etc.
+  const [selectedProvider, setSelectedProvider] = useState<ProviderId>('claude');
+  const [configuredProviders, setConfiguredProviders] = useState<ProviderId[]>(['claude']);
   // Pending tool suggestion from AI response analysis (for auto web search/fact check)
   const [pendingToolSuggestion, setPendingToolSuggestion] = useState<{
     action: SuggestedAction;
@@ -348,6 +352,26 @@ export function ChatClient() {
       }
     };
     checkAdminStatus();
+  }, []);
+
+  // Fetch configured AI providers on mount
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const response = await fetch('/api/providers/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.configured && data.configured.length > 0) {
+            setConfiguredProviders(data.configured);
+          }
+        }
+      } catch (error) {
+        log.error('Error fetching provider status:', error as Error);
+        // Default to Claude only if fetch fails
+        setConfiguredProviders(['claude']);
+      }
+    };
+    fetchProviders();
   }, []);
 
   // Detect screen size and set initial sidebar state
@@ -2543,6 +2567,8 @@ ${artifactSection}
           searchMode: searchMode || 'none',
           // Pass selected GitHub repo for code review operations
           selectedRepo: selectedRepo || undefined,
+          // Pass selected AI provider (Claude, xAI, DeepSeek, etc.)
+          provider: selectedProvider,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -3922,6 +3948,10 @@ ${artifactSection}
                   setQuickPromptText('Edit this image: ');
                 }
               }}
+              // Provider selection - allows users to pick between Claude, xAI, DeepSeek, etc.
+              selectedProvider={selectedProvider}
+              onProviderChange={setSelectedProvider}
+              configuredProviders={configuredProviders}
               conversationId={currentChatId || undefined}
               onImageGenerated={handleImageGenerated}
             />

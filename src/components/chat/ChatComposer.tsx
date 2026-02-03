@@ -36,6 +36,7 @@ import {
   GenerationGallery,
   type CreativeMode,
 } from './CreativeButton';
+import type { ProviderId } from '@/lib/ai/providers';
 
 // Tool mode types - search and research tools only
 // Document generation is now integrated into regular chat for all users
@@ -82,6 +83,10 @@ interface ChatComposerProps {
   conversationId?: string;
   // Callback when image is generated (to add to conversation)
   onImageGenerated?: (image: GeneratedImage) => void;
+  // AI Provider selection
+  selectedProvider?: ProviderId;
+  onProviderChange?: (provider: ProviderId) => void;
+  configuredProviders?: ProviderId[];
 }
 
 /**
@@ -172,6 +177,48 @@ const PLACEHOLDER_SUGGESTIONS = [
   'Plan a trip...',
 ];
 
+// Provider configuration for the selector
+const PROVIDER_CONFIG: Record<
+  ProviderId,
+  { name: string; shortName: string; icon: string; color: string; description: string }
+> = {
+  claude: {
+    name: 'Claude',
+    shortName: 'Claude',
+    icon: '🟣',
+    color: '#8B5CF6',
+    description: 'Anthropic Claude - best for complex reasoning',
+  },
+  openai: {
+    name: 'OpenAI',
+    shortName: 'GPT',
+    icon: '🟢',
+    color: '#10B981',
+    description: 'GPT-5 - versatile general-purpose AI',
+  },
+  xai: {
+    name: 'xAI Grok',
+    shortName: 'Grok',
+    icon: '⚡',
+    color: '#F59E0B',
+    description: 'Grok 4 - real-time knowledge',
+  },
+  deepseek: {
+    name: 'DeepSeek',
+    shortName: 'DeepSeek',
+    icon: '🔵',
+    color: '#3B82F6',
+    description: 'DeepSeek R1 - cost-effective reasoning',
+  },
+  google: {
+    name: 'Google Gemini',
+    shortName: 'Gemini',
+    icon: '🔴',
+    color: '#EA4335',
+    description: 'Gemini 3 - massive context window',
+  },
+};
+
 export function ChatComposer({
   onSendMessage,
   onStop,
@@ -192,6 +239,9 @@ export function ChatComposer({
   onCreativeMode,
   conversationId,
   onImageGenerated,
+  selectedProvider = 'claude',
+  onProviderChange,
+  configuredProviders = ['claude'],
 }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -224,6 +274,10 @@ export function ChatComposer({
   const [showAgentsMenu, setShowAgentsMenu] = useState(false);
   const agentsButtonRef = useRef<HTMLButtonElement>(null);
   const agentsMenuRef = useRef<HTMLDivElement>(null);
+  // Provider selector dropdown state
+  const [showProviderMenu, setShowProviderMenu] = useState(false);
+  const providerButtonRef = useRef<HTMLButtonElement>(null);
+  const providerMenuRef = useRef<HTMLDivElement>(null);
   // Creative mode state
   const [creativeMode, setCreativeMode] = useState<CreativeMode | null>(null);
   const [showCreateImageModal, setShowCreateImageModal] = useState(false);
@@ -339,6 +393,22 @@ export function ChatComposer({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAgentsMenu]);
+
+  // Close provider menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const isInsideButton = providerButtonRef.current?.contains(target);
+      const isInsideMenu = providerMenuRef.current?.contains(target);
+
+      if (showProviderMenu && !isInsideButton && !isInsideMenu) {
+        setShowProviderMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showProviderMenu]);
 
   const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
@@ -866,6 +936,107 @@ export function ChatComposer({
 
               {/* MCP Servers button */}
               <ChatMCPButton disabled={isStreaming || disabled} />
+
+              {/* AI Provider selector */}
+              {onProviderChange && (
+                <div className="relative flex items-center">
+                  <button
+                    ref={providerButtonRef}
+                    onClick={() => setShowProviderMenu(!showProviderMenu)}
+                    disabled={isStreaming || disabled}
+                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80 px-2 py-1 rounded-lg"
+                    style={{
+                      color: 'var(--text-primary)',
+                      backgroundColor: showProviderMenu ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    }}
+                    title="Select AI Provider"
+                  >
+                    <span>{PROVIDER_CONFIG[selectedProvider]?.icon || '🤖'}</span>
+                    <span className="hidden sm:inline">
+                      {PROVIDER_CONFIG[selectedProvider]?.shortName || 'AI'}
+                    </span>
+                    <svg
+                      className={`w-3 h-3 transition-transform ${showProviderMenu ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Provider dropdown menu */}
+                  {showProviderMenu && (
+                    <div
+                      ref={providerMenuRef}
+                      className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50"
+                    >
+                      <div className="p-2 border-b border-gray-700">
+                        <p className="text-xs text-gray-400 font-medium">Select AI Provider</p>
+                      </div>
+                      <div className="p-1">
+                        {(Object.keys(PROVIDER_CONFIG) as ProviderId[]).map((providerId) => {
+                          const provider = PROVIDER_CONFIG[providerId];
+                          const isConfigured = configuredProviders.includes(providerId);
+                          const isSelected = providerId === selectedProvider;
+
+                          return (
+                            <button
+                              key={providerId}
+                              onClick={() => {
+                                if (isConfigured) {
+                                  onProviderChange(providerId);
+                                  setShowProviderMenu(false);
+                                }
+                              }}
+                              disabled={!isConfigured}
+                              className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                                isSelected
+                                  ? 'bg-purple-600/20 text-purple-300'
+                                  : isConfigured
+                                    ? 'hover:bg-gray-800 text-gray-300'
+                                    : 'opacity-50 cursor-not-allowed text-gray-500'
+                              }`}
+                            >
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-lg"
+                                style={{ backgroundColor: `${provider.color}20` }}
+                              >
+                                {provider.icon}
+                              </div>
+                              <div className="text-left flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">{provider.name}</p>
+                                  {!isConfigured && (
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 rounded text-gray-400">
+                                      Not configured
+                                    </span>
+                                  )}
+                                  {isSelected && isConfigured && (
+                                    <svg
+                                      className="w-4 h-4 text-purple-400"
+                                      fill="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500">{provider.description}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Active tool mode indicator - excludes research since it shows inline */}
               {toolMode !== 'none' && toolMode !== 'research' && getToolModeInfo() && (
