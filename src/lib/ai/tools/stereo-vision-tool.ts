@@ -72,16 +72,9 @@ class StereoRectification {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { rotation: _rotation, translation } = calibration;
 
-    // Compute new rotation matrix that aligns with baseline
-    const baselineDir = this.normalize(translation);
-
-    // Create rotation to align x-axis with baseline
-    const e1 = baselineDir;
-    const e2 = this.normalize(this.cross([0, 0, 1], e1));
-    // e3 = cross(e1, e2) completes rotation matrix R_rect = [e1; e2; e3]
-
-    // H1 = K1 * R_rect * inv(K1)
-    // H2 = K2 * R_rect * R' * inv(K2)
+    // Full rectification would compute R_rect from baseline direction:
+    // e1 = normalize(translation), e2 = normalize(cross([0,0,1], e1)), e3 = cross(e1, e2)
+    // H1 = K1 * R_rect * inv(K1), H2 = K2 * R_rect * R' * inv(K2)
 
     // Simplified: for nearly parallel cameras, use identity-like homographies
     const H1: number[][] = [
