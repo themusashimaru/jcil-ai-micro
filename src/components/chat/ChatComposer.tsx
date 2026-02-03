@@ -941,17 +941,13 @@ export function ChatComposer({
                     ref={providerButtonRef}
                     onClick={() => setShowProviderMenu(!showProviderMenu)}
                     disabled={isStreaming || disabled}
-                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80 px-2 py-1 rounded-lg"
+                    className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
                     style={{
                       color: 'var(--text-primary)',
-                      backgroundColor: showProviderMenu ? 'rgba(255,255,255,0.1)' : 'transparent',
                     }}
                     title="Select AI Provider"
                   >
-                    <span>{PROVIDER_CONFIG[selectedProvider]?.icon || '🤖'}</span>
-                    <span className="hidden sm:inline">
-                      {PROVIDER_CONFIG[selectedProvider]?.shortName || 'AI'}
-                    </span>
+                    <span>LLM</span>
                     <svg
                       className={`w-3 h-3 transition-transform ${showProviderMenu ? 'rotate-180' : ''}`}
                       fill="none"
@@ -992,40 +988,29 @@ export function ChatComposer({
                                 }
                               }}
                               disabled={!isConfigured}
-                              className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                              className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
                                 isSelected
-                                  ? 'bg-purple-600/20 text-purple-300'
+                                  ? 'bg-gray-700/50 text-white'
                                   : isConfigured
                                     ? 'hover:bg-gray-800 text-gray-300'
                                     : 'opacity-50 cursor-not-allowed text-gray-500'
                               }`}
                             >
-                              <div
-                                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-lg"
-                                style={{ backgroundColor: `${provider.color}20` }}
-                              >
-                                {provider.icon}
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">{provider.name}</p>
-                                  {!isConfigured && (
-                                    <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 rounded text-gray-400">
-                                      Not configured
-                                    </span>
-                                  )}
-                                  {isSelected && isConfigured && (
-                                    <svg
-                                      className="w-4 h-4 text-purple-400"
-                                      fill="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                                    </svg>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500">{provider.description}</p>
-                              </div>
+                              <p className="text-sm font-medium">{provider.name}</p>
+                              {!isConfigured && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 rounded text-gray-400">
+                                  Not configured
+                                </span>
+                              )}
+                              {isSelected && isConfigured && (
+                                <svg
+                                  className="w-4 h-4 text-gray-400 ml-auto"
+                                  fill="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                                </svg>
+                              )}
                             </button>
                           );
                         })}
@@ -1085,19 +1070,6 @@ export function ChatComposer({
                     }}
                     title="Select an AI Agent"
                   >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                      />
-                    </svg>
                     <span>
                       {strategyLoading || deepResearchLoading
                         ? 'Starting...'
@@ -1163,27 +1135,9 @@ export function ChatComposer({
                               setToolMode('none');
                               setShowAgentsMenu(false);
                             }}
-                            className="w-full flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300 mb-1"
+                            className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300 mb-1"
                           >
-                            <div className="w-8 h-8 rounded-lg bg-gray-500/20 flex items-center justify-center flex-shrink-0">
-                              <svg
-                                className="w-4 h-4 text-gray-400"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-sm font-medium">Exit Agent Mode</p>
-                              <p className="text-xs text-gray-500">Return to regular chat</p>
-                            </div>
+                            <p className="text-sm font-medium">Exit Agent Mode</p>
                           </button>
                         )}
 
@@ -1202,33 +1156,22 @@ export function ChatComposer({
                             setToolMode(toolMode === 'research' ? 'none' : 'research');
                             setShowAgentsMenu(false);
                           }}
-                          className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                          className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
                             toolMode === 'research'
-                              ? 'bg-blue-600/20 text-blue-300'
+                              ? 'bg-gray-700/50 text-white'
                               : 'hover:bg-gray-800 text-gray-300'
                           }`}
                         >
-                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <p className="text-sm font-medium">Research Agent</p>
+                          {toolMode === 'research' && (
                             <svg
-                              className="w-4 h-4 text-blue-400"
-                              fill="none"
+                              className="w-4 h-4 text-gray-400 ml-auto"
+                              fill="currentColor"
                               viewBox="0 0 24 24"
-                              stroke="currentColor"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                              />
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                             </svg>
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-medium">Research Agent</p>
-                            <p className="text-xs text-gray-500">
-                              Deep web research with citations
-                            </p>
-                          </div>
+                          )}
                         </button>
 
                         {/* Deep Strategy Agent - Admin only */}
@@ -1241,36 +1184,22 @@ export function ChatComposer({
                               // Then await the async operation
                               await onAgentSelect?.('strategy');
                             }}
-                            className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                            className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
                               activeAgent === 'strategy'
-                                ? 'bg-purple-600/20 text-purple-300'
+                                ? 'bg-gray-700/50 text-white'
                                 : 'hover:bg-gray-800 text-gray-300'
                             }`}
                           >
-                            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <p className="text-sm font-medium">Deep Strategy Agent</p>
+                            {activeAgent === 'strategy' && (
                               <svg
-                                className="w-4 h-4 text-purple-400"
-                                fill="none"
+                                className="w-4 h-4 text-gray-400 ml-auto"
+                                fill="currentColor"
                                 viewBox="0 0 24 24"
-                                stroke="currentColor"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                                />
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                               </svg>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-sm font-medium">Deep Strategy Agent</p>
-                              <p className="text-xs text-gray-500">
-                                Multi-agent army for complex problems
-                              </p>
-                              <p className="text-xs text-purple-400 mt-0.5">
-                                Opus + Sonnet + Haiku
-                              </p>
-                            </div>
+                            )}
                           </button>
                         )}
 
@@ -1282,36 +1211,22 @@ export function ChatComposer({
                               setShowAgentsMenu(false);
                               await onAgentSelect?.('deep-research');
                             }}
-                            className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                            className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
                               activeAgent === 'deep-research'
-                                ? 'bg-emerald-600/20 text-emerald-300'
+                                ? 'bg-gray-700/50 text-white'
                                 : 'hover:bg-gray-800 text-gray-300'
                             }`}
                           >
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                            <p className="text-sm font-medium">Deep Research Agent</p>
+                            {activeAgent === 'deep-research' && (
                               <svg
-                                className="w-4 h-4 text-emerald-400"
-                                fill="none"
+                                className="w-4 h-4 text-gray-400 ml-auto"
+                                fill="currentColor"
                                 viewBox="0 0 24 24"
-                                stroke="currentColor"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                                />
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                               </svg>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-sm font-medium">Deep Research Agent</p>
-                              <p className="text-xs text-gray-500">
-                                Autonomous research army for any topic
-                              </p>
-                              <p className="text-xs text-emerald-400 mt-0.5">
-                                Opus + Sonnet + Haiku
-                              </p>
-                            </div>
+                            )}
                           </button>
                         )}
                       </div>

@@ -12,7 +12,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ImagePlus, Wand2, Sparkles, Images } from 'lucide-react';
 
 export type CreativeMode = 'create-image' | 'edit-image' | 'view-gallery';
 
@@ -77,7 +76,6 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
         }}
         title="Creative tools"
       >
-        <Sparkles className="w-3.5 h-3.5" />
         <span>{getModeLabel()}</span>
         {activeMode && <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" />}
         <svg
@@ -119,37 +117,43 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                 {/* Create Image */}
                 <button
                   onClick={() => handleSelect('create-image')}
-                  className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
                     activeMode === 'create-image'
                       ? 'bg-gray-700/50 text-white'
                       : 'hover:bg-gray-800 text-gray-300'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
-                    <ImagePlus className="w-4 h-4 text-gray-300" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium">Create Image</p>
-                    <p className="text-xs text-gray-500">Generate images from text descriptions</p>
-                  </div>
+                  <p className="text-sm font-medium">Create Image</p>
+                  {activeMode === 'create-image' && (
+                    <svg
+                      className="w-4 h-4 text-gray-400 ml-auto"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                    </svg>
+                  )}
                 </button>
 
                 {/* Edit Image */}
                 <button
                   onClick={() => handleSelect('edit-image')}
-                  className={`w-full flex items-start gap-3 p-2 rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
                     activeMode === 'edit-image'
                       ? 'bg-gray-700/50 text-white'
                       : 'hover:bg-gray-800 text-gray-300'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
-                    <Wand2 className="w-4 h-4 text-gray-300" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium">Edit Image</p>
-                    <p className="text-xs text-gray-500">Modify images with AI assistance</p>
-                  </div>
+                  <p className="text-sm font-medium">Edit Image</p>
+                  {activeMode === 'edit-image' && (
+                    <svg
+                      className="w-4 h-4 text-gray-400 ml-auto"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                    </svg>
+                  )}
                 </button>
 
                 {/* Divider */}
@@ -158,15 +162,9 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                 {/* View Gallery */}
                 <button
                   onClick={() => handleSelect('view-gallery')}
-                  className="w-full flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
+                  className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center flex-shrink-0">
-                    <Images className="w-4 h-4 text-gray-300" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium">My Creations</p>
-                    <p className="text-xs text-gray-500">View your past image generations</p>
-                  </div>
+                  <p className="text-sm font-medium">My Creations</p>
                 </button>
               </div>
             </div>
