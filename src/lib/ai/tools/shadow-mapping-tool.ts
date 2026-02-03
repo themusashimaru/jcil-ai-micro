@@ -102,7 +102,7 @@ class VectorMath {
     return { x: v.x / len, y: v.y / len, z: v.z / len };
   }
 
-  static length(v: Vector3): number {
+  static magnitude(v: Vector3): number {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
   }
 

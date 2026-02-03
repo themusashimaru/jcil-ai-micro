@@ -53,7 +53,7 @@ class Vec3 {
     return new Vec3(v.x / len, v.y / len, v.z / len);
   }
 
-  static length(v: Vec3): number {
+  static magnitude(v: Vec3): number {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
   }
 }
