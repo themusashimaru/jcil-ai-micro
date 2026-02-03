@@ -558,7 +558,7 @@ function copelandMethod(election: Election): ElectionResult {
       maxScore: n - 1,
       headToHead: candidates.map((c, i) => ({
         candidate: c,
-        record: candidates.map((opp, j) =>
+        record: candidates.map((_opp, j) =>
           i === j
             ? '-'
             : matrix[i][j] > matrix[j][i]
@@ -753,7 +753,7 @@ function detectParadoxes(election: Election): ParadoxAnalysis {
 
   const arrowParadox =
     pluralityResult.winner !== bordaResult.winner ||
-    (condorcetWinner && pluralityResult.winner !== condorcetWinner);
+    !!(condorcetWinner && pluralityResult.winner !== condorcetWinner);
 
   if (arrowParadox) {
     details.arrowManifestation = {
@@ -1225,7 +1225,7 @@ export async function executevotingsystem(toolCall: UnifiedToolCall): Promise<Un
       }
 
       case 'generate_sample': {
-        const scenario = args.scenario || 'default';
+        const scenario = (args.scenario as string) || 'default';
         const sample = generateSampleElection(scenario);
 
         return {

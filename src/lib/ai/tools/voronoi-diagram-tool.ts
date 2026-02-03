@@ -35,13 +35,8 @@ export const voronoidiagramTool: UnifiedTool = {
       },
       bounds: {
         type: 'object',
-        properties: {
-          min_x: { type: 'number' },
-          max_x: { type: 'number' },
-          min_y: { type: 'number' },
-          max_y: { type: 'number' },
-        },
-        description: 'Bounding box for clipping',
+        description:
+          'Bounding box for clipping with properties: min_x, max_x, min_y, max_y (all numbers)',
       },
     },
     required: ['operation'],

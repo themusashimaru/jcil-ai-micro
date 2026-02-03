@@ -787,17 +787,8 @@ export const valueatriskTool: UnifiedTool = {
       },
       portfolio: {
         type: 'object',
-        properties: {
-          assets: {
-            type: 'array',
-            items: { type: 'object' },
-            description:
-              'Portfolio assets. Each asset has: symbol (string), weight (number), expectedReturn (number), volatility (number)',
-          },
-          value: { type: 'number' },
-          historicalReturns: { type: 'array', items: { type: 'number' } },
-        },
-        description: 'Portfolio definition',
+        description:
+          'Portfolio definition with properties: assets (array of {symbol, weight, expectedReturn, volatility}), value (number), historicalReturns (array of numbers)',
       },
       simulations: {
         type: 'number',

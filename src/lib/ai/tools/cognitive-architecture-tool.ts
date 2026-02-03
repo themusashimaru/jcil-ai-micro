@@ -346,22 +346,20 @@ function simulateSOAR(
   state: SOARState,
   maxSteps: number
 ): {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trace: Array<{
     step: number;
     operator: string | null;
     impasse: string | null;
-    wm: Record<string, any>;
+    wm: Record<string, unknown>;
   }>;
   finalState: SOARState;
   learnedChunks: string[];
 } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const trace: Array<{
     step: number;
     operator: string | null;
     impasse: string | null;
-    wm: Record<string, any>;
+    wm: Record<string, unknown>;
   }> = [];
 
   for (let step = 0; step < maxSteps; step++) {
@@ -533,19 +531,17 @@ function broadcast(workspace: GlobalWorkspace, module: GWTModule): void {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function simulateGWT(
   workspace: GlobalWorkspace,
-  stimuli: Array<{ module: string; content: any; activation: number }>,
+  stimuli: Array<{ module: string; content: unknown; activation: number }>,
   steps: number
 ): {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  broadcasts: Array<{ step: number; winner: string; content: any; conscious: boolean }>;
+  broadcasts: Array<{ step: number; winner: string; content: unknown; conscious: boolean }>;
   finalWorkspace: GlobalWorkspace;
   consciousEvents: number;
 } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const broadcasts: Array<{ step: number; winner: string; content: any; conscious: boolean }> = [];
+  const broadcasts: Array<{ step: number; winner: string; content: unknown; conscious: boolean }> =
+    [];
 
   for (let step = 0; step < steps; step++) {
     // Apply stimuli

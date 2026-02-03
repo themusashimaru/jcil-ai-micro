@@ -1159,10 +1159,6 @@ function analyzeStakingEconomics(args: Record<string, unknown>): Record<string, 
   const dilutionToNonStakers = effectiveInflation;
   const realYieldForStakers = stakingApy * 100 - effectiveInflation * (1 - stakingRatio);
 
-  // Lock period economics
-  const _lockPeriodMonths = lockPeriodDays / 30;
-  const _opportunityCost = lockPeriodDays * 0.0001; // Simplified opportunity cost
-
   // Staking equilibrium analysis
   const equilibriumStakingRatio = findStakingEquilibrium(stakingApy, effectiveInflation / 100);
 

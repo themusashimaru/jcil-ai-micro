@@ -154,7 +154,6 @@ class UARTSimulator {
   private transmissions: UARTTransmission[] = [];
   private transmissionCounter: number = 0;
   private errors: UARTErrors;
-  private _rtsState: boolean = true; // Ready to send (future use)
   private ctsState: boolean = true; // Clear to send
   private xonState: boolean = true; // XON active (can transmit)
   private breakCondition: boolean = false;
@@ -761,10 +760,10 @@ class UARTSimulator {
   }
 
   /**
-   * Set RTS state
+   * Set RTS state (placeholder for future implementation)
    */
-  setRTS(state: boolean): void {
-    this._rtsState = state;
+  setRTS(_state: boolean): void {
+    // RTS handling reserved for future use
   }
 
   /**

@@ -20,14 +20,6 @@ function matrixCreate(rows: number, cols: number, fill: number = 0): Matrix {
     .map(() => Array(cols).fill(fill));
 }
 
-function matrixIdentity(n: number): Matrix {
-  const I = matrixCreate(n, n);
-  for (let i = 0; i < n; i++) {
-    I[i][i] = 1;
-  }
-  return I;
-}
-
 function matrixAdd(A: Matrix, B: Matrix): Matrix {
   const rows = A.length;
   const cols = A[0].length;
@@ -65,47 +57,6 @@ function matrixMultiply(A: Matrix, B: Matrix): Matrix {
 // Extract column from matrix
 function matrixGetColumn(A: Matrix, col: number): Matrix {
   return A.map((row) => [row[col]]);
-}
-
-// LU decomposition with partial pivoting
-function luDecomposition(A: Matrix): { L: Matrix; U: Matrix; P: Matrix } {
-  const n = A.length;
-  const L = matrixIdentity(n);
-  const U = A.map((row) => [...row]);
-  const P = matrixIdentity(n);
-
-  for (let k = 0; k < n - 1; k++) {
-    // Find pivot
-    let maxVal = Math.abs(U[k][k]);
-    let maxIdx = k;
-    for (let i = k + 1; i < n; i++) {
-      if (Math.abs(U[i][k]) > maxVal) {
-        maxVal = Math.abs(U[i][k]);
-        maxIdx = i;
-      }
-    }
-
-    // Swap rows
-    if (maxIdx !== k) {
-      [U[k], U[maxIdx]] = [U[maxIdx], U[k]];
-      [P[k], P[maxIdx]] = [P[maxIdx], P[k]];
-      for (let j = 0; j < k; j++) {
-        [L[k][j], L[maxIdx][j]] = [L[maxIdx][j], L[k][j]];
-      }
-    }
-
-    // Eliminate
-    for (let i = k + 1; i < n; i++) {
-      if (Math.abs(U[k][k]) > 1e-15) {
-        L[i][k] = U[i][k] / U[k][k];
-        for (let j = k; j < n; j++) {
-          U[i][j] -= L[i][k] * U[k][j];
-        }
-      }
-    }
-  }
-
-  return { L, U, P };
 }
 
 // Matrix rank using reduced row echelon form
@@ -359,7 +310,7 @@ function stepResponse(
   duration: number,
   dt: number = 0.01
 ): { time: number[]; output: number[][] } {
-  const { A, B, C, D, n, m, p } = sys;
+  const { A, B, C, D, n, m } = sys;
 
   const numSteps = Math.floor(duration / dt);
   const time: number[] = [];
@@ -431,7 +382,7 @@ function tf2ss(numerator: number[], denominator: number[]): StateSpaceSystem {
 
 // Convert state-space to transfer function
 function ss2tf(sys: StateSpaceSystem): { numerator: number[]; denominator: number[] } {
-  const { A, B, C, D, n } = sys;
+  const { A, D } = sys;
 
   // Characteristic polynomial = det(sI - A)
   // For simplicity, compute coefficients using eigenvalues

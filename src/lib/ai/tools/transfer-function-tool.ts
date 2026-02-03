@@ -380,7 +380,7 @@ function calculateStepResponse(
   };
 }
 
-function stateDerivative(state: number[], input: number, num: number[], den: number[]): number[] {
+function stateDerivative(state: number[], input: number, _num: number[], den: number[]): number[] {
   const n = state.length;
   const deriv = new Array(n).fill(0);
 

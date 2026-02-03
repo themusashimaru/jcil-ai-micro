@@ -539,7 +539,7 @@ function modDiv(a: bigint, b: bigint, p: bigint = PRIME): bigint {
 }
 
 export function snarkVerify(
-  publicInputs: bigint[],
+  _publicInputs: bigint[],
   proof: SNARKProof,
   vk: { alpha: bigint; beta: bigint; gamma: bigint; delta: bigint }
 ): boolean {
@@ -860,7 +860,6 @@ function computeInnerProductProof(
   _z: bigint,
   _x: bigint
 ): InnerProductProof {
-  const _n = a.length;
   const L: [bigint, bigint][] = [];
   const R: [bigint, bigint][] = [];
 

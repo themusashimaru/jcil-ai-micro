@@ -895,7 +895,7 @@ export async function executeuncertaintyquantifier(
           let failures = args.failures;
 
           if (successes === undefined && data.length > 0) {
-            successes = data.filter((x) => x > 0.5).length;
+            successes = data.filter((x: number) => x > 0.5).length;
             failures = data.length - successes;
           } else if (successes === undefined) {
             // Demo data

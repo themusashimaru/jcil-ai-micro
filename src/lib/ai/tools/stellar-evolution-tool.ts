@@ -17,8 +17,6 @@ const SOLAR_LUMINOSITY = 3.828e26; // W
 const SOLAR_RADIUS = 6.957e8; // m
 const SOLAR_TEMPERATURE = 5778; // K
 const STEFAN_BOLTZMANN = 5.670374419e-8; // W/(m²K⁴)
-const GRAVITATIONAL_CONSTANT = 6.67430e-11; // m³/(kg·s²)
-const SPEED_OF_LIGHT = 299792458; // m/s
 const CHANDRASEKHAR_LIMIT = 1.4; // Solar masses
 const TOV_LIMIT = 2.1; // Solar masses (approximate Tolman-Oppenheimer-Volkoff limit)
 
@@ -42,7 +40,7 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'Blue',
     absorptionLines: 'Ionized helium (He II), weak hydrogen',
     examples: ['ζ Ophiuchi', '10 Lacertae'],
-    fraction: 0.00003
+    fraction: 0.00003,
   },
   {
     class: 'B',
@@ -50,7 +48,7 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'Blue-white',
     absorptionLines: 'Neutral helium, hydrogen',
     examples: ['Rigel', 'Spica'],
-    fraction: 0.13
+    fraction: 0.13,
   },
   {
     class: 'A',
@@ -58,7 +56,7 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'White',
     absorptionLines: 'Strong hydrogen (Balmer series)',
     examples: ['Sirius', 'Vega'],
-    fraction: 0.6
+    fraction: 0.6,
   },
   {
     class: 'F',
@@ -66,7 +64,7 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'Yellow-white',
     absorptionLines: 'Hydrogen, ionized calcium',
     examples: ['Canopus', 'Procyon'],
-    fraction: 3.0
+    fraction: 3.0,
   },
   {
     class: 'G',
@@ -74,7 +72,7 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'Yellow',
     absorptionLines: 'Calcium, iron, other metals',
     examples: ['Sun', 'Alpha Centauri A'],
-    fraction: 7.6
+    fraction: 7.6,
   },
   {
     class: 'K',
@@ -82,7 +80,7 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'Orange',
     absorptionLines: 'Neutral metals, molecules',
     examples: ['Arcturus', 'Aldebaran'],
-    fraction: 12.1
+    fraction: 12.1,
   },
   {
     class: 'M',
@@ -90,8 +88,8 @@ const SPECTRAL_CLASSES: SpectralClass[] = [
     color: 'Red',
     absorptionLines: 'Titanium oxide, molecules',
     examples: ['Betelgeuse', 'Proxima Centauri'],
-    fraction: 76.5
-  }
+    fraction: 76.5,
+  },
 ];
 
 // ============================================================================
@@ -106,14 +104,54 @@ interface LuminosityClass {
 }
 
 const LUMINOSITY_CLASSES: LuminosityClass[] = [
-  { class: 'Ia', name: 'Luminous Supergiant', description: 'Most luminous supergiants', typicalRadius: '100-1000 R☉' },
-  { class: 'Ib', name: 'Supergiant', description: 'Less luminous supergiants', typicalRadius: '50-500 R☉' },
-  { class: 'II', name: 'Bright Giant', description: 'Intermediate between giants and supergiants', typicalRadius: '25-100 R☉' },
-  { class: 'III', name: 'Giant', description: 'Stars that have left the main sequence', typicalRadius: '10-50 R☉' },
-  { class: 'IV', name: 'Subgiant', description: 'Between main sequence and giants', typicalRadius: '2-10 R☉' },
-  { class: 'V', name: 'Main Sequence (Dwarf)', description: 'Core hydrogen burning stars', typicalRadius: '0.1-10 R☉' },
-  { class: 'VI', name: 'Subdwarf', description: 'Below main sequence in luminosity', typicalRadius: '0.1-0.5 R☉' },
-  { class: 'VII', name: 'White Dwarf', description: 'Degenerate stellar remnants', typicalRadius: '~0.01 R☉' }
+  {
+    class: 'Ia',
+    name: 'Luminous Supergiant',
+    description: 'Most luminous supergiants',
+    typicalRadius: '100-1000 R☉',
+  },
+  {
+    class: 'Ib',
+    name: 'Supergiant',
+    description: 'Less luminous supergiants',
+    typicalRadius: '50-500 R☉',
+  },
+  {
+    class: 'II',
+    name: 'Bright Giant',
+    description: 'Intermediate between giants and supergiants',
+    typicalRadius: '25-100 R☉',
+  },
+  {
+    class: 'III',
+    name: 'Giant',
+    description: 'Stars that have left the main sequence',
+    typicalRadius: '10-50 R☉',
+  },
+  {
+    class: 'IV',
+    name: 'Subgiant',
+    description: 'Between main sequence and giants',
+    typicalRadius: '2-10 R☉',
+  },
+  {
+    class: 'V',
+    name: 'Main Sequence (Dwarf)',
+    description: 'Core hydrogen burning stars',
+    typicalRadius: '0.1-10 R☉',
+  },
+  {
+    class: 'VI',
+    name: 'Subdwarf',
+    description: 'Below main sequence in luminosity',
+    typicalRadius: '0.1-0.5 R☉',
+  },
+  {
+    class: 'VII',
+    name: 'White Dwarf',
+    description: 'Degenerate stellar remnants',
+    typicalRadius: '~0.01 R☉',
+  },
 ];
 
 // ============================================================================
@@ -226,18 +264,18 @@ function getEvolutionaryTrack(mass: number): EvolutionaryTrack {
           duration: '~100 million years',
           description: 'Gravitational contraction, Hayashi track',
           processes: ['Gravitational contraction', 'Deuterium burning'],
-          hrPosition: 'Upper right, moving left'
+          hrPosition: 'Upper right, moving left',
         },
         {
           name: 'Main Sequence',
           duration: `>${1e11} years (longer than universe age)`,
           description: 'Slow hydrogen burning via pp-chain',
           processes: ['Proton-proton chain'],
-          hrPosition: 'Lower main sequence'
-        }
+          hrPosition: 'Lower main sequence',
+        },
       ],
       finalState: 'Will become helium white dwarf (not yet)',
-      totalLifetime: 'Longer than current age of universe'
+      totalLifetime: 'Longer than current age of universe',
     };
   }
 
@@ -251,67 +289,67 @@ function getEvolutionaryTrack(mass: number): EvolutionaryTrack {
           duration: '~50 million years',
           description: 'T Tauri phase, gravitational contraction',
           processes: ['Gravitational contraction', 'Convective mixing'],
-          hrPosition: 'Upper right, descending Hayashi track'
+          hrPosition: 'Upper right, descending Hayashi track',
         },
         {
           name: 'Main Sequence',
           duration: `${(msLifetime / 1e9).toFixed(1)} billion years`,
           description: 'Core hydrogen burning',
           processes: ['pp-chain (dominant)', 'CNO cycle (minor for M>1.3M☉)'],
-          hrPosition: 'Main sequence band'
+          hrPosition: 'Main sequence band',
         },
         {
           name: 'Subgiant Branch',
           duration: '~1 billion years',
           description: 'Hydrogen shell burning, core contracts',
           processes: ['Hydrogen shell burning', 'Core contraction'],
-          hrPosition: 'Above main sequence, moving right'
+          hrPosition: 'Above main sequence, moving right',
         },
         {
           name: 'Red Giant Branch',
           duration: '~1 billion years',
           description: 'Envelope expansion, core degeneracy',
           processes: ['Hydrogen shell burning', 'Convective dredge-up'],
-          hrPosition: 'Upper right'
+          hrPosition: 'Upper right',
         },
         {
           name: 'Helium Flash',
           duration: 'Minutes',
           description: 'Explosive helium ignition in degenerate core',
           processes: ['Triple-alpha process ignition'],
-          hrPosition: 'Tip of RGB'
+          hrPosition: 'Tip of RGB',
         },
         {
           name: 'Horizontal Branch',
           duration: '~100 million years',
           description: 'Core helium burning',
           processes: ['Triple-alpha process', 'Hydrogen shell burning'],
-          hrPosition: 'Horizontal branch or red clump'
+          hrPosition: 'Horizontal branch or red clump',
         },
         {
           name: 'Asymptotic Giant Branch',
           duration: '~1 million years',
           description: 'Double shell burning, thermal pulses',
           processes: ['Helium shell flashes', 's-process nucleosynthesis'],
-          hrPosition: 'Upper right, above RGB'
+          hrPosition: 'Upper right, above RGB',
         },
         {
           name: 'Planetary Nebula',
           duration: '~10,000 years',
           description: 'Mass loss exposes hot core',
           processes: ['Superwind mass loss', 'UV ionization of nebula'],
-          hrPosition: 'Moving left at constant luminosity'
+          hrPosition: 'Moving left at constant luminosity',
         },
         {
           name: 'White Dwarf',
           duration: 'Indefinite cooling',
           description: 'Degenerate carbon-oxygen core',
           processes: ['Thermal radiation', 'Crystallization'],
-          hrPosition: 'Lower left'
-        }
+          hrPosition: 'Lower left',
+        },
       ],
       finalState: 'Carbon-Oxygen White Dwarf',
-      totalLifetime: `~${((msLifetime + 2e9) / 1e9).toFixed(1)} billion years`
+      totalLifetime: `~${((msLifetime + 2e9) / 1e9).toFixed(1)} billion years`,
     };
   }
 
@@ -325,53 +363,53 @@ function getEvolutionaryTrack(mass: number): EvolutionaryTrack {
           duration: '~1-10 million years',
           description: 'Herbig Ae/Be star phase',
           processes: ['Gravitational contraction', 'Radiative core development'],
-          hrPosition: 'Upper right'
+          hrPosition: 'Upper right',
         },
         {
           name: 'Main Sequence',
           duration: `${(msLifetime / 1e6).toFixed(0)} million years`,
           description: 'Core hydrogen burning via CNO cycle',
           processes: ['CNO cycle (dominant)', 'Convective core'],
-          hrPosition: 'Upper main sequence'
+          hrPosition: 'Upper main sequence',
         },
         {
           name: 'Hertzsprung Gap',
           duration: '~1 million years',
           description: 'Rapid evolution across HR diagram',
           processes: ['Core contraction', 'Envelope expansion'],
-          hrPosition: 'Moving rapidly rightward'
+          hrPosition: 'Moving rapidly rightward',
         },
         {
           name: 'Red Giant / Supergiant',
           duration: '~10 million years',
           description: 'Shell burning and dredge-up',
           processes: ['Shell burning', 'Second dredge-up'],
-          hrPosition: 'Upper right'
+          hrPosition: 'Upper right',
         },
         {
           name: 'Blue Loop (some stars)',
           duration: '~1 million years',
           description: 'Core helium burning causes contraction',
           processes: ['Core helium burning'],
-          hrPosition: 'Loop to upper left and back'
+          hrPosition: 'Loop to upper left and back',
         },
         {
           name: 'AGB Phase',
           duration: '~1 million years',
           description: 'Thermal pulses and mass loss',
           processes: ['Thermal pulses', 'Hot bottom burning', 's-process'],
-          hrPosition: 'Upper right'
+          hrPosition: 'Upper right',
         },
         {
           name: 'Planetary Nebula / White Dwarf',
           duration: 'Cooling',
           description: 'More massive CO or ONe white dwarf',
           processes: ['Mass loss', 'Cooling'],
-          hrPosition: 'Lower left'
-        }
+          hrPosition: 'Lower left',
+        },
       ],
       finalState: mass < 6 ? 'CO White Dwarf (0.6-1.0 M☉)' : 'ONeMg White Dwarf (1.0-1.4 M☉)',
-      totalLifetime: `~${((msLifetime + 1e7) / 1e6).toFixed(0)} million years`
+      totalLifetime: `~${((msLifetime + 1e7) / 1e6).toFixed(0)} million years`,
     };
   }
 
@@ -385,53 +423,53 @@ function getEvolutionaryTrack(mass: number): EvolutionaryTrack {
           duration: '~100,000 years',
           description: 'Rapid collapse, no visible PMS phase',
           processes: ['Rapid accretion', 'Disk formation'],
-          hrPosition: 'Emerges on upper main sequence'
+          hrPosition: 'Emerges on upper main sequence',
         },
         {
           name: 'Main Sequence',
           duration: `${(msLifetime / 1e6).toFixed(0)} million years`,
           description: 'CNO cycle with convective core',
           processes: ['CNO cycle', 'Mass loss via stellar wind'],
-          hrPosition: 'Upper main sequence'
+          hrPosition: 'Upper main sequence',
         },
         {
           name: 'Blue Supergiant',
           duration: '~1 million years',
           description: 'Core helium burning',
           processes: ['Triple-alpha', 'Carbon burning begins'],
-          hrPosition: 'Upper left'
+          hrPosition: 'Upper left',
         },
         {
           name: 'Red Supergiant',
           duration: '~1 million years',
           description: 'Advanced nuclear burning',
           processes: ['Shell burning', 'Neon burning', 'Oxygen burning'],
-          hrPosition: 'Upper right'
+          hrPosition: 'Upper right',
         },
         {
           name: 'Advanced Burning',
           duration: 'Years to days',
           description: 'Rapid progression through burning stages',
           processes: ['Silicon burning', 'Iron core formation'],
-          hrPosition: 'Upper region'
+          hrPosition: 'Upper region',
         },
         {
           name: 'Core Collapse',
           duration: 'Milliseconds',
           description: 'Iron core exceeds Chandrasekhar limit',
           processes: ['Electron capture', 'Neutronization'],
-          hrPosition: 'N/A'
+          hrPosition: 'N/A',
         },
         {
           name: 'Supernova Type II',
           duration: 'Seconds to months',
           description: 'Explosive ejection of envelope',
           processes: ['Neutrino burst', 'Shock wave', 'r-process'],
-          hrPosition: 'Transient bright event'
-        }
+          hrPosition: 'Transient bright event',
+        },
       ],
       finalState: 'Neutron Star (1.4-2.1 M☉)',
-      totalLifetime: `~${((msLifetime + 2e6) / 1e6).toFixed(0)} million years`
+      totalLifetime: `~${((msLifetime + 2e6) / 1e6).toFixed(0)} million years`,
     };
   }
 
@@ -444,32 +482,32 @@ function getEvolutionaryTrack(mass: number): EvolutionaryTrack {
         duration: '~50,000 years',
         description: 'Forms within dense molecular cloud',
         processes: ['Massive accretion', 'Strong stellar wind'],
-        hrPosition: 'Appears on upper main sequence'
+        hrPosition: 'Appears on upper main sequence',
       },
       {
         name: 'Main Sequence',
         duration: `${(msLifetime / 1e6).toFixed(1)} million years`,
         description: 'Near Eddington luminosity',
         processes: ['CNO cycle', 'Severe mass loss'],
-        hrPosition: 'Upper left main sequence'
+        hrPosition: 'Upper left main sequence',
       },
       {
         name: 'Wolf-Rayet Phase',
         duration: '~0.5 million years',
         description: 'Strong mass loss exposes core',
         processes: ['Extreme stellar wind', 'Helium/carbon/oxygen exposed'],
-        hrPosition: 'Upper left, high temperature'
+        hrPosition: 'Upper left, high temperature',
       },
       {
         name: 'Core Collapse',
         duration: 'Milliseconds',
         description: 'Catastrophic core collapse',
         processes: ['Direct collapse or explosion'],
-        hrPosition: 'N/A'
-      }
+        hrPosition: 'N/A',
+      },
     ],
     finalState: mass > 40 ? 'Black Hole (direct collapse possible)' : 'Black Hole or Neutron Star',
-    totalLifetime: `~${((msLifetime + 1e6) / 1e6).toFixed(1)} million years`
+    totalLifetime: `~${((msLifetime + 1e6) / 1e6).toFixed(1)} million years`,
   };
 }
 
@@ -519,7 +557,7 @@ function classifyStar(temperature: number, luminosity: number): StellarClassific
     estimatedMass = 0.6;
   }
 
-  const lcName = LUMINOSITY_CLASSES.find(lc => lc.class === luminosityClass)?.name || 'Unknown';
+  const lcName = LUMINOSITY_CLASSES.find((lc) => lc.class === luminosityClass)?.name || 'Unknown';
 
   return {
     spectralType: spectralClass,
@@ -527,7 +565,7 @@ function classifyStar(temperature: number, luminosity: number): StellarClassific
     fullClassification: `${spectralClass}${luminosityClass}`,
     estimatedMass,
     estimatedTemperature: temperature,
-    description: `${spectralClass}-type ${lcName}`
+    description: `${spectralClass}-type ${lcName}`,
   };
 }
 
@@ -558,7 +596,7 @@ function generateHRDiagram(): HRDiagramPoint[] {
       temperature: Math.round(T),
       luminosity: L,
       spectralType: classification.spectralType,
-      region: 'Main Sequence'
+      region: 'Main Sequence',
     });
   }
 
@@ -571,7 +609,7 @@ function generateHRDiagram(): HRDiagramPoint[] {
     { name: 'Proxima Centauri', temp: 3042, lum: 0.0017 },
     { name: 'Sirius B (WD)', temp: 25200, lum: 0.026 },
     { name: 'Vega', temp: 9602, lum: 40 },
-    { name: 'Arcturus', temp: 4286, lum: 170 }
+    { name: 'Arcturus', temp: 4286, lum: 170 },
   ];
 
   for (const star of referenceStars) {
@@ -581,9 +619,14 @@ function generateHRDiagram(): HRDiagramPoint[] {
       temperature: star.temp,
       luminosity: star.lum,
       spectralType: classification.fullClassification,
-      region: classification.luminosityClass === 'V' ? 'Main Sequence' :
-              classification.luminosityClass === 'VII' ? 'White Dwarf' :
-              classification.luminosityClass.startsWith('I') ? 'Supergiant' : 'Giant'
+      region:
+        classification.luminosityClass === 'V'
+          ? 'Main Sequence'
+          : classification.luminosityClass === 'VII'
+            ? 'White Dwarf'
+            : classification.luminosityClass.startsWith('I')
+              ? 'Supergiant'
+              : 'Giant',
     });
   }
 
@@ -596,38 +639,41 @@ function generateHRDiagram(): HRDiagramPoint[] {
 
 export const stellarevolutionTool: UnifiedTool = {
   name: 'stellar_evolution',
-  description: 'Stellar evolution and HR diagram modeling - mass-luminosity relations, evolutionary tracks, spectral classification, and stellar endpoints',
+  description:
+    'Stellar evolution and HR diagram modeling - mass-luminosity relations, evolutionary tracks, spectral classification, and stellar endpoints',
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
         enum: ['evolve', 'classify', 'hr_diagram', 'properties', 'lifetime', 'endpoint', 'info'],
-        description: 'Operation type'
+        description: 'Operation type',
       },
       mass: {
         type: 'number',
-        description: 'Stellar mass in solar masses'
+        description: 'Stellar mass in solar masses',
       },
       temperature: {
         type: 'number',
-        description: 'Effective temperature in Kelvin'
+        description: 'Effective temperature in Kelvin',
       },
       luminosity: {
         type: 'number',
-        description: 'Luminosity in solar luminosities'
+        description: 'Luminosity in solar luminosities',
       },
       star_type: {
         type: 'string',
         enum: ['main_sequence', 'red_giant', 'white_dwarf', 'neutron_star', 'black_hole'],
-        description: 'Star type filter'
-      }
+        description: 'Star type filter',
+      },
     },
-    required: ['operation']
-  }
+    required: ['operation'],
+  },
 };
 
-export async function executestellarevolution(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+export async function executestellarevolution(
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
   const { id, arguments: rawArgs } = toolCall;
 
   try {
@@ -641,11 +687,15 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
         if (mass <= 0 || mass > 150) {
           return {
             toolCallId: id,
-            content: JSON.stringify({
-              error: 'Mass must be between 0.08 and 150 solar masses',
-              note: 'Below 0.08 M☉ = brown dwarf, above ~150 M☉ = pair-instability limit'
-            }, null, 2),
-            isError: true
+            content: JSON.stringify(
+              {
+                error: 'Mass must be between 0.08 and 150 solar masses',
+                note: 'Below 0.08 M☉ = brown dwarf, above ~150 M☉ = pair-instability limit',
+              },
+              null,
+              2
+            ),
+            isError: true,
           };
         }
 
@@ -657,24 +707,29 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
             massLuminosityRelation(mass),
             massRadiusRelation(mass)
           ),
-          mainSequenceLifetime: mainSequenceLifetime(mass)
+          mainSequenceLifetime: mainSequenceLifetime(mass),
         };
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'evolve',
-            initialMass: `${mass} M☉`,
-            evolutionaryTrack: track,
-            mainSequenceProperties: {
-              luminosity: `${properties.mainSequenceLuminosity.toExponential(2)} L☉`,
-              radius: `${properties.mainSequenceRadius.toFixed(2)} R☉`,
-              temperature: `${Math.round(properties.mainSequenceTemperature)} K`,
-              lifetime: properties.mainSequenceLifetime > 1e9
-                ? `${(properties.mainSequenceLifetime / 1e9).toFixed(1)} billion years`
-                : `${(properties.mainSequenceLifetime / 1e6).toFixed(0)} million years`
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'evolve',
+              initialMass: `${mass} M☉`,
+              evolutionaryTrack: track,
+              mainSequenceProperties: {
+                luminosity: `${properties.mainSequenceLuminosity.toExponential(2)} L☉`,
+                radius: `${properties.mainSequenceRadius.toFixed(2)} R☉`,
+                temperature: `${Math.round(properties.mainSequenceTemperature)} K`,
+                lifetime:
+                  properties.mainSequenceLifetime > 1e9
+                    ? `${(properties.mainSequenceLifetime / 1e9).toFixed(1)} billion years`
+                    : `${(properties.mainSequenceLifetime / 1e6).toFixed(0)} million years`,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -686,13 +741,17 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'classify',
-            input: { temperature: temp, luminosity: lum },
-            classification,
-            spectralClasses: SPECTRAL_CLASSES,
-            luminosityClasses: LUMINOSITY_CLASSES
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'classify',
+              input: { temperature: temp, luminosity: lum },
+              classification,
+              spectralClasses: SPECTRAL_CLASSES,
+              luminosityClasses: LUMINOSITY_CLASSES,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -722,22 +781,26 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'hr_diagram',
-            description: 'Hertzsprung-Russell Diagram',
-            axes: {
-              x: 'Effective Temperature (K) - decreasing rightward',
-              y: 'Luminosity (L☉) - logarithmic scale'
+          content: JSON.stringify(
+            {
+              operation: 'hr_diagram',
+              description: 'Hertzsprung-Russell Diagram',
+              axes: {
+                x: 'Effective Temperature (K) - decreasing rightward',
+                y: 'Luminosity (L☉) - logarithmic scale',
+              },
+              regions: {
+                mainSequence: 'Diagonal band from upper-left to lower-right',
+                giants: 'Upper-right region',
+                supergiants: 'Uppermost region',
+                whiteDwarfs: 'Lower-left region',
+              },
+              referencPoints: diagram,
+              asciiDiagram: ascii,
             },
-            regions: {
-              mainSequence: 'Diagonal band from upper-left to lower-right',
-              giants: 'Upper-right region',
-              supergiants: 'Uppermost region',
-              whiteDwarfs: 'Lower-left region'
-            },
-            referencPoints: diagram,
-            asciiDiagram: ascii
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -753,42 +816,50 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'properties',
-            mass: `${mass} M☉`,
-            mainSequenceProperties: {
-              luminosity: {
-                value: L,
-                unit: 'L☉',
-                watts: (L * SOLAR_LUMINOSITY).toExponential(2)
+          content: JSON.stringify(
+            {
+              operation: 'properties',
+              mass: `${mass} M☉`,
+              mainSequenceProperties: {
+                luminosity: {
+                  value: L,
+                  unit: 'L☉',
+                  watts: (L * SOLAR_LUMINOSITY).toExponential(2),
+                },
+                radius: {
+                  value: R,
+                  unit: 'R☉',
+                  meters: (R * SOLAR_RADIUS).toExponential(2),
+                },
+                temperature: {
+                  value: Math.round(T),
+                  unit: 'K',
+                },
+                absoluteMagnitude: mag.toFixed(2),
+                lifetime: {
+                  years: lifetime.toExponential(2),
+                  formatted:
+                    lifetime > 1e9
+                      ? `${(lifetime / 1e9).toFixed(1)} Gyr`
+                      : `${(lifetime / 1e6).toFixed(0)} Myr`,
+                },
               },
-              radius: {
-                value: R,
-                unit: 'R☉',
-                meters: (R * SOLAR_RADIUS).toExponential(2)
+              physicalLimits: {
+                eddingtonLuminosity: `${eddington.toExponential(2)} L☉`,
+                schwarzschildRadius:
+                  mass > 3
+                    ? `${schwarzschildRadius(mass).toFixed(1)} km`
+                    : 'N/A (not massive enough)',
               },
-              temperature: {
-                value: Math.round(T),
-                unit: 'K'
+              scalingRelations: {
+                massLuminosity: 'L ∝ M^(3.5-4) for main sequence',
+                massRadius: 'R ∝ M^(0.57-0.8) for main sequence',
+                massLifetime: 'τ ∝ M/L ∝ M^(-2.5 to -3)',
               },
-              absoluteMagnitude: mag.toFixed(2),
-              lifetime: {
-                years: lifetime.toExponential(2),
-                formatted: lifetime > 1e9
-                  ? `${(lifetime / 1e9).toFixed(1)} Gyr`
-                  : `${(lifetime / 1e6).toFixed(0)} Myr`
-              }
             },
-            physicalLimits: {
-              eddingtonLuminosity: `${eddington.toExponential(2)} L☉`,
-              schwarzschildRadius: mass > 3 ? `${schwarzschildRadius(mass).toFixed(1)} km` : 'N/A (not massive enough)'
-            },
-            scalingRelations: {
-              massLuminosity: 'L ∝ M^(3.5-4) for main sequence',
-              massRadius: 'R ∝ M^(0.57-0.8) for main sequence',
-              massLifetime: 'τ ∝ M/L ∝ M^(-2.5 to -3)'
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
@@ -797,25 +868,32 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
         const lifetime = mainSequenceLifetime(mass);
 
         // Compare to other masses
-        const comparisons = [0.1, 0.5, 1.0, 2.0, 5.0, 10, 20, 50].map(m => ({
+        const comparisons = [0.1, 0.5, 1.0, 2.0, 5.0, 10, 20, 50].map((m) => ({
           mass: `${m} M☉`,
-          lifetime: mainSequenceLifetime(m) > 1e9
-            ? `${(mainSequenceLifetime(m) / 1e9).toFixed(1)} Gyr`
-            : `${(mainSequenceLifetime(m) / 1e6).toFixed(0)} Myr`
+          lifetime:
+            mainSequenceLifetime(m) > 1e9
+              ? `${(mainSequenceLifetime(m) / 1e9).toFixed(1)} Gyr`
+              : `${(mainSequenceLifetime(m) / 1e6).toFixed(0)} Myr`,
         }));
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'lifetime',
-            inputMass: `${mass} M☉`,
-            mainSequenceLifetime: lifetime > 1e9
-              ? `${(lifetime / 1e9).toFixed(1)} billion years`
-              : `${(lifetime / 1e6).toFixed(0)} million years`,
-            comparedToSun: `${(lifetime / 1e10).toFixed(2)}× solar lifetime`,
-            explanation: 'More massive stars burn fuel faster despite having more, so they live shorter lives',
-            comparisons
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'lifetime',
+              inputMass: `${mass} M☉`,
+              mainSequenceLifetime:
+                lifetime > 1e9
+                  ? `${(lifetime / 1e9).toFixed(1)} billion years`
+                  : `${(lifetime / 1e6).toFixed(0)} million years`,
+              comparedToSun: `${(lifetime / 1e10).toFixed(2)}× solar lifetime`,
+              explanation:
+                'More massive stars burn fuel faster despite having more, so they live shorter lives',
+              comparisons,
+            },
+            null,
+            2
+          ),
         };
       }
 
@@ -828,14 +906,14 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
           endpoint = {
             type: 'Brown Dwarf',
             description: 'Never achieved sustained hydrogen fusion',
-            remnant: 'None - gradually cools as brown dwarf'
+            remnant: 'None - gradually cools as brown dwarf',
           };
         } else if (mass < 0.5) {
           endpoint = {
             type: 'Helium White Dwarf',
             description: 'Will not reach helium burning (universe not old enough yet)',
             remnantMass: '~0.4 M☉',
-            composition: 'Helium'
+            composition: 'Helium',
           };
         } else if (mass < 8) {
           endpoint = {
@@ -843,7 +921,7 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
             description: 'Planetary nebula phase followed by white dwarf',
             remnantMass: mass < 2 ? '~0.6 M☉' : `~${(0.4 + 0.1 * mass).toFixed(1)} M☉`,
             composition: mass < 6 ? 'Carbon-Oxygen' : 'Oxygen-Neon-Magnesium',
-            coolingTime: 'Billions of years to black dwarf'
+            coolingTime: 'Billions of years to black dwarf',
           };
         } else if (mass < 25) {
           endpoint = {
@@ -853,14 +931,14 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
             remnantMass: '1.4-2.1 M☉',
             radius: '~10 km',
             density: '~10^17 kg/m³',
-            possiblePulsar: true
+            possiblePulsar: true,
           };
         } else if (mass < 40) {
           endpoint = {
             type: 'Black Hole (via supernova)',
             description: 'Core collapse with fallback, supernova',
             remnantMass: `~${(mass * 0.1).toFixed(0)}-${(mass * 0.3).toFixed(0)} M☉`,
-            schwarzschildRadius: `${schwarzschildRadius(mass * 0.2).toFixed(0)} km`
+            schwarzschildRadius: `${schwarzschildRadius(mass * 0.2).toFixed(0)} km`,
           };
         } else {
           endpoint = {
@@ -868,79 +946,99 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
             description: 'May collapse directly without supernova',
             remnantMass: `~${(mass * 0.3).toFixed(0)}-${(mass * 0.5).toFixed(0)} M☉`,
             schwarzschildRadius: `${schwarzschildRadius(mass * 0.4).toFixed(0)} km`,
-            pairInstability: mass > 130 ? 'Pair-instability supernova possible - no remnant' : 'No'
+            pairInstability: mass > 130 ? 'Pair-instability supernova possible - no remnant' : 'No',
           };
         }
 
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            operation: 'endpoint',
-            initialMass: `${mass} M☉`,
-            endpoint,
-            massLimits: {
-              brownDwarf: '< 0.08 M☉',
-              whiteDwarf: '0.08 - 8 M☉',
-              neutronStar: '8 - 25 M☉',
-              blackHole: '> 25 M☉',
-              chandrasekharLimit: `${CHANDRASEKHAR_LIMIT} M☉ (white dwarf max)`,
-              tovLimit: `~${TOV_LIMIT} M☉ (neutron star max)`
-            }
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              operation: 'endpoint',
+              initialMass: `${mass} M☉`,
+              endpoint,
+              massLimits: {
+                brownDwarf: '< 0.08 M☉',
+                whiteDwarf: '0.08 - 8 M☉',
+                neutronStar: '8 - 25 M☉',
+                blackHole: '> 25 M☉',
+                chandrasekharLimit: `${CHANDRASEKHAR_LIMIT} M☉ (white dwarf max)`,
+                tovLimit: `~${TOV_LIMIT} M☉ (neutron star max)`,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
 
       case 'info': {
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            tool: 'Stellar Evolution',
-            description: 'Models stellar evolution, HR diagrams, and stellar physics',
+          content: JSON.stringify(
+            {
+              tool: 'Stellar Evolution',
+              description: 'Models stellar evolution, HR diagrams, and stellar physics',
 
-            operations: [
-              'evolve: Full evolutionary track for a given mass',
-              'classify: Spectral and luminosity classification',
-              'hr_diagram: Generate HR diagram with reference stars',
-              'properties: Calculate stellar properties from mass',
-              'lifetime: Main sequence lifetime calculations',
-              'endpoint: Determine final evolutionary state',
-              'info: This documentation'
-            ],
+              operations: [
+                'evolve: Full evolutionary track for a given mass',
+                'classify: Spectral and luminosity classification',
+                'hr_diagram: Generate HR diagram with reference stars',
+                'properties: Calculate stellar properties from mass',
+                'lifetime: Main sequence lifetime calculations',
+                'endpoint: Determine final evolutionary state',
+                'info: This documentation',
+              ],
 
-            keyRelations: {
-              massLuminosity: 'L ∝ M^(3.5-4) for main sequence',
-              massRadius: 'R ∝ M^(0.57-0.8) for main sequence',
-              stefanBoltzmann: 'L = 4πR²σT⁴',
-              lifetime: 'τ ∝ M/L × 10^10 years'
+              keyRelations: {
+                massLuminosity: 'L ∝ M^(3.5-4) for main sequence',
+                massRadius: 'R ∝ M^(0.57-0.8) for main sequence',
+                stefanBoltzmann: 'L = 4πR²σT⁴',
+                lifetime: 'τ ∝ M/L × 10^10 years',
+              },
+
+              spectralSequence: 'O B A F G K M (hot to cool)',
+              luminosityClasses: 'I (supergiant) to VII (white dwarf)',
+
+              examples: [
+                { operation: 'evolve', mass: 1.0 },
+                { operation: 'classify', temperature: 10000, luminosity: 100 },
+                { operation: 'endpoint', mass: 20 },
+              ],
+
+              constants: {
+                solarMass: `${SOLAR_MASS} kg`,
+                solarLuminosity: `${SOLAR_LUMINOSITY} W`,
+                solarRadius: `${SOLAR_RADIUS} m`,
+                solarTemperature: `${SOLAR_TEMPERATURE} K`,
+              },
             },
-
-            spectralSequence: 'O B A F G K M (hot to cool)',
-            luminosityClasses: 'I (supergiant) to VII (white dwarf)',
-
-            examples: [
-              { operation: 'evolve', mass: 1.0 },
-              { operation: 'classify', temperature: 10000, luminosity: 100 },
-              { operation: 'endpoint', mass: 20 }
-            ],
-
-            constants: {
-              solarMass: `${SOLAR_MASS} kg`,
-              solarLuminosity: `${SOLAR_LUMINOSITY} W`,
-              solarRadius: `${SOLAR_RADIUS} m`,
-              solarTemperature: `${SOLAR_TEMPERATURE} K`
-            }
-          }, null, 2)
+            null,
+            2
+          ),
         };
       }
 
       default:
         return {
           toolCallId: id,
-          content: JSON.stringify({
-            error: `Unknown operation: ${operation}`,
-            validOperations: ['evolve', 'classify', 'hr_diagram', 'properties', 'lifetime', 'endpoint', 'info']
-          }, null, 2),
-          isError: true
+          content: JSON.stringify(
+            {
+              error: `Unknown operation: ${operation}`,
+              validOperations: [
+                'evolve',
+                'classify',
+                'hr_diagram',
+                'properties',
+                'lifetime',
+                'endpoint',
+                'info',
+              ],
+            },
+            null,
+            2
+          ),
+          isError: true,
         };
     }
   } catch (e) {
@@ -948,7 +1046,7 @@ export async function executestellarevolution(toolCall: UnifiedToolCall): Promis
     return {
       toolCallId: id,
       content: `Error in stellar evolution: ${errorMessage}`,
-      isError: true
+      isError: true,
     };
   }
 }

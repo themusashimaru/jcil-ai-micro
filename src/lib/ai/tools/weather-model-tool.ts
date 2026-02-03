@@ -207,7 +207,7 @@ function lclTemperature(tempK: number, dewPointK: number): number {
  */
 function calculateCAPE(
   surfaceTemp: number,
-  surfacePressure: number,
+  _surfacePressure: number,
   lapseRate: number,
   tropopauseHeight: number
 ): number {
@@ -622,12 +622,8 @@ export const weathermodelTool: UnifiedTool = {
       },
       location: {
         type: 'object',
-        properties: {
-          latitude: { type: 'number' },
-          longitude: { type: 'number' },
-          elevation: { type: 'number' },
-        },
-        description: 'Location for forecast',
+        description:
+          'Location for forecast with properties: latitude (number), longitude (number), elevation (number)',
       },
       location_name: {
         type: 'string',

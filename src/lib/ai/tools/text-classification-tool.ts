@@ -926,7 +926,7 @@ export async function executetextclassification(
         input: {
           documentCount: texts.length,
           classDistribution: Object.fromEntries(
-            model.classes.map((cls) => [cls, labels.filter((l) => l === cls).length])
+            model.classes.map((cls) => [cls, labels.filter((l: string) => l === cls).length])
           ),
         },
         model: {
@@ -1093,7 +1093,7 @@ export async function executetextclassification(
         };
       }
 
-      const predictions = texts.map((t) => predictNB(t, model!).prediction);
+      const predictions = texts.map((t: string) => predictNB(t, model!).prediction);
       const metrics = evaluateClassifier(predictions, labels, model.classes);
 
       const result = {

@@ -895,16 +895,8 @@ export const twophasecommitTool: UnifiedTool = {
       simulateTimeout: { type: 'string', description: 'Participant to simulate timeout' },
       failure: {
         type: 'object',
-        properties: {
-          targetId: { type: 'string' },
-          failureType: {
-            type: 'string',
-            enum: ['crash', 'timeout', 'network_partition', 'message_loss'],
-          },
-          phase: { type: 'string' },
-          duration: { type: 'number' },
-        },
-        description: 'Failure simulation configuration',
+        description:
+          'Failure simulation configuration with properties: targetId (string), failureType (crash|timeout|network_partition|message_loss), phase (string), duration (number)',
       },
       coordinatorFailed: {
         type: 'boolean',

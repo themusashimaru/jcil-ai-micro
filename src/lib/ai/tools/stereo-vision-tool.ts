@@ -153,23 +153,6 @@ class StereoRectification {
   }
 
   // Helper methods
-  private static normalize(v: number[]): number[] {
-    const len = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
-    return v.map((x) => x / len);
-  }
-
-  private static cross(a: number[], b: number[]): number[] {
-    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  }
-
-  private static intrinsicsToMatrix(K: CameraIntrinsics): number[][] {
-    return [
-      [K.fx, 0, K.cx],
-      [0, K.fy, K.cy],
-      [0, 0, 1],
-    ];
-  }
-
   private static invertMatrix3x3(M: number[][]): number[][] {
     const det =
       M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
@@ -1479,7 +1462,6 @@ CALIBRATION PARAMETERS:
     },
     required: [],
   },
-  execute: executestereovision,
 };
 
 // Wrapper for UnifiedToolCall signature

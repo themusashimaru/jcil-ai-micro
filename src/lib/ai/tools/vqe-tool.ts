@@ -779,8 +779,12 @@ function cobyla(
   for (let iter = 0; iter < maxIterations; iter++) {
     // Sort by function value
     const indices = values.map((_, i) => i).sort((a, b) => values[a] - values[b]);
-    simplex.sort((_, __, i, j) => values[indices.indexOf(i)] - values[indices.indexOf(j)]);
-    values.sort((a, b) => a - b);
+    const sortedSimplex = indices.map((i) => simplex[i]);
+    const sortedValues = indices.map((i) => values[i]);
+    for (let k = 0; k < simplex.length; k++) {
+      simplex[k] = sortedSimplex[k];
+      values[k] = sortedValues[k];
+    }
 
     // Check convergence
     const spread = values[n] - values[0];

@@ -805,7 +805,7 @@ export async function executetransformerarchitecture(
               shape: [inputMatrix.length, inputMatrix[0].length],
               sample: inputMatrix
                 .slice(0, 2)
-                .map((row) => row.slice(0, 4).map((v) => Math.round(v * 100) / 100)),
+                .map((row: number[]) => row.slice(0, 4).map((v) => Math.round(v * 100) / 100)),
             },
             layerNorm: {
               formula: 'LN(x) = (x - mean) / sqrt(var + eps)',

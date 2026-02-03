@@ -446,12 +446,10 @@ class DistributedSystemSimulator {
 
 class LamportClock {
   private counter: number;
-  private nodeId: string;
   private history: { timestamp: number; event: string }[];
 
-  constructor(nodeId: string) {
+  constructor(_nodeId: string) {
     this.counter = 0;
-    this.nodeId = nodeId;
     this.history = [];
   }
 
@@ -546,10 +544,12 @@ export async function executevectorclock(toolCall: UnifiedToolCall): Promise<Uni
               operation: 'create',
               nodeId,
               peers,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               initialClock: {
                 [nodeId]: 0,
-                ...peers.reduce((acc: any, p: string) => ({ ...acc, [p]: 0 }), {}),
+                ...peers.reduce(
+                  (acc: Record<string, number>, p: string) => ({ ...acc, [p]: 0 }),
+                  {}
+                ),
               },
               afterOperations: {
                 finalClock: manager.getClock(),

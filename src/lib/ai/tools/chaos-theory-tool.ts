@@ -410,10 +410,9 @@ function computeLogisticLyapunov(x0: number, r: number, iterations: number): Lya
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function computeHenonLyapunov(
   initialState: number[],
-  params: any,
+  params: { a?: number; b?: number },
   iterations: number
 ): LyapunovResult {
   const a = params.a || 1.4;
