@@ -78,7 +78,8 @@ class StereoRectification {
     // Create rotation to align x-axis with baseline
     const e1 = baselineDir;
     const e2 = this.normalize(this.cross([0, 0, 1], e1));
-    const e3 = this.cross(e1, e2);
+    const _e3 = this.cross(e1, e2);
+    void _e3; // Part of rotation matrix for future stereo rectification
 
     // H1 = K1 * R_rect * inv(K1)
     // H2 = K2 * R_rect * R' * inv(K2)

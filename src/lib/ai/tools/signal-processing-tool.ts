@@ -22,7 +22,7 @@ const cMul = (a: Complex, b: Complex): Complex => ({
   im: a.re * b.im + a.im * b.re,
 });
 const cAbs = (a: Complex): number => Math.sqrt(a.re * a.re + a.im * a.im);
-const cPhase = (a: Complex): number => Math.atan2(a.im, a.re);
+export const cPhase = (a: Complex): number => Math.atan2(a.im, a.re);
 
 // ============================================================================
 // FFT (Fast Fourier Transform)

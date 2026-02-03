@@ -735,7 +735,8 @@ function verifyFRI(friProof: FRIProof): boolean {
 
   // Verify consistency of queries across rounds
   for (let r = 0; r < friProof.commitments.length - 1; r++) {
-    const alpha = hash(friProof.commitments[r], BigInt(r));
+    const _alpha = hash(friProof.commitments[r], BigInt(r));
+    void _alpha; // Used in full FRI verification
     // Check folding consistency
     if (friProof.queries[r]) {
       const q = friProof.queries[r];

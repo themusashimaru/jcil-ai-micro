@@ -62,7 +62,7 @@ function orbitalAngularMomentum(l: number): number {
 }
 
 // Spin angular momentum
-function spinAngularMomentum(s: number = 0.5): number {
+export function spinAngularMomentum(s: number = 0.5): number {
   return hbar * Math.sqrt(s * (s + 1));
 }
 

@@ -686,7 +686,7 @@ interface ParseState {
   arcs: Map<number, { head: number; relation: string }>;
 }
 
-function initializeParseState(n: number): ParseState {
+export function initializeParseState(n: number): ParseState {
   return {
     stack: [0],  // 0 is the artificial root
     buffer: Array.from({ length: n }, (_, i) => i + 1),

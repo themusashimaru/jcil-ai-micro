@@ -744,7 +744,7 @@ exit:
   };
 }
 
-function analyzeDataflow(args: Record<string, unknown>): Record<string, unknown> {
+function analyzeDataflow(_args: Record<string, unknown>): Record<string, unknown> {
   // Simplified liveness analysis
   const liveness: Record<string, { liveIn: string[]; liveOut: string[]; def: string[]; use: string[] }> = {
     'entry': {
