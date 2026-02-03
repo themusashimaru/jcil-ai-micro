@@ -492,18 +492,8 @@ class SPIBus {
    * Display controller emulation
    */
   private processDisplay(slave: SPISlave, command: number): number {
-    // Common display commands (kept for documentation)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _displayCommands: Record<number, string> = {
-      0x01: 'Clear Display',
-      0x2A: 'Column Address Set',
-      0x2B: 'Row Address Set',
-      0x2C: 'Memory Write',
-      0x36: 'Memory Access Control',
-      0x3A: 'Pixel Format Set',
-      0x11: 'Sleep Out',
-      0x29: 'Display ON'
-    };
+    // Common display commands: 0x01=Clear, 0x2A=ColAddr, 0x2B=RowAddr, 0x2C=MemWrite,
+    // 0x36=MemAccess, 0x3A=PixelFormat, 0x11=SleepOut, 0x29=DisplayON
 
     // Store command in registers
     slave.registers?.set(0xFF, command);

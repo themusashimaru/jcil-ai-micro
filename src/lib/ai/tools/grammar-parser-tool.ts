@@ -458,8 +458,6 @@ function toGreibachNormalForm(grammar: Grammar): Grammar {
 // ============================================================================
 
 function deriveString(grammar: Grammar, target: string[], maxSteps: number = 100): Derivation {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _steps: DerivationStep[] = [];
   const current = [grammar.startSymbol];
 
   // BFS to find derivation
