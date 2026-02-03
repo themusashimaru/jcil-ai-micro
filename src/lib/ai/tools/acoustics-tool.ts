@@ -90,16 +90,12 @@ function sealedBoxVolume(vas: number, _fs: number, qts: number, targetQtc: numbe
 }
 
 // Speaker cutoff frequency in sealed box
-function sealedCutoff(fs: number, qts: number, vas: number, vb: number): number {
-  // qts available for Qtc calculation
-  void qts;
+function sealedCutoff(fs: number, _qts: number, vas: number, vb: number): number {
   return fs * Math.sqrt((vas + vb) / vb);
 }
 
 // Ported box tuning frequency
-function portedTuning(fs: number, qts: number): number {
-  // qts available for extended calculations
-  void qts;
+function portedTuning(fs: number, _qts: number): number {
   return fs * 0.9;
 }
 
