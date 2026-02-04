@@ -8,15 +8,20 @@ interface ThemeToggleProps {
 
 /**
  * Theme toggle button for switching between themes.
- * Non-admin users: pro (Refined) ↔ light
+ * Non-admin users: Only pro mode (no toggle shown)
  * Admin users: pro → light → dark → ocean → pro
  */
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, toggleTheme, isLoading, isAdmin } = useTheme();
 
-  // Get next theme name for aria-label based on available themes
+  // Don't show toggle for non-admin users - they only have pro mode
+  if (!isAdmin) {
+    return null;
+  }
+
+  // Get next theme name for aria-label (admin only)
   const getNextTheme = () => {
-    const themes = isAdmin ? ['pro', 'light', 'dark', 'ocean'] : ['pro', 'light'];
+    const themes = ['pro', 'light', 'dark', 'ocean'];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     const next = themes[nextIndex];

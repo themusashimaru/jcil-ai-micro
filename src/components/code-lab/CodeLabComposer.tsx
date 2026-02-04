@@ -35,6 +35,13 @@ interface CodeLabComposerProps {
   thinkingEnabled?: boolean;
   // Model switch flash state for visual feedback
   modelSwitchFlash?: boolean;
+  // Agent props (Deep Research, Deep Strategy, Research)
+  activeAgent?: 'research' | 'strategy' | 'deep-research' | null;
+  onAgentSelect?: (agent: 'research' | 'strategy' | 'deep-research') => Promise<void> | void;
+  strategyLoading?: boolean;
+  deepResearchLoading?: boolean;
+  // Creative tools (Image generation)
+  onCreativeMode?: (mode: 'create-image' | 'edit-image') => void;
 }
 
 // Supported file types
@@ -144,6 +151,13 @@ export function CodeLabComposer({
   onModelChange,
   thinkingEnabled = false,
   modelSwitchFlash = false,
+  // Agent props
+  activeAgent,
+  onAgentSelect,
+  strategyLoading = false,
+  deepResearchLoading = false,
+  // Creative tools
+  onCreativeMode,
 }: CodeLabComposerProps) {
   // Compute the display model ID (includes -thinking suffix if thinking is enabled)
   const displayModelId =
@@ -155,15 +169,25 @@ export function CodeLabComposer({
   const [cursorPosition, setCursorPosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [showAgentsMenu, setShowAgentsMenu] = useState(false);
+  const [showCreativeMenu, setShowCreativeMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelSelectorRef = useRef<HTMLDivElement>(null);
+  const agentsMenuRef = useRef<HTMLDivElement>(null);
+  const creativeMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close model selector when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (modelSelectorRef.current && !modelSelectorRef.current.contains(e.target as Node)) {
         setModelSelectorOpen(false);
+      }
+      if (agentsMenuRef.current && !agentsMenuRef.current.contains(e.target as Node)) {
+        setShowAgentsMenu(false);
+      }
+      if (creativeMenuRef.current && !creativeMenuRef.current.contains(e.target as Node)) {
+        setShowCreativeMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -709,6 +733,155 @@ export function CodeLabComposer({
             </div>
           )}
 
+          {/* Agents dropdown button */}
+          {onAgentSelect && (
+            <div className="agents-menu-container" ref={agentsMenuRef}>
+              <button
+                className={`composer-btn agents ${activeAgent ? 'active' : ''}`}
+                onClick={() => setShowAgentsMenu(!showAgentsMenu)}
+                disabled={disabled || isStreaming}
+                title="AI Agents"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4z" />
+                  <path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z" />
+                </svg>
+                <span className="btn-label">Agents</span>
+                {activeAgent && <span className="active-indicator" />}
+              </button>
+
+              {showAgentsMenu && (
+                <div className="agents-dropdown">
+                  <button
+                    className={`agent-option ${activeAgent === 'deep-research' ? 'selected' : ''}`}
+                    onClick={() => {
+                      onAgentSelect('deep-research');
+                      setShowAgentsMenu(false);
+                    }}
+                    disabled={deepResearchLoading}
+                  >
+                    <div className="agent-icon deep-research">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                        <path d="M11 8v6M8 11h6" />
+                      </svg>
+                    </div>
+                    <div className="agent-info">
+                      <span className="agent-name">Deep Research</span>
+                      <span className="agent-desc">Multi-source web research with synthesis</span>
+                    </div>
+                    {deepResearchLoading && <span className="loading-spinner" />}
+                  </button>
+
+                  <button
+                    className={`agent-option ${activeAgent === 'strategy' ? 'selected' : ''}`}
+                    onClick={() => {
+                      onAgentSelect('strategy');
+                      setShowAgentsMenu(false);
+                    }}
+                    disabled={strategyLoading}
+                  >
+                    <div className="agent-icon strategy">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.9 2-2 2h-4c-1.1 0-2-.9-2-2a4 4 0 0 1 4-4z" />
+                        <path d="M12 8v4" />
+                        <path d="M10 18c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
+                        <path d="M14 18c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
+                        <path d="M12 12c-2 0-4 2-4 4v2h8v-2c0-2-2-4-4-4z" />
+                      </svg>
+                    </div>
+                    <div className="agent-info">
+                      <span className="agent-name">Deep Strategy</span>
+                      <span className="agent-desc">Extended thinking for complex planning</span>
+                    </div>
+                    {strategyLoading && <span className="loading-spinner" />}
+                  </button>
+
+                  <button
+                    className={`agent-option ${activeAgent === 'research' ? 'selected' : ''}`}
+                    onClick={() => {
+                      onAgentSelect('research');
+                      setShowAgentsMenu(false);
+                    }}
+                  >
+                    <div className="agent-icon research">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                    </div>
+                    <div className="agent-info">
+                      <span className="agent-name">Research</span>
+                      <span className="agent-desc">Quick web search with AI summary</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Creative tools dropdown button */}
+          {onCreativeMode && (
+            <div className="creative-menu-container" ref={creativeMenuRef}>
+              <button
+                className="composer-btn creative"
+                onClick={() => setShowCreativeMenu(!showCreativeMenu)}
+                disabled={disabled || isStreaming}
+                title="Creative Tools"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+                <span className="btn-label">Create</span>
+              </button>
+
+              {showCreativeMenu && (
+                <div className="creative-dropdown">
+                  <button
+                    className="creative-option"
+                    onClick={() => {
+                      onCreativeMode('create-image');
+                      setShowCreativeMenu(false);
+                    }}
+                  >
+                    <div className="creative-icon create">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M12 8v8M8 12h8" />
+                      </svg>
+                    </div>
+                    <div className="creative-info">
+                      <span className="creative-name">Create Image</span>
+                      <span className="creative-desc">Generate images from text descriptions</span>
+                    </div>
+                  </button>
+
+                  <button
+                    className="creative-option"
+                    onClick={() => {
+                      onCreativeMode('edit-image');
+                      setShowCreativeMenu(false);
+                    }}
+                  >
+                    <div className="creative-icon edit">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </div>
+                    <div className="creative-info">
+                      <span className="creative-name">Edit Image</span>
+                      <span className="creative-desc">Modify uploaded images with AI</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="actions-spacer" />
 
           {/* Send/Stop button - right side */}
@@ -1236,6 +1409,199 @@ export function CodeLabComposer({
           .composer-hint {
             display: none;
           }
+
+          /* Hide button labels on tablet */
+          .composer-btn .btn-label {
+            display: none;
+          }
+
+          .agents-dropdown,
+          .creative-dropdown {
+            min-width: 260px;
+          }
+        }
+
+        /* Agents dropdown */
+        .agents-menu-container,
+        .creative-menu-container {
+          position: relative;
+        }
+
+        .composer-btn.agents,
+        .composer-btn.creative {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          padding: 0.375rem 0.5rem;
+          background: #2a2a2a;
+          border: 1px solid #444;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          color: #aaa;
+          transition: all 0.15s ease;
+        }
+
+        .composer-btn.agents:hover:not(:disabled),
+        .composer-btn.creative:hover:not(:disabled) {
+          background: #333;
+          border-color: #555;
+          color: #fff;
+        }
+
+        .composer-btn.agents.active {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          border-color: #6366f1;
+          color: #fff;
+        }
+
+        .composer-btn.agents svg,
+        .composer-btn.creative svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        .composer-btn .btn-label {
+          font-weight: 500;
+        }
+
+        .active-indicator {
+          width: 6px;
+          height: 6px;
+          background: #10b981;
+          border-radius: 50%;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .agents-dropdown,
+        .creative-dropdown {
+          position: absolute;
+          bottom: calc(100% + 8px);
+          left: 0;
+          min-width: 280px;
+          background: #1a1a1a;
+          border: 1px solid #444;
+          border-radius: 10px;
+          box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+          animation: slideUp 0.15s ease;
+          z-index: 1000;
+          overflow: hidden;
+        }
+
+        .agent-option,
+        .creative-option {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          background: none;
+          border: none;
+          border-bottom: 1px solid #333;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.1s ease;
+        }
+
+        .agent-option:last-child,
+        .creative-option:last-child {
+          border-bottom: none;
+        }
+
+        .agent-option:hover:not(:disabled),
+        .creative-option:hover:not(:disabled) {
+          background: #2a2a2a;
+        }
+
+        .agent-option.selected {
+          background: #2a2a2a;
+        }
+
+        .agent-option:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .agent-icon,
+        .creative-icon {
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          flex-shrink: 0;
+        }
+
+        .agent-icon svg,
+        .creative-icon svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        .agent-icon.deep-research {
+          background: linear-gradient(135deg, #ec4899, #8b5cf6);
+          color: #fff;
+        }
+
+        .agent-icon.strategy {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: #fff;
+        }
+
+        .agent-icon.research {
+          background: linear-gradient(135deg, #3b82f6, #06b6d4);
+          color: #fff;
+        }
+
+        .creative-icon.create {
+          background: linear-gradient(135deg, #f59e0b, #ef4444);
+          color: #fff;
+        }
+
+        .creative-icon.edit {
+          background: linear-gradient(135deg, #10b981, #3b82f6);
+          color: #fff;
+        }
+
+        .agent-info,
+        .creative-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .agent-name,
+        .creative-name {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #fff;
+        }
+
+        .agent-desc,
+        .creative-desc {
+          font-size: 0.6875rem;
+          color: #888;
+        }
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #444;
+          border-top-color: #8b5cf6;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         /* Extra small screens */

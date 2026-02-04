@@ -220,6 +220,13 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     streamThinking: true,
   });
 
+  // Agent mode state (Deep Research, Deep Strategy, Research)
+  const [activeAgent, setActiveAgent] = useState<'research' | 'strategy' | 'deep-research' | null>(
+    null
+  );
+  const [strategyLoading, setStrategyLoading] = useState(false);
+  const [deepResearchLoading, setDeepResearchLoading] = useState(false);
+
   // Token tracking state (Claude Code parity)
   const [tokenStats, setTokenStats] = useState<SessionStats>({
     totalInputTokens: 0,
@@ -715,6 +722,57 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     setModelSwitchFlash(true);
     setTimeout(() => setModelSwitchFlash(false), 800); // Flash for 800ms
   }, []);
+
+  // Agent selection handler (Deep Research, Deep Strategy, Research)
+  const handleAgentSelect = useCallback(
+    async (agent: 'research' | 'strategy' | 'deep-research') => {
+      // Toggle off if already active
+      if (activeAgent === agent) {
+        setActiveAgent(null);
+        setStrategyLoading(false);
+        setDeepResearchLoading(false);
+        log.info('Agent deactivated', { agent });
+        return;
+      }
+
+      // Switch to new agent
+      setActiveAgent(agent);
+      log.info('Agent activated', { agent });
+
+      // Show loading state briefly for strategy/deep-research
+      if (agent === 'strategy') {
+        setStrategyLoading(true);
+        setTimeout(() => setStrategyLoading(false), 500);
+      } else if (agent === 'deep-research') {
+        setDeepResearchLoading(true);
+        setTimeout(() => setDeepResearchLoading(false), 500);
+      }
+
+      toast.info(
+        agent === 'deep-research'
+          ? 'Deep Research mode active - your next message will trigger multi-source research'
+          : agent === 'strategy'
+            ? 'Deep Strategy mode active - extended thinking enabled for planning'
+            : 'Research mode active - quick web search with AI summary'
+      );
+    },
+    [activeAgent, toast]
+  );
+
+  // Creative mode handler (Create Image, Edit Image)
+  const handleCreativeMode = useCallback(
+    (mode: 'create-image' | 'edit-image') => {
+      log.info('Creative mode selected', { mode });
+      toast.info(
+        mode === 'create-image'
+          ? 'Describe the image you want to create in your next message'
+          : 'Upload an image and describe how you want to edit it'
+      );
+      // The actual image generation will be handled by the chat route
+      // based on the user's message and any attached images
+    },
+    [toast]
+  );
 
   // MCP server toggle handler (Claude Code parity)
   const handleMCPServerToggle = useCallback(
@@ -1482,6 +1540,13 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                 onModelChange={handleModelChange}
                 thinkingEnabled={thinkingConfig.enabled}
                 modelSwitchFlash={modelSwitchFlash}
+                // Agent buttons (Deep Research, Deep Strategy, Research)
+                activeAgent={activeAgent}
+                onAgentSelect={handleAgentSelect}
+                strategyLoading={strategyLoading}
+                deepResearchLoading={deepResearchLoading}
+                // Creative tools (Create Image, Edit Image)
+                onCreativeMode={handleCreativeMode}
               />
             </div>
 

@@ -879,6 +879,12 @@ import {
 } from '@/lib/connectors/bfl';
 // Slide generation removed - text rendering on serverless not reliable
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { getMCPManager } from '@/lib/mcp/mcp-client';
+import {
+  ensureServerRunning,
+  getUserServers as getMCPUserServers,
+  getKnownToolsForServer,
+} from '@/app/api/chat/mcp/helpers';
 
 const log = logger('ChatAPI');
 
@@ -4476,6 +4482,71 @@ SECURITY:
     if (isVpnAvailable()) tools.push(vpnTool);
     if (isVulnerabilityAvailable()) tools.push(vulnerabilityTool);
 
+    // ========================================
+    // MCP TOOLS INTEGRATION (ON-DEMAND)
+    // ========================================
+    // Get tools from all ENABLED MCP servers (including "available" ones that haven't started yet)
+    // Servers will start on-demand when Claude first uses one of their tools
+    // Auto-stop after 1 minute of inactivity to save resources
+    const mcpManager = getMCPManager();
+    const mcpToolNames: string[] = []; // Track MCP tool names for executor routing
+
+    // Get tools from running servers
+    const runningMcpTools = mcpManager.getAllTools();
+    for (const mcpTool of runningMcpTools) {
+      const toolName = `mcp_${mcpTool.serverId}_${mcpTool.name}`;
+      mcpToolNames.push(toolName);
+
+      const anthropicTool = {
+        name: toolName,
+        description: `[MCP: ${mcpTool.serverId}] ${mcpTool.description || mcpTool.name}`,
+        parameters: {
+          type: 'object' as const,
+          properties: (mcpTool.inputSchema as { properties?: Record<string, unknown> })?.properties || {},
+          required: (mcpTool.inputSchema as { required?: string[] })?.required || [],
+        },
+      };
+      tools.push(anthropicTool as typeof webSearchTool);
+    }
+
+    // Also add tools from "available" servers (enabled but not yet started)
+    // These will start on-demand when Claude calls them
+    if (rateLimitIdentifier) {
+      const mcpUserServers = getMCPUserServers(rateLimitIdentifier);
+      for (const [serverId, serverState] of mcpUserServers.entries()) {
+        // Only add tools for "available" servers (enabled but not running)
+        // Running servers were already added above
+        if (serverState.enabled && serverState.status === 'available') {
+          const knownTools = getKnownToolsForServer(serverId);
+          for (const tool of knownTools) {
+            const toolName = `mcp_${serverId}_${tool.name}`;
+            // Don't add duplicates
+            if (!mcpToolNames.includes(toolName)) {
+              mcpToolNames.push(toolName);
+
+              const anthropicTool = {
+                name: toolName,
+                description: `[MCP: ${serverId}] ${tool.description || tool.name}`,
+                parameters: {
+                  type: 'object' as const,
+                  properties: {},
+                  required: [],
+                },
+              };
+              tools.push(anthropicTool as typeof webSearchTool);
+            }
+          }
+        }
+      }
+    }
+
+    if (mcpToolNames.length > 0) {
+      log.info('MCP tools added to chat (on-demand)', {
+        count: mcpToolNames.length,
+        tools: mcpToolNames,
+      });
+    }
+
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
     // Session ID for cost tracking
@@ -5727,11 +5798,74 @@ SECURITY:
             break;
             break;
           default:
-            result = {
-              toolCallId: toolCall.id,
-              content: `Unknown tool: ${toolName}`,
-              isError: true,
-            };
+            // Check if this is an MCP tool (prefixed with 'mcp_')
+            if (toolName.startsWith('mcp_')) {
+              // Parse the tool name: mcp_{serverId}_{actualToolName}
+              const parts = toolName.split('_');
+              if (parts.length >= 3) {
+                const serverId = parts[1];
+                const actualToolName = parts.slice(2).join('_'); // Handle tool names with underscores
+
+                try {
+                  // ON-DEMAND: Ensure server is running before calling tool
+                  // This starts the server if it's "available" but not yet started
+                  if (rateLimitIdentifier) {
+                    const ensureResult = await ensureServerRunning(serverId, rateLimitIdentifier);
+                    if (!ensureResult.success) {
+                      result = {
+                        toolCallId: toolCall.id,
+                        content: `Failed to start MCP server ${serverId}: ${ensureResult.error || 'Unknown error'}`,
+                        isError: true,
+                      };
+                      break;
+                    }
+                    log.info('MCP server ready (on-demand)', { serverId, tools: ensureResult.tools.length });
+                  }
+
+                  log.info('Executing MCP tool', { serverId, tool: actualToolName });
+                  const mcpResult = await mcpManager.callTool(
+                    serverId,
+                    actualToolName,
+                    typeof toolCall.arguments === 'string'
+                      ? JSON.parse(toolCall.arguments)
+                      : toolCall.arguments
+                  );
+
+                  result = {
+                    toolCallId: toolCall.id,
+                    content:
+                      typeof mcpResult === 'string'
+                        ? mcpResult
+                        : JSON.stringify(mcpResult, null, 2),
+                    isError: false,
+                  };
+                  log.info('MCP tool executed successfully', { serverId, tool: actualToolName });
+                } catch (mcpError) {
+                  log.error('MCP tool execution failed', {
+                    serverId,
+                    tool: actualToolName,
+                    error: (mcpError as Error).message,
+                  });
+                  result = {
+                    toolCallId: toolCall.id,
+                    content: `MCP tool error (${serverId}:${actualToolName}): ${(mcpError as Error).message}`,
+                    isError: true,
+                  };
+                }
+              } else {
+                result = {
+                  toolCallId: toolCall.id,
+                  content: `Invalid MCP tool name format: ${toolName}`,
+                  isError: true,
+                };
+              }
+            } else {
+              result = {
+                toolCallId: toolCall.id,
+                content: `Unknown tool: ${toolName}`,
+                isError: true,
+              };
+            }
         }
       } catch (toolError) {
         // Catch any unhandled tool errors to prevent stream crashes

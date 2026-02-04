@@ -1538,6 +1538,9 @@ async function initializeTools() {
   const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
     await import('./youtube-transcript');
   const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
+  const { githubContextTool, executeGitHubContext, isGitHubContextAvailable } = await import(
+    './github-context-tool'
+  );
   const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
     './screenshot-tool'
   );
@@ -3509,6 +3512,11 @@ async function initializeTools() {
       checkAvailability: isYouTubeTranscriptAvailable,
     },
     { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
+    {
+      tool: githubContextTool,
+      executor: executeGitHubContext,
+      checkAvailability: isGitHubContextAvailable,
+    },
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },
