@@ -6,6 +6,9 @@
  */
 
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('RequestDedup');
 
 // ============================================================================
 // CONFIGURATION
@@ -72,7 +75,7 @@ function cleanupExpiredEntries(force: boolean = false): void {
   }
 
   if (cleanedCount > 0) {
-    console.debug(`[RequestDedup] Cleaned ${cleanedCount} expired entries, ${recentRequests.size} remaining`);
+    log.debug('Cleaned expired entries', { cleanedCount, remaining: recentRequests.size });
   }
 }
 
@@ -92,7 +95,7 @@ export function isDuplicateRequest(userId: string, content: string): boolean {
 
   if (existing && now - existing.timestamp < DEDUP_WINDOW_MS) {
     // This is a duplicate
-    console.debug(`[RequestDedup] Duplicate request detected for user ${userId.substring(0, 8)}...`);
+    log.debug('Duplicate request detected', { userId: userId.substring(0, 8) });
     return true;
   }
 

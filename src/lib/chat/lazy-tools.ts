@@ -202,17 +202,17 @@ export async function getTool(name: string): Promise<ToolModule | null> {
   // Load the tool
   try {
     log.debug('Loading tool on demand', { name });
-    const module = await loader();
+    const toolModule = await loader();
 
     // Check if tool is available
-    if (!module.isAvailable()) {
+    if (!toolModule.isAvailable()) {
       log.debug('Tool not available', { name });
       return null;
     }
 
     // Cache the loaded tool
-    loadedTools.set(name, module);
-    return module;
+    loadedTools.set(name, toolModule);
+    return toolModule;
   } catch (error) {
     log.error('Failed to load tool', { name, error: error instanceof Error ? error.message : 'Unknown' });
     return null;
