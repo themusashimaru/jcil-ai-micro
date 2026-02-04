@@ -454,20 +454,31 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   const setSessionRepo = async (sessionId: string, repo: CodeLabSession['repo']) => {
     try {
-      await fetch(`/api/code-lab/sessions/${sessionId}`, {
+      const response = await fetch(`/api/code-lab/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || 'Failed to save repository';
+        log.error('Error setting repo - API returned error', { status: response.status, error: errorMessage });
+        toast.error('Repository Error', errorMessage);
+        return;
+      }
+
       setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, repo } : s)));
 
-      // When repo is set, load workspace files
+      // Show success feedback
       if (repo) {
-        loadWorkspaceFiles(sessionId);
+        toast.success('Repository Connected', `Connected to ${repo.fullName}`);
+      } else {
+        toast.info('Repository Cleared', 'Repository disconnected from session');
       }
     } catch (err) {
       log.error('Error setting repo', err as Error);
+      toast.error('Connection Error', 'Failed to connect repository. Please try again.');
     }
   };
 
