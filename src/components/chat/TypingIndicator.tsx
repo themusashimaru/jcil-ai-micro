@@ -507,29 +507,25 @@ export function TypingIndicator({ documentType, userMessage }: TypingIndicatorPr
           className="inline-block rounded-lg px-4 py-3"
           style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
         >
-          <div className="flex items-center gap-3">
-            {/* Animated dots using theme colors */}
-            <div className="flex gap-1">
-              <div
-                className="h-2 w-2 animate-bounce rounded-full"
-                style={{ backgroundColor: 'var(--primary)', animationDelay: '0ms' }}
-              />
-              <div
-                className="h-2 w-2 animate-bounce rounded-full"
-                style={{ backgroundColor: 'var(--primary)', opacity: 0.7, animationDelay: '150ms' }}
-              />
-              <div
-                className="h-2 w-2 animate-bounce rounded-full"
-                style={{ backgroundColor: 'var(--primary)', animationDelay: '300ms' }}
-              />
-            </div>
-
+          <div className="flex items-center gap-2">
             {/* Intelligent status message */}
             <span
               className="text-sm font-medium transition-all duration-300"
               style={{ color: 'var(--text-secondary)' }}
             >
               {messages[messageIndex]}
+            </span>
+            {/* Blinking cursor - terminal style */}
+            <span
+              className="inline-block"
+              style={{
+                color: 'var(--primary)',
+                animation: 'blink 1s step-end infinite',
+                fontSize: '1rem',
+                lineHeight: 1,
+              }}
+            >
+              ▋
             </span>
           </div>
         </div>

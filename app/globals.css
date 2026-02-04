@@ -1437,4 +1437,16 @@
       transform: translateY(0);
     }
   }
+
+  /* Blinking cursor animation for typing indicator */
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
 }
