@@ -3,7 +3,7 @@
 /**
  * DEEP STRATEGY BUTTON
  *
- * Admin-only button to launch the Deep Strategy Agent.
+ * Button to launch the Deep Strategy Agent (available to all users).
  * Glows when active to indicate ongoing strategy execution.
  */
 
