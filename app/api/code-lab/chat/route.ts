@@ -55,6 +55,7 @@ type AnySupabase = any;
  * Some providers have different naming in BYOK vs internal (e.g., 'google' vs 'gemini')
  */
 const BYOK_PROVIDER_MAP: Record<string, string> = {
+  claude: 'claude',
   openai: 'openai',
   xai: 'xai',
   deepseek: 'deepseek',
@@ -62,15 +63,23 @@ const BYOK_PROVIDER_MAP: Record<string, string> = {
 };
 
 /**
- * Get user's BYOK API key for a provider
+ * BYOK configuration returned from user preferences
+ */
+interface BYOKConfig {
+  apiKey: string;
+  model?: string; // Optional custom model name
+}
+
+/**
+ * Get user's BYOK configuration for a provider (API key + optional custom model)
  * Returns null if not configured or decryption fails
  */
-async function getUserApiKey(
+async function getUserBYOKConfig(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
   providerId: string
-): Promise<string | null> {
+): Promise<BYOKConfig | null> {
   // Map provider ID to BYOK key name
   const byokKey = BYOK_PROVIDER_MAP[providerId];
   if (!byokKey) {
@@ -89,8 +98,23 @@ async function getUserApiKey(
       return null;
     }
 
-    const encryptedKey = prefs.provider_api_keys[byokKey];
-    if (!encryptedKey) {
+    const stored = prefs.provider_api_keys[byokKey];
+    if (!stored) {
+      return null;
+    }
+
+    // Handle both old format (string) and new format ({ key, model })
+    let encryptedKey: string;
+    let customModel: string | undefined;
+
+    if (typeof stored === 'string') {
+      // Old format: just the encrypted key
+      encryptedKey = stored;
+    } else if (stored && typeof stored === 'object' && stored.key) {
+      // New format: { key, model }
+      encryptedKey = stored.key;
+      customModel = stored.model;
+    } else {
       return null;
     }
 
@@ -101,10 +125,18 @@ async function getUserApiKey(
       return null;
     }
 
-    log.info('Using BYOK for provider', { userId, provider: providerId });
-    return decryptedKey;
+    log.info('Using BYOK for provider', {
+      userId,
+      provider: providerId,
+      hasCustomModel: !!customModel,
+    });
+
+    return {
+      apiKey: decryptedKey,
+      model: customModel,
+    };
   } catch (error) {
-    log.warn('Error fetching BYOK key', {
+    log.warn('Error fetching BYOK config', {
       userId,
       provider: providerId,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -1523,8 +1555,11 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           let fullContent = '';
 
           try {
-            // BYOK: Check if user has their own API key for this provider
-            const userApiKey = await getUserApiKey(supabase, user.id, providerId);
+            // BYOK: Check if user has their own API key and custom model for this provider
+            const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
+            const userApiKey = byokConfig?.apiKey || null;
+            // Use custom model from BYOK if specified, otherwise use selectedModel
+            const effectiveModel = byokConfig?.model || selectedModel;
 
             // Validate API key is available (either BYOK or platform key)
             // All providers support numbered keys (_1, _2, etc.) for key rotation
@@ -1601,8 +1636,9 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
 
             // Stream from the adapter
             // Pass userApiKey if using BYOK (bypasses pooled keys)
+            // Use effectiveModel which may be user's custom model from BYOK config
             const chatStream = adapter.chat(unifiedMessages, {
-              model: selectedModel,
+              model: effectiveModel,
               maxTokens: providerInfo?.model.maxOutputTokens || 8192,
               temperature: 0.7,
               systemPrompt,
@@ -1823,10 +1859,19 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
         let fullContent = '';
 
         try {
+          // BYOK: Check if user has their own Claude API key and custom model
+          const claudeByokConfig = await getUserBYOKConfig(supabase, user.id, 'claude');
+          const effectiveModel = claudeByokConfig?.model || selectedModel;
+
+          // Use user's Anthropic client if they have BYOK, otherwise use platform client
+          const anthropicClient = claudeByokConfig?.apiKey
+            ? new Anthropic({ apiKey: claudeByokConfig.apiKey })
+            : anthropic;
+
           // Build API parameters with optional extended thinking (Claude Code parity)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const apiParams: any = {
-            model: selectedModel,
+            model: effectiveModel,
             max_tokens: 8192,
             system: systemPrompt,
             messages,
@@ -1836,7 +1881,7 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           // Add extended thinking if enabled (requires Sonnet or Opus with thinking support)
           if (
             thinkingEnabled &&
-            (selectedModel.includes('sonnet') || selectedModel.includes('opus'))
+            (effectiveModel.includes('sonnet') || effectiveModel.includes('opus'))
           ) {
             // Extended thinking uses the thinking parameter
             // Note: Haiku doesn't support extended thinking
@@ -1846,10 +1891,14 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             };
             // When thinking is enabled, max_tokens must be larger to accommodate thinking
             apiParams.max_tokens = Math.max(16000, thinkingBudget + 8192);
-            log.info('Extended thinking enabled', { budget: thinkingBudget, model: selectedModel });
+            log.info('Extended thinking enabled', {
+              budget: thinkingBudget,
+              model: effectiveModel,
+              byok: !!claudeByokConfig?.apiKey,
+            });
           }
 
-          const response = await anthropic.messages.create(
+          const response = await anthropicClient.messages.create(
             apiParams as Anthropic.MessageCreateParamsStreaming
           );
 

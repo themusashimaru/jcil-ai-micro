@@ -26,32 +26,48 @@ const log = logger('UserAPIKeys');
 export const runtime = 'nodejs';
 
 // Supported providers for BYOK
-const SUPPORTED_PROVIDERS = ['openai', 'deepseek', 'xai', 'gemini'] as const;
+const SUPPORTED_PROVIDERS = ['claude', 'openai', 'deepseek', 'xai', 'gemini'] as const;
 type ProviderId = (typeof SUPPORTED_PROVIDERS)[number];
 
 // Provider display info
-const PROVIDER_INFO: Record<ProviderId, { name: string; keyPrefix: string; testUrl: string }> = {
+const PROVIDER_INFO: Record<ProviderId, { name: string; keyPrefix: string; testUrl: string; defaultModel: string }> = {
+  claude: {
+    name: 'Anthropic (Claude)',
+    keyPrefix: 'sk-ant-',
+    testUrl: 'https://api.anthropic.com/v1/messages',
+    defaultModel: 'claude-sonnet-4-20250514',
+  },
   openai: {
     name: 'OpenAI',
     keyPrefix: 'sk-',
     testUrl: 'https://api.openai.com/v1/models',
+    defaultModel: 'gpt-4o',
   },
   deepseek: {
     name: 'DeepSeek',
     keyPrefix: 'sk-',
     testUrl: 'https://api.deepseek.com/v1/models',
+    defaultModel: 'deepseek-chat',
   },
   xai: {
     name: 'xAI (Grok)',
     keyPrefix: 'xai-',
     testUrl: 'https://api.x.ai/v1/models',
+    defaultModel: 'grok-2',
   },
   gemini: {
     name: 'Google Gemini',
     keyPrefix: 'AI',
     testUrl: 'https://generativelanguage.googleapis.com/v1/models',
+    defaultModel: 'gemini-2.5-pro',
   },
 };
+
+// Structure for stored provider config (key + optional model)
+interface ProviderConfig {
+  key: string; // Encrypted API key
+  model?: string; // Optional custom model name (NOT encrypted)
+}
 
 /**
  * Test if an API key is valid by making a simple API call
@@ -62,7 +78,28 @@ async function testApiKey(provider: ProviderId, apiKey: string): Promise<{ valid
   try {
     let response: Response;
 
-    if (provider === 'gemini') {
+    if (provider === 'claude') {
+      // Claude requires a POST to /messages with specific headers
+      // Use a minimal request to test the key
+      response = await fetch(info.testUrl, {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1,
+          messages: [{ role: 'user', content: 'test' }],
+        }),
+      });
+      // Claude returns 200 on success, 401 on invalid key
+      // A valid key will return a response (even if rate limited)
+      if (response.ok || response.status === 429) {
+        return { valid: true };
+      }
+    } else if (provider === 'gemini') {
       // Gemini uses query param for API key
       response = await fetch(`${info.testUrl}?key=${apiKey}`, {
         method: 'GET',
@@ -148,18 +185,28 @@ export async function GET() {
       name: string;
       configured: boolean;
       lastChars?: string;
+      model?: string;
+      defaultModel: string;
     }> = [];
 
-    const encryptedKeys = (prefs?.provider_api_keys || {}) as Record<string, string>;
+    const storedConfigs = (prefs?.provider_api_keys || {}) as Record<string, string | ProviderConfig>;
 
     for (const provider of SUPPORTED_PROVIDERS) {
-      const hasKey = !!encryptedKeys[provider];
+      const stored = storedConfigs[provider];
+      // Handle both old format (string) and new format (ProviderConfig)
+      const config: ProviderConfig | null = stored
+        ? typeof stored === 'string'
+          ? { key: stored } // Old format: just the encrypted key
+          : stored // New format: { key, model }
+        : null;
+
+      const hasKey = !!config?.key;
       let lastChars: string | undefined;
 
-      if (hasKey) {
+      if (hasKey && config?.key) {
         try {
           // Decrypt to get last 4 chars for display
-          const decrypted = decrypt(encryptedKeys[provider]);
+          const decrypted = decrypt(config.key);
           lastChars = decrypted.slice(-4);
         } catch {
           // If decryption fails, key is invalid
@@ -172,6 +219,8 @@ export async function GET() {
         name: PROVIDER_INFO[provider].name,
         configured: hasKey,
         lastChars,
+        model: config?.model, // Return custom model if set
+        defaultModel: PROVIDER_INFO[provider].defaultModel,
       });
     }
 
@@ -219,7 +268,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { provider, apiKey, action } = body;
+    const { provider, apiKey, model, action } = body;
 
     // Validate provider
     if (!SUPPORTED_PROVIDERS.includes(provider)) {
@@ -257,8 +306,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Encrypt and save
+    // Encrypt and save with optional custom model
     const encryptedKey = encrypt(apiKey);
+    const providerConfig: ProviderConfig = {
+      key: encryptedKey,
+      ...(model && model.trim() ? { model: model.trim() } : {}),
+    };
 
     const adminClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -273,8 +326,8 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    const existingKeys = (existing?.provider_api_keys || {}) as Record<string, string>;
-    const updatedKeys = { ...existingKeys, [provider]: encryptedKey };
+    const existingKeys = (existing?.provider_api_keys || {}) as Record<string, string | ProviderConfig>;
+    const updatedKeys = { ...existingKeys, [provider]: providerConfig };
 
     // Upsert the preferences
     const { error: upsertError } = await adminClient
@@ -292,12 +345,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save API key' }, { status: 500 });
     }
 
-    log.info('API key saved', { userId: user.id, provider });
+    log.info('API key saved', { userId: user.id, provider, hasCustomModel: !!providerConfig.model });
 
     return NextResponse.json({
       success: true,
       message: `${info.name} API key saved successfully`,
       lastChars: apiKey.slice(-4),
+      model: providerConfig.model || info.defaultModel,
     });
   } catch (error) {
     log.error('Error in POST /api/user/api-keys', { error });
@@ -365,7 +419,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No API keys found' }, { status: 404 });
     }
 
-    const existingKeys = (existing.provider_api_keys || {}) as Record<string, string>;
+    const existingKeys = (existing.provider_api_keys || {}) as Record<string, string | ProviderConfig>;
     delete existingKeys[provider];
 
     // Update
