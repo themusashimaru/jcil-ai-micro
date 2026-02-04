@@ -64,6 +64,7 @@ export function CodeLabSidebar({
   const [repoSearch, setRepoSearch] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [githubConnected, setGithubConnected] = useState(false);
+  const [repoError, setRepoError] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch GitHub repos when selector opens
@@ -73,19 +74,39 @@ export function CodeLabSidebar({
       if (repos.length > 0 && githubConnected && !forceRefresh) return; // Use cache only if connected
 
       setLoadingRepos(true);
+      setRepoError(null);
       try {
         const response = await fetch('/api/connectors?action=github-repos');
         if (response.ok) {
           const data = await response.json();
           setRepos(data.repos || []);
           setGithubConnected(true);
-        } else if (response.status === 401 || response.status === 400) {
-          // 401 = not authenticated, 400 = GitHub not connected
+          setRepoError(null);
+        } else if (response.status === 401) {
+          // Not authenticated
           setGithubConnected(false);
-          setRepos([]); // Clear stale repos
+          setRepos([]);
+          setRepoError('Please log in to access repositories');
+        } else if (response.status === 400) {
+          // GitHub not connected
+          setGithubConnected(false);
+          setRepos([]);
+          // Try to get specific error message from response
+          const errorData = await response.json().catch(() => ({}));
+          setRepoError(errorData.error || 'GitHub not connected');
+        } else if (response.status === 503) {
+          // Connectors disabled
+          setGithubConnected(false);
+          setRepos([]);
+          setRepoError('GitHub integration is currently unavailable');
+        } else {
+          // Other errors
+          const errorData = await response.json().catch(() => ({}));
+          setRepoError(errorData.error || `Failed to load repositories (${response.status})`);
         }
       } catch (error) {
         console.error('[CodeLabSidebar] Error fetching repos:', error);
+        setRepoError('Network error - please check your connection');
       } finally {
         setLoadingRepos(false);
       }
@@ -360,6 +381,11 @@ export function CodeLabSidebar({
 
                   {loadingRepos ? (
                     <div className="repo-loading">Loading repositories...</div>
+                  ) : repoError ? (
+                    <div className="repo-not-connected">
+                      <p>{repoError}</p>
+                      <a href="/settings?tab=connectors">Connect GitHub</a>
+                    </div>
                   ) : !githubConnected ? (
                     <div className="repo-not-connected">
                       <p>GitHub not connected</p>

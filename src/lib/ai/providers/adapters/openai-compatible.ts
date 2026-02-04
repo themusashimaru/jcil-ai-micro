@@ -325,10 +325,24 @@ export class OpenAICompatibleAdapter extends BaseAIAdapter {
     const maxTokens = options.maxTokens || 4096;
     const temperature = options.temperature ?? 0.7;
 
-    // CRITICAL FIX: Refresh client on EVERY request for proper key rotation
-    // The adapter is cached globally, but we need fresh key selection per-request
-    // to ensure proper load distribution across multiple API keys
-    this.client = getOpenAIClient(this.providerId);
+    // BYOK (Bring Your Own Key) Support
+    // When user provides their own API key, use it directly without pooling
+    if (options.userApiKey) {
+      const endpoint = PROVIDER_ENDPOINTS[this.providerId];
+      this.client = new OpenAI({
+        apiKey: options.userApiKey,
+        baseURL: endpoint?.baseURL,
+      });
+      // eslint-disable-next-line no-console
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[${this.providerId}] Using BYOK (user's own API key)`);
+      }
+    } else {
+      // CRITICAL FIX: Refresh client on EVERY request for proper key rotation
+      // The adapter is cached globally, but we need fresh key selection per-request
+      // to ensure proper load distribution across multiple API keys
+      this.client = getOpenAIClient(this.providerId);
+    }
 
     // Convert messages to OpenAI format
     const openaiMessages = this.convertToOpenAIFormat(messages, options.systemPrompt);
@@ -372,11 +386,25 @@ export class OpenAICompatibleAdapter extends BaseAIAdapter {
       // Emit done chunk
       yield { type: 'message_end' };
     } catch (error) {
-      // Handle rate limiting
+      // Handle rate limiting - but only switch keys if NOT using BYOK
       if (this.isRateLimitError(error)) {
-        markKeyRateLimited(this.providerId, this.client, this.extractRetryAfter(error));
-        // Try to get a new client
-        this.client = getOpenAIClient(this.providerId);
+        if (options.userApiKey) {
+          // BYOK rate limit - user needs to handle this themselves
+          // Don't fall back to pooled keys
+          yield {
+            type: 'error',
+            error: {
+              code: 'RATE_LIMITED',
+              message:
+                'Your API key is rate limited. Please wait and try again, or check your API usage limits.',
+            },
+          };
+          return;
+        } else {
+          // Pooled key rate limit - try another key
+          markKeyRateLimited(this.providerId, this.client, this.extractRetryAfter(error));
+          this.client = getOpenAIClient(this.providerId);
+        }
       }
 
       yield {

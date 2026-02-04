@@ -375,6 +375,12 @@ export interface ChatOptions {
   timeout?: number;
   /** Abort signal for cancellation */
   signal?: AbortSignal;
+  /**
+   * User's own API key (BYOK - Bring Your Own Key)
+   * When provided, bypasses the pooled key system and uses this key directly.
+   * This enables users to use their own API keys without rate limiting from platform keys.
+   */
+  userApiKey?: string;
 }
 
 // ============================================================================

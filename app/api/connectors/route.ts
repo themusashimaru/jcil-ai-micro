@@ -30,7 +30,7 @@ import {
 } from '@/lib/connectors';
 // SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
 // (no fallback to SERVICE_ROLE_KEY for separation of concerns)
-import { decrypt as decryptToken } from '@/lib/security/crypto';
+import { decrypt as decryptToken, EncryptionError, DecryptionError } from '@/lib/security/crypto';
 
 const log = logger('ConnectorsAPI');
 
@@ -105,19 +105,46 @@ async function getGitHubToken(): Promise<{
       userId: user.id,
       username: userData.github_username,
     };
-  } catch {
-    // Decryption failed - token was encrypted with different key
-    // Clear the invalid token so user can reconnect
-    log.warn('[Connectors] Clearing invalid GitHub token due to decryption failure');
-    await adminClient
-      .from('users')
-      .update({ github_token: null, github_username: null })
-      .eq('id', user.id);
+  } catch (err) {
+    // Handle different error types differently
+    if (err instanceof EncryptionError && err.code === 'NO_KEY') {
+      // Server configuration issue - ENCRYPTION_KEY not set
+      // DON'T clear the token - this is a server problem, not a token problem
+      log.error('[Connectors] ENCRYPTION_KEY not configured - cannot decrypt GitHub token');
+      return {
+        token: null,
+        userId: user.id,
+        username: null,
+        error: 'Server encryption not configured. Please contact support.',
+      };
+    }
+
+    if (err instanceof DecryptionError) {
+      // Token was encrypted with different key or is corrupted
+      log.warn('[Connectors] Clearing invalid GitHub token due to decryption failure', {
+        code: err.code,
+      });
+      await adminClient
+        .from('users')
+        .update({ github_token: null, github_username: null })
+        .eq('id', user.id);
+      return {
+        token: null,
+        userId: user.id,
+        username: null,
+        error: 'GitHub session expired. Please reconnect your GitHub account in Settings.',
+      };
+    }
+
+    // Unknown error - log but don't clear token
+    log.error('[Connectors] Unexpected error decrypting GitHub token', {
+      error: err instanceof Error ? err.message : err,
+    });
     return {
       token: null,
       userId: user.id,
       username: null,
-      error: 'GitHub token encryption changed, please reconnect',
+      error: 'Failed to access GitHub token. Please try again.',
     };
   }
 }

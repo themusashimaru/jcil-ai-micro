@@ -294,14 +294,25 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     messages: UnifiedMessage[],
     options: ChatOptions = {}
   ): AsyncIterable<UnifiedStreamChunk> {
-    // CRITICAL FIX: Refresh client on EVERY request for proper key rotation
-    // The adapter is cached globally, but we need fresh key selection per-request
-    // to ensure proper load distribution across multiple API keys
-    try {
-      this.client = getGoogleClient();
-    } catch (error) {
-      this.initError =
-        error instanceof Error ? error.message : 'Failed to initialize Gemini client';
+    // BYOK (Bring Your Own Key) Support
+    // When user provides their own API key, use it directly without pooling
+    if (options.userApiKey) {
+      this.client = new GoogleGenerativeAI(options.userApiKey);
+      this.initError = null;
+      // eslint-disable-next-line no-console
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[google] Using BYOK (user\'s own API key)');
+      }
+    } else {
+      // CRITICAL FIX: Refresh client on EVERY request for proper key rotation
+      // The adapter is cached globally, but we need fresh key selection per-request
+      // to ensure proper load distribution across multiple API keys
+      try {
+        this.client = getGoogleClient();
+      } catch (error) {
+        this.initError =
+          error instanceof Error ? error.message : 'Failed to initialize Gemini client';
+      }
     }
 
     const client = this.ensureClient();
@@ -457,14 +468,29 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
         },
       };
     } catch (error) {
-      // Handle rate limiting - mark key and try to get a fresh one
+      // Handle rate limiting - but only switch keys if NOT using BYOK
       if (this.client && this.isRateLimitError(error)) {
-        const retryAfter = this.extractRetryAfter(error);
-        markKeyRateLimited(this.client, retryAfter);
-        try {
-          this.client = getGoogleClient();
-        } catch {
-          // If we can't get a new client, keep the old one
+        if (options.userApiKey) {
+          // BYOK rate limit - user needs to handle this themselves
+          // Don't fall back to pooled keys
+          yield {
+            type: 'error',
+            error: {
+              code: 'RATE_LIMITED',
+              message:
+                'Your API key is rate limited. Please wait and try again, or check your API usage limits.',
+            },
+          };
+          return;
+        } else {
+          // Pooled key rate limit - mark and try a fresh one
+          const retryAfter = this.extractRetryAfter(error);
+          markKeyRateLimited(this.client, retryAfter);
+          try {
+            this.client = getGoogleClient();
+          } catch {
+            // If we can't get a new client, keep the old one
+          }
         }
       }
 
