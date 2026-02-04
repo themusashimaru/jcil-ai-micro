@@ -4511,8 +4511,8 @@ SECURITY:
 
     // Also add tools from "available" servers (enabled but not yet started)
     // These will start on-demand when Claude calls them
-    if (userId) {
-      const mcpUserServers = getMCPUserServers(userId);
+    if (rateLimitIdentifier) {
+      const mcpUserServers = getMCPUserServers(rateLimitIdentifier);
       for (const [serverId, serverState] of mcpUserServers.entries()) {
         // Only add tools for "available" servers (enabled but not running)
         // Running servers were already added above
