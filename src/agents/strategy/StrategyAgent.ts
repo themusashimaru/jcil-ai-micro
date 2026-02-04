@@ -144,10 +144,7 @@ export class StrategyAgent {
    * Start the intake process
    */
   async startIntake(): Promise<string> {
-    if (!this.context.isAdmin) {
-      throw new Error('Deep Strategy Agent is currently admin-only');
-    }
-
+    // Deep Strategy Agent is now available to all users
     return this.intake.startIntake();
   }
 

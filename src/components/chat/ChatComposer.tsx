@@ -934,8 +934,8 @@ export function ChatComposer({
                 </svg>
               </button>
 
-              {/* AI Provider selector - positioned after paperclip, before MCP */}
-              {onProviderChange && (
+              {/* AI Provider selector - admin only, positioned after paperclip, before MCP */}
+              {isAdmin && onProviderChange && (
                 <div className="relative flex items-center">
                   <button
                     ref={providerButtonRef}
@@ -1174,61 +1174,57 @@ export function ChatComposer({
                           )}
                         </button>
 
-                        {/* Deep Strategy Agent - Admin only */}
-                        {isAdmin && (
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              // Close menu first for immediate feedback
-                              setShowAgentsMenu(false);
-                              // Then await the async operation
-                              await onAgentSelect?.('strategy');
-                            }}
-                            className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                              activeAgent === 'strategy'
-                                ? 'bg-gray-700/50 text-white'
-                                : 'hover:bg-gray-800 text-gray-300'
-                            }`}
-                          >
-                            <p className="text-sm font-medium">Deep Strategy Agent</p>
-                            {activeAgent === 'strategy' && (
-                              <svg
-                                className="w-4 h-4 text-gray-400 ml-auto"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                              </svg>
-                            )}
-                          </button>
-                        )}
+                        {/* Deep Strategy Agent - Available to all users */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // Close menu first for immediate feedback
+                            setShowAgentsMenu(false);
+                            // Then await the async operation
+                            await onAgentSelect?.('strategy');
+                          }}
+                          className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                            activeAgent === 'strategy'
+                              ? 'bg-gray-700/50 text-white'
+                              : 'hover:bg-gray-800 text-gray-300'
+                          }`}
+                        >
+                          <p className="text-sm font-medium">Deep Strategy Agent</p>
+                          {activeAgent === 'strategy' && (
+                            <svg
+                              className="w-4 h-4 text-gray-400 ml-auto"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                            </svg>
+                          )}
+                        </button>
 
-                        {/* Deep Research Agent - Admin only */}
-                        {isAdmin && (
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              setShowAgentsMenu(false);
-                              await onAgentSelect?.('deep-research');
-                            }}
-                            className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                              activeAgent === 'deep-research'
-                                ? 'bg-gray-700/50 text-white'
-                                : 'hover:bg-gray-800 text-gray-300'
-                            }`}
-                          >
-                            <p className="text-sm font-medium">Deep Research Agent</p>
-                            {activeAgent === 'deep-research' && (
-                              <svg
-                                className="w-4 h-4 text-gray-400 ml-auto"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                              </svg>
-                            )}
-                          </button>
-                        )}
+                        {/* Deep Research Agent - Available to all users */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setShowAgentsMenu(false);
+                            await onAgentSelect?.('deep-research');
+                          }}
+                          className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                            activeAgent === 'deep-research'
+                              ? 'bg-gray-700/50 text-white'
+                              : 'hover:bg-gray-800 text-gray-300'
+                          }`}
+                        >
+                          <p className="text-sm font-medium">Deep Research Agent</p>
+                          {activeAgent === 'deep-research' && (
+                            <svg
+                              className="w-4 h-4 text-gray-400 ml-auto"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     </div>
                   )}

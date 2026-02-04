@@ -3,7 +3,7 @@
  *
  * Production-ready streaming API for the Deep Strategy Agent.
  * Uses Supabase for session persistence across server restarts.
- * Admin-only access with real-time event streaming.
+ * Available to all users with real-time event streaming.
  *
  * Endpoints:
  * - POST /api/strategy - Start strategy session or process intake
@@ -450,20 +450,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check admin status
+    // Check admin status (for context tracking, not access control)
+    // Deep Strategy Agent is now available to all users
     const isAdmin = await isUserAdmin(user.id, supabase);
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({
-          error: 'Admin access required',
-          message: 'Deep Strategy Agent is currently in admin-only testing mode.',
-        }),
-        {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
 
     // Parse request body
     const jsonResult = await safeParseJSON<{

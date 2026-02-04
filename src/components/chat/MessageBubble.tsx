@@ -1512,8 +1512,8 @@ export function MessageBubble({
                 </svg>
               </button>
             )}
-            {/* Model indicator - shows which AI model responded */}
-            {!isUser && message.model && (
+            {/* Model indicator - admin only, shows which AI model responded */}
+            {isAdmin && !isUser && message.model && (
               <span
                 className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
                   message.model.includes('haiku')
