@@ -6,7 +6,7 @@
  * Start with GitHub, expand to Vercel, Supabase, etc.
  */
 
-export type ConnectorType = 'github' | 'vercel' | 'supabase' | 'resend';
+export type ConnectorType = 'github' | 'vercel' | 'supabase' | 'resend' | 'spotify' | 'uber';
 
 export type ConnectorStatus = 'disconnected' | 'connected' | 'expired' | 'error';
 
@@ -36,6 +36,27 @@ export interface VercelConnector extends Connector {
   metadata?: {
     teamId?: string;
     teamName?: string;
+  };
+}
+
+export interface SpotifyConnector extends Connector {
+  type: 'spotify';
+  metadata?: {
+    userId?: string;
+    displayName?: string;
+    email?: string;
+    imageUrl?: string;
+    product?: string; // 'premium' | 'free' | 'open'
+  };
+}
+
+export interface UberConnector extends Connector {
+  type: 'uber';
+  metadata?: {
+    userId?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
   };
 }
 
@@ -74,6 +95,30 @@ export const CONNECTOR_CONFIGS: Record<ConnectorType, ConnectorConfig> = {
     displayName: 'Resend',
     icon: '📧',
     description: 'Send transactional emails (magic links, password reset)',
+  },
+  spotify: {
+    type: 'spotify',
+    displayName: 'Spotify',
+    icon: '🎵',
+    description: 'Control music, create playlists, get recommendations',
+    requiredScopes: [
+      'user-read-private',
+      'user-read-email',
+      'playlist-read-private',
+      'playlist-modify-public',
+      'playlist-modify-private',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-read-recently-played',
+      'user-top-read',
+    ],
+  },
+  uber: {
+    type: 'uber',
+    displayName: 'Uber',
+    icon: '🚗',
+    description: 'Get ride estimates and request rides',
+    requiredScopes: ['profile', 'request', 'request_receipt'],
   },
 };
 
