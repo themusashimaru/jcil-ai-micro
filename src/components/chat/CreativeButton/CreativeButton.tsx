@@ -102,31 +102,40 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
             {/* Menu positioned above button */}
             <div
               ref={menuRef}
-              className="fixed z-[9999] w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden"
+              className="fixed z-[9999] w-64 rounded-xl shadow-xl overflow-hidden"
               style={{
+                backgroundColor: 'var(--surface-elevated)',
+                border: '1px solid var(--border)',
                 bottom: buttonRef.current
                   ? window.innerHeight - buttonRef.current.getBoundingClientRect().top + 8
                   : 'auto',
                 left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left : 'auto',
               }}
             >
-              <div className="p-2 border-b border-gray-700">
-                <p className="text-xs text-gray-400 font-medium">Creative Tools</p>
+              <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                  Creative Tools
+                </p>
               </div>
               <div className="p-1">
                 {/* Create Image */}
                 <button
                   onClick={() => handleSelect('create-image')}
-                  className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                    activeMode === 'create-image'
-                      ? 'bg-gray-700/50 text-white'
-                      : 'hover:bg-gray-800 text-gray-300'
-                  }`}
+                  className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor:
+                      activeMode === 'create-image' ? 'var(--glass-bg)' : 'transparent',
+                    color:
+                      activeMode === 'create-image'
+                        ? 'var(--text-primary)'
+                        : 'var(--text-secondary)',
+                  }}
                 >
                   <p className="text-sm font-medium">Create Image</p>
                   {activeMode === 'create-image' && (
                     <svg
-                      className="w-4 h-4 text-gray-400 ml-auto"
+                      className="w-4 h-4 ml-auto"
+                      style={{ color: 'var(--text-muted)' }}
                       fill="currentColor"
                       viewBox="0 0 24 24"
                     >
@@ -138,16 +147,19 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                 {/* Edit Image */}
                 <button
                   onClick={() => handleSelect('edit-image')}
-                  className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                    activeMode === 'edit-image'
-                      ? 'bg-gray-700/50 text-white'
-                      : 'hover:bg-gray-800 text-gray-300'
-                  }`}
+                  className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor:
+                      activeMode === 'edit-image' ? 'var(--glass-bg)' : 'transparent',
+                    color:
+                      activeMode === 'edit-image' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  }}
                 >
                   <p className="text-sm font-medium">Edit Image</p>
                   {activeMode === 'edit-image' && (
                     <svg
-                      className="w-4 h-4 text-gray-400 ml-auto"
+                      className="w-4 h-4 ml-auto"
+                      style={{ color: 'var(--text-muted)' }}
                       fill="currentColor"
                       viewBox="0 0 24 24"
                     >
@@ -157,12 +169,13 @@ export function CreativeButton({ onSelect, disabled, activeMode }: CreativeButto
                 </button>
 
                 {/* Divider */}
-                <div className="my-1 border-t border-gray-700" />
+                <div className="my-1" style={{ borderTop: '1px solid var(--border)' }} />
 
                 {/* View Gallery */}
                 <button
                   onClick={() => handleSelect('view-gallery')}
-                  className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
+                  className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <p className="text-sm font-medium">My Creations</p>
                 </button>

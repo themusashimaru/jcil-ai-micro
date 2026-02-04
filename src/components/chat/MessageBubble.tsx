@@ -990,7 +990,23 @@ export function MessageBubble({
               <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
             ) : (
               // AI messages: full markdown rendering with optional code actions
-              <MarkdownRenderer content={message.content} enableCodeActions={enableCodeActions} />
+              <>
+                <MarkdownRenderer content={message.content} enableCodeActions={enableCodeActions} />
+                {/* Blinking cursor while streaming - shows at end of response */}
+                {message.isStreaming && (
+                  <span
+                    className="inline-block ml-0.5"
+                    style={{
+                      color: 'var(--primary)',
+                      animation: 'blink 1s step-end infinite',
+                      fontSize: '1rem',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ▋
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -1436,19 +1452,26 @@ export function MessageBubble({
             </div>
           )}
 
-          {/* Timestamp, Copy Button, and Admin Model Badge */}
+          {/* Timestamp, Copy Button, Session ID, and Admin Badges */}
           <div
-            className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'light-mode-timestamp' : ''}`}
+            className={`mt-1 flex items-center gap-2 text-xs font-mono ${isUser ? 'light-mode-timestamp' : ''}`}
             style={{
               color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-muted)',
               opacity: isUser ? 0.7 : 1,
             }}
           >
-            <span>
-              {new Date(message.timestamp).toLocaleTimeString([], {
+            {/* Hacker-style timestamp: 14:34:27 UTC with epoch on hover */}
+            <span
+              title={`Epoch: ${Math.floor(new Date(message.timestamp).getTime() / 1000)}`}
+              className="cursor-help"
+            >
+              {new Date(message.timestamp).toLocaleTimeString('en-GB', {
                 hour: '2-digit',
                 minute: '2-digit',
-              })}
+                second: '2-digit',
+                hour12: false,
+              })}{' '}
+              <span className="opacity-60">UTC</span>
             </span>
             {/* Copy button - AI messages only */}
             {!isUser && (
@@ -1537,6 +1560,21 @@ export function MessageBubble({
                 title={`Search: ${message.searchProvider}`}
               >
                 🔍 {message.searchProvider}
+              </span>
+            )}
+            {/* Session ID display with masking - admin only */}
+            {isAdmin && !isUser && message.id && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-500/20 text-slate-400"
+                title={`Full ID: ${message.id}`}
+              >
+                session_id: 0x{message.id.slice(0, 4)}****
+              </span>
+            )}
+            {/* Access Level Badge - admin only, terminal-authentic green */}
+            {isAdmin && !isUser && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/20 text-green-400">
+                [ADMIN] ACCESS GRANTED
               </span>
             )}
           </div>

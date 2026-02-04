@@ -38,7 +38,6 @@ const CLAUDE_CONFIG: ProviderConfig = {
       inputPricePer1M: 5,
       outputPricePer1M: 25,
       tier: 'premium',
-      isDefault: true,
     },
     {
       id: 'claude-sonnet-4-5-20250929',
@@ -57,6 +56,7 @@ const CLAUDE_CONFIG: ProviderConfig = {
       inputPricePer1M: 0.8,
       outputPricePer1M: 4,
       tier: 'budget',
+      isDefault: true,
     },
   ],
 };
