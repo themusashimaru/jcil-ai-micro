@@ -15,10 +15,10 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// Themes available to all users
-const USER_THEMES: Theme[] = ['pro', 'light']; // pro = baby blue/refined, light = light mode
-// Additional themes for admins only
-const ADMIN_ONLY_THEMES: Theme[] = ['dark', 'ocean'];
+// Themes available to all users - ONLY dark pro mode
+const USER_THEMES: Theme[] = ['pro']; // pro = dark charcoal with baby blue accents
+// Additional themes for admins only (including light for testing)
+const ADMIN_ONLY_THEMES: Theme[] = ['light', 'dark', 'ocean'];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('pro'); // Default to baby blue/refined for users
@@ -134,11 +134,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Cycle through available themes only
+  // Regular users only have 'pro' so no cycling for them
   const toggleTheme = useCallback(() => {
-    const themes = isAdmin
-      ? (['pro', 'light', 'dark', 'ocean'] as Theme[]) // Admin cycle
-      : (['pro', 'light'] as Theme[]); // User cycle: baby blue → light → baby blue
+    if (!isAdmin) {
+      // Regular users only have pro mode - no toggle
+      return;
+    }
 
+    // Admin cycle through all themes
+    const themes: Theme[] = ['pro', 'light', 'dark', 'ocean'];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     setTheme(themes[nextIndex]);
