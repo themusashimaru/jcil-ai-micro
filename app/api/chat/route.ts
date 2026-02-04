@@ -851,7 +851,13 @@ import {
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
-import { getDefaultModel, isProviderAvailable } from '@/lib/ai/providers/registry';
+import {
+  getDefaultModel,
+  isProviderAvailable,
+  getProviderAndModel,
+} from '@/lib/ai/providers/registry';
+import { getAdapter } from '@/lib/ai/providers/adapters';
+import type { UnifiedMessage, UnifiedContentBlock } from '@/lib/ai/providers/types';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
@@ -5827,6 +5833,192 @@ SECURITY:
     // Without this, the router defaults to Claude even when a non-Claude model is selected
     const selectedProviderId = provider && isProviderAvailable(provider) ? provider : 'claude';
 
+    // ========================================
+    // NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
+    // Use adapter directly like code lab - consistent implementation
+    // ========================================
+    if (selectedProviderId && selectedProviderId !== 'claude') {
+      log.info('Using non-Claude provider (direct adapter)', {
+        providerId: selectedProviderId,
+        model: selectedModel,
+      });
+
+      const providerInfo = getProviderAndModel(selectedModel);
+      const encoder = new TextEncoder();
+
+      const nonClaudeStream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Validate API key is available for the provider
+            const apiKeyEnvMap: Record<string, string[]> = {
+              openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
+              xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
+              deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
+              google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
+            };
+            const requiredEnvVars = apiKeyEnvMap[selectedProviderId];
+            if (requiredEnvVars) {
+              const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
+              if (!hasAnyKey) {
+                const primaryKey = requiredEnvVars[0];
+                throw new Error(
+                  `${primaryKey} is not configured. Please set up the API key to use ${selectedProviderId} models.`
+                );
+              }
+            }
+
+            // Get the appropriate adapter for this provider
+            const adapter = getAdapter(selectedProviderId);
+
+            // Convert messages to unified format
+            const unifiedMessages: UnifiedMessage[] = truncatedMessages.map((m) => {
+              // Handle multimodal content
+              if (typeof m.content === 'string') {
+                return {
+                  role: m.role as 'user' | 'assistant' | 'system',
+                  content: m.content,
+                };
+              }
+              // Handle array content (images + text)
+              const blocks: UnifiedContentBlock[] = [];
+              for (const part of m.content as unknown[]) {
+                const p = part as Record<string, unknown>;
+                if (p.type === 'text' && p.text) {
+                  blocks.push({ type: 'text', text: String(p.text) });
+                } else if (p.type === 'image' && p.image) {
+                  const imageStr = String(p.image);
+                  if (imageStr.startsWith('data:')) {
+                    const matches = imageStr.match(/^data:([^;]+);base64,(.+)$/);
+                    if (matches) {
+                      blocks.push({
+                        type: 'image',
+                        source: {
+                          type: 'base64',
+                          data: matches[2],
+                          mediaType: matches[1],
+                        },
+                      });
+                    }
+                  }
+                }
+              }
+              return {
+                role: m.role as 'user' | 'assistant' | 'system',
+                content: blocks.length > 0 ? blocks : '',
+              };
+            });
+
+            // Stream from the adapter
+            const chatStream = adapter.chat(unifiedMessages, {
+              model: selectedModel,
+              maxTokens: providerInfo?.model.maxOutputTokens || clampedMaxTokens,
+              temperature,
+              systemPrompt: fullSystemPrompt,
+            });
+
+            for await (const chunk of chatStream) {
+              if (chunk.type === 'text' && chunk.text) {
+                controller.enqueue(encoder.encode(chunk.text));
+              } else if (chunk.type === 'error' && chunk.error) {
+                log.error('Adapter stream error', {
+                  code: chunk.error.code,
+                  message: chunk.error.message,
+                });
+                throw new Error(chunk.error.message);
+              }
+            }
+
+            controller.close();
+          } catch (error) {
+            log.error('Non-Claude provider error', error as Error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const lowerError = errorMessage.toLowerCase();
+
+            // Provide specific error messages for common issues
+            let userMessage: string;
+            if (
+              lowerError.includes('not configured') ||
+              lowerError.includes('is not set') ||
+              lowerError.includes('missing api key')
+            ) {
+              userMessage = `\n\n**API Configuration Error**\n\nThe ${selectedProviderId.toUpperCase()} API key is not configured. Please contact the administrator to set up the API key.`;
+            } else if (
+              lowerError.includes('invalid api key') ||
+              lowerError.includes('authentication') ||
+              lowerError.includes('unauthorized') ||
+              lowerError.includes('401')
+            ) {
+              userMessage = `\n\n**API Authentication Error**\n\nThe ${selectedProviderId.toUpperCase()} API key authentication failed. The key may be invalid, expired, or lacking permissions.`;
+            } else if (
+              lowerError.includes('429') ||
+              lowerError.includes('rate limit') ||
+              lowerError.includes('quota')
+            ) {
+              userMessage = `\n\n**Rate Limit**\n\nThe ${selectedProviderId} API rate limit has been reached. Please wait a moment and try again.`;
+            } else if (lowerError.includes('model') && lowerError.includes('not found')) {
+              userMessage = `\n\n**Model Error**\n\nThe model "${selectedModel}" was not found. It may be unavailable or incorrectly configured.`;
+            } else {
+              userMessage = `\n\n**Error**\n\n${errorMessage}`;
+            }
+
+            try {
+              controller.enqueue(encoder.encode(userMessage));
+            } catch {
+              // Controller might be closed
+            }
+            controller.close();
+          }
+        },
+      });
+
+      // Track slot release
+      let slotReleased = false;
+      const ensureSlotReleased = () => {
+        if (slotAcquired && !slotReleased) {
+          slotReleased = true;
+          releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
+        }
+      };
+
+      // Wrap the stream
+      const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+        },
+        flush() {
+          ensureSlotReleased();
+          if (pendingRequestId) {
+            completePendingRequest(pendingRequestId).catch((err) => {
+              log.warn('Failed to complete pending request (non-critical)', err);
+            });
+          }
+        },
+      });
+
+      request.signal.addEventListener('abort', () => {
+        ensureSlotReleased();
+      });
+
+      const finalStream = nonClaudeStream.pipeThrough(wrappedStream);
+      isStreamingResponse = true;
+      slotAcquired = false;
+
+      return new Response(finalStream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Model-Used': selectedModel,
+          'X-Provider': selectedProviderId,
+          'X-Used-Fallback': 'false',
+          'X-Used-Tools': 'false',
+          'X-Tools-Used': 'none',
+        },
+      });
+    }
+
+    // ========================================
+    // CLAUDE PROVIDER - Full tool support
+    // ========================================
     const routeOptions: ChatRouteOptions = {
       providerId: selectedProviderId,
       model: selectedModel,
