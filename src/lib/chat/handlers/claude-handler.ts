@@ -10,6 +10,7 @@
 
 import type { CoreMessage } from 'ai';
 import { routeChatWithTools, type ChatRouteOptions, type ToolExecutor } from '@/lib/ai/chat-router';
+import type { UnifiedTool, ProviderId } from '@/lib/ai/providers/types';
 import { compressContext, needsCompression, type Message } from '../context-compressor';
 import { createStreamOptimizer } from '../stream-optimizer';
 import { logger } from '@/lib/logger';
@@ -30,11 +31,11 @@ export interface ClaudeHandlerOptions {
   /** Temperature (0-1) */
   temperature: number;
   /** Available tools */
-  tools: unknown[];
+  tools?: UnifiedTool[];
   /** Tool executor function */
   toolExecutor: ToolExecutor;
   /** Callback when provider switches (fallback) */
-  onProviderSwitch?: (from: string, to: string, reason: string) => void;
+  onProviderSwitch?: (from: ProviderId, to: ProviderId, reason: string) => void;
   /** Enable streaming optimization */
   optimizeStreaming?: boolean;
   /** Enable context compression */
