@@ -14,11 +14,17 @@
  * - Documents: Shows formatting progress
  * - Research: Shows research phases with topics
  * - Default: Uses extracted topic in generic messages
+ *
+ * TERMINAL AESTHETIC:
+ * - Command echo effect showing user input as CLI command
+ * - Typewriter character-by-character reveal
+ * - Monospace font for authentic terminal feel
+ * - Boot sequence on first load
  */
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
 // Document-specific messages
 const DOCUMENT_MESSAGES: Record<string, string[]> = {
@@ -454,13 +460,69 @@ function getGenericMessages(topic: string): string[] {
   ];
 }
 
+// Boot sequence messages - fast, punchy terminal startup
+const BOOT_SEQUENCE = [
+  { text: '[SYS] Initializing secure channel...', delay: 400 },
+  { text: '[OK] Context loaded', delay: 350 },
+  { text: '> _', delay: 250 },
+];
+
+/**
+ * Custom hook for typewriter effect
+ * Reveals text character by character at specified speed
+ */
+function useTypewriter(text: string, speed: number = 35): string {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    setDisplayText('');
+    setIsComplete(false);
+
+    if (!text) return;
+
+    let currentIndex = 0;
+    const timer = setInterval(() => {
+      if (currentIndex < text.length) {
+        setDisplayText(text.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        setIsComplete(true);
+        clearInterval(timer);
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  return isComplete ? text : displayText;
+}
+
+/**
+ * Truncate user message for command echo display
+ */
+function truncateForCommandEcho(message: string, maxLength: number = 50): string {
+  if (!message) return '';
+  const cleaned = message.replace(/\n/g, ' ').trim();
+  if (cleaned.length <= maxLength) return cleaned;
+  return cleaned.slice(0, maxLength) + '...';
+}
+
 interface TypingIndicatorProps {
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
   userMessage?: string; // The user's last message for intelligent status
+  showBootSequence?: boolean; // Show boot sequence on first load
 }
 
-export function TypingIndicator({ documentType, userMessage }: TypingIndicatorProps = {}) {
+export function TypingIndicator({
+  documentType,
+  userMessage,
+  showBootSequence = false,
+}: TypingIndicatorProps = {}) {
   const [messageIndex, setMessageIndex] = useState(0);
+  const [phase, setPhase] = useState<'boot' | 'command' | 'status'>('command');
+  const [bootIndex, setBootIndex] = useState(0);
+  const [showCommandEcho, setShowCommandEcho] = useState(true);
 
   // Select messages based on document type or user message
   const messages = useMemo(() => {
@@ -472,13 +534,57 @@ export function TypingIndicator({ documentType, userMessage }: TypingIndicatorPr
     return getIntelligentMessages(userMessage || '');
   }, [documentType, userMessage]);
 
-  useEffect(() => {
-    // Reset index when context changes
-    setMessageIndex(0);
-  }, [documentType, userMessage]);
+  // Get the current status message for typewriter effect
+  const currentStatusMessage = messages[messageIndex] || '';
+  const displayedStatusText = useTypewriter(currentStatusMessage, 35);
+
+  // Command echo text
+  const commandEchoText = truncateForCommandEcho(userMessage || '');
+  const displayedCommandText = useTypewriter(
+    showCommandEcho ? `$ ./analyze --input="${commandEchoText}"` : '',
+    25
+  );
 
   useEffect(() => {
-    // Rotate through messages - slower for documents since they take longer
+    // Reset state when context changes
+    setMessageIndex(0);
+    setPhase(showBootSequence ? 'boot' : 'command');
+    setBootIndex(0);
+    setShowCommandEcho(true);
+  }, [documentType, userMessage, showBootSequence]);
+
+  // Boot sequence handler
+  useEffect(() => {
+    if (phase !== 'boot') return;
+
+    if (bootIndex < BOOT_SEQUENCE.length) {
+      const timer = setTimeout(() => {
+        setBootIndex((prev) => prev + 1);
+      }, BOOT_SEQUENCE[bootIndex].delay);
+      return () => clearTimeout(timer);
+    } else {
+      // Boot complete, move to command phase
+      setPhase('command');
+    }
+  }, [phase, bootIndex]);
+
+  // Command echo phase - show briefly then transition to status
+  useEffect(() => {
+    if (phase !== 'command') return;
+
+    // After command echo displays, transition to status phase
+    const timer = setTimeout(() => {
+      setShowCommandEcho(false);
+      setPhase('status');
+    }, 1200); // Show command for 1.2s
+
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  // Rotate through status messages
+  useEffect(() => {
+    if (phase !== 'status') return;
+
     const interval = setInterval(
       () => {
         setMessageIndex((prev) => (prev + 1) % messages.length);
@@ -487,7 +593,33 @@ export function TypingIndicator({ documentType, userMessage }: TypingIndicatorPr
     );
 
     return () => clearInterval(interval);
-  }, [documentType, messages.length]);
+  }, [phase, documentType, messages.length]);
+
+  // Render boot sequence
+  const renderBootSequence = useCallback(() => {
+    return (
+      <div className="font-mono text-xs space-y-0.5">
+        {BOOT_SEQUENCE.slice(0, bootIndex + 1).map((item, idx) => (
+          <div
+            key={idx}
+            className={`${idx === bootIndex ? 'animate-fadeIn' : ''}`}
+            style={{
+              color: item.text.startsWith('[OK]')
+                ? 'var(--success, #22c55e)'
+                : item.text.startsWith('[SYS]')
+                  ? 'var(--primary)'
+                  : 'var(--text-secondary)',
+            }}
+          >
+            {item.text}
+            {idx === bootIndex && idx < BOOT_SEQUENCE.length - 1 && (
+              <span className="animate-pulse ml-0.5">_</span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }, [bootIndex]);
 
   return (
     <div className="flex items-start gap-3 animate-fadeIn">
@@ -507,15 +639,44 @@ export function TypingIndicator({ documentType, userMessage }: TypingIndicatorPr
           className="inline-block rounded-lg px-4 py-3"
           style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
         >
-          <div className="flex items-center gap-2">
-            {/* Intelligent status message */}
-            <span
-              className="text-sm font-medium transition-all duration-300"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {messages[messageIndex]}
-            </span>
-          </div>
+          {/* Boot sequence phase */}
+          {phase === 'boot' && renderBootSequence()}
+
+          {/* Command echo phase */}
+          {phase === 'command' && showCommandEcho && commandEchoText && (
+            <div className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'var(--primary)' }}>$</span>{' '}
+              <span>{displayedCommandText.slice(2)}</span>
+              <span
+                className="inline-block ml-0.5 animate-pulse"
+                style={{ color: 'var(--primary)' }}
+              >
+                _
+              </span>
+            </div>
+          )}
+
+          {/* Status message phase */}
+          {phase === 'status' && (
+            <div className="flex items-center gap-2">
+              {/* Intelligent status message with typewriter effect */}
+              <span
+                className="text-sm font-mono font-medium transition-all duration-300"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {displayedStatusText}
+                <span
+                  className="inline-block ml-0.5"
+                  style={{
+                    color: 'var(--primary)',
+                    animation: 'blink 1s step-end infinite',
+                  }}
+                >
+                  ▋
+                </span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
