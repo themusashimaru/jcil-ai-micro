@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ============================================
 // TYPES
@@ -152,6 +153,7 @@ interface ChatMCPButtonProps {
 }
 
 export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
+  const { theme } = useTheme();
   const [showModal, setShowModal] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [servers, setServers] = useState<MCPServer[]>([]);
@@ -597,7 +599,12 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         title="MCP Servers"
         className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
         style={{
-          color: runningCount > 0 ? '#22c55e' : 'var(--text-primary)',
+          color:
+            runningCount > 0
+              ? '#22c55e'
+              : theme === 'light'
+                ? 'var(--primary)'
+                : 'var(--text-primary)',
         }}
       >
         <span>MCP</span>
