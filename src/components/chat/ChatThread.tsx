@@ -216,8 +216,13 @@ export function ChatThread({
         })}
 
         {/* Intelligent typing indicator with contextual messages */}
+        {/* Boot sequence shown on first message of new chats */}
         {isStreaming && (
-          <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
+          <TypingIndicator
+            documentType={documentType}
+            userMessage={lastUserMessage}
+            showBootSequence={messages.length === 1}
+          />
         )}
 
         <div ref={messagesEndRef} />

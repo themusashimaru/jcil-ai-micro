@@ -1562,21 +1562,6 @@ export function MessageBubble({
                 🔍 {message.searchProvider}
               </span>
             )}
-            {/* Session ID display with masking - admin only */}
-            {isAdmin && !isUser && message.id && (
-              <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-500/20 text-slate-400"
-                title={`Full ID: ${message.id}`}
-              >
-                session_id: 0x{message.id.slice(0, 4)}****
-              </span>
-            )}
-            {/* Access Level Badge - admin only, terminal-authentic green */}
-            {isAdmin && !isUser && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-green-500/20 text-green-400">
-                [ADMIN] ACCESS GRANTED
-              </span>
-            )}
           </div>
         </div>
       </div>
