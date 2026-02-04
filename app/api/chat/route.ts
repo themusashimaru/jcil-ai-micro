@@ -884,7 +884,7 @@ import {
   ensureServerRunning,
   getUserServers as getMCPUserServers,
   getKnownToolsForServer,
-} from '@/app/api/chat/mcp/route';
+} from '@/app/api/chat/mcp/helpers';
 
 const log = logger('ChatAPI');
 
@@ -4500,13 +4500,13 @@ SECURITY:
       const anthropicTool = {
         name: toolName,
         description: `[MCP: ${mcpTool.serverId}] ${mcpTool.description || mcpTool.name}`,
-        parameters: mcpTool.inputSchema || {
+        parameters: {
           type: 'object' as const,
-          properties: {},
-          required: [],
+          properties: (mcpTool.inputSchema as { properties?: Record<string, unknown> })?.properties || {},
+          required: (mcpTool.inputSchema as { required?: string[] })?.required || [],
         },
       };
-      tools.push(anthropicTool);
+      tools.push(anthropicTool as typeof webSearchTool);
     }
 
     // Also add tools from "available" servers (enabled but not yet started)
@@ -4533,7 +4533,7 @@ SECURITY:
                   required: [],
                 },
               };
-              tools.push(anthropicTool);
+              tools.push(anthropicTool as typeof webSearchTool);
             }
           }
         }
