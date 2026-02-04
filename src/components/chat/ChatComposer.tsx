@@ -967,10 +967,16 @@ export function ChatComposer({
                   {showProviderMenu && (
                     <div
                       ref={providerMenuRef}
-                      className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50"
+                      className="absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl overflow-hidden z-50"
+                      style={{
+                        backgroundColor: 'var(--surface-elevated)',
+                        border: '1px solid var(--border)',
+                      }}
                     >
-                      <div className="p-2 border-b border-gray-700">
-                        <p className="text-xs text-gray-400 font-medium">Select AI Provider</p>
+                      <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                        <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                          Select AI Provider
+                        </p>
                       </div>
                       <div className="p-1">
                         {(Object.keys(PROVIDER_CONFIG) as ProviderId[]).map((providerId) => {
@@ -988,23 +994,34 @@ export function ChatComposer({
                                 }
                               }}
                               disabled={!isConfigured}
-                              className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                                isSelected
-                                  ? 'bg-gray-700/50 text-white'
+                              className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                              style={{
+                                backgroundColor: isSelected ? 'var(--glass-bg)' : 'transparent',
+                                color: isSelected
+                                  ? 'var(--text-primary)'
                                   : isConfigured
-                                    ? 'hover:bg-gray-800 text-gray-300'
-                                    : 'opacity-50 cursor-not-allowed text-gray-500'
-                              }`}
+                                    ? 'var(--text-secondary)'
+                                    : 'var(--text-muted)',
+                                opacity: isConfigured ? 1 : 0.5,
+                                cursor: isConfigured ? 'pointer' : 'not-allowed',
+                              }}
                             >
                               <p className="text-sm font-medium">{provider.name}</p>
                               {!isConfigured && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 rounded text-gray-400">
+                                <span
+                                  className="text-[10px] px-1.5 py-0.5 rounded"
+                                  style={{
+                                    backgroundColor: 'var(--glass-bg)',
+                                    color: 'var(--text-muted)',
+                                  }}
+                                >
                                   Not configured
                                 </span>
                               )}
                               {isSelected && isConfigured && (
                                 <svg
-                                  className="w-4 h-4 text-gray-400 ml-auto"
+                                  className="w-4 h-4 ml-auto"
+                                  style={{ color: 'var(--text-muted)' }}
                                   fill="currentColor"
                                   viewBox="0 0 24 24"
                                 >
@@ -1110,10 +1127,16 @@ export function ChatComposer({
                   {showAgentsMenu && (
                     <div
                       ref={agentsMenuRef}
-                      className="absolute bottom-full left-0 mb-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-xl overflow-hidden z-50"
+                      className="absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl overflow-hidden z-50"
+                      style={{
+                        backgroundColor: 'var(--surface-elevated)',
+                        border: '1px solid var(--border)',
+                      }}
                     >
-                      <div className="p-2 border-b border-gray-700">
-                        <p className="text-xs text-gray-400 font-medium">Select an Agent</p>
+                      <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                        <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                          Select an Agent
+                        </p>
                       </div>
                       <div className="p-1">
                         {/* Regular Chat - Exit agent mode */}
@@ -1135,7 +1158,8 @@ export function ChatComposer({
                               setToolMode('none');
                               setShowAgentsMenu(false);
                             }}
-                            className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors hover:bg-gray-800 text-gray-300 mb-1"
+                            className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors mb-1"
+                            style={{ color: 'var(--text-secondary)' }}
                           >
                             <p className="text-sm font-medium">Exit Agent Mode</p>
                           </button>
@@ -1156,16 +1180,21 @@ export function ChatComposer({
                             setToolMode(toolMode === 'research' ? 'none' : 'research');
                             setShowAgentsMenu(false);
                           }}
-                          className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                            toolMode === 'research'
-                              ? 'bg-gray-700/50 text-white'
-                              : 'hover:bg-gray-800 text-gray-300'
-                          }`}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                          style={{
+                            backgroundColor:
+                              toolMode === 'research' ? 'var(--glass-bg)' : 'transparent',
+                            color:
+                              toolMode === 'research'
+                                ? 'var(--text-primary)'
+                                : 'var(--text-secondary)',
+                          }}
                         >
                           <p className="text-sm font-medium">Research Agent</p>
                           {toolMode === 'research' && (
                             <svg
-                              className="w-4 h-4 text-gray-400 ml-auto"
+                              className="w-4 h-4 ml-auto"
+                              style={{ color: 'var(--text-muted)' }}
                               fill="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -1183,16 +1212,21 @@ export function ChatComposer({
                             // Then await the async operation
                             await onAgentSelect?.('strategy');
                           }}
-                          className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                            activeAgent === 'strategy'
-                              ? 'bg-gray-700/50 text-white'
-                              : 'hover:bg-gray-800 text-gray-300'
-                          }`}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                          style={{
+                            backgroundColor:
+                              activeAgent === 'strategy' ? 'var(--glass-bg)' : 'transparent',
+                            color:
+                              activeAgent === 'strategy'
+                                ? 'var(--text-primary)'
+                                : 'var(--text-secondary)',
+                          }}
                         >
                           <p className="text-sm font-medium">Deep Strategy Agent</p>
                           {activeAgent === 'strategy' && (
                             <svg
-                              className="w-4 h-4 text-gray-400 ml-auto"
+                              className="w-4 h-4 ml-auto"
+                              style={{ color: 'var(--text-muted)' }}
                               fill="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -1208,16 +1242,21 @@ export function ChatComposer({
                             setShowAgentsMenu(false);
                             await onAgentSelect?.('deep-research');
                           }}
-                          className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                            activeAgent === 'deep-research'
-                              ? 'bg-gray-700/50 text-white'
-                              : 'hover:bg-gray-800 text-gray-300'
-                          }`}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                          style={{
+                            backgroundColor:
+                              activeAgent === 'deep-research' ? 'var(--glass-bg)' : 'transparent',
+                            color:
+                              activeAgent === 'deep-research'
+                                ? 'var(--text-primary)'
+                                : 'var(--text-secondary)',
+                          }}
                         >
                           <p className="text-sm font-medium">Deep Research Agent</p>
                           {activeAgent === 'deep-research' && (
                             <svg
-                              className="w-4 h-4 text-gray-400 ml-auto"
+                              className="w-4 h-4 ml-auto"
+                              style={{ color: 'var(--text-muted)' }}
                               fill="currentColor"
                               viewBox="0 0 24 24"
                             >

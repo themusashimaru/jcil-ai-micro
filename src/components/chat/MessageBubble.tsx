@@ -990,7 +990,23 @@ export function MessageBubble({
               <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
             ) : (
               // AI messages: full markdown rendering with optional code actions
-              <MarkdownRenderer content={message.content} enableCodeActions={enableCodeActions} />
+              <>
+                <MarkdownRenderer content={message.content} enableCodeActions={enableCodeActions} />
+                {/* Blinking cursor while streaming - shows at end of response */}
+                {message.isStreaming && (
+                  <span
+                    className="inline-block ml-0.5"
+                    style={{
+                      color: 'var(--primary)',
+                      animation: 'blink 1s step-end infinite',
+                      fontSize: '1rem',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ▋
+                  </span>
+                )}
+              </>
             )}
           </div>
 

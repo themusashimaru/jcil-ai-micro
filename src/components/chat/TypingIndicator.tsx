@@ -515,18 +515,6 @@ export function TypingIndicator({ documentType, userMessage }: TypingIndicatorPr
             >
               {messages[messageIndex]}
             </span>
-            {/* Blinking cursor - terminal style */}
-            <span
-              className="inline-block"
-              style={{
-                color: 'var(--primary)',
-                animation: 'blink 1s step-end infinite',
-                fontSize: '1rem',
-                lineHeight: 1,
-              }}
-            >
-              ▋
-            </span>
           </div>
         </div>
       </div>
