@@ -8,6 +8,12 @@
  * POST /api/chat/mcp - Start/stop MCP servers, call tools
  *
  * NOW USING REAL MCP CLIENT (Enhancement #1)
+ *
+ * ON-DEMAND ARCHITECTURE (Enhancement #2):
+ * - Toggling ON marks server as "available" (doesn't start process)
+ * - Server actually starts on first tool call (lazy start)
+ * - Auto-stops after 1 minute of inactivity (idle timeout)
+ * - Saves resources by not running unused servers
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,6 +22,190 @@ import { logger } from '@/lib/logger';
 import { getMCPManager, MCPServerConfig } from '@/lib/mcp/mcp-client';
 
 const log = logger('chat-mcp-api');
+
+// Idle timeout: auto-stop servers after 1 minute of no tool calls
+const IDLE_TIMEOUT_MS = 60 * 1000; // 1 minute
+
+// Track last activity time per server for idle timeout
+const serverLastActivity = new Map<string, number>();
+const idleTimeoutHandles = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Reset the idle timeout for a server
+ * Called whenever a tool is executed on that server
+ */
+function resetIdleTimeout(serverId: string, userId: string) {
+  serverLastActivity.set(serverId, Date.now());
+
+  // Clear existing timeout
+  const existingTimeout = idleTimeoutHandles.get(serverId);
+  if (existingTimeout) {
+    clearTimeout(existingTimeout);
+  }
+
+  // Set new timeout to auto-stop server
+  const timeoutHandle = setTimeout(async () => {
+    log.info('MCP server idle timeout - auto-stopping', { serverId, idleMs: IDLE_TIMEOUT_MS });
+
+    const manager = getMCPManager();
+    try {
+      await manager.removeServer(serverId);
+      log.info('MCP server auto-stopped due to inactivity', { serverId });
+    } catch (error) {
+      log.warn('Failed to auto-stop idle MCP server', { serverId, error: (error as Error).message });
+    }
+
+    // Update user state to show server as available (not running)
+    const userServers = getUserServers(userId);
+    const currentState = userServers.get(serverId);
+    if (currentState?.enabled) {
+      userServers.set(serverId, {
+        enabled: true,
+        status: 'available',
+        tools: currentState.tools || [],
+      });
+    }
+
+    idleTimeoutHandles.delete(serverId);
+    serverLastActivity.delete(serverId);
+  }, IDLE_TIMEOUT_MS);
+
+  idleTimeoutHandles.set(serverId, timeoutHandle);
+}
+
+/**
+ * Ensure an MCP server is running (start on-demand if needed)
+ * Returns the tools available from the server
+ */
+export async function ensureServerRunning(
+  serverId: string,
+  userId: string
+): Promise<{ success: boolean; tools: Array<{ name: string; description: string; inputSchema?: unknown }>; error?: string }> {
+  const manager = getMCPManager();
+  const userServers = getUserServers(userId);
+  const serverState = userServers.get(serverId);
+
+  // Check if server is enabled
+  if (!serverState?.enabled) {
+    return { success: false, tools: [], error: 'Server not enabled' };
+  }
+
+  // Check if already running
+  const existingClient = manager.getClient(serverId);
+  if (existingClient && existingClient.isConnected()) {
+    // Reset idle timeout on activity
+    resetIdleTimeout(serverId, userId);
+    return {
+      success: true,
+      tools: existingClient.tools.map(t => ({
+        name: t.name,
+        description: t.description || '',
+        inputSchema: t.inputSchema,
+      })),
+    };
+  }
+
+  // Need to start the server (on-demand)
+  const server = DEFAULT_MCP_SERVERS.find((s) => s.id === serverId);
+  if (!server) {
+    return { success: false, tools: [], error: 'Server config not found' };
+  }
+
+  log.info('Starting MCP server on-demand', { serverId });
+
+  try {
+    const config: MCPServerConfig = {
+      id: serverId,
+      name: server.name,
+      description: server.description,
+      command: server.command,
+      args: server.args,
+      enabled: true,
+      timeout: 30000,
+    };
+
+    const client = await manager.addServer(config);
+    const tools = client.tools.map(t => ({
+      name: t.name,
+      description: t.description || '',
+      inputSchema: t.inputSchema,
+    }));
+
+    // Update state to running
+    userServers.set(serverId, {
+      enabled: true,
+      status: 'running',
+      tools: tools.map(t => ({ ...t, serverId })),
+    });
+
+    // Start idle timeout
+    resetIdleTimeout(serverId, userId);
+
+    log.info('MCP server started on-demand successfully', { serverId, toolCount: tools.length });
+
+    return { success: true, tools };
+  } catch (error) {
+    log.error('Failed to start MCP server on-demand', { serverId, error: (error as Error).message });
+    userServers.set(serverId, {
+      enabled: true,
+      status: 'error',
+      tools: [],
+      error: (error as Error).message,
+    });
+    return { success: false, tools: [], error: (error as Error).message };
+  }
+}
+
+/**
+ * Get known tools for a server type (for pre-populating before server starts)
+ * These are the standard tools each MCP server provides
+ */
+export function getKnownToolsForServer(serverId: string): Array<{ name: string; description: string; serverId: string }> {
+  const knownTools: Record<string, Array<{ name: string; description: string }>> = {
+    filesystem: [
+      { name: 'read_file', description: 'Read the contents of a file' },
+      { name: 'write_file', description: 'Write content to a file' },
+      { name: 'list_directory', description: 'List files and directories' },
+      { name: 'create_directory', description: 'Create a new directory' },
+      { name: 'move_file', description: 'Move or rename a file' },
+      { name: 'search_files', description: 'Search for files matching a pattern' },
+      { name: 'get_file_info', description: 'Get metadata about a file' },
+    ],
+    github: [
+      { name: 'search_repositories', description: 'Search for GitHub repositories' },
+      { name: 'get_file_contents', description: 'Get contents of a file from a repo' },
+      { name: 'create_or_update_file', description: 'Create or update a file in a repo' },
+      { name: 'push_files', description: 'Push multiple files to a repo' },
+      { name: 'create_issue', description: 'Create a new issue' },
+      { name: 'create_pull_request', description: 'Create a new pull request' },
+      { name: 'fork_repository', description: 'Fork a repository' },
+      { name: 'create_branch', description: 'Create a new branch' },
+    ],
+    memory: [
+      { name: 'store', description: 'Store a value with a key' },
+      { name: 'retrieve', description: 'Retrieve a value by key' },
+      { name: 'delete', description: 'Delete a stored value' },
+      { name: 'list', description: 'List all stored keys' },
+    ],
+    puppeteer: [
+      { name: 'puppeteer_navigate', description: 'Navigate to a URL' },
+      { name: 'puppeteer_screenshot', description: 'Take a screenshot of the page' },
+      { name: 'puppeteer_click', description: 'Click an element on the page' },
+      { name: 'puppeteer_fill', description: 'Fill in a form field' },
+      { name: 'puppeteer_evaluate', description: 'Execute JavaScript in the page' },
+      { name: 'puppeteer_select', description: 'Select an option from a dropdown' },
+      { name: 'puppeteer_hover', description: 'Hover over an element' },
+    ],
+    postgres: [
+      { name: 'query', description: 'Execute a SQL query' },
+      { name: 'list_tables', description: 'List all tables in the database' },
+      { name: 'describe_table', description: 'Get schema information for a table' },
+    ],
+  };
+
+  const tools = knownTools[serverId] || [];
+  return tools.map(t => ({ ...t, serverId }));
+}
 
 // Default MCP servers available in Chat
 const DEFAULT_MCP_SERVERS = [
@@ -66,6 +256,14 @@ const DEFAULT_MCP_SERVERS = [
   },
 ];
 
+// Server status types:
+// - 'stopped': Server is disabled
+// - 'available': Server is enabled but not running (will start on-demand)
+// - 'starting': Server is in the process of starting
+// - 'running': Server process is active
+// - 'error': Server failed to start
+type MCPServerStatus = 'running' | 'stopped' | 'error' | 'starting' | 'available';
+
 // In-memory server state (per user)
 // In production, this should be stored in database
 const userServerState = new Map<
@@ -74,18 +272,19 @@ const userServerState = new Map<
     string,
     {
       enabled: boolean;
-      status: 'running' | 'stopped' | 'error' | 'starting';
+      status: MCPServerStatus;
       tools: Array<{ name: string; description: string; serverId: string }>;
       error?: string;
     }
   >
 >();
 
-function getUserServers(userId: string) {
+// Export for use by chat route
+export function getUserServers(userId: string) {
   if (!userServerState.has(userId)) {
     const serverMap = new Map<string, {
       enabled: boolean;
-      status: 'running' | 'stopped' | 'error' | 'starting';
+      status: MCPServerStatus;
       tools: Array<{ name: string; description: string; serverId: string }>;
       error?: string;
     }>();
@@ -159,6 +358,9 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'startServer': {
+        // ON-DEMAND/LAZY START (Enhancement #2)
+        // Just mark the server as "available" - it will actually start
+        // when Claude first tries to use one of its tools
         if (!serverId) {
           return NextResponse.json({ error: 'Server ID is required' }, { status: 400 });
         }
@@ -168,93 +370,50 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Server not found' }, { status: 404 });
         }
 
-        // Update state to starting
+        // Check if already running
+        const manager = getMCPManager();
+        const existingClient = manager.getClient(serverId);
+        if (existingClient && existingClient.isConnected()) {
+          // Already running, just return current state
+          const tools = existingClient.tools.map(t => ({
+            name: t.name,
+            description: t.description || '',
+            serverId: serverId
+          }));
+
+          userServers.set(serverId, {
+            enabled: true,
+            status: 'running',
+            tools,
+          });
+
+          return NextResponse.json({
+            status: 'running',
+            serverId,
+            message: `${server.name} is running`,
+            tools,
+          });
+        }
+
+        // Mark as available (will start on-demand when tool is called)
+        // Pre-populate with known tools for this server type
+        const knownTools = getKnownToolsForServer(serverId);
+
         userServers.set(serverId, {
           enabled: true,
-          status: 'starting',
-          tools: [],
+          status: 'available',
+          tools: knownTools,
         });
 
-        // Use REAL MCP Client Manager (Enhancement #1)
-        const manager = getMCPManager();
+        log.info('MCP server marked as available (on-demand)', { serverId });
 
-        try {
-          // Check if server already exists in manager
-          const existingClient = manager.getClient(serverId);
-          if (existingClient && existingClient.isConnected()) {
-            // Already running, get tools
-            const tools = existingClient.tools.map(t => ({
-              name: t.name,
-              description: t.description || '',
-              serverId: serverId
-            }));
-
-            userServers.set(serverId, {
-              enabled: true,
-              status: 'running',
-              tools,
-            });
-
-            return NextResponse.json({
-              status: 'running',
-              serverId,
-              message: `${server.name} already running`,
-              tools,
-            });
-          }
-
-          // Create real MCP server config
-          const config: MCPServerConfig = {
-            id: serverId,
-            name: server.name,
-            description: server.description,
-            command: server.command,
-            args: server.args,
-            enabled: true,
-            timeout: 30000,
-          };
-
-          // Start the real MCP server (async)
-          manager.addServer(config).then((client) => {
-            const tools = client.tools.map(t => ({
-              name: t.name,
-              description: t.description || '',
-              serverId: serverId
-            }));
-
-            userServers.set(serverId, {
-              enabled: true,
-              status: 'running',
-              tools,
-            });
-
-            log.info('MCP server started successfully', { serverId, toolCount: tools.length });
-          }).catch((error) => {
-            log.error('Failed to start MCP server', { serverId, error: (error as Error).message });
-            userServers.set(serverId, {
-              enabled: false,
-              status: 'error',
-              tools: [],
-              error: (error as Error).message,
-            });
-          });
-
-          // Return immediately with starting status
-          return NextResponse.json({
-            status: 'starting',
-            serverId,
-            message: `Starting ${server.name}...`,
-          });
-        } catch (error) {
-          log.error('Failed to initialize MCP server', { serverId, error: (error as Error).message });
-          userServers.set(serverId, {
-            enabled: false,
-            status: 'error',
-            tools: [],
-            error: (error as Error).message,
-          });
-          return NextResponse.json({ error: `Failed to start: ${(error as Error).message}` }, { status: 500 });
-        }
+        return NextResponse.json({
+          status: 'available',
+          serverId,
+          message: `${server.name} enabled - will start automatically when needed`,
+          tools: knownTools,
+          onDemand: true,
+        });
       }
 
       case 'stopServer': {

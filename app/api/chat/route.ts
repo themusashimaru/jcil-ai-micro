@@ -880,6 +880,11 @@ import {
 // Slide generation removed - text rendering on serverless not reliable
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { getMCPManager } from '@/lib/mcp/mcp-client';
+import {
+  ensureServerRunning,
+  getUserServers as getMCPUserServers,
+  getKnownToolsForServer,
+} from '@/app/api/chat/mcp/route';
 
 const log = logger('ChatAPI');
 
@@ -4478,17 +4483,17 @@ SECURITY:
     if (isVulnerabilityAvailable()) tools.push(vulnerabilityTool);
 
     // ========================================
-    // MCP TOOLS INTEGRATION
+    // MCP TOOLS INTEGRATION (ON-DEMAND)
     // ========================================
-    // Get tools from all enabled MCP servers and add them to Claude's available tools
-    // This allows users to toggle MCP servers on/off and have Claude automatically use them
+    // Get tools from all ENABLED MCP servers (including "available" ones that haven't started yet)
+    // Servers will start on-demand when Claude first uses one of their tools
+    // Auto-stop after 1 minute of inactivity to save resources
     const mcpManager = getMCPManager();
-    const mcpTools = mcpManager.getAllTools();
     const mcpToolNames: string[] = []; // Track MCP tool names for executor routing
 
-    for (const mcpTool of mcpTools) {
-      // Convert MCP tool to Anthropic tool format
-      // Prefix with 'mcp_' and include serverId to route execution correctly
+    // Get tools from running servers
+    const runningMcpTools = mcpManager.getAllTools();
+    for (const mcpTool of runningMcpTools) {
       const toolName = `mcp_${mcpTool.serverId}_${mcpTool.name}`;
       mcpToolNames.push(toolName);
 
@@ -4501,14 +4506,44 @@ SECURITY:
           required: [],
         },
       };
-
       tools.push(anthropicTool);
     }
 
-    if (mcpTools.length > 0) {
-      log.info('MCP tools added to chat', {
-        count: mcpTools.length,
-        tools: mcpTools.map((t) => `${t.serverId}:${t.name}`),
+    // Also add tools from "available" servers (enabled but not yet started)
+    // These will start on-demand when Claude calls them
+    if (userId) {
+      const mcpUserServers = getMCPUserServers(userId);
+      for (const [serverId, serverState] of mcpUserServers.entries()) {
+        // Only add tools for "available" servers (enabled but not running)
+        // Running servers were already added above
+        if (serverState.enabled && serverState.status === 'available') {
+          const knownTools = getKnownToolsForServer(serverId);
+          for (const tool of knownTools) {
+            const toolName = `mcp_${serverId}_${tool.name}`;
+            // Don't add duplicates
+            if (!mcpToolNames.includes(toolName)) {
+              mcpToolNames.push(toolName);
+
+              const anthropicTool = {
+                name: toolName,
+                description: `[MCP: ${serverId}] ${tool.description || tool.name}`,
+                parameters: {
+                  type: 'object' as const,
+                  properties: {},
+                  required: [],
+                },
+              };
+              tools.push(anthropicTool);
+            }
+          }
+        }
+      }
+    }
+
+    if (mcpToolNames.length > 0) {
+      log.info('MCP tools added to chat (on-demand)', {
+        count: mcpToolNames.length,
+        tools: mcpToolNames,
       });
     }
 
@@ -5772,6 +5807,21 @@ SECURITY:
                 const actualToolName = parts.slice(2).join('_'); // Handle tool names with underscores
 
                 try {
+                  // ON-DEMAND: Ensure server is running before calling tool
+                  // This starts the server if it's "available" but not yet started
+                  if (userId) {
+                    const ensureResult = await ensureServerRunning(serverId, userId);
+                    if (!ensureResult.success) {
+                      result = {
+                        toolCallId: toolCall.id,
+                        content: `Failed to start MCP server ${serverId}: ${ensureResult.error || 'Unknown error'}`,
+                        isError: true,
+                      };
+                      break;
+                    }
+                    log.info('MCP server ready (on-demand)', { serverId, tools: ensureResult.tools.length });
+                  }
+
                   log.info('Executing MCP tool', { serverId, tool: actualToolName });
                   const mcpResult = await mcpManager.callTool(
                     serverId,
