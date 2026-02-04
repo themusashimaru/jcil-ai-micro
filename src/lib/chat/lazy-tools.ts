@@ -11,6 +11,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '@/lib/ai/providers/types';
 
 const log = logger('LazyTools');
 
@@ -18,16 +19,12 @@ const log = logger('LazyTools');
 // TYPES
 // ============================================================================
 
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-}
+export type ToolDefinition = UnifiedTool;
 
 export interface ToolModule {
-  tool: ToolDefinition;
-  execute: (args: Record<string, unknown>) => Promise<unknown>;
-  isAvailable: () => boolean;
+  tool: UnifiedTool;
+  execute: (toolCall: UnifiedToolCall) => Promise<UnifiedToolResult>;
+  isAvailable: () => boolean | Promise<boolean>;
 }
 
 type ToolLoader = () => Promise<ToolModule>;
@@ -43,129 +40,129 @@ type ToolLoader = () => Promise<ToolModule>;
 const toolLoaders: Record<string, ToolLoader> = {
   // Search & Web
   web_search: async () => {
-    const { webSearchTool, executeWebSearch, isWebSearchAvailable } = await import('@/lib/tools');
+    const { webSearchTool, executeWebSearch, isWebSearchAvailable } = await import('@/lib/ai/tools');
     return { tool: webSearchTool, execute: executeWebSearch, isAvailable: isWebSearchAvailable };
   },
   fetch_url: async () => {
-    const { fetchUrlTool, executeFetchUrl, isFetchUrlAvailable } = await import('@/lib/tools');
+    const { fetchUrlTool, executeFetchUrl, isFetchUrlAvailable } = await import('@/lib/ai/tools');
     return { tool: fetchUrlTool, execute: executeFetchUrl, isAvailable: isFetchUrlAvailable };
   },
   browser_visit: async () => {
-    const { browserVisitTool, executeBrowserVisitTool, isBrowserVisitAvailable } = await import('@/lib/tools');
+    const { browserVisitTool, executeBrowserVisitTool, isBrowserVisitAvailable } = await import('@/lib/ai/tools');
     return { tool: browserVisitTool, execute: executeBrowserVisitTool, isAvailable: isBrowserVisitAvailable };
   },
 
   // Code Execution
   run_code: async () => {
-    const { runCodeTool, executeRunCode, isRunCodeAvailable } = await import('@/lib/tools');
+    const { runCodeTool, executeRunCode, isRunCodeAvailable } = await import('@/lib/ai/tools');
     return { tool: runCodeTool, execute: executeRunCode, isAvailable: isRunCodeAvailable };
   },
 
   // Vision & Analysis
   analyze_image: async () => {
-    const { visionAnalyzeTool, executeVisionAnalyze, isVisionAnalyzeAvailable } = await import('@/lib/tools');
+    const { visionAnalyzeTool, executeVisionAnalyze, isVisionAnalyzeAvailable } = await import('@/lib/ai/tools');
     return { tool: visionAnalyzeTool, execute: executeVisionAnalyze, isAvailable: isVisionAnalyzeAvailable };
   },
 
   // PDF & Documents
   extract_pdf_url: async () => {
-    const { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } = await import('@/lib/tools');
+    const { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } = await import('@/lib/ai/tools');
     return { tool: extractPdfTool, execute: executeExtractPdf, isAvailable: isExtractPdfAvailable };
   },
   extract_table: async () => {
-    const { extractTableTool, executeExtractTable, isExtractTableAvailable } = await import('@/lib/tools');
+    const { extractTableTool, executeExtractTable, isExtractTableAvailable } = await import('@/lib/ai/tools');
     return { tool: extractTableTool, execute: executeExtractTable, isAvailable: isExtractTableAvailable };
   },
 
   // Research
   parallel_research: async () => {
-    const { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } = await import('@/lib/tools');
+    const { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } = await import('@/lib/ai/tools');
     return { tool: miniAgentTool, execute: executeMiniAgent, isAvailable: isMiniAgentAvailable };
   },
 
   // Document Generation
   generate_document: async () => {
-    const { documentTool, executeDocument, isDocumentAvailable } = await import('@/lib/tools');
+    const { documentTool, executeDocument, isDocumentAvailable } = await import('@/lib/ai/tools');
     return { tool: documentTool, execute: executeDocument, isAvailable: isDocumentAvailable };
   },
   generate_spreadsheet: async () => {
-    const { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } = await import('@/lib/tools');
+    const { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } = await import('@/lib/ai/tools');
     return { tool: spreadsheetTool, execute: executeSpreadsheet, isAvailable: isSpreadsheetAvailable };
   },
 
   // Charts & Visualization
   generate_chart: async () => {
-    const { chartTool, executeChart, isChartAvailable } = await import('@/lib/tools');
+    const { chartTool, executeChart, isChartAvailable } = await import('@/lib/ai/tools');
     return { tool: chartTool, execute: executeChart, isAvailable: isChartAvailable };
   },
 
   // Utilities
   calculator: async () => {
-    const { calculatorTool, executeCalculator, isCalculatorAvailable } = await import('@/lib/tools');
+    const { calculatorTool, executeCalculator, isCalculatorAvailable } = await import('@/lib/ai/tools');
     return { tool: calculatorTool, execute: executeCalculator, isAvailable: isCalculatorAvailable };
   },
   screenshot: async () => {
-    const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import('@/lib/tools');
+    const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import('@/lib/ai/tools');
     return { tool: screenshotTool, execute: executeScreenshot, isAvailable: isScreenshotAvailable };
   },
   qr_code: async () => {
-    const { qrCodeTool, executeQRCode, isQRCodeAvailable } = await import('@/lib/tools');
+    const { qrCodeTool, executeQRCode, isQRCodeAvailable } = await import('@/lib/ai/tools');
     return { tool: qrCodeTool, execute: executeQRCode, isAvailable: isQRCodeAvailable };
   },
 
   // Media
   audio_transcribe: async () => {
-    const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import('@/lib/tools');
+    const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import('@/lib/ai/tools');
     return { tool: audioTranscribeTool, execute: executeAudioTranscribe, isAvailable: isAudioTranscribeAvailable };
   },
   youtube_transcript: async () => {
-    const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } = await import('@/lib/tools');
+    const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } = await import('@/lib/ai/tools');
     return { tool: youtubeTranscriptTool, execute: executeYouTubeTranscript, isAvailable: isYouTubeTranscriptAvailable };
   },
 
   // GitHub
   github: async () => {
-    const { githubTool, executeGitHub, isGitHubAvailable } = await import('@/lib/tools');
+    const { githubTool, executeGitHub, isGitHubAvailable } = await import('@/lib/ai/tools');
     return { tool: githubTool, execute: executeGitHub, isAvailable: isGitHubAvailable };
   },
 
   // File Operations
   image_transform: async () => {
-    const { imageTransformTool, executeImageTransform, isImageTransformAvailable } = await import('@/lib/tools');
+    const { imageTransformTool, executeImageTransform, isImageTransformAvailable } = await import('@/lib/ai/tools');
     return { tool: imageTransformTool, execute: executeImageTransform, isAvailable: isImageTransformAvailable };
   },
   file_convert: async () => {
-    const { fileConvertTool, executeFileConvert, isFileConvertAvailable } = await import('@/lib/tools');
+    const { fileConvertTool, executeFileConvert, isFileConvertAvailable } = await import('@/lib/ai/tools');
     return { tool: fileConvertTool, execute: executeFileConvert, isAvailable: isFileConvertAvailable };
   },
 
   // Diagrams
   mermaid_diagram: async () => {
-    const { mermaidDiagramTool, executeMermaidDiagram, isMermaidDiagramAvailable } = await import('@/lib/tools');
+    const { mermaidDiagramTool, executeMermaidDiagram, isMermaidDiagramAvailable } = await import('@/lib/ai/tools');
     return { tool: mermaidDiagramTool, execute: executeMermaidDiagram, isAvailable: isMermaidDiagramAvailable };
   },
 
   // Data Tools
   ocr: async () => {
-    const { ocrTool, executeOCR, isOCRAvailable } = await import('@/lib/tools');
+    const { ocrTool, executeOCR, isOCRAvailable } = await import('@/lib/ai/tools');
     return { tool: ocrTool, execute: executeOCR, isAvailable: isOCRAvailable };
   },
   pdf_tool: async () => {
-    const { pdfTool, executePDF, isPDFAvailable } = await import('@/lib/tools');
+    const { pdfTool, executePDF, isPDFAvailable } = await import('@/lib/ai/tools');
     return { tool: pdfTool, execute: executePDF, isAvailable: isPDFAvailable };
   },
   excel_tool: async () => {
-    const { excelTool, executeExcel, isExcelAvailable } = await import('@/lib/tools');
+    const { excelTool, executeExcel, isExcelAvailable } = await import('@/lib/ai/tools');
     return { tool: excelTool, execute: executeExcel, isAvailable: isExcelAvailable };
   },
 
   // Validation & Analysis
   validator: async () => {
-    const { validatorTool, executeValidator, isValidatorAvailable } = await import('@/lib/tools');
+    const { validatorTool, executeValidator, isValidatorAvailable } = await import('@/lib/ai/tools');
     return { tool: validatorTool, execute: executeValidator, isAvailable: isValidatorAvailable };
   },
   nlp: async () => {
-    const { nlpTool, executeNLP, isNLPAvailable } = await import('@/lib/tools');
+    const { nlpTool, executeNLP, isNLPAvailable } = await import('@/lib/ai/tools');
     return { tool: nlpTool, execute: executeNLP, isAvailable: isNLPAvailable };
   },
 
@@ -223,21 +220,27 @@ export async function getTool(name: string): Promise<ToolModule | null> {
  * Execute a tool by name
  */
 export async function executeTool(
-  name: string,
-  args: Record<string, unknown>
-): Promise<{ success: boolean; result?: unknown; error?: string }> {
-  const tool = await getTool(name);
+  toolCall: UnifiedToolCall
+): Promise<UnifiedToolResult> {
+  const tool = await getTool(toolCall.name);
 
   if (!tool) {
-    return { success: false, error: `Tool '${name}' not found or not available` };
+    return {
+      toolCallId: toolCall.id,
+      content: `Tool '${toolCall.name}' not found or not available`,
+      isError: true,
+    };
   }
 
   try {
-    const result = await tool.execute(args);
-    return { success: true, result };
+    return await tool.execute(toolCall);
   } catch (error) {
-    log.error('Tool execution failed', { name, error: error instanceof Error ? error.message : 'Unknown' });
-    return { success: false, error: error instanceof Error ? error.message : 'Tool execution failed' };
+    log.error('Tool execution failed', { name: toolCall.name, error: error instanceof Error ? error.message : 'Unknown' });
+    return {
+      toolCallId: toolCall.id,
+      content: error instanceof Error ? error.message : 'Tool execution failed',
+      isError: true,
+    };
   }
 }
 
