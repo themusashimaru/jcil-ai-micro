@@ -2740,6 +2740,28 @@ export async function POST(request: NextRequest) {
     log.debug('Processing request', { contentPreview: lastUserContent.substring(0, 50) });
 
     // ========================================
+    // REQUEST DEDUPLICATION
+    // ========================================
+    // Prevent duplicate requests from rapid user actions (double-clicks, etc.)
+    const { isDuplicateRequest } = await import('@/lib/chat/request-dedup');
+    if (isDuplicateRequest(rateLimitIdentifier, lastUserContent)) {
+      log.warn('Duplicate request detected', { userId: rateLimitIdentifier.substring(0, 8) });
+      // Release slot since we're not processing
+      if (slotAcquired) {
+        await releaseSlot(requestId);
+        slotAcquired = false;
+      }
+      return new Response(
+        JSON.stringify({
+          error: 'Duplicate request',
+          message: 'Please wait a moment before sending the same message again.',
+          code: 'DUPLICATE_REQUEST',
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ========================================
     // TOOL MODE - Button-only (no auto-detection)
     // ========================================
     // All tools only run when user explicitly selects from Tools menu

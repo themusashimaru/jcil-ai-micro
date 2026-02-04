@@ -199,15 +199,31 @@ export class AnthropicAdapter extends BaseAIAdapter {
 
   /**
    * Convert unified messages to Anthropic format
+   * Returns system as array format to support prompt caching
    */
   private convertToAnthropicFormat(
     messages: UnifiedMessage[],
-    systemPrompt?: string
+    systemPrompt?: string,
+    enableCaching: boolean = true
   ): {
-    system: string;
+    system: Anthropic.TextBlockParam[];
     messages: AnthropicMessage[];
   } {
-    const system = systemPrompt || 'You are a helpful AI assistant.';
+    const systemText = systemPrompt || 'You are a helpful AI assistant.';
+
+    // Use array format with cache_control for prompt caching
+    // This can reduce costs by 90% for repeated system prompts
+    // Cache TTL is 5 minutes (ephemeral)
+    const system: Anthropic.TextBlockParam[] = enableCaching
+      ? [
+          {
+            type: 'text' as const,
+            text: systemText,
+            cache_control: { type: 'ephemeral' as const },
+          },
+        ]
+      : [{ type: 'text' as const, text: systemText }];
+
     const anthropicMessages: AnthropicMessage[] = [];
 
     for (const msg of messages) {

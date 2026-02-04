@@ -47,6 +47,112 @@ const log = logger('CodeLabChat');
 type AnySupabase = any;
 
 // ========================================
+// INTELLIGENT MODEL ROUTING (Meta-routing)
+// ========================================
+// Uses Haiku to classify task complexity, then routes to appropriate model
+// This optimizes cost while maintaining quality for complex tasks
+// Haiku: $0.80/$4 | Sonnet: $3/$15 | Opus: $5/$25 per 1M tokens
+
+type TaskComplexity = 'simple' | 'moderate' | 'complex';
+
+interface ClassificationResult {
+  complexity: TaskComplexity;
+  modelId: string;
+  reasoning?: string;
+}
+
+// Model mapping for each complexity level
+const COMPLEXITY_MODEL_MAP: Record<TaskComplexity, string> = {
+  simple: 'claude-haiku-4-5-20251101',    // Quick answers, simple questions
+  moderate: 'claude-sonnet-4-20250514',    // Code generation, analysis
+  complex: 'claude-opus-4-5-20251101',     // Complex reasoning, architecture
+};
+
+/**
+ * Classify task complexity using Haiku (fast, cheap ~$0.0004 per call)
+ * Returns the appropriate model based on task complexity
+ */
+async function classifyTaskComplexity(
+  message: string,
+  history: Array<{ role: string; content: string }>,
+  anthropicClient: Anthropic
+): Promise<ClassificationResult> {
+  try {
+    // Build a condensed context from recent history (last 2 messages max)
+    const recentContext = history
+      .slice(-2)
+      .map(m => `${m.role}: ${m.content.substring(0, 200)}`)
+      .join('\n');
+
+    const response = await anthropicClient.messages.create({
+      model: 'claude-haiku-4-5-20251101',
+      max_tokens: 50,
+      system: `You are a task classifier. Analyze the user's request and classify its complexity.
+
+SIMPLE (use for):
+- Quick factual questions
+- Simple explanations
+- Basic code snippets
+- Clarifying questions
+- Greetings, thanks, acknowledgments
+
+MODERATE (use for):
+- Code generation (functions, components)
+- Debugging help
+- Code review
+- Documentation writing
+- Multi-step explanations
+
+COMPLEX (use for):
+- Architecture design
+- Complex algorithms
+- System design
+- Multi-file refactoring
+- Security analysis
+- Performance optimization
+- Novel problem solving
+
+Respond with ONLY one word: simple, moderate, or complex`,
+      messages: [{
+        role: 'user',
+        content: `${recentContext ? `Recent context:\n${recentContext}\n\n` : ''}Current request: ${message.substring(0, 500)}`
+      }],
+    });
+
+    // Parse the response
+    let classification: TaskComplexity = 'moderate'; // Default fallback
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        const text = block.text.toLowerCase().trim();
+        if (text.includes('simple')) classification = 'simple';
+        else if (text.includes('complex')) classification = 'complex';
+        else if (text.includes('moderate')) classification = 'moderate';
+      }
+    }
+
+    log.info('Task classified', {
+      complexity: classification,
+      model: COMPLEXITY_MODEL_MAP[classification],
+      inputTokens: response.usage?.input_tokens,
+    });
+
+    return {
+      complexity: classification,
+      modelId: COMPLEXITY_MODEL_MAP[classification],
+    };
+  } catch (error) {
+    // On any error, default to Sonnet (balanced choice)
+    log.warn('Classification failed, defaulting to Sonnet', {
+      error: error instanceof Error ? error.message : 'Unknown'
+    });
+    return {
+      complexity: 'moderate',
+      modelId: COMPLEXITY_MODEL_MAP.moderate,
+    };
+  }
+}
+
+// ========================================
 // BYOK (Bring Your Own Key) SUPPORT
 // ========================================
 
@@ -1861,12 +1967,40 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
         try {
           // BYOK: Check if user has their own Claude API key and custom model
           const claudeByokConfig = await getUserBYOKConfig(supabase, user.id, 'claude');
-          const effectiveModel = claudeByokConfig?.model || selectedModel;
 
           // Use user's Anthropic client if they have BYOK, otherwise use platform client
           const anthropicClient = claudeByokConfig?.apiKey
             ? new Anthropic({ apiKey: claudeByokConfig.apiKey })
             : anthropic;
+
+          // INTELLIGENT MODEL ROUTING (Meta-routing)
+          // Priority: 1) BYOK custom model, 2) User-selected model, 3) Auto-classify
+          let effectiveModel: string;
+          let routedByClassifier = false;
+
+          if (claudeByokConfig?.model) {
+            // User has BYOK with custom model - use their choice
+            effectiveModel = claudeByokConfig.model;
+            log.info('Using BYOK custom model', { model: effectiveModel });
+          } else if (modelId) {
+            // User explicitly selected a model - use their choice
+            effectiveModel = modelId;
+            log.info('Using user-selected model', { model: effectiveModel });
+          } else {
+            // No model specified - use intelligent routing
+            // Use platform client for classification (don't charge BYOK user for routing)
+            const classification = await classifyTaskComplexity(
+              enhancedContent,
+              history,
+              anthropic // Always use platform client for classification
+            );
+            effectiveModel = classification.modelId;
+            routedByClassifier = true;
+            log.info('Auto-routed by complexity', {
+              complexity: classification.complexity,
+              model: effectiveModel,
+            });
+          }
 
           // Build API parameters with optional extended thinking (Claude Code parity)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1993,7 +2127,8 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
               output: outputTokens,
               cacheRead: cacheReadTokens,
               cacheWrite: cacheWriteTokens,
-              model: selectedModel,
+              model: effectiveModel,
+              routed: routedByClassifier,
             })}-->`;
             controller.enqueue(encoder.encode(usageMarker));
             log.debug('Token usage', {
@@ -2001,6 +2136,8 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
               outputTokens,
               cacheReadTokens,
               cacheWriteTokens,
+              model: effectiveModel,
+              routed: routedByClassifier,
             });
           }
 
@@ -2012,7 +2149,7 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             content: fullContent,
             created_at: new Date().toISOString(),
             type: useSearch ? 'search' : 'chat',
-            model_id: selectedModel,
+            model_id: effectiveModel,
           });
 
           controller.close();
