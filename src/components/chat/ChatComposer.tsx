@@ -889,7 +889,7 @@ export function ChatComposer({
           {/* Action Bar */}
           <div className="flex items-center justify-between px-2 pb-2">
             {/* Left side - attachment and tools */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {/* Hidden file inputs */}
               <input
                 ref={cameraInputRef}
