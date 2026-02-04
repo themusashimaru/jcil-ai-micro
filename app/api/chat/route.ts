@@ -5797,7 +5797,7 @@ SECURITY:
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
-        model: 'claude-sonnet-4-5',
+        model: 'claude-haiku-4-5-20251001', // Default model for stream recovery
       });
       if (pendingRequestId) {
         log.debug('Created pending request for stream recovery', {
@@ -5810,13 +5810,14 @@ SECURITY:
     // ========================================
     // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
     // User can select provider: Claude, xAI, DeepSeek, OpenAI, Google
-    // Default: Claude Sonnet 4.5 (intelligent orchestration, tool use)
+    // Default: Claude Haiku 4.5 (fast, cost-effective for general chat)
+    // Sonnet 4.5 reserved for complex tasks (document gen, extraction)
     // Fallback: xAI Grok 4.1 (full capability parity)
     // Claude can call tools autonomously when needed
     // ========================================
 
     // Determine which model to use based on provider selection
-    let selectedModel = 'claude-sonnet-4-5-20250929'; // Default to Claude
+    let selectedModel = 'claude-haiku-4-5-20251001'; // Default to Haiku for cost efficiency
 
     // If user selected a specific provider, get its default model
     if (provider && isProviderAvailable(provider)) {
