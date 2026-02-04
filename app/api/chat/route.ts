@@ -5809,8 +5809,8 @@ SECURITY:
                 try {
                   // ON-DEMAND: Ensure server is running before calling tool
                   // This starts the server if it's "available" but not yet started
-                  if (userId) {
-                    const ensureResult = await ensureServerRunning(serverId, userId);
+                  if (rateLimitIdentifier) {
+                    const ensureResult = await ensureServerRunning(serverId, rateLimitIdentifier);
                     if (!ensureResult.success) {
                       result = {
                         toolCallId: toolCall.id,
