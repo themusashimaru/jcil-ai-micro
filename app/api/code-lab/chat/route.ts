@@ -46,6 +46,73 @@ const log = logger('CodeLabChat');
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
 
+// ========================================
+// BYOK (Bring Your Own Key) SUPPORT
+// ========================================
+
+/**
+ * Map provider IDs to the keys used in user_provider_preferences.provider_api_keys
+ * Some providers have different naming in BYOK vs internal (e.g., 'google' vs 'gemini')
+ */
+const BYOK_PROVIDER_MAP: Record<string, string> = {
+  openai: 'openai',
+  xai: 'xai',
+  deepseek: 'deepseek',
+  google: 'gemini', // Users configure 'gemini' in settings, but provider is 'google'
+};
+
+/**
+ * Get user's BYOK API key for a provider
+ * Returns null if not configured or decryption fails
+ */
+async function getUserApiKey(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  providerId: string
+): Promise<string | null> {
+  // Map provider ID to BYOK key name
+  const byokKey = BYOK_PROVIDER_MAP[providerId];
+  if (!byokKey) {
+    return null; // Provider doesn't support BYOK
+  }
+
+  try {
+    // Get user's provider preferences
+    const { data: prefs } = await supabase
+      .from('user_provider_preferences')
+      .select('provider_api_keys')
+      .eq('user_id', userId)
+      .single();
+
+    if (!prefs?.provider_api_keys) {
+      return null;
+    }
+
+    const encryptedKey = prefs.provider_api_keys[byokKey];
+    if (!encryptedKey) {
+      return null;
+    }
+
+    // Decrypt the key
+    const decryptedKey = decryptToken(encryptedKey);
+    if (!decryptedKey) {
+      log.warn('Failed to decrypt BYOK key', { userId, provider: providerId });
+      return null;
+    }
+
+    log.info('Using BYOK for provider', { userId, provider: providerId });
+    return decryptedKey;
+  } catch (error) {
+    log.warn('Error fetching BYOK key', {
+      userId,
+      provider: providerId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return null;
+  }
+}
+
 // SECURITY FIX: Use cryptographically secure UUID generation
 // Math.random() is NOT secure and IDs could be predicted
 function generateId(): string {
@@ -1456,22 +1523,27 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           let fullContent = '';
 
           try {
-            // Validate API key is available for the provider
+            // BYOK: Check if user has their own API key for this provider
+            const userApiKey = await getUserApiKey(supabase, user.id, providerId);
+
+            // Validate API key is available (either BYOK or platform key)
             // All providers support numbered keys (_1, _2, etc.) for key rotation
-            const apiKeyEnvMap: Record<string, string[]> = {
-              openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
-              xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
-              deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
-              google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
-            };
-            const requiredEnvVars = apiKeyEnvMap[providerId];
-            if (requiredEnvVars) {
-              const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
-              if (!hasAnyKey) {
-                const primaryKey = requiredEnvVars[0];
-                throw new Error(
-                  `${primaryKey} is not configured. Please set up the API key to use ${providerId} models.`
-                );
+            if (!userApiKey) {
+              const apiKeyEnvMap: Record<string, string[]> = {
+                openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
+                xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
+                deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
+                google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
+              };
+              const requiredEnvVars = apiKeyEnvMap[providerId];
+              if (requiredEnvVars) {
+                const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
+                if (!hasAnyKey) {
+                  const primaryKey = requiredEnvVars[0];
+                  throw new Error(
+                    `${primaryKey} is not configured. Add your own API key in Settings, or contact the administrator.`
+                  );
+                }
               }
             }
 
@@ -1528,11 +1600,13 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             let outputTokens = 0;
 
             // Stream from the adapter
+            // Pass userApiKey if using BYOK (bypasses pooled keys)
             const chatStream = adapter.chat(unifiedMessages, {
               model: selectedModel,
               maxTokens: providerInfo?.model.maxOutputTokens || 8192,
               temperature: 0.7,
               systemPrompt,
+              ...(userApiKey ? { userApiKey } : {}),
             });
 
             for await (const chunk of chatStream) {
