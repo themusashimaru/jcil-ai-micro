@@ -25,6 +25,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { NeuralThinking } from './NeuralThinking';
 
 // Document-specific messages
 const DOCUMENT_MESSAGES: Record<string, string[]> = {
@@ -512,17 +513,20 @@ interface TypingIndicatorProps {
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
   userMessage?: string; // The user's last message for intelligent status
   showBootSequence?: boolean; // Show boot sequence on first load
+  showNeuralThinking?: boolean; // Show impressive neural processing display
 }
 
 export function TypingIndicator({
   documentType,
   userMessage,
   showBootSequence = false,
+  showNeuralThinking = false,
 }: TypingIndicatorProps = {}) {
   const [messageIndex, setMessageIndex] = useState(0);
-  const [phase, setPhase] = useState<'boot' | 'command' | 'status'>('command');
+  const [phase, setPhase] = useState<'boot' | 'neural' | 'command' | 'status'>('command');
   const [bootIndex, setBootIndex] = useState(0);
   const [showCommandEcho, setShowCommandEcho] = useState(true);
+  const [_neuralComplete, setNeuralComplete] = useState(false);
 
   // Select messages based on document type or user message
   const messages = useMemo(() => {
@@ -548,10 +552,18 @@ export function TypingIndicator({
   useEffect(() => {
     // Reset state when context changes
     setMessageIndex(0);
-    setPhase(showBootSequence ? 'boot' : 'command');
+    // Determine initial phase: boot -> neural -> command -> status
+    if (showBootSequence) {
+      setPhase('boot');
+    } else if (showNeuralThinking) {
+      setPhase('neural');
+    } else {
+      setPhase('command');
+    }
     setBootIndex(0);
     setShowCommandEcho(true);
-  }, [documentType, userMessage, showBootSequence]);
+    setNeuralComplete(false);
+  }, [documentType, userMessage, showBootSequence, showNeuralThinking]);
 
   // Boot sequence handler
   useEffect(() => {
@@ -563,10 +575,19 @@ export function TypingIndicator({
       }, BOOT_SEQUENCE[bootIndex].delay);
       return () => clearTimeout(timer);
     } else {
-      // Boot complete, move to command phase
-      setPhase('command');
+      // Boot complete, move to neural or command phase
+      setPhase(showNeuralThinking ? 'neural' : 'command');
     }
-  }, [phase, bootIndex]);
+  }, [phase, bootIndex, showNeuralThinking]);
+
+  // Handle neural thinking completion
+  const handleNeuralComplete = useCallback(() => {
+    setNeuralComplete(true);
+    // Brief pause before transitioning to status
+    setTimeout(() => {
+      setPhase('status');
+    }, 500);
+  }, []);
 
   // Command echo phase - show briefly then transition to status
   useEffect(() => {
@@ -641,6 +662,11 @@ export function TypingIndicator({
         >
           {/* Boot sequence phase */}
           {phase === 'boot' && renderBootSequence()}
+
+          {/* Neural thinking phase - impressive AI analysis display */}
+          {phase === 'neural' && userMessage && (
+            <NeuralThinking userMessage={userMessage} onComplete={handleNeuralComplete} />
+          )}
 
           {/* Command echo phase */}
           {phase === 'command' && showCommandEcho && commandEchoText && (
