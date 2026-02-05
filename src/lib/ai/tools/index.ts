@@ -182,6 +182,9 @@ export {
 // GitHub Tool
 export { githubTool, executeGitHub, isGitHubAvailable } from './github-tool';
 
+// Spotify Tool
+export { spotifyTool, executeSpotify, isSpotifyToolAvailable } from './spotify-tool';
+
 // Screenshot Tool
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
 
@@ -1541,6 +1544,7 @@ async function initializeTools() {
   const { githubContextTool, executeGitHubContext, isGitHubContextAvailable } = await import(
     './github-context-tool'
   );
+  const { spotifyTool, executeSpotify, isSpotifyToolAvailable } = await import('./spotify-tool');
   const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
     './screenshot-tool'
   );
@@ -3517,6 +3521,7 @@ async function initializeTools() {
       executor: executeGitHubContext,
       checkAvailability: isGitHubContextAvailable,
     },
+    { tool: spotifyTool, executor: executeSpotify, checkAvailability: isSpotifyToolAvailable },
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },

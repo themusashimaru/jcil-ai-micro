@@ -11,6 +11,7 @@ export * from './types';
 export * from './github';
 export * from './vercel-sandbox';
 export * from './resend';
+export * from './spotify';
 
 import type { Connector, ConnectorType } from './types';
 import { CONNECTOR_CONFIGS } from './types';

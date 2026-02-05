@@ -17,6 +17,18 @@ interface GitHubStatus {
   error?: string;
 }
 
+interface SpotifyStatus {
+  configured: boolean;
+  connected: boolean;
+  userId?: string;
+  displayName?: string;
+  email?: string;
+  imageUrl?: string;
+  product?: string;
+  connectedAt?: string;
+  error?: string;
+}
+
 interface ProviderKeyStatus {
   provider: string;
   name: string;
@@ -57,7 +69,9 @@ const PROVIDER_ICONS: Record<string, React.ReactNode> = {
 
 export default function ConnectorsSection() {
   const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
+  const [spotifyStatus, setSpotifyStatus] = useState<SpotifyStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [spotifyLoading, setSpotifyLoading] = useState(true);
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [token, setToken] = useState('');
   const [saving, setSaving] = useState(false);
@@ -73,10 +87,23 @@ export default function ConnectorsSection() {
   const [savingKey, setSavingKey] = useState(false);
   const [testingKey, setTestingKey] = useState(false);
 
-  // Fetch GitHub connection status
+  // Fetch connection statuses
   useEffect(() => {
     fetchGitHubStatus();
+    fetchSpotifyStatus();
     fetchProviderKeys();
+
+    // Check for Spotify connection success from URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('spotify') === 'connected') {
+      setSuccess('Spotify connected successfully!');
+      // Clean up URL
+      window.history.replaceState({}, '', '/settings?tab=connectors');
+    }
+    if (params.get('error')) {
+      setError(`Connection error: ${params.get('error')}`);
+      window.history.replaceState({}, '', '/settings?tab=connectors');
+    }
   }, []);
 
   const fetchGitHubStatus = async () => {
@@ -93,6 +120,45 @@ export default function ConnectorsSection() {
       console.error('Failed to fetch GitHub status:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSpotifyStatus = async () => {
+    setSpotifyLoading(true);
+    try {
+      const response = await fetch('/api/connectors/spotify/status');
+      if (response.ok) {
+        const responseData = await response.json();
+        const status = responseData.data || responseData;
+        setSpotifyStatus(status);
+      }
+    } catch (err) {
+      console.error('Failed to fetch Spotify status:', err);
+    } finally {
+      setSpotifyLoading(false);
+    }
+  };
+
+  const handleSpotifyConnect = () => {
+    // Redirect to Spotify OAuth
+    window.location.href = '/api/connectors/spotify/auth';
+  };
+
+  const handleSpotifyDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Spotify?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/connectors/spotify/disconnect', { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error('Failed to disconnect Spotify');
+      }
+      setSpotifyStatus({ configured: true, connected: false });
+      setSuccess('Spotify disconnected');
+    } catch (err) {
+      console.error('Failed to disconnect Spotify:', err);
+      setError('Failed to disconnect Spotify. Please try again.');
     }
   };
 
@@ -417,6 +483,82 @@ export default function ConnectorsSection() {
         )}
       </div>
 
+      {/* Spotify Connector */}
+      <div className="border rounded-xl p-4 sm:p-5 mt-4" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          {/* Left side: Icon and info */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#1DB954] flex items-center justify-center flex-shrink-0">
+              <svg
+                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3
+                className="font-semibold text-base sm:text-lg"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Spotify
+              </h3>
+              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Control music, create playlists, get recommendations
+              </p>
+            </div>
+          </div>
+
+          {/* Right side: Status/Actions */}
+          <div className="flex items-center gap-3 sm:flex-shrink-0">
+            {spotifyLoading ? (
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Loading...
+              </div>
+            ) : !spotifyStatus?.configured ? (
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Not configured
+              </div>
+            ) : spotifyStatus?.connected ? (
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2">
+                  {spotifyStatus.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={spotifyStatus.imageUrl}
+                      alt={spotifyStatus.displayName}
+                      className="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-sm font-medium text-green-600">
+                    {spotifyStatus.displayName}
+                  </span>
+                  {spotifyStatus.product === 'premium' && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-[#1DB954] text-white">
+                      Premium
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleSpotifyDisconnect}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSpotifyConnect}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#1DB954] text-white hover:bg-[#1ed760] transition-colors"
+              >
+                Connect
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* API Keys Section - BYOK */}
       <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
         <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -588,7 +730,7 @@ export default function ConnectorsSection() {
 
       {/* Future connectors hint */}
       <div className="mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-        <p>More connectors coming soon: Vercel, Linear, Notion, and more.</p>
+        <p>More connectors coming soon: Uber, Notion, Linear, and more.</p>
       </div>
     </section>
   );
