@@ -178,6 +178,14 @@ export function ChatClient() {
   >('idle');
   const [quickStrategyLoading, setQuickStrategyLoading] = useState(false);
   const [_quickStrategyEvents, setQuickStrategyEvents] = useState<StrategyStreamEvent[]>([]);
+  // Deep Writer Agent state - professional AI writing with research
+  const [isDeepWriterMode, setIsDeepWriterMode] = useState(false);
+  const [deepWriterSessionId, setDeepWriterSessionId] = useState<string | null>(null);
+  const [deepWriterPhase, setDeepWriterPhase] = useState<
+    'idle' | 'intake' | 'executing' | 'complete' | 'error'
+  >('idle');
+  const [deepWriterLoading, setDeepWriterLoading] = useState(false);
+  const [_deepWriterEvents, setDeepWriterEvents] = useState<StrategyStreamEvent[]>([]);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -2648,6 +2656,283 @@ I'll update you as scouts report back with findings.`,
     setIsStreaming(false);
   };
 
+  // ===========================================================================
+  // DEEP WRITER AGENT - Professional AI Writing with Research
+  // ===========================================================================
+
+  /**
+   * Start Deep Writer mode - professional writing with full research
+   */
+  const startDeepWriter = async () => {
+    if (isDeepWriterMode || deepWriterLoading) {
+      return;
+    }
+
+    setDeepWriterLoading(true);
+    setIsStreaming(true);
+
+    // Add intro message to chat
+    const introMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## ✍️ Deep Writer Mode Activated
+
+**You've activated the most advanced AI writing system ever built.**
+
+This is a full publishing operation:
+- **Claude Opus 4.6** - Editorial Director & Writers
+- **Claude Sonnet 4.5** - Research Corps (15-50 agents)
+- **Full browser tools** - Web research, PDF extraction, data gathering
+
+**The Process:**
+1. Deep intake - I understand exactly what you're creating
+2. Research phase - Agents gather ALL facts first
+3. Writing phase - Professional writers craft each section
+4. Editorial phase - Voice consistency, polish, citations
+5. Export - Markdown, PDF, or DOCX
+
+**What are you writing today?**`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, introMessage]);
+
+    try {
+      // Start strategy session via strategy API with mode: 'deep-writer'
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', mode: 'deep-writer' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start writer');
+      }
+
+      const sessionId = response.headers.get('X-Session-Id');
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server.');
+      }
+
+      setDeepWriterSessionId(sessionId);
+      setIsDeepWriterMode(true);
+      setDeepWriterPhase('intake');
+
+      log.debug('Deep Writer mode activated', { sessionId });
+    } catch (error) {
+      console.error('[startDeepWriter] Error:', error);
+      log.error('Failed to start deep writer:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Writer Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsDeepWriterMode(false);
+      setDeepWriterPhase('idle');
+    } finally {
+      setIsStreaming(false);
+      setDeepWriterLoading(false);
+    }
+  };
+
+  /**
+   * Handle user input during deep writer intake phase
+   */
+  const handleDeepWriterInput = async (input: string) => {
+    if (!deepWriterSessionId) {
+      return;
+    }
+
+    // Check for cancel command
+    if (input.toLowerCase().trim() === 'cancel') {
+      await cancelDeepWriter();
+      return;
+    }
+
+    setIsStreaming(true);
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'input',
+          sessionId: deepWriterSessionId,
+          input,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to process input');
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.response || 'No response received',
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (data.isComplete) {
+        await executeDeepWriter();
+      }
+    } catch (error) {
+      log.error('Deep writer input error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Execute the deep writer after intake is complete
+   */
+  const executeDeepWriter = async () => {
+    if (!deepWriterSessionId) return;
+
+    setDeepWriterPhase('executing');
+    setIsStreaming(true);
+    setDeepWriterEvents([]);
+
+    const execMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 📚 Writing Operation Underway
+
+**Phase 1: Research**
+Deploying research scouts to gather facts, quotes, and sources...
+
+**Phase 2: Writing**
+Writers will craft each section using verified research...
+
+**Phase 3: Editorial**
+Final polish, voice consistency, and citations...
+
+This may take 5-15 minutes depending on document length.`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, execMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          sessionId: deepWriterSessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to execute writer');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('No response body');
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6)) as StrategyStreamEvent;
+              setDeepWriterEvents((prev) => [...prev, event]);
+
+              // Handle completion
+              if (event.type === 'strategy_complete' && event.data?.result) {
+                displayStrategyResult(event.data.result, event.data.artifacts);
+                setDeepWriterPhase('complete');
+                setIsDeepWriterMode(false);
+              }
+
+              // Handle errors
+              if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.error('Deep writer execution error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Writer Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setDeepWriterPhase('error');
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Cancel deep writer session
+   */
+  const cancelDeepWriter = async () => {
+    if (!deepWriterSessionId) return;
+
+    try {
+      await fetch(`/api/strategy?sessionId=${deepWriterSessionId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      log.warn('Cancel request failed:', { error: e });
+    }
+
+    const cancelMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '✋ **Writing cancelled.** You can start a new writing project anytime.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+
+    setIsDeepWriterMode(false);
+    setDeepWriterPhase('idle');
+    setDeepWriterSessionId(null);
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -2732,15 +3017,22 @@ I'll update you as scouts report back with findings.`,
       return;
     }
 
+    // DEEP WRITER MODE: If we're in deep writer intake, send to strategy API
+    if (isDeepWriterMode && deepWriterPhase === 'intake' && deepWriterSessionId) {
+      await handleDeepWriterInput(content);
+      return;
+    }
+
     // STEERING: If we're in execution phase, send as context/steering command
     if (
       (isStrategyMode && strategyPhase === 'executing' && strategySessionId) ||
       (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId) ||
       (isQuickResearchMode && quickResearchPhase === 'executing' && quickResearchSessionId) ||
-      (isQuickStrategyMode && quickStrategyPhase === 'executing' && quickStrategySessionId)
+      (isQuickStrategyMode && quickStrategyPhase === 'executing' && quickStrategySessionId) ||
+      (isDeepWriterMode && deepWriterPhase === 'executing' && deepWriterSessionId)
     ) {
       const sessionId =
-        strategySessionId || deepResearchSessionId || quickResearchSessionId || quickStrategySessionId;
+        strategySessionId || deepResearchSessionId || quickResearchSessionId || quickStrategySessionId || deepWriterSessionId;
       if (sessionId) {
         // Show user message in chat
         const userMsg: Message = {
@@ -4420,12 +4712,15 @@ I'll update you as scouts report back with findings.`,
                       ? 'quick-research'
                       : isQuickStrategyMode
                         ? 'quick-strategy'
-                        : null
+                        : isDeepWriterMode
+                          ? 'deep-writer'
+                          : null
               }
               strategyLoading={strategyLoading}
               deepResearchLoading={deepResearchLoading}
               quickResearchLoading={quickResearchLoading}
               quickStrategyLoading={quickStrategyLoading}
+              deepWriterLoading={deepWriterLoading}
               onAgentSelect={async (agent) => {
                 // Helper to cancel strategy session on server
                 const cancelStrategySession = async () => {
@@ -4479,6 +4774,19 @@ I'll update you as scouts report back with findings.`,
                   }
                 };
 
+                // Helper to cancel deep writer session on server
+                const cancelDeepWriterSession = async () => {
+                  if (deepWriterSessionId) {
+                    try {
+                      await fetch(`/api/strategy?sessionId=${deepWriterSessionId}`, {
+                        method: 'DELETE',
+                      });
+                    } catch {
+                      // Silently fail
+                    }
+                  }
+                };
+
                 // Helper to exit all other agent modes
                 const exitAllAgentModes = async () => {
                   if (isStrategyMode) {
@@ -4504,6 +4812,12 @@ I'll update you as scouts report back with findings.`,
                     setIsQuickStrategyMode(false);
                     setQuickStrategyPhase('idle');
                     setQuickStrategySessionId(null);
+                  }
+                  if (isDeepWriterMode) {
+                    await cancelDeepWriterSession();
+                    setIsDeepWriterMode(false);
+                    setDeepWriterPhase('idle');
+                    setDeepWriterSessionId(null);
                   }
                 };
 
@@ -4554,6 +4868,18 @@ I'll update you as scouts report back with findings.`,
                     // Exit other modes and start quick strategy
                     await exitAllAgentModes();
                     await startQuickStrategy();
+                  }
+                } else if (agent === 'deep-writer') {
+                  if (isDeepWriterMode) {
+                    // Toggle off - cancel deep writer mode
+                    await cancelDeepWriterSession();
+                    setIsDeepWriterMode(false);
+                    setDeepWriterPhase('idle');
+                    setDeepWriterSessionId(null);
+                  } else {
+                    // Exit other modes and start deep writer
+                    await exitAllAgentModes();
+                    await startDeepWriter();
                   }
                 } else if (agent === 'research') {
                   // Legacy: exit all modes (old research mode is replaced by quick-research)
