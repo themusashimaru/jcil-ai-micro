@@ -25,12 +25,11 @@ const UBER_TOKEN_URL = 'https://login.uber.com/oauth/v2/token';
 const UBER_API_BASE = 'https://api.uber.com/v1.2';
 
 // Scopes for Uber access
+// Note: 'request' and 'request_receipt' require special Uber business approval
+// Using basic scopes available to all developer apps
 const UBER_SCOPES = [
   'profile',
-  'request',
-  'request_receipt',
-  'places',
-  'ride_widgets',
+  'history',
 ].join(' ');
 
 // ============================================================================
