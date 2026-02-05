@@ -14,13 +14,7 @@ import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 
 // Agent imports
-import { isResearchAgentEnabled, shouldUseResearchAgent } from '@/agents/research';
 import { isCodeAgentEnabled, shouldUseCodeAgent, isCodeReviewRequest } from '@/agents/code';
-import { listAgents, getAgent } from '@/agents';
-
-// Research executors
-import { braveExecutor } from '@/agents/research/executors/BraveExecutor';
-import { documentExecutor } from '@/agents/research/executors/DocumentExecutor';
 
 // Tools availability
 import { isWebSearchAvailable } from '@/lib/ai/tools/web-search';
@@ -46,7 +40,6 @@ interface HealthResponse {
   infrastructure: {
     braveSearch: boolean;
     webSearchTool: boolean;
-    registeredAgents: string[];
   };
   summary: {
     total: number;
@@ -66,46 +59,7 @@ export async function GET() {
   const agents: AgentStatus[] = [];
   const issues: string[] = [];
 
-  // 1. Research Agent Health Check
-  try {
-    const researchEnabled = isResearchAgentEnabled();
-    const researchAgent = getAgent('research');
-
-    // Test detection with sample queries
-    const detectsResearch = shouldUseResearchAgent('Research my competitors in the AI market');
-    const ignoresSimple = !shouldUseResearchAgent('Hello, how are you?');
-
-    // Check brave executor configuration
-    const braveAvailable = await braveExecutor.isAvailable();
-
-    agents.push({
-      name: 'Research Agent',
-      enabled: researchEnabled,
-      available: !!researchAgent && braveAvailable,
-      detectionWorking: detectsResearch && ignoresSimple,
-      details: {
-        braveExecutor: braveAvailable,
-        documentSearch: await documentExecutor.isAvailable('test-user'),
-        detectsResearchQueries: detectsResearch,
-        ignoresSimpleQueries: ignoresSimple,
-      },
-    });
-
-    if (!braveAvailable) {
-      issues.push('Research Agent: Brave Search not configured');
-    }
-  } catch (error) {
-    agents.push({
-      name: 'Research Agent',
-      enabled: false,
-      available: false,
-      detectionWorking: false,
-      error: (error as Error).message,
-    });
-    issues.push(`Research Agent: ${(error as Error).message}`);
-  }
-
-  // 2. Code Agent Health Check
+  // 1. Code Agent Health Check
   try {
     const codeEnabled = isCodeAgentEnabled();
 
@@ -136,7 +90,7 @@ export async function GET() {
     issues.push(`Code Agent: ${(error as Error).message}`);
   }
 
-  // 3. Strategy Agent Health Check (check if imports work)
+  // 2. Strategy Agent Health Check (Deep Strategy, Deep Research, Quick Research)
   try {
     // Dynamic import to test availability
     const strategyModule = await import('@/agents/strategy');
@@ -154,6 +108,7 @@ export async function GET() {
         strategyAgentAvailable: agentAvailable,
         scoutToolsAvailable: toolsAvailable,
         executionQueueAvailable: typeof strategyModule.createExecutionQueue === 'function',
+        modes: ['strategy', 'research', 'quick-research'],
       },
     });
   } catch (error) {
@@ -170,7 +125,6 @@ export async function GET() {
   // Infrastructure checks
   const braveConfigured = isBraveConfigured();
   const webSearchAvailable = isWebSearchAvailable();
-  const registeredAgents = listAgents();
 
   if (!braveConfigured) {
     issues.push('Infrastructure: BRAVE_API_KEY not configured');
@@ -196,7 +150,6 @@ export async function GET() {
     infrastructure: {
       braveSearch: braveConfigured,
       webSearchTool: webSearchAvailable,
-      registeredAgents,
     },
     summary: {
       total: agents.length,
