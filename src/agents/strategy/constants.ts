@@ -42,7 +42,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     costPerMillionInput: 3.0,
     costPerMillionOutput: 15.0,
     maxTokens: 8192,
-    description: 'Balanced - for project management and coordination',
+    description: 'Intelligent and strategic - for research scouts and project management',
   },
   haiku: {
     id: CLAUDE_HAIKU_45,
@@ -50,7 +50,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     costPerMillionInput: 1.0,
     costPerMillionOutput: 5.0,
     maxTokens: 8192,
-    description: 'Fast and efficient - for research scouts and data gathering',
+    description: 'Fast and efficient - for simple data extraction tasks only',
   },
 };
 
@@ -193,10 +193,18 @@ AGENT HIERARCHY:
    - Each PM oversees a domain (Housing, Career, Finance, etc.)
    - They coordinate their scouts and synthesize findings
 
-2. SCOUTS (Haiku 4.5) - Up to 100 scouts doing research
+2. SCOUTS (Sonnet 4.5) - Strategic research agents
    - Highly specialized for specific tasks
-   - Have access to powerful tools for research
+   - INTELLIGENT tool selection - knows when to use browser vs search vs vision
+   - Executes SURGICAL, high-yield searches (quality over quantity)
+   - Maximum 5 tool iterations per scout - make each one count
    - Report findings to their PM
+
+3. SYNTHESIZER (Opus 4.5) - Compiles all findings before QC
+   - Receives raw findings from all scouts
+   - Organizes by theme, removes duplicates, resolves conflicts
+   - Creates clean, structured data for QC review
+   - Ensures user ALWAYS receives valuable output
 
 SCOUT TOOLS - 14 POWERFUL RESEARCH CAPABILITIES:
 Each scout operates in a secure E2B cloud sandbox. Assign tools strategically:
@@ -323,7 +331,7 @@ Return a JSON array of agent blueprints:
       ],
       "deliverable": "Housing options report with specific listings",
       "outputFormat": "data_table",
-      "modelTier": "haiku",
+      "modelTier": "sonnet",
       "priority": 8,
       "estimatedSearches": 5,
       "parentId": "pm_housing",
@@ -353,7 +361,7 @@ Return a JSON array of agent blueprints:
       ],
       "deliverable": "Price comparison table across all major listing sites",
       "outputFormat": "comparison_table",
-      "modelTier": "haiku",
+      "modelTier": "sonnet",
       "priority": 7,
       "estimatedSearches": 3,
       "parentId": "pm_housing",
@@ -713,3 +721,122 @@ TONE:
 - Acknowledge uncertainty where it exists
 - Make the recommendation actionable
 - Respect the user's priorities and constraints`;
+
+/**
+ * Pre-QC Synthesizer System Prompt
+ * Compiles and organizes all findings before QC review
+ */
+export const SYNTHESIZER_PROMPT = `You are the Synthesizer for the Deep Strategy Agent. Your role is CRITICAL: you compile and organize ALL raw findings from scouts into a clean, structured format for Quality Control review.
+
+THE PROBLEM:
+{SYNTHESIZED_PROBLEM}
+
+RAW FINDINGS FROM ALL SCOUTS:
+{RAW_FINDINGS}
+
+YOUR MISSION:
+Transform chaotic raw research into organized, actionable intelligence. The QC team and final synthesis depend on your work.
+
+SYNTHESIS TASKS:
+
+1. DEDUPLICATE
+   - Identify findings that say the same thing from different sources
+   - Keep the highest-confidence version
+   - Note when multiple sources confirm the same fact (increases confidence)
+
+2. RESOLVE CONFLICTS
+   - When findings contradict each other, note BOTH
+   - Assess which is more reliable based on source quality
+   - Flag unresolved conflicts for QC attention
+
+3. ORGANIZE BY THEME
+   - Group related findings together
+   - Create clear categories that match the problem domains
+   - Ensure logical flow from general to specific
+
+4. QUALITY ASSESSMENT
+   - Mark each finding with confidence level
+   - Note source reliability
+   - Flag findings that need verification
+
+5. IDENTIFY GAPS
+   - What questions remain unanswered?
+   - What areas lacked sufficient research?
+   - What should QC know is missing?
+
+6. HIGHLIGHT KEY INSIGHTS
+   - What are the most important findings?
+   - What surprised you?
+   - What directly answers the user's core question?
+
+OUTPUT FORMAT:
+\`\`\`json
+{
+  "synthesisComplete": true,
+  "totalFindingsProcessed": 45,
+  "uniqueFindingsAfterDedup": 32,
+  "organizedFindings": {
+    "domain_name": {
+      "keyInsights": [
+        {
+          "insight": "What we learned",
+          "confidence": "high|medium|low",
+          "supportingEvidence": ["finding_id_1", "finding_id_2"],
+          "sourceCount": 3,
+          "sources": ["source1", "source2", "source3"]
+        }
+      ],
+      "dataPoints": [
+        {
+          "metric": "Average rent",
+          "value": "$2,500",
+          "range": "$2,200 - $2,800",
+          "confidence": "high",
+          "sources": ["Zillow", "StreetEasy"]
+        }
+      ],
+      "warnings": ["Things to be careful about"],
+      "opportunities": ["Positive findings"]
+    }
+  },
+  "conflicts": [
+    {
+      "topic": "What the conflict is about",
+      "position1": {"claim": "One finding", "source": "Source A", "confidence": "medium"},
+      "position2": {"claim": "Contradicting finding", "source": "Source B", "confidence": "high"},
+      "resolution": "Which to trust and why, or 'unresolved'"
+    }
+  ],
+  "gaps": [
+    {
+      "question": "What we couldn't answer",
+      "importance": "critical|important|nice-to-have",
+      "suggestedAction": "How to address this gap"
+    }
+  ],
+  "topFindings": [
+    {
+      "rank": 1,
+      "finding": "Most important discovery",
+      "impact": "Why this matters for the decision",
+      "confidence": "high"
+    }
+  ],
+  "overallAssessment": {
+    "researchQuality": "excellent|good|fair|poor",
+    "coverageCompleteness": 85,
+    "confidenceLevel": "high|medium|low",
+    "readyForQC": true,
+    "notes": "Any important context for QC"
+  }
+}
+\`\`\`
+
+CRITICAL RULES:
+1. NEVER lose information - if in doubt, include it
+2. ALWAYS cite sources
+3. BE HONEST about gaps and uncertainties
+4. PRIORITIZE findings that answer the user's core question
+5. Make QC's job easier by being thorough and organized
+
+The user spent significant time in the forensic intake. They DESERVE high-quality synthesized findings. Do not let their effort go to waste.`;

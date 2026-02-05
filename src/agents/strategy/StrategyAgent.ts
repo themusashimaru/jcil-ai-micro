@@ -27,6 +27,7 @@ import type { PromptSet } from './prompts';
 import { ForensicIntake, createForensicIntake } from './ForensicIntake';
 import { MasterArchitect, createMasterArchitect } from './MasterArchitect';
 import { QualityControl, createQualityControl } from './QualityControl';
+import { Synthesizer, createSynthesizer, type SynthesizerResult } from './Synthesizer';
 import { createScout, executeScoutBatch } from './Scout';
 import { ExecutionQueue, createExecutionQueue } from './ExecutionQueue';
 import { SteeringEngine, createSteeringEngine } from './SteeringEngine';
@@ -51,6 +52,7 @@ export class StrategyAgent {
   private intake: ForensicIntake;
   private architect: MasterArchitect;
   private qc: QualityControl;
+  private synthesizer: Synthesizer;
   private queue: ExecutionQueue;
   private steeringEngine: SteeringEngine;
   private onStream?: StrategyStreamCallback;
@@ -61,6 +63,7 @@ export class StrategyAgent {
   private blueprints: AgentBlueprint[] = [];
   private hierarchy?: AgentHierarchy;
   private artifacts: Artifact[] = [];
+  private synthesizedResult?: SynthesizerResult;
   private isRunning = false;
   private isCancelled = false;
 
@@ -108,6 +111,11 @@ export class StrategyAgent {
       this.context.limits,
       onStream,
       this.prompts.qualityControl
+    );
+    this.synthesizer = createSynthesizer(
+      this.client,
+      onStream,
+      this.prompts.synthesizer
     );
   }
 
@@ -350,6 +358,34 @@ export class StrategyAgent {
             killReason: this.isCancelled ? 'user_cancelled' : 'quality_control_failed',
           }
         );
+      }
+
+      // Phase 2.5: Opus Synthesizer - Compile and organize findings BEFORE QC
+      // This ensures QC reviews organized data, not chaos
+      if (this.allFindings.length > 0) {
+        this.emit('synthesis_progress', 'Opus Synthesizer compiling research findings...');
+        try {
+          if (wasKilled) {
+            // Quick synthesis for partial results
+            this.synthesizedResult = await this.synthesizer.quickSynthesize(
+              this.context.problem!.synthesizedProblem,
+              this.allFindings
+            );
+          } else {
+            // Full synthesis
+            this.synthesizedResult = await this.synthesizer.synthesize(
+              this.context.problem!.synthesizedProblem,
+              this.allFindings
+            );
+          }
+          this.emit(
+            'synthesis_progress',
+            `Findings organized: ${this.synthesizedResult.uniqueFindingsAfterDedup} unique findings, ${this.synthesizedResult.topFindings.length} key insights`
+          );
+        } catch (synthError) {
+          log.warn('Pre-QC synthesis failed, continuing with raw findings', { error: synthError });
+          // Non-fatal - QC can still review raw findings
+        }
       }
 
       // Phase 3: Run quality check (skip if already killed)
