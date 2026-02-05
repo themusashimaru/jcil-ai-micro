@@ -170,6 +170,14 @@ export function ChatClient() {
   >('idle');
   const [quickResearchLoading, setQuickResearchLoading] = useState(false);
   const [_quickResearchEvents, setQuickResearchEvents] = useState<StrategyStreamEvent[]>([]);
+  // Quick Strategy Agent state - lightweight version of Deep Strategy (1/4 scale)
+  const [isQuickStrategyMode, setIsQuickStrategyMode] = useState(false);
+  const [quickStrategySessionId, setQuickStrategySessionId] = useState<string | null>(null);
+  const [quickStrategyPhase, setQuickStrategyPhase] = useState<
+    'idle' | 'intake' | 'executing' | 'complete' | 'error'
+  >('idle');
+  const [quickStrategyLoading, setQuickStrategyLoading] = useState(false);
+  const [_quickStrategyEvents, setQuickStrategyEvents] = useState<StrategyStreamEvent[]>([]);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -2374,6 +2382,272 @@ I'll update you as scouts report back with findings.`,
     setIsStreaming(false);
   };
 
+  // ===========================================================================
+  // QUICK STRATEGY - Lightweight version of Deep Strategy (1/4 scale)
+  // Uses the strategy engine with 'quick-strategy' mode for fast decisions
+  // ===========================================================================
+
+  /**
+   * Start Quick Strategy mode - streamlined intake for fast strategic decisions
+   */
+  const startQuickStrategy = async () => {
+    if (isQuickStrategyMode || quickStrategyLoading) {
+      return;
+    }
+
+    setQuickStrategyLoading(true);
+    setIsStreaming(true);
+
+    // Add intro message to chat
+    const introMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 🎯 Quick Strategy Mode
+
+I'll deploy a focused team to help you make this decision.
+
+**What you get:**
+- **10-15 intelligent scouts** (Claude Sonnet 4.5)
+- **All research tools:** Browser automation, web search, data analysis
+- **Opus synthesis:** Claude Opus 4.5 analyzes and recommends
+
+**Estimated: 1-2 min | $2-3**
+
+**What decision do you need help with?**`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, introMessage]);
+
+    try {
+      // Start strategy session via strategy API with mode: 'quick-strategy'
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', mode: 'quick-strategy' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start strategy');
+      }
+
+      const sessionId = response.headers.get('X-Session-Id');
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server.');
+      }
+
+      setQuickStrategySessionId(sessionId);
+      setIsQuickStrategyMode(true);
+      setQuickStrategyPhase('intake');
+
+      log.debug('Quick Strategy mode activated', { sessionId });
+    } catch (error) {
+      console.error('[startQuickStrategy] Error:', error);
+      log.error('Failed to start quick strategy:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Strategy Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsQuickStrategyMode(false);
+      setQuickStrategyPhase('idle');
+    } finally {
+      setIsStreaming(false);
+      setQuickStrategyLoading(false);
+    }
+  };
+
+  /**
+   * Handle user input during quick strategy intake phase
+   */
+  const handleQuickStrategyInput = async (input: string) => {
+    if (!quickStrategySessionId) {
+      return;
+    }
+
+    // Check for cancel command
+    if (input.toLowerCase().trim() === 'cancel') {
+      await cancelQuickStrategy();
+      return;
+    }
+
+    setIsStreaming(true);
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'input',
+          sessionId: quickStrategySessionId,
+          input,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to process input');
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.response || 'No response received',
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (data.isComplete) {
+        await executeQuickStrategy();
+      }
+    } catch (error) {
+      log.error('Quick strategy input error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Execute the quick strategy after intake is complete
+   */
+  const executeQuickStrategy = async () => {
+    if (!quickStrategySessionId) return;
+
+    setQuickStrategyPhase('executing');
+    setIsStreaming(true);
+    setQuickStrategyEvents([]);
+
+    const execMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 🚀 Deploying Strategy Scouts...
+
+Analysis is now underway. This will take 1-2 minutes.
+
+I'll update you as scouts report back with findings.`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, execMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          sessionId: quickStrategySessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to execute strategy');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('No response body');
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6)) as StrategyStreamEvent;
+              setQuickStrategyEvents((prev) => [...prev, event]);
+
+              // Handle completion
+              if (event.type === 'strategy_complete' && event.data?.result) {
+                displayStrategyResult(event.data.result, event.data.artifacts);
+                setQuickStrategyPhase('complete');
+                setIsQuickStrategyMode(false);
+              }
+
+              // Handle errors
+              if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.error('Quick strategy execution error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Strategy Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setQuickStrategyPhase('error');
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Cancel quick strategy session
+   */
+  const cancelQuickStrategy = async () => {
+    if (!quickStrategySessionId) return;
+
+    try {
+      await fetch(`/api/strategy?sessionId=${quickStrategySessionId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      log.warn('Cancel request failed:', { error: e });
+    }
+
+    const cancelMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '✋ **Strategy cancelled.** You can start a new strategy session anytime.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+
+    setIsQuickStrategyMode(false);
+    setQuickStrategyPhase('idle');
+    setQuickStrategySessionId(null);
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -2452,13 +2726,21 @@ I'll update you as scouts report back with findings.`,
       return;
     }
 
+    // QUICK STRATEGY MODE: If we're in quick strategy intake, send to strategy API
+    if (isQuickStrategyMode && quickStrategyPhase === 'intake' && quickStrategySessionId) {
+      await handleQuickStrategyInput(content);
+      return;
+    }
+
     // STEERING: If we're in execution phase, send as context/steering command
     if (
       (isStrategyMode && strategyPhase === 'executing' && strategySessionId) ||
       (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId) ||
-      (isQuickResearchMode && quickResearchPhase === 'executing' && quickResearchSessionId)
+      (isQuickResearchMode && quickResearchPhase === 'executing' && quickResearchSessionId) ||
+      (isQuickStrategyMode && quickStrategyPhase === 'executing' && quickStrategySessionId)
     ) {
-      const sessionId = strategySessionId || deepResearchSessionId || quickResearchSessionId;
+      const sessionId =
+        strategySessionId || deepResearchSessionId || quickResearchSessionId || quickStrategySessionId;
       if (sessionId) {
         // Show user message in chat
         const userMsg: Message = {
@@ -4136,11 +4418,14 @@ I'll update you as scouts report back with findings.`,
                     ? 'deep-research'
                     : isQuickResearchMode
                       ? 'quick-research'
-                      : null
+                      : isQuickStrategyMode
+                        ? 'quick-strategy'
+                        : null
               }
               strategyLoading={strategyLoading}
               deepResearchLoading={deepResearchLoading}
               quickResearchLoading={quickResearchLoading}
+              quickStrategyLoading={quickStrategyLoading}
               onAgentSelect={async (agent) => {
                 // Helper to cancel strategy session on server
                 const cancelStrategySession = async () => {
@@ -4181,6 +4466,19 @@ I'll update you as scouts report back with findings.`,
                   }
                 };
 
+                // Helper to cancel quick strategy session on server
+                const cancelQuickStrategySession = async () => {
+                  if (quickStrategySessionId) {
+                    try {
+                      await fetch(`/api/strategy?sessionId=${quickStrategySessionId}`, {
+                        method: 'DELETE',
+                      });
+                    } catch {
+                      // Silently fail
+                    }
+                  }
+                };
+
                 // Helper to exit all other agent modes
                 const exitAllAgentModes = async () => {
                   if (isStrategyMode) {
@@ -4200,6 +4498,12 @@ I'll update you as scouts report back with findings.`,
                     setIsQuickResearchMode(false);
                     setQuickResearchPhase('idle');
                     setQuickResearchSessionId(null);
+                  }
+                  if (isQuickStrategyMode) {
+                    await cancelQuickStrategySession();
+                    setIsQuickStrategyMode(false);
+                    setQuickStrategyPhase('idle');
+                    setQuickStrategySessionId(null);
                   }
                 };
 
@@ -4238,6 +4542,18 @@ I'll update you as scouts report back with findings.`,
                     // Exit other modes and start quick research
                     await exitAllAgentModes();
                     await startQuickResearch();
+                  }
+                } else if (agent === 'quick-strategy') {
+                  if (isQuickStrategyMode) {
+                    // Toggle off - cancel quick strategy mode
+                    await cancelQuickStrategySession();
+                    setIsQuickStrategyMode(false);
+                    setQuickStrategyPhase('idle');
+                    setQuickStrategySessionId(null);
+                  } else {
+                    // Exit other modes and start quick strategy
+                    await exitAllAgentModes();
+                    await startQuickStrategy();
                   }
                 } else if (agent === 'research') {
                   // Legacy: exit all modes (old research mode is replaced by quick-research)

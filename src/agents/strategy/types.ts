@@ -15,7 +15,7 @@
  * Agent mode - determines which prompt set the engine uses.
  * The engine is mode-agnostic; only the prompts change.
  */
-export type AgentMode = 'strategy' | 'research' | 'quick-research';
+export type AgentMode = 'strategy' | 'research' | 'quick-research' | 'quick-strategy';
 
 export type ModelTier = 'opus' | 'sonnet' | 'haiku';
 
