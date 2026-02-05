@@ -63,7 +63,7 @@ export interface AgentConfig {
   description: string;
   capabilities: string[];
   systemPrompt: string;
-  model: 'claude-opus-4-5-20251101' | 'claude-sonnet-4-20250514';
+  model: 'claude-opus-4-6-20260205' | 'claude-sonnet-4-20250514';
   maxTokens: number;
   temperature?: number;
 }

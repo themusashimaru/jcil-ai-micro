@@ -17,7 +17,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { Finding, SynthesizedProblem, StrategyStreamCallback, AgentBlueprint } from './types';
-import { CLAUDE_OPUS_45 } from './constants';
+import { CLAUDE_OPUS_46 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('ReflectionEngine');
@@ -235,7 +235,7 @@ export class ReflectionEngine {
   private client: Anthropic;
   private onStream?: StrategyStreamCallback;
   private reflectionHistory: ReflectionResult[] = [];
-  private model = CLAUDE_OPUS_45;
+  private model = CLAUDE_OPUS_46;
 
   constructor(client: Anthropic, onStream?: StrategyStreamCallback) {
     this.client = client;

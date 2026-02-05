@@ -1,7 +1,7 @@
 /**
  * SYNTHESIZER - Pre-QC Finding Compilation
  *
- * Uses Opus 4.5 to compile and organize ALL raw findings from scouts
+ * Uses Opus 4.6 to compile and organize ALL raw findings from scouts
  * before Quality Control review. Ensures users always receive
  * valuable, organized output even when QC triggers limits.
  */
@@ -12,7 +12,7 @@ import type {
   SynthesizedProblem,
   StrategyStreamCallback,
 } from './types';
-import { CLAUDE_OPUS_45, SYNTHESIZER_PROMPT } from './constants';
+import { CLAUDE_OPUS_46, SYNTHESIZER_PROMPT } from './constants';
 import { extractJSON } from './utils';
 import { logger } from '@/lib/logger';
 
@@ -92,7 +92,7 @@ export interface SynthesizerResult {
 
 export class Synthesizer {
   private client: Anthropic;
-  private model = CLAUDE_OPUS_45;
+  private model = CLAUDE_OPUS_46;
   private onStream?: StrategyStreamCallback;
   private systemPrompt: string;
 

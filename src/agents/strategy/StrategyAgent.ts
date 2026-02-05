@@ -2,7 +2,7 @@
  * DEEP STRATEGY AGENT - Main Orchestrator
  *
  * The most advanced self-replicating AI agent ever built.
- * Coordinates Opus 4.5, Sonnet 4.5, and Haiku 4.5 to create
+ * Coordinates Opus 4.6, Sonnet 4.5, and Haiku 4.5 to create
  * a dynamic army of specialized agents.
  */
 
@@ -21,7 +21,7 @@ import type {
   Artifact,
   SteeringCommand,
 } from './types';
-import { DEFAULT_LIMITS, CLAUDE_OPUS_45 } from './constants';
+import { DEFAULT_LIMITS, CLAUDE_OPUS_46 } from './constants';
 import { getPrompts } from './prompts';
 import type { PromptSet } from './prompts';
 import { ForensicIntake, createForensicIntake } from './ForensicIntake';
@@ -863,7 +863,7 @@ export class StrategyAgent {
   // ===========================================================================
 
   /**
-   * Synthesize the final strategy using Opus 4.5
+   * Synthesize the final strategy using Opus 4.6
    * @param isPartial - Whether this is a partial synthesis due to early termination
    * @param reason - The reason for early termination (if any)
    */
@@ -898,7 +898,7 @@ You have ${this.allFindings.length} findings to work with.
       : 'Create the final strategy recommendation based on all the research findings.';
 
     const response = await this.client.messages.create({
-      model: CLAUDE_OPUS_45,
+      model: CLAUDE_OPUS_46,
       max_tokens: 8192,
       temperature: 0.7,
       system: prompt,

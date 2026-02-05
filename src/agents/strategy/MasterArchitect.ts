@@ -1,7 +1,7 @@
 /**
  * MASTER ARCHITECT - Self-Designing Agent Creator
  *
- * Uses Opus 4.5 to design a perfect team of specialized agents
+ * Uses Opus 4.6 to design a perfect team of specialized agents
  * based on the user's synthesized problem.
  *
  * This is where the magic happens - the AI designs AI agents in real-time.
@@ -22,7 +22,7 @@ import type {
   OutputFormat,
   ScoutToolType,
 } from './types';
-import { CLAUDE_OPUS_45, MASTER_ARCHITECT_PROMPT, DEFAULT_LIMITS } from './constants';
+import { CLAUDE_OPUS_46, MASTER_ARCHITECT_PROMPT, DEFAULT_LIMITS } from './constants';
 import { extractJSON } from './utils';
 import { logger } from '@/lib/logger';
 
@@ -57,7 +57,7 @@ interface ProjectManagerBlueprint {
 export class MasterArchitect {
   private client: Anthropic;
   private onStream?: StrategyStreamCallback;
-  private model = CLAUDE_OPUS_45;
+  private model = CLAUDE_OPUS_46;
   private limits: StrategyLimits;
   private state: MasterArchitectState;
   private systemPrompt: string;
@@ -164,7 +164,7 @@ export class MasterArchitect {
   // ===========================================================================
 
   /**
-   * Generate agent design using Opus 4.5
+   * Generate agent design using Opus 4.6
    */
   private async generateDesign(problem: SynthesizedProblem): Promise<ArchitectDesign> {
     const prompt = this.systemPrompt.replace(

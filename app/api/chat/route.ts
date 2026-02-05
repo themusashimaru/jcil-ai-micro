@@ -30,8 +30,7 @@ import {
   type ChatRouteOptions,
   type ToolExecutor,
 } from '@/lib/ai/chat-router';
-// detectDocumentRequest removed - document creation is now button-only via Tools menu
-import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
+// Research agent removed - now using quick-research mode via strategy engine
 import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
 import {
   // All chat tools
@@ -3366,72 +3365,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 1: RESEARCH AGENT (Button-only - user must click Research)
-    // ========================================
-    if (effectiveToolMode === 'research' && isResearchAgentEnabled()) {
-      // Check research-specific rate limit (stricter than regular chat)
-      const researchRateCheck = checkResearchRateLimit(rateLimitIdentifier);
-      if (!researchRateCheck.allowed) {
-        log.warn('Research rate limit exceeded', { identifier: rateLimitIdentifier });
-        // Release slot before returning error
-        if (slotAcquired) {
-          await releaseSlot(requestId);
-          slotAcquired = false;
-        }
-        return new Response(
-          JSON.stringify({
-            error: 'Research rate limit exceeded',
-            message: `You've reached the limit of ${RATE_LIMIT_RESEARCH} research queries per hour. Please try again later or use regular chat.`,
-            code: 'RESEARCH_RATE_LIMIT',
-          }),
-          {
-            status: 429,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      log.info('Research mode activated - routing to Research Agent', {
-        remaining: researchRateCheck.remaining,
-      });
-
-      const researchStream = await executeResearchAgent(lastUserContent, {
-        userId: isAuthenticated ? rateLimitIdentifier : undefined,
-        depth: 'standard',
-        previousMessages: messages.slice(-5).map((m) => ({
-          role: String(m.role),
-          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-        })),
-      });
-
-      // Wrap stream to release slot when done
-      const wrappedResearchStream = new TransformStream<Uint8Array, Uint8Array>({
-        transform(chunk, controller) {
-          controller.enqueue(chunk);
-        },
-        flush() {
-          if (slotAcquired) {
-            releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
-            slotAcquired = false;
-          }
-        },
-      });
-
-      isStreamingResponse = true;
-
-      return new Response(researchStream.pipeThrough(wrappedResearchStream), {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Transfer-Encoding': 'chunked',
-          'X-Provider': 'anthropic',
-          'X-Agent': 'research',
-          'X-Search-Mode': 'research',
-        },
-      });
-    }
-
-    // ========================================
-    // ROUTE 2: BRAVE SEARCH (Button-only - user must click Search/Fact-check)
+    // ROUTE 1: BRAVE SEARCH (Button-only - user must click Search/Fact-check)
+    // Note: Research Agent removed - now using quick-research mode via strategy engine
     // ========================================
     if (
       (effectiveToolMode === 'search' || effectiveToolMode === 'factcheck') &&

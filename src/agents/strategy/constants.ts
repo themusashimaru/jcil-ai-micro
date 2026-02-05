@@ -14,13 +14,13 @@ import type { ModelConfig, StrategyLimits } from './types';
  * Claude Model IDs - Configurable via environment variables
  *
  * Set these environment variables to override the default model IDs:
- * - CLAUDE_OPUS_MODEL: The Opus model ID (default: claude-opus-4-5-20251101)
+ * - CLAUDE_OPUS_MODEL: The Opus model ID (default: claude-opus-4-6-20260205)
  * - CLAUDE_SONNET_MODEL: The Sonnet model ID (default: claude-sonnet-4-5-20250514)
  * - CLAUDE_HAIKU_MODEL: The Haiku model ID (default: claude-haiku-4-5-20251001)
  *
  * This allows updating models without code changes when Anthropic releases new versions.
  */
-export const CLAUDE_OPUS_45 = process.env.CLAUDE_OPUS_MODEL || 'claude-opus-4-5-20251101';
+export const CLAUDE_OPUS_46 = process.env.CLAUDE_OPUS_MODEL || 'claude-opus-4-6-20260205';
 export const CLAUDE_SONNET_45 = process.env.CLAUDE_SONNET_MODEL || 'claude-sonnet-4-5-20250514';
 export const CLAUDE_HAIKU_45 = process.env.CLAUDE_HAIKU_MODEL || 'claude-haiku-4-5-20251001';
 
@@ -29,7 +29,7 @@ export const CLAUDE_HAIKU_45 = process.env.CLAUDE_HAIKU_MODEL || 'claude-haiku-4
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   opus: {
-    id: CLAUDE_OPUS_45,
+    id: CLAUDE_OPUS_46,
     tier: 'opus',
     costPerMillionInput: 15.0,
     costPerMillionOutput: 75.0,
@@ -200,7 +200,7 @@ AGENT HIERARCHY:
    - Maximum 5 tool iterations per scout - make each one count
    - Report findings to their PM
 
-3. SYNTHESIZER (Opus 4.5) - Compiles all findings before QC
+3. SYNTHESIZER (Opus 4.6) - Compiles all findings before QC
    - Receives raw findings from all scouts
    - Organizes by theme, removes duplicates, resolves conflicts
    - Creates clean, structured data for QC review

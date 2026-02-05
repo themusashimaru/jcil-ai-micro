@@ -31,8 +31,8 @@ const CLAUDE_CONFIG: ProviderConfig = {
   },
   models: [
     {
-      id: 'claude-opus-4-5-20251101',
-      name: 'Claude Opus 4.5',
+      id: 'claude-opus-4-6-20260205',
+      name: 'Claude Opus 4.6',
       contextWindow: 200000,
       maxOutputTokens: 32000,
       inputPricePer1M: 5,

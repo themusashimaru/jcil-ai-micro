@@ -69,10 +69,14 @@ interface ChatComposerProps {
   initialText?: string; // Pre-fill the input with text (for quick prompts)
   // Agent props
   isAdmin?: boolean;
-  activeAgent?: 'research' | 'strategy' | 'deep-research' | null;
-  onAgentSelect?: (agent: 'research' | 'strategy' | 'deep-research') => Promise<void> | void;
+  activeAgent?: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | null;
+  onAgentSelect?: (
+    agent: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy'
+  ) => Promise<void> | void;
   strategyLoading?: boolean; // Show loading state while strategy starts
   deepResearchLoading?: boolean; // Show loading state while deep research starts
+  quickResearchLoading?: boolean; // Show loading state while quick research starts
+  quickStrategyLoading?: boolean; // Show loading state while quick strategy starts
   // External modal control (for carousel integration)
   openCreateImage?: boolean;
   openEditImage?: boolean;
@@ -1192,33 +1196,25 @@ export function ChatComposer({
                           </button>
                         )}
 
-                        {/* Research Agent - Available to all */}
+                        {/* Quick Research Agent - Uses strategy engine with quick-research mode */}
                         <button
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            // If Strategy or Deep Research is active, notify parent to exit first
-                            if (activeAgent === 'strategy') {
-                              onAgentSelect?.('research');
-                            }
-                            if (activeAgent === 'deep-research') {
-                              onAgentSelect?.('deep-research');
-                            }
-                            // Toggle research mode internally
-                            setToolMode(toolMode === 'research' ? 'none' : 'research');
                             setShowAgentsMenu(false);
+                            await onAgentSelect?.('quick-research');
                           }}
                           className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
                           style={{
                             backgroundColor:
-                              toolMode === 'research' ? 'var(--glass-bg)' : 'transparent',
+                              activeAgent === 'quick-research' ? 'var(--glass-bg)' : 'transparent',
                             color:
-                              toolMode === 'research'
+                              activeAgent === 'quick-research'
                                 ? 'var(--text-primary)'
                                 : 'var(--text-secondary)',
                           }}
                         >
                           <p className="text-sm font-medium">Research Agent</p>
-                          {toolMode === 'research' && (
+                          {activeAgent === 'quick-research' && (
                             <svg
                               className="w-4 h-4 ml-auto"
                               style={{ color: 'var(--text-muted)' }}
@@ -1230,7 +1226,37 @@ export function ChatComposer({
                           )}
                         </button>
 
-                        {/* Deep Strategy Agent - Available to all users */}
+                        {/* Quick Strategy Agent - Fast strategic decisions */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setShowAgentsMenu(false);
+                            await onAgentSelect?.('quick-strategy');
+                          }}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                          style={{
+                            backgroundColor:
+                              activeAgent === 'quick-strategy' ? 'var(--glass-bg)' : 'transparent',
+                            color:
+                              activeAgent === 'quick-strategy'
+                                ? 'var(--text-primary)'
+                                : 'var(--text-secondary)',
+                          }}
+                        >
+                          <p className="text-sm font-medium">Strategy Agent</p>
+                          {activeAgent === 'quick-strategy' && (
+                            <svg
+                              className="w-4 h-4 ml-auto"
+                              style={{ color: 'var(--text-muted)' }}
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* Deep Strategy Agent - Comprehensive strategic analysis */}
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -1262,7 +1288,7 @@ export function ChatComposer({
                           )}
                         </button>
 
-                        {/* Deep Research Agent - Available to all users */}
+                        {/* Deep Research Agent - Comprehensive research */}
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();

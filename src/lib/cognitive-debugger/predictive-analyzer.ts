@@ -665,7 +665,7 @@ Only include issues you're reasonably confident about.`;
 
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-5-20251101',
+        model: 'claude-opus-4-6-20260205',
         max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }],
       });

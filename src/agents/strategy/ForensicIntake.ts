@@ -4,7 +4,7 @@
  * Acts as a forensic psychologist to deeply understand the user's situation
  * before deploying the strategy agent army.
  *
- * Uses Opus 4.5 for maximum understanding and nuance.
+ * Uses Opus 4.6 for maximum understanding and nuance.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -14,7 +14,7 @@ import type {
   StrategyStreamCallback,
   PriorityItem,
 } from './types';
-import { CLAUDE_OPUS_45, FORENSIC_INTAKE_PROMPT } from './constants';
+import { CLAUDE_OPUS_46, FORENSIC_INTAKE_PROMPT } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('ForensicIntake');
@@ -39,7 +39,7 @@ export class ForensicIntake {
   private client: Anthropic;
   private state: IntakeState;
   private onStream?: StrategyStreamCallback;
-  private model = CLAUDE_OPUS_45;
+  private model = CLAUDE_OPUS_46;
   private systemPrompt: string;
   private openingMessage: string;
 
@@ -102,7 +102,7 @@ export class ForensicIntake {
 This isn't ChatGPT. This is an autonomous research army. I'm about to deploy:
 
 **THE BRAIN HIERARCHY**
-• **Claude Opus 4.5** — Master Architect (designs your strategy, maximum intelligence)
+• **Claude Opus 4.6** — Master Architect (designs your strategy, maximum intelligence)
 • **Claude Sonnet 4.5** — Project Managers (coordinate research teams)
 • **Up to 100 Claude Haiku 4.5 Scouts** (parallel research army)
 
@@ -231,7 +231,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
   // ===========================================================================
 
   /**
-   * Generate a response using Opus 4.5
+   * Generate a response using Opus 4.6
    */
   private async generateResponse(): Promise<string> {
     try {
