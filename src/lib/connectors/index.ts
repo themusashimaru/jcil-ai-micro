@@ -12,11 +12,12 @@ export * from './github';
 export * from './vercel-sandbox';
 export * from './resend';
 
-// Spotify and Uber have some overlapping function names, so export them as namespaces
+// Spotify, Uber, and Notion have some overlapping function names, so export them as namespaces
 export * as spotify from './spotify';
 export * as uber from './uber';
+export * as notion from './notion';
 
-// Also export the most commonly used functions directly with prefixed names
+// Also export the most commonly used functions directly
 export {
   isSpotifyConfigured,
   getSpotifyAuthUrl,
@@ -28,6 +29,12 @@ export {
   getUberAuthUrl,
   getUberConnectionStatus,
 } from './uber';
+
+export {
+  isNotionConfigured,
+  getNotionAuthUrl,
+  getNotionConnectionStatus,
+} from './notion';
 
 import type { Connector, ConnectorType } from './types';
 import { CONNECTOR_CONFIGS } from './types';
