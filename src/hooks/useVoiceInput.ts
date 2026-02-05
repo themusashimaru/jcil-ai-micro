@@ -44,7 +44,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
   // Grace period before silence detection kicks in (let user start speaking)
   const SILENCE_GRACE_PERIOD = 3000;  // 3 seconds before silence detection activates (was 2)
-  const AUDIO_THRESHOLD = 3;  // Very low threshold for detecting any speech (was 5)
+  const AUDIO_THRESHOLD = 1;  // Very low threshold - almost any sound triggers (was 3)
   const MIN_RECORDING_DURATION = 1500;  // Minimum 1.5 second recording to avoid hallucinations
   const SILENCE_DURATION_MS = 3000;  // 3 seconds of silence before auto-stop (more forgiving)
 
@@ -120,9 +120,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         graceperiodPassedRef.current = true;
       }
 
-      // Detect speech - log levels periodically to debug
-      if (normalizedLevel > 10) {
-        console.log('[VoiceInput] Audio level:', normalizedLevel, 'threshold:', AUDIO_THRESHOLD);
+      // Log all audio levels for debugging (every ~500ms to reduce spam)
+      if (Math.random() < 0.03) {  // ~3% of frames = roughly every 500ms at 60fps
+        console.log('[VoiceInput] Audio level:', normalizedLevel, 'threshold:', AUDIO_THRESHOLD, 'speechDetected:', hasDetectedSpeechRef.current);
       }
 
       if (normalizedLevel > AUDIO_THRESHOLD) {

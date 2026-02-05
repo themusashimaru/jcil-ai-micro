@@ -291,6 +291,7 @@ export function ChatComposer({
     isProcessing: isTranscribing,
     toggleRecording,
     isSupported: isVoiceSupported,
+    audioLevel,  // 0-100 for waveform visualization
   } = useVoiceInput({
     onTranscript: (text) => {
       // Append transcribed text to message
@@ -1314,13 +1315,13 @@ export function ChatComposer({
 
             {/* Right side - mic and send buttons */}
             <div className="flex items-center gap-1">
-              {/* Mic button - voice input */}
+              {/* Mic button - voice input with waveform */}
               {isVoiceSupported && (
                 <button
                   onClick={toggleRecording}
                   disabled={isStreaming || disabled || isTranscribing}
-                  className={`rounded-full p-1.5 transition-all flex items-center justify-center ${
-                    isRecording ? 'animate-pulse' : ''
+                  className={`rounded-full p-1.5 transition-all flex items-center justify-center gap-1 ${
+                    isRecording ? '' : ''
                   }`}
                   title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
                   style={{
@@ -1332,6 +1333,7 @@ export function ChatComposer({
                       : isTranscribing
                         ? 'var(--primary)'
                         : 'var(--text-muted)',
+                    minWidth: isRecording ? '60px' : 'auto',
                   }}
                 >
                   {isTranscribing ? (
@@ -1351,6 +1353,19 @@ export function ChatComposer({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
+                  ) : isRecording ? (
+                    // Waveform visualization when recording
+                    <div className="flex items-center gap-0.5 h-4">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className="w-0.5 bg-white rounded-full transition-all duration-75"
+                          style={{
+                            height: `${Math.max(4, Math.min(16, 4 + (audioLevel / 100) * 12 * (0.5 + Math.random() * 0.5)))}px`,
+                          }}
+                        />
+                      ))}
+                    </div>
                   ) : (
                     // Microphone icon
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
