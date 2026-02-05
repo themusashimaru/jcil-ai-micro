@@ -29,6 +29,17 @@ interface SpotifyStatus {
   error?: string;
 }
 
+interface UberStatus {
+  configured: boolean;
+  connected: boolean;
+  userId?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  connectedAt?: string;
+  error?: string;
+}
+
 interface ProviderKeyStatus {
   provider: string;
   name: string;
@@ -70,8 +81,10 @@ const PROVIDER_ICONS: Record<string, React.ReactNode> = {
 export default function ConnectorsSection() {
   const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
   const [spotifyStatus, setSpotifyStatus] = useState<SpotifyStatus | null>(null);
+  const [uberStatus, setUberStatus] = useState<UberStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [spotifyLoading, setSpotifyLoading] = useState(true);
+  const [uberLoading, setUberLoading] = useState(true);
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [token, setToken] = useState('');
   const [saving, setSaving] = useState(false);
@@ -91,13 +104,17 @@ export default function ConnectorsSection() {
   useEffect(() => {
     fetchGitHubStatus();
     fetchSpotifyStatus();
+    fetchUberStatus();
     fetchProviderKeys();
 
-    // Check for Spotify connection success from URL params
+    // Check for connection success from URL params
     const params = new URLSearchParams(window.location.search);
     if (params.get('spotify') === 'connected') {
       setSuccess('Spotify connected successfully!');
-      // Clean up URL
+      window.history.replaceState({}, '', '/settings?tab=connectors');
+    }
+    if (params.get('uber') === 'connected') {
+      setSuccess('Uber connected successfully!');
       window.history.replaceState({}, '', '/settings?tab=connectors');
     }
     if (params.get('error')) {
@@ -159,6 +176,45 @@ export default function ConnectorsSection() {
     } catch (err) {
       console.error('Failed to disconnect Spotify:', err);
       setError('Failed to disconnect Spotify. Please try again.');
+    }
+  };
+
+  const fetchUberStatus = async () => {
+    setUberLoading(true);
+    try {
+      const response = await fetch('/api/connectors/uber/status');
+      if (response.ok) {
+        const responseData = await response.json();
+        const status = responseData.data || responseData;
+        setUberStatus(status);
+      }
+    } catch (err) {
+      console.error('Failed to fetch Uber status:', err);
+    } finally {
+      setUberLoading(false);
+    }
+  };
+
+  const handleUberConnect = () => {
+    // Redirect to Uber OAuth
+    window.location.href = '/api/connectors/uber/auth';
+  };
+
+  const handleUberDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Uber?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/connectors/uber/disconnect', { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error('Failed to disconnect Uber');
+      }
+      setUberStatus({ configured: true, connected: false });
+      setSuccess('Uber disconnected');
+    } catch (err) {
+      console.error('Failed to disconnect Uber:', err);
+      setError('Failed to disconnect Uber. Please try again.');
     }
   };
 
@@ -559,6 +615,69 @@ export default function ConnectorsSection() {
         </div>
       </div>
 
+      {/* Uber Connector */}
+      <div className="border rounded-xl p-4 sm:p-5 mt-4" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          {/* Left side: Icon and info */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+              <svg
+                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12.0009 0C5.37328 0 0 5.37328 0 12.0009C0 18.6267 5.37328 24 12.0009 24C18.6267 24 24 18.6267 24 12.0009C24 5.37328 18.6267 0 12.0009 0ZM6.54545 8.18182H8.72727V15.8182H6.54545V8.18182ZM17.4545 12.5455C17.4545 14.2909 16.0364 15.8182 14.1818 15.8182H10.9091V8.18182H14.1818C16.0364 8.18182 17.4545 9.6 17.4545 11.4545V12.5455Z"/>
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3
+                className="font-semibold text-base sm:text-lg"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Uber
+              </h3>
+              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Get ride estimates, request rides, track trips
+              </p>
+            </div>
+          </div>
+
+          {/* Right side: Status/Actions */}
+          <div className="flex items-center gap-3 sm:flex-shrink-0">
+            {uberLoading ? (
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Loading...
+              </div>
+            ) : !uberStatus?.configured ? (
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Not configured
+              </div>
+            ) : uberStatus?.connected ? (
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-green-600">
+                    {uberStatus.firstName} {uberStatus.lastName}
+                  </span>
+                </div>
+                <button
+                  onClick={handleUberDisconnect}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleUberConnect}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
+              >
+                Connect
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* API Keys Section - BYOK */}
       <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
         <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
@@ -730,7 +849,7 @@ export default function ConnectorsSection() {
 
       {/* Future connectors hint */}
       <div className="mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-        <p>More connectors coming soon: Uber, Notion, Linear, and more.</p>
+        <p>More connectors coming soon: Notion, Linear, and more.</p>
       </div>
     </section>
   );

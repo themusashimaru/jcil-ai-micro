@@ -11,7 +11,23 @@ export * from './types';
 export * from './github';
 export * from './vercel-sandbox';
 export * from './resend';
-export * from './spotify';
+
+// Spotify and Uber have some overlapping function names, so export them as namespaces
+export * as spotify from './spotify';
+export * as uber from './uber';
+
+// Also export the most commonly used functions directly with prefixed names
+export {
+  isSpotifyConfigured,
+  getSpotifyAuthUrl,
+  getSpotifyConnectionStatus,
+} from './spotify';
+
+export {
+  isUberConfigured,
+  getUberAuthUrl,
+  getUberConnectionStatus,
+} from './uber';
 
 import type { Connector, ConnectorType } from './types';
 import { CONNECTOR_CONFIGS } from './types';
