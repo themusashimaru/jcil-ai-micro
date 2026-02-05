@@ -25,20 +25,31 @@ function getOpenAI(): OpenAI {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Whisper API] Received transcription request');
+
   try {
     // Auth check
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.log('[Whisper API] Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('[Whisper API] User authenticated:', user.id);
 
     // Get the form data with audio file
     const formData = await request.formData();
     const audioFile = formData.get('file') as File;
     const language = formData.get('language') as string | null;
     const prompt = formData.get('prompt') as string | null;
+
+    console.log('[Whisper API] Received file:', {
+      name: audioFile?.name,
+      type: audioFile?.type,
+      size: audioFile?.size,
+    });
 
     if (!audioFile) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
@@ -51,6 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call OpenAI Whisper API
+    console.log('[Whisper API] Calling OpenAI Whisper...');
     const openai = getOpenAI();
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
@@ -59,6 +71,8 @@ export async function POST(request: NextRequest) {
       prompt: prompt || undefined,
       response_format: 'json',
     });
+
+    console.log('[Whisper API] Transcription result:', transcription.text);
 
     return NextResponse.json({
       text: transcription.text,

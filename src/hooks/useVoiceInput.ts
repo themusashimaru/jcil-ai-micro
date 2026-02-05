@@ -68,6 +68,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const startTimeRef = useRef<number>(0);
   const graceperiodPassedRef = useRef<boolean>(false);
   const hasDetectedSpeechRef = useRef<boolean>(false);
+  // Ref to hold processAudio function (avoids stale closure issues)
+  const processAudioRef = useRef<((blob: Blob) => Promise<void>) | null>(null);
 
   // Cleanup function
   const cleanup = useCallback(() => {
@@ -190,11 +192,16 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         }
       };
 
-      // CRITICAL FIX: Wrap processAudio in try-catch to handle errors
+      // Use processAudioRef to avoid stale closure issues
       mediaRecorder.onstop = async () => {
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-          await processAudio(audioBlob);
+          console.log('[VoiceInput] MediaRecorder stopped, processing audio...');
+          if (processAudioRef.current) {
+            await processAudioRef.current(audioBlob);
+          } else {
+            console.error('[VoiceInput] processAudioRef is null!');
+          }
         } catch (error) {
           console.error('[VoiceInput] Error processing audio:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to process audio';
@@ -304,6 +311,13 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const processAudio = useCallback(async (audioBlob: Blob) => {
     // Check minimum duration - skip very short recordings
     const recordingDuration = Date.now() - startTimeRef.current;
+    console.log('[VoiceInput] Processing audio:', {
+      duration: recordingDuration,
+      minRequired: MIN_RECORDING_DURATION,
+      speechDetected: hasDetectedSpeechRef.current,
+      blobSize: audioBlob.size,
+    });
+
     if (recordingDuration < MIN_RECORDING_DURATION) {
       console.log('[VoiceInput] Recording too short, skipping transcription');
       setState(prev => ({ ...prev, isProcessing: false }));
@@ -311,13 +325,14 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       return;
     }
 
-    // Check if any speech was detected
-    if (!hasDetectedSpeechRef.current) {
-      console.log('[VoiceInput] No speech detected, skipping transcription');
-      setState(prev => ({ ...prev, isProcessing: false }));
-      cleanup();
-      return;
-    }
+    // Skip the speech detection check for now - Whisper can handle silence
+    // The hallucination filter will catch any garbage output
+    // if (!hasDetectedSpeechRef.current) {
+    //   console.log('[VoiceInput] No speech detected, skipping transcription');
+    //   setState(prev => ({ ...prev, isProcessing: false }));
+    //   cleanup();
+    //   return;
+    // }
 
     setState(prev => ({ ...prev, isProcessing: true }));
 
@@ -332,20 +347,26 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         formData.append('language', language);
       }
 
-      // Add prompt to help with code-related transcription
-      formData.append('prompt', 'This is a coding-related voice command. It may include programming terms, function names, and technical jargon.');
+      // Add prompt to help with transcription
+      formData.append('prompt', 'Transcribe the following speech accurately.');
 
+      console.log('[VoiceInput] Sending to Whisper API...');
       const response = await fetch('/api/whisper', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('[VoiceInput] Whisper API response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Transcription failed');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[VoiceInput] Whisper API error:', errorData);
+        throw new Error(errorData.error || 'Transcription failed');
       }
 
       const result = await response.json();
       const transcript = result.text?.trim() || '';
+      console.log('[VoiceInput] Transcription result:', transcript);
 
       // Filter out hallucinations
       if (isHallucination(transcript)) {
@@ -358,10 +379,12 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       setState(prev => ({ ...prev, transcript, isProcessing: false }));
 
       if (transcript) {
+        console.log('[VoiceInput] Calling onTranscript callback with:', transcript);
         onTranscript?.(transcript);
       }
 
     } catch (err) {
+      console.error('[VoiceInput] Error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to transcribe audio';
       setState(prev => ({ ...prev, error: errorMessage, isProcessing: false }));
       onError?.(errorMessage);
@@ -369,6 +392,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       cleanup();
     }
   }, [cleanup, language, onError, onTranscript, isHallucination]);
+
+  // Keep processAudioRef updated with latest function
+  processAudioRef.current = processAudio;
 
   // Toggle recording
   const toggleRecording = useCallback(() => {
