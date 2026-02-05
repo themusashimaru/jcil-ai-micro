@@ -162,6 +162,14 @@ export function ChatClient() {
   >('idle');
   const [deepResearchLoading, setDeepResearchLoading] = useState(false);
   const [deepResearchEvents, setDeepResearchEvents] = useState<StrategyStreamEvent[]>([]);
+  // Quick Research Agent state - lightweight version of Deep Research (1/4 scale)
+  const [isQuickResearchMode, setIsQuickResearchMode] = useState(false);
+  const [quickResearchSessionId, setQuickResearchSessionId] = useState<string | null>(null);
+  const [quickResearchPhase, setQuickResearchPhase] = useState<
+    'idle' | 'intake' | 'executing' | 'complete' | 'error'
+  >('idle');
+  const [quickResearchLoading, setQuickResearchLoading] = useState(false);
+  const [_quickResearchEvents, setQuickResearchEvents] = useState<StrategyStreamEvent[]>([]);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -2100,6 +2108,272 @@ ${artifactSection}
     setIsStreaming(false);
   };
 
+  // ===========================================================================
+  // QUICK RESEARCH - Lightweight version of Deep Research (1/4 scale)
+  // Uses the strategy engine with 'quick-research' mode for fast, focused research
+  // ===========================================================================
+
+  /**
+   * Start Quick Research mode - streamlined intake for fast research
+   */
+  const startQuickResearch = async () => {
+    if (isQuickResearchMode || quickResearchLoading) {
+      return;
+    }
+
+    setQuickResearchLoading(true);
+    setIsStreaming(true);
+
+    // Add intro message to chat
+    const introMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 🔍 Quick Research Mode
+
+I'll deploy a focused research team to investigate your topic.
+
+**What you get:**
+- **10-15 intelligent scouts** (Claude Sonnet 4.5)
+- **All research tools:** Browser automation, web search, PDF extraction, vision analysis
+- **Opus synthesis:** Claude Opus 4.5 compiles findings
+
+**Estimated: 1-2 min | $2-3**
+
+**What do you want me to research?**`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, introMessage]);
+
+    try {
+      // Start research session via strategy API with mode: 'quick-research'
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', mode: 'quick-research' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start research');
+      }
+
+      const sessionId = response.headers.get('X-Session-Id');
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server.');
+      }
+
+      setQuickResearchSessionId(sessionId);
+      setIsQuickResearchMode(true);
+      setQuickResearchPhase('intake');
+
+      log.debug('Quick Research mode activated', { sessionId });
+    } catch (error) {
+      console.error('[startQuickResearch] Error:', error);
+      log.error('Failed to start quick research:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Research Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsQuickResearchMode(false);
+      setQuickResearchPhase('idle');
+    } finally {
+      setIsStreaming(false);
+      setQuickResearchLoading(false);
+    }
+  };
+
+  /**
+   * Handle user input during quick research intake phase
+   */
+  const handleQuickResearchInput = async (input: string) => {
+    if (!quickResearchSessionId) {
+      return;
+    }
+
+    // Check for cancel command
+    if (input.toLowerCase().trim() === 'cancel') {
+      await cancelQuickResearch();
+      return;
+    }
+
+    setIsStreaming(true);
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'input',
+          sessionId: quickResearchSessionId,
+          input,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to process input');
+      }
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: data.response || 'No response received',
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (data.isComplete) {
+        await executeQuickResearch();
+      }
+    } catch (error) {
+      log.error('Quick research input error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Execute the quick research after intake is complete
+   */
+  const executeQuickResearch = async () => {
+    if (!quickResearchSessionId) return;
+
+    setQuickResearchPhase('executing');
+    setIsStreaming(true);
+    setQuickResearchEvents([]);
+
+    const execMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## 🚀 Deploying Research Scouts...
+
+Research is now underway. This will take 1-2 minutes.
+
+I'll update you as scouts report back with findings.`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, execMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          sessionId: quickResearchSessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to execute research');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('No response body');
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6)) as StrategyStreamEvent;
+              setQuickResearchEvents((prev) => [...prev, event]);
+
+              // Handle completion
+              if (event.type === 'strategy_complete' && event.data?.result) {
+                displayResearchResult(event.data.result, event.data.artifacts);
+                setQuickResearchPhase('complete');
+                setIsQuickResearchMode(false);
+              }
+
+              // Handle errors
+              if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.error('Quick research execution error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Research Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setQuickResearchPhase('error');
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Cancel quick research session
+   */
+  const cancelQuickResearch = async () => {
+    if (!quickResearchSessionId) return;
+
+    try {
+      await fetch(`/api/strategy?sessionId=${quickResearchSessionId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      log.warn('Cancel request failed:', { error: e });
+    }
+
+    const cancelMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '✋ **Research cancelled.** You can start a new research session anytime.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+
+    setIsQuickResearchMode(false);
+    setQuickResearchPhase('idle');
+    setQuickResearchSessionId(null);
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -2172,12 +2446,19 @@ ${artifactSection}
       return;
     }
 
+    // QUICK RESEARCH MODE: If we're in quick research intake, send to strategy API
+    if (isQuickResearchMode && quickResearchPhase === 'intake' && quickResearchSessionId) {
+      await handleQuickResearchInput(content);
+      return;
+    }
+
     // STEERING: If we're in execution phase, send as context/steering command
     if (
       (isStrategyMode && strategyPhase === 'executing' && strategySessionId) ||
-      (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId)
+      (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId) ||
+      (isQuickResearchMode && quickResearchPhase === 'executing' && quickResearchSessionId)
     ) {
-      const sessionId = strategySessionId || deepResearchSessionId;
+      const sessionId = strategySessionId || deepResearchSessionId || quickResearchSessionId;
       if (sessionId) {
         // Show user message in chat
         const userMsg: Message = {
@@ -3849,10 +4130,17 @@ ${artifactSection}
               initialText={quickPromptText}
               isAdmin={isAdmin}
               activeAgent={
-                isStrategyMode ? 'strategy' : isDeepResearchMode ? 'deep-research' : null
+                isStrategyMode
+                  ? 'strategy'
+                  : isDeepResearchMode
+                    ? 'deep-research'
+                    : isQuickResearchMode
+                      ? 'quick-research'
+                      : null
               }
               strategyLoading={strategyLoading}
               deepResearchLoading={deepResearchLoading}
+              quickResearchLoading={quickResearchLoading}
               onAgentSelect={async (agent) => {
                 // Helper to cancel strategy session on server
                 const cancelStrategySession = async () => {
@@ -3868,7 +4156,7 @@ ${artifactSection}
                 };
 
                 // Helper to cancel deep research session on server
-                const cancelResearchSession = async () => {
+                const cancelDeepResearchSession = async () => {
                   if (deepResearchSessionId) {
                     try {
                       await fetch(`/api/strategy?sessionId=${deepResearchSessionId}`, {
@@ -3880,6 +4168,41 @@ ${artifactSection}
                   }
                 };
 
+                // Helper to cancel quick research session on server
+                const cancelQuickResearchSession = async () => {
+                  if (quickResearchSessionId) {
+                    try {
+                      await fetch(`/api/strategy?sessionId=${quickResearchSessionId}`, {
+                        method: 'DELETE',
+                      });
+                    } catch {
+                      // Silently fail
+                    }
+                  }
+                };
+
+                // Helper to exit all other agent modes
+                const exitAllAgentModes = async () => {
+                  if (isStrategyMode) {
+                    await cancelStrategySession();
+                    setIsStrategyMode(false);
+                    setStrategyPhase('idle');
+                    setStrategySessionId(null);
+                  }
+                  if (isDeepResearchMode) {
+                    await cancelDeepResearchSession();
+                    setIsDeepResearchMode(false);
+                    setDeepResearchPhase('idle');
+                    setDeepResearchSessionId(null);
+                  }
+                  if (isQuickResearchMode) {
+                    await cancelQuickResearchSession();
+                    setIsQuickResearchMode(false);
+                    setQuickResearchPhase('idle');
+                    setQuickResearchSessionId(null);
+                  }
+                };
+
                 if (agent === 'strategy') {
                   if (isStrategyMode) {
                     // Toggle off - cancel strategy mode
@@ -3888,50 +4211,37 @@ ${artifactSection}
                     setStrategyPhase('idle');
                     setStrategySessionId(null);
                   } else {
-                    // Exit deep research if active
-                    if (isDeepResearchMode) {
-                      await cancelResearchSession();
-                      setIsDeepResearchMode(false);
-                      setDeepResearchPhase('idle');
-                      setDeepResearchSessionId(null);
-                    }
-                    // Start strategy
+                    // Exit other modes and start strategy
+                    await exitAllAgentModes();
                     await startDeepStrategy();
                   }
                 } else if (agent === 'deep-research') {
                   if (isDeepResearchMode) {
                     // Toggle off - cancel deep research mode
-                    await cancelResearchSession();
+                    await cancelDeepResearchSession();
                     setIsDeepResearchMode(false);
                     setDeepResearchPhase('idle');
                     setDeepResearchSessionId(null);
                   } else {
-                    // Exit strategy if active
-                    if (isStrategyMode) {
-                      await cancelStrategySession();
-                      setIsStrategyMode(false);
-                      setStrategyPhase('idle');
-                      setStrategySessionId(null);
-                    }
-                    // Start deep research
+                    // Exit other modes and start deep research
+                    await exitAllAgentModes();
                     await startDeepResearch();
                   }
+                } else if (agent === 'quick-research') {
+                  if (isQuickResearchMode) {
+                    // Toggle off - cancel quick research mode
+                    await cancelQuickResearchSession();
+                    setIsQuickResearchMode(false);
+                    setQuickResearchPhase('idle');
+                    setQuickResearchSessionId(null);
+                  } else {
+                    // Exit other modes and start quick research
+                    await exitAllAgentModes();
+                    await startQuickResearch();
+                  }
                 } else if (agent === 'research') {
-                  // If switching from strategy to research, exit strategy mode
-                  if (isStrategyMode) {
-                    await cancelStrategySession();
-                    setIsStrategyMode(false);
-                    setStrategyPhase('idle');
-                    setStrategySessionId(null);
-                  }
-                  // If switching from deep research to research, exit deep research
-                  if (isDeepResearchMode) {
-                    await cancelResearchSession();
-                    setIsDeepResearchMode(false);
-                    setDeepResearchPhase('idle');
-                    setDeepResearchSessionId(null);
-                  }
-                  // Research mode is handled internally by ChatComposer's toolMode
+                  // Legacy: exit all modes (old research mode is replaced by quick-research)
+                  await exitAllAgentModes();
                 }
               }}
               openCreateImage={openCreateImage}

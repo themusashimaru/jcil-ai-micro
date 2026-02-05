@@ -15,7 +15,7 @@
  * Agent mode - determines which prompt set the engine uses.
  * The engine is mode-agnostic; only the prompts change.
  */
-export type AgentMode = 'strategy' | 'research';
+export type AgentMode = 'strategy' | 'research' | 'quick-research';
 
 export type ModelTier = 'opus' | 'sonnet' | 'haiku';
 
@@ -535,6 +535,10 @@ export interface StrategyStreamEvent {
     maxPages?: number;
     urlCount?: number;
     killReason?: KillReason;
+    // Completion event data
+    result?: StrategyOutput;
+    artifacts?: Artifact[];
+    output?: StrategyOutput;
   };
 }
 

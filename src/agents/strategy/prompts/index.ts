@@ -14,10 +14,12 @@
 export type { PromptSet } from './types';
 export { STRATEGY_PROMPTS } from './strategy';
 export { RESEARCH_PROMPTS } from './research';
+export { QUICK_RESEARCH_PROMPTS } from './quick-research';
 
 import type { PromptSet } from './types';
 import { STRATEGY_PROMPTS } from './strategy';
 import { RESEARCH_PROMPTS } from './research';
+import { QUICK_RESEARCH_PROMPTS } from './quick-research';
 
 /**
  * Registry of all available prompt sets.
@@ -26,6 +28,7 @@ import { RESEARCH_PROMPTS } from './research';
 const PROMPT_REGISTRY: Record<string, PromptSet> = {
   strategy: STRATEGY_PROMPTS,
   research: RESEARCH_PROMPTS,
+  'quick-research': QUICK_RESEARCH_PROMPTS,
 };
 
 /**
