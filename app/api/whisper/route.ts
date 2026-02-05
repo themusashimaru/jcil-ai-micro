@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Audio file too large (max 25MB)' }, { status: 400 });
     }
 
-    // Call OpenAI Whisper API
+    // Call OpenAI Whisper API with verbose_json to get no_speech_prob
     console.log('[Whisper API] Calling OpenAI Whisper...');
     const openai = getOpenAI();
     const transcription = await openai.audio.transcriptions.create({
@@ -69,13 +69,36 @@ export async function POST(request: NextRequest) {
       model: 'whisper-1',
       language: language || 'en',
       prompt: prompt || undefined,
-      response_format: 'json',
+      response_format: 'verbose_json',
     });
 
-    console.log('[Whisper API] Transcription result:', transcription.text);
+    console.log('[Whisper API] Transcription result:', {
+      text: transcription.text,
+      segments: transcription.segments?.length || 0,
+    });
+
+    // Check if Whisper detected mostly silence
+    // If any segment has high no_speech_prob, the transcription is likely a hallucination
+    const segments = transcription.segments || [];
+    const avgNoSpeechProb = segments.length > 0
+      ? segments.reduce((sum, seg) => sum + (seg.no_speech_prob || 0), 0) / segments.length
+      : 0;
+
+    console.log('[Whisper API] Average no_speech_prob:', avgNoSpeechProb);
+
+    // If average no_speech_prob > 0.5, Whisper thinks it's mostly silence
+    if (avgNoSpeechProb > 0.5) {
+      console.log('[Whisper API] High no_speech_prob, likely hallucination');
+      return NextResponse.json({
+        text: '',
+        filtered: true,
+        reason: 'no_speech_detected',
+      });
+    }
 
     return NextResponse.json({
       text: transcription.text,
+      no_speech_prob: avgNoSpeechProb,
     });
 
   } catch (error) {

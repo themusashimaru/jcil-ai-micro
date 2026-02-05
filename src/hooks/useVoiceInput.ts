@@ -120,8 +120,15 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         graceperiodPassedRef.current = true;
       }
 
-      // Detect speech with lower threshold
+      // Detect speech - log levels periodically to debug
+      if (normalizedLevel > 10) {
+        console.log('[VoiceInput] Audio level:', normalizedLevel, 'threshold:', AUDIO_THRESHOLD);
+      }
+
       if (normalizedLevel > AUDIO_THRESHOLD) {
+        if (!hasDetectedSpeechRef.current) {
+          console.log('[VoiceInput] Speech detected! Level:', normalizedLevel);
+        }
         hasDetectedSpeechRef.current = true;
 
         // Reset silence timer when speech is detected
@@ -274,7 +281,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
   // Check for hallucinations (non-Latin characters, known phrases)
   const isHallucination = useCallback((text: string): boolean => {
-    const trimmed = text.trim();
+    const trimmed = text.trim().toLowerCase();
 
     // Empty or too short
     if (!trimmed || trimmed.length < 3) return true;
@@ -287,9 +294,10 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     const nonLatinPattern = /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
     if (nonLatinPattern.test(trimmed)) return true;
 
-    // Common Whisper hallucination phrases
+    // Common Whisper hallucination phrases - these appear when there's silence/noise
     const hallucinations = [
-      /^thanks?(\s+for\s+watching)?\.?$/i,
+      // Short filler words
+      /^thanks?\.?$/i,
       /^thank\s+you\.?$/i,
       /^bye\.?$/i,
       /^goodbye\.?$/i,
@@ -298,10 +306,48 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       /^hi\.?$/i,
       /^okay\.?$/i,
       /^ok\.?$/i,
+      /^yes\.?$/i,
+      /^no\.?$/i,
       /^um+\.?$/i,
       /^uh+\.?$/i,
-      /^\[.*\]$/,  // [Music], [Applause], etc.
+      /^ah+\.?$/i,
+      /^oh+\.?$/i,
+      /^hmm+\.?$/i,
+      /^huh\.?$/i,
+      /^wow\.?$/i,
+      /^well\.?$/i,
+      /^so\.?$/i,
+      // Subtitle/caption artifacts
+      /^\[.*\]$/,
       /^♪.*♪$/,
+      /^music$/i,
+      /^applause$/i,
+      /^laughter$/i,
+      /^\(.*\)$/,
+      // Common hallucination phrases (Whisper generates these from silence)
+      /thanks?\s+for\s+watching/i,
+      /thanks?\s+for\s+listening/i,
+      /subscribe/i,
+      /like\s+and\s+subscribe/i,
+      /see\s+you\s+(next|in\s+the)/i,
+      /good\s+(girl|boy|job|work)/i,
+      /that'?s?\s+a\s+good/i,
+      /please\s+subscribe/i,
+      /don'?t\s+forget/i,
+      /leave\s+a\s+(like|comment)/i,
+      /hit\s+the\s+(bell|like)/i,
+      /i'?ll\s+see\s+you/i,
+      /until\s+next\s+time/i,
+      /take\s+care/i,
+      /have\s+a\s+(good|great|nice)/i,
+      /silence/i,
+      /inaudible/i,
+      /indistinct/i,
+      // Single repeated words/sounds
+      /^(.)\1{2,}$/,  // aaa, ooo, etc.
+      /^(la\s*)+$/i,
+      /^(na\s*)+$/i,
+      /^(da\s*)+$/i,
     ];
 
     return hallucinations.some(pattern => pattern.test(trimmed));
@@ -325,14 +371,24 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       return;
     }
 
-    // Skip the speech detection check for now - Whisper can handle silence
-    // The hallucination filter will catch any garbage output
-    // if (!hasDetectedSpeechRef.current) {
-    //   console.log('[VoiceInput] No speech detected, skipping transcription');
-    //   setState(prev => ({ ...prev, isProcessing: false }));
-    //   cleanup();
-    //   return;
-    // }
+    // Check audio blob size - very small blobs are likely silence
+    // WebM audio at ~100kbps = ~12.5KB/sec, so 2 seconds should be ~25KB minimum
+    const MIN_BLOB_SIZE = 10000; // 10KB minimum
+    if (audioBlob.size < MIN_BLOB_SIZE) {
+      console.log('[VoiceInput] Audio blob too small, likely silence:', audioBlob.size);
+      setState(prev => ({ ...prev, isProcessing: false }));
+      cleanup();
+      return;
+    }
+
+    // CRITICAL: Only send to Whisper if we actually detected speech
+    // This prevents hallucinations when the user doesn't speak
+    if (!hasDetectedSpeechRef.current) {
+      console.log('[VoiceInput] No speech detected during recording, skipping Whisper');
+      setState(prev => ({ ...prev, isProcessing: false }));
+      cleanup();
+      return;
+    }
 
     setState(prev => ({ ...prev, isProcessing: true }));
 
