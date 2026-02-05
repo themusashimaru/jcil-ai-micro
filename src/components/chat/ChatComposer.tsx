@@ -291,7 +291,6 @@ export function ChatComposer({
     isProcessing: isTranscribing,
     toggleRecording,
     isSupported: isVoiceSupported,
-    audioLevel,  // 0-100 for waveform visualization
   } = useVoiceInput({
     onTranscript: (text) => {
       // Append transcribed text to message
