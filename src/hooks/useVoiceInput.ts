@@ -120,8 +120,15 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         graceperiodPassedRef.current = true;
       }
 
-      // Detect speech with lower threshold
+      // Detect speech - log levels periodically to debug
+      if (normalizedLevel > 10) {
+        console.log('[VoiceInput] Audio level:', normalizedLevel, 'threshold:', AUDIO_THRESHOLD);
+      }
+
       if (normalizedLevel > AUDIO_THRESHOLD) {
+        if (!hasDetectedSpeechRef.current) {
+          console.log('[VoiceInput] Speech detected! Level:', normalizedLevel);
+        }
         hasDetectedSpeechRef.current = true;
 
         // Reset silence timer when speech is detected
@@ -374,14 +381,14 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       return;
     }
 
-    // Skip the speech detection check for now - Whisper can handle silence
-    // The hallucination filter will catch any garbage output
-    // if (!hasDetectedSpeechRef.current) {
-    //   console.log('[VoiceInput] No speech detected, skipping transcription');
-    //   setState(prev => ({ ...prev, isProcessing: false }));
-    //   cleanup();
-    //   return;
-    // }
+    // CRITICAL: Only send to Whisper if we actually detected speech
+    // This prevents hallucinations when the user doesn't speak
+    if (!hasDetectedSpeechRef.current) {
+      console.log('[VoiceInput] No speech detected during recording, skipping Whisper');
+      setState(prev => ({ ...prev, isProcessing: false }));
+      cleanup();
+      return;
+    }
 
     setState(prev => ({ ...prev, isProcessing: true }));
 
