@@ -51,11 +51,24 @@ async function getUser() {
 export async function GET() {
   try {
     // Check if Uber is configured
+    const clientId = process.env.UBER_CLIENT_ID;
+    const clientSecret = process.env.UBER_CLIENT_SECRET;
+
+    log.info('Uber config check', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      clientIdLength: clientId?.length,
+    });
+
     if (!isUberConfigured()) {
       return successResponse({
         configured: false,
         connected: false,
         message: 'Uber integration is not configured',
+        debug: {
+          hasClientId: !!clientId,
+          hasClientSecret: !!clientSecret,
+        },
       });
     }
 
