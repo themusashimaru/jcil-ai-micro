@@ -21,14 +21,39 @@ const HALLUCINATION_PATTERNS = [
   /^hmm+\.?$/i,
   /^\.+$/,
   /^\s*$/,
+  // Music/subtitle hallucinations
+  /^\[.*\]$/,
+  /^♪.*♪$/,
+  /^music$/i,
+  /^applause$/i,
+  /^laughter$/i,
 ];
+
+// Detect non-ASCII characters (Chinese, Korean, Japanese, Arabic, etc.)
+// These are almost always hallucinations when user expects English
+function hasNonLatinCharacters(text: string): boolean {
+  // Allow basic Latin, extended Latin (accents), numbers, punctuation, spaces
+  // Block CJK, Arabic, Hebrew, Thai, etc.
+  const nonLatinPattern = /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
+  return nonLatinPattern.test(text);
+}
 
 function isHallucination(text: string): boolean {
   const trimmed = text.trim();
+
+  // Empty or whitespace only
+  if (!trimmed) return true;
+
   // Too short (less than 3 chars or 2 words)
   if (trimmed.length < 3) return true;
   const words = trimmed.split(/\s+/).filter(w => w.length > 0);
-  if (words.length < 2) return true;
+  if (words.length < 2 && trimmed.length < 10) return true;
+
+  // Non-Latin characters (Chinese, Korean, etc.) - almost always hallucinations
+  if (hasNonLatinCharacters(trimmed)) {
+    log.debug('[hallucination] Filtered non-Latin text:', { text: trimmed });
+    return true;
+  }
 
   // Matches known hallucination patterns
   return HALLUCINATION_PATTERNS.some(pattern => pattern.test(trimmed));

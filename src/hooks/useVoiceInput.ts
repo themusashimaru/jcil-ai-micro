@@ -43,8 +43,10 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   } = options;
 
   // Grace period before silence detection kicks in (let user start speaking)
-  const SILENCE_GRACE_PERIOD = 2000;  // 2 seconds before silence detection activates
-  const AUDIO_THRESHOLD = 5;  // Lower threshold for detecting speech (was 10)
+  const SILENCE_GRACE_PERIOD = 3000;  // 3 seconds before silence detection activates (was 2)
+  const AUDIO_THRESHOLD = 3;  // Very low threshold for detecting any speech (was 5)
+  const MIN_RECORDING_DURATION = 1500;  // Minimum 1.5 second recording to avoid hallucinations
+  const SILENCE_DURATION_MS = 3000;  // 3 seconds of silence before auto-stop (more forgiving)
 
   const [state, setState] = useState<VoiceInputState>({
     isRecording: false,
@@ -128,10 +130,11 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       } else if (graceperiodPassedRef.current && hasDetectedSpeechRef.current) {
         // Only start silence timer after grace period AND after we've detected speech
         // This prevents premature stopping during pauses
+        // Use our more forgiving SILENCE_DURATION_MS instead of silenceTimeout
         if (!silenceTimerRef.current) {
           silenceTimerRef.current = setTimeout(() => {
             stopRecording();
-          }, silenceTimeout);
+          }, SILENCE_DURATION_MS);
         }
       }
 
@@ -142,7 +145,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
     checkLevel();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- stopRecording is stable, avoiding circular dependency
-  }, [silenceTimeout, state.isRecording, SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD]);
+  }, [state.isRecording, SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD, SILENCE_DURATION_MS]);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -262,8 +265,60 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     }
   }, []);
 
+  // Check for hallucinations (non-Latin characters, known phrases)
+  const isHallucination = useCallback((text: string): boolean => {
+    const trimmed = text.trim();
+
+    // Empty or too short
+    if (!trimmed || trimmed.length < 3) return true;
+
+    // Single word and short
+    const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+    if (words.length < 2 && trimmed.length < 10) return true;
+
+    // Non-Latin characters (Chinese, Korean, Japanese, Arabic, etc.)
+    const nonLatinPattern = /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
+    if (nonLatinPattern.test(trimmed)) return true;
+
+    // Common Whisper hallucination phrases
+    const hallucinations = [
+      /^thanks?(\s+for\s+watching)?\.?$/i,
+      /^thank\s+you\.?$/i,
+      /^bye\.?$/i,
+      /^goodbye\.?$/i,
+      /^hello\.?$/i,
+      /^hey\.?$/i,
+      /^hi\.?$/i,
+      /^okay\.?$/i,
+      /^ok\.?$/i,
+      /^um+\.?$/i,
+      /^uh+\.?$/i,
+      /^\[.*\]$/,  // [Music], [Applause], etc.
+      /^♪.*♪$/,
+    ];
+
+    return hallucinations.some(pattern => pattern.test(trimmed));
+  }, []);
+
   // Process audio with Whisper API
   const processAudio = useCallback(async (audioBlob: Blob) => {
+    // Check minimum duration - skip very short recordings
+    const recordingDuration = Date.now() - startTimeRef.current;
+    if (recordingDuration < MIN_RECORDING_DURATION) {
+      console.log('[VoiceInput] Recording too short, skipping transcription');
+      setState(prev => ({ ...prev, isProcessing: false }));
+      cleanup();
+      return;
+    }
+
+    // Check if any speech was detected
+    if (!hasDetectedSpeechRef.current) {
+      console.log('[VoiceInput] No speech detected, skipping transcription');
+      setState(prev => ({ ...prev, isProcessing: false }));
+      cleanup();
+      return;
+    }
+
     setState(prev => ({ ...prev, isProcessing: true }));
 
     try {
@@ -292,6 +347,14 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       const result = await response.json();
       const transcript = result.text?.trim() || '';
 
+      // Filter out hallucinations
+      if (isHallucination(transcript)) {
+        console.log('[VoiceInput] Filtered hallucination:', transcript);
+        setState(prev => ({ ...prev, transcript: '', isProcessing: false }));
+        cleanup();
+        return;
+      }
+
       setState(prev => ({ ...prev, transcript, isProcessing: false }));
 
       if (transcript) {
@@ -305,7 +368,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     } finally {
       cleanup();
     }
-  }, [cleanup, language, onError, onTranscript]);
+  }, [cleanup, language, onError, onTranscript, isHallucination]);
 
   // Toggle recording
   const toggleRecording = useCallback(() => {
