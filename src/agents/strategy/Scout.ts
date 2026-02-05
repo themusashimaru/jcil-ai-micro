@@ -1,9 +1,10 @@
 /**
  * SCOUT FRAMEWORK - Research Execution
  *
- * Scouts are the workers that execute research using Haiku 4.5.
- * They can use multiple tools: Brave Search, browser visits, code execution, screenshots.
- * Tool use is powered by Claude's native tool calling capability.
+ * Scouts are strategic research agents using Sonnet 4.5.
+ * They intelligently select from powerful tools: Brave Search, Puppeteer browser,
+ * E2B code execution, Vision analysis, and more.
+ * Sonnet enables surgical, high-yield research with fewer iterations.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -17,7 +18,7 @@ import type {
   StrategyStreamCallback,
   ScoutToolType,
 } from './types';
-import { CLAUDE_HAIKU_45, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
+import { CLAUDE_SONNET_45, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
 import { extractJSON } from './utils';
 import { braveWebSearch, type BraveSearchResponse, type BraveWebResult } from '@/lib/brave';
 import { logger } from '@/lib/logger';
@@ -61,7 +62,7 @@ export class Scout {
   private onStream?: StrategyStreamCallback;
   private model: string;
   private costPerQuery = 0.005; // Brave Search cost
-  private maxToolIterations = 10; // Max tool call rounds per scout
+  private maxToolIterations = 5; // Max tool iterations - Sonnet is smarter, needs fewer
   private scoutPrompt: string;
   // Separate token tracking for accurate cost calculation
   private inputTokens = 0;
@@ -78,8 +79,8 @@ export class Scout {
     this.onStream = onStream;
     this.scoutPrompt = scoutPrompt || SCOUT_PROMPT;
 
-    // Select model based on tier
-    this.model = MODEL_CONFIGS[blueprint.modelTier]?.id || CLAUDE_HAIKU_45;
+    // Select model based on tier - defaults to Sonnet for strategic research
+    this.model = MODEL_CONFIGS[blueprint.modelTier]?.id || CLAUDE_SONNET_45;
 
     this.state = {
       id: blueprint.id,

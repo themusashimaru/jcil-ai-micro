@@ -29,8 +29,11 @@ export interface PromptSet {
   /** System prompt for ProjectManagers (Sonnet 4.5) */
   projectManager: string;
 
-  /** System prompt for Scouts (Haiku 4.5) */
+  /** System prompt for Scouts (Sonnet 4.5) - intelligent, surgical research */
   scout: string;
+
+  /** System prompt for pre-QC Synthesizer (Opus 4.5) - organizes findings */
+  synthesizer: string;
 
   /** System prompt for final synthesis (Opus 4.5) */
   synthesis: string;
