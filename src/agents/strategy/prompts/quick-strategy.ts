@@ -87,7 +87,7 @@ I'll deploy a focused team to help you make this decision.
 **What you get:**
 - **10-15 intelligent scouts** (Claude Sonnet 4.5)
 - **All research tools:** Browser automation, web search, data analysis
-- **Opus synthesis:** Claude Opus 4.5 analyzes findings and recommends
+- **Opus synthesis:** Claude Opus 4.6 analyzes findings and recommends
 - **Fast turnaround:** 1-2 minutes
 
 **What decision do you need help with?**`,

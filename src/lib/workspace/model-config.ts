@@ -45,8 +45,8 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     recommended: true,
   },
   {
-    id: 'claude-opus-4-5-20250514',
-    name: 'Claude Opus 4.5',
+    id: 'claude-opus-4-6-20260205',
+    name: 'Claude Opus 4.6',
     type: 'opus',
     description: 'Most capable model. Best for complex reasoning and difficult problems.',
     contextWindow: 200000,

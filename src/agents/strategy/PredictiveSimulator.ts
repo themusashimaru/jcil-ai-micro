@@ -20,7 +20,7 @@ import type {
   SynthesizedProblem,
   StrategyRecommendation,
 } from './types';
-import { CLAUDE_OPUS_45, CLAUDE_SONNET_45 } from './constants';
+import { CLAUDE_OPUS_46, CLAUDE_SONNET_45 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('PredictiveSimulator');
@@ -286,7 +286,7 @@ export class PredictiveSimulator {
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_OPUS_45,
+        model: CLAUDE_OPUS_46,
         max_tokens: 8192,
         temperature: 0.7,
         system: SIMULATION_SYSTEM_PROMPT,

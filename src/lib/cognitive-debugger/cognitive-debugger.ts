@@ -422,7 +422,7 @@ export class CognitiveDebugger extends EventEmitter {
     suggestions: string[];
   }> {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-6-20260205',
       max_tokens: 4000,
       messages: [
         {
@@ -522,7 +522,7 @@ Be thorough but practical. Focus on what matters.`,
       .join('\n');
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5-20251101',
+      model: 'claude-opus-4-6-20260205',
       max_tokens: 4000,
       messages: [
         {

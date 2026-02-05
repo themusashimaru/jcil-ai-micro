@@ -23,7 +23,7 @@ import type {
   StrategyStreamCallback,
   SynthesizedProblem,
 } from './types';
-import { CLAUDE_OPUS_45, CLAUDE_SONNET_45 } from './constants';
+import { CLAUDE_OPUS_46, CLAUDE_SONNET_45 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('AdversarialVerifier');
@@ -259,7 +259,7 @@ export class AdversarialVerifier {
   private client: Anthropic;
   private onStream?: StrategyStreamCallback;
   private verificationHistory: AdversarialResult[] = [];
-  private opusModel = CLAUDE_OPUS_45;
+  private opusModel = CLAUDE_OPUS_46;
   private sonnetModel = CLAUDE_SONNET_45;
 
   constructor(client: Anthropic, onStream?: StrategyStreamCallback) {

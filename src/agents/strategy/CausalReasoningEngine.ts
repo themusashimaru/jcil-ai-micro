@@ -17,7 +17,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { Finding, StrategyStreamCallback, SynthesizedProblem } from './types';
-import { CLAUDE_OPUS_45, CLAUDE_SONNET_45 } from './constants';
+import { CLAUDE_OPUS_46, CLAUDE_SONNET_45 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('CausalReasoningEngine');
@@ -302,7 +302,7 @@ export class CausalReasoningEngine {
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_OPUS_45,
+        model: CLAUDE_OPUS_46,
         max_tokens: 8192,
         temperature: 0.5,
         system: CAUSAL_ANALYSIS_PROMPT,

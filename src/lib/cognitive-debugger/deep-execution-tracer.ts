@@ -521,7 +521,7 @@ Line X: [operation] → [result]
 
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-5-20251101',
+        model: 'claude-opus-4-6-20260205',
         max_tokens: 3000,
         messages: [{ role: 'user', content: prompt }],
       });

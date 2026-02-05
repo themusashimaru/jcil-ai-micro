@@ -174,7 +174,7 @@ async function generateComponents(
   };
 
   const response = await anthropic.messages.create({
-    model: 'claude-opus-4-5-20251101',
+    model: 'claude-opus-4-6-20260205',
     max_tokens: 8192,
     messages: [
       {

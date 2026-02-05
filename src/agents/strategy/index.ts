@@ -4,7 +4,7 @@
  * The most advanced self-replicating AI agent ever built.
  *
  * Uses:
- * - Opus 4.5: Master Architect, Quality Control, Final Synthesis
+ * - Opus 4.6: Master Architect, Quality Control, Final Synthesis
  * - Sonnet 4.5: Project Managers (coordination)
  * - Haiku 4.5: Scout Army (research execution)
  *
@@ -134,7 +134,7 @@ export type {
 
 // Constants
 export {
-  CLAUDE_OPUS_45,
+  CLAUDE_OPUS_46,
   CLAUDE_SONNET_45,
   CLAUDE_HAIKU_45,
   MODEL_CONFIGS,

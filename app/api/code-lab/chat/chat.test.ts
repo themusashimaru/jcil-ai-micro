@@ -310,14 +310,14 @@ describe('Search Detection', () => {
 });
 
 describe('Model Selection', () => {
-  it('should default to Opus 4.5', () => {
-    const defaultModel = 'claude-opus-4-5-20251101';
+  it('should default to Opus 4.6', () => {
+    const defaultModel = 'claude-opus-4-6-20260205';
     expect(defaultModel).toContain('opus');
   });
 
   it('should accept valid model IDs', () => {
     const validModels = [
-      'claude-opus-4-5-20251101',
+      'claude-opus-4-6-20260205',
       'claude-sonnet-4-5-20250929',
       'claude-haiku-4-5-20250929',
     ];
@@ -340,7 +340,7 @@ describe('Extended Thinking', () => {
   });
 
   it('should only enable for supported models', () => {
-    const supportedModels = ['claude-sonnet-4-5-20250929', 'claude-opus-4-5-20251101'];
+    const supportedModels = ['claude-sonnet-4-5-20250929', 'claude-opus-4-6-20260205'];
     const unsupportedModels = ['claude-haiku-4-5-20250929'];
 
     for (const model of supportedModels) {

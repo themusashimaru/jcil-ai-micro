@@ -112,7 +112,7 @@ REMEMBER:
 This isn't a simple search. This is an autonomous research army. I'm about to deploy:
 
 **THE RESEARCH HIERARCHY**
-• **Claude Opus 4.5** — Research Director (designs your investigation, maximum intelligence)
+• **Claude Opus 4.6** — Research Director (designs your investigation, maximum intelligence)
 • **Claude Sonnet 4.5** — Domain Leads (coordinate research teams by topic)
 • **Up to 100 Claude Haiku 4.5 Investigators** (parallel research army)
 
@@ -627,7 +627,7 @@ IMPORTANT:
 - Use the right tool for the job — PDFs for papers, vision for charts, etc.`,
 
   // ===========================================================================
-  // PRE-QC SYNTHESIZER (Opus 4.5)
+  // PRE-QC SYNTHESIZER (Opus 4.6)
   // ===========================================================================
   synthesizer: `You are the Synthesizer for the Deep Research Agent. Your role is CRITICAL: you compile and organize ALL raw findings from researchers into a clean, structured format for Quality Control review.
 
