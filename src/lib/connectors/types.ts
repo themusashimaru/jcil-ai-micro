@@ -6,7 +6,7 @@
  * Start with GitHub, expand to Vercel, Supabase, etc.
  */
 
-export type ConnectorType = 'github' | 'vercel' | 'supabase' | 'resend' | 'spotify' | 'uber';
+export type ConnectorType = 'github' | 'vercel' | 'supabase' | 'resend' | 'spotify' | 'uber' | 'notion';
 
 export type ConnectorStatus = 'disconnected' | 'connected' | 'expired' | 'error';
 
@@ -57,6 +57,16 @@ export interface UberConnector extends Connector {
     firstName?: string;
     lastName?: string;
     email?: string;
+  };
+}
+
+export interface NotionConnector extends Connector {
+  type: 'notion';
+  metadata?: {
+    workspaceId?: string;
+    workspaceName?: string;
+    userName?: string;
+    userEmail?: string;
   };
 }
 
@@ -119,6 +129,12 @@ export const CONNECTOR_CONFIGS: Record<ConnectorType, ConnectorConfig> = {
     icon: '🚗',
     description: 'Get ride estimates and request rides',
     requiredScopes: ['profile', 'request', 'request_receipt'],
+  },
+  notion: {
+    type: 'notion',
+    displayName: 'Notion',
+    icon: '📝',
+    description: 'Create pages, manage databases, search workspace',
   },
 };
 
