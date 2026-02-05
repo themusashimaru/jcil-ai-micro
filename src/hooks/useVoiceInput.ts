@@ -70,6 +70,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const hasDetectedSpeechRef = useRef<boolean>(false);
   // Ref to hold processAudio function (avoids stale closure issues)
   const processAudioRef = useRef<((blob: Blob) => Promise<void>) | null>(null);
+  // Ref to track recording state (avoids stale closure in monitorAudioLevel)
+  const isRecordingRef = useRef<boolean>(false);
 
   // Cleanup function
   const cleanup = useCallback(() => {
@@ -98,13 +100,21 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
   // Monitor audio levels for visual feedback
   const monitorAudioLevel = useCallback(() => {
-    if (!analyserRef.current) return;
+    console.log('[VoiceInput] Starting audio level monitoring');
+
+    if (!analyserRef.current) {
+      console.error('[VoiceInput] No analyser available for monitoring');
+      return;
+    }
 
     const analyser = analyserRef.current;
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
     const checkLevel = () => {
-      if (!analyserRef.current) return;
+      if (!analyserRef.current) {
+        console.log('[VoiceInput] Analyser gone, stopping monitoring');
+        return;
+      }
 
       analyser.getByteFrequencyData(dataArray);
 
@@ -147,14 +157,15 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         }
       }
 
-      if (state.isRecording) {
+      // Use ref to check recording state (avoids stale closure)
+      if (isRecordingRef.current) {
         requestAnimationFrame(checkLevel);
       }
     };
 
     checkLevel();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- stopRecording is stable, avoiding circular dependency
-  }, [state.isRecording, SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD, SILENCE_DURATION_MS]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- using refs to avoid stale closures
+  }, [SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD, SILENCE_DURATION_MS]);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -222,7 +233,11 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       mediaRecorder.start(100);  // Collect data every 100ms
       startTimeRef.current = Date.now();
 
+      // Update both state and ref
+      isRecordingRef.current = true;
       setState(prev => ({ ...prev, isRecording: true, duration: 0 }));
+
+      console.log('[VoiceInput] Recording started');
 
       // Reset tracking refs for new recording
       graceperiodPassedRef.current = false;
@@ -258,6 +273,11 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
   // Stop recording
   const stopRecording = useCallback(() => {
+    console.log('[VoiceInput] Stopping recording...');
+
+    // Update ref immediately
+    isRecordingRef.current = false;
+
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
