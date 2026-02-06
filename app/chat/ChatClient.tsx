@@ -4880,19 +4880,44 @@ I'll deploy a focused team to research and write your content.
                   />
                 </svg>
               </button>
+
+              {/* Connectors Link - between hamburger and logo/+ button */}
+              <a
+                href="/settings?tab=connectors"
+                className="flex rounded-lg px-1.5 md:px-3 py-1 md:py-1.5 text-sm hover:bg-white/10 items-center gap-1 transition-colors"
+                title="Connect 150+ apps"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+                  NEW
+                </span>
+              </a>
+
               {/* Only show logo/site name when a chat is active */}
               {currentChatId &&
                 (theme === 'light' ? (
                   // Light mode: Use text instead of logo
-                  <h1 className="text-base md:text-xl font-normal">
+                  <h1 className="text-base md:text-xl font-normal hidden sm:block">
                     <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
                     <span style={{ color: 'var(--primary)' }}>ai</span>
                   </h1>
                 ) : headerLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={headerLogo} alt="JCIL.ai" className="h-8" />
+                  <img src={headerLogo} alt="JCIL.ai" className="h-8 hidden sm:block" />
                 ) : (
-                  <h1 className="text-base md:text-xl font-semibold">
+                  <h1 className="text-base md:text-xl font-semibold hidden sm:block">
                     <span className="text-white">JCIL</span>
                     <span className="text-blue-500">.ai</span>
                   </h1>
@@ -4916,33 +4941,6 @@ I'll deploy a focused team to research and write your content.
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
-
-            <div className="flex items-center gap-0.5">
-              {/* Connectors Link - visible on all screen sizes */}
-              <a
-                href="/settings?tab=connectors"
-                className="flex rounded-lg px-2 md:px-3 py-1.5 text-sm hover:bg-white/10 items-center gap-1 md:gap-1.5 transition-colors"
-                title="Connect 150+ apps"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Connectors</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
-                  NEW
-                </span>
-              </a>
-            </div>
 
             <div className="flex items-center gap-0.5">
               {/* Theme Toggle - Light/Dark Mode */}
