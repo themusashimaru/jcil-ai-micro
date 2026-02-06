@@ -210,6 +210,9 @@ export default function ComposioToolkitsSection() {
   // Get featured apps for showcase
   const featuredToolkits = toolkits.filter((t) => FEATURED_APP_IDS.includes(t.id.toUpperCase()));
 
+  // Get connected apps for "My Connected Apps" section
+  const connectedToolkits = toolkits.filter((t) => t.connected);
+
   // Filter toolkits for display (excluding featured when showing all)
   const displayToolkits =
     selectedCategory === 'popular'
@@ -222,6 +225,9 @@ export default function ComposioToolkitsSection() {
 
   // Show featured section only when not searching and no category selected
   const showFeatured = !search && !selectedCategory;
+
+  // Show connected apps section when user has connections and not searching
+  const showConnectedApps = connectedToolkits.length > 0 && !search;
 
   // Don't block rendering if not configured - still show the apps
 
@@ -279,6 +285,69 @@ export default function ComposioToolkitsSection() {
           <button onClick={() => setError(null)} className="ml-2 text-red-800 hover:underline">
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/* MY CONNECTED APPS - Shows at top when user has connections */}
+      {showConnectedApps && (
+        <div
+          className="mb-8 p-4 rounded-xl border-2"
+          style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h4
+              className="text-base font-semibold flex items-center gap-2"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <svg
+                className="w-5 h-5 text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              My Connected Apps
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500 text-white">
+                {connectedToolkits.length} Active
+              </span>
+            </h4>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {connectedToolkits.map((toolkit) => (
+              <div
+                key={toolkit.id}
+                className="p-3 rounded-lg border bg-white flex flex-col items-center text-center transition-all hover:shadow-md"
+                style={{ borderColor: '#22c55e' }}
+              >
+                <div className="w-10 h-10 mb-2">
+                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
+                </div>
+                <h5
+                  className="font-medium text-xs truncate w-full"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {toolkit.displayName}
+                </h5>
+                <button
+                  onClick={() => handleDisconnect(toolkit)}
+                  disabled={disconnecting === toolkit.id}
+                  className="mt-2 px-2 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                >
+                  {disconnecting === toolkit.id ? '...' : 'Disconnect'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+            These apps are connected to your AI assistant. Ask the AI to help you with these
+            services!
+          </p>
         </div>
       )}
 
