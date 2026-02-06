@@ -118,15 +118,30 @@ export async function waitForConnection(
   timeoutMs: number = 60000
 ): Promise<ConnectedAccount | null> {
   const client = getClient();
+  const startTime = Date.now();
+  const pollInterval = 1000; // 1 second
 
   try {
-    // Use the SDK's built-in wait method
-    const connection = await client.connectedAccounts.waitForConnection(connectionId, timeoutMs);
+    // Poll for connection status until connected or timeout
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        const account = await client.connectedAccounts.get(connectionId);
 
-    if (connection) {
-      return mapComposioAccount(connection);
+        if (account && (account.status === 'ACTIVE' || account.status === 'connected')) {
+          log.info('Connection became active', { connectionId, status: account.status });
+          return mapComposioAccount(account);
+        }
+
+        log.debug('Connection still pending', { connectionId, status: account?.status });
+      } catch (pollError) {
+        log.debug('Poll error (may be normal)', { connectionId, pollError });
+      }
+
+      // Wait before next poll
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
+    log.warn('Connection timeout', { connectionId, timeoutMs });
     return null;
   } catch (error) {
     log.error('Error waiting for connection', { connectionId, error });
