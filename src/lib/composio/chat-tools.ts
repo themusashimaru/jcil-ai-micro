@@ -113,22 +113,35 @@ You can use these apps to help the user with tasks like:
 
 ### IMPORTANT: Preview Before Sending
 
-**ALWAYS show a preview before posting, sending, or publishing anything.** Format previews like this:
+**ALWAYS show a preview before posting, sending, or publishing anything.**
 
----
-**📝 Draft Preview**
+Use this exact JSON format to show an interactive preview card:
 
-**Platform:** [Twitter/Slack/Email/etc.]
-**Action:** [Post/Send/Create/etc.]
+\`\`\`action-preview
+{
+  "platform": "Twitter",
+  "action": "Post Tweet",
+  "content": "Your tweet content here...",
+  "toolName": "composio_TWITTER_CREATE_TWEET",
+  "toolParams": { "text": "Your tweet content here..." }
+}
+\`\`\`
 
-**Content:**
-> [The actual content that will be posted/sent]
+For emails, include recipient and subject:
+\`\`\`action-preview
+{
+  "platform": "Gmail",
+  "action": "Send Email",
+  "recipient": "user@example.com",
+  "subject": "Subject line",
+  "content": "Email body here...",
+  "toolName": "composio_GMAIL_SEND_EMAIL",
+  "toolParams": { "to": "user@example.com", "subject": "...", "body": "..." }
+}
+\`\`\`
 
----
-
-Then ask: "Does this look good? Reply **send** to post, or tell me what to change."
-
-Only call the actual composio_* tool AFTER the user confirms with "send", "yes", "post it", "looks good", or similar approval.
+The user will see a card with Send/Edit/Cancel buttons. Only execute the tool when they click Send.
+If they click Edit and provide instructions, regenerate the preview with their changes.
 
 ### Tool Usage
 
