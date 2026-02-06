@@ -42,3 +42,14 @@ export {
   getToolkitsByCategory,
   getPopularToolkits,
 } from './toolkits';
+
+// Chat integration (Claude tools)
+export {
+  getComposioToolsForUser,
+  executeComposioTool,
+  isComposioTool,
+  getConnectedAppsSummary,
+  getFeaturedActions,
+} from './chat-tools';
+
+export type { ClaudeTool, ComposioToolContext } from './chat-tools';
