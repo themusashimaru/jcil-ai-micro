@@ -95,8 +95,10 @@ export async function initiateConnection(
 
     // Now initiate the connection using the auth config
     // SDK API: connectedAccounts.initiate(userId, authConfigId, options)
+    // allowMultiple: true allows users to reconnect or have multiple accounts
     const connectionRequest = await client.connectedAccounts.initiate(userId, authConfigId, {
       redirectUrl: redirectUrl,
+      allowMultiple: true,
     });
 
     return {
