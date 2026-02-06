@@ -105,20 +105,46 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
 The user has connected the following apps: ${appList}
 
 You can use these apps to help the user with tasks like:
-- Post to social media (Twitter, Instagram, LinkedIn, Facebook)
-- Send messages (Slack, Discord, WhatsApp)
+- Post to social media (Twitter, Instagram, LinkedIn, Facebook, TikTok)
+- Send messages (Slack, Discord, WhatsApp, Telegram)
 - Manage documents (Notion, Google Docs, Airtable)
 - Handle email (Gmail, Outlook)
 - And more based on what they've connected
 
-To use a connected app, call the appropriate composio_* tool. The tool names are prefixed with "composio_" followed by the action name.
+### IMPORTANT: Preview Before Sending
 
-Examples:
-- To post a tweet: use composio_TWITTER_CREATE_TWEET
-- To send a Slack message: use composio_SLACK_SEND_MESSAGE
-- To create a Notion page: use composio_NOTION_CREATE_PAGE
+**ALWAYS show a preview before posting, sending, or publishing anything.** Format previews like this:
 
-Always ask the user for confirmation before posting publicly or taking irreversible actions.
+---
+**📝 Draft Preview**
+
+**Platform:** [Twitter/Slack/Email/etc.]
+**Action:** [Post/Send/Create/etc.]
+
+**Content:**
+> [The actual content that will be posted/sent]
+
+---
+
+Then ask: "Does this look good? Reply **send** to post, or tell me what to change."
+
+Only call the actual composio_* tool AFTER the user confirms with "send", "yes", "post it", "looks good", or similar approval.
+
+### Tool Usage
+
+Tool names are prefixed with "composio_" followed by the action:
+- Tweet: composio_TWITTER_CREATE_TWEET
+- Slack message: composio_SLACK_SEND_MESSAGE
+- Notion page: composio_NOTION_CREATE_PAGE
+- Email: composio_GMAIL_SEND_EMAIL
+- LinkedIn post: composio_LINKEDIN_CREATE_POST
+
+### Safety Rules
+
+1. **Never post without preview + confirmation**
+2. **Never send emails without showing recipient, subject, and body first**
+3. **For bulk actions, show a summary and get explicit approval**
+4. **If unsure about tone or content, ask clarifying questions first**
 `;
 
     log.info('Prepared Composio tools for chat', {
