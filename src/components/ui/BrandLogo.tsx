@@ -3,119 +3,111 @@
 /**
  * BRAND LOGO COMPONENT
  *
- * Displays official brand logos for app integrations.
+ * Displays official brand logos for app integrations using Simple Icons CDN.
  * Falls back to styled initials if logo not available.
  */
 
 /* eslint-disable @next/next/no-img-element */
 import { useState } from 'react';
 
-// Brand logo URLs (using official sources and CDNs)
-const BRAND_LOGOS: Record<string, string> = {
+// Simple Icons CDN mapping - slug names for the CDN
+// Format: https://cdn.simpleicons.org/{slug}/{color}
+const SIMPLE_ICONS_SLUGS: Record<string, string> = {
   // Communication
-  GMAIL: 'https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png',
-  SLACK: 'https://a.slack-edge.com/80588/marketing/img/icons/icon_slack_hash_colored.png',
-  DISCORD:
-    'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a69f118df70ad7828d4_icon_clyde_blurple_RGB.svg',
-  MICROSOFT_TEAMS:
-    'https://upload.wikimedia.org/wikipedia/commons/c/c9/Microsoft_Office_Teams_%282018%E2%80%93present%29.svg',
-  WHATSAPP: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg',
-  TELEGRAM: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg',
-  ZOOM: 'https://st1.zoom.us/zoom.ico',
-  TWILIO: 'https://www.twilio.com/assets/icons/twilio-icon-512.png',
-  INTERCOM:
-    'https://static.intercomassets.com/assets/default-avatars/fin/128-6a5eabbb9e3486392f0ed21c4bf18232b0a4160980eb653c0823e372eaeb1452.png',
-  MICROSOFT_OUTLOOK:
-    'https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg',
-  LOOM: 'https://cdn.loom.com/assets/favicons-loom/favicon.svg',
+  GMAIL: 'gmail',
+  SLACK: 'slack',
+  DISCORD: 'discord',
+  MICROSOFT_TEAMS: 'microsoftteams',
+  WHATSAPP: 'whatsapp',
+  TELEGRAM: 'telegram',
+  ZOOM: 'zoom',
+  TWILIO: 'twilio',
+  INTERCOM: 'intercom',
+  MICROSOFT_OUTLOOK: 'microsoftoutlook',
+  LOOM: 'loom',
 
   // Productivity
-  NOTION: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png',
-  GOOGLE_DOCS: 'https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico',
-  GOOGLE_SHEETS: 'https://ssl.gstatic.com/docs/spreadsheets/images/favicon_jfk2.png',
-  AIRTABLE: 'https://www.airtable.com/images/favicon/baymax/apple-touch-icon.png',
-  TODOIST: 'https://d3ptyyxy2at9ui.cloudfront.net/assets/images/todoist-logo.svg',
-  ASANA: 'https://luna1.co/eb0187.png',
-  TRELLO: 'https://d2k1ftgv7pobq7.cloudfront.net/images/favicon.png',
-  MONDAY:
-    'https://dapulse-res.cloudinary.com/image/upload/f_auto,q_auto/remote_mondaycom_static/img/monday-logo-x2.png',
-  CLICKUP: 'https://clickup.com/landing/images/for-se/clickup-symbol_color.svg',
-  EVERNOTE: 'https://evernote.com/img/favicon.ico',
-  CONFLUENCE: 'https://wac-cdn.atlassian.com/assets/img/favicons/confluence/favicon-32x32.png',
-  MIRO: 'https://miro.com/favicon.ico',
-  FIGMA: 'https://static.figma.com/app/icon/1/favicon.svg',
+  NOTION: 'notion',
+  GOOGLE_DOCS: 'googledocs',
+  GOOGLE_SHEETS: 'googlesheets',
+  AIRTABLE: 'airtable',
+  TODOIST: 'todoist',
+  ASANA: 'asana',
+  TRELLO: 'trello',
+  MONDAY: 'monday',
+  CLICKUP: 'clickup',
+  EVERNOTE: 'evernote',
+  CONFLUENCE: 'confluence',
+  MIRO: 'miro',
+  FIGMA: 'figma',
 
   // Social Media
-  TWITTER: 'https://abs.twimg.com/favicons/twitter.3.ico',
-  LINKEDIN: 'https://static.licdn.com/sc/h/eahiplrwoq61f4uan012ia17y',
-  INSTAGRAM: 'https://static.cdninstagram.com/rsrc.php/v3/yI/r/VsNE-OHk_8a.png',
-  YOUTUBE: 'https://www.youtube.com/s/desktop/12a9f36e/img/favicon_144x144.png',
-  TIKTOK:
-    'https://sf16-website-login.neutral.ttwstatic.com/obj/tiktok_web_login_static/tiktok/webapp/main/webapp-desktop/47624c235266dedd8f59.png',
-  FACEBOOK: 'https://static.xx.fbcdn.net/rsrc.php/yD/r/d4ZIVX-5C-b.ico',
-  PINTEREST: 'https://s.pinimg.com/webapp/favicon-54a5b2af.png',
-  REDDIT: 'https://www.redditstatic.com/shreddit/assets/favicon/64x64.png',
-  BUFFER: 'https://buffer.com/static/icons/icon-144x144.png',
+  TWITTER: 'x',
+  LINKEDIN: 'linkedin',
+  INSTAGRAM: 'instagram',
+  YOUTUBE: 'youtube',
+  TIKTOK: 'tiktok',
+  FACEBOOK: 'facebook',
+  PINTEREST: 'pinterest',
+  REDDIT: 'reddit',
+  BUFFER: 'buffer',
 
   // Development
-  GITHUB: 'https://github.githubassets.com/favicons/favicon.svg',
-  JIRA: 'https://wac-cdn.atlassian.com/assets/img/favicons/jira/favicon-32x32.png',
-  LINEAR: 'https://linear.app/favicon.ico',
-  GITLAB: 'https://about.gitlab.com/nuxt-images/ico/favicon.ico',
-  BITBUCKET: 'https://wac-cdn.atlassian.com/assets/img/favicons/bitbucket/favicon-32x32.png',
-  SENTRY: 'https://sentry.io/favicon.ico',
-  DATADOG: 'https://imgix.datadoghq.com/img/dd_logo_n_70x75.png',
-  VERCEL: 'https://vercel.com/favicon.ico',
-  NETLIFY: 'https://www.netlify.com/favicon.ico',
-  HEROKU: 'https://www.herokucdn.com/favicon.ico',
-  SUPABASE: 'https://supabase.com/favicon/favicon-32x32.png',
-  FIREBASE:
-    'https://www.gstatic.com/devrel-devsite/prod/v0d244f667a3683225cca86d0ecf9b9b81b1e734e55a030bdcd3f3094b835c987/firebase/images/favicon.png',
+  GITHUB: 'github',
+  JIRA: 'jira',
+  LINEAR: 'linear',
+  GITLAB: 'gitlab',
+  BITBUCKET: 'bitbucket',
+  SENTRY: 'sentry',
+  DATADOG: 'datadog',
+  VERCEL: 'vercel',
+  NETLIFY: 'netlify',
+  HEROKU: 'heroku',
+  SUPABASE: 'supabase',
+  FIREBASE: 'firebase',
 
   // CRM
-  HUBSPOT: 'https://www.hubspot.com/favicon.ico',
-  SALESFORCE: 'https://www.salesforce.com/etc/designs/sfdc-www/en_us/favicon.ico',
-  PIPEDRIVE: 'https://www.pipedrive.com/favicon.ico',
+  HUBSPOT: 'hubspot',
+  SALESFORCE: 'salesforce',
+  PIPEDRIVE: 'pipedrive',
 
   // Finance
-  STRIPE: 'https://stripe.com/favicon.ico',
-  QUICKBOOKS: 'https://quickbooks.intuit.com/etc/designs/quickbooks-v4/favicon.ico',
-  PAYPAL: 'https://www.paypalobjects.com/webstatic/icon/pp144.png',
-  SQUARE: 'https://squareup.com/favicon.ico',
+  STRIPE: 'stripe',
+  QUICKBOOKS: 'quickbooks',
+  PAYPAL: 'paypal',
+  SQUARE: 'square',
 
   // Calendar
-  GOOGLE_CALENDAR: 'https://ssl.gstatic.com/calendar/images/favicons_2020q4/calendar_31.ico',
-  CALENDLY: 'https://assets.calendly.com/assets/favicon-32x32.png',
-  CAL: 'https://cal.com/favicon.ico',
+  GOOGLE_CALENDAR: 'googlecalendar',
+  CALENDLY: 'calendly',
+  CAL: 'caldotcom',
 
   // Storage
-  GOOGLE_DRIVE: 'https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png',
-  DROPBOX: 'https://cfl.dropboxstatic.com/static/images/favicon-vfl8lUR9B.ico',
-  ONEDRIVE:
-    'https://res-1.cdn.office.net/files/fabric-cdn-prod_20240214.001/assets/brand-icons/product/svg/onedrive_48x1.svg',
-  BOX: 'https://www.box.com/themes/developer/favicon.ico',
+  GOOGLE_DRIVE: 'googledrive',
+  DROPBOX: 'dropbox',
+  ONEDRIVE: 'microsoftonedrive',
+  BOX: 'box',
 
   // Analytics
-  GOOGLE_ANALYTICS: 'https://www.gstatic.com/analytics-suite/header/suite/v2/ic_analytics.svg',
-  MIXPANEL: 'https://mixpanel.com/favicon.ico',
-  POSTHOG: 'https://posthog.com/favicon.ico',
+  GOOGLE_ANALYTICS: 'googleanalytics',
+  MIXPANEL: 'mixpanel',
+  POSTHOG: 'posthog',
 
   // Marketing
-  MAILCHIMP: 'https://eep.io/mc-cdn-images/favicon-256.png',
-  SENDGRID: 'https://sendgrid.com/favicon.ico',
+  MAILCHIMP: 'mailchimp',
+  SENDGRID: 'sendgrid',
 
   // E-commerce
-  SHOPIFY: 'https://cdn.shopify.com/static/shopify-favicon.png',
-  GUMROAD: 'https://gumroad.com/favicon.ico',
+  SHOPIFY: 'shopify',
+  GUMROAD: 'gumroad',
 
   // Support
-  ZENDESK:
-    'https://d3v0px0pttie1i.cloudfront.net/uploads/branding_settings/open_graph_images/48656/zendesk_light_background.png',
+  ZENDESK: 'zendesk',
 
   // Media
-  SPOTIFY: 'https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png',
-  TWITCH: 'https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png',
-  VIMEO: 'https://f.vimeocdn.com/images_v6/favicon.ico',
+  SPOTIFY: 'spotify',
+  TWITCH: 'twitch',
+  VIMEO: 'vimeo',
 };
 
 // Brand colors for fallback initials
@@ -169,8 +161,15 @@ export default function BrandLogo({
   className = '',
 }: BrandLogoProps) {
   const [imgError, setImgError] = useState(false);
-  const logoUrl = BRAND_LOGOS[toolkitId.toUpperCase()];
-  const brandColor = BRAND_COLORS[toolkitId.toUpperCase()] || '#6B7280';
+  const upperToolkitId = toolkitId.toUpperCase();
+  const iconSlug = SIMPLE_ICONS_SLUGS[upperToolkitId];
+  const brandColor = BRAND_COLORS[upperToolkitId] || '#6B7280';
+
+  // Use Simple Icons CDN for reliable brand SVGs
+  // Format: https://cdn.simpleicons.org/{slug}/{color}
+  // Remove # from color for URL
+  const colorHex = brandColor.replace('#', '');
+  const logoUrl = iconSlug ? `https://cdn.simpleicons.org/${iconSlug}/${colorHex}` : null;
 
   const sizeClasses = {
     sm: 'w-6 h-6',
@@ -197,12 +196,12 @@ export default function BrandLogo({
   if (logoUrl && !imgError) {
     return (
       <div
-        className={`${sizeClasses[size]} rounded-lg overflow-hidden flex items-center justify-center bg-white ${className}`}
+        className={`${sizeClasses[size]} rounded-lg overflow-hidden flex items-center justify-center bg-white/10 ${className}`}
       >
         <img
           src={logoUrl}
           alt={displayName}
-          className="object-contain w-full h-full p-1"
+          className="object-contain w-3/4 h-3/4"
           onError={() => setImgError(true)}
         />
       </div>
