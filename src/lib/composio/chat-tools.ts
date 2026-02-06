@@ -44,17 +44,28 @@ export interface ComposioToolContext {
 
 /**
  * Convert Composio tool to Claude tool format
+ * Safely handles missing or malformed tool data
  */
-function toClaudeTool(tool: ComposioTool): ClaudeTool {
-  return {
-    name: `composio_${tool.name}`,
-    description: tool.description,
-    input_schema: {
-      type: 'object',
-      properties: tool.parameters.properties || {},
-      required: tool.parameters.required || [],
-    },
-  };
+function toClaudeTool(tool: ComposioTool): ClaudeTool | null {
+  try {
+    if (!tool || !tool.name) {
+      log.warn('Invalid tool missing name', { tool });
+      return null;
+    }
+
+    return {
+      name: `composio_${tool.name}`,
+      description: tool.description || '',
+      input_schema: {
+        type: 'object',
+        properties: tool.parameters?.properties || {},
+        required: tool.parameters?.required || [],
+      },
+    };
+  } catch (error) {
+    log.error('Failed to convert tool to Claude format', { tool, error });
+    return null;
+  }
 }
 
 /**
@@ -85,10 +96,16 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
     log.info('User has connected apps', { userId, apps: connectedApps });
 
     // Get available tools for connected apps
-    const composioTools = await getAvailableTools(userId, connectedApps);
+    let composioTools: ComposioTool[] = [];
+    try {
+      composioTools = await getAvailableTools(userId, connectedApps);
+    } catch (toolsError) {
+      log.error('Failed to get available tools', { userId, connectedApps, error: toolsError });
+      // Continue without tools - at least show connected apps
+    }
 
-    // Convert to Claude format
-    const tools = composioTools.map(toClaudeTool);
+    // Convert to Claude format, filtering out any null/invalid tools
+    const tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);
 
     // Build system prompt addition
     const appList = connectedApps

@@ -74,9 +74,27 @@ export async function POST(request: NextRequest) {
     // Use user's ID as the entity ID
     const userId = user.id;
 
-    // Default redirect to our callback
-    const callbackUrl =
-      redirectUrl || `${process.env.NEXT_PUBLIC_APP_URL}/api/composio/callback?toolkit=${toolkit}`;
+    // Build callback URL - validate it's a proper URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl && !redirectUrl) {
+      log.error('NEXT_PUBLIC_APP_URL not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error - callback URL not available' },
+        { status: 500 }
+      );
+    }
+
+    const callbackUrl = redirectUrl || `${appUrl}/api/composio/callback?toolkit=${toolkit}`;
+
+    // Validate URL format before sending to Composio
+    try {
+      new URL(callbackUrl);
+    } catch {
+      log.error('Invalid callback URL', { callbackUrl, appUrl, redirectUrl });
+      return NextResponse.json({ error: 'Invalid callback URL configuration' }, { status: 500 });
+    }
+
+    log.info('Initiating connection with callback URL', { callbackUrl, toolkit });
 
     // Initiate connection
     const connectionRequest = await initiateConnection(userId, toolkit, callbackUrl);
