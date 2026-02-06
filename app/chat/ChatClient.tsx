@@ -4918,10 +4918,10 @@ I'll deploy a focused team to research and write your content.
             </button>
 
             <div className="flex items-center gap-0.5">
-              {/* Connectors Link */}
+              {/* Connectors Link - visible on all screen sizes */}
               <a
                 href="/settings?tab=connectors"
-                className="hidden md:flex rounded-lg px-3 py-1.5 text-sm hover:bg-white/10 items-center gap-1.5 transition-colors"
+                className="flex rounded-lg px-2 md:px-3 py-1.5 text-sm hover:bg-white/10 items-center gap-1 md:gap-1.5 transition-colors"
                 title="Connect 150+ apps"
               >
                 <svg
@@ -4937,7 +4937,7 @@ I'll deploy a focused team to research and write your content.
                     d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                   />
                 </svg>
-                <span>Connectors</span>
+                <span className="hidden sm:inline">Connectors</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
                   NEW
                 </span>
