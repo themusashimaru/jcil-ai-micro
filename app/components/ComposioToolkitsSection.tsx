@@ -61,6 +61,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   travel: 'Travel',
 };
 
+// Featured apps to showcase at the top (the coolest ones)
+const FEATURED_APP_IDS = [
+  'TWITTER',
+  'INSTAGRAM',
+  'FACEBOOK',
+  'TIKTOK',
+  'YOUTUBE',
+  'LINKEDIN',
+  'SPOTIFY',
+  'NOTION',
+  'SLACK',
+  'DISCORD',
+];
+
 export default function ComposioToolkitsSection() {
   const [toolkits, setToolkits] = useState<Toolkit[]>([]);
   const [groupedToolkits, setGroupedToolkits] = useState<GroupedToolkits | null>(null);
@@ -180,7 +194,10 @@ export default function ComposioToolkitsSection() {
     }
   };
 
-  // Filter toolkits for display
+  // Get featured apps for showcase
+  const featuredToolkits = toolkits.filter((t) => FEATURED_APP_IDS.includes(t.id.toUpperCase()));
+
+  // Filter toolkits for display (excluding featured when showing all)
   const displayToolkits =
     selectedCategory === 'popular'
       ? groupedToolkits?.popular || []
@@ -188,35 +205,48 @@ export default function ComposioToolkitsSection() {
         ? toolkits.filter((t) => t.category === selectedCategory)
         : search
           ? toolkits
-          : groupedToolkits?.popular || [];
+          : toolkits.filter((t) => !FEATURED_APP_IDS.includes(t.id.toUpperCase()));
 
-  if (!configured) {
-    return (
-      <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
-        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-          App Integrations
-        </h3>
-        <div
-          className="p-4 rounded-lg border"
-          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background-secondary)' }}
-        >
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            App integrations are not configured. Contact your administrator.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Show featured section only when not searching and no category selected
+  const showFeatured = !search && !selectedCategory;
+
+  // Don't block rendering if not configured - still show the apps
 
   return (
     <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-            App Integrations
+            App Integrations{' '}
+            <span
+              className="text-sm font-normal px-2 py-0.5 rounded-full ml-2"
+              style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+            >
+              150+ Apps
+            </span>
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Connect your favorite apps to enable AI-powered automation
+          </p>
+        </div>
+      </div>
+
+      {/* Tip Banner */}
+      <div
+        className="mb-6 p-4 rounded-xl border-2 border-dashed flex items-center gap-3"
+        style={{
+          borderColor: 'var(--primary)',
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
+        }}
+      >
+        <span className="text-2xl">💡</span>
+        <div>
+          <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+            Connect your apps to supercharge your AI!
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Try connecting Twitter, Instagram, or Slack to let AI help manage your accounts, post
+            updates, and automate workflows.
           </p>
         </div>
       </div>
@@ -239,53 +269,151 @@ export default function ComposioToolkitsSection() {
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex-1">
+      {/* Search Bar - Prominent */}
+      <div className="mb-6">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <svg
+              className="w-5 h-5"
+              style={{ color: 'var(--text-muted)' }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search integrations..."
-            className="w-full px-4 py-2 rounded-lg border text-sm"
+            placeholder="Search 150+ apps... (Twitter, Slack, Notion, etc.)"
+            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             style={{
               backgroundColor: 'var(--background)',
               borderColor: 'var(--border)',
               color: 'var(--text-primary)',
-              fontSize: '16px',
             }}
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
+      </div>
+
+      {/* Featured Apps - The Coolest Ones */}
+      {showFeatured && featuredToolkits.length > 0 && (
+        <div className="mb-8">
+          <h4
+            className="text-sm font-semibold mb-3 flex items-center gap-2"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <span>Featured Apps</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+              HOT
+            </span>
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {featuredToolkits.map((toolkit) => (
+              <div
+                key={toolkit.id}
+                className="p-4 rounded-xl border-2 transition-all hover:shadow-lg hover:scale-105 cursor-pointer text-center"
+                style={{
+                  borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
+                  background: toolkit.connected
+                    ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05))'
+                    : 'var(--background)',
+                }}
+                onClick={() => {
+                  if (!configured) {
+                    setError('App integrations are being set up. Please check back soon!');
+                    return;
+                  }
+                  if (!toolkit.connected) {
+                    handleConnect(toolkit);
+                  }
+                }}
+              >
+                <div
+                  className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-2xl mb-2"
+                  style={{ backgroundColor: 'var(--background-secondary)' }}
+                >
+                  {toolkit.icon}
+                </div>
+                <h5
+                  className="font-medium text-sm truncate"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {toolkit.displayName}
+                </h5>
+                {toolkit.connected ? (
+                  <span className="text-xs text-green-600 font-medium">Connected</span>
+                ) : (
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {connecting === toolkit.id ? 'Connecting...' : 'Click to connect'}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Category Filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+            !selectedCategory ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+          }`}
+          style={{
+            borderColor: 'var(--border)',
+            color: !selectedCategory ? 'var(--primary)' : 'var(--text-secondary)',
+          }}
+        >
+          All
+        </button>
+        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
           <button
-            onClick={() => setSelectedCategory(null)}
+            key={key}
+            onClick={() => setSelectedCategory(key)}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-              !selectedCategory ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+              selectedCategory === key ? 'ring-2 ring-blue-500 ring-offset-1' : ''
             }`}
             style={{
               borderColor: 'var(--border)',
-              color: !selectedCategory ? 'var(--primary)' : 'var(--text-secondary)',
+              color: selectedCategory === key ? 'var(--primary)' : 'var(--text-secondary)',
             }}
           >
-            All
+            {label}
           </button>
-          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setSelectedCategory(key)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                selectedCategory === key ? 'ring-2 ring-blue-500 ring-offset-1' : ''
-              }`}
-              style={{
-                borderColor: 'var(--border)',
-                color: selectedCategory === key ? 'var(--primary)' : 'var(--text-secondary)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
+
+      {/* Section Header */}
+      {showFeatured && displayToolkits.length > 0 && (
+        <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+          All Apps
+        </h4>
+      )}
 
       {/* Toolkits Grid */}
       {loading ? (
@@ -359,17 +487,23 @@ export default function ComposioToolkitsSection() {
                 {toolkit.connected ? (
                   <button
                     onClick={() => handleDisconnect(toolkit)}
-                    disabled={disconnecting === toolkit.id}
+                    disabled={disconnecting === toolkit.id || !configured}
                     className="px-3 py-1 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                   >
                     {disconnecting === toolkit.id ? 'Disconnecting...' : 'Disconnect'}
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleConnect(toolkit)}
+                    onClick={() => {
+                      if (!configured) {
+                        setError('App integrations are being set up. Please check back soon!');
+                        return;
+                      }
+                      handleConnect(toolkit);
+                    }}
                     disabled={connecting === toolkit.id}
                     className="px-3 py-1 text-xs font-semibold rounded-lg text-white transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--primary)' }}
+                    style={{ backgroundColor: configured ? 'var(--primary)' : '#9ca3af' }}
                   >
                     {connecting === toolkit.id ? 'Connecting...' : 'Connect'}
                   </button>
