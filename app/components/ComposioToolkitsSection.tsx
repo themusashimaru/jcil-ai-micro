@@ -288,66 +288,71 @@ export default function ComposioToolkitsSection() {
         </div>
       )}
 
-      {/* MY CONNECTED APPS - Shows at top when user has connections */}
+      {/* MY CONNECTED APPS - Compact horizontal list */}
       {showConnectedApps && (
         <div
-          className="mb-8 p-4 rounded-xl border-2"
-          style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}
+          className="mb-6 p-3 rounded-lg border"
+          style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.03)' }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h4
-              className="text-base font-semibold flex items-center gap-2"
-              style={{ color: 'var(--text-primary)' }}
+          <div className="flex items-center gap-2 mb-2">
+            <svg
+              className="w-4 h-4 text-green-500 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="w-5 h-5 text-green-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              My Connected Apps
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500 text-white">
-                {connectedToolkits.length} Active
-              </span>
-            </h4>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+              Connected ({connectedToolkits.length})
+            </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="flex flex-wrap gap-2">
             {connectedToolkits.map((toolkit) => (
               <div
                 key={toolkit.id}
-                className="p-3 rounded-lg border bg-white flex flex-col items-center text-center transition-all hover:shadow-md"
-                style={{ borderColor: '#22c55e' }}
+                className="group flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs transition-all hover:shadow-sm"
+                style={{ borderColor: '#22c55e', backgroundColor: 'white' }}
               >
-                <div className="w-10 h-10 mb-2">
-                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
+                <div className="w-4 h-4 flex-shrink-0">
+                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="sm" />
                 </div>
-                <h5
-                  className="font-medium text-xs truncate w-full"
+                <span
+                  className="font-medium truncate max-w-[80px]"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {toolkit.displayName}
-                </h5>
+                </span>
                 <button
-                  onClick={() => handleDisconnect(toolkit)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDisconnect(toolkit);
+                  }}
                   disabled={disconnecting === toolkit.id}
-                  className="mt-2 px-2 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Disconnect"
                 >
-                  {disconnecting === toolkit.id ? '...' : 'Disconnect'}
+                  {disconnecting === toolkit.id ? (
+                    <span className="text-[10px]">...</span>
+                  ) : (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  )}
                 </button>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-            These apps are connected to your AI assistant. Ask the AI to help you with these
-            services!
-          </p>
         </div>
       )}
 
@@ -401,29 +406,22 @@ export default function ComposioToolkitsSection() {
         </div>
       </div>
 
-      {/* Featured Apps - The Coolest Ones */}
+      {/* Featured Apps - Compact grid */}
       {showFeatured && featuredToolkits.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-6">
           <h4
-            className="text-sm font-semibold mb-3 flex items-center gap-2"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-xs font-semibold mb-2 flex items-center gap-2"
+            style={{ color: 'var(--text-secondary)' }}
           >
-            <span>Featured Apps</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+            Featured Apps
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-purple-500 to-pink-500 text-white">
               HOT
             </span>
           </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2">
             {featuredToolkits.map((toolkit) => (
-              <div
+              <button
                 key={toolkit.id}
-                className="p-4 rounded-xl border-2 transition-all hover:shadow-lg hover:scale-105 cursor-pointer text-center"
-                style={{
-                  borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
-                  background: toolkit.connected
-                    ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05))'
-                    : 'var(--background)',
-                }}
                 onClick={() => {
                   if (!configured) {
                     setError('App integrations are being set up. Please check back soon!');
@@ -433,24 +431,31 @@ export default function ComposioToolkitsSection() {
                     handleConnect(toolkit);
                   }
                 }}
+                disabled={connecting === toolkit.id}
+                className="p-2 rounded-lg border transition-all hover:shadow-md hover:scale-105 text-center disabled:opacity-50"
+                style={{
+                  borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
+                  backgroundColor: toolkit.connected
+                    ? 'rgba(34, 197, 94, 0.05)'
+                    : 'var(--background)',
+                }}
               >
-                <div className="w-12 h-12 mx-auto mb-2">
-                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="lg" />
+                <div className="w-8 h-8 mx-auto mb-1">
+                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
                 </div>
-                <h5
-                  className="font-medium text-sm truncate"
+                <p
+                  className="text-[10px] font-medium truncate"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {toolkit.displayName}
-                </h5>
-                {toolkit.connected ? (
-                  <span className="text-xs text-green-600 font-medium">Connected</span>
-                ) : (
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {connecting === toolkit.id ? 'Connecting...' : 'Click to connect'}
-                  </span>
-                )}
-              </div>
+                </p>
+                <p
+                  className="text-[9px]"
+                  style={{ color: toolkit.connected ? '#22c55e' : 'var(--text-muted)' }}
+                >
+                  {connecting === toolkit.id ? '...' : toolkit.connected ? '✓' : 'Connect'}
+                </p>
+              </button>
             ))}
           </div>
         </div>
