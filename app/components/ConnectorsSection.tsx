@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import ComposioToolkitsSection from './ComposioToolkitsSection';
 
 interface GitHubStatus {
   connected: boolean;
@@ -966,10 +967,8 @@ export default function ConnectorsSection() {
         )}
       </div>
 
-      {/* Future connectors hint */}
-      <div className="mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-        <p>More connectors coming soon: Notion, Linear, and more.</p>
-      </div>
+      {/* Composio App Integrations */}
+      <ComposioToolkitsSection />
     </section>
   );
 }
