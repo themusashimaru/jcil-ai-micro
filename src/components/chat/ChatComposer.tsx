@@ -69,15 +69,16 @@ interface ChatComposerProps {
   initialText?: string; // Pre-fill the input with text (for quick prompts)
   // Agent props
   isAdmin?: boolean;
-  activeAgent?: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | 'deep-writer' | null;
+  activeAgent?: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | 'deep-writer' | 'quick-writer' | null;
   onAgentSelect?: (
-    agent: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | 'deep-writer'
+    agent: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | 'deep-writer' | 'quick-writer'
   ) => Promise<void> | void;
   strategyLoading?: boolean; // Show loading state while strategy starts
   deepResearchLoading?: boolean; // Show loading state while deep research starts
   quickResearchLoading?: boolean; // Show loading state while quick research starts
   quickStrategyLoading?: boolean; // Show loading state while quick strategy starts
   deepWriterLoading?: boolean; // Show loading state while deep writer starts
+  quickWriterLoading?: boolean; // Show loading state while quick writer starts
   // External modal control (for carousel integration)
   openCreateImage?: boolean;
   openEditImage?: boolean;
@@ -241,6 +242,7 @@ export function ChatComposer({
   quickResearchLoading: _quickResearchLoading,
   quickStrategyLoading: _quickStrategyLoading,
   deepWriterLoading,
+  quickWriterLoading,
   openCreateImage,
   openEditImage,
   onCloseCreateImage,
@@ -1344,6 +1346,39 @@ export function ChatComposer({
                             {deepWriterLoading ? 'Starting...' : 'Deep Writer Agent'}
                           </p>
                           {activeAgent === 'deep-writer' && (
+                            <svg
+                              className="w-4 h-4 ml-auto"
+                              style={{ color: 'var(--text-muted)' }}
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* Quick Writer Agent - Fast AI writing with focused research */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setShowAgentsMenu(false);
+                            await onAgentSelect?.('quick-writer');
+                          }}
+                          disabled={quickWriterLoading}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
+                          style={{
+                            backgroundColor:
+                              activeAgent === 'quick-writer' ? 'var(--glass-bg)' : 'transparent',
+                            color:
+                              activeAgent === 'quick-writer'
+                                ? 'var(--text-primary)'
+                                : 'var(--text-secondary)',
+                          }}
+                        >
+                          <p className="text-sm font-medium">
+                            {quickWriterLoading ? 'Starting...' : 'Writer Agent'}
+                          </p>
+                          {activeAgent === 'quick-writer' && (
                             <svg
                               className="w-4 h-4 ml-auto"
                               style={{ color: 'var(--text-muted)' }}

@@ -17,6 +17,7 @@ export { RESEARCH_PROMPTS } from './research';
 export { QUICK_RESEARCH_PROMPTS } from './quick-research';
 export { QUICK_STRATEGY_PROMPTS } from './quick-strategy';
 export { DEEP_WRITER_PROMPTS } from './deep-writer';
+export { QUICK_WRITER_PROMPTS } from './quick-writer';
 
 import type { PromptSet } from './types';
 import { STRATEGY_PROMPTS } from './strategy';
@@ -24,6 +25,7 @@ import { RESEARCH_PROMPTS } from './research';
 import { QUICK_RESEARCH_PROMPTS } from './quick-research';
 import { QUICK_STRATEGY_PROMPTS } from './quick-strategy';
 import { DEEP_WRITER_PROMPTS } from './deep-writer';
+import { QUICK_WRITER_PROMPTS } from './quick-writer';
 
 /**
  * Registry of all available prompt sets.
@@ -35,6 +37,7 @@ const PROMPT_REGISTRY: Record<string, PromptSet> = {
   'quick-research': QUICK_RESEARCH_PROMPTS,
   'quick-strategy': QUICK_STRATEGY_PROMPTS,
   'deep-writer': DEEP_WRITER_PROMPTS,
+  'quick-writer': QUICK_WRITER_PROMPTS,
 };
 
 /**

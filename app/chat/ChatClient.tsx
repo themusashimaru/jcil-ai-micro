@@ -186,6 +186,14 @@ export function ChatClient() {
   >('idle');
   const [deepWriterLoading, setDeepWriterLoading] = useState(false);
   const [_deepWriterEvents, setDeepWriterEvents] = useState<StrategyStreamEvent[]>([]);
+  // Quick Writer Agent state - fast AI writing with focused research
+  const [isQuickWriterMode, setIsQuickWriterMode] = useState(false);
+  const [quickWriterSessionId, setQuickWriterSessionId] = useState<string | null>(null);
+  const [quickWriterPhase, setQuickWriterPhase] = useState<
+    'idle' | 'intake' | 'executing' | 'complete' | 'error'
+  >('idle');
+  const [quickWriterLoading, setQuickWriterLoading] = useState(false);
+  const [_quickWriterEvents, setQuickWriterEvents] = useState<StrategyStreamEvent[]>([]);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -2933,6 +2941,301 @@ This may take 5-15 minutes depending on document length.`,
     setIsStreaming(false);
   };
 
+  // ===========================================================================
+  // QUICK WRITER AGENT - Fast AI Writing with Focused Research
+  // ===========================================================================
+
+  /**
+   * Start Quick Writer mode - fast writing with focused research
+   */
+  const startQuickWriter = async () => {
+    if (isQuickWriterMode || quickWriterLoading) {
+      return;
+    }
+
+    setQuickWriterLoading(true);
+    setIsStreaming(true);
+
+    // Add intro message to chat
+    const introMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `## ✍️ Quick Writer Mode
+
+I'll deploy a focused team to research and write your content.
+
+**What you get:**
+- **10-15 research scouts** (Claude Sonnet 4.5) - gather facts first
+- **Opus writers** (Claude Opus 4.6) - craft polished content
+- **Fast turnaround:** 2-3 minutes
+
+**Best for:**
+- Blog posts and articles
+- Short reports and summaries
+- Professional emails
+- Product descriptions
+
+**What do you want me to write?**`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, introMessage]);
+
+    try {
+      // Start strategy session via strategy API with mode: 'quick-writer'
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', mode: 'quick-writer' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to start writer');
+      }
+
+      const sessionId = response.headers.get('X-Session-Id');
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server.');
+      }
+
+      setQuickWriterSessionId(sessionId);
+      setIsQuickWriterMode(true);
+      setQuickWriterPhase('intake');
+
+      log.debug('Quick Writer mode activated', { sessionId });
+    } catch (error) {
+      console.error('[startQuickWriter] Error:', error);
+      log.error('Failed to start quick writer:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Writer Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsQuickWriterMode(false);
+      setQuickWriterPhase('idle');
+    } finally {
+      setIsStreaming(false);
+      setQuickWriterLoading(false);
+    }
+  };
+
+  /**
+   * Handle user input during quick writer intake phase
+   */
+  const handleQuickWriterInput = async (input: string) => {
+    if (!quickWriterSessionId) {
+      return;
+    }
+
+    // Check for cancel command
+    if (input.toLowerCase().trim() === 'cancel') {
+      await cancelQuickWriter();
+      return;
+    }
+
+    setIsStreaming(true);
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      // Send to strategy API for intake processing
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'intake',
+          sessionId: quickWriterSessionId,
+          userInput: input,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process input');
+      }
+
+      const data = await response.json();
+
+      if (data.intakeComplete) {
+        // Intake complete - start execution
+        setQuickWriterPhase('executing');
+        await executeQuickWriter();
+      } else {
+        // More intake needed - show follow-up question
+        const followUp: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: data.response || 'Could you provide more details about what you want me to write?',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, followUp]);
+      }
+    } catch (error) {
+      log.error('Quick writer intake error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '❌ Something went wrong. Please try again or type "cancel" to exit.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Execute quick writer research and writing
+   */
+  const executeQuickWriter = async () => {
+    if (!quickWriterSessionId) return;
+
+    setIsStreaming(true);
+
+    const statusMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '🔍 **Deploying research scouts...** I\'ll gather facts before writing.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, statusMessage]);
+
+    try {
+      const response = await fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          sessionId: quickWriterSessionId,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to execute quick writer');
+      }
+
+      // Process SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6);
+            if (jsonStr === '[DONE]') continue;
+
+            try {
+              const event: StrategyStreamEvent = JSON.parse(jsonStr);
+              setQuickWriterEvents((prev) => [...prev, event]);
+
+              // Handle completion
+              if (event.type === 'strategy_complete' && event.data?.result) {
+                const result = event.data.result;
+                const doc = result.recommendation;
+
+                // Format the final document
+                let finalContent = `# ${doc.title}\n\n`;
+
+                if ('document' in result && result.document) {
+                  const docData = result.document as {
+                    content?: string;
+                    citations?: string[];
+                  };
+                  finalContent += docData.content || doc.summary;
+
+                  // Add citations if present
+                  if (docData.citations && docData.citations.length > 0) {
+                    finalContent += '\n\n---\n\n**Sources:**\n';
+                    docData.citations.forEach((citation: string) => {
+                      finalContent += `- ${citation}\n`;
+                    });
+                  }
+                } else {
+                  finalContent += doc.summary;
+                }
+
+                const finalMessage: Message = {
+                  id: crypto.randomUUID(),
+                  role: 'assistant',
+                  content: finalContent,
+                  timestamp: new Date(),
+                };
+                setMessages((prev) => [...prev, finalMessage]);
+                setQuickWriterPhase('complete');
+                setIsQuickWriterMode(false);
+                setQuickWriterSessionId(null);
+              }
+
+              // Handle errors
+              if (event.type === 'error' || event.type === 'kill_switch') {
+                throw new Error(event.message || 'Writer error');
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.error('Quick writer execution error:', error as Error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `❌ **Writing Error**\n\n${(error as Error).message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setQuickWriterPhase('error');
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  /**
+   * Cancel quick writer session
+   */
+  const cancelQuickWriter = async () => {
+    if (!quickWriterSessionId) return;
+
+    try {
+      await fetch(`/api/strategy?sessionId=${quickWriterSessionId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      log.warn('Cancel request failed:', { error: e });
+    }
+
+    const cancelMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '✋ **Writing cancelled.** You can start a new writing project anytime.',
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+
+    setIsQuickWriterMode(false);
+    setQuickWriterPhase('idle');
+    setQuickWriterSessionId(null);
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -3023,16 +3326,23 @@ This may take 5-15 minutes depending on document length.`,
       return;
     }
 
+    // QUICK WRITER MODE: If we're in quick writer intake, send to strategy API
+    if (isQuickWriterMode && quickWriterPhase === 'intake' && quickWriterSessionId) {
+      await handleQuickWriterInput(content);
+      return;
+    }
+
     // STEERING: If we're in execution phase, send as context/steering command
     if (
       (isStrategyMode && strategyPhase === 'executing' && strategySessionId) ||
       (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId) ||
       (isQuickResearchMode && quickResearchPhase === 'executing' && quickResearchSessionId) ||
       (isQuickStrategyMode && quickStrategyPhase === 'executing' && quickStrategySessionId) ||
-      (isDeepWriterMode && deepWriterPhase === 'executing' && deepWriterSessionId)
+      (isDeepWriterMode && deepWriterPhase === 'executing' && deepWriterSessionId) ||
+      (isQuickWriterMode && quickWriterPhase === 'executing' && quickWriterSessionId)
     ) {
       const sessionId =
-        strategySessionId || deepResearchSessionId || quickResearchSessionId || quickStrategySessionId || deepWriterSessionId;
+        strategySessionId || deepResearchSessionId || quickResearchSessionId || quickStrategySessionId || deepWriterSessionId || quickWriterSessionId;
       if (sessionId) {
         // Show user message in chat
         const userMsg: Message = {
@@ -4714,13 +5024,16 @@ This may take 5-15 minutes depending on document length.`,
                         ? 'quick-strategy'
                         : isDeepWriterMode
                           ? 'deep-writer'
-                          : null
+                          : isQuickWriterMode
+                            ? 'quick-writer'
+                            : null
               }
               strategyLoading={strategyLoading}
               deepResearchLoading={deepResearchLoading}
               quickResearchLoading={quickResearchLoading}
               quickStrategyLoading={quickStrategyLoading}
               deepWriterLoading={deepWriterLoading}
+              quickWriterLoading={quickWriterLoading}
               onAgentSelect={async (agent) => {
                 // Helper to cancel strategy session on server
                 const cancelStrategySession = async () => {
@@ -4787,6 +5100,19 @@ This may take 5-15 minutes depending on document length.`,
                   }
                 };
 
+                // Helper to cancel quick writer session on server
+                const cancelQuickWriterSession = async () => {
+                  if (quickWriterSessionId) {
+                    try {
+                      await fetch(`/api/strategy?sessionId=${quickWriterSessionId}`, {
+                        method: 'DELETE',
+                      });
+                    } catch {
+                      // Silently fail
+                    }
+                  }
+                };
+
                 // Helper to exit all other agent modes
                 const exitAllAgentModes = async () => {
                   if (isStrategyMode) {
@@ -4818,6 +5144,12 @@ This may take 5-15 minutes depending on document length.`,
                     setIsDeepWriterMode(false);
                     setDeepWriterPhase('idle');
                     setDeepWriterSessionId(null);
+                  }
+                  if (isQuickWriterMode) {
+                    await cancelQuickWriterSession();
+                    setIsQuickWriterMode(false);
+                    setQuickWriterPhase('idle');
+                    setQuickWriterSessionId(null);
                   }
                 };
 
@@ -4880,6 +5212,18 @@ This may take 5-15 minutes depending on document length.`,
                     // Exit other modes and start deep writer
                     await exitAllAgentModes();
                     await startDeepWriter();
+                  }
+                } else if (agent === 'quick-writer') {
+                  if (isQuickWriterMode) {
+                    // Toggle off - cancel quick writer mode
+                    await cancelQuickWriterSession();
+                    setIsQuickWriterMode(false);
+                    setQuickWriterPhase('idle');
+                    setQuickWriterSessionId(null);
+                  } else {
+                    // Exit other modes and start quick writer
+                    await exitAllAgentModes();
+                    await startQuickWriter();
                   }
                 } else if (agent === 'research') {
                   // Legacy: exit all modes (old research mode is replaced by quick-research)
