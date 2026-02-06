@@ -190,30 +190,20 @@ export default function ComposioToolkitsSection() {
           ? toolkits
           : groupedToolkits?.popular || [];
 
-  if (!configured) {
-    return (
-      <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
-        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-          App Integrations
-        </h3>
-        <div
-          className="p-4 rounded-lg border"
-          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background-secondary)' }}
-        >
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            App integrations are not configured. Contact your administrator.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Don't block rendering if not configured - still show the apps
 
   return (
     <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-            App Integrations
+            App Integrations{' '}
+            <span
+              className="text-sm font-normal px-2 py-0.5 rounded-full ml-2"
+              style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+            >
+              150+ Apps
+            </span>
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Connect your favorite apps to enable AI-powered automation
@@ -359,17 +349,23 @@ export default function ComposioToolkitsSection() {
                 {toolkit.connected ? (
                   <button
                     onClick={() => handleDisconnect(toolkit)}
-                    disabled={disconnecting === toolkit.id}
+                    disabled={disconnecting === toolkit.id || !configured}
                     className="px-3 py-1 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                   >
                     {disconnecting === toolkit.id ? 'Disconnecting...' : 'Disconnect'}
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleConnect(toolkit)}
+                    onClick={() => {
+                      if (!configured) {
+                        setError('App integrations are being set up. Please check back soon!');
+                        return;
+                      }
+                      handleConnect(toolkit);
+                    }}
                     disabled={connecting === toolkit.id}
                     className="px-3 py-1 text-xs font-semibold rounded-lg text-white transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: 'var(--primary)' }}
+                    style={{ backgroundColor: configured ? 'var(--primary)' : '#9ca3af' }}
                   >
                     {connecting === toolkit.id ? 'Connecting...' : 'Connect'}
                   </button>
