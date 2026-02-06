@@ -3074,7 +3074,8 @@ I'll deploy a focused team to research and write your content.
         const followUp: Message = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: data.response || 'Could you provide more details about what you want me to write?',
+          content:
+            data.response || 'Could you provide more details about what you want me to write?',
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, followUp]);
@@ -3104,7 +3105,7 @@ I'll deploy a focused team to research and write your content.
     const statusMessage: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: '🔍 **Deploying research scouts...** I\'ll gather facts before writing.',
+      content: "🔍 **Deploying research scouts...** I'll gather facts before writing.",
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, statusMessage]);
@@ -3342,7 +3343,12 @@ I'll deploy a focused team to research and write your content.
       (isQuickWriterMode && quickWriterPhase === 'executing' && quickWriterSessionId)
     ) {
       const sessionId =
-        strategySessionId || deepResearchSessionId || quickResearchSessionId || quickStrategySessionId || deepWriterSessionId || quickWriterSessionId;
+        strategySessionId ||
+        deepResearchSessionId ||
+        quickResearchSessionId ||
+        quickStrategySessionId ||
+        deepWriterSessionId ||
+        quickWriterSessionId;
       if (sessionId) {
         // Show user message in chat
         const userMsg: Message = {
@@ -4910,6 +4916,33 @@ I'll deploy a focused team to research and write your content.
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
+
+            <div className="flex items-center gap-0.5">
+              {/* Connectors Link */}
+              <a
+                href="/settings?tab=connectors"
+                className="hidden md:flex rounded-lg px-3 py-1.5 text-sm hover:bg-white/10 items-center gap-1.5 transition-colors"
+                title="Connect 150+ apps"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
+                <span>Connectors</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+                  NEW
+                </span>
+              </a>
+            </div>
 
             <div className="flex items-center gap-0.5">
               {/* Theme Toggle - Light/Dark Mode */}

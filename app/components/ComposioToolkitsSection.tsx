@@ -231,6 +231,26 @@ export default function ComposioToolkitsSection() {
         </div>
       </div>
 
+      {/* Tip Banner */}
+      <div
+        className="mb-6 p-4 rounded-xl border-2 border-dashed flex items-center gap-3"
+        style={{
+          borderColor: 'var(--primary)',
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
+        }}
+      >
+        <span className="text-2xl">💡</span>
+        <div>
+          <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+            Connect your apps to supercharge your AI!
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Try connecting Twitter, Instagram, or Slack to let AI help manage your accounts, post
+            updates, and automate workflows.
+          </p>
+        </div>
+      </div>
+
       {/* Messages */}
       {success && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">

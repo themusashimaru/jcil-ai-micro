@@ -43,6 +43,7 @@ import UsageMetricsSection from '@/app/components/UsageMetricsSection';
 import AccountSection from '@/app/components/AccountSection';
 import SupportSection from '@/app/components/SupportSection';
 import ConnectorsSection from '@/app/components/ConnectorsSection';
+import BYOKSection from '@/app/components/BYOKSection';
 
 type TabId =
   | 'membership'
@@ -51,7 +52,8 @@ type TabId =
   | 'support'
   | 'preferences'
   | 'privacy'
-  | 'connectors';
+  | 'connectors'
+  | 'byok';
 
 interface Tab {
   id: TabId;
@@ -64,6 +66,7 @@ const TABS: Tab[] = [
   { id: 'usage', label: 'Usage & Metrics', icon: '📊' },
   { id: 'account', label: 'Account', icon: '👤' },
   { id: 'connectors', label: 'Connectors', icon: '🔗' },
+  { id: 'byok', label: 'BYOK API Keys', icon: '🔑' },
   { id: 'support', label: 'Support', icon: '💬' },
   { id: 'preferences', label: 'Preferences', icon: '⚙️' },
   { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
@@ -163,7 +166,8 @@ function SettingsContent() {
               onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-2 px-6 py-3 font-semibold transition relative"
               style={{
-                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
+                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-primary)',
+                opacity: activeTab === tab.id ? 1 : 0.85,
               }}
             >
               <span>{tab.icon}</span>
@@ -225,6 +229,8 @@ function SettingsContent() {
           {activeTab === 'connectors' && <ConnectorsSection />}
 
           {activeTab === 'support' && <SupportSection />}
+
+          {activeTab === 'byok' && <BYOKSection />}
 
           {activeTab === 'preferences' && (
             <section className="glass-morphism rounded-2xl p-6">
