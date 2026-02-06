@@ -95,9 +95,10 @@ export async function initiateConnection(
 
     // Now initiate the connection using the auth config
     // SDK API: connectedAccounts.initiate(userId, authConfigId, options)
+    // SDK expects 'callbackUrl' not 'redirectUrl'!
     // allowMultiple: true allows users to reconnect or have multiple accounts
     const connectionRequest = await client.connectedAccounts.initiate(userId, authConfigId, {
-      redirectUrl: redirectUrl,
+      callbackUrl: redirectUrl,
       allowMultiple: true,
     });
 
@@ -113,39 +114,34 @@ export async function initiateConnection(
 }
 
 /**
- * Wait for a connection to become active (polls Composio)
+ * Wait for a connection to become active
+ * Uses SDK's built-in waitForConnection method
  */
 export async function waitForConnection(
   connectionId: string,
   timeoutMs: number = 60000
 ): Promise<ConnectedAccount | null> {
   const client = getClient();
-  const startTime = Date.now();
-  const pollInterval = 1000; // 1 second
 
   try {
-    // Poll for connection status until connected or timeout
-    while (Date.now() - startTime < timeoutMs) {
-      try {
-        const account = await client.connectedAccounts.get(connectionId);
+    log.info('Waiting for connection to become active', { connectionId, timeoutMs });
 
-        if (account && (account.status === 'ACTIVE' || account.status === 'connected')) {
-          log.info('Connection became active', { connectionId, status: account.status });
-          return mapComposioAccount(account);
-        }
+    // SDK has built-in waitForConnection(connectedAccountId, timeout)
+    const account = await client.connectedAccounts.waitForConnection(connectionId, timeoutMs);
 
-        log.debug('Connection still pending', { connectionId, status: account?.status });
-      } catch (pollError) {
-        log.debug('Poll error (may be normal)', { connectionId, pollError });
-      }
-
-      // Wait before next poll
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    if (account) {
+      log.info('Connection became active', {
+        connectionId,
+        status: account.status,
+        toolkit: account.toolkit?.slug,
+      });
+      return mapComposioAccount(account);
     }
 
-    log.warn('Connection timeout', { connectionId, timeoutMs });
+    log.warn('Connection did not become active', { connectionId });
     return null;
   } catch (error) {
+    // SDK throws specific errors for timeout, failed, etc.
     log.error('Error waiting for connection', { connectionId, error });
     return null;
   }
@@ -158,9 +154,19 @@ export async function getConnectedAccounts(userId: string): Promise<ConnectedAcc
   const client = getClient();
 
   try {
-    // SDK API: connectedAccounts.list({ userId: 'user123' })
+    // SDK API: connectedAccounts.list({ userIds: ['user123'] }) - plural, array!
     const accounts = await client.connectedAccounts.list({
-      userId: userId,
+      userIds: [userId],
+    });
+
+    log.info('Got connected accounts from Composio', {
+      userId,
+      count: accounts.items?.length || 0,
+      accounts: accounts.items?.map((a: any) => ({
+        id: a.id,
+        status: a.status,
+        toolkit: a.toolkit?.slug || a.integrationId || a.appName,
+      })),
     });
 
     return (accounts.items || []).map(mapComposioAccount);
@@ -207,6 +213,7 @@ export async function disconnectAccount(connectionId: string): Promise<boolean> 
 
 /**
  * Execute a tool action for a user
+ * SDK API: tools.execute('TOOL_SLUG', { userId, arguments, dangerouslySkipVersionCheck })
  */
 export async function executeTool(
   userId: string,
@@ -216,17 +223,20 @@ export async function executeTool(
   const client = getClient();
 
   try {
-    log.info('Executing tool', { userId, toolName });
+    log.info('Executing tool', { userId, toolName, params });
 
-    const result = await client.tools.execute({
-      entityId: userId,
-      action: toolName,
-      params,
+    // SDK execute: tools.execute(toolSlug, { userId, arguments, ... })
+    const result = await client.tools.execute(toolName, {
+      userId: userId,
+      arguments: params,
+      dangerouslySkipVersionCheck: true, // Allow latest version for now
     });
+
+    log.info('Tool executed successfully', { userId, toolName, result: result?.data });
 
     return {
       success: true,
-      data: result,
+      data: result?.data || result,
     };
   } catch (error) {
     log.error('Tool execution failed', { userId, toolName, error });
@@ -239,6 +249,7 @@ export async function executeTool(
 
 /**
  * Get available tools for a user (based on their connected accounts)
+ * SDK API: tools.getRawComposioTools({ toolkits: ['GITHUB', 'GMAIL'] })
  */
 export async function getAvailableTools(
   userId: string,
@@ -247,18 +258,34 @@ export async function getAvailableTools(
   const client = getClient();
 
   try {
-    const tools = await client.tools.list({
-      entityId: userId,
-      apps: toolkits,
+    if (!toolkits || toolkits.length === 0) {
+      log.info('No toolkits provided, returning empty tools list');
+      return [];
+    }
+
+    // SDK expects lowercase toolkit slugs
+    const lowercaseToolkits = toolkits.map((t) => t.toLowerCase());
+
+    log.info('Getting tools for toolkits', { userId, toolkits: lowercaseToolkits });
+
+    // Use getRawComposioTools with toolkit slugs
+    const tools = await client.tools.getRawComposioTools({
+      toolkits: lowercaseToolkits,
     });
 
-    return (tools.items || []).map((tool: any) => ({
-      name: tool.name,
+    log.info('Got tools from Composio', {
+      userId,
+      toolCount: tools?.length || 0,
+      tools: tools?.slice(0, 5).map((t: any) => t.name || t.slug),
+    });
+
+    return (tools || []).map((tool: any) => ({
+      name: tool.name || tool.slug,
       description: tool.description || '',
-      parameters: tool.parameters || { type: 'object', properties: {} },
+      parameters: tool.parameters || tool.inputSchema || { type: 'object', properties: {} },
     }));
   } catch (error) {
-    log.error('Failed to get available tools', { userId, error });
+    log.error('Failed to get available tools', { userId, toolkits, error });
     return [];
   }
 }
@@ -269,9 +296,12 @@ export async function getAvailableTools(
 
 /**
  * Map Composio account response to our type
+ * SDK returns: { id, status, toolkit: { slug, ... }, ... }
  */
 function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount {
-  const toolkit = (account.integrationId || account.appName || '') as string;
+  // SDK returns toolkit as nested object with slug
+  const toolkitObj = account.toolkit as Record<string, unknown> | undefined;
+  const toolkit = (toolkitObj?.slug || account.integrationId || account.appName || '') as string;
   const toolkitConfig = getToolkitById(toolkit.toUpperCase());
 
   const statusMap: Record<string, ConnectionStatus> = {
@@ -282,10 +312,12 @@ function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount 
     EXPIRED: 'expired',
   };
 
+  const status = (account.status as string) || '';
+
   return {
     id: account.id as string,
     toolkit: toolkit.toUpperCase(),
-    status: statusMap[(account.status as string) || ''] || 'disconnected',
+    status: statusMap[status] || 'disconnected',
     connectedAt: account.createdAt as string | undefined,
     metadata: {
       email: account.email as string | undefined,

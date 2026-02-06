@@ -19,10 +19,8 @@ const log = logger('ComposioCallbackAPI');
 
 export async function GET(request: NextRequest) {
   try {
-    // Get params
+    // Get params from URL (Composio may add some)
     const searchParams = request.nextUrl.searchParams;
-    const toolkit = searchParams.get('toolkit');
-    const connectionId = searchParams.get('connectionId');
     const error = searchParams.get('error');
 
     // Base redirect URL
@@ -31,13 +29,23 @@ export async function GET(request: NextRequest) {
 
     // Handle errors from Composio
     if (error) {
-      log.warn('OAuth error from Composio', { error, toolkit });
+      log.warn('OAuth error from Composio', { error });
       settingsUrl.searchParams.set('error', `Connection failed: ${error}`);
       return NextResponse.redirect(settingsUrl.toString());
     }
 
-    // Get user from Supabase auth
+    // Get connectionId and toolkit from cookie (set by connect API)
     const cookieStore = await cookies();
+    const connectionId = cookieStore.get('composio_connection_id')?.value;
+    const toolkit = cookieStore.get('composio_connection_toolkit')?.value;
+
+    log.info('Callback received', {
+      connectionId,
+      toolkit,
+      urlParams: Object.fromEntries(searchParams.entries()),
+    });
+
+    // Get user from Supabase auth
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -68,23 +76,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(settingsUrl.toString());
     }
 
+    // Clear the connection cookies
+    cookieStore.delete('composio_connection_id');
+    cookieStore.delete('composio_connection_toolkit');
+
     // If we have a connectionId, wait for it to become active
     if (connectionId) {
-      const account = await waitForConnection(connectionId, 10000); // 10 second timeout
+      log.info('Waiting for connection to become active', { connectionId, toolkit });
+      const account = await waitForConnection(connectionId, 30000); // 30 second timeout
 
       if (account && account.status === 'connected') {
         log.info('Connection successful', {
           userId: user.id,
           toolkit,
           connectionId,
+          accountToolkit: account.toolkit,
         });
         settingsUrl.searchParams.set('success', `Connected to ${toolkit || 'service'}`);
       } else {
-        log.warn('Connection pending or failed', { connectionId, toolkit });
+        log.warn('Connection pending or failed', { connectionId, toolkit, account });
+        // Still might be processing, tell user to check back
         settingsUrl.searchParams.set('pending', toolkit || 'service');
       }
     } else {
-      // Just mark as success if no connectionId (Composio handled it)
+      log.warn('No connectionId in cookie - OAuth flow may have been interrupted');
+      // Try to show success anyway - the user did complete OAuth
       settingsUrl.searchParams.set('success', `Connected to ${toolkit || 'service'}`);
     }
 
