@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     // Base redirect URL
     const settingsUrl = new URL('/settings', process.env.NEXT_PUBLIC_APP_URL);
-    settingsUrl.searchParams.set('tab', 'connections');
+    settingsUrl.searchParams.set('tab', 'connectors');
 
     // Handle errors from Composio
     if (error) {
@@ -59,7 +59,9 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       settingsUrl.searchParams.set('error', 'Not authenticated');
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
         log.info('Connection successful', {
           userId: user.id,
           toolkit,
-          connectionId
+          connectionId,
         });
         settingsUrl.searchParams.set('success', `Connected to ${toolkit || 'service'}`);
       } else {
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error('Callback error', { error });
     const settingsUrl = new URL('/settings', process.env.NEXT_PUBLIC_APP_URL);
-    settingsUrl.searchParams.set('tab', 'connections');
+    settingsUrl.searchParams.set('tab', 'connectors');
     settingsUrl.searchParams.set('error', 'Connection failed');
     return NextResponse.redirect(settingsUrl.toString());
   }
