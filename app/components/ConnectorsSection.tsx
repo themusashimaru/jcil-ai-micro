@@ -3,9 +3,10 @@
 /**
  * CONNECTORS SECTION
  *
- * Manages external service connections like GitHub.
- * Users can connect via Personal Access Token.
- * Also manages BYOK (Bring Your Own Key) for AI providers.
+ * Manages external service connections:
+ * - GitHub (Personal Access Token)
+ * - BYOK (Bring Your Own Key) for AI providers
+ * - 500+ App Integrations via Composio
  */
 
 import { useState, useEffect } from 'react';
@@ -15,40 +16,6 @@ interface GitHubStatus {
   connected: boolean;
   username?: string;
   avatarUrl?: string;
-  error?: string;
-}
-
-interface SpotifyStatus {
-  configured: boolean;
-  connected: boolean;
-  userId?: string;
-  displayName?: string;
-  email?: string;
-  imageUrl?: string;
-  product?: string;
-  connectedAt?: string;
-  error?: string;
-}
-
-interface UberStatus {
-  configured: boolean;
-  connected: boolean;
-  userId?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  connectedAt?: string;
-  error?: string;
-}
-
-interface NotionStatus {
-  configured: boolean;
-  connected: boolean;
-  workspaceId?: string;
-  workspaceName?: string;
-  userName?: string;
-  userEmail?: string;
-  connectedAt?: string;
   error?: string;
 }
 
@@ -64,7 +31,7 @@ interface ProviderKeyStatus {
 const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   claude: (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-2-8c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-2-8c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
     </svg>
   ),
   openai: (
@@ -75,7 +42,9 @@ const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   deepseek: (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
       <circle cx="12" cy="12" r="10" fill="currentColor" />
-      <text x="12" y="16" fontSize="10" fill="white" textAnchor="middle" fontWeight="bold">D</text>
+      <text x="12" y="16" fontSize="10" fill="white" textAnchor="middle" fontWeight="bold">
+        D
+      </text>
     </svg>
   ),
   xai: (
@@ -92,13 +61,7 @@ const PROVIDER_ICONS: Record<string, React.ReactNode> = {
 
 export default function ConnectorsSection() {
   const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
-  const [spotifyStatus, setSpotifyStatus] = useState<SpotifyStatus | null>(null);
-  const [uberStatus, setUberStatus] = useState<UberStatus | null>(null);
-  const [notionStatus, setNotionStatus] = useState<NotionStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [spotifyLoading, setSpotifyLoading] = useState(true);
-  const [uberLoading, setUberLoading] = useState(true);
-  const [notionLoading, setNotionLoading] = useState(true);
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [token, setToken] = useState('');
   const [saving, setSaving] = useState(false);
@@ -117,29 +80,7 @@ export default function ConnectorsSection() {
   // Fetch connection statuses
   useEffect(() => {
     fetchGitHubStatus();
-    fetchSpotifyStatus();
-    fetchUberStatus();
-    fetchNotionStatus();
     fetchProviderKeys();
-
-    // Check for connection success from URL params
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('spotify') === 'connected') {
-      setSuccess('Spotify connected successfully!');
-      window.history.replaceState({}, '', '/settings?tab=connectors');
-    }
-    if (params.get('uber') === 'connected') {
-      setSuccess('Uber connected successfully!');
-      window.history.replaceState({}, '', '/settings?tab=connectors');
-    }
-    if (params.get('notion') === 'connected') {
-      setSuccess('Notion connected successfully!');
-      window.history.replaceState({}, '', '/settings?tab=connectors');
-    }
-    if (params.get('error')) {
-      setError(`Connection error: ${params.get('error')}`);
-      window.history.replaceState({}, '', '/settings?tab=connectors');
-    }
   }, []);
 
   const fetchGitHubStatus = async () => {
@@ -148,7 +89,6 @@ export default function ConnectorsSection() {
       const response = await fetch('/api/user/github-token');
       if (response.ok) {
         const responseData = await response.json();
-        // API returns { ok: true, data: { connected: ... } }
         const status = responseData.data || responseData;
         setGithubStatus(status);
       }
@@ -156,122 +96,6 @@ export default function ConnectorsSection() {
       console.error('Failed to fetch GitHub status:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchSpotifyStatus = async () => {
-    setSpotifyLoading(true);
-    try {
-      const response = await fetch('/api/connectors/spotify/status');
-      if (response.ok) {
-        const responseData = await response.json();
-        const status = responseData.data || responseData;
-        setSpotifyStatus(status);
-      }
-    } catch (err) {
-      console.error('Failed to fetch Spotify status:', err);
-    } finally {
-      setSpotifyLoading(false);
-    }
-  };
-
-  const handleSpotifyConnect = () => {
-    // Redirect to Spotify OAuth
-    window.location.href = '/api/connectors/spotify/auth';
-  };
-
-  const handleSpotifyDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect Spotify?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/connectors/spotify/disconnect', { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error('Failed to disconnect Spotify');
-      }
-      setSpotifyStatus({ configured: true, connected: false });
-      setSuccess('Spotify disconnected');
-    } catch (err) {
-      console.error('Failed to disconnect Spotify:', err);
-      setError('Failed to disconnect Spotify. Please try again.');
-    }
-  };
-
-  const fetchUberStatus = async () => {
-    setUberLoading(true);
-    try {
-      const response = await fetch('/api/connectors/uber/status');
-      if (response.ok) {
-        const responseData = await response.json();
-        const status = responseData.data || responseData;
-        setUberStatus(status);
-      }
-    } catch (err) {
-      console.error('Failed to fetch Uber status:', err);
-    } finally {
-      setUberLoading(false);
-    }
-  };
-
-  const handleUberConnect = () => {
-    // Redirect to Uber OAuth
-    window.location.href = '/api/connectors/uber/auth';
-  };
-
-  const handleUberDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect Uber?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/connectors/uber/disconnect', { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error('Failed to disconnect Uber');
-      }
-      setUberStatus({ configured: true, connected: false });
-      setSuccess('Uber disconnected');
-    } catch (err) {
-      console.error('Failed to disconnect Uber:', err);
-      setError('Failed to disconnect Uber. Please try again.');
-    }
-  };
-
-  const fetchNotionStatus = async () => {
-    setNotionLoading(true);
-    try {
-      const response = await fetch('/api/connectors/notion/status');
-      if (response.ok) {
-        const responseData = await response.json();
-        const status = responseData.data || responseData;
-        setNotionStatus(status);
-      }
-    } catch (err) {
-      console.error('Failed to fetch Notion status:', err);
-    } finally {
-      setNotionLoading(false);
-    }
-  };
-
-  const handleNotionConnect = () => {
-    window.location.href = '/api/connectors/notion/auth';
-  };
-
-  const handleNotionDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect Notion?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/connectors/notion/disconnect', { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error('Failed to disconnect Notion');
-      }
-      setNotionStatus({ configured: true, connected: false });
-      setSuccess('Notion disconnected');
-    } catch (err) {
-      console.error('Failed to disconnect Notion:', err);
-      setError('Failed to disconnect Notion. Please try again.');
     }
   };
 
@@ -293,7 +117,6 @@ export default function ConnectorsSection() {
       });
 
       const responseData = await response.json();
-      // API returns { ok: true, data: { ... } } or { ok: false, error: ... }
       const data = responseData.data || responseData;
 
       if (!response.ok) {
@@ -452,7 +275,7 @@ export default function ConnectorsSection() {
         Connectors
       </h2>
       <p className="mb-6 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>
-        Connect external services to enhance your development workflow.
+        Connect external services to supercharge your AI workflows.
       </p>
 
       {/* Success/Error Messages */}
@@ -469,9 +292,7 @@ export default function ConnectorsSection() {
 
       {/* GitHub Connector */}
       <div className="border rounded-xl p-4 sm:p-5" style={{ borderColor: 'var(--border)' }}>
-        {/* Mobile: Stack vertically, Desktop: Side by side */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          {/* Left side: Icon and info */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-900 flex items-center justify-center flex-shrink-0">
               <svg
@@ -495,7 +316,6 @@ export default function ConnectorsSection() {
             </div>
           </div>
 
-          {/* Right side: Status/Actions */}
           <div className="flex items-center gap-3 sm:flex-shrink-0">
             {loading ? (
               <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -554,7 +374,7 @@ export default function ConnectorsSection() {
                   backgroundColor: 'var(--background)',
                   borderColor: 'var(--border)',
                   color: 'var(--text-primary)',
-                  fontSize: '16px', // Prevent iOS zoom
+                  fontSize: '16px',
                 }}
               />
             </div>
@@ -596,215 +416,14 @@ export default function ConnectorsSection() {
         )}
       </div>
 
-      {/* Spotify Connector */}
-      <div className="border rounded-xl p-4 sm:p-5 mt-4" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          {/* Left side: Icon and info */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#1DB954] flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3
-                className="font-semibold text-base sm:text-lg"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                Spotify
-              </h3>
-              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Control music, create playlists, get recommendations
-              </p>
-            </div>
-          </div>
-
-          {/* Right side: Status/Actions */}
-          <div className="flex items-center gap-3 sm:flex-shrink-0">
-            {spotifyLoading ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Loading...
-              </div>
-            ) : !spotifyStatus?.configured ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Not configured
-              </div>
-            ) : spotifyStatus?.connected ? (
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-2">
-                  {spotifyStatus.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={spotifyStatus.imageUrl}
-                      alt={spotifyStatus.displayName}
-                      className="w-6 h-6 rounded-full"
-                    />
-                  )}
-                  <span className="text-sm font-medium text-green-600">
-                    {spotifyStatus.displayName}
-                  </span>
-                  {spotifyStatus.product === 'premium' && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-[#1DB954] text-white">
-                      Premium
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={handleSpotifyDisconnect}
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleSpotifyConnect}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#1DB954] text-white hover:bg-[#1ed760] transition-colors"
-              >
-                Connect
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Uber Connector */}
-      <div className="border rounded-xl p-4 sm:p-5 mt-4" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          {/* Left side: Icon and info */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M12.0009 0C5.37328 0 0 5.37328 0 12.0009C0 18.6267 5.37328 24 12.0009 24C18.6267 24 24 18.6267 24 12.0009C24 5.37328 18.6267 0 12.0009 0ZM6.54545 8.18182H8.72727V15.8182H6.54545V8.18182ZM17.4545 12.5455C17.4545 14.2909 16.0364 15.8182 14.1818 15.8182H10.9091V8.18182H14.1818C16.0364 8.18182 17.4545 9.6 17.4545 11.4545V12.5455Z"/>
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3
-                className="font-semibold text-base sm:text-lg"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                Uber
-              </h3>
-              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Get ride estimates, request rides, track trips
-              </p>
-            </div>
-          </div>
-
-          {/* Right side: Status/Actions */}
-          <div className="flex items-center gap-3 sm:flex-shrink-0">
-            {uberLoading ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Loading...
-              </div>
-            ) : !uberStatus?.configured ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Not configured
-              </div>
-            ) : uberStatus?.connected ? (
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-green-600">
-                    {uberStatus.firstName} {uberStatus.lastName}
-                  </span>
-                </div>
-                <button
-                  onClick={handleUberDisconnect}
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleUberConnect}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
-              >
-                Connect
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Notion Connector */}
-      <div className="border rounded-xl p-4 sm:p-5 mt-4" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          {/* Left side: Icon and info */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#000000] flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 2.142c-.42-.326-.98-.7-2.055-.606L3.01 2.7c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.166V6.354c0-.606-.233-.933-.748-.886l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952l1.448.327s0 .84-1.168.84l-3.22.186c-.094-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.62c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.514.28-.886.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.933.653.933 1.212v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.448-1.632z"/>
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3
-                className="font-semibold text-base sm:text-lg"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                Notion
-              </h3>
-              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Create pages, manage databases, search workspace
-              </p>
-            </div>
-          </div>
-
-          {/* Right side: Status/Actions */}
-          <div className="flex items-center gap-3 sm:flex-shrink-0">
-            {notionLoading ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Loading...
-              </div>
-            ) : !notionStatus?.configured ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Not configured
-              </div>
-            ) : notionStatus?.connected ? (
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-green-600">
-                    {notionStatus.workspaceName || notionStatus.userName}
-                  </span>
-                </div>
-                <button
-                  onClick={handleNotionDisconnect}
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleNotionConnect}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
-              >
-                Connect
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* API Keys Section - BYOK */}
       <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
         <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
           Code Lab API Keys
         </h3>
         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-          Bring your own API keys to use with Code Lab. Keys are encrypted and never shown after saving.
+          Bring your own API keys to use with Code Lab. Keys are encrypted and never shown after
+          saving.
         </p>
 
         {loadingKeys ? (
@@ -820,7 +439,6 @@ export default function ConnectorsSection() {
                 style={{ borderColor: 'var(--border)' }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  {/* Provider Info */}
                   <div className="flex items-center gap-3">
                     <div
                       className="w-9 h-9 rounded-lg flex items-center justify-center"
@@ -835,19 +453,24 @@ export default function ConnectorsSection() {
                       {provider.configured && (
                         <div className="space-y-0.5">
                           {provider.lastChars && (
-                            <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                            <div
+                              className="text-xs font-mono"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
                               ••••••••{provider.lastChars}
                             </div>
                           )}
                           <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                            Model: <span className="font-mono">{provider.model || provider.defaultModel}</span>
+                            Model:{' '}
+                            <span className="font-mono">
+                              {provider.model || provider.defaultModel}
+                            </span>
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-2">
                     {provider.configured ? (
                       <>
@@ -881,7 +504,6 @@ export default function ConnectorsSection() {
                 {/* Key Input Form */}
                 {showKeyInput === provider.provider && (
                   <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                    {/* API Key Input */}
                     <label
                       className="block text-sm font-medium mb-1.5"
                       style={{ color: 'var(--text-primary)' }}
@@ -902,7 +524,6 @@ export default function ConnectorsSection() {
                       }}
                     />
 
-                    {/* Model Input */}
                     <label
                       className="block text-sm font-medium mb-1.5"
                       style={{ color: 'var(--text-primary)' }}
@@ -923,7 +544,10 @@ export default function ConnectorsSection() {
                       }}
                     />
                     <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-                      Leave blank to use default: <code className="px-1 py-0.5 bg-gray-100 rounded">{provider.defaultModel}</code>
+                      Leave blank to use default:{' '}
+                      <code className="px-1 py-0.5 bg-gray-100 rounded">
+                        {provider.defaultModel}
+                      </code>
                     </p>
 
                     <div className="flex flex-wrap gap-2">
@@ -957,7 +581,8 @@ export default function ConnectorsSection() {
                       </button>
                     </div>
                     <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                      Your API key will be encrypted. You won&apos;t be able to view it after saving.
+                      Your API key will be encrypted. You won&apos;t be able to view it after
+                      saving.
                     </p>
                   </div>
                 )}
@@ -967,7 +592,7 @@ export default function ConnectorsSection() {
         )}
       </div>
 
-      {/* Composio App Integrations */}
+      {/* Composio App Integrations - 500+ Apps */}
       <ComposioToolkitsSection />
     </section>
   );

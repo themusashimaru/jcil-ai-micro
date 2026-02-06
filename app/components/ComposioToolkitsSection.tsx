@@ -50,6 +50,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   finance: 'Finance',
   calendar: 'Calendar',
   storage: 'Storage',
+  analytics: 'Analytics',
+  marketing: 'Marketing',
+  ecommerce: 'E-commerce',
+  hr: 'HR',
+  support: 'Support',
+  automation: 'Automation',
+  media: 'Media',
+  education: 'Education',
+  travel: 'Travel',
 };
 
 export default function ComposioToolkitsSection() {
@@ -153,10 +162,9 @@ export default function ComposioToolkitsSection() {
       setDisconnecting(toolkit.id);
       setError(null);
 
-      const response = await fetch(
-        `/api/composio/accounts?connectionId=${toolkit.connectionId}`,
-        { method: 'DELETE' }
-      );
+      const response = await fetch(`/api/composio/accounts?connectionId=${toolkit.connectionId}`, {
+        method: 'DELETE',
+      });
 
       if (!response.ok) {
         throw new Error('Failed to disconnect');
@@ -173,13 +181,14 @@ export default function ComposioToolkitsSection() {
   };
 
   // Filter toolkits for display
-  const displayToolkits = selectedCategory === 'popular'
-    ? groupedToolkits?.popular || []
-    : selectedCategory
-    ? toolkits.filter((t) => t.category === selectedCategory)
-    : search
-    ? toolkits
-    : groupedToolkits?.popular || [];
+  const displayToolkits =
+    selectedCategory === 'popular'
+      ? groupedToolkits?.popular || []
+      : selectedCategory
+        ? toolkits.filter((t) => t.category === selectedCategory)
+        : search
+          ? toolkits
+          : groupedToolkits?.popular || [];
 
   if (!configured) {
     return (
@@ -216,10 +225,7 @@ export default function ComposioToolkitsSection() {
       {success && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
           {success}
-          <button
-            onClick={() => setSuccess(null)}
-            className="ml-2 text-green-800 hover:underline"
-          >
+          <button onClick={() => setSuccess(null)} className="ml-2 text-green-800 hover:underline">
             Dismiss
           </button>
         </div>
@@ -227,10 +233,7 @@ export default function ComposioToolkitsSection() {
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-2 text-red-800 hover:underline"
-          >
+          <button onClick={() => setError(null)} className="ml-2 text-red-800 hover:underline">
             Dismiss
           </button>
         </div>
@@ -335,10 +338,7 @@ export default function ComposioToolkitsSection() {
                     >
                       {toolkit.displayName}
                     </h4>
-                    <p
-                      className="text-xs line-clamp-2"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
+                    <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
                       {toolkit.description}
                     </p>
                   </div>

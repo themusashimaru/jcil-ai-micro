@@ -3,38 +3,16 @@
  * =================
  *
  * Central hub for all external service connectors.
- * Currently supports: GitHub, Vercel Sandbox, Resend
- * Coming soon: Supabase
+ * Supports: GitHub, Vercel Sandbox, Resend, BFL
+ *
+ * For 500+ app integrations (Spotify, Uber, Notion, etc.),
+ * see @/lib/composio which uses Composio SDK.
  */
 
 export * from './types';
 export * from './github';
 export * from './vercel-sandbox';
 export * from './resend';
-
-// Spotify, Uber, and Notion have some overlapping function names, so export them as namespaces
-export * as spotify from './spotify';
-export * as uber from './uber';
-export * as notion from './notion';
-
-// Also export the most commonly used functions directly
-export {
-  isSpotifyConfigured,
-  getSpotifyAuthUrl,
-  getSpotifyConnectionStatus,
-} from './spotify';
-
-export {
-  isUberConfigured,
-  getUberAuthUrl,
-  getUberConnectionStatus,
-} from './uber';
-
-export {
-  isNotionConfigured,
-  getNotionAuthUrl,
-  getNotionConnectionStatus,
-} from './notion';
 
 import type { Connector, ConnectorType } from './types';
 import { CONNECTOR_CONFIGS } from './types';
@@ -45,9 +23,7 @@ import { isResendConfigured, getResendConnectionStatus } from './resend';
 /**
  * Get status of all connectors for a user
  */
-export async function getAllConnectorStatuses(
-  githubToken?: string | null
-): Promise<Connector[]> {
+export async function getAllConnectorStatuses(githubToken?: string | null): Promise<Connector[]> {
   const connectors: Connector[] = [];
 
   // GitHub

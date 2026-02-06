@@ -3,7 +3,7 @@
  * ============================
  *
  * TypeScript types for Composio integration.
- * Handles 500+ app integrations via unified auth.
+ * Handles 150+ app integrations via unified auth.
  */
 
 // ============================================================================
@@ -18,33 +18,37 @@ export type ToolkitCategory =
   | 'crm'
   | 'finance'
   | 'calendar'
-  | 'storage';
+  | 'storage'
+  | 'analytics'
+  | 'marketing'
+  | 'ecommerce'
+  | 'hr'
+  | 'support'
+  | 'automation'
+  | 'media'
+  | 'education'
+  | 'travel';
 
 export interface ToolkitConfig {
-  id: string;                    // Composio toolkit ID (e.g., 'GMAIL', 'SLACK')
-  displayName: string;           // Human-readable name
-  description: string;           // What it does
-  icon: string;                  // Emoji icon
+  id: string; // Composio toolkit ID (e.g., 'GMAIL', 'SLACK')
+  displayName: string; // Human-readable name
+  description: string; // What it does
+  icon: string; // Emoji icon
   category: ToolkitCategory;
   authType: 'oauth2' | 'api_key' | 'basic';
-  scopes?: string[];             // Required OAuth scopes
-  popular?: boolean;             // Show in quick connect UI
+  scopes?: string[]; // Required OAuth scopes
+  popular?: boolean; // Show in quick connect UI
 }
 
 // ============================================================================
 // CONNECTION STATES
 // ============================================================================
 
-export type ConnectionStatus =
-  | 'disconnected'
-  | 'pending'
-  | 'connected'
-  | 'expired'
-  | 'failed';
+export type ConnectionStatus = 'disconnected' | 'pending' | 'connected' | 'expired' | 'failed';
 
 export interface ConnectedAccount {
-  id: string;                    // Composio connected account ID
-  toolkit: string;               // Toolkit ID (e.g., 'GMAIL')
+  id: string; // Composio connected account ID
+  toolkit: string; // Toolkit ID (e.g., 'GMAIL')
   status: ConnectionStatus;
   connectedAt?: string;
   expiresAt?: string;
@@ -113,12 +117,15 @@ export interface ComposioTool {
   description: string;
   parameters: {
     type: 'object';
-    properties: Record<string, {
-      type: string;
-      description?: string;
-      enum?: string[];
-      required?: boolean;
-    }>;
+    properties: Record<
+      string,
+      {
+        type: string;
+        description?: string;
+        enum?: string[];
+        required?: boolean;
+      }
+    >;
     required?: string[];
   };
 }
