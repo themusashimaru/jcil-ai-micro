@@ -62,18 +62,30 @@ const CATEGORY_LABELS: Record<string, string> = {
   travel: 'Travel',
 };
 
-// Featured apps to showcase at the top (the coolest ones)
+// Featured apps to showcase at the top (the BIG ones everyone knows)
 const FEATURED_APP_IDS = [
+  // Google Suite - everyone uses these
+  'GMAIL',
+  'GOOGLE_CALENDAR',
+  'GOOGLE_DRIVE',
+  'GOOGLE_SHEETS',
+  // Social Media Giants
   'TWITTER',
   'INSTAGRAM',
   'FACEBOOK',
+  'LINKEDIN',
   'TIKTOK',
   'YOUTUBE',
-  'LINKEDIN',
-  'SPOTIFY',
-  'NOTION',
+  // Workplace Essentials
   'SLACK',
-  'DISCORD',
+  'NOTION',
+  'ZOOM',
+  'MICROSOFT_TEAMS',
+  // Other Big Names
+  'WHATSAPP',
+  'SPOTIFY',
+  'GITHUB',
+  'STRIPE',
 ];
 
 export default function ComposioToolkitsSection() {

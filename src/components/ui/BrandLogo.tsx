@@ -3,15 +3,16 @@
 /**
  * BRAND LOGO COMPONENT
  *
- * Displays official brand logos for app integrations using Simple Icons CDN.
- * Falls back to styled initials if logo not available.
+ * Displays official brand logos for app integrations.
+ * Uses Simple Icons CDN for most icons, with embedded SVGs for those not available.
  */
 
 /* eslint-disable @next/next/no-img-element */
 import { useState } from 'react';
 
 // Simple Icons CDN mapping - slug names for the CDN
-// Format: https://cdn.simpleicons.org/{slug}/{color}
+// Format: https://cdn.simpleicons.org/{slug}
+// NOTE: Only include icons that ARE available on Simple Icons CDN
 const SIMPLE_ICONS_SLUGS: Record<string, string> = {
   // Communication
   GMAIL: 'gmail',
@@ -41,9 +42,8 @@ const SIMPLE_ICONS_SLUGS: Record<string, string> = {
   MIRO: 'miro',
   FIGMA: 'figma',
 
-  // Social Media
+  // Social Media (LinkedIn removed - not on Simple Icons)
   TWITTER: 'x',
-  LINKEDIN: 'linkedin',
   INSTAGRAM: 'instagram',
   YOUTUBE: 'youtube',
   TIKTOK: 'tiktok',
@@ -110,6 +110,17 @@ const SIMPLE_ICONS_SLUGS: Record<string, string> = {
   VIMEO: 'vimeo',
 };
 
+// Embedded SVG icons for brands not available on Simple Icons CDN
+// These are official brand icons embedded directly for reliability
+const EMBEDDED_SVGS: Record<string, React.ReactNode> = {
+  // LinkedIn - official "in" logo (not on Simple Icons due to trademark)
+  LINKEDIN: (
+    <svg viewBox="0 0 24 24" fill="#0A66C2" className="w-full h-full">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  ),
+};
+
 // Brand colors for fallback initials
 const BRAND_COLORS: Record<string, string> = {
   GMAIL: '#EA4335',
@@ -126,7 +137,7 @@ const BRAND_COLORS: Record<string, string> = {
   TODOIST: '#E44332',
   ASANA: '#F06A6A',
   TRELLO: '#0079BF',
-  TWITTER: '#1DA1F2',
+  TWITTER: '#000000',
   LINKEDIN: '#0A66C2',
   INSTAGRAM: '#E4405F',
   YOUTUBE: '#FF0000',
@@ -145,6 +156,11 @@ const BRAND_COLORS: Record<string, string> = {
   GOOGLE_CALENDAR: '#4285F4',
   GOOGLE_DRIVE: '#4285F4',
   ZENDESK: '#03363D',
+  PINTEREST: '#E60023',
+  REDDIT: '#FF4500',
+  PAYPAL: '#00457C',
+  WHATSAPP_BUSINESS: '#25D366',
+  TELEGRAM_BOT: '#0088CC',
 };
 
 interface BrandLogoProps {
@@ -163,13 +179,11 @@ export default function BrandLogo({
   const [imgError, setImgError] = useState(false);
   const upperToolkitId = toolkitId.toUpperCase();
   const iconSlug = SIMPLE_ICONS_SLUGS[upperToolkitId];
+  const embeddedSvg = EMBEDDED_SVGS[upperToolkitId];
   const brandColor = BRAND_COLORS[upperToolkitId] || '#6B7280';
 
-  // Use Simple Icons CDN for reliable brand SVGs
-  // Format: https://cdn.simpleicons.org/{slug}/{color}
-  // Remove # from color for URL
-  const colorHex = brandColor.replace('#', '');
-  const logoUrl = iconSlug ? `https://cdn.simpleicons.org/${iconSlug}/${colorHex}` : null;
+  // Use Simple Icons CDN for icons that are available there
+  const logoUrl = iconSlug ? `https://cdn.simpleicons.org/${iconSlug}` : null;
 
   const sizeClasses = {
     sm: 'w-6 h-6',
@@ -192,7 +206,18 @@ export default function BrandLogo({
     return (words[0][0] + (words[1]?.[0] || '')).toUpperCase();
   };
 
-  // If we have a logo URL and no error, try to display it
+  // Priority 1: Use embedded SVG if available (for icons not on Simple Icons)
+  if (embeddedSvg) {
+    return (
+      <div
+        className={`${sizeClasses[size]} rounded-lg overflow-hidden flex items-center justify-center bg-white p-1.5 ${className}`}
+      >
+        {embeddedSvg}
+      </div>
+    );
+  }
+
+  // Priority 2: Use Simple Icons CDN if slug exists and no error
   if (logoUrl && !imgError) {
     return (
       <div
@@ -203,12 +228,13 @@ export default function BrandLogo({
           alt={displayName}
           className="object-contain w-3/4 h-3/4"
           onError={() => setImgError(true)}
+          loading="lazy"
         />
       </div>
     );
   }
 
-  // Fallback to styled initials with brand color
+  // Priority 3: Fallback to styled initials with brand color
   return (
     <div
       className={`${sizeClasses[size]} rounded-lg flex items-center justify-center font-bold ${fontSizes[size]} text-white ${className}`}

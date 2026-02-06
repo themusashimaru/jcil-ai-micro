@@ -69,14 +69,13 @@ export async function initiateConnection(
   try {
     log.info('Initiating connection', { userId, toolkit });
 
-    // First, we need to get or create an auth config for this toolkit
     // For managed auth (Composio handles OAuth), we can use the default config
     const toolkitSlug = toolkit.toUpperCase();
 
     // Try to list existing auth configs for this toolkit
-    // The API expects toolkit as a nested object with slug property
+    // SDK API: authConfigs.list({ app: 'APP_NAME' })
     const authConfigs = await client.authConfigs.list({
-      toolkit: { slug: toolkitSlug },
+      app: toolkitSlug,
     });
 
     let authConfigId: string;
@@ -86,17 +85,16 @@ export async function initiateConnection(
       authConfigId = authConfigs.items[0].id;
     } else {
       // Create a new managed auth config for this toolkit
-      // The API expects toolkit as a nested object with slug property
-      const newConfig = await client.authConfigs.create({
-        toolkit: { slug: toolkitSlug },
+      // SDK API: authConfigs.create(appName, options) - app name is FIRST positional arg
+      const newConfig = await client.authConfigs.create(toolkitSlug, {
         name: `${toolkit} Auth`,
-        useComposioManagedAuth: true,
+        type: 'use_composio_managed_auth',
       });
       authConfigId = newConfig.id;
     }
 
     // Now initiate the connection using the auth config
-    // The initiate method takes userId, authConfigId, and optional config
+    // SDK API: connectedAccounts.initiate(userId, authConfigId, options)
     const connectionRequest = await client.connectedAccounts.initiate(userId, authConfigId, {
       redirectUrl: redirectUrl,
     });
@@ -143,8 +141,9 @@ export async function getConnectedAccounts(userId: string): Promise<ConnectedAcc
   const client = getClient();
 
   try {
+    // SDK API: connectedAccounts.list({ userId: 'user123' })
     const accounts = await client.connectedAccounts.list({
-      entityId: userId,
+      userId: userId,
     });
 
     return (accounts.items || []).map(mapComposioAccount);
