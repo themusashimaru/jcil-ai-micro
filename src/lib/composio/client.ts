@@ -329,9 +329,13 @@ function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount 
 
 /**
  * Check if Composio is configured
+ * TEMPORARILY DISABLED - investigating chat crash
  */
 export function isComposioConfigured(): boolean {
-  return !!COMPOSIO_API_KEY;
+  // TEMPORARY: Disable Composio to prevent chat crashes
+  // TODO: Re-enable once root cause is fixed
+  return false;
+  // return !!COMPOSIO_API_KEY;
 }
 
 /**
