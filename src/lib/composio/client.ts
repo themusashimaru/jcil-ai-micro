@@ -73,8 +73,10 @@ export async function initiateConnection(
     // For managed auth (Composio handles OAuth), we can use the default config
     const toolkitSlug = toolkit.toUpperCase();
 
+    // Try to list existing auth configs for this toolkit
+    // The API expects toolkit as a nested object with slug property
     const authConfigs = await client.authConfigs.list({
-      appName: toolkitSlug,
+      toolkit: { slug: toolkitSlug },
     });
 
     let authConfigId: string;
@@ -84,8 +86,9 @@ export async function initiateConnection(
       authConfigId = authConfigs.items[0].id;
     } else {
       // Create a new managed auth config for this toolkit
+      // The API expects toolkit as a nested object with slug property
       const newConfig = await client.authConfigs.create({
-        appName: toolkitSlug,
+        toolkit: { slug: toolkitSlug },
         name: `${toolkit} Auth`,
         useComposioManagedAuth: true,
       });
@@ -93,9 +96,8 @@ export async function initiateConnection(
     }
 
     // Now initiate the connection using the auth config
-    const connectionRequest = await client.connectedAccounts.initiate({
-      entityId: userId,
-      authConfigId: authConfigId,
+    // The initiate method takes userId, authConfigId, and optional config
+    const connectionRequest = await client.connectedAccounts.initiate(userId, authConfigId, {
       redirectUrl: redirectUrl,
     });
 
