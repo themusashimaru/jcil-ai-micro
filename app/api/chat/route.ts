@@ -880,6 +880,12 @@ import {
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { getMCPManager } from '@/lib/mcp/mcp-client';
 import {
+  getComposioToolsForUser,
+  executeComposioTool,
+  isComposioTool,
+  isComposioConfigured,
+} from '@/lib/composio';
+import {
   ensureServerRunning,
   getUserServers as getMCPUserServers,
   getKnownToolsForServer,
@@ -4478,7 +4484,8 @@ SECURITY:
         description: `[MCP: ${mcpTool.serverId}] ${mcpTool.description || mcpTool.name}`,
         parameters: {
           type: 'object' as const,
-          properties: (mcpTool.inputSchema as { properties?: Record<string, unknown> })?.properties || {},
+          properties:
+            (mcpTool.inputSchema as { properties?: Record<string, unknown> })?.properties || {},
           required: (mcpTool.inputSchema as { required?: string[] })?.required || [],
         },
       };
@@ -4521,6 +4528,45 @@ SECURITY:
         count: mcpToolNames.length,
         tools: mcpToolNames,
       });
+    }
+
+    // ========================================
+    // COMPOSIO TOOLS INTEGRATION (150+ Apps)
+    // ========================================
+    // Get tools from user's connected apps (Twitter, Slack, Notion, etc.)
+    // These enable AI to interact with external services the user has connected
+    let composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null = null;
+
+    if (isComposioConfigured() && rateLimitIdentifier) {
+      try {
+        composioToolContext = await getComposioToolsForUser(rateLimitIdentifier);
+
+        if (composioToolContext.tools.length > 0) {
+          // Add Composio tools to the tools array
+          for (const composioTool of composioToolContext.tools) {
+            tools.push({
+              name: composioTool.name,
+              description: composioTool.description,
+              parameters: {
+                type: 'object' as const,
+                properties: composioTool.input_schema.properties || {},
+                required: composioTool.input_schema.required || [],
+              },
+            } as typeof webSearchTool);
+          }
+
+          // Add connected apps context to system prompt
+          fullSystemPrompt += composioToolContext.systemPromptAddition;
+
+          log.info('Composio tools added to chat', {
+            userId: rateLimitIdentifier,
+            connectedApps: composioToolContext.connectedApps,
+            toolCount: composioToolContext.tools.length,
+          });
+        }
+      } catch (composioError) {
+        log.warn('Failed to load Composio tools', { error: composioError });
+      }
     }
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
@@ -5795,7 +5841,10 @@ SECURITY:
                       };
                       break;
                     }
-                    log.info('MCP server ready (on-demand)', { serverId, tools: ensureResult.tools.length });
+                    log.info('MCP server ready (on-demand)', {
+                      serverId,
+                      tools: ensureResult.tools.length,
+                    });
                   }
 
                   log.info('Executing MCP tool', { serverId, tool: actualToolName });
@@ -5832,6 +5881,51 @@ SECURITY:
                 result = {
                   toolCallId: toolCall.id,
                   content: `Invalid MCP tool name format: ${toolName}`,
+                  isError: true,
+                };
+              }
+            } else if (isComposioTool(toolName)) {
+              // Handle Composio tool (prefixed with 'composio_')
+              // These are connected app integrations (Twitter, Slack, etc.)
+              try {
+                log.info('Executing Composio tool', {
+                  tool: toolName,
+                  userId: rateLimitIdentifier,
+                });
+
+                const composioResult = await executeComposioTool(
+                  rateLimitIdentifier || 'anonymous',
+                  toolName,
+                  typeof toolCall.arguments === 'string'
+                    ? JSON.parse(toolCall.arguments)
+                    : toolCall.arguments
+                );
+
+                if (composioResult.success) {
+                  result = {
+                    toolCallId: toolCall.id,
+                    content:
+                      typeof composioResult.result === 'string'
+                        ? composioResult.result
+                        : JSON.stringify(composioResult.result, null, 2),
+                    isError: false,
+                  };
+                  log.info('Composio tool executed successfully', { tool: toolName });
+                } else {
+                  result = {
+                    toolCallId: toolCall.id,
+                    content: `Composio tool error: ${composioResult.error}`,
+                    isError: true,
+                  };
+                }
+              } catch (composioError) {
+                log.error('Composio tool execution failed', {
+                  tool: toolName,
+                  error: (composioError as Error).message,
+                });
+                result = {
+                  toolCallId: toolCall.id,
+                  content: `Composio tool error: ${(composioError as Error).message}`,
                   isError: true,
                 };
               }

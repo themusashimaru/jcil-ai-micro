@@ -19,6 +19,7 @@ import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
 import { TerminalOutput } from './TerminalOutput';
+import ActionPreviewCard, { parseActionPreview, type ActionPreviewData } from './ActionPreviewCard';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { logger } from '@/lib/logger';
 
@@ -30,6 +31,12 @@ interface MarkdownRendererProps {
   enableCodeActions?: boolean;
   /** Callback when test result is received */
   onTestResult?: (result: { success: boolean; output: string }) => void;
+  /** Callback when action preview Send is clicked */
+  onActionSend?: (preview: ActionPreviewData) => Promise<void>;
+  /** Callback when action preview Edit is requested */
+  onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
+  /** Callback when action preview is cancelled */
+  onActionCancel?: (preview: ActionPreviewData) => void;
 }
 
 /**
@@ -59,47 +66,68 @@ function autoLinkifyUrls(text: string): string {
 const components: Components = {
   // Headers - inherit color from parent
   h1: ({ children }) => (
-    <h1 className="text-xl font-bold mt-4 mb-2 first:mt-0" style={{ color: 'inherit' }}>{children}</h1>
+    <h1 className="text-xl font-bold mt-4 mb-2 first:mt-0" style={{ color: 'inherit' }}>
+      {children}
+    </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-lg font-bold mt-3 mb-2 first:mt-0" style={{ color: 'inherit' }}>{children}</h2>
+    <h2 className="text-lg font-bold mt-3 mb-2 first:mt-0" style={{ color: 'inherit' }}>
+      {children}
+    </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-base font-semibold mt-3 mb-1 first:mt-0" style={{ color: 'inherit' }}>{children}</h3>
+    <h3 className="text-base font-semibold mt-3 mb-1 first:mt-0" style={{ color: 'inherit' }}>
+      {children}
+    </h3>
   ),
   h4: ({ children }) => (
-    <h4 className="text-sm font-semibold mt-2 mb-1 first:mt-0" style={{ color: 'inherit' }}>{children}</h4>
+    <h4 className="text-sm font-semibold mt-2 mb-1 first:mt-0" style={{ color: 'inherit' }}>
+      {children}
+    </h4>
   ),
 
   // Paragraphs
   p: ({ children }) => (
-    <p className="mb-2 last:mb-0 leading-relaxed" style={{ color: 'inherit' }}>{children}</p>
+    <p className="mb-2 last:mb-0 leading-relaxed" style={{ color: 'inherit' }}>
+      {children}
+    </p>
   ),
 
   // Bold and italic - inherit color
   strong: ({ children }) => (
-    <strong className="font-semibold" style={{ color: 'inherit' }}>{children}</strong>
+    <strong className="font-semibold" style={{ color: 'inherit' }}>
+      {children}
+    </strong>
   ),
   em: ({ children }) => (
-    <em className="italic" style={{ color: 'inherit' }}>{children}</em>
+    <em className="italic" style={{ color: 'inherit' }}>
+      {children}
+    </em>
   ),
 
   // Lists - inherit color
   ul: ({ children }) => (
-    <ul className="list-disc list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>{children}</ul>
+    <ul className="list-disc list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>
+      {children}
+    </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>{children}</ol>
+    <ol className="list-decimal list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>
+      {children}
+    </ol>
   ),
-  li: ({ children }) => (
-    <li style={{ color: 'inherit' }}>{children}</li>
-  ),
+  li: ({ children }) => <li style={{ color: 'inherit' }}>{children}</li>,
 
   // Links - use primary color
   // For document downloads (PDF, DOCX, XLSX), force download instead of opening
   a: ({ href, children }) => {
     // Debug: log all links
-    log.debug('Link rendered: href=' + href + ', isDoc=' + (href && (href.includes('/api/documents/') || href.includes('.pdf'))));
+    log.debug(
+      'Link rendered: href=' +
+        href +
+        ', isDoc=' +
+        (href && (href.includes('/api/documents/') || href.includes('.pdf')))
+    );
 
     // SAFETY: If href is empty or invalid, render as plain text (prevents navigation crash)
     if (!href || href === '' || href === '#') {
@@ -107,12 +135,12 @@ const components: Components = {
       return <span style={{ color: 'var(--primary)' }}>{children}</span>;
     }
 
-    const isDocumentLink = href && (
-      href.includes('/api/documents/') ||
-      href.includes('.pdf') ||
-      href.includes('.docx') ||
-      href.includes('.xlsx')
-    );
+    const isDocumentLink =
+      href &&
+      (href.includes('/api/documents/') ||
+        href.includes('.pdf') ||
+        href.includes('.docx') ||
+        href.includes('.xlsx'));
 
     if (isDocumentLink) {
       // Decode token from URL to get file info (token is base64url encoded JSON)
@@ -144,10 +172,16 @@ const components: Components = {
           return { extension: '.pdf', mimeType: 'application/pdf' };
         }
         if (fileType === 'docx' || href.includes('.docx')) {
-          return { extension: '.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+          return {
+            extension: '.docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          };
         }
         if (fileType === 'xlsx' || href.includes('.xlsx')) {
-          return { extension: '.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+          return {
+            extension: '.xlsx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          };
         }
         // Default based on URL patterns as fallback
         return { extension: '.pdf', mimeType: 'application/pdf' };
@@ -166,15 +200,22 @@ const components: Components = {
         if (urlPath && urlPath.includes('.')) return urlPath;
 
         // Use children text as filename base
-        const childText = typeof children === 'string' ? children :
-          (Array.isArray(children) ? children.join('') : 'document');
-        const safeName = String(childText).replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'document';
+        const childText =
+          typeof children === 'string'
+            ? children
+            : Array.isArray(children)
+              ? children.join('')
+              : 'document';
+        const safeName =
+          String(childText)
+            .replace(/[^a-z0-9]/gi, '_')
+            .toLowerCase() || 'document';
         return safeName + extension;
       };
 
       // Check if mobile (iOS or Android)
-      const isMobile = typeof navigator !== 'undefined' &&
-        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isMobile =
+        typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       // Download handler - uses Web Share API on mobile for better experience
       const handleDownload = async (e: React.MouseEvent) => {
@@ -196,7 +237,10 @@ const components: Components = {
           const response = await fetch(href, { credentials: 'include' });
 
           if (!response.ok) {
-            log.error('Download response not ok', { status: response.status, statusText: response.statusText });
+            log.error('Download response not ok', {
+              status: response.status,
+              statusText: response.statusText,
+            });
             // Try opening in new tab as fallback
             window.open(href, '_blank', 'noopener,noreferrer');
             return;
@@ -251,8 +295,18 @@ const components: Components = {
           className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md underline cursor-pointer hover:opacity-80 active:scale-95 transition-transform"
           style={{ color: 'var(--primary)' }}
         >
-          <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          <svg
+            className="h-4 w-4 flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
           </svg>
           <span>{children}</span>
         </button>
@@ -297,18 +351,21 @@ const components: Components = {
     // Block code with language header for Python
     if (isPython) {
       return (
-        <div className="rounded-lg overflow-hidden my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>
+        <div
+          className="rounded-lg overflow-hidden my-2"
+          style={{ backgroundColor: 'var(--glass-bg)' }}
+        >
           <div
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b"
             style={{
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               borderColor: 'var(--border)',
-              color: 'var(--text-muted)'
+              color: 'var(--text-muted)',
             }}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0C5.372 0 5.372 2.664 5.372 5.328v2.332h6.75v.778H3.84C1.72 8.438 0 10.5 0 13.5s1.72 5.062 3.84 5.062h2.16v-2.5c0-2.328 2.016-4.406 4.5-4.406h6.75c2.016 0 3.75-1.664 3.75-3.656V5.328C21 2.664 18.984 0 12 0zm-3.375 3.094a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z"/>
-              <path d="M18.628 8.438v2.5c0 2.328-2.016 4.406-4.5 4.406H7.378c-2.016 0-3.75 1.664-3.75 3.656v2.672c0 2.664 2.016 5.328 8.372 5.328 6.628 0 6.628-2.664 6.628-5.328v-2.332h-6.75v-.778h9.282c2.12 0 3.84-2.062 3.84-5.062s-1.72-5.062-3.84-5.062h-2.532zm-3.253 10.468a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z"/>
+              <path d="M12 0C5.372 0 5.372 2.664 5.372 5.328v2.332h6.75v.778H3.84C1.72 8.438 0 10.5 0 13.5s1.72 5.062 3.84 5.062h2.16v-2.5c0-2.328 2.016-4.406 4.5-4.406h6.75c2.016 0 3.75-1.664 3.75-3.656V5.328C21 2.664 18.984 0 12 0zm-3.375 3.094a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z" />
+              <path d="M18.628 8.438v2.5c0 2.328-2.016 4.406-4.5 4.406H7.378c-2.016 0-3.75 1.664-3.75 3.656v2.672c0 2.664 2.016 5.328 8.372 5.328 6.628 0 6.628-2.664 6.628-5.328v-2.332h-6.75v-.778h9.282c2.12 0 3.84-2.062 3.84-5.062s-1.72-5.062-3.84-5.062h-2.532zm-3.253 10.468a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z" />
             </svg>
             <span>Python</span>
           </div>
@@ -341,7 +398,12 @@ const components: Components = {
       return <>{children}</>;
     }
     return (
-      <pre className="rounded-lg overflow-x-auto my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</pre>
+      <pre
+        className="rounded-lg overflow-x-auto my-2"
+        style={{ backgroundColor: 'var(--glass-bg)' }}
+      >
+        {children}
+      </pre>
     );
   },
 
@@ -349,16 +411,18 @@ const components: Components = {
   blockquote: ({ children }) => (
     <blockquote
       className="border-l-4 pl-4 py-1 my-2 italic rounded-r"
-      style={{ borderColor: 'var(--primary)', backgroundColor: 'var(--glass-bg)', color: 'inherit' }}
+      style={{
+        borderColor: 'var(--primary)',
+        backgroundColor: 'var(--glass-bg)',
+        color: 'inherit',
+      }}
     >
       {children}
     </blockquote>
   ),
 
   // Horizontal rule
-  hr: () => (
-    <hr className="my-4" style={{ borderColor: 'var(--border)' }} />
-  ),
+  hr: () => <hr className="my-4" style={{ borderColor: 'var(--border)' }} />,
 
   // Tables - theme-aware
   table: ({ children }) => (
@@ -366,20 +430,18 @@ const components: Components = {
       <table className="min-w-full border-collapse">{children}</table>
     </div>
   ),
-  thead: ({ children }) => (
-    <thead style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</thead>
-  ),
-  tbody: ({ children }) => (
-    <tbody style={{ color: 'inherit' }}>{children}</tbody>
-  ),
-  tr: ({ children }) => (
-    <tr style={{ borderBottom: '1px solid var(--border)' }}>{children}</tr>
-  ),
+  thead: ({ children }) => <thead style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</thead>,
+  tbody: ({ children }) => <tbody style={{ color: 'inherit' }}>{children}</tbody>,
+  tr: ({ children }) => <tr style={{ borderBottom: '1px solid var(--border)' }}>{children}</tr>,
   th: ({ children }) => (
-    <th className="px-3 py-2 text-left text-sm font-semibold" style={{ color: 'inherit' }}>{children}</th>
+    <th className="px-3 py-2 text-left text-sm font-semibold" style={{ color: 'inherit' }}>
+      {children}
+    </th>
   ),
   td: ({ children }) => (
-    <td className="px-3 py-2 text-sm" style={{ color: 'inherit' }}>{children}</td>
+    <td className="px-3 py-2 text-sm" style={{ color: 'inherit' }}>
+      {children}
+    </td>
   ),
 };
 
@@ -395,13 +457,20 @@ function filterInternalMarkers(text: string): string {
 export function MarkdownRenderer({
   content,
   enableCodeActions = false,
-  onTestResult
+  onTestResult,
+  onActionSend,
+  onActionEdit,
+  onActionCancel,
 }: MarkdownRendererProps) {
+  const [actionSending, setActionSending] = useState(false);
+
   // Get code execution context (optional - gracefully handle if not in provider)
   const codeExecution = useCodeExecutionOptional();
 
   // Store test results by code hash to persist across re-renders
-  const [testResults, setTestResults] = useState<Map<string, { success: boolean; output: string; testing: boolean }>>(new Map());
+  const [testResults, setTestResults] = useState<
+    Map<string, { success: boolean; output: string; testing: boolean }>
+  >(new Map());
 
   // Pre-process content:
   // 1. Filter out internal markers (checkpoint state, etc.)
@@ -435,13 +504,55 @@ export function MarkdownRenderer({
         );
       }
 
+      // Check if this is an action preview (for Composio integrations)
+      if (language === 'action-preview') {
+        const previewData = parseActionPreview(`\`\`\`action-preview\n${codeContent}\n\`\`\``);
+        if (previewData) {
+          return (
+            <ActionPreviewCard
+              preview={previewData}
+              sending={actionSending}
+              onSend={async () => {
+                if (onActionSend) {
+                  setActionSending(true);
+                  try {
+                    await onActionSend(previewData);
+                  } finally {
+                    setActionSending(false);
+                  }
+                }
+              }}
+              onEdit={(instruction) => {
+                if (onActionEdit) {
+                  onActionEdit(previewData, instruction);
+                }
+              }}
+              onCancel={() => {
+                if (onActionCancel) {
+                  onActionCancel(previewData);
+                }
+              }}
+            />
+          );
+        }
+      }
+
       // Check if this is terminal/shell output - render with TerminalOutput component
-      const isTerminalOutput = ['bash', 'sh', 'shell', 'console', 'terminal', 'output', 'log'].includes(language.toLowerCase());
+      const isTerminalOutput = [
+        'bash',
+        'sh',
+        'shell',
+        'console',
+        'terminal',
+        'output',
+        'log',
+      ].includes(language.toLowerCase());
       if (isTerminalOutput) {
         // Detect if it looks like an error or success
-        const hasError = codeContent.toLowerCase().includes('error') ||
-                        codeContent.toLowerCase().includes('failed') ||
-                        codeContent.toLowerCase().includes('exception');
+        const hasError =
+          codeContent.toLowerCase().includes('error') ||
+          codeContent.toLowerCase().includes('failed') ||
+          codeContent.toLowerCase().includes('exception');
         return (
           <TerminalOutput
             output={codeContent}
@@ -452,7 +563,11 @@ export function MarkdownRenderer({
       }
 
       // Block code - use CodeBlockWithActions when enabled
-      log.debug('Code block render:', { enableCodeActions, hasCodeExecution: !!codeExecution, language });
+      log.debug('Code block render:', {
+        enableCodeActions,
+        hasCodeExecution: !!codeExecution,
+        language,
+      });
       if (enableCodeActions && codeExecution) {
         const codeHash = getCodeHash(codeContent);
         const testState = testResults.get(codeHash);
@@ -467,12 +582,16 @@ export function MarkdownRenderer({
             showPushButton={codeExecution.githubConnected}
             // Pass test state from parent
             externalTesting={testState?.testing}
-            externalTestResult={testState && !testState.testing ? { success: testState.success, output: testState.output } : undefined}
+            externalTestResult={
+              testState && !testState.testing
+                ? { success: testState.success, output: testState.output }
+                : undefined
+            }
             onTest={async (code, lang) => {
               log.debug('onTest called:', { lang, codeLength: code.length, codeHash });
 
               // Set testing state
-              setTestResults(prev => {
+              setTestResults((prev) => {
                 const next = new Map(prev);
                 next.set(codeHash, { success: false, output: '', testing: true });
                 return next;
@@ -481,10 +600,11 @@ export function MarkdownRenderer({
               try {
                 const result = await codeExecution.testCode(code, lang);
                 log.debug('testCode result', { result });
-                const output = result.outputs.map(o => o.stdout || o.stderr).join('\n') || result.error || '';
+                const output =
+                  result.outputs.map((o) => o.stdout || o.stderr).join('\n') || result.error || '';
 
                 // Store result
-                setTestResults(prev => {
+                setTestResults((prev) => {
                   const next = new Map(prev);
                   next.set(codeHash, { success: result.success, output, testing: false });
                   return next;
@@ -496,7 +616,7 @@ export function MarkdownRenderer({
                 return { success: result.success, output };
               } catch (error) {
                 const errorMsg = error instanceof Error ? error.message : 'Test failed';
-                setTestResults(prev => {
+                setTestResults((prev) => {
                   const next = new Map(prev);
                   next.set(codeHash, { success: false, output: errorMsg, testing: false });
                   return next;
@@ -522,14 +642,17 @@ export function MarkdownRenderer({
 
       // Default block code rendering (no actions)
       return (
-        <div className="rounded-lg overflow-hidden my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>
+        <div
+          className="rounded-lg overflow-hidden my-2"
+          style={{ backgroundColor: 'var(--glass-bg)' }}
+        >
           {language && (
             <div
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b"
               style={{
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderColor: 'var(--border)',
-                color: 'var(--text-muted)'
+                color: 'var(--text-muted)',
               }}
             >
               <span>{getDisplayLanguage(language)}</span>
@@ -548,9 +671,7 @@ export function MarkdownRenderer({
 
   return (
     <div className="markdown-content" style={{ color: 'inherit' }}>
-      <ReactMarkdown components={componentsWithActions}>
-        {processedContent}
-      </ReactMarkdown>
+      <ReactMarkdown components={componentsWithActions}>{processedContent}</ReactMarkdown>
     </div>
   );
 }

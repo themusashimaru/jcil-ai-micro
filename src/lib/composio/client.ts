@@ -71,8 +71,10 @@ export async function initiateConnection(
 
     // First, we need to get or create an auth config for this toolkit
     // For managed auth (Composio handles OAuth), we can use the default config
+    const toolkitSlug = toolkit.toUpperCase();
+
     const authConfigs = await client.authConfigs.list({
-      toolkit: toolkit.toUpperCase(),
+      appName: toolkitSlug,
     });
 
     let authConfigId: string;
@@ -83,7 +85,7 @@ export async function initiateConnection(
     } else {
       // Create a new managed auth config for this toolkit
       const newConfig = await client.authConfigs.create({
-        toolkit: toolkit.toUpperCase(),
+        appName: toolkitSlug,
         name: `${toolkit} Auth`,
         useComposioManagedAuth: true,
       });
@@ -91,11 +93,11 @@ export async function initiateConnection(
     }
 
     // Now initiate the connection using the auth config
-    const connectionRequest = await client.connectedAccounts.link(
-      userId,
-      authConfigId,
-      { redirectUri: redirectUrl }
-    );
+    const connectionRequest = await client.connectedAccounts.initiate({
+      entityId: userId,
+      authConfigId: authConfigId,
+      redirectUrl: redirectUrl,
+    });
 
     return {
       id: connectionRequest.id,
@@ -119,10 +121,7 @@ export async function waitForConnection(
 
   try {
     // Use the SDK's built-in wait method
-    const connection = await client.connectedAccounts.waitForConnection(
-      connectionId,
-      timeoutMs
-    );
+    const connection = await client.connectedAccounts.waitForConnection(connectionId, timeoutMs);
 
     if (connection) {
       return mapComposioAccount(connection);
@@ -156,9 +155,7 @@ export async function getConnectedAccounts(userId: string): Promise<ConnectedAcc
 /**
  * Get a specific connected account
  */
-export async function getConnectedAccount(
-  connectionId: string
-): Promise<ConnectedAccount | null> {
+export async function getConnectedAccount(connectionId: string): Promise<ConnectedAccount | null> {
   const client = getClient();
 
   try {

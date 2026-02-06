@@ -19,34 +19,34 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 export interface VoiceInputState {
   isRecording: boolean;
   isProcessing: boolean;
-  audioLevel: number;  // 0-100 for visual feedback
+  audioLevel: number; // 0-100 for visual feedback
   error: string | null;
   transcript: string | null;
-  duration: number;  // Recording duration in seconds
+  duration: number; // Recording duration in seconds
 }
 
 export interface UseVoiceInputOptions {
   onTranscript?: (text: string) => void;
   onError?: (error: string) => void;
-  silenceTimeout?: number;  // Auto-stop after silence (ms)
-  maxDuration?: number;  // Max recording duration (ms)
-  language?: string;  // Whisper language hint
+  silenceTimeout?: number; // Auto-stop after silence (ms)
+  maxDuration?: number; // Max recording duration (ms)
+  language?: string; // Whisper language hint
 }
 
 export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const {
     onTranscript,
     onError,
-    silenceTimeout = 4000,  // 4 seconds of silence before auto-stop
-    maxDuration = 120000,   // 2 minutes max
+    silenceTimeout = 4000, // 4 seconds of silence before auto-stop
+    maxDuration = 120000, // 2 minutes max
     language,
   } = options;
 
   // Grace period before silence detection kicks in (let user start speaking)
-  const SILENCE_GRACE_PERIOD = 3000;  // 3 seconds before silence detection activates (was 2)
-  const AUDIO_THRESHOLD = 1;  // Very low threshold - almost any sound triggers (was 3)
-  const MIN_RECORDING_DURATION = 1500;  // Minimum 1.5 second recording to avoid hallucinations
-  const SILENCE_DURATION_MS = 3000;  // 3 seconds of silence before auto-stop (more forgiving)
+  const SILENCE_GRACE_PERIOD = 3000; // 3 seconds before silence detection activates (was 2)
+  const AUDIO_THRESHOLD = 1; // Very low threshold - almost any sound triggers (was 3)
+  const MIN_RECORDING_DURATION = 1500; // Minimum 1.5 second recording to avoid hallucinations
+  const SILENCE_DURATION_MS = 3000; // 3 seconds of silence before auto-stop (more forgiving)
 
   const [state, setState] = useState<VoiceInputState>({
     isRecording: false,
@@ -84,7 +84,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       durationTimerRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
@@ -122,7 +122,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       const average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
       const normalizedLevel = Math.min(100, Math.round((average / 128) * 100));
 
-      setState(prev => ({ ...prev, audioLevel: normalizedLevel }));
+      setState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
 
       // Check if grace period has passed
       const elapsed = Date.now() - startTimeRef.current;
@@ -131,8 +131,16 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       }
 
       // Log all audio levels for debugging (every ~500ms to reduce spam)
-      if (Math.random() < 0.03) {  // ~3% of frames = roughly every 500ms at 60fps
-        console.log('[VoiceInput] Audio level:', normalizedLevel, 'threshold:', AUDIO_THRESHOLD, 'speechDetected:', hasDetectedSpeechRef.current);
+      if (Math.random() < 0.03) {
+        // ~3% of frames = roughly every 500ms at 60fps
+        console.log(
+          '[VoiceInput] Audio level:',
+          normalizedLevel,
+          'threshold:',
+          AUDIO_THRESHOLD,
+          'speechDetected:',
+          hasDetectedSpeechRef.current
+        );
       }
 
       if (normalizedLevel > AUDIO_THRESHOLD) {
@@ -164,13 +172,13 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     };
 
     checkLevel();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- using refs to avoid stale closures
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- using refs to avoid stale closures
   }, [SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD, SILENCE_DURATION_MS]);
 
   // Start recording
   const startRecording = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, error: null, transcript: null }));
+      setState((prev) => ({ ...prev, error: null, transcript: null }));
 
       // Request microphone access with noise cancellation
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -184,7 +192,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       streamRef.current = stream;
 
       // Set up audio context for level monitoring
-      const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        (window as typeof window & { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext)();
       audioContextRef.current = audioContext;
 
       const source = audioContext.createMediaStreamSource(stream);
@@ -197,8 +207,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/mp4';
+          ? 'audio/webm'
+          : 'audio/mp4';
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
@@ -223,19 +233,19 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         } catch (error) {
           console.error('[VoiceInput] Error processing audio:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to process audio';
-          setState(prev => ({ ...prev, error: errorMessage, isProcessing: false }));
+          setState((prev) => ({ ...prev, error: errorMessage, isProcessing: false }));
           onError?.(errorMessage);
           cleanup();
         }
       };
 
       // Start recording
-      mediaRecorder.start(100);  // Collect data every 100ms
+      mediaRecorder.start(100); // Collect data every 100ms
       startTimeRef.current = Date.now();
 
       // Update both state and ref
       isRecordingRef.current = true;
-      setState(prev => ({ ...prev, isRecording: true, duration: 0 }));
+      setState((prev) => ({ ...prev, isRecording: true, duration: 0 }));
 
       console.log('[VoiceInput] Recording started');
 
@@ -246,7 +256,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       // Start duration timer
       durationTimerRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        setState(prev => ({ ...prev, duration: elapsed }));
+        setState((prev) => ({ ...prev, duration: elapsed }));
       }, 1000);
 
       // Start audio level monitoring (handles silence detection after grace period)
@@ -261,14 +271,13 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
           stopRecording();
         }
       }, maxDuration);
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to access microphone';
-      setState(prev => ({ ...prev, error: errorMessage }));
+      setState((prev) => ({ ...prev, error: errorMessage }));
       onError?.(errorMessage);
       cleanup();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- processAudio/stopRecording are stable, avoiding circular dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- processAudio/stopRecording are stable, avoiding circular dependency
   }, [cleanup, maxDuration, monitorAudioLevel, onError, silenceTimeout]);
 
   // Stop recording
@@ -282,7 +291,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       mediaRecorderRef.current.stop();
     }
 
-    setState(prev => ({ ...prev, isRecording: false, audioLevel: 0 }));
+    setState((prev) => ({ ...prev, isRecording: false, audioLevel: 0 }));
 
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -295,7 +304,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
     // Stop stream tracks
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
     }
   }, []);
 
@@ -307,11 +316,12 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     if (!trimmed || trimmed.length < 3) return true;
 
     // Single word and short
-    const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+    const words = trimmed.split(/\s+/).filter((w) => w.length > 0);
     if (words.length < 2 && trimmed.length < 10) return true;
 
     // Non-Latin characters (Chinese, Korean, Japanese, Arabic, etc.)
-    const nonLatinPattern = /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
+    const nonLatinPattern =
+      /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
     if (nonLatinPattern.test(trimmed)) return true;
 
     // Common Whisper hallucination phrases - these appear when there's silence/noise
@@ -364,110 +374,128 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       /inaudible/i,
       /indistinct/i,
       // Single repeated words/sounds
-      /^(.)\1{2,}$/,  // aaa, ooo, etc.
+      /^(.)\1{2,}$/, // aaa, ooo, etc.
       /^(la\s*)+$/i,
       /^(na\s*)+$/i,
       /^(da\s*)+$/i,
     ];
 
-    return hallucinations.some(pattern => pattern.test(trimmed));
+    return hallucinations.some((pattern) => pattern.test(trimmed));
   }, []);
 
   // Process audio with Whisper API
-  const processAudio = useCallback(async (audioBlob: Blob) => {
-    // Check minimum duration - skip very short recordings
-    const recordingDuration = Date.now() - startTimeRef.current;
-    console.log('[VoiceInput] Processing audio:', {
-      duration: recordingDuration,
-      minRequired: MIN_RECORDING_DURATION,
-      speechDetected: hasDetectedSpeechRef.current,
-      blobSize: audioBlob.size,
-    });
-
-    if (recordingDuration < MIN_RECORDING_DURATION) {
-      console.log('[VoiceInput] Recording too short, skipping transcription');
-      setState(prev => ({ ...prev, isProcessing: false }));
-      cleanup();
-      return;
-    }
-
-    // Check audio blob size - very small blobs are likely silence
-    // WebM audio at ~100kbps = ~12.5KB/sec, so 2 seconds should be ~25KB minimum
-    const MIN_BLOB_SIZE = 10000; // 10KB minimum
-    if (audioBlob.size < MIN_BLOB_SIZE) {
-      console.log('[VoiceInput] Audio blob too small, likely silence:', audioBlob.size);
-      setState(prev => ({ ...prev, isProcessing: false }));
-      cleanup();
-      return;
-    }
-
-    // CRITICAL: Only send to Whisper if we actually detected speech
-    // This prevents hallucinations when the user doesn't speak
-    if (!hasDetectedSpeechRef.current) {
-      console.log('[VoiceInput] No speech detected during recording, skipping Whisper');
-      setState(prev => ({ ...prev, isProcessing: false }));
-      cleanup();
-      return;
-    }
-
-    setState(prev => ({ ...prev, isProcessing: true }));
-
-    try {
-      const formData = new FormData();
-
-      // Convert to proper file format
-      const audioFile = new File([audioBlob], 'recording.webm', { type: audioBlob.type });
-      formData.append('file', audioFile);
-
-      if (language) {
-        formData.append('language', language);
-      }
-
-      // Add prompt to help with transcription
-      formData.append('prompt', 'Transcribe the following speech accurately.');
-
-      console.log('[VoiceInput] Sending to Whisper API...');
-      const response = await fetch('/api/whisper', {
-        method: 'POST',
-        body: formData,
+  const processAudio = useCallback(
+    async (audioBlob: Blob) => {
+      // Check minimum duration - skip very short recordings
+      const recordingDuration = Date.now() - startTimeRef.current;
+      console.log('[VoiceInput] Processing audio:', {
+        duration: recordingDuration,
+        minRequired: MIN_RECORDING_DURATION,
+        speechDetected: hasDetectedSpeechRef.current,
+        blobSize: audioBlob.size,
       });
 
-      console.log('[VoiceInput] Whisper API response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[VoiceInput] Whisper API error:', errorData);
-        throw new Error(errorData.error || 'Transcription failed');
-      }
-
-      const result = await response.json();
-      const transcript = result.text?.trim() || '';
-      console.log('[VoiceInput] Transcription result:', transcript);
-
-      // Filter out hallucinations
-      if (isHallucination(transcript)) {
-        console.log('[VoiceInput] Filtered hallucination:', transcript);
-        setState(prev => ({ ...prev, transcript: '', isProcessing: false }));
+      if (recordingDuration < MIN_RECORDING_DURATION) {
+        console.log('[VoiceInput] Recording too short, skipping transcription');
+        setState((prev) => ({ ...prev, isProcessing: false }));
         cleanup();
         return;
       }
 
-      setState(prev => ({ ...prev, transcript, isProcessing: false }));
-
-      if (transcript) {
-        console.log('[VoiceInput] Calling onTranscript callback with:', transcript);
-        onTranscript?.(transcript);
+      // Check audio blob size - very small blobs are likely silence
+      // WebM audio at ~100kbps = ~12.5KB/sec, so 2 seconds should be ~25KB minimum
+      const MIN_BLOB_SIZE = 10000; // 10KB minimum
+      if (audioBlob.size < MIN_BLOB_SIZE) {
+        console.log('[VoiceInput] Audio blob too small, likely silence:', audioBlob.size);
+        setState((prev) => ({ ...prev, isProcessing: false }));
+        cleanup();
+        return;
       }
 
-    } catch (err) {
-      console.error('[VoiceInput] Error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to transcribe audio';
-      setState(prev => ({ ...prev, error: errorMessage, isProcessing: false }));
-      onError?.(errorMessage);
-    } finally {
-      cleanup();
-    }
-  }, [cleanup, language, onError, onTranscript, isHallucination]);
+      // CRITICAL: Only send to Whisper if we actually detected speech
+      // This prevents hallucinations when the user doesn't speak
+      if (!hasDetectedSpeechRef.current) {
+        console.log('[VoiceInput] No speech detected during recording, skipping Whisper');
+        setState((prev) => ({ ...prev, isProcessing: false }));
+        cleanup();
+        return;
+      }
+
+      setState((prev) => ({ ...prev, isProcessing: true }));
+
+      try {
+        const formData = new FormData();
+
+        // Convert to proper file format
+        const audioFile = new File([audioBlob], 'recording.webm', { type: audioBlob.type });
+        formData.append('file', audioFile);
+
+        if (language) {
+          formData.append('language', language);
+        }
+
+        // Add prompt to help with transcription
+        formData.append('prompt', 'Transcribe the following speech accurately.');
+
+        console.log('[VoiceInput] Sending to Whisper API...');
+        const response = await fetch('/api/whisper', {
+          method: 'POST',
+          body: formData,
+        });
+
+        console.log('[VoiceInput] Whisper API response status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[VoiceInput] Whisper API error:', errorData);
+          throw new Error(errorData.error || 'Transcription failed');
+        }
+
+        const result = await response.json();
+        let transcript = result.text?.trim() || '';
+        console.log('[VoiceInput] Raw transcription result:', transcript);
+
+        // Sanitize transcription to remove problematic characters
+        // This fixes issues with special characters from Whisper causing API errors
+        transcript = transcript
+          // Replace smart quotes with regular quotes
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201C\u201D]/g, '"')
+          // Remove zero-width characters
+          .replace(/[\u200B-\u200D\uFEFF]/g, '')
+          // Remove other control characters (except newlines and tabs)
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+          // Normalize whitespace
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        console.log('[VoiceInput] Sanitized transcription:', transcript);
+
+        // Filter out hallucinations
+        if (isHallucination(transcript)) {
+          console.log('[VoiceInput] Filtered hallucination:', transcript);
+          setState((prev) => ({ ...prev, transcript: '', isProcessing: false }));
+          cleanup();
+          return;
+        }
+
+        setState((prev) => ({ ...prev, transcript, isProcessing: false }));
+
+        if (transcript) {
+          console.log('[VoiceInput] Calling onTranscript callback with:', transcript);
+          onTranscript?.(transcript);
+        }
+      } catch (err) {
+        console.error('[VoiceInput] Error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to transcribe audio';
+        setState((prev) => ({ ...prev, error: errorMessage, isProcessing: false }));
+        onError?.(errorMessage);
+      } finally {
+        cleanup();
+      }
+    },
+    [cleanup, language, onError, onTranscript, isHallucination]
+  );
 
   // Keep processAudioRef updated with latest function
   processAudioRef.current = processAudio;
@@ -489,7 +517,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       mediaRecorderRef.current.stop();
     }
     cleanup();
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       isRecording: false,
       isProcessing: false,
@@ -506,7 +534,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   }, [cleanup]);
 
   // Check if browser supports voice input
-  const isSupported = typeof window !== 'undefined' &&
+  const isSupported =
+    typeof window !== 'undefined' &&
     'mediaDevices' in navigator &&
     'getUserMedia' in navigator.mediaDevices &&
     'MediaRecorder' in window;

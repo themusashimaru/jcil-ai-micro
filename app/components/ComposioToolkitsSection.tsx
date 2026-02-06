@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import BrandLogo from '@/components/ui/BrandLogo';
 
 interface Toolkit {
   id: string;
@@ -352,11 +353,8 @@ export default function ComposioToolkitsSection() {
                   }
                 }}
               >
-                <div
-                  className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-2xl mb-2"
-                  style={{ backgroundColor: 'var(--background-secondary)' }}
-                >
-                  {toolkit.icon}
+                <div className="w-12 h-12 mx-auto mb-2">
+                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="lg" />
                 </div>
                 <h5
                   className="font-medium text-sm truncate"
@@ -453,11 +451,8 @@ export default function ComposioToolkitsSection() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ backgroundColor: 'var(--background-secondary)' }}
-                  >
-                    {toolkit.icon}
+                  <div className="flex-shrink-0">
+                    <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
                   </div>
                   <div className="min-w-0">
                     <h4
