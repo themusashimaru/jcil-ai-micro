@@ -4,6 +4,7 @@
  *
  * POST: Initiate OAuth connection for a toolkit
  * Returns redirect URL for user to complete auth
+ * Stores connectionId in cookie for callback to use
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -42,7 +43,9 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -50,10 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Check Composio configured
     if (!isComposioConfigured()) {
-      return NextResponse.json(
-        { error: 'Composio is not configured' },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: 'Composio is not configured' }, { status: 503 });
     }
 
     // Parse request
@@ -61,10 +61,7 @@ export async function POST(request: NextRequest) {
     const { toolkit, redirectUrl } = body;
 
     if (!toolkit) {
-      return NextResponse.json(
-        { error: 'Toolkit is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Toolkit is required' }, { status: 400 });
     }
 
     // Validate toolkit exists
@@ -78,8 +75,8 @@ export async function POST(request: NextRequest) {
     const userId = user.id;
 
     // Default redirect to our callback
-    const callbackUrl = redirectUrl ||
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/composio/callback?toolkit=${toolkit}`;
+    const callbackUrl =
+      redirectUrl || `${process.env.NEXT_PUBLIC_APP_URL}/api/composio/callback?toolkit=${toolkit}`;
 
     // Initiate connection
     const connectionRequest = await initiateConnection(userId, toolkit, callbackUrl);
@@ -87,7 +84,23 @@ export async function POST(request: NextRequest) {
     log.info('Connection initiated', {
       userId,
       toolkit,
-      connectionId: connectionRequest.id
+      connectionId: connectionRequest.id,
+    });
+
+    // Store connectionId in cookie so callback can wait for it (reuse cookieStore from above)
+    cookieStore.set('composio_connection_id', connectionRequest.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 300, // 5 minutes - should be enough for OAuth flow
+      path: '/',
+    });
+    cookieStore.set('composio_connection_toolkit', toolkit.toUpperCase(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 300,
+      path: '/',
     });
 
     return NextResponse.json({
