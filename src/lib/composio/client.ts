@@ -74,9 +74,9 @@ export async function initiateConnection(
     const toolkitSlug = toolkit.toUpperCase();
 
     // Try to list existing auth configs for this toolkit
-    // The API expects toolkit as a nested object with slug property
+    // The API expects toolkit as a plain string
     const authConfigs = await client.authConfigs.list({
-      toolkit: { slug: toolkitSlug },
+      toolkit: toolkitSlug,
     });
 
     let authConfigId: string;
@@ -86,9 +86,9 @@ export async function initiateConnection(
       authConfigId = authConfigs.items[0].id;
     } else {
       // Create a new managed auth config for this toolkit
-      // The API expects toolkit as a nested object with slug property
+      // The API expects toolkit as a plain string
       const newConfig = await client.authConfigs.create({
-        toolkit: { slug: toolkitSlug },
+        toolkit: toolkitSlug,
         name: `${toolkit} Auth`,
         useComposioManagedAuth: true,
       });

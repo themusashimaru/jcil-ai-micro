@@ -166,10 +166,8 @@ export default function BrandLogo({
   const brandColor = BRAND_COLORS[upperToolkitId] || '#6B7280';
 
   // Use Simple Icons CDN for reliable brand SVGs
-  // Format: https://cdn.simpleicons.org/{slug}/{color}
-  // Remove # from color for URL
-  const colorHex = brandColor.replace('#', '');
-  const logoUrl = iconSlug ? `https://cdn.simpleicons.org/${iconSlug}/${colorHex}` : null;
+  // Format: https://cdn.simpleicons.org/{slug} (uses official brand color)
+  const logoUrl = iconSlug ? `https://cdn.simpleicons.org/${iconSlug}` : null;
 
   const sizeClasses = {
     sm: 'w-6 h-6',
