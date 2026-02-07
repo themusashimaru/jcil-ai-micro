@@ -4881,7 +4881,7 @@ I'll deploy a focused team to research and write your content.
                 </svg>
               </button>
 
-              {/* Connectors Link - between hamburger and logo/+ button */}
+              {/* Connectors Link - HIDDEN while Composio is disabled
               <a
                 href="/settings?tab=connectors"
                 className="flex rounded-lg px-1.5 md:px-3 py-1 md:py-1.5 text-sm hover:bg-white/10 items-center gap-1 transition-colors"
@@ -4904,6 +4904,7 @@ I'll deploy a focused team to research and write your content.
                   NEW
                 </span>
               </a>
+              */}
 
               {/* Only show logo/site name when a chat is active */}
               {currentChatId &&
