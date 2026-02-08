@@ -73,9 +73,9 @@ export async function initiateConnection(
     const toolkitSlug = toolkit.toUpperCase();
 
     // Try to list existing auth configs for this toolkit
-    // SDK API: authConfigs.list({ app: 'APP_NAME' })
+    // SDK API: authConfigs.list({ toolkit_slug: 'APP_NAME' })
     const authConfigs = await client.authConfigs.list({
-      app: toolkitSlug,
+      toolkit_slug: toolkitSlug,
     });
 
     let authConfigId: string;
@@ -85,12 +85,16 @@ export async function initiateConnection(
       authConfigId = authConfigs.items[0].id;
     } else {
       // Create a new managed auth config for this toolkit
-      // SDK API: authConfigs.create(appName, options) - app name is FIRST positional arg
-      const newConfig = await client.authConfigs.create(toolkitSlug, {
-        name: `${toolkit} Auth`,
-        type: 'use_composio_managed_auth',
+      // SDK API: authConfigs.create({ toolkit: { slug }, auth_config: { type, name } })
+      const newConfig = await client.authConfigs.create({
+        toolkit: { slug: toolkitSlug },
+        auth_config: {
+          type: 'use_composio_managed_auth',
+          name: `${toolkit} Auth`,
+        },
       });
-      authConfigId = newConfig.id;
+      // Response structure: { auth_config: { id: '...' }, toolkit: { slug: '...' } }
+      authConfigId = newConfig.auth_config.id;
     }
 
     // Now initiate the connection using the auth config
