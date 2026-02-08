@@ -94,11 +94,16 @@ export async function initiateConnection(
 
     let authConfigId: string;
 
-    if (authConfigs.items && authConfigs.items.length > 0) {
-      // Use existing auth config - verify it matches the requested toolkit
-      const matchedConfig = authConfigs.items[0];
+    // Find an auth config that actually matches the requested toolkit
+    const matchedConfig = authConfigs.items?.find((item: any) => {
+      const configSlug = (item.toolkit?.slug || item.toolkit || '').toLowerCase();
+      return configSlug === toolkitSlug;
+    });
+
+    if (matchedConfig) {
+      // Use the verified matching auth config
       authConfigId = matchedConfig.id;
-      log.info('Using existing auth config', {
+      log.info('Using existing auth config (verified match)', {
         authConfigId,
         configToolkit: matchedConfig.toolkit?.slug || matchedConfig.toolkit,
         requestedToolkit: toolkitSlug,
