@@ -70,22 +70,43 @@ export async function initiateConnection(
     log.info('Initiating connection', { userId, toolkit });
 
     // For managed auth (Composio handles OAuth), we can use the default config
-    const toolkitSlug = toolkit.toUpperCase();
+    // IMPORTANT: Composio SDK expects lowercase toolkit slugs for API calls
+    // Convert underscores to avoid any format issues (e.g., MICROSOFT_TEAMS -> microsoft_teams)
+    const toolkitSlug = toolkit.toLowerCase();
+
+    log.info('Looking up auth configs', { toolkitSlug });
 
     // Try to list existing auth configs for this toolkit
-    // SDK API: authConfigs.list({ toolkit_slug: 'APP_NAME' })
+    // SDK API: authConfigs.list({ toolkit_slug: 'app_name' })
     const authConfigs = await client.authConfigs.list({
       toolkit_slug: toolkitSlug,
+    });
+
+    log.info('Auth configs lookup result', {
+      toolkitSlug,
+      itemCount: authConfigs.items?.length || 0,
+      items: authConfigs.items?.slice(0, 3).map((item: any) => ({
+        id: item.id,
+        toolkit: item.toolkit?.slug || item.toolkit,
+        name: item.name,
+      })),
     });
 
     let authConfigId: string;
 
     if (authConfigs.items && authConfigs.items.length > 0) {
-      // Use existing auth config
-      authConfigId = authConfigs.items[0].id;
+      // Use existing auth config - verify it matches the requested toolkit
+      const matchedConfig = authConfigs.items[0];
+      authConfigId = matchedConfig.id;
+      log.info('Using existing auth config', {
+        authConfigId,
+        configToolkit: matchedConfig.toolkit?.slug || matchedConfig.toolkit,
+        requestedToolkit: toolkitSlug,
+      });
     } else {
       // Create a new managed auth config for this toolkit
       // SDK API: authConfigs.create({ toolkit: { slug }, auth_config: { type, name } })
+      log.info('No existing auth config found, creating new one', { toolkitSlug });
       const newConfig = await client.authConfigs.create({
         toolkit: { slug: toolkitSlug },
         auth_config: {
@@ -95,15 +116,27 @@ export async function initiateConnection(
       });
       // Response structure: { auth_config: { id: '...' }, toolkit: { slug: '...' } }
       authConfigId = newConfig.auth_config.id;
+      log.info('Created new auth config', {
+        authConfigId,
+        responseToolkit: newConfig.toolkit?.slug,
+        requestedToolkit: toolkitSlug,
+      });
     }
 
     // Now initiate the connection using the auth config
     // SDK API: connectedAccounts.initiate(userId, authConfigId, options)
     // SDK expects 'callbackUrl' not 'redirectUrl'!
     // allowMultiple: true allows users to reconnect or have multiple accounts
+    log.info('Initiating connection with auth config', { authConfigId, toolkitSlug });
     const connectionRequest = await client.connectedAccounts.initiate(userId, authConfigId, {
       callbackUrl: redirectUrl,
       allowMultiple: true,
+    });
+
+    log.info('Connection initiated successfully', {
+      connectionId: connectionRequest.id,
+      redirectUrl: connectionRequest.redirectUrl?.substring(0, 100), // Log partial URL for debugging
+      toolkit: toolkitSlug,
     });
 
     return {
