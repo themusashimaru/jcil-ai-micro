@@ -334,11 +334,11 @@ export default function ComposioToolkitsSection() {
         </div>
       </div>
 
-      {/* Featured Apps - Compact grid */}
+      {/* Featured Apps - Mobile-friendly grid */}
       {showFeatured && featuredToolkits.length > 0 && (
         <div className="mb-6">
           <h4
-            className="text-xs font-semibold mb-2 flex items-center gap-2"
+            className="text-xs font-semibold mb-3 flex items-center gap-2"
             style={{ color: 'var(--text-secondary)' }}
           >
             Featured Apps
@@ -346,7 +346,7 @@ export default function ComposioToolkitsSection() {
               HOT
             </span>
           </h4>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-3">
             {featuredToolkits.map((toolkit) => (
               <button
                 key={toolkit.id}
@@ -362,7 +362,7 @@ export default function ComposioToolkitsSection() {
                   }
                 }}
                 disabled={connecting === toolkit.id || disconnecting === toolkit.id}
-                className={`p-2 rounded-lg border-2 transition-all hover:shadow-md hover:scale-105 text-center disabled:opacity-50 ${toolkit.connected ? 'ring-1 ring-green-500/30' : ''}`}
+                className={`p-3 rounded-xl border-2 transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center min-h-[88px] disabled:opacity-50 ${toolkit.connected ? 'ring-1 ring-green-500/30' : ''}`}
                 style={{
                   borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
                   backgroundColor: toolkit.connected
@@ -370,12 +370,12 @@ export default function ComposioToolkitsSection() {
                     : 'var(--background)',
                 }}
               >
-                <div className="w-8 h-8 mx-auto mb-1 relative">
+                <div className="w-10 h-10 flex items-center justify-center relative mb-2">
                   <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
                   {toolkit.connected && (
-                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
                       <svg
-                        className="w-2 h-2 text-white"
+                        className="w-2.5 h-2.5 text-white"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -391,13 +391,13 @@ export default function ComposioToolkitsSection() {
                   )}
                 </div>
                 <p
-                  className="text-[10px] font-medium truncate"
+                  className="text-[11px] font-medium truncate w-full text-center leading-tight"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {toolkit.displayName}
                 </p>
                 <p
-                  className="text-[9px] font-medium"
+                  className="text-[10px] font-medium mt-0.5"
                   style={{ color: toolkit.connected ? '#16a34a' : 'var(--text-muted)' }}
                 >
                   {connecting === toolkit.id || disconnecting === toolkit.id
