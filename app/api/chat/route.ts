@@ -880,11 +880,10 @@ import {
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { getMCPManager } from '@/lib/mcp/mcp-client';
 import {
-  // Temporarily unused while Composio is disabled
-  getComposioToolsForUser as _getComposioToolsForUser,
+  getComposioToolsForUser,
   executeComposioTool,
   isComposioTool,
-  isComposioConfigured as _isComposioConfigured,
+  isComposioConfigured,
 } from '@/lib/composio';
 import {
   ensureServerRunning,
@@ -4534,43 +4533,41 @@ SECURITY:
     // ========================================
     // COMPOSIO TOOLS INTEGRATION (150+ Apps)
     // ========================================
-    // TEMPORARILY DISABLED - Composio integration causing chat issues
-    // TODO: Re-enable once Composio stability issues are resolved
     // Get tools from user's connected apps (Twitter, Slack, Notion, etc.)
     // These enable AI to interact with external services the user has connected
-    // let composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null = null;
-    //
-    // if (isComposioConfigured() && rateLimitIdentifier) {
-    //   try {
-    //     composioToolContext = await getComposioToolsForUser(rateLimitIdentifier);
-    //
-    //     if (composioToolContext.tools.length > 0) {
-    //       // Add Composio tools to the tools array
-    //       for (const composioTool of composioToolContext.tools) {
-    //         tools.push({
-    //           name: composioTool.name,
-    //           description: composioTool.description,
-    //           parameters: {
-    //             type: 'object' as const,
-    //             properties: composioTool.input_schema.properties || {},
-    //             required: composioTool.input_schema.required || [],
-    //           },
-    //         } as typeof webSearchTool);
-    //       }
-    //
-    //       // Add connected apps context to system prompt
-    //       fullSystemPrompt += composioToolContext.systemPromptAddition;
-    //
-    //       log.info('Composio tools added to chat', {
-    //         userId: rateLimitIdentifier,
-    //         connectedApps: composioToolContext.connectedApps,
-    //         toolCount: composioToolContext.tools.length,
-    //       });
-    //     }
-    //   } catch (composioError) {
-    //     log.warn('Failed to load Composio tools', { error: composioError });
-    //   }
-    // }
+    let composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null = null;
+
+    if (isComposioConfigured() && rateLimitIdentifier) {
+      try {
+        composioToolContext = await getComposioToolsForUser(rateLimitIdentifier);
+
+        if (composioToolContext.tools.length > 0) {
+          // Add Composio tools to the tools array
+          for (const composioTool of composioToolContext.tools) {
+            tools.push({
+              name: composioTool.name,
+              description: composioTool.description,
+              parameters: {
+                type: 'object' as const,
+                properties: composioTool.input_schema.properties || {},
+                required: composioTool.input_schema.required || [],
+              },
+            } as typeof webSearchTool);
+          }
+
+          // Add connected apps context to system prompt
+          fullSystemPrompt += composioToolContext.systemPromptAddition;
+
+          log.info('Composio tools added to chat', {
+            userId: rateLimitIdentifier,
+            connectedApps: composioToolContext.connectedApps,
+            toolCount: composioToolContext.tools.length,
+          });
+        }
+      } catch (composioError) {
+        log.warn('Failed to load Composio tools', { error: composioError });
+      }
+    }
 
     log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
 
