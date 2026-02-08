@@ -3,7 +3,7 @@
 /**
  * COMPOSIO TOOLKITS SECTION
  *
- * Browse and connect to 500+ app integrations via Composio.
+ * Browse and connect to approved app integrations via Composio.
  * Supports search, category filtering, and OAuth connections.
  */
 
@@ -62,29 +62,26 @@ const CATEGORY_LABELS: Record<string, string> = {
   travel: 'Travel',
 };
 
-// Featured apps to showcase at the top (the BIG ones everyone knows)
+// Featured apps to showcase at the top
 const FEATURED_APP_IDS = [
-  // Google Suite - everyone uses these
+  // Google Suite
   'GMAIL',
   'GOOGLE_CALENDAR',
   'GOOGLE_DRIVE',
   'GOOGLE_SHEETS',
-  // Social Media Giants
+  'GOOGLE_DOCS',
+  // Social Media
   'TWITTER',
   'INSTAGRAM',
-  'FACEBOOK',
   'LINKEDIN',
-  'TIKTOK',
   'YOUTUBE',
-  // Workplace Essentials
+  // Workplace
   'SLACK',
-  'NOTION',
-  'ZOOM',
+  'DISCORD',
   'MICROSOFT_TEAMS',
-  // Other Big Names
-  'WHATSAPP',
-  'SPOTIFY',
+  // Development & Business
   'GITHUB',
+  'VERCEL',
   'STRIPE',
 ];
 
@@ -210,9 +207,6 @@ export default function ComposioToolkitsSection() {
   // Get featured apps for showcase
   const featuredToolkits = toolkits.filter((t) => FEATURED_APP_IDS.includes(t.id.toUpperCase()));
 
-  // Get connected apps for "My Connected Apps" section
-  const connectedToolkits = toolkits.filter((t) => t.connected);
-
   // Filter toolkits for display (excluding featured when showing all)
   const displayToolkits =
     selectedCategory === 'popular'
@@ -226,8 +220,8 @@ export default function ComposioToolkitsSection() {
   // Show featured section only when not searching and no category selected
   const showFeatured = !search && !selectedCategory;
 
-  // Show connected apps section when user has connections and not searching
-  const showConnectedApps = connectedToolkits.length > 0 && !search;
+  // Count connected apps for display
+  const connectedCount = toolkits.filter((t) => t.connected).length;
 
   // Don't block rendering if not configured - still show the apps
 
@@ -237,12 +231,14 @@ export default function ComposioToolkitsSection() {
         <div>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
             App Integrations{' '}
-            <span
-              className="text-sm font-normal px-2 py-0.5 rounded-full ml-2"
-              style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-            >
-              150+ Apps
-            </span>
+            {connectedCount > 0 && (
+              <span
+                className="text-sm font-normal px-2 py-0.5 rounded-full ml-2"
+                style={{ backgroundColor: '#22c55e', color: 'white' }}
+              >
+                {connectedCount} Connected
+              </span>
+            )}
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Connect your favorite apps to enable AI-powered automation
@@ -288,74 +284,6 @@ export default function ComposioToolkitsSection() {
         </div>
       )}
 
-      {/* MY CONNECTED APPS - Compact horizontal list */}
-      {showConnectedApps && (
-        <div
-          className="mb-6 p-3 rounded-lg border"
-          style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.03)' }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <svg
-              className="w-4 h-4 text-green-500 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              Connected ({connectedToolkits.length})
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {connectedToolkits.map((toolkit) => (
-              <div
-                key={toolkit.id}
-                className="group flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs transition-all hover:shadow-sm"
-                style={{ borderColor: '#22c55e', backgroundColor: 'white' }}
-              >
-                <div className="w-4 h-4 flex-shrink-0">
-                  <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="sm" />
-                </div>
-                <span
-                  className="font-medium truncate max-w-[80px]"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {toolkit.displayName}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDisconnect(toolkit);
-                  }}
-                  disabled={disconnecting === toolkit.id}
-                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                  title="Disconnect"
-                >
-                  {disconnecting === toolkit.id ? (
-                    <span className="text-[10px]">...</span>
-                  ) : (
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Search Bar - Prominent */}
       <div className="mb-6">
         <div className="relative">
@@ -379,7 +307,7 @@ export default function ComposioToolkitsSection() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search 150+ apps... (Twitter, Slack, Notion, etc.)"
+            placeholder="Search apps... (Twitter, Slack, Gmail, etc.)"
             className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             style={{
               backgroundColor: 'var(--background)',
@@ -427,21 +355,40 @@ export default function ComposioToolkitsSection() {
                     setError('App integrations are being set up. Please check back soon!');
                     return;
                   }
-                  if (!toolkit.connected) {
+                  if (toolkit.connected) {
+                    handleDisconnect(toolkit);
+                  } else {
                     handleConnect(toolkit);
                   }
                 }}
-                disabled={connecting === toolkit.id}
-                className="p-2 rounded-lg border transition-all hover:shadow-md hover:scale-105 text-center disabled:opacity-50"
+                disabled={connecting === toolkit.id || disconnecting === toolkit.id}
+                className={`p-2 rounded-lg border-2 transition-all hover:shadow-md hover:scale-105 text-center disabled:opacity-50 ${toolkit.connected ? 'ring-1 ring-green-500/30' : ''}`}
                 style={{
                   borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
                   backgroundColor: toolkit.connected
-                    ? 'rgba(34, 197, 94, 0.05)'
+                    ? 'rgba(34, 197, 94, 0.1)'
                     : 'var(--background)',
                 }}
               >
-                <div className="w-8 h-8 mx-auto mb-1">
+                <div className="w-8 h-8 mx-auto mb-1 relative">
                   <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
+                  {toolkit.connected && (
+                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-2 h-2 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <p
                   className="text-[10px] font-medium truncate"
@@ -450,10 +397,14 @@ export default function ComposioToolkitsSection() {
                   {toolkit.displayName}
                 </p>
                 <p
-                  className="text-[9px]"
-                  style={{ color: toolkit.connected ? '#22c55e' : 'var(--text-muted)' }}
+                  className="text-[9px] font-medium"
+                  style={{ color: toolkit.connected ? '#16a34a' : 'var(--text-muted)' }}
                 >
-                  {connecting === toolkit.id ? '...' : toolkit.connected ? '✓' : 'Connect'}
+                  {connecting === toolkit.id || disconnecting === toolkit.id
+                    ? '...'
+                    : toolkit.connected
+                      ? 'Connected'
+                      : 'Connect'}
                 </p>
               </button>
             ))}
@@ -532,13 +483,35 @@ export default function ComposioToolkitsSection() {
           {displayToolkits.map((toolkit) => (
             <div
               key={toolkit.id}
-              className="p-4 rounded-xl border transition-all hover:shadow-md"
-              style={{ borderColor: toolkit.connected ? '#22c55e' : 'var(--border)' }}
+              className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${toolkit.connected ? 'ring-1 ring-green-500/30' : ''}`}
+              style={{
+                borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
+                backgroundColor: toolkit.connected
+                  ? 'rgba(34, 197, 94, 0.08)'
+                  : 'var(--background)',
+              }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 relative">
                     <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
+                    {toolkit.connected && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-2.5 h-2.5 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <h4
@@ -558,18 +531,20 @@ export default function ComposioToolkitsSection() {
                 <span
                   className="text-xs px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: 'var(--background-secondary)',
-                    color: 'var(--text-muted)',
+                    backgroundColor: toolkit.connected
+                      ? 'rgba(34, 197, 94, 0.15)'
+                      : 'var(--background-secondary)',
+                    color: toolkit.connected ? '#16a34a' : 'var(--text-muted)',
                   }}
                 >
-                  {toolkit.category}
+                  {toolkit.connected ? 'Connected' : toolkit.category}
                 </span>
 
                 {toolkit.connected ? (
                   <button
                     onClick={() => handleDisconnect(toolkit)}
                     disabled={disconnecting === toolkit.id || !configured}
-                    className="px-3 py-1 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    className="px-3 py-1 text-xs font-medium rounded-lg border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors disabled:opacity-50"
                   >
                     {disconnecting === toolkit.id ? 'Disconnecting...' : 'Disconnect'}
                   </button>
@@ -599,7 +574,7 @@ export default function ComposioToolkitsSection() {
       {!loading && toolkits.length > 0 && (
         <div className="mt-6 text-center">
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {toolkits.filter((t) => t.connected).length} of {toolkits.length} integrations connected
+            {connectedCount} of {toolkits.length} apps connected
           </p>
         </div>
       )}
