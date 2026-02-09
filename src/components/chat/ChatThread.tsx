@@ -24,6 +24,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { MessageErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GetStartedCarousel } from './GetStartedCarousel';
+import type { ActionPreviewData } from './ActionPreviewCard';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -37,6 +38,12 @@ interface ChatThreadProps {
   onQuickPrompt?: (prompt: string) => void;
   onCarouselSelect?: (cardId: string) => void;
   onRegenerateImage?: (generationId: string, originalPrompt: string, feedback: string) => void;
+  /** Callback when action preview Send is clicked (for Composio integrations) */
+  onActionSend?: (preview: ActionPreviewData) => Promise<void>;
+  /** Callback when action preview Edit is requested */
+  onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
+  /** Callback when action preview is cancelled */
+  onActionCancel?: (preview: ActionPreviewData) => void;
 }
 
 /**
@@ -60,6 +67,9 @@ export function ChatThread({
   lastUserMessage,
   onCarouselSelect,
   onRegenerateImage,
+  onActionSend,
+  onActionEdit,
+  onActionCancel,
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -209,6 +219,9 @@ export function ChatThread({
                   onReply={onReply}
                   enableCodeActions={enableCodeActions}
                   onRegenerateImage={onRegenerateImage}
+                  onActionSend={onActionSend}
+                  onActionEdit={onActionEdit}
+                  onActionCancel={onActionCancel}
                 />
               </MessageErrorBoundary>
             </div>

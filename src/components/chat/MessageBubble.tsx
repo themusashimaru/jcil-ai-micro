@@ -20,6 +20,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import type { ActionPreviewData } from './ActionPreviewCard';
 
 // Lazy load MultiPagePreview for better performance
 const MultiPagePreview = lazy(() => import('./MultiPagePreview'));
@@ -292,6 +293,12 @@ interface MessageBubbleProps {
   enableCodeActions?: boolean;
   /** Callback to regenerate a generated image with adjusted prompt */
   onRegenerateImage?: (generationId: string, originalPrompt: string, feedback: string) => void;
+  /** Callback when action preview Send is clicked (for Composio integrations) */
+  onActionSend?: (preview: ActionPreviewData) => Promise<void>;
+  /** Callback when action preview Edit is requested */
+  onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
+  /** Callback when action preview is cancelled */
+  onActionCancel?: (preview: ActionPreviewData) => void;
 }
 
 export function MessageBubble({
@@ -301,6 +308,9 @@ export function MessageBubble({
   onReply,
   enableCodeActions,
   onRegenerateImage,
+  onActionSend,
+  onActionEdit,
+  onActionCancel,
 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
@@ -991,7 +1001,13 @@ export function MessageBubble({
             ) : (
               // AI messages: full markdown rendering with optional code actions
               <>
-                <MarkdownRenderer content={message.content} enableCodeActions={enableCodeActions} />
+                <MarkdownRenderer
+                  content={message.content}
+                  enableCodeActions={enableCodeActions}
+                  onActionSend={onActionSend}
+                  onActionEdit={onActionEdit}
+                  onActionCancel={onActionCancel}
+                />
                 {/* Blinking cursor while streaming - shows at end of response */}
                 {message.isStreaming && (
                   <span

@@ -58,6 +58,7 @@ import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 // Inline creative components removed - all creative features now work through natural chat flow
+import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
 import type { Chat, Message, Attachment, GeneratedImage } from './types';
 import type { ProviderId } from '@/lib/ai/providers';
 
@@ -907,6 +908,121 @@ export function ChatClient() {
       };
       setMessages((prev) => [...prev, errorMessage]);
     }
+  };
+
+  // ============================================================================
+  // COMPOSIO ACTION HANDLERS
+  // These handle action preview card interactions (Send/Edit/Cancel)
+  // ============================================================================
+
+  /**
+   * Handle action preview Send button click
+   * Executes the Composio tool action (e.g., post tweet, send email)
+   */
+  const handleActionSend = async (preview: ActionPreviewData): Promise<void> => {
+    log.info('Executing Composio action', {
+      platform: preview.platform,
+      action: preview.action,
+      toolName: preview.toolName,
+    });
+
+    try {
+      // Call the Composio execute API
+      const response = await fetch('/api/composio/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: preview.toolName.replace(/^composio_/, ''), // Remove prefix
+          params: preview.toolParams,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Add success message
+        const successMessage: Message = {
+          id: `action-success-${Date.now()}`,
+          role: 'assistant',
+          content: `Successfully completed: ${preview.action} on ${preview.platform}. ${
+            typeof data.data === 'string'
+              ? data.data
+              : data.data
+                ? JSON.stringify(data.data, null, 2).slice(0, 200)
+                : ''
+          }`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, successMessage]);
+        log.info('Composio action succeeded', { platform: preview.platform });
+      } else {
+        // Add error message
+        const errorMessage: Message = {
+          id: `action-error-${Date.now()}`,
+          role: 'assistant',
+          content: `Failed to ${preview.action.toLowerCase()} on ${preview.platform}: ${data.error || 'Unknown error'}. Please try again.`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+        log.warn('Composio action failed', { platform: preview.platform, error: data.error });
+      }
+    } catch (error) {
+      log.error('Composio action error', { error });
+      const errorMessage: Message = {
+        id: `action-error-${Date.now()}`,
+        role: 'assistant',
+        content: `An error occurred while trying to ${preview.action.toLowerCase()} on ${preview.platform}. Please check your connection and try again.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
+  /**
+   * Handle action preview Edit button click
+   * Sends a follow-up message to Claude to regenerate with changes
+   */
+  const handleActionEdit = (preview: ActionPreviewData, instruction: string): void => {
+    log.info('Editing Composio action', {
+      platform: preview.platform,
+      instruction,
+    });
+
+    // Create an edit request message for the AI to regenerate the preview
+    const editRequest = `Please update the ${preview.platform} ${preview.action.toLowerCase()} based on this feedback: ${instruction}`;
+
+    // Add user message showing the edit request
+    const userMessage: Message = {
+      id: `action-edit-${Date.now()}`,
+      role: 'user',
+      content: editRequest,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Trigger a new AI response to regenerate the preview
+    // Use the existing handleSendMessage flow
+    handleSendMessage(editRequest, [], undefined, undefined);
+  };
+
+  /**
+   * Handle action preview Cancel button click
+   * Just acknowledges the cancellation
+   */
+  const handleActionCancel = (preview: ActionPreviewData): void => {
+    log.info('Cancelled Composio action', {
+      platform: preview.platform,
+      action: preview.action,
+    });
+
+    // Add a cancellation acknowledgment
+    const cancelMessage: Message = {
+      id: `action-cancel-${Date.now()}`,
+      role: 'assistant',
+      content: `Okay, I've cancelled the ${preview.action.toLowerCase()} for ${preview.platform}. Let me know if you'd like to try something else!`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
   };
 
   const handleSelectChat = async (chatId: string) => {
@@ -5002,6 +5118,9 @@ I'll deploy a focused team to research and write your content.
               onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
               onCarouselSelect={handleCarouselSelect}
               onRegenerateImage={handleRegenerateImage}
+              onActionSend={handleActionSend}
+              onActionEdit={handleActionEdit}
+              onActionCancel={handleActionCancel}
             />
             {/* Live To-Do List removed - user prefers simple agentic approach
                 The AI can manage its own tasks internally without showing a UI widget */}
