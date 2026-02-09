@@ -18,7 +18,7 @@ import type {
   ToolExecutionResult,
   ComposioTool,
 } from './types';
-import { getToolkitById } from './toolkits';
+import { getToolkitById, composioSlugToToolkitId } from './toolkits';
 
 // Type helper for Composio SDK (API types not fully exported)
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -404,12 +404,22 @@ export async function getAvailableTools(
 /**
  * Map Composio account response to our type
  * SDK returns: { id, status, toolkit: { slug, ... }, ... }
+ *
+ * Important: Composio returns toolkit slugs without underscores (e.g., "googlesheets")
+ * but we use IDs with underscores (e.g., "GOOGLE_SHEETS"). The composioSlugToToolkitId
+ * function handles this conversion.
  */
 function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount {
   // SDK returns toolkit as nested object with slug
   const toolkitObj = account.toolkit as Record<string, unknown> | undefined;
-  const toolkit = (toolkitObj?.slug || account.integrationId || account.appName || '') as string;
-  const toolkitConfig = getToolkitById(toolkit.toUpperCase());
+  const composioSlug = (toolkitObj?.slug ||
+    account.integrationId ||
+    account.appName ||
+    '') as string;
+
+  // Convert Composio's slug format (googlesheets) to our internal ID (GOOGLE_SHEETS)
+  const toolkitId = composioSlugToToolkitId(composioSlug);
+  const toolkitConfig = getToolkitById(toolkitId);
 
   const statusMap: Record<string, ConnectionStatus> = {
     ACTIVE: 'connected',
@@ -423,7 +433,7 @@ function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount 
 
   return {
     id: account.id as string,
-    toolkit: toolkit.toUpperCase(),
+    toolkit: toolkitId, // Use our internal ID format (GOOGLE_SHEETS)
     status: statusMap[status] || 'disconnected',
     connectedAt: account.createdAt as string | undefined,
     metadata: {
