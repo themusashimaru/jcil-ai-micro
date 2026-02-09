@@ -41,6 +41,7 @@
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
+    "@composio/anthropic": "^0.6.3",
     "@composio/core": "^0.6.3",
     "@e2b/code-interpreter": "^2.3.3",
     "@faker-js/faker": "^10.2.0",

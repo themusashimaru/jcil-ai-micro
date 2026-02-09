@@ -4,9 +4,12 @@
  *
  * Wrapper around Composio SDK for managing 500+ app integrations.
  * Handles authentication, tool execution, and connection management.
+ *
+ * Uses @composio/anthropic provider for Claude-formatted tools.
  */
 
 import { Composio } from '@composio/core';
+import { AnthropicProvider } from '@composio/anthropic';
 import { logger } from '@/lib/logger';
 import type {
   ConnectedAccount,
@@ -34,10 +37,14 @@ if (!COMPOSIO_API_KEY) {
 }
 
 // ============================================================================
-// CLIENT SINGLETON
+// CLIENT SINGLETONS
 // ============================================================================
 
+// Regular client for connection management
 let composioClient: ComposioClient | null = null;
+
+// Client with Anthropic provider for formatted tools
+let anthropicComposioClient: ComposioClient | null = null;
 
 function getClient(): ComposioClient {
   if (!composioClient) {
@@ -47,6 +54,24 @@ function getClient(): ComposioClient {
     composioClient = new Composio({ apiKey: COMPOSIO_API_KEY });
   }
   return composioClient;
+}
+
+/**
+ * Get Composio client configured with AnthropicProvider
+ * This returns tools pre-formatted for Claude/Anthropic API
+ */
+function getAnthropicClient(): ComposioClient {
+  if (!anthropicComposioClient) {
+    if (!COMPOSIO_API_KEY) {
+      throw new Error('COMPOSIO_API_KEY is not configured');
+    }
+    anthropicComposioClient = new Composio({
+      apiKey: COMPOSIO_API_KEY,
+      provider: new AnthropicProvider(),
+    });
+    log.info('Initialized Composio with AnthropicProvider for Claude-formatted tools');
+  }
+  return anthropicComposioClient;
 }
 
 // ============================================================================
@@ -289,14 +314,17 @@ export async function executeTool(
 
 /**
  * Get available tools for a user (based on their connected accounts)
- * SDK API: tools.getRawComposioTools({ toolkits: ['GITHUB', 'GMAIL'] })
+ *
+ * Uses AnthropicProvider to get tools pre-formatted for Claude/Anthropic API.
+ * SDK API: tools.get(userId, { toolkits: ['GITHUB', 'GMAIL'] })
+ *
+ * The AnthropicProvider returns tools with proper input_schema format:
+ * { name, description, input_schema: { type: 'object', properties, required } }
  */
 export async function getAvailableTools(
   userId: string,
   toolkits?: string[]
 ): Promise<ComposioTool[]> {
-  const client = getClient();
-
   try {
     if (!toolkits || toolkits.length === 0) {
       log.info('No toolkits provided, returning empty tools list');
@@ -306,24 +334,49 @@ export async function getAvailableTools(
     // SDK expects lowercase toolkit slugs
     const lowercaseToolkits = toolkits.map((t) => t.toLowerCase());
 
-    log.info('Getting tools for toolkits', { userId, toolkits: lowercaseToolkits });
-
-    // Use getRawComposioTools with toolkit slugs
-    const tools = await client.tools.getRawComposioTools({
+    log.info('Getting tools for toolkits with AnthropicProvider', {
+      userId,
       toolkits: lowercaseToolkits,
     });
 
-    log.info('Got tools from Composio', {
-      userId,
-      toolCount: tools?.length || 0,
-      tools: tools?.slice(0, 5).map((t: any) => t.name || t.slug),
+    // Use AnthropicProvider client to get pre-formatted tools for Claude
+    const client = getAnthropicClient();
+
+    // tools.get() with AnthropicProvider returns Claude-formatted tools
+    const tools = await client.tools.get(userId, {
+      toolkits: lowercaseToolkits,
     });
 
-    return (tools || []).map((tool: any) => ({
-      name: tool.name || tool.slug,
-      description: tool.description || '',
-      parameters: tool.parameters || tool.inputSchema || { type: 'object', properties: {} },
-    }));
+    log.info('Got pre-formatted tools from Composio AnthropicProvider', {
+      userId,
+      toolCount: tools?.length || 0,
+      sampleTools: tools?.slice(0, 3).map((t: any) => t.name),
+    });
+
+    // Tools from AnthropicProvider should already have correct format:
+    // { name, description, input_schema: { type: 'object', properties, required } }
+    // We map to our ComposioTool format which uses 'parameters' internally
+    return (tools || []).map((tool: any) => {
+      // AnthropicProvider uses input_schema (Claude format)
+      const inputSchema = tool.input_schema || {};
+
+      log.debug('Mapping AnthropicProvider tool', {
+        name: tool.name,
+        hasInputSchema: !!tool.input_schema,
+        schemaType: inputSchema.type,
+        propertyCount: Object.keys(inputSchema.properties || {}).length,
+      });
+
+      return {
+        name: tool.name,
+        description: tool.description || '',
+        parameters: {
+          type: 'object' as const,
+          properties: inputSchema.properties || {},
+          required: inputSchema.required || [],
+        },
+      };
+    });
   } catch (error) {
     log.error('Failed to get available tools', { userId, toolkits, error });
     return [];

@@ -43,8 +43,55 @@ export interface ComposioToolContext {
 // ============================================================================
 
 /**
+ * Sanitize and validate a JSON Schema property definition
+ * Ensures properties conform to Anthropic's expected format
+ */
+function sanitizeSchemaProperty(key: string, prop: unknown): Record<string, unknown> | null {
+  if (!prop || typeof prop !== 'object') {
+    return null;
+  }
+
+  const p = prop as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+
+  // Type is required - default to 'string' if missing
+  const validTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'];
+  let propType = String(p.type || 'string').toLowerCase();
+
+  // Handle invalid or missing types
+  if (!validTypes.includes(propType)) {
+    log.warn('Invalid property type, defaulting to string', { key, type: p.type });
+    propType = 'string';
+  }
+  sanitized.type = propType;
+
+  // Description is optional but helpful
+  if (p.description && typeof p.description === 'string') {
+    sanitized.description = p.description;
+  }
+
+  // Enum values for constrained strings
+  if (Array.isArray(p.enum) && p.enum.length > 0) {
+    sanitized.enum = p.enum.filter((v) => typeof v === 'string' || typeof v === 'number');
+  }
+
+  // Default value
+  if (p.default !== undefined) {
+    sanitized.default = p.default;
+  }
+
+  // For array types, include items schema
+  if (propType === 'array' && p.items) {
+    sanitized.items = typeof p.items === 'object' ? p.items : { type: 'string' };
+  }
+
+  return sanitized;
+}
+
+/**
  * Convert Composio tool to Claude tool format
  * Safely handles missing or malformed tool data
+ * Validates and sanitizes schema to prevent API errors
  */
 function toClaudeTool(tool: ComposioTool): ClaudeTool | null {
   try {
@@ -53,17 +100,47 @@ function toClaudeTool(tool: ComposioTool): ClaudeTool | null {
       return null;
     }
 
+    // Validate tool name - must be alphanumeric with underscores
+    const toolName = `composio_${tool.name}`;
+    if (!/^[a-zA-Z0-9_]+$/.test(toolName)) {
+      log.warn('Invalid tool name characters, skipping', { name: tool.name });
+      return null;
+    }
+
+    // Sanitize properties to ensure valid JSON Schema
+    const rawProperties = tool.parameters?.properties || {};
+    const sanitizedProperties: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(rawProperties)) {
+      // Validate property key - must be alphanumeric with underscores
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+        log.warn('Skipping property with invalid key', { toolName, key });
+        continue;
+      }
+
+      const sanitized = sanitizeSchemaProperty(key, value);
+      if (sanitized) {
+        sanitizedProperties[key] = sanitized;
+      }
+    }
+
+    // Filter required array to only include properties that exist
+    const rawRequired = tool.parameters?.required || [];
+    const sanitizedRequired = rawRequired.filter(
+      (r) => typeof r === 'string' && r in sanitizedProperties
+    );
+
     return {
-      name: `composio_${tool.name}`,
-      description: tool.description || '',
+      name: toolName,
+      description: tool.description || `Action: ${tool.name.replace(/_/g, ' ')}`,
       input_schema: {
         type: 'object',
-        properties: tool.parameters?.properties || {},
-        required: tool.parameters?.required || [],
+        properties: sanitizedProperties,
+        required: sanitizedRequired,
       },
     };
   } catch (error) {
-    log.error('Failed to convert tool to Claude format', { tool, error });
+    log.error('Failed to convert tool to Claude format', { toolName: tool?.name, error });
     return null;
   }
 }
@@ -99,13 +176,37 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
     let composioTools: ComposioTool[] = [];
     try {
       composioTools = await getAvailableTools(userId, connectedApps);
+      log.info('Retrieved Composio tools', {
+        userId,
+        rawToolCount: composioTools.length,
+        toolNames: composioTools.slice(0, 5).map((t) => t.name),
+      });
     } catch (toolsError) {
       log.error('Failed to get available tools', { userId, connectedApps, error: toolsError });
       // Continue without tools - at least show connected apps
     }
 
     // Convert to Claude format, filtering out any null/invalid tools
-    const tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);
+    let tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);
+
+    // Limit the number of tools to prevent context overflow
+    // Each tool adds roughly 200-500 tokens to context
+    // Claude can handle many tools, but we cap at 50 per session for performance
+    const MAX_COMPOSIO_TOOLS = 50;
+    if (tools.length > MAX_COMPOSIO_TOOLS) {
+      log.warn('Truncating Composio tools list', {
+        userId,
+        originalCount: tools.length,
+        truncatedTo: MAX_COMPOSIO_TOOLS,
+      });
+      tools = tools.slice(0, MAX_COMPOSIO_TOOLS);
+    }
+
+    log.info('Prepared Composio tools for Claude', {
+      userId,
+      validToolCount: tools.length,
+      invalidToolCount: composioTools.length - tools.length,
+    });
 
     // Build system prompt addition
     const appList = connectedApps
@@ -176,12 +277,6 @@ Tool names are prefixed with "composio_" followed by the action:
 3. **For bulk actions, show a summary and get explicit approval**
 4. **If unsure about tone or content, ask clarifying questions first**
 `;
-
-    log.info('Prepared Composio tools for chat', {
-      userId,
-      toolCount: tools.length,
-      apps: connectedApps,
-    });
 
     return {
       connectedApps,
