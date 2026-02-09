@@ -46,7 +46,9 @@ async function getAuthenticatedUser() {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user;
 }
 
@@ -86,10 +88,7 @@ export async function GET() {
     });
   } catch (error) {
     log.error('Failed to get connected accounts', { error });
-    return NextResponse.json(
-      { error: 'Failed to get accounts' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get accounts' }, { status: 500 });
   }
 }
 
@@ -104,37 +103,30 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get connectionId from query params
+    // Get connectionId and toolkit from query params
     const searchParams = request.nextUrl.searchParams;
     const connectionId = searchParams.get('connectionId');
+    const toolkit = searchParams.get('toolkit');
 
     if (!connectionId) {
-      return NextResponse.json(
-        { error: 'connectionId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'connectionId is required' }, { status: 400 });
     }
 
-    // Disconnect
-    const success = await disconnectAccount(connectionId);
+    // Disconnect - pass userId and toolkit to update local cache
+    const success = await disconnectAccount(connectionId, user.id, toolkit || undefined);
 
     if (success) {
       log.info('Account disconnected', {
         userId: user.id,
-        connectionId
+        connectionId,
+        toolkit,
       });
       return NextResponse.json({ success: true });
     } else {
-      return NextResponse.json(
-        { error: 'Failed to disconnect' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 });
     }
   } catch (error) {
     log.error('Failed to disconnect account', { error });
-    return NextResponse.json(
-      { error: 'Failed to disconnect' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 });
   }
 }
