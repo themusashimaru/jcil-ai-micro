@@ -136,6 +136,142 @@ function isGenericTitle(title: string | undefined): boolean {
   return genericPatterns.some((pattern) => pattern.test(title.trim()));
 }
 
+/**
+ * Format Composio action success messages in a user-friendly way
+ * Instead of showing raw JSON, display clean confirmation messages
+ */
+function formatActionSuccessMessage(platform: string, action: string, _data: unknown): string {
+  const platformLower = platform.toLowerCase();
+  const actionLower = action.toLowerCase();
+
+  // Gmail
+  if (platformLower === 'gmail') {
+    if (actionLower.includes('send')) {
+      return '✉️ Email sent successfully!';
+    }
+    if (actionLower.includes('draft')) {
+      return '📝 Draft saved successfully!';
+    }
+    if (actionLower.includes('reply')) {
+      return '↩️ Reply sent successfully!';
+    }
+    return `✉️ ${action} completed successfully!`;
+  }
+
+  // Twitter/X
+  if (platformLower === 'twitter' || platformLower === 'x') {
+    if (actionLower.includes('tweet') || actionLower.includes('post')) {
+      return '🐦 Tweet posted successfully!';
+    }
+    if (actionLower.includes('retweet')) {
+      return '🔁 Retweeted successfully!';
+    }
+    if (actionLower.includes('like')) {
+      return '❤️ Liked successfully!';
+    }
+    return `🐦 ${action} completed successfully!`;
+  }
+
+  // Slack
+  if (platformLower === 'slack') {
+    if (actionLower.includes('message') || actionLower.includes('send')) {
+      return '💬 Slack message sent successfully!';
+    }
+    return `💬 ${action} completed successfully!`;
+  }
+
+  // LinkedIn
+  if (platformLower === 'linkedin') {
+    if (actionLower.includes('post')) {
+      return '💼 LinkedIn post published successfully!';
+    }
+    if (actionLower.includes('message')) {
+      return '💼 LinkedIn message sent successfully!';
+    }
+    return `💼 ${action} completed successfully!`;
+  }
+
+  // Google Calendar
+  if (platformLower === 'googlecalendar' || platformLower === 'google calendar') {
+    if (actionLower.includes('create') || actionLower.includes('event')) {
+      return '📅 Calendar event created successfully!';
+    }
+    if (actionLower.includes('update')) {
+      return '📅 Calendar event updated successfully!';
+    }
+    if (actionLower.includes('delete')) {
+      return '📅 Calendar event deleted successfully!';
+    }
+    return `📅 ${action} completed successfully!`;
+  }
+
+  // Google Drive
+  if (platformLower === 'googledrive' || platformLower === 'google drive') {
+    if (actionLower.includes('upload')) {
+      return '📁 File uploaded to Drive successfully!';
+    }
+    if (actionLower.includes('create')) {
+      return '📁 File created in Drive successfully!';
+    }
+    if (actionLower.includes('share')) {
+      return '🔗 File shared successfully!';
+    }
+    return `📁 ${action} completed successfully!`;
+  }
+
+  // Notion
+  if (platformLower === 'notion') {
+    if (actionLower.includes('page') || actionLower.includes('create')) {
+      return '📓 Notion page created successfully!';
+    }
+    if (actionLower.includes('update')) {
+      return '📓 Notion page updated successfully!';
+    }
+    return `📓 ${action} completed successfully!`;
+  }
+
+  // GitHub
+  if (platformLower === 'github') {
+    if (actionLower.includes('issue')) {
+      return '🐙 GitHub issue created successfully!';
+    }
+    if (actionLower.includes('pr') || actionLower.includes('pull')) {
+      return '🐙 Pull request created successfully!';
+    }
+    if (actionLower.includes('commit')) {
+      return '🐙 Committed successfully!';
+    }
+    return `🐙 ${action} completed successfully!`;
+  }
+
+  // Trello
+  if (platformLower === 'trello') {
+    if (actionLower.includes('card')) {
+      return '📋 Trello card created successfully!';
+    }
+    return `📋 ${action} completed successfully!`;
+  }
+
+  // Asana
+  if (platformLower === 'asana') {
+    if (actionLower.includes('task')) {
+      return '✅ Asana task created successfully!';
+    }
+    return `✅ ${action} completed successfully!`;
+  }
+
+  // Discord
+  if (platformLower === 'discord') {
+    if (actionLower.includes('message') || actionLower.includes('send')) {
+      return '🎮 Discord message sent successfully!';
+    }
+    return `🎮 ${action} completed successfully!`;
+  }
+
+  // Default fallback - clean message without raw data
+  return `✅ ${action} on ${platform} completed successfully!`;
+}
+
 export function ChatClient() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -940,17 +1076,11 @@ export function ChatClient() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Add success message
+        // Add success message with user-friendly formatting
         const successMessage: Message = {
           id: `action-success-${Date.now()}`,
           role: 'assistant',
-          content: `Successfully completed: ${preview.action} on ${preview.platform}. ${
-            typeof data.data === 'string'
-              ? data.data
-              : data.data
-                ? JSON.stringify(data.data, null, 2).slice(0, 200)
-                : ''
-          }`,
+          content: formatActionSuccessMessage(preview.platform, preview.action, data.data),
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, successMessage]);
