@@ -565,7 +565,12 @@ export async function routeChatWithTools(
               case 'error':
                 if (chunk.error) {
                   log.error('Stream error', chunk.error);
-                  controller.error(new Error(chunk.error.message));
+                  // Include error code in the message for better frontend handling
+                  // Format: "[CODE] message" allows frontend to extract the code
+                  const errorMsg = chunk.error.code
+                    ? `[${chunk.error.code}] ${chunk.error.message}`
+                    : chunk.error.message;
+                  controller.error(new Error(errorMsg));
                   return;
                 }
                 break;

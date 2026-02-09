@@ -4869,13 +4869,22 @@ I'll deploy a focused team to research and write your content.
       }
 
       // Parse error message for specific error types
-      const errorMsg = error instanceof Error ? error.message.toLowerCase() : '';
+      const rawErrorMsg = error instanceof Error ? error.message : '';
+      const errorMsg = rawErrorMsg.toLowerCase();
       let errorContent = '';
+
+      // Extract error code from message if present (format: "[CODE] message")
+      const errorCodeMatch = rawErrorMsg.match(/^\[([^\]]+)\]/);
+      const errorCode = errorCodeMatch ? errorCodeMatch[1].toLowerCase() : '';
+
+      // Log the error details for debugging
+      log.debug('Parsing error for user message', { rawErrorMsg, errorCode });
 
       // Check for specific error types and provide helpful messages
 
       // CONTEXT EXHAUSTION - Auto-continue in new chat
       if (
+        errorCode === 'context_too_long' ||
         errorMsg.includes('context') ||
         errorMsg.includes('context_length') ||
         errorMsg.includes('maximum context') ||
@@ -4901,7 +4910,9 @@ I'll deploy a focused team to research and write your content.
         return;
       }
 
+      // Map error codes and message patterns to user-friendly messages
       if (
+        errorCode === 'rate_limited' ||
         errorMsg.includes('rate limit') ||
         errorMsg.includes('429') ||
         errorMsg.includes('too many')
@@ -4910,19 +4921,47 @@ I'll deploy a focused team to research and write your content.
       } else if (errorMsg.includes('token limit') || errorMsg.includes('usage limit')) {
         errorContent =
           "You've reached your usage limit. Check your account for details or upgrade your plan.";
-      } else if (errorMsg.includes('moderation') || errorMsg.includes('content policy')) {
+      } else if (
+        errorCode === 'content_filtered' ||
+        errorMsg.includes('moderation') ||
+        errorMsg.includes('content policy')
+      ) {
         errorContent =
           "Your message couldn't be processed due to content guidelines. Please rephrase and try again.";
-      } else if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
+      } else if (
+        errorCode === 'timeout' ||
+        errorMsg.includes('timeout') ||
+        errorMsg.includes('timed out')
+      ) {
         errorContent = 'The request took too long. Please try again with a simpler message.';
       } else if (
+        errorCode === 'server_error' ||
         errorMsg.includes('server') ||
         errorMsg.includes('500') ||
         errorMsg.includes('503')
       ) {
         errorContent = 'The server is temporarily unavailable. Please try again in a few moments.';
-      } else if (errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
+      } else if (
+        errorCode === 'auth_failed' ||
+        errorMsg.includes('unauthorized') ||
+        errorMsg.includes('401')
+      ) {
         errorContent = 'Your session may have expired. Please refresh the page and try again.';
+      } else if (
+        errorCode === 'invalid_request' ||
+        errorMsg.includes('invalid') ||
+        errorMsg.includes('400')
+      ) {
+        // Provide more context for invalid request errors
+        errorContent =
+          'There was an issue with the request. This might be a temporary problem with app integrations. Please try again.';
+      } else if (
+        errorCode === 'model_unavailable' ||
+        errorMsg.includes('model') ||
+        errorMsg.includes('unavailable')
+      ) {
+        errorContent =
+          'The AI model is temporarily unavailable. Please try again in a few moments.';
       } else if (pendingDocumentType) {
         // Document generation specific error
         const docTypeNames: Record<string, string> = {
@@ -4934,8 +4973,9 @@ I'll deploy a focused team to research and write your content.
         const docName = docTypeNames[pendingDocumentType] || 'document';
         errorContent = `I wasn't able to create your ${docName}. Document generation can take up to 2 minutes for complex files. Please try again, or simplify your request if this keeps happening.`;
       } else {
-        // Generic fallback
-        errorContent = 'Something went wrong processing your request. Please try again.';
+        // Generic fallback - include hint about what might help
+        errorContent =
+          'Something went wrong processing your request. Please try again. If this persists, try starting a new conversation.';
       }
 
       const errorMessage: Message = {
