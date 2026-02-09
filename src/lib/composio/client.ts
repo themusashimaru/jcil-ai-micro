@@ -18,7 +18,7 @@ import type {
   ToolExecutionResult,
   ComposioTool,
 } from './types';
-import { getToolkitById } from './toolkits';
+import { getToolkitById, composioSlugToToolkitId } from './toolkits';
 
 // Type helper for Composio SDK (API types not fully exported)
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -75,6 +75,21 @@ function getAnthropicClient(): ComposioClient {
 }
 
 // ============================================================================
+// HELPERS - TOOLKIT SLUG FORMATTING
+// ============================================================================
+
+/**
+ * Convert internal toolkit ID to Composio API slug format
+ * Composio uses lowercase slugs WITHOUT underscores:
+ * - GOOGLE_SHEETS -> googlesheets
+ * - GOOGLE_CALENDAR -> googlecalendar
+ * - MICROSOFT_TEAMS -> microsoftteams
+ */
+function toComposioSlug(toolkit: string): string {
+  return toolkit.toLowerCase().replace(/_/g, '');
+}
+
+// ============================================================================
 // CONNECTION MANAGEMENT
 // ============================================================================
 
@@ -94,10 +109,9 @@ export async function initiateConnection(
   try {
     log.info('Initiating connection', { userId, toolkit });
 
-    // For managed auth (Composio handles OAuth), we can use the default config
-    // IMPORTANT: Composio SDK expects lowercase toolkit slugs for API calls
-    // Convert underscores to avoid any format issues (e.g., MICROSOFT_TEAMS -> microsoft_teams)
-    const toolkitSlug = toolkit.toLowerCase();
+    // Convert to Composio's slug format (lowercase, no underscores)
+    // e.g., GOOGLE_SHEETS -> googlesheets
+    const toolkitSlug = toComposioSlug(toolkit);
 
     log.info('Looking up auth configs', { toolkitSlug });
 
@@ -331,12 +345,12 @@ export async function getAvailableTools(
       return [];
     }
 
-    // SDK expects lowercase toolkit slugs
-    const lowercaseToolkits = toolkits.map((t) => t.toLowerCase());
+    // Convert to Composio's slug format (lowercase, no underscores)
+    const composioToolkits = toolkits.map((t) => toComposioSlug(t));
 
     log.info('Getting tools for toolkits with AnthropicProvider', {
       userId,
-      toolkits: lowercaseToolkits,
+      toolkits: composioToolkits,
     });
 
     // Use AnthropicProvider client to get pre-formatted tools for Claude
@@ -344,7 +358,7 @@ export async function getAvailableTools(
 
     // tools.get() with AnthropicProvider returns Claude-formatted tools
     const tools = await client.tools.get(userId, {
-      toolkits: lowercaseToolkits,
+      toolkits: composioToolkits,
     });
 
     log.info('Got pre-formatted tools from Composio AnthropicProvider', {
@@ -390,12 +404,22 @@ export async function getAvailableTools(
 /**
  * Map Composio account response to our type
  * SDK returns: { id, status, toolkit: { slug, ... }, ... }
+ *
+ * Important: Composio returns toolkit slugs without underscores (e.g., "googlesheets")
+ * but we use IDs with underscores (e.g., "GOOGLE_SHEETS"). The composioSlugToToolkitId
+ * function handles this conversion.
  */
 function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount {
   // SDK returns toolkit as nested object with slug
   const toolkitObj = account.toolkit as Record<string, unknown> | undefined;
-  const toolkit = (toolkitObj?.slug || account.integrationId || account.appName || '') as string;
-  const toolkitConfig = getToolkitById(toolkit.toUpperCase());
+  const composioSlug = (toolkitObj?.slug ||
+    account.integrationId ||
+    account.appName ||
+    '') as string;
+
+  // Convert Composio's slug format (googlesheets) to our internal ID (GOOGLE_SHEETS)
+  const toolkitId = composioSlugToToolkitId(composioSlug);
+  const toolkitConfig = getToolkitById(toolkitId);
 
   const statusMap: Record<string, ConnectionStatus> = {
     ACTIVE: 'connected',
@@ -409,7 +433,7 @@ function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount 
 
   return {
     id: account.id as string,
-    toolkit: toolkit.toUpperCase(),
+    toolkit: toolkitId, // Use our internal ID format (GOOGLE_SHEETS)
     status: statusMap[status] || 'disconnected',
     connectedAt: account.createdAt as string | undefined,
     metadata: {

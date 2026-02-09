@@ -509,9 +509,27 @@ export const TOOLKITS_BY_CATEGORY: Record<ToolkitCategory, ToolkitConfig[]> = {
 
 /**
  * Get toolkit config by ID
+ * Handles both our internal format (GOOGLE_SHEETS) and Composio's format (googlesheets)
  */
 export function getToolkitById(id: string): ToolkitConfig | undefined {
-  return ALL_TOOLKITS.find((t) => t.id === id || t.id === id.toUpperCase());
+  const upperId = id.toUpperCase();
+  return ALL_TOOLKITS.find((t) => {
+    // Exact match
+    if (t.id === id || t.id === upperId) return true;
+    // Match Composio slug format (no underscores) to our format (with underscores)
+    // e.g., GOOGLESHEETS matches GOOGLE_SHEETS
+    const idWithoutUnderscores = t.id.replace(/_/g, '');
+    return idWithoutUnderscores === upperId;
+  });
+}
+
+/**
+ * Convert Composio slug to our internal toolkit ID format
+ * e.g., "googlesheets" -> "GOOGLE_SHEETS"
+ */
+export function composioSlugToToolkitId(slug: string): string {
+  const toolkit = getToolkitById(slug);
+  return toolkit?.id || slug.toUpperCase();
 }
 
 /**

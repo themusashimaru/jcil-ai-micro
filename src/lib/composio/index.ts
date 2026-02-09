@@ -41,6 +41,7 @@ export {
   getToolkitById,
   getToolkitsByCategory,
   getPopularToolkits,
+  composioSlugToToolkitId,
 } from './toolkits';
 
 // Chat integration (Claude tools)
