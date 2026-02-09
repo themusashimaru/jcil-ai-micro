@@ -6287,7 +6287,8 @@ SECURITY:
             messages.map((m) => ({
               role: m.role,
               content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-            }))
+            })),
+            conversationId
           ).catch((err) => {
             log.warn('Memory extraction failed (non-critical)', err);
           });

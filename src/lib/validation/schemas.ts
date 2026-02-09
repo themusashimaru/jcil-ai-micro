@@ -89,6 +89,7 @@ export const createMessageSchema = z.object({
   prompt: z.string().max(10000).optional().nullable(),
   type: z.enum(['text', 'image', 'code', 'markdown']).default('text'),
   attachment_urls: z.array(z.string().max(50000)).max(FILE_LIMITS.MAX_FILES_PER_REQUEST).optional(),
+  metadata: z.record(z.unknown()).optional().nullable(),
 });
 
 // ========================================

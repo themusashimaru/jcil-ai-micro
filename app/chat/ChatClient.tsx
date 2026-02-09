@@ -657,16 +657,23 @@ export function ChatClient() {
             content_type: string;
             attachment_urls: string[] | null;
             created_at: string;
+            metadata?: Record<string, unknown> | null;
           }) => {
             const imageUrl =
               msg.attachment_urls && msg.attachment_urls.length > 0
                 ? msg.attachment_urls[0]
                 : undefined;
+            // Restore documentDownload from persisted metadata so download
+            // buttons reappear after page refresh / conversation reload.
+            const docDl = msg.metadata?.documentDownload as
+              | { filename: string; mimeType: string; dataUrl: string; canPreview: boolean }
+              | undefined;
             return {
               id: msg.id,
               role: msg.role,
               content: msg.content,
               imageUrl,
+              documentDownload: docDl || undefined,
               timestamp: new Date(msg.created_at),
             };
           }
@@ -1435,7 +1442,8 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
     content: string,
     contentType: 'text' | 'image' | 'code' | 'error' = 'text',
     imageUrl?: string,
-    attachmentUrls?: string[]
+    attachmentUrls?: string[],
+    metadata?: Record<string, unknown> | null
   ) => {
     // Skip saving if content is empty and no attachments
     const hasContent = content && content.trim().length > 0;
@@ -1456,6 +1464,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
           content_type: contentType,
           image_url: imageUrl,
           attachment_urls: attachmentUrls,
+          metadata: metadata || undefined,
         }),
       });
 
@@ -4803,6 +4812,7 @@ I'll deploy a focused team to research and write your content.
 
       // Check for [DOCUMENT_DOWNLOAD: ...] marker in the response
       // This handles native document generation (Excel, Word, PDF) from the chat route
+      let documentDownloadMeta: Record<string, unknown> | null = null;
       const docDownloadMatch = finalContent.match(/\[DOCUMENT_DOWNLOAD:(.+?)\]/s);
       if (docDownloadMatch) {
         try {
@@ -4814,23 +4824,26 @@ I'll deploy a focused team to research and write your content.
 
           // Store document data in message for preview/download buttons (no auto-download)
           if (docData.dataUrl) {
+            const docDownload = {
+              filename: docData.filename || 'document',
+              mimeType: docData.mimeType || 'application/octet-stream',
+              dataUrl: docData.dataUrl,
+              canPreview: docData.canPreview || false,
+            };
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === assistantMessageId
                   ? {
                       ...msg,
                       content: cleanedContent,
-                      documentDownload: {
-                        filename: docData.filename || 'document',
-                        mimeType: docData.mimeType || 'application/octet-stream',
-                        dataUrl: docData.dataUrl,
-                        canPreview: docData.canPreview || false,
-                      },
+                      documentDownload: docDownload,
                     }
                   : msg
               )
             );
             finalContent = cleanedContent;
+            // Persist document metadata so it survives page refreshes
+            documentDownloadMeta = { documentDownload: docDownload };
           }
         } catch (docError) {
           log.error('Error parsing DOCUMENT_DOWNLOAD marker:', docError as Error);
@@ -4880,7 +4893,7 @@ I'll deploy a focused team to research and write your content.
 
       // Save assistant message to database (skip for images - already saved above)
       if (!isImageResponse) {
-        await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
+        await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text', undefined, undefined, documentDownloadMeta);
       }
 
       // Generate chat title for new conversations OR regenerate if current title is generic
