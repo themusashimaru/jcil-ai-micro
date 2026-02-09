@@ -75,6 +75,21 @@ function getAnthropicClient(): ComposioClient {
 }
 
 // ============================================================================
+// HELPERS - TOOLKIT SLUG FORMATTING
+// ============================================================================
+
+/**
+ * Convert internal toolkit ID to Composio API slug format
+ * Composio uses lowercase slugs WITHOUT underscores:
+ * - GOOGLE_SHEETS -> googlesheets
+ * - GOOGLE_CALENDAR -> googlecalendar
+ * - MICROSOFT_TEAMS -> microsoftteams
+ */
+function toComposioSlug(toolkit: string): string {
+  return toolkit.toLowerCase().replace(/_/g, '');
+}
+
+// ============================================================================
 // CONNECTION MANAGEMENT
 // ============================================================================
 
@@ -94,10 +109,9 @@ export async function initiateConnection(
   try {
     log.info('Initiating connection', { userId, toolkit });
 
-    // For managed auth (Composio handles OAuth), we can use the default config
-    // IMPORTANT: Composio SDK expects lowercase toolkit slugs for API calls
-    // Convert underscores to avoid any format issues (e.g., MICROSOFT_TEAMS -> microsoft_teams)
-    const toolkitSlug = toolkit.toLowerCase();
+    // Convert to Composio's slug format (lowercase, no underscores)
+    // e.g., GOOGLE_SHEETS -> googlesheets
+    const toolkitSlug = toComposioSlug(toolkit);
 
     log.info('Looking up auth configs', { toolkitSlug });
 
@@ -331,12 +345,12 @@ export async function getAvailableTools(
       return [];
     }
 
-    // SDK expects lowercase toolkit slugs
-    const lowercaseToolkits = toolkits.map((t) => t.toLowerCase());
+    // Convert to Composio's slug format (lowercase, no underscores)
+    const composioToolkits = toolkits.map((t) => toComposioSlug(t));
 
     log.info('Getting tools for toolkits with AnthropicProvider', {
       userId,
-      toolkits: lowercaseToolkits,
+      toolkits: composioToolkits,
     });
 
     // Use AnthropicProvider client to get pre-formatted tools for Claude
@@ -344,7 +358,7 @@ export async function getAvailableTools(
 
     // tools.get() with AnthropicProvider returns Claude-formatted tools
     const tools = await client.tools.get(userId, {
-      toolkits: lowercaseToolkits,
+      toolkits: composioToolkits,
     });
 
     log.info('Got pre-formatted tools from Composio AnthropicProvider', {
