@@ -155,6 +155,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let image_url: string | null = null;
     let prompt: string | null = null;
     let type = 'text';
+    let metadata: Record<string, unknown> | null = null;
 
     // Handle multipart/form-data (file uploads)
     if (contentType.includes('multipart/form-data')) {
@@ -254,6 +255,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       prompt = body.prompt || null;
       type = body.type;
       attachment_urls = body.attachment_urls || [];
+      metadata = body.metadata || null;
     }
 
     // Normalize content: handle different message types
@@ -314,6 +316,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         tokens_used,
         has_attachments: attachment_urls.length > 0,
         attachment_urls: attachment_urls.length > 0 ? attachment_urls : null,
+        metadata: metadata,
         retention_until: retentionDate.toISOString(),
       })
       .select()

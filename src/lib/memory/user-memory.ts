@@ -90,19 +90,24 @@ export async function loadUserMemory(userId: string): Promise<UserMemory | null>
   if (!supabase) return null;
 
   try {
+    // Use order + limit(1) instead of .single() to handle duplicate rows gracefully.
+    // .single() fails with PGRST116 if 0 OR >1 rows exist, which silently breaks
+    // memory loading when race conditions create duplicate records.
     const { data, error } = await supabase
       .from('conversation_memory')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No memory exists yet - this is normal for new users
-        log.debug('No memory found for user', { userId });
-        return null;
-      }
       log.error('Failed to load user memory', error);
+      return null;
+    }
+
+    if (!data) {
+      log.debug('No memory found for user', { userId });
       return null;
     }
 
@@ -110,7 +115,7 @@ export async function loadUserMemory(userId: string): Promise<UserMemory | null>
     await supabase
       .from('conversation_memory')
       .update({ last_accessed_at: new Date().toISOString() })
-      .eq('user_id', userId);
+      .eq('id', data.id);
 
     log.debug('Loaded user memory', { userId, topics: data.key_topics?.length || 0 });
 
@@ -289,15 +294,20 @@ export async function createUserMemory(userId: string): Promise<UserMemory | nul
       last_conversations: [],
     };
 
+    // Use upsert with onConflict to prevent race conditions where two concurrent
+    // calls both try to create a memory row for the same user_id.
+    // Requires UNIQUE constraint on user_id (see migration SQL).
     const { data, error } = await supabase
       .from('conversation_memory')
-      .insert(newMemory)
+      .upsert(newMemory, { onConflict: 'user_id', ignoreDuplicates: true })
       .select()
       .single();
 
     if (error) {
-      log.error('Failed to create user memory', error);
-      return null;
+      // If upsert conflict occurred and ignoreDuplicates swallowed it,
+      // the row already exists — load it instead.
+      log.warn('Upsert returned error, attempting to load existing memory', { userId, error });
+      return loadUserMemory(userId);
     }
 
     log.info('Created new user memory', { userId });
@@ -389,7 +399,8 @@ export async function updateUserMemory(
       updatedSummary = generateOverallSummary(updatedSummaries, updatedPrefs);
     }
 
-    // Update database
+    // Update database — use memory.id (primary key) instead of user_id to avoid
+    // updating duplicate rows if they exist before migration cleanup runs.
     const { error } = await supabase
       .from('conversation_memory')
       .update({
@@ -400,7 +411,7 @@ export async function updateUserMemory(
         last_conversations: updatedSummaries,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userId);
+      .eq('id', memory.id);
 
     if (error) {
       log.error('Failed to update user memory', error);
