@@ -20,6 +20,9 @@ import {
   getConnectedAccounts,
 } from '@/lib/composio';
 import type { ToolkitCategory } from '@/lib/composio';
+import { logger } from '@/lib/logger';
+
+const log = logger('ComposioToolkitsAPI');
 
 // Helper to get Supabase client and user
 async function getAuthenticatedUser() {
@@ -45,7 +48,9 @@ async function getAuthenticatedUser() {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user;
 }
 
@@ -95,17 +100,50 @@ export async function GET(request: NextRequest) {
       const user = await getAuthenticatedUser();
       if (user) {
         const connectedAccounts = await getConnectedAccounts(user.id);
-        const connectedMap = new Map(
-          connectedAccounts.map((a) => [a.toolkit.toUpperCase(), a])
-        );
+
+        // Log all connected accounts for debugging
+        log.info('Connected accounts fetched', {
+          userId: user.id,
+          accountCount: connectedAccounts.length,
+          accounts: connectedAccounts.map((a) => ({
+            id: a.id,
+            toolkit: a.toolkit,
+            status: a.status,
+          })),
+        });
+
+        const connectedMap = new Map(connectedAccounts.map((a) => [a.toolkit.toUpperCase(), a]));
+
+        // Log the map keys for debugging
+        log.debug('Connected map keys', {
+          keys: Array.from(connectedMap.keys()),
+        });
 
         enrichedToolkits = enrichedToolkits.map((t) => {
-          const connection = connectedMap.get(t.id.toUpperCase());
+          const lookupKey = t.id.toUpperCase();
+          const connection = connectedMap.get(lookupKey);
+
+          // Log mismatches for debugging
+          if (!connection && connectedAccounts.length > 0) {
+            log.debug('No connection match for toolkit', {
+              toolkitId: t.id,
+              lookupKey,
+              mapHasKey: connectedMap.has(lookupKey),
+            });
+          }
+
           return {
             ...t,
             connected: connection?.status === 'connected',
             connectionId: connection?.id || null,
           };
+        });
+
+        // Log final connected count
+        const connectedCount = enrichedToolkits.filter((t) => t.connected).length;
+        log.info('Enriched toolkits with connection status', {
+          totalToolkits: enrichedToolkits.length,
+          connectedCount,
         });
       }
     }
@@ -131,9 +169,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to get toolkits:', error);
-    return NextResponse.json(
-      { error: 'Failed to get toolkits' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get toolkits' }, { status: 500 });
   }
 }
