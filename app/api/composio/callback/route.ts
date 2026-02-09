@@ -83,7 +83,8 @@ export async function GET(request: NextRequest) {
     // If we have a connectionId, wait for it to become active
     if (connectionId) {
       log.info('Waiting for connection to become active', { connectionId, toolkit });
-      const account = await waitForConnection(connectionId, 30000); // 30 second timeout
+      // Pass userId to save connection to local cache on success
+      const account = await waitForConnection(connectionId, 30000, user.id); // 30 second timeout
 
       if (account && account.status === 'connected') {
         log.info('Connection successful', {

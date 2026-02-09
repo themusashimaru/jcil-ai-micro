@@ -19,6 +19,14 @@ import type {
   ComposioTool,
 } from './types';
 import { getToolkitById, composioSlugToToolkitId } from './toolkits';
+import {
+  getCachedConnections,
+  isCacheFresh,
+  saveConnectionsToCache,
+  saveSingleConnectionToCache,
+  removeConnectionFromCache,
+  withRetry,
+} from './connection-cache';
 
 // Type helper for Composio SDK (API types not fully exported)
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -259,10 +267,13 @@ export async function connectWithApiKey(
 /**
  * Wait for a connection to become active
  * Uses SDK's built-in waitForConnection method
+ *
+ * Also saves the connection to local cache on success
  */
 export async function waitForConnection(
   connectionId: string,
-  timeoutMs: number = 60000
+  timeoutMs: number = 60000,
+  userId?: string
 ): Promise<ConnectedAccount | null> {
   const client = getClient();
 
@@ -278,7 +289,14 @@ export async function waitForConnection(
         status: account.status,
         toolkit: account.toolkit?.slug,
       });
-      return mapComposioAccount(account);
+      const mappedAccount = mapComposioAccount(account);
+
+      // Save to local cache if we have the userId
+      if (userId && mappedAccount.status === 'connected') {
+        await saveSingleConnectionToCache(userId, mappedAccount);
+      }
+
+      return mappedAccount;
     }
 
     log.warn('Connection did not become active', { connectionId });
@@ -292,15 +310,49 @@ export async function waitForConnection(
 
 /**
  * Get all connected accounts for a user
+ *
+ * Uses a local cache to prevent connections from appearing "dropped"
+ * when the Composio API is slow or returns stale data.
+ *
+ * Strategy:
+ * 1. Check if cache is fresh (within TTL)
+ * 2. If fresh, return cached connections
+ * 3. If stale, try to refresh from Composio API (with retries)
+ * 4. If API fails, return cached connections (stale but better than empty)
+ * 5. Save successful API responses to cache
  */
 export async function getConnectedAccounts(userId: string): Promise<ConnectedAccount[]> {
+  // Check if we have fresh cached connections
+  const cacheFresh = await isCacheFresh(userId);
+  if (cacheFresh) {
+    const cached = await getCachedConnections(userId);
+    if (cached && cached.length > 0) {
+      log.info('Using fresh cached connections', {
+        userId,
+        count: cached.length,
+        toolkits: cached.map((c) => c.toolkit),
+      });
+      return cached;
+    }
+  }
+
+  // Cache is stale or empty - try to refresh from Composio API
   const client = getClient();
 
   try {
-    // SDK API: connectedAccounts.list({ userIds: ['user123'] }) - plural, array!
-    const accounts = await client.connectedAccounts.list({
-      userIds: [userId],
-    });
+    // Use retry logic to handle transient API failures
+    const accounts = await withRetry(
+      async () => {
+        return await client.connectedAccounts.list({
+          userIds: [userId],
+        });
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        operationName: 'getConnectedAccounts',
+      }
+    );
 
     log.info('Got connected accounts from Composio', {
       userId,
@@ -312,9 +364,27 @@ export async function getConnectedAccounts(userId: string): Promise<ConnectedAcc
       })),
     });
 
-    return (accounts.items || []).map(mapComposioAccount);
+    const mappedAccounts = (accounts.items || []).map(mapComposioAccount);
+
+    // Save to local cache for future requests
+    await saveConnectionsToCache(userId, mappedAccounts);
+
+    return mappedAccounts;
   } catch (error) {
-    log.error('Failed to get connected accounts', { userId, error });
+    log.error('Failed to get connected accounts from Composio API', { userId, error });
+
+    // Fallback to cached connections (even if stale)
+    const cached = await getCachedConnections(userId);
+    if (cached && cached.length > 0) {
+      log.warn('Using stale cached connections as fallback', {
+        userId,
+        count: cached.length,
+        toolkits: cached.map((c) => c.toolkit),
+      });
+      return cached;
+    }
+
+    // No cache available - return empty
     return [];
   }
 }
@@ -336,13 +406,25 @@ export async function getConnectedAccount(connectionId: string): Promise<Connect
 
 /**
  * Disconnect an account
+ *
+ * Also updates the local cache to mark the connection as disconnected
  */
-export async function disconnectAccount(connectionId: string): Promise<boolean> {
+export async function disconnectAccount(
+  connectionId: string,
+  userId?: string,
+  toolkit?: string
+): Promise<boolean> {
   const client = getClient();
 
   try {
     await client.connectedAccounts.delete(connectionId);
     log.info('Account disconnected', { connectionId });
+
+    // Update local cache if we have userId and toolkit
+    if (userId && toolkit) {
+      await removeConnectionFromCache(userId, toolkit);
+    }
+
     return true;
   } catch (error) {
     log.error('Failed to disconnect account', { connectionId, error });
