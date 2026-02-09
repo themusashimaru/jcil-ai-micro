@@ -4,11 +4,12 @@
  * COMPOSIO TOOLKITS SECTION
  *
  * Browse and connect to approved app integrations via Composio.
- * Supports search, category filtering, and OAuth connections.
+ * Supports search, category filtering, OAuth connections, and API key auth.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import BrandLogo from '@/components/ui/BrandLogo';
+import ApiKeyModal from './ApiKeyModal';
 
 interface Toolkit {
   id: string;
@@ -97,6 +98,19 @@ export default function ComposioToolkitsSection() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // API Key modal state
+  const [apiKeyModal, setApiKeyModal] = useState<{
+    isOpen: boolean;
+    toolkit: Toolkit | null;
+    error: string | null;
+    isSubmitting: boolean;
+  }>({
+    isOpen: false,
+    toolkit: null,
+    error: null,
+    isSubmitting: false,
+  });
+
   // Fetch toolkits
   const fetchToolkits = useCallback(async () => {
     try {
@@ -164,6 +178,18 @@ export default function ComposioToolkitsSection() {
   }, [fetchToolkits]);
 
   const handleConnect = async (toolkit: Toolkit) => {
+    // Check if this toolkit requires an API key
+    if (toolkit.authType === 'api_key') {
+      setApiKeyModal({
+        isOpen: true,
+        toolkit,
+        error: null,
+        isSubmitting: false,
+      });
+      return;
+    }
+
+    // OAuth flow
     try {
       setConnecting(toolkit.id);
       setError(null);
@@ -174,12 +200,22 @@ export default function ComposioToolkitsSection() {
         body: JSON.stringify({ toolkit: toolkit.id }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
+        // Check if the backend says this requires an API key
+        if (data.requiresApiKey) {
+          setConnecting(null);
+          setApiKeyModal({
+            isOpen: true,
+            toolkit,
+            error: null,
+            isSubmitting: false,
+          });
+          return;
+        }
         throw new Error(data.error || 'Failed to initiate connection');
       }
-
-      const data = await response.json();
 
       // Redirect to OAuth
       if (data.redirectUrl) {
@@ -189,6 +225,48 @@ export default function ComposioToolkitsSection() {
       console.error('Failed to connect:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect');
       setConnecting(null);
+    }
+  };
+
+  const handleApiKeySubmit = async (apiKey: string) => {
+    if (!apiKeyModal.toolkit) return;
+
+    setApiKeyModal((prev) => ({ ...prev, isSubmitting: true, error: null }));
+
+    try {
+      const response = await fetch('/api/composio/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolkit: apiKeyModal.toolkit.id,
+          apiKey,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to connect');
+      }
+
+      // Success! Close modal and show success message
+      const toolkitName = apiKeyModal.toolkit.displayName;
+      setApiKeyModal({ isOpen: false, toolkit: null, error: null, isSubmitting: false });
+      setSuccess(`${toolkitName} connected successfully!`);
+      fetchToolkits(); // Refresh the list
+    } catch (err) {
+      console.error('Failed to connect with API key:', err);
+      setApiKeyModal((prev) => ({
+        ...prev,
+        isSubmitting: false,
+        error: err instanceof Error ? err.message : 'Failed to connect',
+      }));
+    }
+  };
+
+  const handleApiKeyModalClose = () => {
+    if (!apiKeyModal.isSubmitting) {
+      setApiKeyModal({ isOpen: false, toolkit: null, error: null, isSubmitting: false });
     }
   };
 
@@ -542,17 +620,44 @@ export default function ComposioToolkitsSection() {
               </div>
 
               <div className="mt-3 flex items-center justify-between">
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: toolkit.connected
-                      ? 'rgba(34, 197, 94, 0.15)'
-                      : 'var(--background-secondary)',
-                    color: toolkit.connected ? '#16a34a' : 'var(--text-muted)',
-                  }}
-                >
-                  {toolkit.connected ? 'Connected' : toolkit.category}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: toolkit.connected
+                        ? 'rgba(34, 197, 94, 0.15)'
+                        : 'var(--background-secondary)',
+                      color: toolkit.connected ? '#16a34a' : 'var(--text-muted)',
+                    }}
+                  >
+                    {toolkit.connected ? 'Connected' : toolkit.category}
+                  </span>
+                  {toolkit.authType === 'api_key' && !toolkit.connected && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                      style={{
+                        backgroundColor: 'rgba(251, 146, 60, 0.15)',
+                        color: '#ea580c',
+                      }}
+                      title="Requires API key"
+                    >
+                      <svg
+                        className="w-2.5 h-2.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                        />
+                      </svg>
+                      API Key
+                    </span>
+                  )}
+                </div>
 
                 {toolkit.connected ? (
                   <button
@@ -591,6 +696,23 @@ export default function ComposioToolkitsSection() {
             {connectedCount} of {toolkits.length} apps connected
           </p>
         </div>
+      )}
+
+      {/* API Key Modal */}
+      {apiKeyModal.toolkit && (
+        <ApiKeyModal
+          isOpen={apiKeyModal.isOpen}
+          onClose={handleApiKeyModalClose}
+          onSubmit={handleApiKeySubmit}
+          toolkit={{
+            id: apiKeyModal.toolkit.id,
+            displayName: apiKeyModal.toolkit.displayName,
+            description: apiKeyModal.toolkit.description,
+            icon: apiKeyModal.toolkit.icon,
+          }}
+          isSubmitting={apiKeyModal.isSubmitting}
+          error={apiKeyModal.error}
+        />
       )}
     </div>
   );

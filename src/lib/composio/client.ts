@@ -193,6 +193,70 @@ export async function initiateConnection(
 }
 
 /**
+ * Connect using API key authentication
+ * For apps like ElevenLabs, Stripe, Sentry that require API keys
+ */
+export async function connectWithApiKey(
+  userId: string,
+  toolkit: string,
+  apiKey: string
+): Promise<{ success: boolean; connectionId?: string; error?: string }> {
+  const client = getClient();
+
+  try {
+    log.info('Connecting with API key', { userId, toolkit });
+
+    // Convert to Composio's slug format (lowercase, no underscores)
+    const toolkitSlug = toComposioSlug(toolkit);
+
+    // For API key auth, we need to create a custom auth config with the key
+    // and then create a connected account using that config
+    log.info('Creating API key auth config', { toolkitSlug });
+
+    // Create auth config with API key type
+    // The exact field name varies by app - common patterns are:
+    // - api_key, apiKey, API_KEY
+    // - x-api-key
+    // - Authorization header
+    const authConfig = await client.authConfigs.create(toolkitSlug, {
+      name: `${toolkit} API Key`,
+      type: 'custom_auth', // Use custom auth for API keys
+      credentials: {
+        api_key: apiKey,
+        apiKey: apiKey,
+        API_KEY: apiKey,
+      },
+    });
+
+    const authConfigId = authConfig.id || authConfig.auth_config?.id;
+    log.info('Created API key auth config', { authConfigId, toolkitSlug });
+
+    // Create the connected account directly (no OAuth redirect needed)
+    const connectedAccount = await client.connectedAccounts.create({
+      authConfigId,
+      userId,
+    });
+
+    log.info('API key connection created', {
+      connectionId: connectedAccount.id,
+      toolkit: toolkitSlug,
+      status: connectedAccount.status,
+    });
+
+    return {
+      success: true,
+      connectionId: connectedAccount.id,
+    };
+  } catch (error) {
+    log.error('Failed to connect with API key', { userId, toolkit, error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to connect with API key',
+    };
+  }
+}
+
+/**
  * Wait for a connection to become active
  * Uses SDK's built-in waitForConnection method
  */
