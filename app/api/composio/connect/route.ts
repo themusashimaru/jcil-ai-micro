@@ -13,7 +13,12 @@ import { cookies } from 'next/headers';
 // Force dynamic for auth
 export const dynamic = 'force-dynamic';
 import { createServerClient } from '@supabase/ssr';
-import { initiateConnection, isComposioConfigured, getToolkitById } from '@/lib/composio';
+import {
+  initiateConnection,
+  connectWithApiKey,
+  isComposioConfigured,
+  getToolkitById,
+} from '@/lib/composio';
 import { logger } from '@/lib/logger';
 
 const log = logger('ComposioConnectAPI');
@@ -58,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request
     const body = await request.json();
-    const { toolkit, redirectUrl } = body;
+    const { toolkit, redirectUrl, apiKey } = body;
 
     if (!toolkit) {
       return NextResponse.json({ error: 'Toolkit is required' }, { status: 400 });
@@ -73,6 +78,55 @@ export async function POST(request: NextRequest) {
 
     // Use user's ID as the entity ID
     const userId = user.id;
+
+    // Check if this is an API key connection
+    if (apiKey) {
+      // Validate that this toolkit actually uses API key auth
+      if (toolkitConfig && toolkitConfig.authType !== 'api_key') {
+        return NextResponse.json(
+          { error: `${toolkitConfig.displayName} uses OAuth, not API key authentication` },
+          { status: 400 }
+        );
+      }
+
+      log.info('Connecting with API key', { userId, toolkit });
+
+      const result = await connectWithApiKey(userId, toolkit, apiKey);
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Failed to connect with API key' },
+          { status: 500 }
+        );
+      }
+
+      log.info('API key connection successful', {
+        userId,
+        toolkit,
+        connectionId: result.connectionId,
+      });
+
+      return NextResponse.json({
+        success: true,
+        connectionId: result.connectionId,
+        toolkit: toolkit.toUpperCase(),
+        toolkitName: toolkitConfig?.displayName || toolkit,
+        authType: 'api_key',
+      });
+    }
+
+    // OAuth flow - check if this toolkit requires API key instead
+    if (toolkitConfig && toolkitConfig.authType === 'api_key') {
+      return NextResponse.json(
+        {
+          error: `${toolkitConfig.displayName} requires an API key`,
+          requiresApiKey: true,
+          toolkit: toolkit.toUpperCase(),
+          toolkitName: toolkitConfig.displayName,
+        },
+        { status: 400 }
+      );
+    }
 
     // Build callback URL - validate it's a proper URL
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -94,12 +148,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid callback URL configuration' }, { status: 500 });
     }
 
-    log.info('Initiating connection with callback URL', { callbackUrl, toolkit });
+    log.info('Initiating OAuth connection with callback URL', { callbackUrl, toolkit });
 
-    // Initiate connection
+    // Initiate OAuth connection
     const connectionRequest = await initiateConnection(userId, toolkit, callbackUrl);
 
-    log.info('Connection initiated', {
+    log.info('OAuth connection initiated', {
       userId,
       toolkit,
       connectionId: connectionRequest.id,
@@ -127,6 +181,7 @@ export async function POST(request: NextRequest) {
       redirectUrl: connectionRequest.redirectUrl,
       toolkit: toolkit.toUpperCase(),
       toolkitName: toolkitConfig?.displayName || toolkit,
+      authType: 'oauth2',
     });
   } catch (error) {
     log.error('Failed to initiate connection', { error });

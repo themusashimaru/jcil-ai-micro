@@ -9,6 +9,7 @@
 // Client functions
 export {
   initiateConnection,
+  connectWithApiKey,
   waitForConnection,
   getConnectedAccounts,
   getConnectedAccount,
