@@ -405,21 +405,52 @@ export async function getAvailableTools(
  * Map Composio account response to our type
  * SDK returns: { id, status, toolkit: { slug, ... }, ... }
  *
- * Important: Composio returns toolkit slugs without underscores (e.g., "googlesheets")
- * but we use IDs with underscores (e.g., "GOOGLE_SHEETS"). The composioSlugToToolkitId
- * function handles this conversion.
+ * Important: Composio returns toolkit slugs in various formats:
+ * - Without underscores: "googlesheets"
+ * - With underscores: "google_sheets"
+ * - Mixed case: "GoogleSheets"
+ * We normalize to our internal format (e.g., "GOOGLE_SHEETS").
  */
 function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount {
-  // SDK returns toolkit as nested object with slug
+  // SDK returns toolkit as nested object with slug, or as various other fields
   const toolkitObj = account.toolkit as Record<string, unknown> | undefined;
+
+  // Try multiple possible fields where Composio might put the toolkit identifier
   const composioSlug = (toolkitObj?.slug ||
+    toolkitObj?.name ||
     account.integrationId ||
     account.appName ||
+    account.appUniqueId ||
     '') as string;
 
-  // Convert Composio's slug format (googlesheets) to our internal ID (GOOGLE_SHEETS)
+  // Log for debugging what Composio actually returns
+  log.debug('Mapping Composio account', {
+    accountId: account.id,
+    rawStatus: account.status,
+    toolkitObj: toolkitObj
+      ? {
+          slug: toolkitObj.slug,
+          name: toolkitObj.name,
+          id: toolkitObj.id,
+        }
+      : 'undefined',
+    integrationId: account.integrationId,
+    appName: account.appName,
+    appUniqueId: account.appUniqueId,
+    resolvedSlug: composioSlug,
+  });
+
+  // Convert Composio's slug format to our internal ID (e.g., googlesheets -> GOOGLE_SHEETS)
   const toolkitId = composioSlugToToolkitId(composioSlug);
   const toolkitConfig = getToolkitById(toolkitId);
+
+  // Log the mapping result
+  log.debug('Toolkit mapping result', {
+    composioSlug,
+    mappedToolkitId: toolkitId,
+    foundConfig: !!toolkitConfig,
+    configId: toolkitConfig?.id,
+  });
 
   const statusMap: Record<string, ConnectionStatus> = {
     ACTIVE: 'connected',

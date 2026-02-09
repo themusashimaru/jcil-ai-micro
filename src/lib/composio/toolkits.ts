@@ -509,17 +509,25 @@ export const TOOLKITS_BY_CATEGORY: Record<ToolkitCategory, ToolkitConfig[]> = {
 
 /**
  * Get toolkit config by ID
- * Handles both our internal format (GOOGLE_SHEETS) and Composio's format (googlesheets)
+ * Handles multiple formats:
+ * - Our internal format: GOOGLE_SHEETS
+ * - Composio slug format: googlesheets (no underscores)
+ * - Composio with underscores: google_sheets
+ * - Composio with hyphens: google-sheets
  */
 export function getToolkitById(id: string): ToolkitConfig | undefined {
-  const upperId = id.toUpperCase();
+  if (!id) return undefined;
+
+  // Normalize input: uppercase and remove special chars for comparison
+  const normalizedInput = id.toUpperCase().replace(/[-_]/g, '');
+
   return ALL_TOOLKITS.find((t) => {
     // Exact match
-    if (t.id === id || t.id === upperId) return true;
-    // Match Composio slug format (no underscores) to our format (with underscores)
-    // e.g., GOOGLESHEETS matches GOOGLE_SHEETS
-    const idWithoutUnderscores = t.id.replace(/_/g, '');
-    return idWithoutUnderscores === upperId;
+    if (t.id === id || t.id === id.toUpperCase()) return true;
+
+    // Normalized match (remove underscores/hyphens from both)
+    const normalizedToolkitId = t.id.replace(/[-_]/g, '');
+    return normalizedToolkitId === normalizedInput;
   });
 }
 

@@ -137,7 +137,18 @@ export default function ComposioToolkitsSection() {
     if (successParam) {
       setSuccess(successParam);
       window.history.replaceState({}, '', '/settings?tab=connectors');
-      fetchToolkits(); // Refresh to show new connection
+
+      // Fetch immediately, then retry after delays to handle Composio API indexing lag
+      fetchToolkits();
+
+      // Retry fetches to catch newly connected apps that may not appear immediately
+      const retryDelays = [1000, 3000, 5000];
+      retryDelays.forEach((delay) => {
+        setTimeout(() => {
+          console.log(`[ComposioToolkits] Retry fetch after ${delay}ms`);
+          fetchToolkits();
+        }, delay);
+      });
     }
     if (errorParam) {
       setError(errorParam);
@@ -146,6 +157,9 @@ export default function ComposioToolkitsSection() {
     if (pendingParam) {
       setSuccess(`${pendingParam} connection is pending. Please check back shortly.`);
       window.history.replaceState({}, '', '/settings?tab=connectors');
+      // Also retry for pending connections
+      setTimeout(() => fetchToolkits(), 3000);
+      setTimeout(() => fetchToolkits(), 8000);
     }
   }, [fetchToolkits]);
 
