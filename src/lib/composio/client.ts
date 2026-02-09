@@ -110,18 +110,16 @@ export async function initiateConnection(
       });
     } else {
       // Create a new managed auth config for this toolkit
-      // SDK API: authConfigs.create({ toolkit: { slug: 'app' }, auth_config: { type, name } })
-      // NOTE: create() uses nested toolkit object, unlike list() which uses flat toolkit_slug
+      // SDK API: authConfigs.create({ toolkit_slug: 'app', type: 'composio', name: '...' })
+      // NOTE: Uses flat toolkit_slug parameter (same as list())
       log.info('No existing auth config found, creating new one', { toolkitSlug });
       const newConfig = await client.authConfigs.create({
-        toolkit: { slug: toolkitSlug },
-        auth_config: {
-          type: 'use_composio_managed_auth',
-          name: `${toolkit} Auth`,
-        },
+        toolkit_slug: toolkitSlug,
+        type: 'composio',
+        name: `${toolkit} Auth`,
       });
-      // Response structure: { auth_config: { id: '...' }, toolkit: { slug: '...' } }
-      authConfigId = newConfig.auth_config?.id || newConfig.id;
+      // Response structure may vary - try multiple paths
+      authConfigId = newConfig.id || newConfig.auth_config?.id;
       log.info('Created new auth config', {
         authConfigId,
         responseToolkit: newConfig.toolkit?.slug,
