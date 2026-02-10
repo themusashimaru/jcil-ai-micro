@@ -1700,6 +1700,7 @@ Rules:
               name: composioTool.name,
               description: composioTool.description,
               parameters: composioTool.input_schema,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
           }
           log.info('Loaded Composio tools for Code Lab', { count: composioToolContext.tools.length });
