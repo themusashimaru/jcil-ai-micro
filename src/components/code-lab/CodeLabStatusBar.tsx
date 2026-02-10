@@ -690,15 +690,7 @@ export function CodeLabStatusBar({
         <ConnectionIndicator status={connectionStatus} onClick={onConnectionClick} />
         <SandboxIndicator status={sandboxStatus} onClick={onSandboxClick} />
 
-        {mcpServersActive > 0 && (
-          <div
-            className="status-item mcp-indicator"
-            title={`${mcpServersActive} MCP server${mcpServersActive !== 1 ? 's' : ''} active`}
-          >
-            <span className="mcp-badge">{mcpServersActive}</span>
-            <span>MCP</span>
-          </div>
-        )}
+        {/* MCP indicator removed — tools work seamlessly in background */}
 
         {backgroundTasks.length > 0 && (
           <>

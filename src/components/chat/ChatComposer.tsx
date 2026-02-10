@@ -27,7 +27,7 @@ import { useVoiceInput } from '@/hooks/useVoiceInput';
 // These developer tools are now in Code Lab only
 // import { ConnectorsButton } from './ConnectorsButton';
 // import { RepoDropdown } from './RepoDropdown';
-import { ChatMCPButton } from './ChatMCPSettings';
+// MCP button removed - AI uses tools seamlessly behind the scenes without user toggles
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -1074,8 +1074,7 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* MCP Servers button */}
-              <ChatMCPButton disabled={isStreaming || disabled} />
+              {/* MCP removed — AI uses tools seamlessly behind the scenes */}
 
               {/* Active tool mode indicator - excludes research since it shows inline */}
               {toolMode !== 'none' && toolMode !== 'research' && getToolModeInfo() && (

@@ -122,7 +122,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'mcp' | 'memory' | 'tasks'
+    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'memory' | 'tasks'
   >('files');
 
   // Background agents state (Claude Code Ctrl+B parity)
@@ -1615,12 +1615,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   >
                     Plan {currentPlan && currentPlan.status === 'in_progress' && '●'}
                   </button>
-                  <button
-                    className={activeWorkspaceTab === 'mcp' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('mcp')}
-                  >
-                    MCP {mcpServers.filter((s) => s.status === 'running').length > 0 && '●'}
-                  </button>
+                  {/* MCP tab removed — AI uses tools seamlessly behind the scenes */}
                   <button
                     className={activeWorkspaceTab === 'memory' ? 'active' : ''}
                     onClick={() => {
@@ -1763,17 +1758,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                         <p className="hint">Plans break down work into trackable steps.</p>
                       </div>
                     ))}
-                  {activeWorkspaceTab === 'mcp' && (
-                    <CodeLabComponentBoundary componentName="MCP Settings">
-                      <CodeLabMCPSettings
-                        servers={mcpServers}
-                        onServerToggle={handleMCPServerToggle}
-                        onServerAdd={handleMCPServerAdd}
-                        onServerRemove={handleMCPServerRemove}
-                        isLoading={mcpLoading}
-                      />
-                    </CodeLabComponentBoundary>
-                  )}
+                  {/* MCP settings panel removed — AI uses tools seamlessly */}
                   {activeWorkspaceTab === 'memory' && (
                     <CodeLabComponentBoundary componentName="Memory Editor">
                       <CodeLabMemoryEditor
