@@ -44,6 +44,13 @@ import type { UnifiedMessage, UnifiedToolCall } from '@/lib/ai/providers/types';
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
+// Composio/Connectors (150+ connected apps)
+import {
+  getComposioToolsForUser,
+  executeComposioTool,
+  isComposioTool,
+  isComposioConfigured,
+} from '@/lib/composio';
 
 const log = logger('CodeLabChat');
 
@@ -1677,6 +1684,35 @@ Rules:
       log.warn('Failed to load chat tools', { error: toolErr });
     }
 
+    // ========================================
+    // COMPOSIO / CONNECTORS (150+ Apps)
+    // ========================================
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let composioToolContext: any = null;
+    if (isComposioConfigured()) {
+      try {
+        composioToolContext = await getComposioToolsForUser(user.id);
+        if (composioToolContext?.tools?.length > 0) {
+          for (const composioTool of composioToolContext.tools) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            chatTools.push({
+              name: composioTool.name,
+              description: composioTool.description,
+              parameters: composioTool.input_schema,
+            } as any);
+          }
+          log.info('Loaded Composio tools for Code Lab', { count: composioToolContext.tools.length });
+
+          // Add connected apps context to system prompt
+          if (composioToolContext.systemPromptAddition) {
+            systemPrompt += composioToolContext.systemPromptAddition;
+          }
+        }
+      } catch (composioErr) {
+        log.warn('Failed to load Composio tools', { error: composioErr });
+      }
+    }
+
     // Stream the response with reliability features
     const encoder = new TextEncoder();
 
@@ -2256,16 +2292,30 @@ Rules:
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const toolResults: any[] = [];
               for (const tc of pendingToolCalls) {
-                const toolCall: UnifiedToolCall = { id: tc.id, name: tc.name, arguments: tc.input };
                 try {
-                  const result = await executeChatTool(toolCall);
+                  let resultContent: string;
+                  let resultIsError = false;
+
+                  if (isComposioTool(tc.name)) {
+                    // Composio tool (connected apps: Twitter, Slack, Gmail, etc.)
+                    log.info('Executing Composio tool', { tool: tc.name });
+                    const composioResult = await executeComposioTool(user.id, tc.name, tc.input);
+                    resultContent = typeof composioResult === 'string' ? composioResult : JSON.stringify(composioResult);
+                  } else {
+                    // Standard chat tool (244+ tools)
+                    const toolCall: UnifiedToolCall = { id: tc.id, name: tc.name, arguments: tc.input };
+                    const result = await executeChatTool(toolCall);
+                    resultContent = typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+                    resultIsError = result.isError || false;
+                  }
+
                   toolResults.push({
                     type: 'tool_result',
                     tool_use_id: tc.id,
-                    content: typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
-                    is_error: result.isError || false,
+                    content: resultContent,
+                    is_error: resultIsError,
                   });
-                  controller.enqueue(encoder.encode(`\n<!--TOOL_RESULT:${tc.name}:${result.isError ? 'error' : 'ok'}-->`));
+                  controller.enqueue(encoder.encode(`\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`));
                 } catch (toolErr) {
                   log.error('Tool execution error', { tool: tc.name, error: toolErr });
                   toolResults.push({
