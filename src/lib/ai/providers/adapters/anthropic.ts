@@ -442,8 +442,21 @@ export class AnthropicAdapter extends BaseAIAdapter {
     _argumentsBuffer: string
   ): UnifiedStreamChunk | null {
     switch (event.type) {
-      case 'message_start':
+      case 'message_start': {
+        // Extract input token usage from message_start event
+        const msgEvent = event as { message?: { usage?: { input_tokens?: number; cache_read_input_tokens?: number } } };
+        const startUsage = msgEvent.message?.usage;
+        if (startUsage?.input_tokens) {
+          return {
+            type: 'message_start',
+            usage: {
+              inputTokens: startUsage.input_tokens,
+              outputTokens: 0,
+            },
+          };
+        }
         return { type: 'message_start' };
+      }
 
       case 'content_block_start':
         if (event.content_block.type === 'text') {

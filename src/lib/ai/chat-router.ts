@@ -203,7 +203,8 @@ export function convertToUnifiedMessages(messages: CoreMessage[]): UnifiedMessag
  */
 export function createStreamFromChunks(
   chunks: AsyncGenerator<UnifiedStreamChunk, ProviderChatResult, unknown>,
-  onComplete?: (result: ProviderChatResult) => void
+  onComplete?: (result: ProviderChatResult) => void,
+  onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
@@ -211,11 +212,19 @@ export function createStreamFromChunks(
     async start(controller) {
       try {
         let result: ProviderChatResult | undefined;
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
 
         for await (const chunk of chunks) {
           // Only emit text chunks to the stream
           if (chunk.type === 'text' && chunk.text) {
             controller.enqueue(encoder.encode(chunk.text));
+          }
+
+          // Accumulate token usage from message events
+          if ((chunk.type === 'message_start' || chunk.type === 'message_end') && chunk.usage) {
+            totalInputTokens += chunk.usage.inputTokens || 0;
+            totalOutputTokens += chunk.usage.outputTokens || 0;
           }
 
           // Handle errors
@@ -241,6 +250,15 @@ export function createStreamFromChunks(
         // Call completion callback with result
         if (result && onComplete) {
           onComplete(result);
+        }
+
+        // Report accumulated usage for billing
+        if (onUsage && (totalInputTokens > 0 || totalOutputTokens > 0)) {
+          try {
+            onUsage({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+          } catch (usageErr) {
+            log.warn('onUsage callback error in createStreamFromChunks', { error: (usageErr as Error).message });
+          }
         }
 
         controller.close();
@@ -278,6 +296,8 @@ export interface ChatRouteOptions {
   onProviderSwitch?: (from: ProviderId, to: ProviderId, reason: string) => void;
   /** Tools available to the AI */
   tools?: UnifiedTool[];
+  /** Callback with accumulated token usage when stream ends */
+  onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void;
 }
 
 /**
@@ -322,6 +342,7 @@ export async function routeChat(
     temperature,
     disableFallback = false,
     onProviderSwitch,
+    onUsage,
   } = options;
 
   log.debug('Routing chat request', {
@@ -363,7 +384,7 @@ export async function routeChat(
   // Start streaming
   const chunks = service.chat(unifiedMessages, chatOptions);
 
-  // Create the response stream
+  // Create the response stream (passes onUsage for token tracking)
   const stream = createStreamFromChunks(chunks, (result) => {
     finalResult = result;
     log.debug('Chat completed', {
@@ -372,7 +393,7 @@ export async function routeChat(
       usedFallback: result.usedFallback,
       fallbackReason: result.fallbackReason,
     });
-  });
+  }, onUsage);
 
   return {
     stream,
@@ -421,6 +442,7 @@ export async function routeChatWithTools(
     disableFallback = false,
     onProviderSwitch,
     tools = [],
+    onUsage,
   } = options;
 
   if (tools.length === 0) {
@@ -468,6 +490,10 @@ export async function routeChatWithTools(
     usedFallback: false,
   };
 
+  // Accumulate token usage across all iterations for billing
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
   // Create a stream that handles tool loops
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -489,6 +515,13 @@ export async function routeChatWithTools(
 
           for await (const chunk of chunks) {
             switch (chunk.type) {
+              case 'message_start':
+                // Capture input tokens from message_start (Anthropic reports them here)
+                if (chunk.usage) {
+                  totalInputTokens += chunk.usage.inputTokens || 0;
+                }
+                break;
+
               case 'text':
                 // Stream text directly to client
                 if (chunk.text) {
@@ -558,6 +591,8 @@ export async function routeChatWithTools(
 
               case 'message_end':
                 if (chunk.usage) {
+                  totalInputTokens += chunk.usage.inputTokens || 0;
+                  totalOutputTokens += chunk.usage.outputTokens || 0;
                   log.debug('Message usage', chunk.usage);
                 }
                 break;
@@ -716,6 +751,15 @@ export async function routeChatWithTools(
           log.warn('Max tool iterations reached', { iteration });
         }
 
+        // Report accumulated usage for billing
+        if (onUsage && (totalInputTokens > 0 || totalOutputTokens > 0)) {
+          try {
+            onUsage({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+          } catch (usageErr) {
+            log.warn('onUsage callback error', { error: (usageErr as Error).message });
+          }
+        }
+
         controller.close();
       } catch (error) {
         log.error('Error in tool loop', { error });
@@ -815,13 +859,22 @@ export async function completeChat(
 
   const chunks = service.chat(unifiedMessages, chatOptions);
 
+  let accInputTokens = 0;
+  let accOutputTokens = 0;
+
   for await (const chunk of chunks) {
     if (chunk.type === 'text' && chunk.text) {
       text += chunk.text;
     }
-    if (chunk.type === 'message_end' && chunk.usage) {
-      usage = chunk.usage;
+    // Accumulate usage from both message_start (input) and message_end (output)
+    if ((chunk.type === 'message_start' || chunk.type === 'message_end') && chunk.usage) {
+      accInputTokens += chunk.usage.inputTokens || 0;
+      accOutputTokens += chunk.usage.outputTokens || 0;
     }
+  }
+
+  if (accInputTokens > 0 || accOutputTokens > 0) {
+    usage = { inputTokens: accInputTokens, outputTokens: accOutputTokens };
   }
 
   // Get final result

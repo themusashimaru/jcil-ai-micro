@@ -890,6 +890,7 @@ import {
   getUserServers as getMCPUserServers,
   getKnownToolsForServer,
 } from '@/app/api/chat/mcp/helpers';
+import { trackTokenUsage } from '@/lib/usage/track';
 
 const log = logger('ChatAPI');
 
@@ -3458,6 +3459,18 @@ export async function POST(request: NextRequest) {
           temperature: 0.3, // Lower temp for structured output
         });
 
+        // Track token usage for document generation
+        if (result.usage) {
+          trackTokenUsage({
+            userId: rateLimitIdentifier,
+            modelName: result.model || 'claude-sonnet-4-5-20250929',
+            inputTokens: result.usage.inputTokens,
+            outputTokens: result.usage.outputTokens,
+            source: 'chat-document',
+            conversationId: conversationId,
+          }).catch(() => {});
+        }
+
         // Extract JSON from response
         let jsonText = result.text.trim();
         if (jsonText.startsWith('```json')) {
@@ -3653,6 +3666,18 @@ If information is missing, make reasonable professional assumptions or leave opt
             temperature: 0.1,
           });
 
+          // Track token usage for resume extraction
+          if (extractionResult.usage) {
+            trackTokenUsage({
+              userId: rateLimitIdentifier,
+              modelName: extractionResult.model || 'claude-sonnet-4-5-20250929',
+              inputTokens: extractionResult.usage.inputTokens,
+              outputTokens: extractionResult.usage.outputTokens,
+              source: 'chat-resume',
+              conversationId: conversationId,
+            }).catch(() => {});
+          }
+
           // Parse the extracted data
           let jsonText = extractionResult.text.trim();
           if (jsonText.startsWith('```json')) {
@@ -3762,6 +3787,16 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           model: 'claude-sonnet-4-5-20250929',
           maxTokens: 1024,
           temperature: 0.7,
+          onUsage: (usage) => {
+            trackTokenUsage({
+              userId: rateLimitIdentifier,
+              modelName: 'claude-sonnet-4-5-20250929',
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
+              source: 'chat-resume',
+              conversationId: conversationId,
+            }).catch(() => {});
+          },
         });
 
         isStreamingResponse = true;
@@ -3928,6 +3963,18 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
               maxTokens: 4096,
               temperature: attempt > 0 ? 0.1 : 0.3, // Lower temp on retry
             });
+
+            // Track token usage for auto-detected document generation
+            if (result.usage) {
+              trackTokenUsage({
+                userId: rateLimitIdentifier,
+                modelName: result.model || 'claude-sonnet-4-5-20250929',
+                inputTokens: result.usage.inputTokens,
+                outputTokens: result.usage.outputTokens,
+                source: 'chat-document',
+                conversationId: conversationId,
+              }).catch(() => {});
+            }
 
             // Extract JSON from response
             jsonText = result.text.trim();
@@ -6244,6 +6291,17 @@ SECURITY:
       tools, // Give AI all 58 available tools for autonomous use
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });
+      },
+      onUsage: (usage) => {
+        // Fire-and-forget: persist token usage to usage_tracking table
+        trackTokenUsage({
+          userId: rateLimitIdentifier,
+          modelName: selectedModel,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          source: 'chat',
+          conversationId: conversationId,
+        }).catch(() => {}); // Already handles errors internally
       },
     };
 
