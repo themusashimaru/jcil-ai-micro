@@ -143,9 +143,11 @@ export class StrategyAgent {
    */
   setStreamCallback(callback: StrategyStreamCallback | undefined): void {
     this.onStream = callback;
-    // Note: Components created in constructor keep their original callbacks,
-    // but scouts are created fresh during execution and will use the new callback.
-    // This is mainly needed to update the agent's direct emitEvent calls.
+    // Propagate to all sub-components so they write to the active stream.
+    // Without this, architect/QC/synthesizer events go to the closed intake stream.
+    this.architect.setStreamCallback(callback);
+    this.qc.setStreamCallback(callback);
+    this.synthesizer.setStreamCallback(callback);
   }
 
   /**
@@ -626,6 +628,13 @@ export class StrategyAgent {
    */
   getArtifacts(): Artifact[] {
     return [...this.artifacts];
+  }
+
+  /**
+   * Restore problem data from persistence (serverless execution recovery)
+   */
+  restoreProblem(problemData: UserProblem): void {
+    this.context.problem = problemData;
   }
 
   /**

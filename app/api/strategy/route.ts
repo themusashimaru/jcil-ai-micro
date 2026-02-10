@@ -14,6 +14,7 @@
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
+import { createServerClient as createAdminClient } from '@/lib/supabase/client';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -73,7 +74,8 @@ async function createSessionInDB(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   sessionId: string,
-  attachments?: StrategyAttachment[]
+  attachments?: StrategyAttachment[],
+  mode?: AgentMode
 ): Promise<string> {
   // Generate a UUID for the primary key as well
   const id = randomUUID();
@@ -86,6 +88,7 @@ async function createSessionInDB(
       session_id: sessionId,
       user_id: userId,
       phase: 'intake',
+      mode: mode || 'strategy',
       attachments:
         attachments?.map((a) => ({
           id: a.id,
@@ -157,6 +160,27 @@ async function storeProblemData(
   if (error) {
     log.error('Failed to store problem data', { sessionId, error });
   }
+}
+
+/**
+ * Get problem data from database (for session restoration before execution)
+ */
+async function getProblemData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string
+): Promise<unknown | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('strategy_sessions')
+    .select('problem_data')
+    .eq('session_id', sessionId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.problem_data || null;
 }
 
 /**
@@ -387,6 +411,7 @@ async function getSessionFromDB(
   session_id: string;
   user_id: string;
   phase: SessionPhase;
+  mode: AgentMode;
   started_at: string;
   result: StrategyOutput | null;
   total_agents: number;
@@ -413,7 +438,8 @@ async function getSessionFromDB(
  */
 async function isUserAdmin(
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any
 ): Promise<boolean> {
   const { data: adminUser } = await supabase
     .from('admin_users')
@@ -436,12 +462,16 @@ export async function POST(request: NextRequest) {
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
 
-  const supabase = await createClient();
+  // Use anon client for auth verification only
+  const authClient = await createClient();
+  // Use service-role client for all DB operations (bypasses RLS)
+  // Strategy tables need INSERT/UPDATE which RLS policies don't fully allow for anon users
+  const supabase = createAdminClient();
 
   try {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -482,7 +512,7 @@ export async function POST(request: NextRequest) {
         return handleInput(supabase, sessionId, input, user.id, isAdmin);
 
       case 'execute':
-        return handleExecute(supabase, user.id, sessionId);
+        return handleExecute(supabase, user.id, sessionId, isAdmin);
 
       case 'context':
         return handleContext(supabase, sessionId, message);
@@ -516,12 +546,13 @@ export async function DELETE(request: NextRequest) {
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
 
-  const supabase = await createClient();
+  const authClient = await createClient();
+  const supabase = createAdminClient();
 
   try {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -569,12 +600,13 @@ export async function DELETE(request: NextRequest) {
  * GET - Get session status or list sessions
  */
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
+  const authClient = await createClient();
+  const supabase = createAdminClient();
 
   try {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -757,7 +789,7 @@ async function handleStart(
   // Create session in database first
   let dbId: string;
   try {
-    dbId = await createSessionInDB(supabase, userId, sessionId, attachments);
+    dbId = await createSessionInDB(supabase, userId, sessionId, attachments, mode);
   } catch (error) {
     return new Response(
       JSON.stringify({ error: 'Failed to create session', message: (error as Error).message }),
@@ -961,9 +993,8 @@ async function handleInput(
     // Get intake messages from DB
     const intakeMessages = await getIntakeMessages(supabase, sessionId);
 
-    // Create a new agent and restore its state
-    // Note: mode defaults to 'strategy' for restored sessions
-    const agent = createStrategyAgent(apiKey, { userId, sessionId, isAdmin });
+    // Create a new agent and restore its state with the correct mode from DB
+    const agent = createStrategyAgent(apiKey, { userId, sessionId, isAdmin, mode: dbSession.mode || 'strategy' });
 
     // Restore the intake messages if we have them
     if (intakeMessages && intakeMessages.length > 0) {
@@ -1125,7 +1156,8 @@ async function handleContext(
 async function handleExecute(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  sessionId: string | undefined
+  sessionId: string | undefined,
+  isAdmin: boolean = false
 ): Promise<Response> {
   if (!sessionId) {
     return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -1134,12 +1166,71 @@ async function handleExecute(
     });
   }
 
-  const session = activeSessions.get(sessionId);
+  let session = activeSessions.get(sessionId);
+
+  // If not in memory, restore from database (serverless cold start recovery)
   if (!session) {
-    return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
+    const dbSession = await getSessionFromDB(supabase, sessionId);
+    if (!dbSession) {
+      return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (dbSession.user_id !== userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (dbSession.phase !== 'intake') {
+      return new Response(
+        JSON.stringify({ error: `Cannot execute during ${dbSession.phase} phase` }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Restore session
+    log.info('Restoring session for execution', { sessionId });
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'Anthropic API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const intakeMessages = await getIntakeMessages(supabase, sessionId);
+    const agent = createStrategyAgent(apiKey, {
+      userId,
+      sessionId,
+      isAdmin,
+      mode: dbSession.mode || 'strategy',
     });
+
+    if (intakeMessages && intakeMessages.length > 0) {
+      agent.restoreIntakeMessages(intakeMessages);
+      log.info('Restored intake messages for execution', { sessionId, messageCount: intakeMessages.length });
+    }
+
+    // Restore problem data if available (stored as UserProblem in DB)
+    const problemData = await getProblemData(supabase, sessionId);
+    if (problemData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agent.restoreProblem(problemData as any);
+    }
+
+    session = {
+      agent,
+      phase: 'intake',
+      dbId: dbSession.id,
+      started: new Date(dbSession.started_at).getTime(),
+    };
+    activeSessions.set(sessionId, session);
+    log.info('Session restored for execution', { sessionId });
   }
 
   if (session.phase !== 'intake') {

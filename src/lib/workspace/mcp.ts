@@ -145,14 +145,7 @@ export const DEFAULT_MCP_SERVERS: MCPServerConfig[] = [
     args: ['-y', '@modelcontextprotocol/server-postgres', '${DATABASE_URL}'],
     enabled: false,
   },
-  {
-    id: 'memory',
-    name: 'Memory',
-    description: 'Store and retrieve data across conversations',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-memory'],
-    enabled: false,
-  },
+  // Memory server removed - persistent memory is always-on via Supabase (conversation_memory table)
 ];
 
 // ============================================================================

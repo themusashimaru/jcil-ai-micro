@@ -193,6 +193,7 @@ export interface Message {
   clonedSite?: ClonedSite; // For cloned/recreated websites
   generatedImage?: GeneratedImage; // For AI-generated/edited images from creative tools
   analytics?: AnalyticsResult; // For data analytics with charts and insights
+  suggestedFollowups?: string[]; // AI-generated follow-up questions
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;

@@ -4159,8 +4159,19 @@ CODE:
 - Explain code changes clearly
 
 CONVERSATION:
-- End complex responses by asking if clarification is needed
 - Remember context within the conversation
+
+FOLLOW-UP SUGGESTIONS:
+At the end of substantive responses (NOT greetings, NOT simple yes/no answers, NOT image generations), include exactly 2-3 intelligent follow-up questions the user might want to ask next. Format them as:
+<suggested-followups>
+["Question 1?", "Question 2?", "Question 3?"]
+</suggested-followups>
+Rules:
+- Questions should feel natural and insightful, like what a smart person would ask next
+- They should deepen the conversation, not repeat what was already covered
+- Keep each question under 60 characters
+- Do NOT include follow-ups for: greetings, one-word answers, document downloads, image generation, or when the user is clearly done
+- The follow-ups tag must be the VERY LAST thing in your response
 
 PRIVACY:
 - Do not ask for unnecessary personal information

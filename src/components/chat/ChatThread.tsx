@@ -24,6 +24,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { MessageErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GetStartedCarousel } from './GetStartedCarousel';
+import { SuggestedFollowups } from './SuggestedFollowups';
 import type { ActionPreviewData } from './ActionPreviewCard';
 
 interface ChatThreadProps {
@@ -44,6 +45,8 @@ interface ChatThreadProps {
   onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
   /** Callback when action preview is cancelled */
   onActionCancel?: (preview: ActionPreviewData) => void;
+  /** Callback when a suggested follow-up is clicked */
+  onFollowupSelect?: (suggestion: string) => void;
 }
 
 /**
@@ -70,6 +73,7 @@ export function ChatThread({
   onActionSend,
   onActionEdit,
   onActionCancel,
+  onFollowupSelect,
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -223,6 +227,18 @@ export function ChatThread({
                   onActionEdit={onActionEdit}
                   onActionCancel={onActionCancel}
                 />
+                {/* Suggested follow-ups: only on the last assistant message, not while streaming */}
+                {index === messages.length - 1 &&
+                  message.role === 'assistant' &&
+                  !isStreaming &&
+                  message.suggestedFollowups &&
+                  message.suggestedFollowups.length > 0 && (
+                    <SuggestedFollowups
+                      suggestions={message.suggestedFollowups}
+                      onSelect={(s) => onFollowupSelect?.(s)}
+                      disabled={isStreaming}
+                    />
+                  )}
               </MessageErrorBoundary>
             </div>
           );

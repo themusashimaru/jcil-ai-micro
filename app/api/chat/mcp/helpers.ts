@@ -37,15 +37,7 @@ export const DEFAULT_MCP_SERVERS = [
     enabled: false,
     builtIn: true,
   },
-  {
-    id: 'memory',
-    name: 'Memory',
-    description: 'Persistent key-value storage across conversations',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-memory'],
-    enabled: false,
-    builtIn: true,
-  },
+  // Memory server removed - persistent memory is always-on via Supabase (conversation_memory table)
   {
     id: 'puppeteer',
     name: 'Puppeteer',
@@ -276,12 +268,7 @@ export function getKnownToolsForServer(
       { name: 'fork_repository', description: 'Fork a repository' },
       { name: 'create_branch', description: 'Create a new branch' },
     ],
-    memory: [
-      { name: 'store', description: 'Store a value with a key' },
-      { name: 'retrieve', description: 'Retrieve a value by key' },
-      { name: 'delete', description: 'Delete a stored value' },
-      { name: 'list', description: 'List all stored keys' },
-    ],
+    // memory server removed - persistent memory is always-on via Supabase
     puppeteer: [
       { name: 'puppeteer_navigate', description: 'Navigate to a URL' },
       { name: 'puppeteer_screenshot', description: 'Take a screenshot of the page' },

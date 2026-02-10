@@ -944,15 +944,11 @@ export function ChatClient() {
         break;
       case 'deep-research':
         // Start deep research mode
-        if (isAdmin) {
-          await startDeepResearch();
-        }
+        await startDeepResearch();
         break;
       case 'deep-strategy':
         // Start strategy mode
-        if (isAdmin) {
-          await startDeepStrategy();
-        }
+        await startDeepStrategy();
         break;
       default:
         log.warn('Unknown carousel card selected', { cardId });
@@ -4473,10 +4469,15 @@ I'll deploy a focused team to research and write your content.
                 // This prevents streaming responses from appearing in wrong conversations
                 // Use ref instead of state to avoid stale closure during async streaming
                 if (currentChatIdRef.current === newChatId) {
+                  // Strip suggested-followups tags during streaming so users never see raw markup
+                  const displayContent = accumulatedContent
+                    .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/g, '')
+                    .replace(/<suggested-followups>[\s\S]*$/g, '')
+                    .trimEnd();
                   // Update the message with accumulated content
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessageId ? { ...msg, content: accumulatedContent } : msg
+                      msg.id === assistantMessageId ? { ...msg, content: displayContent } : msg
                     )
                   );
                 }
@@ -4847,6 +4848,34 @@ I'll deploy a focused team to research and write your content.
           }
         } catch (docError) {
           log.error('Error parsing DOCUMENT_DOWNLOAD marker:', docError as Error);
+        }
+      }
+
+      // Parse suggested follow-ups from AI response
+      const followupsMatch = finalContent.match(/<suggested-followups>\s*(\[[\s\S]*?\])\s*<\/suggested-followups>/);
+      if (followupsMatch) {
+        try {
+          const followups = JSON.parse(followupsMatch[1]) as string[];
+          if (Array.isArray(followups) && followups.length > 0) {
+            // Strip the tag from displayed content
+            const cleanedContent = finalContent.replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/, '').trimEnd();
+            finalContent = cleanedContent;
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: cleanedContent, suggestedFollowups: followups.slice(0, 3) }
+                  : msg
+              )
+            );
+          }
+        } catch {
+          // Malformed JSON — just strip the tag
+          finalContent = finalContent.replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/, '').trimEnd();
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId ? { ...msg, content: finalContent } : msg
+            )
+          );
         }
       }
 
@@ -5304,6 +5333,7 @@ I'll deploy a focused team to research and write your content.
               onActionSend={handleActionSend}
               onActionEdit={handleActionEdit}
               onActionCancel={handleActionCancel}
+              onFollowupSelect={(suggestion) => handleSendMessage(suggestion, [])}
             />
             {/* Live To-Do List removed - user prefers simple agentic approach
                 The AI can manage its own tasks internally without showing a UI widget */}

@@ -87,6 +87,13 @@ export class MasterArchitect {
   // ===========================================================================
 
   /**
+   * Update the stream callback (needed when switching from intake to execute stream)
+   */
+  setStreamCallback(callback: StrategyStreamCallback | undefined): void {
+    this.onStream = callback;
+  }
+
+  /**
    * Inject additional context (prior knowledge, performance data) into the
    * architect's system prompt before designing agents.
    */
