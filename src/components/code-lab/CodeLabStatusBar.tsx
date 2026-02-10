@@ -361,7 +361,7 @@ export function CodeLabStatusBar({
   file,
   git,
   backgroundTasks = [],
-  mcpServersActive = 0,
+  mcpServersActive: _mcpServersActive = 0,
   onModelClick,
   onTokensClick,
   onConnectionClick,

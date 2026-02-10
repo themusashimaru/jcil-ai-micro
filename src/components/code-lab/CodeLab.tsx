@@ -52,7 +52,7 @@ import { CodeLabPlanView } from './CodeLabPlanView';
 import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
 // CodeLabThinkingToggle removed - thinking mode now integrated into model selector
 // Users can select "Sonnet (Thinking)" or "Opus (Thinking)" from the dropdown
-import { CodeLabMCPSettings, MCPServer, DEFAULT_MCP_SERVERS } from './CodeLabMCPSettings';
+// MCP settings removed — AI uses tools seamlessly behind the scenes
 import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
 // Thinking block visualization ready for extended thinking (Claude Code parity)
 // Note: CodeLabThinkingBlock and parseThinkingBlocks are exported for use in CodeLabThread
@@ -186,16 +186,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
 
-  // MCP servers state (Claude Code parity)
-  const [mcpServers, setMcpServers] = useState<MCPServer[]>(() =>
-    DEFAULT_MCP_SERVERS.map((s) => ({
-      ...s,
-      status: 'stopped' as const,
-      tools: [],
-    }))
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [mcpLoading, _setMcpLoading] = useState(false);
+  // MCP state removed — AI uses tools seamlessly behind the scenes
 
   // Memory file state (Claude Code parity - CLAUDE.md)
   const [memoryFile, setMemoryFile] = useState<
@@ -785,97 +776,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     [toast]
   );
 
-  // MCP server toggle handler (Claude Code parity)
-  const handleMCPServerToggle = useCallback(
-    async (serverId: string, enabled: boolean) => {
-      setMcpServers((prev) =>
-        prev.map((s) =>
-          s.id === serverId
-            ? { ...s, enabled, status: enabled ? 'starting' : 'stopped', error: undefined }
-            : s
-        )
-      );
-
-      try {
-        const response = await fetch('/api/code-lab/mcp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: enabled ? 'startServer' : 'stopServer',
-            serverId,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setMcpServers((prev) =>
-            prev.map((s) =>
-              s.id === serverId
-                ? {
-                    ...s,
-                    status: data.server?.status || (enabled ? 'running' : 'stopped'),
-                    tools: (data.server?.tools || []).map(
-                      (t: { name: string; description: string }) => ({
-                        name: t.name,
-                        description: t.description || '',
-                        serverId,
-                      })
-                    ),
-                    error: undefined,
-                  }
-                : s
-            )
-          );
-          toast.success(
-            enabled ? 'Server Started' : 'Server Stopped',
-            `${serverId} ${enabled ? 'is now running' : 'has been stopped'}`
-          );
-        } else {
-          const error = await response.text();
-          setMcpServers((prev) =>
-            prev.map((s) =>
-              s.id === serverId ? { ...s, status: 'error', error, enabled: false } : s
-            )
-          );
-          toast.error('MCP Error', `Failed to ${enabled ? 'start' : 'stop'} ${serverId}`);
-        }
-      } catch (err) {
-        setMcpServers((prev) =>
-          prev.map((s) =>
-            s.id === serverId
-              ? { ...s, status: 'error', error: 'Network error', enabled: false }
-              : s
-          )
-        );
-        log.error('MCP toggle error', err as Error);
-      }
-    },
-    [toast]
-  );
-
-  // MCP server add handler (Claude Code parity)
-  const handleMCPServerAdd = useCallback(
-    async (server: Omit<MCPServer, 'status' | 'tools' | 'builtIn'>) => {
-      const newServer: MCPServer = {
-        ...server,
-        status: 'stopped',
-        tools: [],
-        builtIn: false,
-      };
-      setMcpServers((prev) => [...prev, newServer]);
-      toast.success('Server Added', `${server.name} has been added`);
-    },
-    [toast]
-  );
-
-  // MCP server remove handler (Claude Code parity)
-  const handleMCPServerRemove = useCallback(
-    async (serverId: string) => {
-      setMcpServers((prev) => prev.filter((s) => s.id !== serverId));
-      toast.success('Server Removed', 'Custom server has been removed');
-    },
-    [toast]
-  );
+  // MCP handlers removed — AI uses tools seamlessly behind the scenes
 
   // Memory file load handler (Claude Code parity)
   const loadMemoryFile = useCallback(async () => {
@@ -1884,7 +1785,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   }
                 : undefined
             }
-            mcpServersActive={mcpServers.filter((s) => s.status === 'running').length}
+            mcpServersActive={0}
             onModelClick={() => {
               /* Model selector handles this */
             }}
