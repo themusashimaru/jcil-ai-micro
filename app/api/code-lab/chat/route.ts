@@ -39,7 +39,11 @@ import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
 // Multi-provider support: import registry and adapter factory
 import { getProviderForModel, getProviderAndModel } from '@/lib/ai/providers/registry';
 import { getAdapter } from '@/lib/ai/providers/adapters/factory';
-import type { UnifiedMessage } from '@/lib/ai/providers/types';
+import type { UnifiedMessage, UnifiedToolCall } from '@/lib/ai/providers/types';
+// Persistent memory + RAG + Tools (parity with main chat)
+import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
+import { searchUserDocuments } from '@/lib/documents/userSearch';
+import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
 
 const log = logger('CodeLabChat');
 
@@ -1619,6 +1623,60 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
       log.info('Injected memory context', { length: memoryContent.length });
     }
 
+    // ========================================
+    // PERSISTENT MEMORY (cross-conversation, Supabase)
+    // ========================================
+    try {
+      const memoryCtx = await getMemoryContext(user.id);
+      if (memoryCtx.loaded && memoryCtx.contextString) {
+        systemPrompt += `\n\n${memoryCtx.contextString}`;
+        log.info('Injected persistent user memory');
+      }
+    } catch (memErr) {
+      log.warn('Failed to load persistent memory', { error: memErr });
+    }
+
+    // ========================================
+    // RAG - Document Context
+    // ========================================
+    try {
+      const docSearch = await searchUserDocuments(user.id, content, { matchCount: 3 });
+      if (docSearch?.contextString) {
+        systemPrompt += `\n\n${docSearch.contextString}`;
+        log.info('Injected document context (RAG)', { length: docSearch.contextString.length });
+      }
+    } catch (ragErr) {
+      log.warn('Failed to search user documents', { error: ragErr });
+    }
+
+    // ========================================
+    // SUGGESTED FOLLOW-UPS
+    // ========================================
+    systemPrompt += `
+
+FOLLOW-UP SUGGESTIONS:
+At the end of substantive responses (NOT greetings, NOT simple yes/no answers), include exactly 2-3 intelligent follow-up questions the user might want to ask next. Format them as:
+<suggested-followups>
+["Question 1?", "Question 2?", "Question 3?"]
+</suggested-followups>
+Rules:
+- Questions should feel natural and insightful, like what a smart developer would ask next
+- They should deepen the conversation, not repeat what was already covered
+- Keep each question under 60 characters
+- Do NOT include follow-ups for greetings or one-word answers
+- The follow-ups tag must be the VERY LAST thing in your response`;
+
+    // ========================================
+    // ALL TOOLS (244+ from main chat)
+    // ========================================
+    let chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = [];
+    try {
+      chatTools = await getAvailableChatTools();
+      log.info('Loaded chat tools for Code Lab', { count: chatTools.length });
+    } catch (toolErr) {
+      log.warn('Failed to load chat tools', { error: toolErr });
+    }
+
     // Stream the response with reliability features
     const encoder = new TextEncoder();
 
@@ -2012,6 +2070,16 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             stream: true,
           };
 
+          // Add all 244+ tools (parity with main chat)
+          if (chatTools.length > 0) {
+            apiParams.tools = chatTools.map((t) => ({
+              name: t.name,
+              description: t.description,
+              input_schema: t.parameters || { type: 'object', properties: {} },
+            }));
+            log.info('Added tools to Code Lab Claude request', { count: chatTools.length });
+          }
+
           // Add extended thinking if enabled (requires Sonnet or Opus with thinking support)
           if (
             thinkingEnabled &&
@@ -2039,85 +2107,203 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           // Start keepalive once stream is established
           startKeepalive();
 
-          // Stream with timeout per chunk
-          const iterator = (response as AsyncIterable<Anthropic.MessageStreamEvent>)[
-            Symbol.asyncIterator
-          ]();
-
           // Track real token usage from API
           let inputTokens = 0;
           let outputTokens = 0;
           let cacheReadTokens = 0;
           let cacheWriteTokens = 0;
 
+          // Tool execution loop: Claude may request tools, we execute and continue
+          let currentMessages = [...messages];
+          let currentResponse = response;
+          let toolLoopCount = 0;
+          const MAX_TOOL_LOOPS = 10; // Safety limit
+
+          // eslint-disable-next-line no-constant-condition
           while (true) {
-            const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
-              setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
-            });
+            let stopReason = '';
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pendingToolCalls: Array<{ id: string; name: string; input: any }> = [];
+            let currentToolIndex = -1;
+            let currentToolInput = '';
 
-            try {
-              const result = await Promise.race([iterator.next(), timeoutPromise]);
+            const iterator = (currentResponse as AsyncIterable<Anthropic.MessageStreamEvent>)[
+              Symbol.asyncIterator
+            ]();
 
-              if (result.done) break;
+            while (true) {
+              const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
+                setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
+              });
 
-              lastActivity = Date.now();
-              const event = result.value;
+              try {
+                const result = await Promise.race([iterator.next(), timeoutPromise]);
 
-              // Capture token usage from message events
-              if (event.type === 'message_start' && event.message?.usage) {
-                inputTokens = event.message.usage.input_tokens || 0;
-                cacheReadTokens = event.message.usage.cache_read_input_tokens || 0;
-                cacheWriteTokens = event.message.usage.cache_creation_input_tokens || 0;
-              }
+                if (result.done) break;
 
-              if (event.type === 'message_delta' && event.usage) {
-                outputTokens = event.usage.output_tokens || 0;
-              }
+                lastActivity = Date.now();
+                const event = result.value;
 
-              // Handle content block start to detect thinking blocks
-              if (event.type === 'content_block_start') {
-                const block = event.content_block;
-                if (block && block.type === 'thinking') {
-                  // Signal start of thinking block
-                  controller.enqueue(encoder.encode('\n<!--THINKING_START-->'));
+                // Capture token usage from message events
+                if (event.type === 'message_start' && event.message?.usage) {
+                  inputTokens += event.message.usage.input_tokens || 0;
+                  cacheReadTokens += (event.message.usage as Record<string, number>).cache_read_input_tokens || 0;
+                  cacheWriteTokens += (event.message.usage as Record<string, number>).cache_creation_input_tokens || 0;
                 }
-              }
 
-              // Handle content block stop
-              if (event.type === 'content_block_stop') {
-                // Check if this was a thinking block by looking at accumulated content
-                if (
-                  fullContent.includes('<!--THINKING_START-->') &&
-                  !fullContent.includes('<!--THINKING_END-->')
-                ) {
-                  controller.enqueue(encoder.encode('<!--THINKING_END-->\n'));
+                if (event.type === 'message_delta') {
+                  if (event.usage) {
+                    outputTokens += event.usage.output_tokens || 0;
+                  }
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const delta = event.delta as any;
+                  if (delta.stop_reason) {
+                    stopReason = delta.stop_reason;
+                  }
                 }
-              }
 
-              if (event.type === 'content_block_delta') {
-                const delta = event.delta;
-                // Handle regular text
-                if ('text' in delta) {
-                  fullContent += delta.text;
-                  controller.enqueue(encoder.encode(delta.text));
+                // Handle content block start to detect thinking and tool_use blocks
+                if (event.type === 'content_block_start') {
+                  const block = event.content_block;
+                  if (block && block.type === 'thinking') {
+                    controller.enqueue(encoder.encode('\n<!--THINKING_START-->'));
+                  }
+                  if (block && block.type === 'tool_use') {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const toolBlock = block as any;
+                    currentToolIndex = pendingToolCalls.length;
+                    currentToolInput = '';
+                    pendingToolCalls.push({
+                      id: toolBlock.id,
+                      name: toolBlock.name,
+                      input: {},
+                    });
+                    // Show user that a tool is being used
+                    controller.enqueue(
+                      encoder.encode(`\n<!--TOOL_START:${toolBlock.name}-->`)
+                    );
+                  }
                 }
-                // Handle thinking text (extended thinking feature)
-                if ('thinking' in delta && typeof delta.thinking === 'string') {
-                  fullContent += delta.thinking;
-                  controller.enqueue(encoder.encode(delta.thinking));
+
+                // Handle content block stop
+                if (event.type === 'content_block_stop') {
+                  if (
+                    fullContent.includes('<!--THINKING_START-->') &&
+                    !fullContent.includes('<!--THINKING_END-->')
+                  ) {
+                    controller.enqueue(encoder.encode('<!--THINKING_END-->\n'));
+                  }
+                  // Finalize tool input JSON
+                  if (currentToolIndex >= 0 && currentToolInput) {
+                    try {
+                      pendingToolCalls[currentToolIndex].input = JSON.parse(currentToolInput);
+                    } catch {
+                      // Partial JSON - leave as empty object
+                    }
+                    controller.enqueue(encoder.encode('<!--TOOL_END-->'));
+                    currentToolIndex = -1;
+                    currentToolInput = '';
+                  }
                 }
+
+                if (event.type === 'content_block_delta') {
+                  const delta = event.delta;
+                  // Handle regular text
+                  if ('text' in delta) {
+                    fullContent += delta.text;
+                    controller.enqueue(encoder.encode(delta.text));
+                  }
+                  // Handle thinking text (extended thinking feature)
+                  if ('thinking' in delta && typeof delta.thinking === 'string') {
+                    fullContent += delta.thinking;
+                    controller.enqueue(encoder.encode(delta.thinking));
+                  }
+                  // Handle tool input JSON delta
+                  if ('partial_json' in delta && typeof delta.partial_json === 'string') {
+                    currentToolInput += delta.partial_json;
+                  }
+                }
+              } catch (error) {
+                if (error instanceof Error && error.message === 'Stream chunk timeout') {
+                  log.error('Stream chunk timeout - no data for 60s');
+                  controller.enqueue(
+                    encoder.encode(
+                      '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+                    )
+                  );
+                }
+                throw error;
               }
-            } catch (error) {
-              if (error instanceof Error && error.message === 'Stream chunk timeout') {
-                log.error('Stream chunk timeout - no data for 60s');
-                controller.enqueue(
-                  encoder.encode(
-                    '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
-                  )
-                );
-              }
-              throw error;
             }
+
+            // Check if Claude wants to use tools
+            if (stopReason === 'tool_use' && pendingToolCalls.length > 0 && toolLoopCount < MAX_TOOL_LOOPS) {
+              toolLoopCount++;
+              log.info('Executing tools', { count: pendingToolCalls.length, loop: toolLoopCount });
+
+              // Build assistant message with tool_use blocks
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const assistantContent: any[] = [];
+              if (fullContent) {
+                assistantContent.push({ type: 'text', text: fullContent });
+              }
+              for (const tc of pendingToolCalls) {
+                assistantContent.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+              }
+              currentMessages.push({ role: 'assistant', content: assistantContent });
+
+              // Execute all pending tools
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const toolResults: any[] = [];
+              for (const tc of pendingToolCalls) {
+                const toolCall: UnifiedToolCall = { id: tc.id, name: tc.name, arguments: tc.input };
+                try {
+                  const result = await executeChatTool(toolCall);
+                  toolResults.push({
+                    type: 'tool_result',
+                    tool_use_id: tc.id,
+                    content: typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
+                    is_error: result.isError || false,
+                  });
+                  controller.enqueue(encoder.encode(`\n<!--TOOL_RESULT:${tc.name}:${result.isError ? 'error' : 'ok'}-->`));
+                } catch (toolErr) {
+                  log.error('Tool execution error', { tool: tc.name, error: toolErr });
+                  toolResults.push({
+                    type: 'tool_result',
+                    tool_use_id: tc.id,
+                    content: `Error: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}`,
+                    is_error: true,
+                  });
+                }
+              }
+              currentMessages.push({ role: 'user', content: toolResults });
+
+              // Reset fullContent for the continuation (text will be appended)
+              fullContent = '';
+
+              // Make a follow-up API call with tool results
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const continueParams: any = {
+                model: effectiveModel,
+                max_tokens: 8192,
+                system: systemPrompt,
+                messages: currentMessages,
+                stream: true,
+              };
+              if (chatTools.length > 0) {
+                continueParams.tools = apiParams.tools;
+              }
+
+              currentResponse = await anthropicClient.messages.create(
+                continueParams as Anthropic.MessageCreateParamsStreaming
+              );
+
+              // Continue the outer loop to process the new response
+              continue;
+            }
+
+            // No more tool calls — we're done
+            break;
           }
 
           // Send token usage as special marker at end of stream
@@ -2151,6 +2337,15 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
             type: useSearch ? 'search' : 'chat',
             model_id: effectiveModel,
           });
+
+          // Process conversation for persistent memory (fire and forget)
+          processConversationForMemory(
+            user.id,
+            [...history, { role: 'user', content }, { role: 'assistant', content: fullContent }].map(
+              (m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })
+            ),
+            sessionId
+          ).catch((err) => log.warn('Memory processing failed', { error: err }));
 
           controller.close();
         } catch (error) {
