@@ -27,6 +27,7 @@ import {
   type AgentMode,
   type Artifact,
 } from '@/agents/strategy';
+import { trackTokenUsage } from '@/lib/usage/track';
 
 const log = logger('StrategyAPI');
 
@@ -292,6 +293,50 @@ async function storeResultAndUsage(
   if (usageError) {
     log.error('Failed to store usage', { sessionId, error: usageError });
   }
+
+  // Also track to unified usage_tracking table for billing dashboard
+  const { modelUsage, totalSearches } = result.metadata;
+  const trackingPromises: Promise<void>[] = [];
+
+  if (modelUsage.opus.tokens > 0) {
+    trackingPromises.push(
+      trackTokenUsage({
+        userId,
+        modelName: 'claude-opus-4-6-20260205',
+        inputTokens: modelUsage.opus.tokens,
+        outputTokens: 0,
+        liveSearchCalls: totalSearches,
+        source: 'strategy',
+        conversationId: sessionId,
+      })
+    );
+  }
+  if (modelUsage.sonnet.tokens > 0) {
+    trackingPromises.push(
+      trackTokenUsage({
+        userId,
+        modelName: 'claude-sonnet-4-5-20250929',
+        inputTokens: modelUsage.sonnet.tokens,
+        outputTokens: 0,
+        source: 'strategy',
+        conversationId: sessionId,
+      })
+    );
+  }
+  if (modelUsage.haiku.tokens > 0) {
+    trackingPromises.push(
+      trackTokenUsage({
+        userId,
+        modelName: 'claude-haiku-4-5-20251001',
+        inputTokens: modelUsage.haiku.tokens,
+        outputTokens: 0,
+        source: 'strategy',
+        conversationId: sessionId,
+      })
+    );
+  }
+
+  await Promise.allSettled(trackingPromises);
 }
 
 /**

@@ -278,6 +278,8 @@ export interface ChatRouteOptions {
   onProviderSwitch?: (from: ProviderId, to: ProviderId, reason: string) => void;
   /** Tools available to the AI */
   tools?: UnifiedTool[];
+  /** Callback with accumulated token usage when stream ends */
+  onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void;
 }
 
 /**
@@ -421,6 +423,7 @@ export async function routeChatWithTools(
     disableFallback = false,
     onProviderSwitch,
     tools = [],
+    onUsage,
   } = options;
 
   if (tools.length === 0) {
@@ -468,6 +471,10 @@ export async function routeChatWithTools(
     usedFallback: false,
   };
 
+  // Accumulate token usage across all iterations for billing
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
   // Create a stream that handles tool loops
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -489,6 +496,13 @@ export async function routeChatWithTools(
 
           for await (const chunk of chunks) {
             switch (chunk.type) {
+              case 'message_start':
+                // Capture input tokens from message_start (Anthropic reports them here)
+                if (chunk.usage) {
+                  totalInputTokens += chunk.usage.inputTokens || 0;
+                }
+                break;
+
               case 'text':
                 // Stream text directly to client
                 if (chunk.text) {
@@ -558,6 +572,8 @@ export async function routeChatWithTools(
 
               case 'message_end':
                 if (chunk.usage) {
+                  totalInputTokens += chunk.usage.inputTokens || 0;
+                  totalOutputTokens += chunk.usage.outputTokens || 0;
                   log.debug('Message usage', chunk.usage);
                 }
                 break;
@@ -714,6 +730,15 @@ export async function routeChatWithTools(
 
         if (iteration >= MAX_TOOL_ITERATIONS) {
           log.warn('Max tool iterations reached', { iteration });
+        }
+
+        // Report accumulated usage for billing
+        if (onUsage && (totalInputTokens > 0 || totalOutputTokens > 0)) {
+          try {
+            onUsage({ inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
+          } catch (usageErr) {
+            log.warn('onUsage callback error', { error: (usageErr as Error).message });
+          }
         }
 
         controller.close();

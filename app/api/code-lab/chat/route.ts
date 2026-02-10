@@ -51,6 +51,7 @@ import {
   isComposioTool,
   isComposioConfigured,
 } from '@/lib/composio';
+import { trackTokenUsage } from '@/lib/usage/track';
 
 const log = logger('CodeLabChat');
 
@@ -2376,6 +2377,17 @@ Rules:
               routed: routedByClassifier,
             });
           }
+
+          // Track token usage for billing (fire and forget)
+          trackTokenUsage({
+            userId: user.id,
+            modelName: effectiveModel,
+            inputTokens,
+            outputTokens,
+            cachedInputTokens: cacheReadTokens,
+            source: 'code-lab',
+            conversationId: sessionId,
+          }).catch(() => {});
 
           // Save assistant message
           await (supabase.from('code_lab_messages') as AnySupabase).insert({

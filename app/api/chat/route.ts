@@ -890,6 +890,7 @@ import {
   getUserServers as getMCPUserServers,
   getKnownToolsForServer,
 } from '@/app/api/chat/mcp/helpers';
+import { trackTokenUsage } from '@/lib/usage/track';
 
 const log = logger('ChatAPI');
 
@@ -6244,6 +6245,17 @@ SECURITY:
       tools, // Give AI all 58 available tools for autonomous use
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });
+      },
+      onUsage: (usage) => {
+        // Fire-and-forget: persist token usage to usage_tracking table
+        trackTokenUsage({
+          userId: rateLimitIdentifier,
+          modelName: selectedModel,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          source: 'chat',
+          conversationId: conversationId,
+        }).catch(() => {}); // Already handles errors internally
       },
     };
 
