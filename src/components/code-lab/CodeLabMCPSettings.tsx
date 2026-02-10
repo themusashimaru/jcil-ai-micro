@@ -73,15 +73,7 @@ export const DEFAULT_MCP_SERVERS: Omit<MCPServer, 'status' | 'tools'>[] = [
     enabled: false,
     builtIn: true,
   },
-  {
-    id: 'memory',
-    name: 'Memory',
-    description: 'Persistent key-value storage across conversations',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-memory'],
-    enabled: false,
-    builtIn: true,
-  },
+  // Memory server removed - persistent memory is always-on via Supabase (conversation_memory table)
   {
     id: 'puppeteer',
     name: 'Puppeteer',

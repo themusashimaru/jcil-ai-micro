@@ -38,10 +38,9 @@ describe('MCP Server Configuration', () => {
         { id: 'github', name: 'GitHub' },
         { id: 'puppeteer', name: 'Puppeteer' },
         { id: 'postgres', name: 'PostgreSQL' },
-        { id: 'memory', name: 'Memory' },
       ];
 
-      expect(defaultServers).toHaveLength(5);
+      expect(defaultServers).toHaveLength(4);
       defaultServers.forEach((server) => {
         expect(server).toHaveProperty('id');
         expect(server).toHaveProperty('name');
