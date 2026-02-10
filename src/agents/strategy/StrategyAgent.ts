@@ -631,6 +631,13 @@ export class StrategyAgent {
   }
 
   /**
+   * Restore problem data from persistence (serverless execution recovery)
+   */
+  restoreProblem(problemData: UserProblem): void {
+    this.context.problem = problemData;
+  }
+
+  /**
    * Get the synthesized problem from intake
    */
   getProblem(): UserProblem | undefined {

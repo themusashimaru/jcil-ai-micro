@@ -163,6 +163,27 @@ async function storeProblemData(
 }
 
 /**
+ * Get problem data from database (for session restoration before execution)
+ */
+async function getProblemData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string
+): Promise<unknown | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('strategy_sessions')
+    .select('problem_data')
+    .eq('session_id', sessionId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.problem_data || null;
+}
+
+/**
  * Store intake messages for session restoration
  * This allows us to restore the agent on a different serverless instance
  */
@@ -491,7 +512,7 @@ export async function POST(request: NextRequest) {
         return handleInput(supabase, sessionId, input, user.id, isAdmin);
 
       case 'execute':
-        return handleExecute(supabase, user.id, sessionId);
+        return handleExecute(supabase, user.id, sessionId, isAdmin);
 
       case 'context':
         return handleContext(supabase, sessionId, message);
@@ -1135,7 +1156,8 @@ async function handleContext(
 async function handleExecute(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  sessionId: string | undefined
+  sessionId: string | undefined,
+  isAdmin: boolean = false
 ): Promise<Response> {
   if (!sessionId) {
     return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -1144,12 +1166,71 @@ async function handleExecute(
     });
   }
 
-  const session = activeSessions.get(sessionId);
+  let session = activeSessions.get(sessionId);
+
+  // If not in memory, restore from database (serverless cold start recovery)
   if (!session) {
-    return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
+    const dbSession = await getSessionFromDB(supabase, sessionId);
+    if (!dbSession) {
+      return new Response(JSON.stringify({ error: 'Session not found or expired' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (dbSession.user_id !== userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (dbSession.phase !== 'intake') {
+      return new Response(
+        JSON.stringify({ error: `Cannot execute during ${dbSession.phase} phase` }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Restore session
+    log.info('Restoring session for execution', { sessionId });
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'Anthropic API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const intakeMessages = await getIntakeMessages(supabase, sessionId);
+    const agent = createStrategyAgent(apiKey, {
+      userId,
+      sessionId,
+      isAdmin,
+      mode: dbSession.mode || 'strategy',
     });
+
+    if (intakeMessages && intakeMessages.length > 0) {
+      agent.restoreIntakeMessages(intakeMessages);
+      log.info('Restored intake messages for execution', { sessionId, messageCount: intakeMessages.length });
+    }
+
+    // Restore problem data if available (stored as UserProblem in DB)
+    const problemData = await getProblemData(supabase, sessionId);
+    if (problemData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      agent.restoreProblem(problemData as any);
+    }
+
+    session = {
+      agent,
+      phase: 'intake',
+      dbId: dbSession.id,
+      started: new Date(dbSession.started_at).getTime(),
+    };
+    activeSessions.set(sessionId, session);
+    log.info('Session restored for execution', { sessionId });
   }
 
   if (session.phase !== 'intake') {
