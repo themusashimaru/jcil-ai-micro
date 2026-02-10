@@ -2151,7 +2151,7 @@ Rules:
           let cacheWriteTokens = 0;
 
           // Tool execution loop: Claude may request tools, we execute and continue
-          let currentMessages = [...messages];
+          const currentMessages = [...messages];
           let currentResponse = response;
           let toolLoopCount = 0;
           const MAX_TOOL_LOOPS = 10; // Safety limit
