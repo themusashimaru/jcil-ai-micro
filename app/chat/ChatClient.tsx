@@ -944,15 +944,11 @@ export function ChatClient() {
         break;
       case 'deep-research':
         // Start deep research mode
-        if (isAdmin) {
-          await startDeepResearch();
-        }
+        await startDeepResearch();
         break;
       case 'deep-strategy':
         // Start strategy mode
-        if (isAdmin) {
-          await startDeepStrategy();
-        }
+        await startDeepStrategy();
         break;
       default:
         log.warn('Unknown carousel card selected', { cardId });

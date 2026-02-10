@@ -80,6 +80,13 @@ export class QualityControl {
   // ===========================================================================
 
   /**
+   * Update the stream callback (needed when switching from intake to execute stream)
+   */
+  setStreamCallback(callback: StrategyStreamCallback | undefined): void {
+    this.onStream = callback;
+  }
+
+  /**
    * Run a quality check on the current state
    */
   async runCheck(

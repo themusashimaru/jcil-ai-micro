@@ -111,6 +111,13 @@ export class Synthesizer {
   // ===========================================================================
 
   /**
+   * Update the stream callback (needed when switching from intake to execute stream)
+   */
+  setStreamCallback(callback: StrategyStreamCallback | undefined): void {
+    this.onStream = callback;
+  }
+
+  /**
    * Synthesize all findings into organized, QC-ready format
    */
   async synthesize(
