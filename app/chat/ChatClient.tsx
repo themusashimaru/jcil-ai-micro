@@ -3304,9 +3304,9 @@ I'll deploy a focused team to research and write your content.
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'intake',
+          action: 'input',
           sessionId: quickWriterSessionId,
-          userInput: input,
+          input: input,
         }),
       });
 
@@ -3316,7 +3316,7 @@ I'll deploy a focused team to research and write your content.
 
       const data = await response.json();
 
-      if (data.intakeComplete) {
+      if (data.isComplete) {
         // Intake complete - start execution
         setQuickWriterPhase('executing');
         await executeQuickWriter();
