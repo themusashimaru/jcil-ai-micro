@@ -2185,8 +2185,10 @@ Rules:
                 // Capture token usage from message events
                 if (event.type === 'message_start' && event.message?.usage) {
                   inputTokens += event.message.usage.input_tokens || 0;
-                  cacheReadTokens += (event.message.usage as Record<string, number>).cache_read_input_tokens || 0;
-                  cacheWriteTokens += (event.message.usage as Record<string, number>).cache_creation_input_tokens || 0;
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const usageObj = event.message.usage as any;
+                  cacheReadTokens += usageObj.cache_read_input_tokens || 0;
+                  cacheWriteTokens += usageObj.cache_creation_input_tokens || 0;
                 }
 
                 if (event.type === 'message_delta') {
