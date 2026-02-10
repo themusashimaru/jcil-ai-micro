@@ -137,6 +137,8 @@ export async function trackTokenUsage(record: UsageRecord): Promise<void> {
       output_tokens: record.outputTokens,
       live_search_calls: record.liveSearchCalls || 0,
       total_cost: cost,
+      source: record.source || 'unknown',
+      conversation_id: record.conversationId || null,
     });
 
     if (error) {
