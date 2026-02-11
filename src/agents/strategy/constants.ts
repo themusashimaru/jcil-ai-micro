@@ -14,14 +14,14 @@ import type { ModelConfig, StrategyLimits } from './types';
  * Claude Model IDs - Configurable via environment variables
  *
  * Set these environment variables to override the default model IDs:
- * - CLAUDE_OPUS_MODEL: The Opus model ID (default: claude-opus-4-6-20260205)
- * - CLAUDE_SONNET_MODEL: The Sonnet model ID (default: claude-sonnet-4-5-20250514)
+ * - CLAUDE_OPUS_MODEL: The Opus model ID (default: claude-opus-4-6)
+ * - CLAUDE_SONNET_MODEL: The Sonnet model ID (default: claude-sonnet-4-5-20250929)
  * - CLAUDE_HAIKU_MODEL: The Haiku model ID (default: claude-haiku-4-5-20251001)
  *
  * This allows updating models without code changes when Anthropic releases new versions.
  */
-export const CLAUDE_OPUS_46 = process.env.CLAUDE_OPUS_MODEL || 'claude-opus-4-6-20260205';
-export const CLAUDE_SONNET_45 = process.env.CLAUDE_SONNET_MODEL || 'claude-sonnet-4-5-20250514';
+export const CLAUDE_OPUS_46 = process.env.CLAUDE_OPUS_MODEL || 'claude-opus-4-6';
+export const CLAUDE_SONNET_45 = process.env.CLAUDE_SONNET_MODEL || 'claude-sonnet-4-5-20250929';
 export const CLAUDE_HAIKU_45 = process.env.CLAUDE_HAIKU_MODEL || 'claude-haiku-4-5-20251001';
 
 /**

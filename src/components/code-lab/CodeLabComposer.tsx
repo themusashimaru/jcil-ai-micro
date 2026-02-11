@@ -72,7 +72,7 @@ const MODEL_DISPLAY_NAMES: Record<
     description: 'Fast & capable',
     provider: 'claude',
   },
-  'claude-opus-4-6-20260205': {
+  'claude-opus-4-6': {
     name: 'Opus',
     description: 'Most capable',
     provider: 'claude',
@@ -88,7 +88,7 @@ const MODEL_DISPLAY_NAMES: Record<
     description: 'Deep reasoning',
     provider: 'claude',
   },
-  'claude-opus-4-6-20260205-thinking': {
+  'claude-opus-4-6-thinking': {
     name: 'Opus (Thinking)',
     description: 'Deepest reasoning',
     provider: 'claude',

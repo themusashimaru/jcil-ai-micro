@@ -122,7 +122,7 @@ export class LiveDebugger {
     const relevantCode = this.extractRelevantCode(error, context);
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-6-20260205', // Use Opus for complex debugging
+      model: 'claude-opus-4-6', // Use Opus for complex debugging
       max_tokens: 2048,
       system: `You are an expert debugger. Analyze runtime errors and provide precise fixes.
 

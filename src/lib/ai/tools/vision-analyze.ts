@@ -227,7 +227,7 @@ async function analyzeImage(
     log.info('Starting vision analysis', { analysisType, hasQuestion: !!question });
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514', // Use Sonnet for vision (good balance of quality/cost)
+      model: 'claude-sonnet-4-5-20250929', // Use Sonnet for vision (good balance of quality/cost)
       max_tokens: 4096,
       messages: [
         {

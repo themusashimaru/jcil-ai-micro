@@ -302,7 +302,7 @@ async function storeResultAndUsage(
     trackingPromises.push(
       trackTokenUsage({
         userId,
-        modelName: 'claude-opus-4-6-20260205',
+        modelName: 'claude-opus-4-6',
         inputTokens: modelUsage.opus.tokens,
         outputTokens: 0,
         liveSearchCalls: totalSearches,

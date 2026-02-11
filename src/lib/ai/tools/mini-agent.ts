@@ -312,7 +312,7 @@ Write a well-structured synthesis that directly answers the original question.`;
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514', // Sonnet for synthesis (quality matters)
+      model: 'claude-sonnet-4-5-20250929', // Sonnet for synthesis (quality matters)
       max_tokens: 2048,
       messages: [{ role: 'user', content: synthesisPrompt }],
     });
