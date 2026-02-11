@@ -192,7 +192,7 @@ If there are multiple tables, extract each one and separate them clearly.
 If no tables are found, explain what you see instead.`;
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       messages: [
         {

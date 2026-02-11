@@ -32,7 +32,7 @@ export interface ModelConfig {
 // Available models - Claude 4.5 family (latest generation)
 export const AVAILABLE_MODELS: ModelConfig[] = [
   {
-    id: 'claude-sonnet-4-5-20250514',
+    id: 'claude-sonnet-4-5-20250929',
     name: 'Claude Sonnet 4.5',
     type: 'sonnet',
     description: 'Best balance of speed and intelligence. Recommended for most coding tasks.',
@@ -45,7 +45,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     recommended: true,
   },
   {
-    id: 'claude-opus-4-6-20260205',
+    id: 'claude-opus-4-6',
     name: 'Claude Opus 4.6',
     type: 'opus',
     description: 'Most capable model. Best for complex reasoning and difficult problems.',
@@ -81,7 +81,7 @@ export interface ModelPreferences {
 
 // Default preferences
 export const DEFAULT_PREFERENCES: ModelPreferences = {
-  defaultModel: 'claude-sonnet-4-5-20250514',
+  defaultModel: 'claude-sonnet-4-5-20250929',
   extendedThinking: false,
   thinkingBudget: 10000,
   temperature: 0.7,
@@ -181,7 +181,7 @@ export class ModelConfigManager {
     if (enabled && model && !model.supportsExtendedThinking) {
       log.warn('Model does not support extended thinking', { model: model.name });
       // Auto-switch to Sonnet which supports it
-      prefs.defaultModel = 'claude-sonnet-4-5-20250514';
+      prefs.defaultModel = 'claude-sonnet-4-5-20250929';
     }
 
     prefs.extendedThinking = enabled;

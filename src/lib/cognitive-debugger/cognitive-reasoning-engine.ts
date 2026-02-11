@@ -149,7 +149,7 @@ Return your analysis as JSON:
 
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-6-20260205',
+        model: 'claude-opus-4-6',
         max_tokens: 16000,
         thinking: {
           type: 'enabled',
@@ -577,7 +577,7 @@ Return JSON:
     scenario: string
   ): Promise<string> {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-6-20260205',
+      model: 'claude-opus-4-6',
       max_tokens: 2000,
       messages: [
         {

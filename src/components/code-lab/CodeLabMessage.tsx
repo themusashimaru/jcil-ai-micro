@@ -57,10 +57,10 @@ const AGENT_TYPES: Record<string, AgentType> = {
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // Claude models
   'claude-sonnet-4-20250514': 'Sonnet 4',
-  'claude-opus-4-6-20260205': 'Opus 4.6',
+  'claude-opus-4-6': 'Opus 4.6',
   'claude-haiku-4-5-20251001': 'Haiku 4.5',
   'claude-sonnet-4-20250514-thinking': 'Sonnet 4 (Thinking)',
-  'claude-opus-4-6-20260205-thinking': 'Opus 4.6 (Thinking)',
+  'claude-opus-4-6-thinking': 'Opus 4.6 (Thinking)',
   // OpenAI models
   'gpt-5.2': 'GPT-5.2',
   // xAI Grok models

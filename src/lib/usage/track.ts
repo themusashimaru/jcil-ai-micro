@@ -19,7 +19,7 @@ const MODEL_PRICING: Record<
   { input: number; output: number; cacheRead?: number; cacheWrite?: number }
 > = {
   // Claude Opus 4.6
-  'claude-opus-4-6-20260205': {
+  'claude-opus-4-6': {
     input: 5.0,
     output: 25.0,
     cacheRead: 0.5,

@@ -77,7 +77,7 @@ interface ClassificationResult {
 const COMPLEXITY_MODEL_MAP: Record<TaskComplexity, string> = {
   simple: 'claude-haiku-4-5-20251101',    // Quick answers, simple questions
   moderate: 'claude-sonnet-4-20250514',    // Code generation, analysis
-  complex: 'claude-opus-4-6-20260205',     // Complex reasoning, architecture
+  complex: 'claude-opus-4-6',     // Complex reasoning, architecture
 };
 
 /**
@@ -689,7 +689,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Model selection (Claude Code parity) - default to Opus 4.6
-    const selectedModel = modelId || 'claude-opus-4-6-20260205';
+    const selectedModel = modelId || 'claude-opus-4-6';
 
     // Extended thinking configuration (Claude Code parity)
     const thinkingEnabled = thinking?.enabled === true;
