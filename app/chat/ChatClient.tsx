@@ -1724,7 +1724,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to process input');
+        throw new Error(data.message || data.error || 'Failed to process input');
       }
 
       const data = await response.json();
@@ -2120,7 +2120,7 @@ Tell me the topic, your questions, and what you'll use this research for. The mo
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to process input');
+        throw new Error(data.message || data.error || 'Failed to process input');
       }
 
       const data = await response.json();
@@ -2499,7 +2499,7 @@ I'll deploy a focused research team to investigate your topic.
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to process input');
+        throw new Error(data.message || data.error || 'Failed to process input');
       }
 
       const data = await response.json();
@@ -2765,7 +2765,7 @@ I'll deploy a focused team to help you make this decision.
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to process input');
+        throw new Error(data.message || data.error || 'Failed to process input');
       }
 
       const data = await response.json();
@@ -3035,7 +3035,7 @@ This is a full publishing operation:
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to process input');
+        throw new Error(data.message || data.error || 'Failed to process input');
       }
 
       const data = await response.json();

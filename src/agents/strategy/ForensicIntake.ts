@@ -235,12 +235,21 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
    */
   private async generateResponse(): Promise<string> {
     try {
+      // Filter messages to ensure they start with 'user' role
+      // (Anthropic API requires first message to be 'user')
+      // The opening assistant message is for frontend display only
+      const apiMessages = this.state.messages.filter((m, i) => {
+        // Skip leading assistant messages
+        if (i === 0 && m.role === 'assistant') return false;
+        return true;
+      });
+
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: 4096,
         temperature: 0.7,
         system: this.systemPrompt,
-        messages: this.state.messages.map((m) => ({
+        messages: apiMessages.map((m) => ({
           role: m.role,
           content: m.content,
         })),
