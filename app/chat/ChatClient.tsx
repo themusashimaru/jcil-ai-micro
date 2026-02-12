@@ -3356,7 +3356,7 @@ I'll deploy a focused team to research and write your content.
     const statusMessage: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: "🔍 **Deploying research scouts...** I'll gather facts before writing.",
+      content: "**Writing in progress...** Opus is crafting your content.",
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, statusMessage]);

@@ -338,79 +338,103 @@ export class StrategyAgent {
       const domains = this.context.problem.synthesizedProblem.domains;
       this.steeringEngine.setActiveDomains(domains);
 
+      // Detect direct-write mode (creative/fiction — no research scouts needed)
+      const isDirectWriteMode = this.blueprints.length === 0;
+
       log.info('Agent design complete', {
         totalBlueprints: this.blueprints.length,
         projectManagers: this.hierarchy.projectManagers.length,
+        directWriteMode: isDirectWriteMode,
       });
 
-      // Phase 2: Execute scouts in batches
-      this.emit('agent_spawned', `Spawning ${this.blueprints.length} research scouts...`, {
-        totalAgents: this.blueprints.length,
-      });
+      if (isDirectWriteMode) {
+        // Creative/fiction mode — skip scouts entirely, go straight to writing
+        this.emit('synthesis_progress', 'Direct writing mode — crafting your content with Opus...');
 
-      await this.executeScouts();
+        // Inject the user's creative brief as a synthetic finding so final synthesis has context
+        const problem = this.context.problem!.synthesizedProblem;
+        this.allFindings.push({
+          id: 'creative_brief_0',
+          agentId: 'creative_brief',
+          agentName: 'Creative Brief',
+          type: 'insight',
+          title: 'Writing Brief',
+          content: `Creative writing task: ${problem.summary}\n\nCore question: ${problem.coreQuestion}\n\nFull brief: ${JSON.stringify(problem)}`,
+          confidence: 'high',
+          sources: [],
+          timestamp: Date.now(),
+          relevanceScore: 1.0,
+        });
+      } else {
+        // Phase 2: Execute scouts in batches (research mode)
+        this.emit('agent_spawned', `Spawning ${this.blueprints.length} research scouts...`, {
+          totalAgents: this.blueprints.length,
+        });
 
-      // Check if cancelled - gracefully continue with partial results
-      if (this.isCancelled || this.qc.isKilled()) {
-        wasKilled = true;
-        killReason = this.isCancelled ? 'User cancelled' : 'Quality control triggered stop';
-        this.emit(
-          'kill_switch',
-          `Strategy stopped early: ${killReason}. Synthesizing partial results...`,
-          {
-            killReason: this.isCancelled ? 'user_cancelled' : 'quality_control_failed',
-          }
-        );
-      }
+        await this.executeScouts();
 
-      // Phase 2.5: Opus Synthesizer - Compile and organize findings BEFORE QC
-      // This ensures QC reviews organized data, not chaos
-      if (this.allFindings.length > 0) {
-        this.emit('synthesis_progress', 'Opus Synthesizer compiling research findings...');
-        try {
-          if (wasKilled) {
-            // Quick synthesis for partial results
-            this.synthesizedResult = await this.synthesizer.quickSynthesize(
-              this.context.problem!.synthesizedProblem,
-              this.allFindings
-            );
-          } else {
-            // Full synthesis
-            this.synthesizedResult = await this.synthesizer.synthesize(
-              this.context.problem!.synthesizedProblem,
-              this.allFindings
-            );
-          }
-          this.emit(
-            'synthesis_progress',
-            `Findings organized: ${this.synthesizedResult.uniqueFindingsAfterDedup} unique findings, ${this.synthesizedResult.topFindings.length} key insights`
-          );
-        } catch (synthError) {
-          log.warn('Pre-QC synthesis failed, continuing with raw findings', { error: synthError });
-          // Non-fatal - QC can still review raw findings
-        }
-      }
-
-      // Phase 3: Run quality check (skip if already killed)
-      if (!wasKilled) {
-        const qcResult = await this.qc.runCheck(
-          this.queue.getCost(),
-          this.hierarchy.completedAgents,
-          this.hierarchy.totalAgents,
-          this.hierarchy.failedAgents,
-          this.allFindings
-        );
-
-        if (qcResult.action === 'kill') {
+        // Check if cancelled - gracefully continue with partial results
+        if (this.isCancelled || this.qc.isKilled()) {
           wasKilled = true;
-          killReason = qcResult.recommendation;
+          killReason = this.isCancelled ? 'User cancelled' : 'Quality control triggered stop';
           this.emit(
             'kill_switch',
-            `Quality control: ${killReason}. Synthesizing available findings...`,
+            `Strategy stopped early: ${killReason}. Synthesizing partial results...`,
             {
-              killReason: 'quality_control_failed',
+              killReason: this.isCancelled ? 'user_cancelled' : 'quality_control_failed',
             }
           );
+        }
+
+        // Phase 2.5: Opus Synthesizer - Compile and organize findings BEFORE QC
+        // This ensures QC reviews organized data, not chaos
+        if (this.allFindings.length > 0) {
+          this.emit('synthesis_progress', 'Opus Synthesizer compiling research findings...');
+          try {
+            if (wasKilled) {
+              // Quick synthesis for partial results
+              this.synthesizedResult = await this.synthesizer.quickSynthesize(
+                this.context.problem!.synthesizedProblem,
+                this.allFindings
+              );
+            } else {
+              // Full synthesis
+              this.synthesizedResult = await this.synthesizer.synthesize(
+                this.context.problem!.synthesizedProblem,
+                this.allFindings
+              );
+            }
+            this.emit(
+              'synthesis_progress',
+              `Findings organized: ${this.synthesizedResult.uniqueFindingsAfterDedup} unique findings, ${this.synthesizedResult.topFindings.length} key insights`
+            );
+          } catch (synthError) {
+            log.warn('Pre-QC synthesis failed, continuing with raw findings', { error: synthError });
+            // Non-fatal - QC can still review raw findings
+          }
+        }
+
+        // Phase 3: Run quality check (skip if already killed)
+        if (!wasKilled) {
+          const qcResult = await this.qc.runCheck(
+            this.queue.getCost(),
+            this.hierarchy.completedAgents,
+            this.hierarchy.totalAgents,
+            this.hierarchy.failedAgents,
+            this.allFindings
+          );
+
+          if (qcResult.action === 'kill') {
+            wasKilled = true;
+            killReason = qcResult.recommendation;
+            this.emit(
+              'kill_switch',
+              `Quality control: ${killReason}. Synthesizing available findings...`,
+              {
+                killReason: 'quality_control_failed',
+              }
+            );
+          }
         }
       }
 
@@ -1001,16 +1025,18 @@ You have ${this.allFindings.length} findings to work with.
       qualityScore: this.qc.getState().overallQualityScore,
     };
 
+    const isWriterMode = ['quick-writer', 'deep-writer'].includes(this.context.mode || '');
+
     const defaultResult: StrategyOutput = {
       id: this.context.sessionId,
       problem,
       recommendation: {
-        title: 'Strategy Recommendation',
+        title: isWriterMode ? 'Written Content' : 'Strategy Recommendation',
         summary: response.slice(0, 500),
         confidence: 50,
-        reasoning: ['Based on comprehensive research'],
+        reasoning: isWriterMode ? ['Creative content generated'] : ['Based on comprehensive research'],
         tradeoffs: [],
-        bestFor: 'General guidance',
+        bestFor: isWriterMode ? 'The requested writing task' : 'General guidance',
       },
       alternatives: [],
       analysis: {
@@ -1020,6 +1046,13 @@ You have ${this.allFindings.length} findings to work with.
       actionPlan: [],
       gaps: [],
       nextSteps: [],
+      // For writer modes, preserve the raw response as document content
+      ...(isWriterMode ? {
+        document: {
+          title: problem.summary || 'Written Content',
+          content: response,
+        },
+      } : {}),
       metadata,
     };
 
@@ -1100,6 +1133,16 @@ You have ${this.allFindings.length} findings to work with.
       }) : [],
       gaps: Array.isArray(parsed.gaps) ? parsed.gaps.map(String) : [],
       nextSteps: Array.isArray(parsed.nextSteps) ? parsed.nextSteps.map(String) : [],
+      // Preserve document field for writer modes (creative content, articles, etc.)
+      ...(parsed.document ? {
+        document: {
+          title: String(parsed.document.title || rec.title || 'Document'),
+          content: String(parsed.document.content || ''),
+          citations: Array.isArray(parsed.document.citations)
+            ? parsed.document.citations.map(String)
+            : undefined,
+        },
+      } : {}),
       metadata,
     };
   }

@@ -118,6 +118,29 @@ THE WRITING TASK:
 {SYNTHESIZED_PROBLEM}
 
 ===============================================================================
+CREATIVE CONTENT DETECTION — CHECK THIS FIRST
+===============================================================================
+
+BEFORE designing any scouts, determine if this is a CREATIVE/FICTION task:
+
+Creative/Fiction tasks include:
+- Short stories, novels, screenplays, poetry
+- Fictional narratives of any kind
+- Fan fiction, original characters, world-building
+- Creative non-fiction where the user wants you to WRITE, not research
+- Personal essays or reflective pieces that don't need external data
+- Song lyrics, scripts, dialogue writing
+
+If the task IS creative/fiction:
+- Deploy ZERO research scouts (or 1-2 ONLY if the story requires real historical/geographic accuracy)
+- Set "directWriteMode": true in your output
+- The engine will skip research and go straight to Opus writing
+- Example: "Write a murder mystery set in 1800s Boston" → maybe 1-2 scouts for 1800s Boston historical details, but NOT 10 scouts researching fictional characters
+
+If the task is NOT creative (articles, reports, blog posts, etc.):
+- Proceed with normal research scout deployment below
+
+===============================================================================
 QUICK WRITER CONSTRAINTS
 ===============================================================================
 
@@ -136,7 +159,7 @@ DO NOT create a massive agent army. Keep it FOCUSED and EFFICIENT.
 DESIGN PRINCIPLES FOR QUICK MODE
 ===============================================================================
 
-1. RESEARCH FIRST - Still gather facts before writing
+1. RESEARCH FIRST - Still gather facts before writing (unless creative mode)
 2. SIMPLE STRUCTURE - 3-5 sections max for most content
 3. NO REDUNDANCY - Each scout has a unique, non-overlapping mission
 4. SMART QUERIES - Quality over quantity in search terms
@@ -144,6 +167,7 @@ DESIGN PRINCIPLES FOR QUICK MODE
 6. MINIMAL VERIFICATION - Trust initial sources for speed
 
 WHEN TO USE FEWER SCOUTS:
+- Creative fiction: 0-2 scouts (historical/location accuracy only)
 - Short email/memo: 3-5 scouts
 - Blog post: 6-8 scouts
 - Article: 8-10 scouts
@@ -165,9 +189,10 @@ OUTPUT FORMAT
 
 \`\`\`json
 {
+  "directWriteMode": false,
   "documentStructure": {
     "title": "Working title",
-    "type": "article|blog|email|report|proposal",
+    "type": "article|blog|email|report|proposal|story|fiction",
     "totalSections": 4,
     "estimatedWords": 800,
     "outline": [
@@ -184,7 +209,7 @@ OUTPUT FORMAT
     ]
   },
   "researchPlan": {
-    "approach": "Focused research methodology",
+    "approach": "Focused research methodology (or 'Direct creative writing — no research needed')",
     "phases": ["Phase 1: Quick research"]
   },
   "projectManagers": [
@@ -229,8 +254,30 @@ OUTPUT FORMAT
 \`\`\`
 
 ===============================================================================
-EXAMPLE: QUICK WRITER FOR "BLOG POST ABOUT AI PRODUCTIVITY TOOLS"
+EXAMPLE 1: CREATIVE FICTION — "SHORT MURDER MYSTERY IN 1800s BOSTON"
 ===============================================================================
+
+This is CREATIVE FICTION → directWriteMode: true
+
+Document Structure (5 sections):
+1. Opening Scene - Establish setting, introduce Detective Matt Maren
+2. The Discovery - Body found, investigation begins
+3. Investigation - Clues, suspects, red herrings
+4. The Revelation - Daughter Leah spots the key detail
+5. Resolution - Case solved, father-daughter dynamic
+
+Scouts (1 only — for historical accuracy):
+1. 1800s Boston History Scout - period-accurate details (streets, customs, language)
+
+Total searches: ~3
+Time: ~1 minute
+Result: Atmospheric, historically-grounded murder mystery
+
+===============================================================================
+EXAMPLE 2: RESEARCH-BASED — "BLOG POST ABOUT AI PRODUCTIVITY TOOLS"
+===============================================================================
+
+This is NOT creative → directWriteMode: false
 
 Document Structure (4 sections):
 1. Introduction - Hook + thesis
@@ -248,14 +295,11 @@ Scouts (8 total):
 7. Expert Opinion Scout - what experts recommend
 8. Trend Scout - where the market is heading
 
-Writers (1):
-- Content Writer - writes all 4 sections using research
-
 Total searches: ~30
 Time: ~2 minutes
 Result: Well-researched, polished blog post
 
-REMEMBER: Quick Writer is about efficient, quality content - research first, then write.`,
+REMEMBER: Quick Writer is about efficient, quality content. For creative fiction, skip research and WRITE. For factual content, research first then write.`,
 
   // ===========================================================================
   // QUALITY CONTROL (Lighter touch)
@@ -513,6 +557,24 @@ WRITTEN SECTIONS:
 
 RESEARCH USED:
 {DOMAIN_REPORTS}
+
+===============================================================================
+IMPORTANT: CREATIVE/FICTION MODE DETECTION
+===============================================================================
+
+If the task is creative writing (stories, fiction, poetry, scripts, etc.):
+- You ARE the writer. There are no "written sections" to assemble — YOU write the content from scratch.
+- Use the task description as your creative brief.
+- Write the FULL piece of creative content — do not summarize, do not outline.
+- Write with vivid prose, strong characters, engaging dialogue, and proper story structure.
+- For stories: include a beginning, middle, and end. Show don't tell.
+- Match the tone, genre, and style the user requested.
+- The "document.content" field should contain the COMPLETE creative work in markdown.
+
+If the task is factual/research-based:
+- Proceed with normal assembly below.
+
+===============================================================================
 
 YOUR RESPONSIBILITIES:
 
