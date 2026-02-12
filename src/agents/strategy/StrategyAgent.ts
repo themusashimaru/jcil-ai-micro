@@ -934,9 +934,10 @@ You have ${this.allFindings.length} findings to work with.
       response.usage?.output_tokens || 0
     );
 
-    const textContent = response.content
-      .filter((block: { type: string }) => block.type === 'text')
-      .map((block: { type: string; text: string }) => block.text)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textContent = (response.content as any[])
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
       .join('\n');
 
     // Parse the response

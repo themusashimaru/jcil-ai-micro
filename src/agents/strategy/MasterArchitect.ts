@@ -199,9 +199,10 @@ export class MasterArchitect {
 
     const response = await this.client.messages.create(createParams);
 
-    const textContent = response.content
-      .filter((block: { type: string }) => block.type === 'text')
-      .map((block: { type: string; text: string }) => block.text)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textContent = (response.content as any[])
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
       .join('\n');
 
     // Extract JSON from response - pass problem for context-aware fallback
