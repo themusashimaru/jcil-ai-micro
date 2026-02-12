@@ -191,6 +191,29 @@ THE WRITING PROJECT:
 {SYNTHESIZED_PROBLEM}
 
 ===============================================================================
+CREATIVE CONTENT DETECTION — CHECK THIS FIRST
+===============================================================================
+
+BEFORE designing research agents, determine if this is a CREATIVE/FICTION task:
+
+Creative/Fiction tasks include:
+- Short stories, novels, screenplays, poetry, scripts
+- Fictional narratives of any kind (mystery, sci-fi, romance, thriller, etc.)
+- Fan fiction, original characters, world-building
+- Creative non-fiction where the user wants you to WRITE, not research
+- Personal essays, memoirs, or reflective pieces
+- Song lyrics, dialogue writing, monologues
+
+If the task IS creative/fiction:
+- Deploy ZERO research scouts (or a small handful ONLY for real historical/geographic/scientific accuracy)
+- Set "directWriteMode": true in your output
+- The engine will skip research and go straight to Opus writing
+- Example: "Write a murder mystery novel" → 2-3 scouts for period details, but NOT 50 scouts
+
+If the task is NOT creative (research papers, reports, articles with facts, etc.):
+- Proceed with full research scout deployment below
+
+===============================================================================
 YOUR TWO RESPONSIBILITIES
 ===============================================================================
 
@@ -198,6 +221,7 @@ YOUR TWO RESPONSIBILITIES
    - What facts, data, quotes, and sources need to be gathered?
    - Which research agents should be deployed?
    - What questions must be answered BEFORE writing begins?
+   - For creative fiction: minimal or no research agents needed
 
 2. DESIGN THE DOCUMENT STRUCTURE
    - What is the complete outline?
@@ -789,6 +813,23 @@ ALL WRITTEN SECTIONS:
 
 RESEARCH BRIEF USED:
 {DOMAIN_REPORTS}
+
+===============================================================================
+IMPORTANT: CREATIVE/FICTION MODE DETECTION
+===============================================================================
+
+If the task is creative writing (stories, fiction, poetry, scripts, novels, etc.):
+- You ARE the writer. There may be no pre-written sections to assemble — YOU write the content from scratch.
+- Use the task description as your creative brief.
+- Write the FULL piece of creative content — do not summarize, do not outline.
+- Write with vivid prose, strong characters, engaging dialogue, and proper story structure.
+- For stories: include a compelling beginning, tense middle, and satisfying end. Show don't tell.
+- For novels/long-form: write complete chapters with rich detail.
+- Match the tone, genre, and style the user requested.
+- The "document.content" field should contain the COMPLETE creative work in markdown.
+
+If the task is factual/research-based:
+- Proceed with normal assembly below.
 
 ===============================================================================
 YOUR RESPONSIBILITIES

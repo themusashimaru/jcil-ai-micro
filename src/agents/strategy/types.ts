@@ -373,6 +373,13 @@ export interface StrategyOutput {
   // Follow-up suggestions
   nextSteps: string[];
 
+  // Written document (for writer modes — creative, articles, etc.)
+  document?: {
+    title: string;
+    content: string;
+    citations?: string[];
+  };
+
   // Metadata
   metadata: StrategyMetadata;
 }
