@@ -1082,10 +1082,11 @@ You have ${this.allFindings.length} findings to work with.
         byDomain: [],
         riskAssessment: { overallRisk: 'medium', risks: [], mitigations: [] },
       },
-      actionPlan: Array.isArray(parsed.actionPlan) ? parsed.actionPlan.map((item: unknown) => {
+      actionPlan: Array.isArray(parsed.actionPlan) ? parsed.actionPlan.map((item: unknown, index: number) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ap = item as any;
         return {
+          order: Number(ap?.order || index + 1),
           action: String(ap?.action || ''),
           priority: String(ap?.priority || 'medium'),
           timeframe: String(ap?.timeframe || ''),
