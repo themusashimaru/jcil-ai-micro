@@ -1085,10 +1085,15 @@ You have ${this.allFindings.length} findings to work with.
       actionPlan: Array.isArray(parsed.actionPlan) ? parsed.actionPlan.map((item: unknown, index: number) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ap = item as any;
+        const validPriorities = ['critical', 'high', 'medium', 'low'] as const;
+        const rawPriority = String(ap?.priority || 'medium').toLowerCase();
+        const priority = validPriorities.includes(rawPriority as typeof validPriorities[number])
+          ? (rawPriority as 'critical' | 'high' | 'medium' | 'low')
+          : ('medium' as const);
         return {
           order: Number(ap?.order || index + 1),
           action: String(ap?.action || ''),
-          priority: String(ap?.priority || 'medium'),
+          priority,
           timeframe: String(ap?.timeframe || ''),
           details: ap?.details ? String(ap.details) : undefined,
         };
