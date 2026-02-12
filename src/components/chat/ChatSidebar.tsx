@@ -112,7 +112,7 @@ export function ChatSidebar({
     }
   }, []);
 
-  // Fetch strategy sessions (admin only)
+  // Fetch agent sessions (admin only)
   const fetchStrategySessions = useCallback(async () => {
     if (!isAdmin) return;
     try {
@@ -738,7 +738,7 @@ export function ChatSidebar({
               </div>
             )}
 
-            {/* Strategy Sessions (Admin Only) */}
+            {/* Agent Sessions (Admin Only) */}
             {isAdmin && strategySessions.length > 0 && (
               <div className="mb-4">
                 <button
@@ -777,7 +777,7 @@ export function ChatSidebar({
                     className="text-xs font-semibold uppercase"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    Strategy Sessions
+                    Agent Sessions
                   </span>
                   <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
                     ({strategySessions.length})
@@ -854,7 +854,7 @@ export function ChatSidebar({
                               className="text-sm font-medium truncate"
                               style={{ color: 'var(--text-primary)' }}
                             >
-                              {session.problem_summary || 'Strategy Session'}
+                              {session.problem_summary || 'Agent Session'}
                             </p>
                             <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                               {session.total_searches} searches

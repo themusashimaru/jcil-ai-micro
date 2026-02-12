@@ -38,6 +38,7 @@ import {
   buildPerformancePromptContext,
 } from './PerformanceTracker';
 import { generateArtifacts } from './ArtifactGenerator';
+import { extractJSON } from './utils';
 import { logger } from '@/lib/logger';
 
 const log = logger('StrategyAgent');
@@ -906,10 +907,15 @@ You have ${this.allFindings.length} findings to work with.
       ? `The research was interrupted, but we collected ${this.allFindings.length} findings. Please synthesize the best possible strategy recommendation from the available data, being transparent about limitations.`
       : 'Create the final strategy recommendation based on all the research findings.';
 
-    const response = await this.client.messages.create({
+    // Use extended thinking for higher quality synthesis
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const createParams: any = {
       model: CLAUDE_OPUS_46,
-      max_tokens: 8192,
-      temperature: 0.7,
+      max_tokens: 16000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 10000,
+      },
       system: prompt,
       messages: [
         {
@@ -917,7 +923,9 @@ You have ${this.allFindings.length} findings to work with.
           content: userMessage,
         },
       ],
-    });
+    };
+
+    const response = await this.client.messages.create(createParams);
 
     // Update cost
     this.queue.updateCost(
@@ -926,8 +934,9 @@ You have ${this.allFindings.length} findings to work with.
       response.usage?.output_tokens || 0
     );
 
-    const textContent = response.content
-      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const textContent = (response.content as any[])
+      .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('\n');
 
@@ -972,8 +981,6 @@ You have ${this.allFindings.length} findings to work with.
    * Parse final strategy response
    */
   private parseFinalStrategy(response: string, problem: SynthesizedProblem): StrategyOutput {
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
-
     const cost = this.queue.getCost();
 
     const metadata = {
@@ -994,83 +1001,107 @@ You have ${this.allFindings.length} findings to work with.
       qualityScore: this.qc.getState().overallQualityScore,
     };
 
-    if (!jsonMatch) {
-      // Create basic strategy from text
-      return {
-        id: this.context.sessionId,
-        problem,
-        recommendation: {
-          title: 'Strategy Recommendation',
-          summary: response.slice(0, 500),
-          confidence: 70,
-          reasoning: ['Based on comprehensive research'],
-          tradeoffs: [],
-          bestFor: 'General guidance',
-        },
-        alternatives: [],
-        analysis: {
-          byDomain: [],
-          riskAssessment: {
-            overallRisk: 'medium',
-            risks: [],
-            mitigations: [],
-          },
-        },
-        actionPlan: [],
-        gaps: [],
-        nextSteps: [],
-        metadata,
-      };
+    const defaultResult: StrategyOutput = {
+      id: this.context.sessionId,
+      problem,
+      recommendation: {
+        title: 'Strategy Recommendation',
+        summary: response.slice(0, 500),
+        confidence: 50,
+        reasoning: ['Based on comprehensive research'],
+        tradeoffs: [],
+        bestFor: 'General guidance',
+      },
+      alternatives: [],
+      analysis: {
+        byDomain: [],
+        riskAssessment: { overallRisk: 'medium', risks: [], mitigations: [] },
+      },
+      actionPlan: [],
+      gaps: [],
+      nextSteps: [],
+      metadata,
+    };
+
+    // Use robust JSON extraction with repair (handles malformed LLM output)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = extractJSON<Record<string, any>>(response);
+
+    if (!parsed) {
+      log.warn('Failed to extract JSON from final strategy, using text fallback');
+      return defaultResult;
     }
 
-    try {
-      const parsed = JSON.parse(jsonMatch[1]);
+    // Normalize tradeoffs: ensure every item is a string (LLM sometimes returns objects)
+    const normalizeTradeoffs = (raw: unknown[]): string[] => {
+      if (!Array.isArray(raw)) return [];
+      return raw.map((item) => {
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object' && item !== null) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const obj = item as any;
+          return obj.text || obj.description || obj.tradeoff || obj.title || JSON.stringify(item);
+        }
+        return String(item);
+      });
+    };
 
-      return {
-        id: this.context.sessionId,
-        problem,
-        recommendation: parsed.recommendation || {
-          title: 'Recommendation',
-          summary: '',
-          confidence: 50,
-          reasoning: [],
-          tradeoffs: [],
-          bestFor: '',
-        },
-        alternatives: parsed.alternatives || [],
-        analysis: parsed.analysis || {
-          byDomain: [],
-          riskAssessment: { overallRisk: 'medium', risks: [], mitigations: [] },
-        },
-        actionPlan: parsed.actionPlan || [],
-        gaps: parsed.gaps || [],
-        nextSteps: parsed.nextSteps || [],
-        metadata,
-      };
-    } catch (error) {
-      log.error('Failed to parse final strategy', { error });
-      return {
-        id: this.context.sessionId,
-        problem,
-        recommendation: {
-          title: 'Strategy Recommendation',
-          summary: 'Unable to parse detailed strategy. Please review the findings.',
-          confidence: 50,
-          reasoning: [],
-          tradeoffs: [],
-          bestFor: '',
-        },
-        alternatives: [],
-        analysis: {
-          byDomain: [],
-          riskAssessment: { overallRisk: 'medium', risks: [], mitigations: [] },
-        },
-        actionPlan: [],
-        gaps: ['Strategy parsing failed'],
-        nextSteps: ['Review individual findings'],
-        metadata,
-      };
-    }
+    // Normalize alternatives: ensure all required fields have values
+    const normalizeAlternatives = (raw: unknown[]): Array<{
+      title: string; summary: string; confidence: number; whyNotTop: string; bestFor: string;
+    }> => {
+      if (!Array.isArray(raw)) return [];
+      return raw.map((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const alt = item as any;
+        return {
+          title: String(alt?.title || 'Alternative'),
+          summary: String(alt?.summary || alt?.description || ''),
+          confidence: typeof alt?.confidence === 'number' ? alt.confidence : 50,
+          whyNotTop: String(alt?.whyNotTop || alt?.why_not_top || 'Not specified'),
+          bestFor: String(alt?.bestFor || alt?.best_for || ''),
+        };
+      });
+    };
+
+    const rec = parsed.recommendation || {};
+
+    return {
+      id: this.context.sessionId,
+      problem,
+      recommendation: {
+        title: String(rec.title || 'Recommendation'),
+        summary: String(rec.summary || ''),
+        confidence: typeof rec.confidence === 'number' ? rec.confidence : 50,
+        reasoning: Array.isArray(rec.reasoning) ? rec.reasoning.map(String) : [],
+        tradeoffs: normalizeTradeoffs(rec.tradeoffs),
+        bestFor: String(rec.bestFor || rec.best_for || ''),
+      },
+      alternatives: normalizeAlternatives(parsed.alternatives),
+      analysis: parsed.analysis || {
+        byDomain: [],
+        riskAssessment: { overallRisk: 'medium', risks: [], mitigations: [] },
+      },
+      actionPlan: Array.isArray(parsed.actionPlan) ? parsed.actionPlan.map((item: unknown, index: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ap = item as any;
+        const validPriorities = ['critical', 'high', 'medium', 'low'] as const;
+        const rawPriority = String(ap?.priority || 'medium').toLowerCase();
+        const priority = validPriorities.includes(rawPriority as typeof validPriorities[number])
+          ? (rawPriority as 'critical' | 'high' | 'medium' | 'low')
+          : ('medium' as const);
+        return {
+          order: Number(ap?.order || index + 1),
+          action: String(ap?.action || ''),
+          priority,
+          timeframe: String(ap?.timeframe || ''),
+          details: ap?.details ? String(ap.details) : undefined,
+        };
+      }) : [],
+      gaps: Array.isArray(parsed.gaps) ? parsed.gaps.map(String) : [],
+      nextSteps: Array.isArray(parsed.nextSteps) ? parsed.nextSteps.map(String) : [],
+      metadata,
+    };
   }
 
   // ===========================================================================

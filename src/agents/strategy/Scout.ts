@@ -62,7 +62,7 @@ export class Scout {
   private onStream?: StrategyStreamCallback;
   private model: string;
   private costPerQuery = 0.005; // Brave Search cost
-  private maxToolIterations = 5; // Max tool iterations - Sonnet is smarter, needs fewer
+  private maxToolIterations = 8; // Max tool iterations - allow scouts to search, visit sites, and extract data
   private scoutPrompt: string;
   // Separate token tracking for accurate cost calculation
   private inputTokens = 0;
