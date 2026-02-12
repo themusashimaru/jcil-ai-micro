@@ -1940,9 +1940,9 @@ ${result.recommendation.summary}
 ${result.recommendation.reasoning.map((item, i) => `${i + 1}. ${item}`).join('\n')}
 
 ### Trade-offs to Consider
-${result.recommendation.tradeoffs.map((item) => `- ${item}`).join('\n')}
+${result.recommendation.tradeoffs.map((item) => `- ${typeof item === 'object' && item !== null ? (item as { text?: string; description?: string }).text || (item as { text?: string; description?: string }).description || JSON.stringify(item) : item}`).join('\n')}
 
-${result.alternatives.length > 0 ? `### Alternative Options\n${result.alternatives.map((alt) => `- **${alt.title}** (${alt.confidence}% confidence)\n  ${alt.summary}\n  *Why not top:* ${alt.whyNotTop}`).join('\n\n')}` : ''}
+${result.alternatives.length > 0 ? `### Alternative Options\n${result.alternatives.map((alt) => `- **${alt.title || 'Alternative'}** (${alt.confidence ?? 'N/A'}% confidence)\n  ${alt.summary || ''}\n  *Why not top:* ${alt.whyNotTop || 'Not specified'}`).join('\n\n')}` : ''}
 
 ### Action Plan
 ${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority: ${item.priority} | Timeframe: ${item.timeframe}${item.details ? `\n   ${item.details}` : ''}`).join('\n\n')}
@@ -2324,9 +2324,9 @@ ${result.recommendation.summary}
 ${result.recommendation.reasoning.map((item, i) => `${i + 1}. ${item}`).join('\n')}
 
 ### Limitations & Caveats
-${result.recommendation.tradeoffs.map((item) => `- ${item}`).join('\n')}
+${result.recommendation.tradeoffs.map((item) => `- ${typeof item === 'object' && item !== null ? (item as { text?: string; description?: string }).text || (item as { text?: string; description?: string }).description || JSON.stringify(item) : item}`).join('\n')}
 
-${result.alternatives.length > 0 ? `### Alternative Perspectives\n${result.alternatives.map((alt) => `- **${alt.title}** (${alt.confidence}% confidence)\n  ${alt.summary}`).join('\n\n')}` : ''}
+${result.alternatives.length > 0 ? `### Alternative Perspectives\n${result.alternatives.map((alt) => `- **${alt.title || 'Alternative'}** (${alt.confidence ?? 'N/A'}% confidence)\n  ${alt.summary || ''}`).join('\n\n')}` : ''}
 
 ### Recommended Next Steps
 ${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority: ${item.priority} | Timeframe: ${item.timeframe}${item.details ? `\n   ${item.details}` : ''}`).join('\n\n')}

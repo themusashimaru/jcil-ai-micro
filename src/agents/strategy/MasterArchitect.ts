@@ -179,22 +179,29 @@ export class MasterArchitect {
       JSON.stringify(problem, null, 2)
     );
 
-    const response = await this.client.messages.create({
+    // Use extended thinking so Opus can reason through the research plan
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const createParams: any = {
       model: this.model,
-      max_tokens: 8192,
-      temperature: 0.7,
+      max_tokens: 16000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 8000,
+      },
       system: prompt,
       messages: [
         {
           role: 'user',
-          content: `Design the agent team for this problem. Be specific and comprehensive. Output valid JSON.`,
+          content: `Design the agent team for this problem. Think carefully about what TOOLS each scout needs for their specific mission. Be specific and comprehensive. Output valid JSON.`,
         },
       ],
-    });
+    };
+
+    const response = await this.client.messages.create(createParams);
 
     const textContent = response.content
-      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-      .map((block) => block.text)
+      .filter((block: { type: string }) => block.type === 'text')
+      .map((block: { type: string; text: string }) => block.text)
       .join('\n');
 
     // Extract JSON from response - pass problem for context-aware fallback
@@ -368,7 +375,7 @@ export class MasterArchitect {
     if (value === 'opus' || value === 'sonnet' || value === 'haiku') {
       return value;
     }
-    return 'haiku'; // Default scouts to Haiku for cost efficiency
+    return 'sonnet'; // Default scouts to Sonnet for research quality
   }
 
   /**
