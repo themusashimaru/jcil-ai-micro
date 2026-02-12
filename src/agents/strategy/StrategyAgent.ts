@@ -338,35 +338,22 @@ export class StrategyAgent {
       const domains = this.context.problem.synthesizedProblem.domains;
       this.steeringEngine.setActiveDomains(domains);
 
-      // Detect direct-write mode (creative/fiction — no research scouts needed)
+      // Detect writer mode — creative/fiction tasks may have few or no scouts
+      const isWriterMode = ['quick-writer', 'deep-writer'].includes(this.context.mode || '');
       const isDirectWriteMode = this.blueprints.length === 0;
 
       log.info('Agent design complete', {
         totalBlueprints: this.blueprints.length,
         projectManagers: this.hierarchy.projectManagers.length,
         directWriteMode: isDirectWriteMode,
+        isWriterMode,
       });
 
       if (isDirectWriteMode) {
-        // Creative/fiction mode — skip scouts entirely, go straight to writing
+        // Zero scouts — skip execution entirely, go straight to writing
         this.emit('synthesis_progress', 'Direct writing mode — crafting your content with Opus...');
-
-        // Inject the user's creative brief as a synthetic finding so final synthesis has context
-        const problem = this.context.problem!.synthesizedProblem;
-        this.allFindings.push({
-          id: 'creative_brief_0',
-          agentId: 'creative_brief',
-          agentName: 'Creative Brief',
-          type: 'insight',
-          title: 'Writing Brief',
-          content: `Creative writing task: ${problem.summary}\n\nCore question: ${problem.coreQuestion}\n\nFull brief: ${JSON.stringify(problem)}`,
-          confidence: 'high',
-          sources: [],
-          timestamp: Date.now(),
-          relevanceScore: 1.0,
-        });
       } else {
-        // Phase 2: Execute scouts in batches (research mode)
+        // Phase 2: Execute scouts in batches
         this.emit('agent_spawned', `Spawning ${this.blueprints.length} research scouts...`, {
           totalAgents: this.blueprints.length,
         });
@@ -436,6 +423,24 @@ export class StrategyAgent {
             );
           }
         }
+      }
+
+      // For writer modes: always inject the creative brief so synthesis has context
+      // even if scouts ran but returned nothing (e.g., fiction tasks with 1-2 historical scouts that failed)
+      if (isWriterMode) {
+        const problem = this.context.problem!.synthesizedProblem;
+        this.allFindings.push({
+          id: 'creative_brief_0',
+          agentId: 'creative_brief',
+          agentName: 'Creative Brief',
+          type: 'insight',
+          title: 'Writing Brief',
+          content: `Creative writing task: ${problem.summary}\n\nCore question: ${problem.coreQuestion}\n\nFull brief: ${JSON.stringify(problem)}`,
+          confidence: 'high',
+          sources: [],
+          timestamp: Date.now(),
+          relevanceScore: 1.0,
+        });
       }
 
       // Phase 4: Final synthesis - ALWAYS try to synthesize if we have any findings

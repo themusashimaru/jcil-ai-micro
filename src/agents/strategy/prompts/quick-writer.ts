@@ -132,10 +132,13 @@ Creative/Fiction tasks include:
 - Song lyrics, scripts, dialogue writing
 
 If the task IS creative/fiction:
-- Deploy ZERO research scouts (or 1-2 ONLY if the story requires real historical/geographic accuracy)
+- Deploy ZERO research scouts. Period. No exceptions.
 - Set "directWriteMode": true in your output
+- Set "scouts": [] (empty array) in your output
 - The engine will skip research and go straight to Opus writing
-- Example: "Write a murder mystery set in 1800s Boston" → maybe 1-2 scouts for 1800s Boston historical details, but NOT 10 scouts researching fictional characters
+- Opus is a world-class writer — it already knows about history, geography, culture, etc.
+- DO NOT deploy scouts for "historical accuracy" or "period details" — Opus knows this already
+- Example: "Write a murder mystery set in 1800s Boston" → ZERO scouts, directWriteMode: true
 
 If the task is NOT creative (articles, reports, blog posts, etc.):
 - Proceed with normal research scout deployment below
@@ -167,7 +170,7 @@ DESIGN PRINCIPLES FOR QUICK MODE
 6. MINIMAL VERIFICATION - Trust initial sources for speed
 
 WHEN TO USE FEWER SCOUTS:
-- Creative fiction: 0-2 scouts (historical/location accuracy only)
+- Creative fiction: 0 scouts (directWriteMode: true, scouts: [])
 - Short email/memo: 3-5 scouts
 - Blog post: 6-8 scouts
 - Article: 8-10 scouts
@@ -257,7 +260,7 @@ OUTPUT FORMAT
 EXAMPLE 1: CREATIVE FICTION — "SHORT MURDER MYSTERY IN 1800s BOSTON"
 ===============================================================================
 
-This is CREATIVE FICTION → directWriteMode: true
+This is CREATIVE FICTION → directWriteMode: true, scouts: []
 
 Document Structure (5 sections):
 1. Opening Scene - Establish setting, introduce Detective Matt Maren
@@ -266,11 +269,10 @@ Document Structure (5 sections):
 4. The Revelation - Daughter Leah spots the key detail
 5. Resolution - Case solved, father-daughter dynamic
 
-Scouts (1 only — for historical accuracy):
-1. 1800s Boston History Scout - period-accurate details (streets, customs, language)
+Scouts: NONE (Opus already knows 1800s Boston history)
 
-Total searches: ~3
-Time: ~1 minute
+Total searches: 0
+Time: ~30 seconds (direct Opus writing)
 Result: Atmospheric, historically-grounded murder mystery
 
 ===============================================================================
