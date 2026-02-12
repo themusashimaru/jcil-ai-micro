@@ -114,7 +114,7 @@ This isn't a simple search. This is an autonomous research army. I'm about to de
 **THE RESEARCH HIERARCHY**
 • **Claude Opus 4.6** — Research Director (designs your investigation, maximum intelligence)
 • **Claude Sonnet 4.5** — Domain Leads (coordinate research teams by topic)
-• **Up to 100 Claude Haiku 4.5 Investigators** (parallel research army)
+• **Up to 100 Claude Sonnet 4.5 Investigators** (parallel research army)
 
 **EACH INVESTIGATOR HAS ACCESS TO:**
 • **E2B Cloud Sandbox** — Secure isolated execution environment
@@ -582,15 +582,22 @@ SAFETY RULES:
 - If a form looks unsafe, use browser_visit to just view the page instead
 
 RESEARCH METHODOLOGY:
-1. Execute your assigned searches and tool calls
-2. Extract key information, data points, and evidence
-3. Use vision tools when data is in charts, infographics, or complex layouts
-4. Use extract_pdf for academic papers, reports, and documents
-5. Cross-reference findings across multiple sources
-6. Note specific data points (statistics, dates, figures, names)
-7. Assess confidence based on source quality and corroboration
-8. Flag conflicting information between sources
-9. Identify if deeper investigation is needed (spawn children)
+1. START with brave_search to find the right pages, sources, and databases
+2. THEN use browser_visit to actually GO TO those pages and extract real data
+3. Use extract_table to pull structured data (statistics, pricing, comparison grids)
+4. Use vision_analyze for charts, infographics, or complex visual data
+5. Use extract_pdf for academic papers, reports, and documents
+6. Use safe_form_fill to filter/search on databases and listing sites
+7. Use paginate/infinite_scroll to get beyond the first page of results
+8. Cross-reference findings across multiple sources
+9. Note specific data points (statistics, dates, figures, names, URLs)
+10. Assess confidence based on source quality and corroboration
+11. Flag conflicting information between sources
+12. Identify if deeper investigation is needed (spawn children)
+
+DO NOT just brave_search and summarize the snippets. That's lazy research.
+ACTUALLY VISIT the sites. EXTRACT the real data. FIND specific facts and numbers.
+The user is paying for REAL INTELLIGENCE, not search engine summaries.
 
 OUTPUT FORMAT:
 \`\`\`json
@@ -747,7 +754,7 @@ The user invested time defining their research question. They DESERVE high-quali
   // ===========================================================================
   // FINAL SYNTHESIS
   // ===========================================================================
-  synthesis: `You are creating the final research report for the Deep Research Agent.
+  synthesis: `You are creating the final research report for the Deep Research Agent. This is the most important output — the user invested time and money for REAL INTELLIGENCE.
 
 THE RESEARCH TOPIC:
 {SYNTHESIZED_PROBLEM}
@@ -759,34 +766,44 @@ DOMAIN REPORTS:
 {DOMAIN_REPORTS}
 
 YOUR TASK:
-Create a comprehensive, well-organized research report that synthesizes all findings into a clear, evidence-based analysis.
+Create a comprehensive, evidence-based research report with REAL DATA from the investigation.
+Include specific numbers, statistics, names, URLs that researchers found.
+Do NOT make up information. Only report what was actually discovered.
 
 REQUIREMENTS:
-1. EXECUTIVE SUMMARY - Clear, concise overview of key findings
-2. DETAILED ANALYSIS - Organized by research domain
-3. KEY INSIGHTS - What the evidence tells us
-4. CONTRASTING VIEWPOINTS - Where sources disagree
-5. DATA & EVIDENCE - Supporting statistics and facts
-6. KNOWLEDGE GAPS - What we couldn't determine
+1. EXECUTIVE SUMMARY - Clear, data-rich overview of key findings
+2. DETAILED ANALYSIS - Organized by research domain with specific evidence
+3. KEY INSIGHTS - What the evidence tells us (with citations)
+4. CONTRASTING VIEWPOINTS - Where sources disagree (present both sides)
+5. DATA & EVIDENCE - Supporting statistics, facts, and data points
+6. KNOWLEDGE GAPS - What we couldn't determine (be honest)
 7. FURTHER RESEARCH - Suggested areas for deeper investigation
+
+CRITICAL JSON RULES — YOUR OUTPUT MUST FOLLOW THESE EXACTLY:
+- "tradeoffs" MUST be an array of STRINGS: ["Plain text limitation 1", "Another caveat as a string"]
+  DO NOT output objects — use plain strings only
+- "alternatives" MUST include ALL these fields for EVERY alternative:
+  - "title" (string), "summary" (string), "confidence" (number 0-100), "whyNotTop" (string), "bestFor" (string)
+- "confidence" MUST be a NUMBER (0-100), never a string
+- "reasoning" MUST be an array of STRINGS with specific evidence from the research
 
 OUTPUT FORMAT:
 \`\`\`json
 {
   "recommendation": {
     "title": "Research Report: [Topic]",
-    "summary": "2-3 sentence executive summary of the most important findings",
+    "summary": "2-3 sentence executive summary with specific data points from the research",
     "confidence": 85,
-    "reasoning": ["Key insight 1", "Key insight 2", "Key insight 3"],
-    "tradeoffs": ["Limitations of this research"],
+    "reasoning": ["Key finding with specific evidence", "Another data-backed insight", "Third finding with numbers"],
+    "tradeoffs": ["Research limitation as a plain string", "Another caveat as a plain string"],
     "bestFor": "What this research is most useful for"
   },
   "alternatives": [
     {
       "title": "Alternative perspective or interpretation",
-      "summary": "Brief description of this viewpoint",
+      "summary": "Brief description with specific details",
       "confidence": 72,
-      "whyNotTop": "Why this isn't the primary finding",
+      "whyNotTop": "Specific reason this isn't the primary finding",
       "bestFor": "When this perspective is most relevant"
     }
   ],
@@ -794,29 +811,29 @@ OUTPUT FORMAT:
     "byDomain": [
       {
         "domain": "Research Domain",
-        "summary": "Domain findings summary",
-        "keyFindings": [...],
-        "comparisonTable": {...}
+        "summary": "Domain findings with real data",
+        "keyFindings": ["Specific finding with numbers and sources"]
       }
     ],
     "riskAssessment": {
       "overallRisk": "low|medium|high",
-      "risks": [{"risk": "Information gap or uncertainty", "probability": "medium", "impact": "high", "mitigation": "How to verify"}],
-      "mitigations": ["Ways to address knowledge gaps"]
+      "risks": [{"risk": "Specific risk or uncertainty", "probability": "medium", "impact": "high", "mitigation": "How to address"}],
+      "mitigations": ["Specific strategies to address gaps"]
     }
   },
   "actionPlan": [
-    {"order": 1, "action": "Key takeaway or recommended next step", "timeframe": "Immediate", "priority": "high", "details": "More context"}
+    {"order": 1, "action": "Specific next step based on findings", "timeframe": "Immediate", "priority": "high", "details": "Detailed instructions with real data from research"}
   ],
-  "gaps": ["What we couldn't determine or verify"],
-  "nextSteps": ["Suggested follow-up research topics"]
+  "gaps": ["Specific things we couldn't determine — be honest"],
+  "nextSteps": ["Specific follow-up research topics with rationale"]
 }
 \`\`\`
 
 TONE:
-- Be thorough and analytical
-- Present evidence objectively
-- Acknowledge uncertainty and limitations
+- Be thorough and analytical with REAL DATA
+- Present evidence objectively with citations
+- Acknowledge uncertainty and limitations honestly
 - Clearly distinguish facts from interpretations
-- Make the report actionable and useful`,
+- Make the report actionable — include specific numbers, names, URLs
+- The user paid for this research — deliver REAL VALUE`,
 };

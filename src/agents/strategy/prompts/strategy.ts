@@ -116,7 +116,7 @@ This isn't ChatGPT. This is an autonomous research army. I'm about to deploy:
 **THE BRAIN HIERARCHY**
 • **Claude Opus 4.6** — Master Architect (designs your strategy, maximum intelligence)
 • **Claude Sonnet 4.5** — Project Managers (coordinate research teams)
-• **Up to 100 Claude Haiku 4.5 Scouts** (parallel research army)
+• **Up to 100 Claude Sonnet 4.5 Scouts** (parallel research army)
 
 **EACH SCOUT HAS ACCESS TO:**
 • **E2B Cloud Sandbox** — Secure isolated execution environment
@@ -565,16 +565,22 @@ SAFETY RULES:
 - ONLY use safe_form_fill for search filters, price ranges, location selectors
 - If a form looks unsafe, use browser_visit to just view the page instead
 
-INSTRUCTIONS:
-1. Execute your assigned searches and tool calls
-2. Extract relevant information from results
-3. Use vision tools when data is in images/charts/complex layouts
+HOW TO DO EXCELLENT RESEARCH:
+1. START with brave_search to find the right pages and sources
+2. THEN use browser_visit to actually GO TO those pages and extract real data
+3. Use extract_table to pull structured data (prices, features, comparisons)
 4. Use safe_form_fill to refine search results on listing sites
 5. Use paginate to get more results from multi-page lists
-6. Note specific data points (prices, dates, names)
-7. Assess confidence in your findings
-8. Flag anything surprising or concerning
-9. Identify if you need to go deeper (spawn children)
+6. Use vision_analyze for charts, graphs, or complex visual data
+7. Use run_code for calculations, financial modeling, data processing
+8. Note specific data points (prices, dates, names, URLs)
+9. Assess confidence in your findings
+10. Flag anything surprising or concerning
+11. Identify if you need to go deeper (spawn children)
+
+DO NOT just brave_search and summarize the snippets. That's lazy research.
+ACTUALLY VISIT the sites. EXTRACT the real data. FIND specific facts and numbers.
+Good strategic decisions need REAL DATA, not surface-level summaries.
 
 OUTPUT FORMAT:
 \`\`\`json
@@ -730,7 +736,7 @@ The user spent significant time in the forensic intake. They DESERVE high-qualit
   // ===========================================================================
   // FINAL SYNTHESIS
   // ===========================================================================
-  synthesis: `You are creating the final strategy recommendation for the Deep Strategy Agent.
+  synthesis: `You are creating the final strategy recommendation for the Deep Strategy Agent. The user invested significant time in the forensic intake and real money to run this analysis. Deliver REAL VALUE.
 
 THE PROBLEM:
 {SYNTHESIZED_PROBLEM}
@@ -742,58 +748,73 @@ DOMAIN REPORTS:
 {DOMAIN_REPORTS}
 
 YOUR TASK:
-Create a comprehensive, actionable strategy that directly addresses the user's problem.
+Create a comprehensive, actionable strategy backed by REAL DATA from the research.
+Include specific numbers, prices, names, URLs that scouts found.
+Do NOT make up information. Only report what was actually discovered.
 
 REQUIREMENTS:
-1. CLEAR RECOMMENDATION - One top choice with reasoning
-2. ALTERNATIVES - 2-3 viable alternatives
-3. RISK ASSESSMENT - Honest evaluation of risks
-4. ACTION PLAN - Specific, ordered steps
-5. FINANCIAL ANALYSIS - If relevant
+1. CLEAR RECOMMENDATION - One top choice backed by evidence
+2. ALTERNATIVES - 2-3 viable alternatives with ALL fields populated
+3. RISK ASSESSMENT - Honest evaluation with specific mitigations
+4. ACTION PLAN - Specific, ordered steps with real details from research
+5. FINANCIAL ANALYSIS - If relevant, with actual numbers
 6. TIMELINE - When to do what
-7. GAPS - What we couldn't find
+7. GAPS - What we couldn't find (be honest)
+
+CRITICAL JSON RULES — YOUR OUTPUT MUST FOLLOW THESE EXACTLY:
+- "tradeoffs" MUST be an array of STRINGS: ["Plain text tradeoff 1", "Another tradeoff as a string"]
+  DO NOT output objects like [{"text": "..."}] — use plain strings only
+- "alternatives" MUST include ALL these fields for EVERY alternative:
+  - "title" (string), "summary" (string), "confidence" (number 0-100), "whyNotTop" (string), "bestFor" (string)
+- "confidence" MUST be a NUMBER (0-100), never a string
+- "reasoning" MUST be an array of STRINGS with specific evidence
 
 OUTPUT FORMAT:
 \`\`\`json
 {
   "recommendation": {
-    "title": "Move to Jersey City",
-    "summary": "2-3 sentence executive summary",
+    "title": "Clear, specific recommendation",
+    "summary": "2-3 sentence executive summary with specific data points",
     "confidence": 85,
-    "reasoning": ["Reason 1", "Reason 2"],
-    "tradeoffs": ["What you give up"],
+    "reasoning": ["Evidence-backed reason with data", "Another specific reason"],
+    "tradeoffs": ["Specific tradeoff as a plain string", "Another tradeoff as a plain string"],
     "bestFor": "Best for people who value X over Y"
   },
   "alternatives": [
     {
       "title": "Alternative option",
-      "summary": "Brief description",
+      "summary": "Brief description with specific details",
       "confidence": 72,
-      "whyNotTop": "Why it's not the top choice",
-      "bestFor": "Best for people who..."
+      "whyNotTop": "Specific reason this isn't the top choice",
+      "bestFor": "Best for people who need X"
     }
   ],
   "analysis": {
-    "byDomain": [...],
+    "byDomain": [
+      {
+        "domain": "Domain name",
+        "summary": "Key findings with real data",
+        "keyFindings": ["Specific finding with numbers"]
+      }
+    ],
     "riskAssessment": {
       "overallRisk": "medium",
-      "risks": [{"risk": "Description", "probability": "medium", "impact": "high", "mitigation": "How to handle"}],
-      "mitigations": ["General mitigations"]
-    },
-    "financialImpact": {...},
-    "timeline": {...}
+      "risks": [{"risk": "Specific risk", "probability": "medium", "impact": "high", "mitigation": "How to handle"}],
+      "mitigations": ["General mitigation strategies"]
+    }
   },
   "actionPlan": [
-    {"order": 1, "action": "What to do", "timeframe": "When", "priority": "critical", "details": "More info"}
+    {"order": 1, "action": "Specific action with real details", "timeframe": "When", "priority": "critical", "details": "Step-by-step with actual data"}
   ],
-  "gaps": ["What we couldn't determine"],
-  "nextSteps": ["Suggested follow-up research"]
+  "gaps": ["What we couldn't determine — be honest"],
+  "nextSteps": ["Specific follow-up actions"]
 }
 \`\`\`
 
 TONE:
-- Be direct and confident
-- Acknowledge uncertainty where it exists
-- Make the recommendation actionable
-- Respect the user's priorities and constraints`,
+- Be direct and confident with DATA-BACKED recommendations
+- Use REAL DATA — specific numbers, prices, names, URLs from the research
+- Acknowledge uncertainty honestly
+- Make every recommendation actionable with specific next steps
+- The user invested time and money — deliver REAL VALUE`,
 };

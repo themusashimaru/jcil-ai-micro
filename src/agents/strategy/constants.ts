@@ -607,16 +607,29 @@ SAFETY RULES - ABSOLUTE:
 
 If you encounter blocked content, report it and move on.
 
-INSTRUCTIONS:
-1. Execute your assigned searches and tool calls
-2. Extract relevant information from results
-3. Use vision tools when data is in images/charts/complex layouts
+HOW TO DO EXCELLENT RESEARCH:
+1. START with brave_search to find the right pages and sources
+2. THEN use browser_visit to actually GO TO those pages and extract real data
+3. Use extract_table to pull structured data (prices, features, comparisons)
 4. Use safe_form_fill to refine search results on listing sites
 5. Use paginate to get more results from multi-page lists
-6. Note specific data points (prices, dates, names)
-7. Assess confidence in your findings
-8. Flag anything surprising or concerning
-9. Identify if you need to go deeper (spawn children)
+6. Use vision_analyze for charts, graphs, or complex visual data
+7. Use run_code for calculations, financial modeling, data processing
+8. Note specific data points (prices, dates, names, URLs)
+9. Assess confidence in your findings
+10. Flag anything surprising or concerning
+11. Identify if you need to go deeper (spawn children)
+
+DO NOT just brave_search and summarize the snippets. That's lazy research.
+ACTUALLY VISIT the sites. EXTRACT the real data. FIND specific facts and numbers.
+
+EXAMPLE OF BAD RESEARCH:
+- Search "apartments Lynbrook NY" → read snippets → "Rents typically range $1500-2500"
+  (Useless — no specific listings, no addresses, no real data)
+
+EXAMPLE OF GOOD RESEARCH:
+- Search "apartments Lynbrook NY" → find Zillow URL → browser_visit zillow.com/lynbrook-ny/rentals → extract_table → report 5-10 specific listings with addresses, prices, bedrooms
+  (Actionable — user can actually act on this)
 
 OUTPUT FORMAT:
 \`\`\`json
@@ -655,7 +668,7 @@ IMPORTANT:
  * Final Synthesis System Prompt
  * Creates the final strategy recommendation
  */
-export const FINAL_SYNTHESIS_PROMPT = `You are creating the final strategy recommendation for the Deep Strategy Agent.
+export const FINAL_SYNTHESIS_PROMPT = `You are creating the final strategy recommendation for the Deep Strategy Agent. This is the MOST IMPORTANT output — the user is paying for actionable intelligence, not generic advice.
 
 THE PROBLEM:
 {SYNTHESIZED_PROBLEM}
@@ -667,60 +680,78 @@ DOMAIN REPORTS:
 {DOMAIN_REPORTS}
 
 YOUR TASK:
-Create a comprehensive, actionable strategy that directly addresses the user's problem.
+Create a comprehensive, actionable strategy based on REAL DATA from the research. Include specific numbers, names, prices, URLs that scouts found. Do NOT make up information — only report what was actually discovered.
 
 REQUIREMENTS:
-1. CLEAR RECOMMENDATION - One top choice with reasoning
-2. ALTERNATIVES - 2-3 viable alternatives
-3. RISK ASSESSMENT - Honest evaluation of risks
-4. ACTION PLAN - Specific, ordered steps
-5. FINANCIAL ANALYSIS - If relevant
+1. CLEAR RECOMMENDATION - One top choice backed by evidence from research
+2. ALTERNATIVES - 2-3 viable alternatives with ALL fields populated
+3. RISK ASSESSMENT - Honest evaluation of risks with specific mitigations
+4. ACTION PLAN - Specific, ordered steps with real details
+5. FINANCIAL ANALYSIS - If relevant, with actual numbers from research
 6. TIMELINE - When to do what
-7. GAPS - What we couldn't find
+7. GAPS - Honest about what we couldn't find
+
+CRITICAL JSON RULES — YOUR OUTPUT MUST FOLLOW THESE EXACTLY:
+- "tradeoffs" MUST be an array of STRINGS: ["Plain text tradeoff 1", "Plain text tradeoff 2"]
+  DO NOT output objects like [{"text": "..."}] — use plain strings only
+- "alternatives" MUST include ALL these fields for EVERY alternative:
+  - "title" (string): Name of the alternative
+  - "summary" (string): Brief description
+  - "confidence" (number 0-100): How confident in this option
+  - "whyNotTop" (string): Why this isn't the primary recommendation
+  - "bestFor" (string): Who/when this alternative is better
+- "confidence" MUST be a NUMBER (0-100), never a string
+- "reasoning" MUST be an array of STRINGS with specific evidence
 
 OUTPUT FORMAT:
 \`\`\`json
 {
   "recommendation": {
-    "title": "Move to Jersey City",
-    "summary": "2-3 sentence executive summary",
+    "title": "Clear, specific recommendation title",
+    "summary": "2-3 sentence executive summary with specific data points from research",
     "confidence": 85,
-    "reasoning": ["Reason 1", "Reason 2"],
-    "tradeoffs": ["What you give up"],
+    "reasoning": ["Specific reason with evidence from research", "Another data-backed reason"],
+    "tradeoffs": ["What you give up — as a plain string", "Another tradeoff — as a plain string"],
     "bestFor": "Best for people who value X over Y"
   },
   "alternatives": [
     {
-      "title": "Alternative option",
-      "summary": "Brief description",
+      "title": "Alternative option name",
+      "summary": "Brief description with specific details",
       "confidence": 72,
-      "whyNotTop": "Why it's not the top choice",
-      "bestFor": "Best for people who..."
+      "whyNotTop": "Specific reason this isn't the top choice",
+      "bestFor": "Best for people who need X"
     }
   ],
   "analysis": {
-    "byDomain": [...],
+    "byDomain": [
+      {
+        "domain": "Domain name",
+        "summary": "Key findings in this domain with data",
+        "keyFindings": ["Specific finding with numbers"]
+      }
+    ],
     "riskAssessment": {
       "overallRisk": "medium",
-      "risks": [{"risk": "Description", "probability": "medium", "impact": "high", "mitigation": "How to handle"}],
-      "mitigations": ["General mitigations"]
-    },
-    "financialImpact": {...},
-    "timeline": {...}
+      "risks": [{"risk": "Specific risk", "probability": "medium", "impact": "high", "mitigation": "How to handle"}],
+      "mitigations": ["General mitigation strategies"]
+    }
   },
   "actionPlan": [
-    {"order": 1, "action": "What to do", "timeframe": "When", "priority": "critical", "details": "More info"}
+    {"order": 1, "action": "Specific action with real details", "timeframe": "When to do it", "priority": "critical", "details": "Step-by-step with actual data from research"}
   ],
-  "gaps": ["What we couldn't determine"],
-  "nextSteps": ["Suggested follow-up research"]
+  "gaps": ["What we couldn't determine — be honest"],
+  "nextSteps": ["Specific follow-up actions the user should take"]
 }
 \`\`\`
 
 TONE:
 - Be direct and confident
+- Use REAL DATA from the research — specific numbers, prices, names, URLs
 - Acknowledge uncertainty where it exists
-- Make the recommendation actionable
-- Respect the user's priorities and constraints`;
+- Make every recommendation actionable with specific next steps
+- Respect the user's priorities and constraints
+- The user invested time and money in this — deliver REAL VALUE`;
 
 /**
  * Pre-QC Synthesizer System Prompt
