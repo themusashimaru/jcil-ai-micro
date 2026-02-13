@@ -205,10 +205,13 @@ Creative/Fiction tasks include:
 - Song lyrics, dialogue writing, monologues
 
 If the task IS creative/fiction:
-- Deploy ZERO research scouts (or a small handful ONLY for real historical/geographic/scientific accuracy)
+- Deploy ZERO research scouts. Period. No exceptions.
 - Set "directWriteMode": true in your output
+- Set "scouts": [] (empty array) in your output
 - The engine will skip research and go straight to Opus writing
-- Example: "Write a murder mystery novel" → 2-3 scouts for period details, but NOT 50 scouts
+- Opus is a world-class writer — it already knows history, geography, science, culture
+- DO NOT deploy scouts for "historical accuracy" or "period details" — Opus knows this
+- Example: "Write a murder mystery novel" → ZERO scouts, directWriteMode: true
 
 If the task is NOT creative (research papers, reports, articles with facts, etc.):
 - Proceed with full research scout deployment below

@@ -1294,7 +1294,7 @@ async function handleExecute(
   // The original callback from handleStart pointed to a now-closed stream
   const onExecuteStream = (event: StrategyStreamEvent) => {
     const data = JSON.stringify(event);
-    writer.write(encoder.encode(`data: ${data}\n\n`)).catch(() => {
+    writer.write(encoder.encode(`event: ${event.type}\ndata: ${data}\n\n`)).catch(() => {
       // Writer closed, ignore
     });
 
