@@ -11,6 +11,17 @@ import { getGitHubActionNamesByPriority } from './github-toolkit';
 import { getGmailActionNamesByPriority } from './gmail-toolkit';
 import { getOutlookActionNamesByPriority } from './outlook-toolkit';
 import { getSlackActionNamesByPriority } from './slack-toolkit';
+import { getGoogleSheetsActionNamesByPriority } from './googlesheets-toolkit';
+import { getDiscordActionNamesByPriority } from './discord-toolkit';
+import { getGoogleDocsActionNamesByPriority } from './googledocs-toolkit';
+import { getTwitterActionNamesByPriority } from './twitter-toolkit';
+import { getLinkedInActionNamesByPriority } from './linkedin-toolkit';
+import { getInstagramActionNamesByPriority } from './instagram-toolkit';
+import { getYouTubeActionNamesByPriority } from './youtube-toolkit';
+import { getVercelActionNamesByPriority } from './vercel-toolkit';
+import { getStripeActionNamesByPriority } from './stripe-toolkit';
+import { getGoogleDriveActionNamesByPriority } from './googledrive-toolkit';
+import { getAirtableActionNamesByPriority } from './airtable-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -45,11 +56,13 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'DISCORD',
     displayName: 'Discord',
-    description: 'Manage servers, send messages, moderate communities',
+    description: 'Full Discord integration: manage servers, send messages, moderate communities',
     icon: '🎮',
     category: 'communication',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getDiscordActionNamesByPriority(2),
+    toolLimit: 15,
   },
   {
     id: 'MICROSOFT_TEAMS',
@@ -65,67 +78,82 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GOOGLE_DOCS',
     displayName: 'Google Docs',
-    description: 'Create and edit documents collaboratively',
+    description: 'Full Google Docs integration: create, edit, format documents, tables, and more',
     icon: '📄',
     category: 'productivity',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGoogleDocsActionNamesByPriority(2),
+    toolLimit: 35,
   },
   {
     id: 'GOOGLE_SHEETS',
     displayName: 'Google Sheets',
-    description: 'Create spreadsheets, analyze data, automate reports',
+    description:
+      'Full Google Sheets integration: create spreadsheets, read/write cells, analyze data, automate reports',
     icon: '📊',
     category: 'productivity',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGoogleSheetsActionNamesByPriority(2),
+    toolLimit: 44,
   },
   {
     id: 'AIRTABLE',
     displayName: 'Airtable',
-    description: 'Build databases, track projects, organize anything',
+    description: 'Full Airtable integration: manage bases, records, tables, and collaboration',
     icon: '📋',
     category: 'productivity',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getAirtableActionNamesByPriority(2),
+    toolLimit: 26,
   },
 
   // Social Media - High Demand
   {
     id: 'TWITTER',
     displayName: 'Twitter/X',
-    description: 'Post tweets, manage timeline, engage followers',
+    description: 'Full Twitter/X integration: tweets, search, DMs, users, lists, spaces, and more',
     icon: '🐦',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getTwitterActionNamesByPriority(2),
+    toolLimit: 75,
   },
   {
     id: 'LINKEDIN',
     displayName: 'LinkedIn',
-    description: 'Post updates, manage connections, recruit talent',
+    description: 'Full LinkedIn integration: posts, profile management, media sharing',
     icon: '💼',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getLinkedInActionNamesByPriority(2),
+    toolLimit: 11,
   },
   {
     id: 'INSTAGRAM',
     displayName: 'Instagram',
-    description: 'Post content, manage stories, engage audience',
+    description: 'Full Instagram integration: publish, media, engagement, messaging, analytics',
     icon: '📸',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getInstagramActionNamesByPriority(2),
+    toolLimit: 32,
   },
   {
     id: 'YOUTUBE',
     displayName: 'YouTube',
-    description: 'Upload videos, manage channel, analyze performance',
+    description: 'Full YouTube integration: search, videos, channels, playlists, engagement',
     icon: '🎬',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getYouTubeActionNamesByPriority(2),
+    toolLimit: 24,
   },
 
   // Development - Core
@@ -185,11 +213,13 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'DISCORD',
     displayName: 'Discord',
-    description: 'Manage servers, send messages, moderate communities',
+    description: 'Full Discord integration: manage servers, send messages, moderate communities',
     icon: '🎮',
     category: 'communication',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getDiscordActionNamesByPriority(2),
+    toolLimit: 15,
   },
   {
     id: 'MICROSOFT_TEAMS',
@@ -215,29 +245,36 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GOOGLE_DOCS',
     displayName: 'Google Docs',
-    description: 'Create and edit documents collaboratively',
+    description: 'Full Google Docs integration: create, edit, format documents, tables, and more',
     icon: '📄',
     category: 'productivity',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGoogleDocsActionNamesByPriority(2),
+    toolLimit: 35,
   },
   {
     id: 'GOOGLE_SHEETS',
     displayName: 'Google Sheets',
-    description: 'Create spreadsheets, analyze data, automate reports',
+    description:
+      'Full Google Sheets integration: create spreadsheets, read/write cells, analyze data, automate reports',
     icon: '📊',
     category: 'productivity',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGoogleSheetsActionNamesByPriority(2),
+    toolLimit: 44,
   },
   {
     id: 'AIRTABLE',
     displayName: 'Airtable',
-    description: 'Build databases, track projects, organize anything',
+    description: 'Full Airtable integration: manage bases, records, tables, and collaboration',
     icon: '📋',
     category: 'productivity',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getAirtableActionNamesByPriority(2),
+    toolLimit: 26,
   },
   {
     id: 'GOOGLE_SLIDES',
@@ -260,38 +297,46 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'TWITTER',
     displayName: 'Twitter/X',
-    description: 'Post tweets, manage timeline, engage followers',
+    description: 'Full Twitter/X integration: tweets, search, DMs, users, lists, spaces, and more',
     icon: '🐦',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getTwitterActionNamesByPriority(2),
+    toolLimit: 75,
   },
   {
     id: 'LINKEDIN',
     displayName: 'LinkedIn',
-    description: 'Post updates, manage connections, recruit talent',
+    description: 'Full LinkedIn integration: posts, profile management, media sharing',
     icon: '💼',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getLinkedInActionNamesByPriority(2),
+    toolLimit: 11,
   },
   {
     id: 'INSTAGRAM',
     displayName: 'Instagram',
-    description: 'Post content, manage stories, engage audience',
+    description: 'Full Instagram integration: publish, media, engagement, messaging, analytics',
     icon: '📸',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getInstagramActionNamesByPriority(2),
+    toolLimit: 32,
   },
   {
     id: 'YOUTUBE',
     displayName: 'YouTube',
-    description: 'Upload videos, manage channel, analyze performance',
+    description: 'Full YouTube integration: search, videos, channels, playlists, engagement',
     icon: '🎬',
     category: 'social',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getYouTubeActionNamesByPriority(2),
+    toolLimit: 24,
   },
   {
     id: 'REDDIT',
@@ -335,10 +380,13 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'VERCEL',
     displayName: 'Vercel',
-    description: 'Deploy and host web applications',
+    description:
+      'Full Vercel integration: deployments, projects, domains, env vars, edge config, and more',
     icon: '▲',
     category: 'development',
     authType: 'oauth2',
+    featuredActions: getVercelActionNamesByPriority(2),
+    toolLimit: 50,
   },
   {
     id: 'SUPABASE',
@@ -379,10 +427,13 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'STRIPE',
     displayName: 'Stripe',
-    description: 'Payment processing and billing',
+    description:
+      'Full Stripe integration: payments, customers, subscriptions, invoicing, products, and more',
     icon: '💳',
     category: 'finance',
     authType: 'api_key',
+    featuredActions: getStripeActionNamesByPriority(2),
+    toolLimit: 80,
   },
 
   // ==================== CALENDAR ====================
@@ -407,10 +458,12 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GOOGLE_DRIVE',
     displayName: 'Google Drive',
-    description: 'Cloud storage and file sharing',
+    description: 'Full Google Drive integration: files, sharing, drives, collaboration, and more',
     icon: '💾',
     category: 'storage',
     authType: 'oauth2',
+    featuredActions: getGoogleDriveActionNamesByPriority(2),
+    toolLimit: 59,
   },
   {
     id: 'DROPBOX',

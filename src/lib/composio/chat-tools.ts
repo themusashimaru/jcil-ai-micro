@@ -5,13 +5,17 @@
  * Integrates Composio app connections with Claude's tool system.
  * Allows AI to use connected apps (Twitter, Slack, GitHub, Gmail, etc.) as tools.
  *
- * Toolkit-Specific Integrations:
- * - GitHub: 100+ prioritized actions (repos, issues, PRs, code, CI/CD, releases, teams, search)
- * - Gmail: 40 prioritized actions (send, read, search, drafts, labels, contacts, settings)
- * - Outlook: 64 prioritized actions (email, calendar, contacts, Teams chat, rules)
- * - Slack: 100+ prioritized actions (messaging, channels, users, files, canvases, workflows)
+ * Uses a registry-based approach where each toolkit declares:
+ * - Tool prefix for routing (e.g., composio_GITHUB_)
+ * - Tool cap (budget per toolkit)
+ * - Priority sort function
+ * - System prompt injection
  *
- * Each toolkit has separate tool budgets, priority sorting, and system prompts.
+ * Supported Toolkits (15):
+ * - GitHub, Gmail, Outlook, Slack
+ * - Google Sheets, Discord, Google Docs
+ * - Twitter, LinkedIn, Instagram, YouTube
+ * - Vercel, Stripe, Google Drive, Airtable
  */
 
 import { logger } from '@/lib/logger';
@@ -23,6 +27,8 @@ import {
 } from './client';
 import { getToolkitById } from './toolkits';
 import type { ComposioTool } from './types';
+
+// Original 4 toolkit imports
 import {
   sortByGitHubPriority,
   getGitHubSystemPrompt,
@@ -47,6 +53,74 @@ import {
   logSlackToolkitStats,
   getSlackCapabilitySummary,
 } from './slack-toolkit';
+
+// New toolkit imports
+import {
+  sortByGoogleSheetsPriority,
+  getGoogleSheetsSystemPrompt,
+  logGoogleSheetsToolkitStats,
+  getGoogleSheetsCapabilitySummary,
+} from './googlesheets-toolkit';
+import {
+  sortByDiscordPriority,
+  getDiscordSystemPrompt,
+  logDiscordToolkitStats,
+  getDiscordCapabilitySummary,
+} from './discord-toolkit';
+import {
+  sortByGoogleDocsPriority,
+  getGoogleDocsSystemPrompt,
+  logGoogleDocsToolkitStats,
+  getGoogleDocsCapabilitySummary,
+} from './googledocs-toolkit';
+import {
+  sortByTwitterPriority,
+  getTwitterSystemPrompt,
+  logTwitterToolkitStats,
+  getTwitterCapabilitySummary,
+} from './twitter-toolkit';
+import {
+  sortByLinkedInPriority,
+  getLinkedInSystemPrompt,
+  logLinkedInToolkitStats,
+  getLinkedInCapabilitySummary,
+} from './linkedin-toolkit';
+import {
+  sortByInstagramPriority,
+  getInstagramSystemPrompt,
+  logInstagramToolkitStats,
+  getInstagramCapabilitySummary,
+} from './instagram-toolkit';
+import {
+  sortByYouTubePriority,
+  getYouTubeSystemPrompt,
+  logYouTubeToolkitStats,
+  getYouTubeCapabilitySummary,
+} from './youtube-toolkit';
+import {
+  sortByVercelPriority,
+  getVercelSystemPrompt,
+  logVercelToolkitStats,
+  getVercelCapabilitySummary,
+} from './vercel-toolkit';
+import {
+  sortByStripePriority,
+  getStripeSystemPrompt,
+  logStripeToolkitStats,
+  getStripeCapabilitySummary,
+} from './stripe-toolkit';
+import {
+  sortByGoogleDrivePriority,
+  getGoogleDriveSystemPrompt,
+  logGoogleDriveToolkitStats,
+  getGoogleDriveCapabilitySummary,
+} from './googledrive-toolkit';
+import {
+  sortByAirtablePriority,
+  getAirtableSystemPrompt,
+  logAirtableToolkitStats,
+  getAirtableCapabilitySummary,
+} from './airtable-toolkit';
 
 const log = logger('ComposioTools');
 
@@ -75,24 +149,206 @@ export interface ComposioToolContext {
 }
 
 // ============================================================================
-// TOOL LIMITS
+// TOOLKIT REGISTRY
 // ============================================================================
+
+interface ToolkitIntegration {
+  id: string; // Internal ID (e.g., 'GITHUB')
+  displayName: string; // Human-readable name
+  prefix: string; // Tool name prefix (e.g., 'composio_GITHUB_')
+  cap: number; // Max tools to load
+  appMatchers: string[]; // Normalized app names to match (lowercase, no separators)
+  sortFn: <T extends { name: string }>(tools: T[]) => T[];
+  systemPromptFn: () => string;
+  logStatsFn: () => void;
+  capabilitySummaryFn: () => string;
+}
 
 // Default cap for non-toolkit-specific Composio tools per session
 const MAX_COMPOSIO_TOOLS_DEFAULT = 50;
 
-// GitHub gets a higher cap because it's a primary development toolkit
-// with many essential actions across repos, issues, PRs, CI/CD, etc.
-const MAX_GITHUB_TOOLS = 100;
+/**
+ * All supported toolkit integrations.
+ * Each toolkit gets its own tool budget, priority sorting, and system prompt.
+ */
+const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
+  // ==================== ORIGINAL 4 ====================
+  {
+    id: 'GITHUB',
+    displayName: 'GitHub',
+    prefix: 'composio_GITHUB_',
+    cap: 100,
+    appMatchers: ['github'],
+    sortFn: sortByGitHubPriority,
+    systemPromptFn: getGitHubSystemPrompt,
+    logStatsFn: logGitHubToolkitStats,
+    capabilitySummaryFn: getGitHubCapabilitySummary,
+  },
+  {
+    id: 'GMAIL',
+    displayName: 'Gmail',
+    prefix: 'composio_GMAIL_',
+    cap: 40,
+    appMatchers: ['gmail'],
+    sortFn: sortByGmailPriority,
+    systemPromptFn: getGmailSystemPrompt,
+    logStatsFn: logGmailToolkitStats,
+    capabilitySummaryFn: getGmailCapabilitySummary,
+  },
+  {
+    id: 'MICROSOFT_OUTLOOK',
+    displayName: 'Outlook',
+    prefix: 'composio_OUTLOOK_',
+    cap: 64,
+    appMatchers: ['microsoftoutlook', 'outlook'],
+    sortFn: sortByOutlookPriority,
+    systemPromptFn: getOutlookSystemPrompt,
+    logStatsFn: logOutlookToolkitStats,
+    capabilitySummaryFn: getOutlookCapabilitySummary,
+  },
+  {
+    id: 'SLACK',
+    displayName: 'Slack',
+    prefix: 'composio_SLACK_',
+    cap: 80,
+    appMatchers: ['slack'],
+    sortFn: sortBySlackPriority,
+    systemPromptFn: getSlackSystemPrompt,
+    logStatsFn: logSlackToolkitStats,
+    capabilitySummaryFn: getSlackCapabilitySummary,
+  },
 
-// Gmail gets all 40 tools - it's a compact but complete email toolkit
-const MAX_GMAIL_TOOLS = 40;
+  // ==================== NEW 11 TOOLKITS ====================
+  {
+    id: 'GOOGLE_SHEETS',
+    displayName: 'Google Sheets',
+    prefix: 'composio_GOOGLESHEETS_',
+    cap: 44,
+    appMatchers: ['googlesheets'],
+    sortFn: sortByGoogleSheetsPriority,
+    systemPromptFn: getGoogleSheetsSystemPrompt,
+    logStatsFn: logGoogleSheetsToolkitStats,
+    capabilitySummaryFn: getGoogleSheetsCapabilitySummary,
+  },
+  {
+    id: 'DISCORD',
+    displayName: 'Discord',
+    prefix: 'composio_DISCORD_',
+    cap: 15,
+    appMatchers: ['discord'],
+    sortFn: sortByDiscordPriority,
+    systemPromptFn: getDiscordSystemPrompt,
+    logStatsFn: logDiscordToolkitStats,
+    capabilitySummaryFn: getDiscordCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_DOCS',
+    displayName: 'Google Docs',
+    prefix: 'composio_GOOGLEDOCS_',
+    cap: 35,
+    appMatchers: ['googledocs'],
+    sortFn: sortByGoogleDocsPriority,
+    systemPromptFn: getGoogleDocsSystemPrompt,
+    logStatsFn: logGoogleDocsToolkitStats,
+    capabilitySummaryFn: getGoogleDocsCapabilitySummary,
+  },
+  {
+    id: 'TWITTER',
+    displayName: 'Twitter/X',
+    prefix: 'composio_TWITTER_',
+    cap: 75,
+    appMatchers: ['twitter', 'twitterx', 'x'],
+    sortFn: sortByTwitterPriority,
+    systemPromptFn: getTwitterSystemPrompt,
+    logStatsFn: logTwitterToolkitStats,
+    capabilitySummaryFn: getTwitterCapabilitySummary,
+  },
+  {
+    id: 'LINKEDIN',
+    displayName: 'LinkedIn',
+    prefix: 'composio_LINKEDIN_',
+    cap: 11,
+    appMatchers: ['linkedin'],
+    sortFn: sortByLinkedInPriority,
+    systemPromptFn: getLinkedInSystemPrompt,
+    logStatsFn: logLinkedInToolkitStats,
+    capabilitySummaryFn: getLinkedInCapabilitySummary,
+  },
+  {
+    id: 'INSTAGRAM',
+    displayName: 'Instagram',
+    prefix: 'composio_INSTAGRAM_',
+    cap: 32,
+    appMatchers: ['instagram'],
+    sortFn: sortByInstagramPriority,
+    systemPromptFn: getInstagramSystemPrompt,
+    logStatsFn: logInstagramToolkitStats,
+    capabilitySummaryFn: getInstagramCapabilitySummary,
+  },
+  {
+    id: 'YOUTUBE',
+    displayName: 'YouTube',
+    prefix: 'composio_YOUTUBE_',
+    cap: 24,
+    appMatchers: ['youtube'],
+    sortFn: sortByYouTubePriority,
+    systemPromptFn: getYouTubeSystemPrompt,
+    logStatsFn: logYouTubeToolkitStats,
+    capabilitySummaryFn: getYouTubeCapabilitySummary,
+  },
+  {
+    id: 'VERCEL',
+    displayName: 'Vercel',
+    prefix: 'composio_VERCEL_',
+    cap: 50,
+    appMatchers: ['vercel'],
+    sortFn: sortByVercelPriority,
+    systemPromptFn: getVercelSystemPrompt,
+    logStatsFn: logVercelToolkitStats,
+    capabilitySummaryFn: getVercelCapabilitySummary,
+  },
+  {
+    id: 'STRIPE',
+    displayName: 'Stripe',
+    prefix: 'composio_STRIPE_',
+    cap: 80,
+    appMatchers: ['stripe'],
+    sortFn: sortByStripePriority,
+    systemPromptFn: getStripeSystemPrompt,
+    logStatsFn: logStripeToolkitStats,
+    capabilitySummaryFn: getStripeCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_DRIVE',
+    displayName: 'Google Drive',
+    prefix: 'composio_GOOGLEDRIVE_',
+    cap: 59,
+    appMatchers: ['googledrive'],
+    sortFn: sortByGoogleDrivePriority,
+    systemPromptFn: getGoogleDriveSystemPrompt,
+    logStatsFn: logGoogleDriveToolkitStats,
+    capabilitySummaryFn: getGoogleDriveCapabilitySummary,
+  },
+  {
+    id: 'AIRTABLE',
+    displayName: 'Airtable',
+    prefix: 'composio_AIRTABLE_',
+    cap: 26,
+    appMatchers: ['airtable'],
+    sortFn: sortByAirtablePriority,
+    systemPromptFn: getAirtableSystemPrompt,
+    logStatsFn: logAirtableToolkitStats,
+    capabilitySummaryFn: getAirtableCapabilitySummary,
+  },
+];
 
-// Outlook gets all 64 tools - email, calendar, contacts, Teams chat
-const MAX_OUTLOOK_TOOLS = 64;
-
-// Slack gets 80 tools - messaging, channels, users, files, workflows
-const MAX_SLACK_TOOLS = 80;
+/**
+ * Check if a connected app matches a toolkit registration
+ */
+function appMatchesToolkit(appName: string, toolkit: ToolkitIntegration): boolean {
+  const normalized = appName.toLowerCase().replace(/[_\-\s]/g, '');
+  return toolkit.appMatchers.some((m) => normalized === m);
+}
 
 // ============================================================================
 // TOOL CONVERSION
@@ -208,12 +464,14 @@ function toClaudeTool(tool: ComposioTool): ClaudeTool | null {
 /**
  * Get Composio tools for a user, formatted for Claude.
  *
- * When GitHub is connected:
- * - Loads up to 100 GitHub tools, sorted by priority (essential first)
- * - Sets hasGitHub=true so callers can skip the custom github tool
- * - Adds GitHub-specific system prompt with full capability docs
+ * Uses a registry-based approach:
+ * 1. Detect which toolkits are connected
+ * 2. Split tools into per-toolkit buckets by prefix
+ * 3. Sort each bucket by priority (essential actions first)
+ * 4. Cap each bucket to its tool budget
+ * 5. Inject toolkit-specific system prompts
  *
- * For other apps: standard loading with 50-tool cap per app category.
+ * hasGitHub is set for callers that need to know about GitHub dedup.
  */
 export async function getComposioToolsForUser(userId: string): Promise<ComposioToolContext> {
   if (!isComposioConfigured()) {
@@ -245,40 +503,31 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       };
     }
 
-    const hasGitHub = connectedApps.some(
-      (app) => app === 'GITHUB' || app.toLowerCase() === 'github'
-    );
-    const hasGmail = connectedApps.some((app) => app === 'GMAIL' || app.toLowerCase() === 'gmail');
-    const hasOutlook = connectedApps.some(
-      (app) =>
-        app === 'MICROSOFT_OUTLOOK' ||
-        app.toLowerCase() === 'microsoft_outlook' ||
-        app.toLowerCase() === 'microsoftoutlook' ||
-        app.toLowerCase() === 'outlook'
-    );
-    const hasSlack = connectedApps.some((app) => app === 'SLACK' || app.toLowerCase() === 'slack');
+    // Detect which registered toolkits are connected
+    const activeToolkits: ToolkitIntegration[] = [];
+    const activeToolkitIds = new Set<string>();
+
+    for (const toolkit of TOOLKIT_REGISTRY) {
+      const isActive = connectedApps.some((app) => appMatchesToolkit(app, toolkit));
+      if (isActive) {
+        activeToolkits.push(toolkit);
+        activeToolkitIds.add(toolkit.id);
+        toolkit.logStatsFn();
+      }
+    }
+
+    // Legacy flags for backward compatibility (used by route files)
+    const hasGitHub = activeToolkitIds.has('GITHUB');
+    const hasGmail = activeToolkitIds.has('GMAIL');
+    const hasOutlook = activeToolkitIds.has('MICROSOFT_OUTLOOK');
+    const hasSlack = activeToolkitIds.has('SLACK');
 
     log.info('User has connected apps', {
       userId,
       apps: connectedApps,
+      activeToolkits: activeToolkits.map((t) => t.id),
       hasGitHub,
-      hasGmail,
-      hasOutlook,
-      hasSlack,
     });
-
-    if (hasGitHub) {
-      logGitHubToolkitStats();
-    }
-    if (hasGmail) {
-      logGmailToolkitStats();
-    }
-    if (hasOutlook) {
-      logOutlookToolkitStats();
-    }
-    if (hasSlack) {
-      logSlackToolkitStats();
-    }
 
     // Get available tools for connected apps
     let composioTools: ComposioTool[] = [];
@@ -296,60 +545,51 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
     // Convert to Claude format, filtering out any null/invalid tools
     let tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);
 
-    // Split toolkit-specific tools for separate budget management
-    const githubTools: ClaudeTool[] = [];
-    const gmailTools: ClaudeTool[] = [];
-    const outlookTools: ClaudeTool[] = [];
-    const slackTools: ClaudeTool[] = [];
+    // Split tools into per-toolkit buckets by prefix
+    const toolBuckets = new Map<string, ClaudeTool[]>();
     const otherTools: ClaudeTool[] = [];
 
     for (const tool of tools) {
-      if (tool.name.startsWith('composio_GITHUB_')) {
-        githubTools.push(tool);
-      } else if (tool.name.startsWith('composio_GMAIL_')) {
-        gmailTools.push(tool);
-      } else if (tool.name.startsWith('composio_OUTLOOK_')) {
-        outlookTools.push(tool);
-      } else if (tool.name.startsWith('composio_SLACK_')) {
-        slackTools.push(tool);
-      } else {
+      let matched = false;
+      for (const toolkit of activeToolkits) {
+        if (tool.name.startsWith(toolkit.prefix)) {
+          const bucket = toolBuckets.get(toolkit.id);
+          if (bucket) {
+            bucket.push(tool);
+          } else {
+            toolBuckets.set(toolkit.id, [tool]);
+          }
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
         otherTools.push(tool);
       }
     }
 
-    // Sort toolkit tools by priority (essential actions first)
-    const sortedGitHubTools = sortByGitHubPriority(githubTools);
-    const sortedGmailTools = sortByGmailPriority(gmailTools);
-    const sortedOutlookTools = sortByOutlookPriority(outlookTools);
-    const sortedSlackTools = sortBySlackPriority(slackTools);
+    // Sort and cap each toolkit bucket, then combine
+    const allToolkitTools: ClaudeTool[] = [];
+    const toolkitStats: Record<string, number> = {};
 
-    // Apply separate caps per toolkit
-    const cappedGitHubTools = sortedGitHubTools.slice(0, MAX_GITHUB_TOOLS);
-    const cappedGmailTools = sortedGmailTools.slice(0, MAX_GMAIL_TOOLS);
-    const cappedOutlookTools = sortedOutlookTools.slice(0, MAX_OUTLOOK_TOOLS);
-    const cappedSlackTools = sortedSlackTools.slice(0, MAX_SLACK_TOOLS);
+    for (const toolkit of activeToolkits) {
+      const bucket = toolBuckets.get(toolkit.id) || [];
+      const sorted = toolkit.sortFn(bucket);
+      const capped = sorted.slice(0, toolkit.cap);
+      allToolkitTools.push(...capped);
+      toolkitStats[`${toolkit.id}_loaded`] = capped.length;
+      toolkitStats[`${toolkit.id}_dropped`] = bucket.length - capped.length;
+    }
+
     const cappedOtherTools = otherTools.slice(0, MAX_COMPOSIO_TOOLS_DEFAULT);
 
     // Combine: toolkit tools first (superpowers), then others
-    tools = [
-      ...cappedGitHubTools,
-      ...cappedGmailTools,
-      ...cappedOutlookTools,
-      ...cappedSlackTools,
-      ...cappedOtherTools,
-    ];
+    tools = [...allToolkitTools, ...cappedOtherTools];
 
     log.info('Prepared Composio tools for Claude', {
       userId,
       totalTools: tools.length,
-      githubTools: cappedGitHubTools.length,
-      githubToolsDropped: githubTools.length - cappedGitHubTools.length,
-      gmailTools: cappedGmailTools.length,
-      gmailToolsDropped: gmailTools.length - cappedGmailTools.length,
-      outlookTools: cappedOutlookTools.length,
-      outlookToolsDropped: outlookTools.length - cappedOutlookTools.length,
-      slackTools: cappedSlackTools.length,
-      slackToolsDropped: slackTools.length - cappedSlackTools.length,
+      toolkitBreakdown: toolkitStats,
       otherTools: cappedOtherTools.length,
       otherToolsDropped: otherTools.length - cappedOtherTools.length,
     });
@@ -369,18 +609,20 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
 The user has connected the following apps: ${appList}
 `;
 
-    // Add toolkit-specific system prompts
-    if (hasGitHub && cappedGitHubTools.length > 0) {
-      systemPromptAddition += getGitHubSystemPrompt();
+    // Add toolkit-specific system prompts for all active toolkits
+    for (const toolkit of activeToolkits) {
+      const bucket = toolBuckets.get(toolkit.id) || [];
+      if (bucket.length > 0) {
+        systemPromptAddition += toolkit.systemPromptFn();
+      }
     }
-    if (hasGmail && cappedGmailTools.length > 0) {
-      systemPromptAddition += getGmailSystemPrompt();
-    }
-    if (hasOutlook && cappedOutlookTools.length > 0) {
-      systemPromptAddition += getOutlookSystemPrompt();
-    }
-    if (hasSlack && cappedSlackTools.length > 0) {
-      systemPromptAddition += getSlackSystemPrompt();
+
+    // Build dynamic capability lines
+    const capabilityLines: string[] = [];
+    for (const toolkit of activeToolkits) {
+      capabilityLines.push(
+        `- **Full ${toolkit.displayName} operations** (${toolkit.capabilitySummaryFn()})`
+      );
     }
 
     // Add general app guidance
@@ -388,9 +630,8 @@ The user has connected the following apps: ${appList}
 ### Connected App Usage
 
 You can use these apps to help the user with tasks like:
-- Post to social media (Twitter, Instagram, LinkedIn)
-${hasSlack ? `- **Full Slack operations** (${getSlackCapabilitySummary()})\n` : '- Send messages (Slack, Discord, Teams)\n'}- Manage documents (Notion, Google Docs, Airtable)
-${hasGmail ? `- **Full Gmail operations** (${getGmailCapabilitySummary()})\n` : hasOutlook ? '' : '- Handle email (Gmail, Outlook)\n'}${hasOutlook ? `- **Full Outlook operations** (${getOutlookCapabilitySummary()})\n` : ''}${hasGitHub ? `- **Full GitHub operations** (${getGitHubCapabilitySummary()})\n` : ''}- And more based on what they've connected
+${capabilityLines.join('\n')}
+- And more based on what they've connected
 
 ### IMPORTANT: Preview Before Sending
 
@@ -428,15 +669,29 @@ If they click Edit and provide instructions, regenerate the preview with their c
 
 Tool names are prefixed with "composio_" followed by the action:
 - Tweet: composio_TWITTER_CREATE_TWEET
-- Slack message: composio_SLACK_SEND_MESSAGE
+- Slack message: composio_SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL
 - LinkedIn post: composio_LINKEDIN_CREATE_POST
-${hasGmail ? '- Send email: composio_GMAIL_SEND_EMAIL\n- Fetch emails: composio_GMAIL_FETCH_EMAILS\n- Create draft: composio_GMAIL_CREATE_EMAIL_DRAFT\n- Reply to thread: composio_GMAIL_REPLY_TO_THREAD\n' : '- Email: composio_GMAIL_SEND_EMAIL\n'}${hasOutlook ? '- Outlook email: composio_OUTLOOK_SEND_EMAIL\n- Outlook calendar: composio_OUTLOOK_CALENDAR_CREATE_EVENT\n- Outlook contacts: composio_OUTLOOK_LIST_CONTACTS\n' : ''}${hasSlack ? '- Slack message: composio_SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL\n- Slack DM: composio_SLACK_SEND_ME_A_DIRECT_MESSAGE_ON_SLACK\n- Slack channels: composio_SLACK_LIST_ALL_CHANNELS\n' : '- Slack message: composio_SLACK_SEND_MESSAGE\n'}${hasGitHub ? '- GitHub issue: composio_GITHUB_CREATE_ISSUE\n- GitHub PR: composio_GITHUB_CREATE_PULL_REQUEST\n- GitHub search: composio_GITHUB_SEARCH_CODE\n' : ''}
+- Send email: composio_GMAIL_SEND_EMAIL
+- Outlook email: composio_OUTLOOK_SEND_EMAIL
+- GitHub issue: composio_GITHUB_CREATE_ISSUE
+- Google Sheets: composio_GOOGLESHEETS_BATCH_UPDATE
+- Google Docs: composio_GOOGLEDOCS_CREATE_DOCUMENT
+- Discord message: composio_DISCORD_SEND_MESSAGE
+- Instagram post: composio_INSTAGRAM_CREATE_POST
+- YouTube search: composio_YOUTUBE_SEARCH
+- Vercel deploy: composio_VERCEL_CREATE_DEPLOYMENT
+- Stripe payment: composio_STRIPE_CREATE_PAYMENT_INTENT
+- Google Drive: composio_GOOGLEDRIVE_CREATE_FILE
+- Airtable record: composio_AIRTABLE_CREATE_RECORD
+
 ### Safety Rules
 
 1. **Never post without preview + confirmation**
 2. **Never send emails without showing recipient, subject, and body first**
 3. **For bulk actions, show a summary and get explicit approval**
 4. **If unsure about tone or content, ask clarifying questions first**
+5. **For destructive actions (delete, cancel), always confirm first**
+6. **For financial actions (Stripe payments, charges), show full details before executing**
 `;
 
     return {
@@ -506,6 +761,10 @@ export async function executeComposioTool(
   }
 }
 
+// ============================================================================
+// TOOL TYPE CHECKERS
+// ============================================================================
+
 /**
  * Check if a tool name is a Composio tool
  */
@@ -514,31 +773,71 @@ export function isComposioTool(toolName: string): boolean {
 }
 
 /**
- * Check if a tool name is a Composio GitHub tool
+ * Check if a tool name belongs to a specific Composio toolkit
  */
+export function isComposioToolkitTool(toolName: string, prefix: string): boolean {
+  return toolName.startsWith(`composio_${prefix}_`);
+}
+
+// Individual toolkit checkers (for backward compatibility and convenience)
 export function isComposioGitHubTool(toolName: string): boolean {
   return toolName.startsWith('composio_GITHUB_');
 }
 
-/**
- * Check if a tool name is a Composio Gmail tool
- */
 export function isComposioGmailTool(toolName: string): boolean {
   return toolName.startsWith('composio_GMAIL_');
 }
 
-/**
- * Check if a tool name is a Composio Outlook tool
- */
 export function isComposioOutlookTool(toolName: string): boolean {
   return toolName.startsWith('composio_OUTLOOK_');
 }
 
-/**
- * Check if a tool name is a Composio Slack tool
- */
 export function isComposioSlackTool(toolName: string): boolean {
   return toolName.startsWith('composio_SLACK_');
+}
+
+export function isComposioGoogleSheetsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLESHEETS_');
+}
+
+export function isComposioDiscordTool(toolName: string): boolean {
+  return toolName.startsWith('composio_DISCORD_');
+}
+
+export function isComposioGoogleDocsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEDOCS_');
+}
+
+export function isComposioTwitterTool(toolName: string): boolean {
+  return toolName.startsWith('composio_TWITTER_');
+}
+
+export function isComposioLinkedInTool(toolName: string): boolean {
+  return toolName.startsWith('composio_LINKEDIN_');
+}
+
+export function isComposioInstagramTool(toolName: string): boolean {
+  return toolName.startsWith('composio_INSTAGRAM_');
+}
+
+export function isComposioYouTubeTool(toolName: string): boolean {
+  return toolName.startsWith('composio_YOUTUBE_');
+}
+
+export function isComposioVercelTool(toolName: string): boolean {
+  return toolName.startsWith('composio_VERCEL_');
+}
+
+export function isComposioStripeTool(toolName: string): boolean {
+  return toolName.startsWith('composio_STRIPE_');
+}
+
+export function isComposioGoogleDriveTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEDRIVE_');
+}
+
+export function isComposioAirtableTool(toolName: string): boolean {
+  return toolName.startsWith('composio_AIRTABLE_');
 }
 
 // ============================================================================
@@ -582,13 +881,23 @@ export function getFeaturedActions(): Record<string, string> {
   return {
     // Social & Communication
     'Post a tweet': 'composio_TWITTER_CREATE_TWEET',
-    'Send a Slack message': 'composio_SLACK_SEND_MESSAGE',
-    'Create a Notion page': 'composio_NOTION_CREATE_PAGE',
+    'Send a Slack message': 'composio_SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL',
+    'Send a Slack DM': 'composio_SLACK_SEND_ME_A_DIRECT_MESSAGE_ON_SLACK',
     'Send an email': 'composio_GMAIL_SEND_EMAIL',
+    'Send Outlook email': 'composio_OUTLOOK_SEND_EMAIL',
     'Post to LinkedIn': 'composio_LINKEDIN_CREATE_POST',
-    'Upload to Instagram': 'composio_INSTAGRAM_CREATE_POST',
+    'Post to Instagram': 'composio_INSTAGRAM_CREATE_POST',
+    'Send Discord message': 'composio_DISCORD_SEND_MESSAGE',
+
+    // Productivity
+    'Create Google Doc': 'composio_GOOGLEDOCS_CREATE_DOCUMENT',
+    'Update Google Sheet': 'composio_GOOGLESHEETS_BATCH_UPDATE',
+    'Create Airtable record': 'composio_AIRTABLE_CREATE_RECORD',
+    'Upload to Google Drive': 'composio_GOOGLEDRIVE_CREATE_FILE',
+    'Create a Notion page': 'composio_NOTION_CREATE_PAGE',
     'Add calendar event': 'composio_GOOGLE_CALENDAR_CREATE_EVENT',
-    // GitHub - Core Actions
+
+    // Development
     'Create GitHub issue': 'composio_GITHUB_CREATE_ISSUE',
     'Create pull request': 'composio_GITHUB_CREATE_PULL_REQUEST',
     'Search GitHub code': 'composio_GITHUB_SEARCH_CODE',
@@ -596,14 +905,17 @@ export function getFeaturedActions(): Record<string, string> {
     'Create GitHub release': 'composio_GITHUB_CREATE_RELEASE',
     'Trigger GitHub workflow': 'composio_GITHUB_CREATE_WORKFLOW_DISPATCH',
     'Merge pull request': 'composio_GITHUB_MERGE_PULL_REQUEST',
-    'Create repository': 'composio_GITHUB_CREATE_REPOSITORY',
-    // Outlook - Core Actions
-    'Send Outlook email': 'composio_OUTLOOK_SEND_EMAIL',
-    'Create calendar event': 'composio_OUTLOOK_CALENDAR_CREATE_EVENT',
-    'List Outlook contacts': 'composio_OUTLOOK_LIST_CONTACTS',
-    // Slack - Core Actions
-    'Send Slack message': 'composio_SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL',
-    'Send Slack DM': 'composio_SLACK_SEND_ME_A_DIRECT_MESSAGE_ON_SLACK',
-    'List Slack channels': 'composio_SLACK_LIST_ALL_CHANNELS',
+    'Deploy to Vercel': 'composio_VERCEL_CREATE_DEPLOYMENT',
+    'List Vercel projects': 'composio_VERCEL_LIST_PROJECTS',
+
+    // Calendar & Events
+    'Create Outlook event': 'composio_OUTLOOK_CALENDAR_CREATE_EVENT',
+
+    // Media
+    'Search YouTube': 'composio_YOUTUBE_SEARCH',
+
+    // Finance
+    'Create Stripe payment': 'composio_STRIPE_CREATE_PAYMENT_INTENT',
+    'List Stripe customers': 'composio_STRIPE_LIST_CUSTOMERS',
   };
 }
