@@ -272,7 +272,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
    */
   private extractSynthesis(response: string): SynthesizedProblem | null {
     // Look for JSON block in response
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/i);
     if (!jsonMatch) return null;
 
     try {
@@ -424,7 +424,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
    */
   private formatSynthesisResponse(rawResponse: string, synthesis: SynthesizedProblem): string {
     // Remove the JSON block from the response
-    const cleanResponse = rawResponse.replace(/```json[\s\S]*?```/g, '').trim();
+    const cleanResponse = rawResponse.replace(/```json[\s\S]*?```/gi, '').trim();
 
     // Add a confirmation message
     const confirmation = `

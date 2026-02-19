@@ -50,10 +50,10 @@ export function shouldUseCodeAgent(request: string): boolean {
     return false;
   }
 
-  return codeIntentAnalyzer.constructor.prototype.constructor.isCodeRequest
-    ? (
-        codeIntentAnalyzer.constructor as typeof import('./brain/IntentAnalyzer').CodeIntentAnalyzer
-      ).isCodeRequest(request)
+  // Use the static method on the class if available, otherwise fallback
+  const AnalyzerClass = codeIntentAnalyzer.constructor as { isCodeRequest?: (r: string) => boolean };
+  return typeof AnalyzerClass.isCodeRequest === 'function'
+    ? AnalyzerClass.isCodeRequest(request)
     : isCodeRequest(request);
 }
 

@@ -177,6 +177,9 @@ export class SteeringEngine {
       case 'focus_domain': {
         // Kill everything NOT in the focused domain
         const focusTarget = (command.target || '').toLowerCase();
+        if (!focusTarget) {
+          return 'Cannot focus: no target domain specified. Please specify what to focus on.';
+        }
         for (const domain of this.activeDomains) {
           if (!domain.includes(focusTarget) && !focusTarget.includes(domain)) {
             this.killedDomains.add(domain);
