@@ -614,7 +614,20 @@ export class MasterArchitect {
       masterArchitect: this.state,
       qualityControl,
       projectManagers,
-      scouts: [], // Will be populated as scouts are spawned
+      scouts: scouts.map((s) => ({
+        id: s.id,
+        blueprintId: s.id,
+        name: s.name,
+        status: 'pending' as const,
+        progress: 0,
+        searchesCompleted: 0,
+        searchesTotal: s.searchQueries.length,
+        findings: [],
+        errors: [],
+        startTime: Date.now(),
+        tokensUsed: 0,
+        costIncurred: 0,
+      })),
       totalAgents: scouts.length + projectManagers.length + 2, // +2 for architect and QC
       activeAgents: 0,
       completedAgents: 0,

@@ -216,7 +216,7 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
                   if (analysis.confidence !== 'low') {
                     const fileToFix = this.files.find(f =>
                       f.path === analysis.suggestedFix.file ||
-                      f.path.endsWith(analysis.suggestedFix.file)
+                      f.path.endsWith('/' + analysis.suggestedFix.file)
                     );
 
                     if (fileToFix) {

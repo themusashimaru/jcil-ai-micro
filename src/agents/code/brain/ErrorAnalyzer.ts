@@ -170,24 +170,27 @@ export class ErrorAnalyzer {
 
     // Syntax errors: File "file.py", line X
     const syntaxPattern = /File "([^"]+)", line (\d+)/g;
+
+    // Pre-extract all error messages (avoids regex state collision in nested loops)
     const errorMsgPattern = /(\w*Error):\s*(.+)/g;
+    const allErrorMessages: Array<{ type: string; message: string; index: number }> = [];
+    let errorMatch;
+    while ((errorMatch = errorMsgPattern.exec(output)) !== null) {
+      allErrorMessages.push({ type: errorMatch[1], message: errorMatch[2], index: errorMatch.index });
+    }
 
-    let fileMatch;
-    const errorMatches: Array<{ type: string; message: string }> = [];
-
+    let fileMatch: RegExpExecArray | null;
     while ((fileMatch = syntaxPattern.exec(output)) !== null) {
-      // Find associated error message
-      let errorMatch;
-      while ((errorMatch = errorMsgPattern.exec(output)) !== null) {
-        errorMatches.push({ type: errorMatch[1], message: errorMatch[2] });
-      }
+      // Find the closest error message AFTER this file reference
+      const closestError = allErrorMessages.find((e) => e.index > fileMatch.index)
+        || allErrorMessages[allErrorMessages.length - 1]
+        || { type: 'Error', message: 'Unknown error' };
 
-      const errorInfo = errorMatches[0] || { type: 'Error', message: 'Unknown error' };
       errors.push({
         file: fileMatch[1],
         line: parseInt(fileMatch[2]),
-        message: errorInfo.message,
-        type: errorInfo.type.includes('Syntax') ? 'syntax' : 'runtime',
+        message: closestError.message,
+        type: closestError.type.includes('Syntax') ? 'syntax' : 'runtime',
         severity: 'error',
       });
     }
@@ -315,12 +318,18 @@ OUTPUT ONLY THE JSON.`;
     // If no change, try with normalized whitespace
     if (newContent === file.content) {
       const normalizedOld = analysis.suggestedFix.oldCode.replace(/\s+/g, ' ').trim();
+      const normalizedNew = analysis.suggestedFix.newCode;
       const lines = file.content.split('\n');
 
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].replace(/\s+/g, ' ').trim().includes(normalizedOld)) {
-          // Replace this line
-          lines[i] = analysis.suggestedFix.newCode;
+        const normalizedLine = lines[i].replace(/\s+/g, ' ').trim();
+        if (normalizedLine.includes(normalizedOld)) {
+          // Preserve indentation from original line, replace only the matched portion
+          const indent = lines[i].match(/^(\s*)/)?.[1] || '';
+          const originalTrimmed = lines[i].trim();
+          const normalizedOriginal = originalTrimmed.replace(/\s+/g, ' ');
+          // Replace the matched portion within the line, not the whole line
+          lines[i] = indent + normalizedOriginal.replace(normalizedOld, normalizedNew);
           break;
         }
       }

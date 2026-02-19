@@ -21,7 +21,7 @@ import type {
   Artifact,
   SteeringCommand,
 } from './types';
-import { DEFAULT_LIMITS, CLAUDE_OPUS_46 } from './constants';
+import { DEFAULT_LIMITS, CLAUDE_OPUS_46, MODEL_CONFIGS, BRAVE_COST_PER_QUERY } from './constants';
 import { getPrompts } from './prompts';
 import type { PromptSet } from './prompts';
 import { ForensicIntake, createForensicIntake } from './ForensicIntake';
@@ -757,7 +757,10 @@ export class StrategyAgent {
           {
             executionTimeMs: result.executionTime || 0,
             tokensUsed: result.tokensUsed,
-            costIncurred: 0, // Calculated by queue
+            costIncurred:
+              ((result.inputTokens || 0) / 1_000_000) * MODEL_CONFIGS.haiku.costPerMillionInput +
+              ((result.outputTokens || 0) / 1_000_000) * MODEL_CONFIGS.haiku.costPerMillionOutput +
+              result.searchesExecuted * BRAVE_COST_PER_QUERY,
             searchesExecuted: result.searchesExecuted,
             pagesVisited: 0,
             screenshotsTaken: 0,

@@ -164,7 +164,7 @@ function determineAgentsFallback(message: string): OrchestratorDecision {
 
   return {
     agents,
-    sequence: agents.length > 1 ? 'sequential' : 'sequential',
+    sequence: agents.length > 1 ? 'parallel' : 'sequential',
     reasoning: 'Determined from keyword analysis',
     tasks,
   };

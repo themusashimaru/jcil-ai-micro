@@ -552,6 +552,13 @@ Instructions:
   /**
    * Execute a tool (simplified)
    */
+  /**
+   * Sanitize a string for safe use in shell commands (single-quote escaping)
+   */
+  private shellEscape(str: string): string {
+    return "'" + str.replace(/'/g, "'\\''") + "'";
+  }
+
   private async executeTool(
     name: string,
     input: Record<string, unknown>,
@@ -561,33 +568,41 @@ Instructions:
 
     try {
       switch (name) {
-        case 'execute_shell':
+        case 'execute_shell': {
           const result = await this.container.executeCommand(workspaceId, input.command as string);
           return result.stdout || result.stderr || '[No output]';
+        }
 
         case 'read_file':
           return await this.container.readFile(workspaceId, input.path as string);
 
-        case 'search_files':
+        case 'search_files': {
+          const pattern = this.shellEscape(String(input.pattern || '*'));
           const searchResult = await this.container.executeCommand(
             workspaceId,
-            `find /workspace -name "${input.pattern}" -type f 2>/dev/null | head -50`
+            `find /workspace -name ${pattern} -type f 2>/dev/null | head -50`
           );
           return searchResult.stdout || 'No files found';
+        }
 
-        case 'search_code':
+        case 'search_code': {
+          const grepPattern = this.shellEscape(String(input.pattern || ''));
+          const searchPath = this.shellEscape(String(input.path || '/workspace'));
           const grepResult = await this.container.executeCommand(
             workspaceId,
-            `grep -rn "${input.pattern}" ${input.path || '/workspace'} 2>/dev/null | head -100`
+            `grep -rn ${grepPattern} ${searchPath} 2>/dev/null | head -100`
           );
           return grepResult.stdout || 'No matches found';
+        }
 
-        case 'list_files':
+        case 'list_files': {
+          const listPath = this.shellEscape(String(input.path || '/workspace'));
           const listResult = await this.container.executeCommand(
             workspaceId,
-            `ls -la ${input.path || '/workspace'}`
+            `ls -la ${listPath}`
           );
           return listResult.stdout || 'Empty directory';
+        }
 
         default:
           return `Unknown tool: ${name}`;
@@ -749,8 +764,18 @@ export async function executeSubagentTool(
 
       if (result.status === 'running' || result.status === 'background') {
         if (input.block !== false) {
-          // Wait for completion (simplified - would need proper async handling)
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          // Poll for completion with backoff up to timeout
+          const timeout = (input.timeout as number) || 30000;
+          const startTime = Date.now();
+          let pollInterval = 500;
+          while (Date.now() - startTime < timeout) {
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            pollInterval = Math.min(pollInterval * 1.5, 3000);
+            const polledResult = manager.getStatus(agentId);
+            if (polledResult && polledResult.status !== 'running' && polledResult.status !== 'background') {
+              return formatSubagentResult(polledResult);
+            }
+          }
           const updatedResult = manager.getStatus(agentId);
           if (updatedResult) {
             return formatSubagentResult(updatedResult);

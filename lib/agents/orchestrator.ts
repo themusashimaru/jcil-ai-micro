@@ -263,6 +263,17 @@ export async function executeAgentTask(
   const startTime = Date.now();
   const agentSpec = AGENT_SPECS[task.type];
 
+  if (!agentSpec) {
+    return {
+      taskId: task.id,
+      agentType: task.type,
+      success: false,
+      output: '',
+      errors: [`Unknown agent type: ${task.type}`],
+      duration: Date.now() - startTime,
+    };
+  }
+
   try {
     const fullPrompt = task.context
       ? `Context:\n${task.context}\n\nTask:\n${task.prompt}`
@@ -319,7 +330,10 @@ export async function executeOrchestrationPlan(
       const depContext = task.dependencies
         ?.map((depId) => {
           const result = results.get(depId);
-          return result ? `### ${AGENT_SPECS[result.agentType].name} Output:\n${result.output}` : '';
+          if (!result) return '';
+          const spec = AGENT_SPECS[result.agentType];
+          const agentName = spec ? spec.name : result.agentType;
+          return `### ${agentName} Output:\n${result.output}`;
         })
         .join('\n\n') || initialContext;
 
@@ -327,13 +341,32 @@ export async function executeOrchestrationPlan(
       return { task, result };
     });
 
-    const taskResults = await Promise.all(promises);
+    const taskResults = await Promise.allSettled(promises);
 
-    for (const { task, result } of taskResults) {
-      results.set(task.id, result);
-      completed.add(task.id);
-      remaining = remaining.filter((t) => t.id !== task.id);
+    for (const settled of taskResults) {
+      if (settled.status === 'fulfilled') {
+        const { task, result } = settled.value;
+        results.set(task.id, result);
+        completed.add(task.id);
+        remaining = remaining.filter((t) => t.id !== task.id);
+      } else {
+        // Find which task failed and record it
+        const failedTask = ready.find((t) => !completed.has(t.id));
+        if (failedTask) {
+          results.set(failedTask.id, {
+            taskId: failedTask.id,
+            agentType: failedTask.type,
+            success: false,
+            output: '',
+            errors: [settled.reason instanceof Error ? settled.reason.message : 'Task execution failed'],
+            duration: 0,
+          });
+          completed.add(failedTask.id);
+          remaining = remaining.filter((t) => t.id !== failedTask.id);
+        }
+      }
     }
+
   }
 
   return Array.from(results.values());

@@ -259,13 +259,17 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       this.intent = await codeIntentAnalyzer.analyze(input.request, context);
     }
 
-    this.emit(onStream, 'thinking', `📋 Building: ${this.intent!.refinedDescription}`, {
+    if (!this.intent) {
+      throw new Error('Failed to analyze code intent from request');
+    }
+
+    this.emit(onStream, 'thinking', `📋 Building: ${this.intent.refinedDescription}`, {
       phase: 'Intent Analysis',
       progress: 20,
       details: {
-        projectType: this.intent!.projectType,
-        complexity: this.intent!.complexity,
-        technologies: this.intent!.technologies.primary,
+        projectType: this.intent.projectType,
+        complexity: this.intent.complexity,
+        technologies: this.intent.technologies.primary,
       },
     });
 
@@ -277,7 +281,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       progress: 25,
     });
 
-    this.plan = await projectPlanner.plan(this.intent!);
+    this.plan = await projectPlanner.plan(this.intent);
 
     this.emit(onStream, 'thinking',
       `✓ Planned ${this.plan.fileTree.length} files with ${this.plan.architecture.pattern} architecture`, {
@@ -298,7 +302,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
     });
 
     this.startHeartbeat(onStream, 'Code Generation');
-    this.files = await codeGenerator.generateAll(this.intent!, this.plan, onStream);
+    this.files = await codeGenerator.generateAll(this.intent, this.plan, onStream);
     this.stopHeartbeat();
 
     this.emit(onStream, 'thinking', `✓ Generated ${this.files.length} files`, {
@@ -309,7 +313,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
     // ========================================
     // PHASE 4: TEST GENERATION (optional)
     // ========================================
-    if (opts.enableTests !== false && this.intent!.complexity !== 'simple') {
+    if (opts.enableTests !== false && this.intent.complexity !== 'simple') {
       this.emit(onStream, 'searching', '🧪 Generating tests...', {
         phase: 'Test Generation',
         progress: 55,
@@ -317,7 +321,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       const testResult = await testGenerator.generateTests(
         this.files,
-        this.intent!,
+        this.intent,
         this.plan,
         onStream
       );
@@ -407,7 +411,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
         this.testResult = await sandboxExecutor.execute(
           this.files,
           this.plan,
-          this.intent!,
+          this.intent,
           onStream
         );
 
@@ -456,7 +460,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       docResult = await docGenerator.generate(
         this.files,
-        this.intent!,
+        this.intent,
         this.plan,
         {},
         onStream
@@ -531,7 +535,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
     if (context.userId) {
       memorySystem.learnFromProject(
         context.userId,
-        this.intent!,
+        this.intent,
         this.plan,
         this.files,
         buildSuccess
@@ -557,8 +561,8 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
         totalFiles: this.files.length,
         totalLines: this.files.reduce((acc, f) => acc + f.linesOfCode, 0),
         technologies: [
-          this.intent!.technologies.primary,
-          ...this.intent!.technologies.secondary,
+          this.intent.technologies.primary,
+          ...this.intent.technologies.secondary,
         ],
         architecture: this.plan.architecture.pattern,
       },
