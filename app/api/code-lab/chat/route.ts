@@ -1725,9 +1725,9 @@ Rules:
           // When Composio GitHub is connected, remove the custom github tool
           // to prevent duplicate/conflicting tools. Composio provides a superset.
           if (composioToolContext.hasGitHub) {
-            const beforeCount = chatTools.length;
-            chatTools = chatTools.filter((t) => t.name !== 'github');
-            if (chatTools.length < beforeCount) {
+            const ghIdx = chatTools.findIndex((t) => t.name === 'github');
+            if (ghIdx !== -1) {
+              chatTools.splice(ghIdx, 1);
               log.info(
                 'Removed custom github tool from Code Lab (replaced by Composio GitHub toolkit)'
               );

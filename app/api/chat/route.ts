@@ -4630,9 +4630,9 @@ SECURITY:
           // to prevent duplicate/conflicting tools. Composio provides a superset
           // (100+ actions vs 9 read-only actions in the custom tool).
           if (composioToolContext.hasGitHub) {
-            const beforeCount = tools.length;
-            tools = tools.filter((t) => t.name !== 'github');
-            if (tools.length < beforeCount) {
+            const ghIdx = tools.findIndex((t) => t.name === 'github');
+            if (ghIdx !== -1) {
+              tools.splice(ghIdx, 1);
               log.info('Removed custom github tool (replaced by Composio GitHub toolkit)', {
                 userId: rateLimitIdentifier,
               });
