@@ -940,13 +940,15 @@ You have ${this.allFindings.length} findings to work with.
       : 'Create the final strategy recommendation based on all the research findings.';
 
     // Use extended thinking for higher quality synthesis
+    // Writer modes need much more output space for full document content
+    const isWriterSynthesis = ['quick-writer', 'deep-writer'].includes(this.context.mode || '');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const createParams: any = {
       model: CLAUDE_OPUS_46,
-      max_tokens: 16000,
+      max_tokens: isWriterSynthesis ? 32000 : 16000,
       thinking: {
         type: 'enabled',
-        budget_tokens: 10000,
+        budget_tokens: isWriterSynthesis ? 8000 : 10000,
       },
       system: prompt,
       messages: [
@@ -1070,6 +1072,28 @@ You have ${this.allFindings.length} findings to work with.
 
     if (!parsed) {
       log.warn('Failed to extract JSON from final strategy, using text fallback');
+      // For writer modes, try to extract the document content from the raw text
+      // even if JSON parsing failed (common when output is truncated)
+      const writerMode = ['quick-writer', 'deep-writer'].includes(this.context.mode || '');
+      if (writerMode && response.length > 500) {
+        // Strip any partial JSON wrapper and use the text as document content
+        let cleanContent = response;
+        // Remove partial JSON artifacts at the start/end
+        const contentMatch = response.match(/"content"\s*:\s*"([\s\S]+)/);
+        if (contentMatch) {
+          // Extract content value, unescape JSON string
+          cleanContent = contentMatch[1]
+            .replace(/\\n/g, '\n')
+            .replace(/\\"/g, '"')
+            .replace(/\\t/g, '\t')
+            .replace(/"\s*[,}]\s*$/, ''); // Remove trailing JSON artifacts
+        }
+        defaultResult.document = {
+          title: problem.summary || 'Written Content',
+          content: cleanContent,
+        };
+        defaultResult.recommendation.summary = cleanContent.slice(0, 500);
+      }
       return defaultResult;
     }
 

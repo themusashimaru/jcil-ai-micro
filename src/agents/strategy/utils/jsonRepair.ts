@@ -17,16 +17,21 @@ const log = logger('JSONRepair');
  * Tries multiple strategies to extract valid JSON
  */
 export function extractJSON<T = unknown>(text: string, fallback?: T): T | null {
-  // Strategy 1: Try to extract from markdown code block
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch) {
-    const result = tryParseWithRepair<T>(codeBlockMatch[1]);
+  // Strategy 1: Try to extract from the LAST markdown JSON code block
+  // (Writer output may contain inner code blocks in document.content that confuse lazy matching)
+  const codeBlockMatches = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)\s*```/g)];
+  // Try the largest code block first (most likely to be the full JSON), then fall back to others
+  const sortedBlocks = codeBlockMatches
+    .map((m) => m[1])
+    .sort((a, b) => b.length - a.length);
+  for (const block of sortedBlocks) {
+    const result = tryParseWithRepair<T>(block);
     if (result !== null) {
       return result;
     }
   }
 
-  // Strategy 2: Try to find JSON object directly
+  // Strategy 2: Try to find JSON object directly (greedy — first { to last })
   const jsonObjectMatch = text.match(/\{[\s\S]*\}/);
   if (jsonObjectMatch) {
     const result = tryParseWithRepair<T>(jsonObjectMatch[0]);
@@ -97,7 +102,9 @@ function repairJSON(text: string): string {
 
   // Fix missing commas between array elements or object properties
   // e.g., "value1" "value2" -> "value1", "value2"
-  json = json.replace(/"\s+"/g, '", "');
+  // ONLY apply at the top-level structure, not inside string values
+  // (Writer document content has prose with adjacent quoted strings that should NOT get commas)
+  json = json.replace(/"\s*\n\s*"/g, '",\n"');
 
   // Fix unquoted property names (common in some LLM outputs)
   // e.g., {name: "value"} -> {"name": "value"}
