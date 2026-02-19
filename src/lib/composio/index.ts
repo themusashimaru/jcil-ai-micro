@@ -5,8 +5,11 @@
  * 500+ app integrations for your AI agents.
  * Replace OAuth nightmares with one API call.
  *
- * GitHub Toolkit: 100+ prioritized actions for repos, issues, PRs,
- * code, CI/CD, releases, teams, search, and more.
+ * Toolkit Superpowers:
+ * - GitHub: 100+ prioritized actions for repos, issues, PRs, code, CI/CD, releases, teams, search
+ * - Gmail: 40 prioritized actions for send, read, search, drafts, labels, contacts, settings
+ * - Outlook: 64 prioritized actions for email, calendar, contacts, Teams chat, rules
+ * - Slack: 100+ prioritized actions for messaging, channels, users, files, canvases, workflows
  */
 
 // Client functions
@@ -55,6 +58,8 @@ export {
   isComposioTool,
   isComposioGitHubTool,
   isComposioGmailTool,
+  isComposioOutlookTool,
+  isComposioSlackTool,
   getConnectedAppsSummary,
   getFeaturedActions,
 } from './chat-tools';
@@ -98,3 +103,41 @@ export {
 } from './gmail-toolkit';
 
 export type { GmailActionCategory, GmailAction } from './gmail-toolkit';
+
+// Outlook Toolkit (categorized actions, priority selection, system prompts)
+export {
+  ALL_OUTLOOK_ACTIONS,
+  getOutlookFeaturedActionNames,
+  getOutlookActionsByPriority,
+  getOutlookActionNamesByPriority,
+  getOutlookActionsByCategory,
+  getOutlookActionPriority,
+  isKnownOutlookAction,
+  isDestructiveOutlookAction,
+  sortByOutlookPriority,
+  getOutlookActionStats,
+  getOutlookSystemPrompt,
+  getOutlookCapabilitySummary,
+  logOutlookToolkitStats,
+} from './outlook-toolkit';
+
+export type { OutlookActionCategory, OutlookAction } from './outlook-toolkit';
+
+// Slack Toolkit (categorized actions, priority selection, system prompts)
+export {
+  ALL_SLACK_ACTIONS,
+  getSlackFeaturedActionNames,
+  getSlackActionsByPriority,
+  getSlackActionNamesByPriority,
+  getSlackActionsByCategory,
+  getSlackActionPriority,
+  isKnownSlackAction,
+  isDestructiveSlackAction,
+  sortBySlackPriority,
+  getSlackActionStats,
+  getSlackSystemPrompt,
+  getSlackCapabilitySummary,
+  logSlackToolkitStats,
+} from './slack-toolkit';
+
+export type { SlackActionCategory, SlackAction } from './slack-toolkit';

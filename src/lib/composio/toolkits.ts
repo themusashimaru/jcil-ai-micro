@@ -9,6 +9,8 @@
 import type { ToolkitConfig, ToolkitCategory } from './types';
 import { getGitHubActionNamesByPriority } from './github-toolkit';
 import { getGmailActionNamesByPriority } from './gmail-toolkit';
+import { getOutlookActionNamesByPriority } from './outlook-toolkit';
+import { getSlackActionNamesByPriority } from './slack-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -31,11 +33,14 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'SLACK',
     displayName: 'Slack',
-    description: 'Send messages, manage channels, automate workflows',
+    description:
+      'Full Slack integration: messages, channels, users, files, canvases, reminders, and more',
     icon: '💬',
     category: 'communication',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getSlackActionNamesByPriority(2),
+    toolLimit: 80,
   },
   {
     id: 'DISCORD',
@@ -168,11 +173,14 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'SLACK',
     displayName: 'Slack',
-    description: 'Send messages, manage channels, automate workflows',
+    description:
+      'Full Slack integration: messages, channels, users, files, canvases, reminders, and more',
     icon: '💬',
     category: 'communication',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getSlackActionNamesByPriority(2),
+    toolLimit: 80,
   },
   {
     id: 'DISCORD',
@@ -195,10 +203,12 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'MICROSOFT_OUTLOOK',
     displayName: 'Outlook',
-    description: 'Manage emails, calendars, and contacts',
+    description: 'Full Outlook integration: email, calendar, contacts, Teams chat, rules, and more',
     icon: '📬',
     category: 'communication',
     authType: 'oauth2',
+    featuredActions: getOutlookActionNamesByPriority(2),
+    toolLimit: 64,
   },
 
   // ==================== PRODUCTIVITY ====================
