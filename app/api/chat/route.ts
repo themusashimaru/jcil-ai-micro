@@ -462,10 +462,7 @@ import {
   // Tool Chain Executor - Smart multi-tool workflows (Enhancement #3)
   toolChainTool,
   createToolChainExecutor,
-  // GitHub Context Tool - Understand user codebases (Enhancement #4)
-  githubContextTool,
-  executeGitHubContext,
-  isGitHubContextAvailable,
+  // GitHub Context merged into unified 'github' tool
   // Cybersecurity Tools (32 tools) - Full Security Operations Suite
   networkSecurityTool,
   executeNetworkSecurity,
@@ -2653,6 +2650,34 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
+    // GITHUB TOKEN - Load for authenticated tool use
+    // ========================================
+    let userGitHubToken: string | undefined;
+    if (isAuthenticated) {
+      try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (supabaseUrl && serviceKey) {
+          const adminClient = createClient(supabaseUrl, serviceKey);
+          const { data: tokenData } = await adminClient
+            .from('users')
+            .select('github_token')
+            .eq('id', rateLimitIdentifier)
+            .single();
+          if (tokenData?.github_token) {
+            const { safeDecrypt } = await import('@/lib/security/crypto');
+            const decrypted = safeDecrypt(tokenData.github_token);
+            if (decrypted) {
+              userGitHubToken = decrypted;
+            }
+          }
+        }
+      } catch {
+        // GitHub token loading should never block chat
+      }
+    }
+
+    // ========================================
     // USER DOCUMENTS - Search for relevant context (RAG)
     // ========================================
     let documentContext = '';
@@ -4398,7 +4423,7 @@ SECURITY:
     if (isDocGeneratorAvailable()) tools.push(docGeneratorTool);
     // Tool Orchestration - Smart workflows (Enhancement #3 & #4)
     tools.push(toolChainTool); // run_workflow - always available
-    if (isGitHubContextAvailable()) tools.push(githubContextTool);
+    // Note: github_context merged into unified 'github' tool (already added above)
     // Cybersecurity Tools (32 tools) - Full Security Operations Suite
     if (isNetworkSecurityAvailable()) tools.push(networkSecurityTool);
     if (isDnsSecurityAvailable()) tools.push(dnsSecurityTool);
@@ -5058,9 +5083,17 @@ SECURITY:
           case 'youtube_transcript':
             result = await executeYouTubeTranscript(toolCallWithSession);
             break;
-          case 'github':
-            result = await executeGitHub(toolCallWithSession);
+          case 'github': {
+            // Inject user's GitHub token for authenticated operations
+            const ghArgs = typeof toolCallWithSession.arguments === 'string'
+              ? JSON.parse(toolCallWithSession.arguments)
+              : { ...toolCallWithSession.arguments };
+            if (userGitHubToken) {
+              ghArgs._githubToken = userGitHubToken;
+            }
+            result = await executeGitHub({ ...toolCallWithSession, arguments: ghArgs });
             break;
+          }
           case 'screenshot':
             result = await executeScreenshot(toolCallWithSession);
             break;
@@ -5410,9 +5443,22 @@ SECURITY:
             result = await chainExecutor(toolCallWithSession);
             break;
           }
-          case 'github_context':
-            result = await executeGitHubContext(toolCallWithSession);
+          case 'github_context': {
+            // Legacy: redirect to unified github tool with token injection
+            const ghCtxArgs = typeof toolCallWithSession.arguments === 'string'
+              ? JSON.parse(toolCallWithSession.arguments)
+              : { ...toolCallWithSession.arguments };
+            if (userGitHubToken) {
+              ghCtxArgs._githubToken = userGitHubToken;
+            }
+            // Map old 'operation' param to 'action' for unified tool
+            if (ghCtxArgs.operation && !ghCtxArgs.action) {
+              ghCtxArgs.action = ghCtxArgs.operation;
+              delete ghCtxArgs.operation;
+            }
+            result = await executeGitHub({ ...toolCallWithSession, name: 'github', arguments: ghCtxArgs });
             break;
+          }
           // Cybersecurity Tools (32 tools)
           case 'network_security':
             result = await executeNetworkSecurity(toolCallWithSession);

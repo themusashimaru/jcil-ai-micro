@@ -1,15 +1,14 @@
 /**
- * GITHUB TOOL
+ * UNIFIED GITHUB TOOL
  *
- * Allows AI to interact with GitHub - search code, read files, browse repos.
- * Uses GitHub's REST API directly (no gh CLI needed in serverless).
+ * Single consolidated tool for all GitHub operations:
+ * - Search code, repos, issues across GitHub (public)
+ * - Browse and read files from any repo
+ * - List user's own repositories (authenticated)
+ * - Get full repo structure and context (authenticated)
  *
- * Features:
- * - Search code across GitHub
- * - Read file contents from repos
- * - Get repo information
- * - List directory contents
- * - Search issues and PRs
+ * Uses the user's GitHub token when available (injected server-side),
+ * falls back to GITHUB_TOKEN env var or unauthenticated access.
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -31,27 +30,35 @@ const FETCH_TIMEOUT_MS = 15000;
 
 export const githubTool: UnifiedTool = {
   name: 'github',
-  description: `Search and browse GitHub repositories, code, and issues. Use this when:
-- User asks about code in a specific GitHub repo
-- You need to find code examples or implementations
-- User wants to explore a repository's structure
-- Looking for how something is implemented in open source
-- Searching for libraries or solutions on GitHub
+  description: `Search and interact with GitHub repositories, code, and issues. Works with both public repos and user's own repos (including private).
 
 Actions available:
-- search_code: Search for code across all of GitHub
+- search_code: Search for code across GitHub (or within a specific repo)
 - search_repos: Search for repositories
+- search_issues: Search issues and pull requests
 - get_file: Get contents of a specific file in a repo
 - list_dir: List files in a repository directory
 - get_repo: Get repository information
-- search_issues: Search issues and pull requests`,
+- list_repos: List the user's own repositories (requires GitHub connection)
+- get_structure: Get the full file tree of a repository
+- get_context: Get comprehensive repo context (README, package.json, languages, recent commits)`,
   parameters: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
         description: 'The GitHub action to perform',
-        enum: ['search_code', 'search_repos', 'get_file', 'list_dir', 'get_repo', 'search_issues'],
+        enum: [
+          'search_code',
+          'search_repos',
+          'search_issues',
+          'get_file',
+          'list_dir',
+          'get_repo',
+          'list_repos',
+          'get_structure',
+          'get_context',
+        ],
       },
       query: {
         type: 'string',
@@ -60,11 +67,11 @@ Actions available:
       },
       owner: {
         type: 'string',
-        description: 'Repository owner/organization (for get_file, list_dir, get_repo)',
+        description: 'Repository owner/organization',
       },
       repo: {
         type: 'string',
-        description: 'Repository name (for get_file, list_dir, get_repo)',
+        description: 'Repository name',
       },
       path: {
         type: 'string',
@@ -83,8 +90,17 @@ Actions available:
 // GITHUB API HELPERS
 // ============================================================================
 
+/**
+ * Resolve the best available GitHub token.
+ * Priority: user token (injected by route) > server GITHUB_TOKEN > none
+ */
+function resolveToken(userToken?: string): string | undefined {
+  return userToken || process.env.GITHUB_TOKEN || undefined;
+}
+
 async function githubFetch(
   endpoint: string,
+  token?: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   const controller = new AbortController();
@@ -97,8 +113,6 @@ async function githubFetch(
     ...((options.headers as Record<string, string>) || {}),
   };
 
-  // Add auth token if available (increases rate limit from 60 to 5000/hour)
-  const token = process.env.GITHUB_TOKEN;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -141,11 +155,14 @@ async function githubFetch(
 }
 
 // ============================================================================
-// GITHUB ACTIONS
+// GITHUB ACTIONS (public — use raw fetch)
 // ============================================================================
 
-async function searchCode(query: string): Promise<string> {
-  const result = await githubFetch(`/search/code?q=${encodeURIComponent(query)}&per_page=10`);
+async function searchCode(query: string, token?: string): Promise<string> {
+  const result = await githubFetch(
+    `/search/code?q=${encodeURIComponent(query)}&per_page=10`,
+    token
+  );
 
   if (!result.success) {
     return `Error: ${result.error}`;
@@ -175,9 +192,10 @@ async function searchCode(query: string): Promise<string> {
   return output;
 }
 
-async function searchRepos(query: string): Promise<string> {
+async function searchRepos(query: string, token?: string): Promise<string> {
   const result = await githubFetch(
-    `/search/repositories?q=${encodeURIComponent(query)}&sort=stars&per_page=10`
+    `/search/repositories?q=${encodeURIComponent(query)}&sort=stars&per_page=10`,
+    token
   );
 
   if (!result.success) {
@@ -213,10 +231,51 @@ async function searchRepos(query: string): Promise<string> {
   return output;
 }
 
+async function searchIssues(query: string, token?: string): Promise<string> {
+  const result = await githubFetch(
+    `/search/issues?q=${encodeURIComponent(query)}&sort=updated&per_page=10`,
+    token
+  );
+
+  if (!result.success) {
+    return `Error: ${result.error}`;
+  }
+
+  const data = result.data as {
+    total_count: number;
+    items: Array<{
+      title: string;
+      number: number;
+      state: string;
+      html_url: string;
+      user: { login: string };
+      created_at: string;
+      repository_url: string;
+      pull_request?: unknown;
+    }>;
+  };
+
+  if (data.total_count === 0) {
+    return 'No issues or pull requests found for this query.';
+  }
+
+  let output = `Found ${data.total_count} issues/PRs:\n\n`;
+  for (const item of data.items) {
+    const type = item.pull_request ? 'PR' : 'Issue';
+    const repoName = item.repository_url.split('/').slice(-2).join('/');
+    output += `**[${type}] ${item.title}** (#${item.number})\n`;
+    output += `  Repo: ${repoName} | State: ${item.state} | By: ${item.user.login}\n`;
+    output += `  URL: ${item.html_url}\n\n`;
+  }
+
+  return output;
+}
+
 async function getFile(
   owner: string,
   repo: string,
   path: string,
+  token?: string,
   branch?: string
 ): Promise<string> {
   let endpoint = `/repos/${owner}/${repo}/contents/${path}`;
@@ -224,7 +283,7 @@ async function getFile(
     endpoint += `?ref=${branch}`;
   }
 
-  const result = await githubFetch(endpoint);
+  const result = await githubFetch(endpoint, token);
 
   if (!result.success) {
     return `Error: ${result.error}`;
@@ -266,6 +325,7 @@ async function listDir(
   owner: string,
   repo: string,
   path: string = '',
+  token?: string,
   branch?: string
 ): Promise<string> {
   let endpoint = `/repos/${owner}/${repo}/contents/${path}`;
@@ -273,7 +333,7 @@ async function listDir(
     endpoint += `?ref=${branch}`;
   }
 
-  const result = await githubFetch(endpoint);
+  const result = await githubFetch(endpoint, token);
 
   if (!result.success) {
     return `Error: ${result.error}`;
@@ -308,8 +368,8 @@ async function listDir(
   return output;
 }
 
-async function getRepo(owner: string, repo: string): Promise<string> {
-  const result = await githubFetch(`/repos/${owner}/${repo}`);
+async function getRepo(owner: string, repo: string, token?: string): Promise<string> {
+  const result = await githubFetch(`/repos/${owner}/${repo}`, token);
 
   if (!result.success) {
     return `Error: ${result.error}`;
@@ -350,43 +410,171 @@ async function getRepo(owner: string, repo: string): Promise<string> {
   return output;
 }
 
-async function searchIssues(query: string): Promise<string> {
-  const result = await githubFetch(
-    `/search/issues?q=${encodeURIComponent(query)}&sort=updated&per_page=10`
-  );
+// ============================================================================
+// AUTHENTICATED ACTIONS (use Octokit when user token available)
+// ============================================================================
 
-  if (!result.success) {
-    return `Error: ${result.error}`;
+async function listUserRepos(token: string): Promise<string> {
+  try {
+    const { Octokit } = await import('@octokit/rest');
+    const octokit = new Octokit({ auth: token });
+
+    const { data: repos } = await octokit.repos.listForAuthenticatedUser({
+      sort: 'updated',
+      per_page: 30,
+    });
+
+    const repoInfos = repos.map((r) => ({
+      name: r.name,
+      fullName: r.full_name,
+      description: r.description,
+      language: r.language,
+      stars: r.stargazers_count,
+      forks: r.forks_count,
+      defaultBranch: r.default_branch,
+      private: r.private,
+      updatedAt: r.updated_at || '',
+    }));
+
+    return JSON.stringify({ repos: repoInfos }, null, 2);
+  } catch (error) {
+    return `Error listing repos: ${(error as Error).message}`;
   }
+}
 
-  const data = result.data as {
-    total_count: number;
-    items: Array<{
-      title: string;
-      number: number;
-      state: string;
-      html_url: string;
-      user: { login: string };
-      created_at: string;
-      repository_url: string;
-      pull_request?: unknown;
-    }>;
-  };
+async function getStructure(
+  owner: string,
+  repo: string,
+  token: string,
+  branch?: string
+): Promise<string> {
+  try {
+    const { Octokit } = await import('@octokit/rest');
+    const octokit = new Octokit({ auth: token });
 
-  if (data.total_count === 0) {
-    return 'No issues or pull requests found for this query.';
+    const { data: repoData } = await octokit.repos.get({ owner, repo });
+    const targetBranch = branch || repoData.default_branch;
+
+    const { data: treeData } = await octokit.git.getTree({
+      owner,
+      repo,
+      tree_sha: targetBranch,
+      recursive: 'true',
+    });
+
+    const structure = (treeData.tree || [])
+      .filter((item) => item.path && item.type)
+      .slice(0, 500)
+      .map((item) => ({
+        path: item.path!,
+        type: item.type === 'blob' ? 'file' : 'dir',
+        size: item.size,
+      }));
+
+    return JSON.stringify({ structure, truncated: treeData.truncated }, null, 2);
+  } catch (error) {
+    return `Error getting structure: ${(error as Error).message}`;
   }
+}
 
-  let output = `Found ${data.total_count} issues/PRs:\n\n`;
-  for (const item of data.items) {
-    const type = item.pull_request ? 'PR' : 'Issue';
-    const repoName = item.repository_url.split('/').slice(-2).join('/');
-    output += `**[${type}] ${item.title}** (#${item.number})\n`;
-    output += `  Repo: ${repoName} | State: ${item.state} | By: ${item.user.login}\n`;
-    output += `  URL: ${item.html_url}\n\n`;
+async function getContext(
+  owner: string,
+  repo: string,
+  token: string,
+  branch?: string
+): Promise<string> {
+  try {
+    const { Octokit } = await import('@octokit/rest');
+    const octokit = new Octokit({ auth: token });
+
+    const context: {
+      readme?: string;
+      packageJson?: Record<string, unknown>;
+      structure: Array<{ path: string; type: string }>;
+      languages: Record<string, number>;
+      recentCommits: Array<{ sha: string; message: string; author: string; date: string }>;
+    } = {
+      structure: [],
+      languages: {},
+      recentCommits: [],
+    };
+
+    const { data: repoData } = await octokit.repos.get({ owner, repo });
+    const targetBranch = branch || repoData.default_branch;
+
+    // Get README
+    try {
+      const { data: readmeData } = await octokit.repos.getReadme({ owner, repo });
+      context.readme = Buffer.from(readmeData.content, 'base64').toString('utf8');
+    } catch {
+      // No README
+    }
+
+    // Get package.json for Node.js projects
+    try {
+      const { data: pkgData } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: 'package.json',
+      });
+      if ('content' in pkgData) {
+        context.packageJson = JSON.parse(
+          Buffer.from(pkgData.content, 'base64').toString('utf8')
+        );
+      }
+    } catch {
+      // No package.json
+    }
+
+    // Get languages
+    try {
+      const { data: langData } = await octokit.repos.listLanguages({ owner, repo });
+      context.languages = langData;
+    } catch {
+      // Language detection failed
+    }
+
+    // Get recent commits
+    try {
+      const { data: commits } = await octokit.repos.listCommits({
+        owner,
+        repo,
+        sha: targetBranch,
+        per_page: 10,
+      });
+      context.recentCommits = commits.map((c) => ({
+        sha: c.sha.slice(0, 7),
+        message: c.commit.message.split('\n')[0],
+        author: c.commit.author?.name || 'Unknown',
+        date: c.commit.author?.date || '',
+      }));
+    } catch {
+      // Commits fetch failed
+    }
+
+    // Get file structure (limited)
+    try {
+      const { data: treeData } = await octokit.git.getTree({
+        owner,
+        repo,
+        tree_sha: targetBranch,
+        recursive: 'true',
+      });
+      context.structure = (treeData.tree || [])
+        .filter((item) => item.path && item.type)
+        .slice(0, 100)
+        .map((item) => ({
+          path: item.path!,
+          type: item.type === 'blob' ? 'file' : 'dir',
+        }));
+    } catch {
+      // Tree fetch failed
+    }
+
+    return JSON.stringify(context, null, 2);
+  } catch (error) {
+    return `Error getting context: ${(error as Error).message}`;
   }
-
-  return output;
 }
 
 // ============================================================================
@@ -412,7 +600,11 @@ export async function executeGitHub(toolCall: UnifiedToolCall): Promise<UnifiedT
   const path = args.path as string;
   const branch = args.branch as string | undefined;
 
-  log.info('Executing GitHub action', { action, query, owner, repo, path });
+  // Resolve auth token: user token (injected by server) > env var > none
+  const userToken = args._githubToken as string | undefined;
+  const token = resolveToken(userToken);
+
+  log.info('Executing GitHub action', { action, owner, repo, hasToken: !!token });
 
   let content: string;
 
@@ -422,14 +614,21 @@ export async function executeGitHub(toolCall: UnifiedToolCall): Promise<UnifiedT
         if (!query) {
           return { toolCallId: id, content: 'Query required for code search', isError: true };
         }
-        content = await searchCode(query);
+        content = await searchCode(query, token);
         break;
 
       case 'search_repos':
         if (!query) {
           return { toolCallId: id, content: 'Query required for repo search', isError: true };
         }
-        content = await searchRepos(query);
+        content = await searchRepos(query, token);
+        break;
+
+      case 'search_issues':
+        if (!query) {
+          return { toolCallId: id, content: 'Query required for issue search', isError: true };
+        }
+        content = await searchIssues(query, token);
         break;
 
       case 'get_file':
@@ -440,7 +639,7 @@ export async function executeGitHub(toolCall: UnifiedToolCall): Promise<UnifiedT
             isError: true,
           };
         }
-        content = await getFile(owner, repo, path, branch);
+        content = await getFile(owner, repo, path, token, branch);
         break;
 
       case 'list_dir':
@@ -451,21 +650,64 @@ export async function executeGitHub(toolCall: UnifiedToolCall): Promise<UnifiedT
             isError: true,
           };
         }
-        content = await listDir(owner, repo, path || '', branch);
+        content = await listDir(owner, repo, path || '', token, branch);
         break;
 
       case 'get_repo':
         if (!owner || !repo) {
           return { toolCallId: id, content: 'Owner and repo required', isError: true };
         }
-        content = await getRepo(owner, repo);
+        content = await getRepo(owner, repo, token);
         break;
 
-      case 'search_issues':
-        if (!query) {
-          return { toolCallId: id, content: 'Query required for issue search', isError: true };
+      case 'list_repos':
+        if (!token) {
+          return {
+            toolCallId: id,
+            content:
+              'GitHub connection required to list your repositories. Please connect your GitHub account in Settings.',
+            isError: true,
+          };
         }
-        content = await searchIssues(query);
+        content = await listUserRepos(token);
+        break;
+
+      case 'get_structure':
+        if (!owner || !repo) {
+          return {
+            toolCallId: id,
+            content: 'Owner and repo required for get_structure',
+            isError: true,
+          };
+        }
+        if (!token) {
+          return {
+            toolCallId: id,
+            content:
+              'GitHub connection required for get_structure. Please connect your GitHub account in Settings.',
+            isError: true,
+          };
+        }
+        content = await getStructure(owner, repo, token, branch);
+        break;
+
+      case 'get_context':
+        if (!owner || !repo) {
+          return {
+            toolCallId: id,
+            content: 'Owner and repo required for get_context',
+            isError: true,
+          };
+        }
+        if (!token) {
+          return {
+            toolCallId: id,
+            content:
+              'GitHub connection required for get_context. Please connect your GitHub account in Settings.',
+            isError: true,
+          };
+        }
+        content = await getContext(owner, repo, token, branch);
         break;
 
       default:
@@ -477,7 +719,7 @@ export async function executeGitHub(toolCall: UnifiedToolCall): Promise<UnifiedT
     return {
       toolCallId: id,
       content,
-      isError: content.startsWith('Error:'),
+      isError: content.startsWith('Error:') || content.startsWith('Error '),
     };
   } catch (error) {
     log.error('GitHub action failed', { action, error: (error as Error).message });
@@ -496,4 +738,55 @@ export async function executeGitHub(toolCall: UnifiedToolCall): Promise<UnifiedT
 export function isGitHubAvailable(): boolean {
   // Always available - works without token (60 req/hour), better with token (5000 req/hour)
   return true;
+}
+
+// ============================================================================
+// REPO SUMMARY HELPER (for system prompt injection)
+// ============================================================================
+
+/**
+ * Get a summary of a repository for system prompt injection
+ */
+export async function getRepoSummaryForPrompt(
+  accessToken: string,
+  owner: string,
+  repo: string
+): Promise<string> {
+  try {
+    const { Octokit } = await import('@octokit/rest');
+    const octokit = new Octokit({ auth: accessToken });
+
+    const { data: repoData } = await octokit.repos.get({ owner, repo });
+
+    // Get languages
+    const { data: languages } = await octokit.repos.listLanguages({ owner, repo });
+    const topLanguages = Object.entries(languages)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([lang]) => lang);
+
+    // Get key files list
+    const { data: rootContents } = await octokit.repos.getContent({ owner, repo, path: '' });
+    const keyFiles = Array.isArray(rootContents)
+      ? rootContents
+          .filter((f) =>
+            ['package.json', 'requirements.txt', 'Cargo.toml', 'go.mod', 'README.md'].includes(
+              f.name
+            )
+          )
+          .map((f) => f.name)
+      : [];
+
+    return `
+**Repository**: ${repoData.full_name}
+**Description**: ${repoData.description || 'No description'}
+**Languages**: ${topLanguages.join(', ')}
+**Default Branch**: ${repoData.default_branch}
+**Key Files**: ${keyFiles.join(', ') || 'None detected'}
+**Last Updated**: ${repoData.updated_at}
+`.trim();
+  } catch (error) {
+    log.error('Failed to get repo summary', { error: (error as Error).message });
+    return '';
+  }
 }
