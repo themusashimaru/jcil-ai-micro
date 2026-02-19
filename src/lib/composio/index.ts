@@ -54,6 +54,7 @@ export {
   executeComposioTool,
   isComposioTool,
   isComposioGitHubTool,
+  isComposioGmailTool,
   getConnectedAppsSummary,
   getFeaturedActions,
 } from './chat-tools';
@@ -78,3 +79,22 @@ export {
 } from './github-toolkit';
 
 export type { GitHubActionCategory, GitHubAction } from './github-toolkit';
+
+// Gmail Toolkit (categorized actions, priority selection, system prompts)
+export {
+  ALL_GMAIL_ACTIONS,
+  getGmailFeaturedActionNames,
+  getGmailActionsByPriority,
+  getGmailActionNamesByPriority,
+  getGmailActionsByCategory,
+  getGmailActionPriority,
+  isKnownGmailAction,
+  isDestructiveGmailAction,
+  sortByGmailPriority,
+  getGmailActionStats,
+  getGmailSystemPrompt,
+  getGmailCapabilitySummary,
+  logGmailToolkitStats,
+} from './gmail-toolkit';
+
+export type { GmailActionCategory, GmailAction } from './gmail-toolkit';

@@ -8,6 +8,7 @@
 
 import type { ToolkitConfig, ToolkitCategory } from './types';
 import { getGitHubActionNamesByPriority } from './github-toolkit';
+import { getGmailActionNamesByPriority } from './gmail-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -18,11 +19,14 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GMAIL',
     displayName: 'Gmail',
-    description: 'Send emails, manage inbox, search messages',
+    description:
+      'Full Gmail integration: send, read, search, drafts, labels, contacts, attachments, and more',
     icon: '📧',
     category: 'communication',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGmailActionNamesByPriority(2),
+    toolLimit: 40,
   },
   {
     id: 'SLACK',
@@ -152,11 +156,14 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GMAIL',
     displayName: 'Gmail',
-    description: 'Send emails, manage inbox, search messages',
+    description:
+      'Full Gmail integration: send, read, search, drafts, labels, contacts, attachments, and more',
     icon: '📧',
     category: 'communication',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGmailActionNamesByPriority(2),
+    toolLimit: 40,
   },
   {
     id: 'SLACK',

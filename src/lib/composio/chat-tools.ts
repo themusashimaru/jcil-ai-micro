@@ -3,12 +3,17 @@
  * ===================
  *
  * Integrates Composio app connections with Claude's tool system.
- * Allows AI to use connected apps (Twitter, Slack, GitHub, etc.) as tools.
+ * Allows AI to use connected apps (Twitter, Slack, GitHub, Gmail, etc.) as tools.
  *
  * GitHub Integration:
  * When GitHub is connected via Composio, provides 100+ prioritized GitHub
  * actions (repos, issues, PRs, code, CI/CD, releases, teams, search).
  * The custom github tool is skipped to prevent duplicates.
+ *
+ * Gmail Integration:
+ * When Gmail is connected via Composio, provides 40 prioritized Gmail
+ * actions (send, read, search, drafts, labels, contacts, settings).
+ * Priority-sorted with essential actions first.
  */
 
 import { logger } from '@/lib/logger';
@@ -26,6 +31,12 @@ import {
   logGitHubToolkitStats,
   getGitHubCapabilitySummary,
 } from './github-toolkit';
+import {
+  sortByGmailPriority,
+  getGmailSystemPrompt,
+  logGmailToolkitStats,
+  getGmailCapabilitySummary,
+} from './gmail-toolkit';
 
 const log = logger('ComposioTools');
 
@@ -48,18 +59,22 @@ export interface ComposioToolContext {
   tools: ClaudeTool[];
   systemPromptAddition: string;
   hasGitHub: boolean; // Whether GitHub is connected via Composio
+  hasGmail: boolean; // Whether Gmail is connected via Composio
 }
 
 // ============================================================================
 // TOOL LIMITS
 // ============================================================================
 
-// Default cap for non-GitHub Composio tools per session
+// Default cap for non-toolkit-specific Composio tools per session
 const MAX_COMPOSIO_TOOLS_DEFAULT = 50;
 
 // GitHub gets a higher cap because it's a primary development toolkit
 // with many essential actions across repos, issues, PRs, CI/CD, etc.
 const MAX_GITHUB_TOOLS = 100;
+
+// Gmail gets all 40 tools - it's a compact but complete email toolkit
+const MAX_GMAIL_TOOLS = 40;
 
 // ============================================================================
 // TOOL CONVERSION
@@ -189,6 +204,7 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       tools: [],
       systemPromptAddition: '',
       hasGitHub: false,
+      hasGmail: false,
     };
   }
 
@@ -203,17 +219,22 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
         tools: [],
         systemPromptAddition: '',
         hasGitHub: false,
+        hasGmail: false,
       };
     }
 
     const hasGitHub = connectedApps.some(
       (app) => app === 'GITHUB' || app.toLowerCase() === 'github'
     );
+    const hasGmail = connectedApps.some((app) => app === 'GMAIL' || app.toLowerCase() === 'gmail');
 
-    log.info('User has connected apps', { userId, apps: connectedApps, hasGitHub });
+    log.info('User has connected apps', { userId, apps: connectedApps, hasGitHub, hasGmail });
 
     if (hasGitHub) {
       logGitHubToolkitStats();
+    }
+    if (hasGmail) {
+      logGmailToolkitStats();
     }
 
     // Get available tools for connected apps
@@ -232,33 +253,40 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
     // Convert to Claude format, filtering out any null/invalid tools
     let tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);
 
-    // Split GitHub tools from other tools for separate budget management
+    // Split toolkit-specific tools for separate budget management
     const githubTools: ClaudeTool[] = [];
+    const gmailTools: ClaudeTool[] = [];
     const otherTools: ClaudeTool[] = [];
 
     for (const tool of tools) {
       if (tool.name.startsWith('composio_GITHUB_')) {
         githubTools.push(tool);
+      } else if (tool.name.startsWith('composio_GMAIL_')) {
+        gmailTools.push(tool);
       } else {
         otherTools.push(tool);
       }
     }
 
-    // Sort GitHub tools by priority (essential actions first)
+    // Sort toolkit tools by priority (essential actions first)
     const sortedGitHubTools = sortByGitHubPriority(githubTools);
+    const sortedGmailTools = sortByGmailPriority(gmailTools);
 
-    // Apply separate caps: GitHub gets up to 100, others get up to 50
+    // Apply separate caps per toolkit
     const cappedGitHubTools = sortedGitHubTools.slice(0, MAX_GITHUB_TOOLS);
+    const cappedGmailTools = sortedGmailTools.slice(0, MAX_GMAIL_TOOLS);
     const cappedOtherTools = otherTools.slice(0, MAX_COMPOSIO_TOOLS_DEFAULT);
 
-    // Combine: GitHub tools first (they're the development superpowers)
-    tools = [...cappedGitHubTools, ...cappedOtherTools];
+    // Combine: toolkit tools first (superpowers), then others
+    tools = [...cappedGitHubTools, ...cappedGmailTools, ...cappedOtherTools];
 
     log.info('Prepared Composio tools for Claude', {
       userId,
       totalTools: tools.length,
       githubTools: cappedGitHubTools.length,
       githubToolsDropped: githubTools.length - cappedGitHubTools.length,
+      gmailTools: cappedGmailTools.length,
+      gmailToolsDropped: gmailTools.length - cappedGmailTools.length,
       otherTools: cappedOtherTools.length,
       otherToolsDropped: otherTools.length - cappedOtherTools.length,
     });
@@ -278,9 +306,12 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
 The user has connected the following apps: ${appList}
 `;
 
-    // Add GitHub-specific system prompt if GitHub is connected
+    // Add toolkit-specific system prompts
     if (hasGitHub && cappedGitHubTools.length > 0) {
       systemPromptAddition += getGitHubSystemPrompt();
+    }
+    if (hasGmail && cappedGmailTools.length > 0) {
+      systemPromptAddition += getGmailSystemPrompt();
     }
 
     // Add general app guidance
@@ -291,8 +322,7 @@ You can use these apps to help the user with tasks like:
 - Post to social media (Twitter, Instagram, LinkedIn)
 - Send messages (Slack, Discord, Teams)
 - Manage documents (Notion, Google Docs, Airtable)
-- Handle email (Gmail, Outlook)
-${hasGitHub ? `- **Full GitHub operations** (${getGitHubCapabilitySummary()})\n` : ''}- And more based on what they've connected
+${hasGmail ? `- **Full Gmail operations** (${getGmailCapabilitySummary()})\n` : '- Handle email (Gmail, Outlook)\n'}${hasGitHub ? `- **Full GitHub operations** (${getGitHubCapabilitySummary()})\n` : ''}- And more based on what they've connected
 
 ### IMPORTANT: Preview Before Sending
 
@@ -319,7 +349,7 @@ For emails, include recipient and subject:
   "subject": "Subject line",
   "content": "Email body here...",
   "toolName": "composio_GMAIL_SEND_EMAIL",
-  "toolParams": { "to": "user@example.com", "subject": "...", "body": "..." }
+  "toolParams": { "recipient_email": "user@example.com", "subject": "...", "body": "..." }
 }
 \`\`\`
 
@@ -331,9 +361,8 @@ If they click Edit and provide instructions, regenerate the preview with their c
 Tool names are prefixed with "composio_" followed by the action:
 - Tweet: composio_TWITTER_CREATE_TWEET
 - Slack message: composio_SLACK_SEND_MESSAGE
-- Email: composio_GMAIL_SEND_EMAIL
 - LinkedIn post: composio_LINKEDIN_CREATE_POST
-${hasGitHub ? '- GitHub issue: composio_GITHUB_CREATE_ISSUE\n- GitHub PR: composio_GITHUB_CREATE_PULL_REQUEST\n- GitHub search: composio_GITHUB_SEARCH_CODE\n' : ''}
+${hasGmail ? '- Send email: composio_GMAIL_SEND_EMAIL\n- Fetch emails: composio_GMAIL_FETCH_EMAILS\n- Create draft: composio_GMAIL_CREATE_EMAIL_DRAFT\n- Reply to thread: composio_GMAIL_REPLY_TO_THREAD\n' : '- Email: composio_GMAIL_SEND_EMAIL\n'}${hasGitHub ? '- GitHub issue: composio_GITHUB_CREATE_ISSUE\n- GitHub PR: composio_GITHUB_CREATE_PULL_REQUEST\n- GitHub search: composio_GITHUB_SEARCH_CODE\n' : ''}
 ### Safety Rules
 
 1. **Never post without preview + confirmation**
@@ -347,6 +376,7 @@ ${hasGitHub ? '- GitHub issue: composio_GITHUB_CREATE_ISSUE\n- GitHub PR: compos
       tools,
       systemPromptAddition,
       hasGitHub,
+      hasGmail,
     };
   } catch (error) {
     log.error('Failed to get Composio tools', { userId, error });
@@ -355,6 +385,7 @@ ${hasGitHub ? '- GitHub issue: composio_GITHUB_CREATE_ISSUE\n- GitHub PR: compos
       tools: [],
       systemPromptAddition: '',
       hasGitHub: false,
+      hasGmail: false,
     };
   }
 }
@@ -415,6 +446,13 @@ export function isComposioTool(toolName: string): boolean {
  */
 export function isComposioGitHubTool(toolName: string): boolean {
   return toolName.startsWith('composio_GITHUB_');
+}
+
+/**
+ * Check if a tool name is a Composio Gmail tool
+ */
+export function isComposioGmailTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GMAIL_');
 }
 
 // ============================================================================
