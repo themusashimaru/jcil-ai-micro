@@ -181,8 +181,9 @@ export class ErrorAnalyzer {
 
     let fileMatch: RegExpExecArray | null;
     while ((fileMatch = syntaxPattern.exec(output)) !== null) {
+      const currentMatch = fileMatch;
       // Find the closest error message AFTER this file reference
-      const closestError = allErrorMessages.find((e) => e.index > fileMatch.index)
+      const closestError = allErrorMessages.find((e) => e.index > currentMatch.index)
         || allErrorMessages[allErrorMessages.length - 1]
         || { type: 'Error', message: 'Unknown error' };
 
