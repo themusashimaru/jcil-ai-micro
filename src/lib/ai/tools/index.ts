@@ -179,8 +179,8 @@ export {
   isYouTubeTranscriptAvailable,
 } from './youtube-transcript';
 
-// GitHub Tool
-export { githubTool, executeGitHub, isGitHubAvailable } from './github-tool';
+// GitHub Tool (unified - includes context operations)
+export { githubTool, executeGitHub, isGitHubAvailable, getRepoSummaryForPrompt } from './github-tool';
 
 // Screenshot Tool
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
@@ -1034,12 +1034,11 @@ export {
   type ToolChainStep,
 } from './tool-chain-executor';
 
-// GitHub Context Tool - Understand user codebases (Enhancement #4)
+// GitHub Context Tool - backward compatibility (merged into unified github tool)
 export {
   githubContextTool,
   executeGitHubContext,
   isGitHubContextAvailable,
-  getRepoSummaryForPrompt,
 } from './github-context-tool';
 
 // ============================================================================
@@ -1538,9 +1537,6 @@ async function initializeTools() {
   const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
     await import('./youtube-transcript');
   const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
-  const { githubContextTool, executeGitHubContext, isGitHubContextAvailable } = await import(
-    './github-context-tool'
-  );
   const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
     './screenshot-tool'
   );
@@ -3512,11 +3508,6 @@ async function initializeTools() {
       checkAvailability: isYouTubeTranscriptAvailable,
     },
     { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
-    {
-      tool: githubContextTool,
-      executor: executeGitHubContext,
-      checkAvailability: isGitHubContextAvailable,
-    },
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },

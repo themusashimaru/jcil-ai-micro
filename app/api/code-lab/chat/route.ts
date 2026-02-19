@@ -12,6 +12,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { createClient } from '@supabase/supabase-js';
 import {
   executeCodeAgent,
   shouldUseCodeAgent as checkCodeAgentIntent,
@@ -697,6 +698,29 @@ export async function POST(request: NextRequest) {
 
     if (!sessionId || (!content && (!attachments || attachments.length === 0))) {
       return new Response('Missing sessionId or content', { status: 400 });
+    }
+
+    // Load user's GitHub token for tool use (non-blocking)
+    let userGitHubToken: string | undefined;
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrl && serviceKey) {
+        const adminClient = createClient(supabaseUrl, serviceKey);
+        const { data: tokenData } = await adminClient
+          .from('users')
+          .select('github_token')
+          .eq('id', user.id)
+          .single();
+        if (tokenData?.github_token) {
+          const decrypted = decryptToken(tokenData.github_token);
+          if (decrypted) {
+            userGitHubToken = decrypted;
+          }
+        }
+      }
+    } catch {
+      // GitHub token loading should never block chat
     }
 
     // Process attachments for Claude vision
@@ -2307,7 +2331,14 @@ Rules:
                     resultContent = typeof composioResult === 'string' ? composioResult : JSON.stringify(composioResult);
                   } else {
                     // Standard chat tool (244+ tools)
-                    const toolCall: UnifiedToolCall = { id: tc.id, name: tc.name, arguments: tc.input };
+                    let toolArgs = tc.input;
+                    // Inject user's GitHub token for authenticated operations
+                    if (tc.name === 'github' && userGitHubToken) {
+                      const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
+                      parsedArgs._githubToken = userGitHubToken;
+                      toolArgs = parsedArgs;
+                    }
+                    const toolCall: UnifiedToolCall = { id: tc.id, name: tc.name, arguments: toolArgs };
                     const result = await executeChatTool(toolCall);
                     resultContent = typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
                     resultIsError = result.isError || false;
