@@ -7,6 +7,7 @@
  */
 
 import type { ToolkitConfig, ToolkitCategory } from './types';
+import { getGitHubActionNamesByPriority } from './github-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -122,11 +123,14 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GITHUB',
     displayName: 'GitHub',
-    description: 'Manage repos, create issues, automate workflows',
+    description:
+      'Full GitHub integration: repos, issues, PRs, code, CI/CD, releases, teams, search, gists, and more',
     icon: '🐙',
     category: 'development',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGitHubActionNamesByPriority(2),
+    toolLimit: 100,
   },
   {
     id: 'LINEAR',
@@ -285,11 +289,14 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
   {
     id: 'GITHUB',
     displayName: 'GitHub',
-    description: 'Manage repos, create issues, automate workflows',
+    description:
+      'Full GitHub integration: repos, issues, PRs, code, CI/CD, releases, teams, search, gists, and more',
     icon: '🐙',
     category: 'development',
     authType: 'oauth2',
     popular: true,
+    featuredActions: getGitHubActionNamesByPriority(2),
+    toolLimit: 100,
   },
   {
     id: 'LINEAR',

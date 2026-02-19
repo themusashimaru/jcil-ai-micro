@@ -3,7 +3,12 @@
  * ===================
  *
  * Integrates Composio app connections with Claude's tool system.
- * Allows AI to use connected apps (Twitter, Slack, etc.) as tools.
+ * Allows AI to use connected apps (Twitter, Slack, GitHub, etc.) as tools.
+ *
+ * GitHub Integration:
+ * When GitHub is connected via Composio, provides 100+ prioritized GitHub
+ * actions (repos, issues, PRs, code, CI/CD, releases, teams, search).
+ * The custom github tool is skipped to prevent duplicates.
  */
 
 import { logger } from '@/lib/logger';
@@ -15,6 +20,12 @@ import {
 } from './client';
 import { getToolkitById } from './toolkits';
 import type { ComposioTool } from './types';
+import {
+  sortByGitHubPriority,
+  getGitHubSystemPrompt,
+  logGitHubToolkitStats,
+  getGitHubCapabilitySummary,
+} from './github-toolkit';
 
 const log = logger('ComposioTools');
 
@@ -36,7 +47,19 @@ export interface ComposioToolContext {
   connectedApps: string[];
   tools: ClaudeTool[];
   systemPromptAddition: string;
+  hasGitHub: boolean; // Whether GitHub is connected via Composio
 }
+
+// ============================================================================
+// TOOL LIMITS
+// ============================================================================
+
+// Default cap for non-GitHub Composio tools per session
+const MAX_COMPOSIO_TOOLS_DEFAULT = 50;
+
+// GitHub gets a higher cap because it's a primary development toolkit
+// with many essential actions across repos, issues, PRs, CI/CD, etc.
+const MAX_GITHUB_TOOLS = 100;
 
 // ============================================================================
 // TOOL CONVERSION
@@ -145,8 +168,19 @@ function toClaudeTool(tool: ComposioTool): ClaudeTool | null {
   }
 }
 
+// ============================================================================
+// MAIN TOOL LOADER
+// ============================================================================
+
 /**
- * Get Composio tools for a user, formatted for Claude
+ * Get Composio tools for a user, formatted for Claude.
+ *
+ * When GitHub is connected:
+ * - Loads up to 100 GitHub tools, sorted by priority (essential first)
+ * - Sets hasGitHub=true so callers can skip the custom github tool
+ * - Adds GitHub-specific system prompt with full capability docs
+ *
+ * For other apps: standard loading with 50-tool cap per app category.
  */
 export async function getComposioToolsForUser(userId: string): Promise<ComposioToolContext> {
   if (!isComposioConfigured()) {
@@ -154,6 +188,7 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       connectedApps: [],
       tools: [],
       systemPromptAddition: '',
+      hasGitHub: false,
     };
   }
 
@@ -167,10 +202,19 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
         connectedApps: [],
         tools: [],
         systemPromptAddition: '',
+        hasGitHub: false,
       };
     }
 
-    log.info('User has connected apps', { userId, apps: connectedApps });
+    const hasGitHub = connectedApps.some(
+      (app) => app === 'GITHUB' || app.toLowerCase() === 'github'
+    );
+
+    log.info('User has connected apps', { userId, apps: connectedApps, hasGitHub });
+
+    if (hasGitHub) {
+      logGitHubToolkitStats();
+    }
 
     // Get available tools for connected apps
     let composioTools: ComposioTool[] = [];
@@ -179,33 +223,44 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       log.info('Retrieved Composio tools', {
         userId,
         rawToolCount: composioTools.length,
-        toolNames: composioTools.slice(0, 5).map((t) => t.name),
+        toolNames: composioTools.slice(0, 10).map((t) => t.name),
       });
     } catch (toolsError) {
       log.error('Failed to get available tools', { userId, connectedApps, error: toolsError });
-      // Continue without tools - at least show connected apps
     }
 
     // Convert to Claude format, filtering out any null/invalid tools
     let tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);
 
-    // Limit the number of tools to prevent context overflow
-    // Each tool adds roughly 200-500 tokens to context
-    // Claude can handle many tools, but we cap at 50 per session for performance
-    const MAX_COMPOSIO_TOOLS = 50;
-    if (tools.length > MAX_COMPOSIO_TOOLS) {
-      log.warn('Truncating Composio tools list', {
-        userId,
-        originalCount: tools.length,
-        truncatedTo: MAX_COMPOSIO_TOOLS,
-      });
-      tools = tools.slice(0, MAX_COMPOSIO_TOOLS);
+    // Split GitHub tools from other tools for separate budget management
+    const githubTools: ClaudeTool[] = [];
+    const otherTools: ClaudeTool[] = [];
+
+    for (const tool of tools) {
+      if (tool.name.startsWith('composio_GITHUB_')) {
+        githubTools.push(tool);
+      } else {
+        otherTools.push(tool);
+      }
     }
+
+    // Sort GitHub tools by priority (essential actions first)
+    const sortedGitHubTools = sortByGitHubPriority(githubTools);
+
+    // Apply separate caps: GitHub gets up to 100, others get up to 50
+    const cappedGitHubTools = sortedGitHubTools.slice(0, MAX_GITHUB_TOOLS);
+    const cappedOtherTools = otherTools.slice(0, MAX_COMPOSIO_TOOLS_DEFAULT);
+
+    // Combine: GitHub tools first (they're the development superpowers)
+    tools = [...cappedGitHubTools, ...cappedOtherTools];
 
     log.info('Prepared Composio tools for Claude', {
       userId,
-      validToolCount: tools.length,
-      invalidToolCount: composioTools.length - tools.length,
+      totalTools: tools.length,
+      githubTools: cappedGitHubTools.length,
+      githubToolsDropped: githubTools.length - cappedGitHubTools.length,
+      otherTools: cappedOtherTools.length,
+      otherToolsDropped: otherTools.length - cappedOtherTools.length,
     });
 
     // Build system prompt addition
@@ -216,18 +271,28 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       })
       .join(', ');
 
-    const systemPromptAddition = `
+    let systemPromptAddition = `
 
 ## Connected App Integrations
 
 The user has connected the following apps: ${appList}
+`;
+
+    // Add GitHub-specific system prompt if GitHub is connected
+    if (hasGitHub && cappedGitHubTools.length > 0) {
+      systemPromptAddition += getGitHubSystemPrompt();
+    }
+
+    // Add general app guidance
+    systemPromptAddition += `
+### Connected App Usage
 
 You can use these apps to help the user with tasks like:
-- Post to social media (Twitter, Instagram, LinkedIn, Facebook, TikTok)
-- Send messages (Slack, Discord, WhatsApp, Telegram)
+- Post to social media (Twitter, Instagram, LinkedIn)
+- Send messages (Slack, Discord, Teams)
 - Manage documents (Notion, Google Docs, Airtable)
 - Handle email (Gmail, Outlook)
-- And more based on what they've connected
+${hasGitHub ? `- **Full GitHub operations** (${getGitHubCapabilitySummary()})\n` : ''}- And more based on what they've connected
 
 ### IMPORTANT: Preview Before Sending
 
@@ -266,10 +331,9 @@ If they click Edit and provide instructions, regenerate the preview with their c
 Tool names are prefixed with "composio_" followed by the action:
 - Tweet: composio_TWITTER_CREATE_TWEET
 - Slack message: composio_SLACK_SEND_MESSAGE
-- Notion page: composio_NOTION_CREATE_PAGE
 - Email: composio_GMAIL_SEND_EMAIL
 - LinkedIn post: composio_LINKEDIN_CREATE_POST
-
+${hasGitHub ? '- GitHub issue: composio_GITHUB_CREATE_ISSUE\n- GitHub PR: composio_GITHUB_CREATE_PULL_REQUEST\n- GitHub search: composio_GITHUB_SEARCH_CODE\n' : ''}
 ### Safety Rules
 
 1. **Never post without preview + confirmation**
@@ -282,6 +346,7 @@ Tool names are prefixed with "composio_" followed by the action:
       connectedApps,
       tools,
       systemPromptAddition,
+      hasGitHub,
     };
   } catch (error) {
     log.error('Failed to get Composio tools', { userId, error });
@@ -289,6 +354,7 @@ Tool names are prefixed with "composio_" followed by the action:
       connectedApps: [],
       tools: [],
       systemPromptAddition: '',
+      hasGitHub: false,
     };
   }
 }
@@ -344,6 +410,13 @@ export function isComposioTool(toolName: string): boolean {
   return toolName.startsWith('composio_');
 }
 
+/**
+ * Check if a tool name is a Composio GitHub tool
+ */
+export function isComposioGitHubTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GITHUB_');
+}
+
 // ============================================================================
 // QUICK CONTEXT HELPERS
 // ============================================================================
@@ -383,6 +456,7 @@ export async function getConnectedAppsSummary(userId: string): Promise<string> {
  */
 export function getFeaturedActions(): Record<string, string> {
   return {
+    // Social & Communication
     'Post a tweet': 'composio_TWITTER_CREATE_TWEET',
     'Send a Slack message': 'composio_SLACK_SEND_MESSAGE',
     'Create a Notion page': 'composio_NOTION_CREATE_PAGE',
@@ -390,6 +464,14 @@ export function getFeaturedActions(): Record<string, string> {
     'Post to LinkedIn': 'composio_LINKEDIN_CREATE_POST',
     'Upload to Instagram': 'composio_INSTAGRAM_CREATE_POST',
     'Add calendar event': 'composio_GOOGLE_CALENDAR_CREATE_EVENT',
+    // GitHub - Core Actions
     'Create GitHub issue': 'composio_GITHUB_CREATE_ISSUE',
+    'Create pull request': 'composio_GITHUB_CREATE_PULL_REQUEST',
+    'Search GitHub code': 'composio_GITHUB_SEARCH_CODE',
+    'List my repos': 'composio_GITHUB_LIST_REPOS_FOR_AUTHENTICATED_USER',
+    'Create GitHub release': 'composio_GITHUB_CREATE_RELEASE',
+    'Trigger GitHub workflow': 'composio_GITHUB_CREATE_WORKFLOW_DISPATCH',
+    'Merge pull request': 'composio_GITHUB_MERGE_PULL_REQUEST',
+    'Create repository': 'composio_GITHUB_CREATE_REPOSITORY',
   };
 }

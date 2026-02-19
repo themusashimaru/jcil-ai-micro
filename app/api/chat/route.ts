@@ -4614,10 +4614,11 @@ SECURITY:
     }
 
     // ========================================
-    // COMPOSIO TOOLS INTEGRATION (150+ Apps)
+    // COMPOSIO TOOLS INTEGRATION (150+ Apps + Full GitHub Toolkit)
     // ========================================
-    // Get tools from user's connected apps (Twitter, Slack, Notion, etc.)
-    // These enable AI to interact with external services the user has connected
+    // Get tools from user's connected apps (Twitter, Slack, GitHub, etc.)
+    // When GitHub is connected via Composio, provides 100+ prioritized GitHub
+    // actions and removes the custom github tool to prevent duplicates.
     let composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null = null;
 
     if (isComposioConfigured() && rateLimitIdentifier) {
@@ -4625,6 +4626,19 @@ SECURITY:
         composioToolContext = await getComposioToolsForUser(rateLimitIdentifier);
 
         if (composioToolContext.tools.length > 0) {
+          // When Composio GitHub is connected, remove the custom github tool
+          // to prevent duplicate/conflicting tools. Composio provides a superset
+          // (100+ actions vs 9 read-only actions in the custom tool).
+          if (composioToolContext.hasGitHub) {
+            const beforeCount = tools.length;
+            tools = tools.filter((t) => t.name !== 'github');
+            if (tools.length < beforeCount) {
+              log.info('Removed custom github tool (replaced by Composio GitHub toolkit)', {
+                userId: rateLimitIdentifier,
+              });
+            }
+          }
+
           // Add Composio tools to the tools array
           for (const composioTool of composioToolContext.tools) {
             tools.push({
@@ -4645,6 +4659,7 @@ SECURITY:
             userId: rateLimitIdentifier,
             connectedApps: composioToolContext.connectedApps,
             toolCount: composioToolContext.tools.length,
+            hasGitHub: composioToolContext.hasGitHub,
           });
         }
       } catch (composioError) {
@@ -5085,9 +5100,10 @@ SECURITY:
             break;
           case 'github': {
             // Inject user's GitHub token for authenticated operations
-            const ghArgs = typeof toolCallWithSession.arguments === 'string'
-              ? JSON.parse(toolCallWithSession.arguments)
-              : { ...toolCallWithSession.arguments };
+            const ghArgs =
+              typeof toolCallWithSession.arguments === 'string'
+                ? JSON.parse(toolCallWithSession.arguments)
+                : { ...toolCallWithSession.arguments };
             if (userGitHubToken) {
               ghArgs._githubToken = userGitHubToken;
             }
@@ -5445,9 +5461,10 @@ SECURITY:
           }
           case 'github_context': {
             // Legacy: redirect to unified github tool with token injection
-            const ghCtxArgs = typeof toolCallWithSession.arguments === 'string'
-              ? JSON.parse(toolCallWithSession.arguments)
-              : { ...toolCallWithSession.arguments };
+            const ghCtxArgs =
+              typeof toolCallWithSession.arguments === 'string'
+                ? JSON.parse(toolCallWithSession.arguments)
+                : { ...toolCallWithSession.arguments };
             if (userGitHubToken) {
               ghCtxArgs._githubToken = userGitHubToken;
             }
@@ -5456,7 +5473,11 @@ SECURITY:
               ghCtxArgs.action = ghCtxArgs.operation;
               delete ghCtxArgs.operation;
             }
-            result = await executeGitHub({ ...toolCallWithSession, name: 'github', arguments: ghCtxArgs });
+            result = await executeGitHub({
+              ...toolCallWithSession,
+              name: 'github',
+              arguments: ghCtxArgs,
+            });
             break;
           }
           // Cybersecurity Tools (32 tools)

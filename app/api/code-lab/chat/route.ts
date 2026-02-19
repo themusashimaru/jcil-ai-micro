@@ -76,9 +76,9 @@ interface ClassificationResult {
 
 // Model mapping for each complexity level
 const COMPLEXITY_MODEL_MAP: Record<TaskComplexity, string> = {
-  simple: 'claude-haiku-4-5-20251101',    // Quick answers, simple questions
-  moderate: 'claude-sonnet-4-20250514',    // Code generation, analysis
-  complex: 'claude-opus-4-6',     // Complex reasoning, architecture
+  simple: 'claude-haiku-4-5-20251101', // Quick answers, simple questions
+  moderate: 'claude-sonnet-4-20250514', // Code generation, analysis
+  complex: 'claude-opus-4-6', // Complex reasoning, architecture
 };
 
 /**
@@ -94,7 +94,7 @@ async function classifyTaskComplexity(
     // Build a condensed context from recent history (last 2 messages max)
     const recentContext = history
       .slice(-2)
-      .map(m => `${m.role}: ${m.content.substring(0, 200)}`)
+      .map((m) => `${m.role}: ${m.content.substring(0, 200)}`)
       .join('\n');
 
     const response = await anthropicClient.messages.create({
@@ -126,10 +126,12 @@ COMPLEX (use for):
 - Novel problem solving
 
 Respond with ONLY one word: simple, moderate, or complex`,
-      messages: [{
-        role: 'user',
-        content: `${recentContext ? `Recent context:\n${recentContext}\n\n` : ''}Current request: ${message.substring(0, 500)}`
-      }],
+      messages: [
+        {
+          role: 'user',
+          content: `${recentContext ? `Recent context:\n${recentContext}\n\n` : ''}Current request: ${message.substring(0, 500)}`,
+        },
+      ],
     });
 
     // Parse the response
@@ -156,7 +158,7 @@ Respond with ONLY one word: simple, moderate, or complex`,
   } catch (error) {
     // On any error, default to Sonnet (balanced choice)
     log.warn('Classification failed, defaulting to Sonnet', {
-      error: error instanceof Error ? error.message : 'Unknown'
+      error: error instanceof Error ? error.message : 'Unknown',
     });
     return {
       complexity: 'moderate',
@@ -1710,14 +1712,28 @@ Rules:
     }
 
     // ========================================
-    // COMPOSIO / CONNECTORS (150+ Apps)
+    // COMPOSIO / CONNECTORS (150+ Apps + Full GitHub Toolkit)
     // ========================================
+    // When GitHub is connected via Composio, provides 100+ prioritized
+    // GitHub actions and removes the custom github tool to prevent duplicates.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let composioToolContext: any = null;
     if (isComposioConfigured()) {
       try {
         composioToolContext = await getComposioToolsForUser(user.id);
         if (composioToolContext?.tools?.length > 0) {
+          // When Composio GitHub is connected, remove the custom github tool
+          // to prevent duplicate/conflicting tools. Composio provides a superset.
+          if (composioToolContext.hasGitHub) {
+            const beforeCount = chatTools.length;
+            chatTools = chatTools.filter((t) => t.name !== 'github');
+            if (chatTools.length < beforeCount) {
+              log.info(
+                'Removed custom github tool from Code Lab (replaced by Composio GitHub toolkit)'
+              );
+            }
+          }
+
           for (const composioTool of composioToolContext.tools) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             chatTools.push({
@@ -1727,7 +1743,10 @@ Rules:
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
           }
-          log.info('Loaded Composio tools for Code Lab', { count: composioToolContext.tools.length });
+          log.info('Loaded Composio tools for Code Lab', {
+            count: composioToolContext.tools.length,
+            hasGitHub: composioToolContext.hasGitHub,
+          });
 
           // Add connected apps context to system prompt
           if (composioToolContext.systemPromptAddition) {
@@ -2243,9 +2262,7 @@ Rules:
                       input: {},
                     });
                     // Show user that a tool is being used
-                    controller.enqueue(
-                      encoder.encode(`\n<!--TOOL_START:${toolBlock.name}-->`)
-                    );
+                    controller.enqueue(encoder.encode(`\n<!--TOOL_START:${toolBlock.name}-->`));
                   }
                 }
 
@@ -2301,7 +2318,11 @@ Rules:
             }
 
             // Check if Claude wants to use tools
-            if (stopReason === 'tool_use' && pendingToolCalls.length > 0 && toolLoopCount < MAX_TOOL_LOOPS) {
+            if (
+              stopReason === 'tool_use' &&
+              pendingToolCalls.length > 0 &&
+              toolLoopCount < MAX_TOOL_LOOPS
+            ) {
               toolLoopCount++;
               log.info('Executing tools', { count: pendingToolCalls.length, loop: toolLoopCount });
 
@@ -2312,7 +2333,12 @@ Rules:
                 assistantContent.push({ type: 'text', text: fullContent });
               }
               for (const tc of pendingToolCalls) {
-                assistantContent.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+                assistantContent.push({
+                  type: 'tool_use',
+                  id: tc.id,
+                  name: tc.name,
+                  input: tc.input,
+                });
               }
               currentMessages.push({ role: 'assistant', content: assistantContent });
 
@@ -2328,19 +2354,30 @@ Rules:
                     // Composio tool (connected apps: Twitter, Slack, Gmail, etc.)
                     log.info('Executing Composio tool', { tool: tc.name });
                     const composioResult = await executeComposioTool(user.id, tc.name, tc.input);
-                    resultContent = typeof composioResult === 'string' ? composioResult : JSON.stringify(composioResult);
+                    resultContent =
+                      typeof composioResult === 'string'
+                        ? composioResult
+                        : JSON.stringify(composioResult);
                   } else {
                     // Standard chat tool (244+ tools)
                     let toolArgs = tc.input;
                     // Inject user's GitHub token for authenticated operations
                     if (tc.name === 'github' && userGitHubToken) {
-                      const parsedArgs = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
+                      const parsedArgs =
+                        typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
                       parsedArgs._githubToken = userGitHubToken;
                       toolArgs = parsedArgs;
                     }
-                    const toolCall: UnifiedToolCall = { id: tc.id, name: tc.name, arguments: toolArgs };
+                    const toolCall: UnifiedToolCall = {
+                      id: tc.id,
+                      name: tc.name,
+                      arguments: toolArgs,
+                    };
                     const result = await executeChatTool(toolCall);
-                    resultContent = typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+                    resultContent =
+                      typeof result.content === 'string'
+                        ? result.content
+                        : JSON.stringify(result.content);
                     resultIsError = result.isError || false;
                   }
 
@@ -2350,7 +2387,11 @@ Rules:
                     content: resultContent,
                     is_error: resultIsError,
                   });
-                  controller.enqueue(encoder.encode(`\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`));
+                  controller.enqueue(
+                    encoder.encode(
+                      `\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`
+                    )
+                  );
                 } catch (toolErr) {
                   log.error('Tool execution error', { tool: tc.name, error: toolErr });
                   toolResults.push({
@@ -2437,9 +2478,14 @@ Rules:
           // Process conversation for persistent memory (fire and forget)
           processConversationForMemory(
             user.id,
-            [...history, { role: 'user', content }, { role: 'assistant', content: fullContent }].map(
-              (m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })
-            ),
+            [
+              ...history,
+              { role: 'user', content },
+              { role: 'assistant', content: fullContent },
+            ].map((m) => ({
+              role: m.role,
+              content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+            })),
             sessionId
           ).catch((err) => log.warn('Memory processing failed', { error: err }));
 

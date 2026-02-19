@@ -38,6 +38,8 @@ export interface ToolkitConfig {
   authType: 'oauth2' | 'api_key' | 'basic';
   scopes?: string[]; // Required OAuth scopes
   popular?: boolean; // Show in quick connect UI
+  featuredActions?: string[]; // Priority actions to always include (Composio action names)
+  toolLimit?: number; // Max tools to load for this toolkit (overrides global cap)
 }
 
 // ============================================================================
