@@ -11,11 +11,18 @@
  * - Priority sort function
  * - System prompt injection
  *
- * Supported Toolkits (15):
+ * Supported Toolkits (37):
  * - GitHub, Gmail, Outlook, Slack
  * - Google Sheets, Discord, Google Docs
  * - Twitter, LinkedIn, Instagram, YouTube
  * - Vercel, Stripe, Google Drive, Airtable
+ * - Microsoft Teams, Linear, Google Calendar
+ * - HubSpot, Salesforce, Sentry, Supabase
+ * - Cloudflare, Reddit, Shopify
+ * - Google Slides, Google Tasks, Google Meet
+ * - Google Photos, Google Analytics
+ * - Google Search Console, Google Ads, Google Maps
+ * - Dropbox, ElevenLabs, SerpAPI, Perplexity AI
  */
 
 import { logger } from '@/lib/logger';
@@ -121,6 +128,138 @@ import {
   logAirtableToolkitStats,
   getAirtableCapabilitySummary,
 } from './airtable-toolkit';
+import {
+  sortByMicrosoftTeamsPriority,
+  getMicrosoftTeamsSystemPrompt,
+  logMicrosoftTeamsToolkitStats,
+  getMicrosoftTeamsCapabilitySummary,
+} from './microsoftteams-toolkit';
+import {
+  sortByLinearPriority,
+  getLinearSystemPrompt,
+  logLinearToolkitStats,
+  getLinearCapabilitySummary,
+} from './linear-toolkit';
+import {
+  sortByGoogleCalendarPriority,
+  getGoogleCalendarSystemPrompt,
+  logGoogleCalendarToolkitStats,
+  getGoogleCalendarCapabilitySummary,
+} from './googlecalendar-toolkit';
+import {
+  sortByHubSpotPriority,
+  getHubSpotSystemPrompt,
+  logHubSpotToolkitStats,
+  getHubSpotCapabilitySummary,
+} from './hubspot-toolkit';
+import {
+  sortBySalesforcePriority,
+  getSalesforceSystemPrompt,
+  logSalesforceToolkitStats,
+  getSalesforceCapabilitySummary,
+} from './salesforce-toolkit';
+import {
+  sortBySentryPriority,
+  getSentrySystemPrompt,
+  logSentryToolkitStats,
+  getSentryCapabilitySummary,
+} from './sentry-toolkit';
+import {
+  sortBySupabasePriority,
+  getSupabaseSystemPrompt,
+  logSupabaseToolkitStats,
+  getSupabaseCapabilitySummary,
+} from './supabase-toolkit';
+import {
+  sortByCloudflarePriority,
+  getCloudflareSystemPrompt,
+  logCloudflareToolkitStats,
+  getCloudflareCapabilitySummary,
+} from './cloudflare-toolkit';
+import {
+  sortByRedditPriority,
+  getRedditSystemPrompt,
+  logRedditToolkitStats,
+  getRedditCapabilitySummary,
+} from './reddit-toolkit';
+import {
+  sortByShopifyPriority,
+  getShopifySystemPrompt,
+  logShopifyToolkitStats,
+  getShopifyCapabilitySummary,
+} from './shopify-toolkit';
+import {
+  sortByGoogleSlidesPriority,
+  getGoogleSlidesSystemPrompt,
+  logGoogleSlidesToolkitStats,
+  getGoogleSlidesCapabilitySummary,
+} from './googleslides-toolkit';
+import {
+  sortByGoogleTasksPriority,
+  getGoogleTasksSystemPrompt,
+  logGoogleTasksToolkitStats,
+  getGoogleTasksCapabilitySummary,
+} from './googletasks-toolkit';
+import {
+  sortByGoogleMeetPriority,
+  getGoogleMeetSystemPrompt,
+  logGoogleMeetToolkitStats,
+  getGoogleMeetCapabilitySummary,
+} from './googlemeet-toolkit';
+import {
+  sortByGooglePhotosPriority,
+  getGooglePhotosSystemPrompt,
+  logGooglePhotosToolkitStats,
+  getGooglePhotosCapabilitySummary,
+} from './googlephotos-toolkit';
+import {
+  sortByGoogleAnalyticsPriority,
+  getGoogleAnalyticsSystemPrompt,
+  logGoogleAnalyticsToolkitStats,
+  getGoogleAnalyticsCapabilitySummary,
+} from './googleanalytics-toolkit';
+import {
+  sortByGoogleSearchConsolePriority,
+  getGoogleSearchConsoleSystemPrompt,
+  logGoogleSearchConsoleToolkitStats,
+  getGoogleSearchConsoleCapabilitySummary,
+} from './googlesearchconsole-toolkit';
+import {
+  sortByGoogleAdsPriority,
+  getGoogleAdsSystemPrompt,
+  logGoogleAdsToolkitStats,
+  getGoogleAdsCapabilitySummary,
+} from './googleads-toolkit';
+import {
+  sortByGoogleMapsPriority,
+  getGoogleMapsSystemPrompt,
+  logGoogleMapsToolkitStats,
+  getGoogleMapsCapabilitySummary,
+} from './googlemaps-toolkit';
+import {
+  sortByDropboxPriority,
+  getDropboxSystemPrompt,
+  logDropboxToolkitStats,
+  getDropboxCapabilitySummary,
+} from './dropbox-toolkit';
+import {
+  sortByElevenLabsPriority,
+  getElevenLabsSystemPrompt,
+  logElevenLabsToolkitStats,
+  getElevenLabsCapabilitySummary,
+} from './elevenlabs-toolkit';
+import {
+  sortBySerpAPIPriority,
+  getSerpAPISystemPrompt,
+  logSerpAPIToolkitStats,
+  getSerpAPICapabilitySummary,
+} from './serpapi-toolkit';
+import {
+  sortByPerplexityAIPriority,
+  getPerplexityAISystemPrompt,
+  logPerplexityAIToolkitStats,
+  getPerplexityAICapabilitySummary,
+} from './perplexityai-toolkit';
 
 const log = logger('ComposioTools');
 
@@ -339,6 +478,250 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     systemPromptFn: getAirtableSystemPrompt,
     logStatsFn: logAirtableToolkitStats,
     capabilitySummaryFn: getAirtableCapabilitySummary,
+  },
+
+  // ==================== NEW 22 TOOLKITS ====================
+  {
+    id: 'MICROSOFT_TEAMS',
+    displayName: 'Microsoft Teams',
+    prefix: 'composio_MICROSOFTTEAMS_',
+    cap: 40,
+    appMatchers: ['microsoftteams', 'msteams', 'teams'],
+    sortFn: sortByMicrosoftTeamsPriority,
+    systemPromptFn: getMicrosoftTeamsSystemPrompt,
+    logStatsFn: logMicrosoftTeamsToolkitStats,
+    capabilitySummaryFn: getMicrosoftTeamsCapabilitySummary,
+  },
+  {
+    id: 'LINEAR',
+    displayName: 'Linear',
+    prefix: 'composio_LINEAR_',
+    cap: 45,
+    appMatchers: ['linear'],
+    sortFn: sortByLinearPriority,
+    systemPromptFn: getLinearSystemPrompt,
+    logStatsFn: logLinearToolkitStats,
+    capabilitySummaryFn: getLinearCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_CALENDAR',
+    displayName: 'Google Calendar',
+    prefix: 'composio_GOOGLECALENDAR_',
+    cap: 30,
+    appMatchers: ['googlecalendar'],
+    sortFn: sortByGoogleCalendarPriority,
+    systemPromptFn: getGoogleCalendarSystemPrompt,
+    logStatsFn: logGoogleCalendarToolkitStats,
+    capabilitySummaryFn: getGoogleCalendarCapabilitySummary,
+  },
+  {
+    id: 'HUBSPOT',
+    displayName: 'HubSpot',
+    prefix: 'composio_HUBSPOT_',
+    cap: 45,
+    appMatchers: ['hubspot'],
+    sortFn: sortByHubSpotPriority,
+    systemPromptFn: getHubSpotSystemPrompt,
+    logStatsFn: logHubSpotToolkitStats,
+    capabilitySummaryFn: getHubSpotCapabilitySummary,
+  },
+  {
+    id: 'SALESFORCE',
+    displayName: 'Salesforce',
+    prefix: 'composio_SALESFORCE_',
+    cap: 45,
+    appMatchers: ['salesforce'],
+    sortFn: sortBySalesforcePriority,
+    systemPromptFn: getSalesforceSystemPrompt,
+    logStatsFn: logSalesforceToolkitStats,
+    capabilitySummaryFn: getSalesforceCapabilitySummary,
+  },
+  {
+    id: 'SENTRY',
+    displayName: 'Sentry',
+    prefix: 'composio_SENTRY_',
+    cap: 30,
+    appMatchers: ['sentry'],
+    sortFn: sortBySentryPriority,
+    systemPromptFn: getSentrySystemPrompt,
+    logStatsFn: logSentryToolkitStats,
+    capabilitySummaryFn: getSentryCapabilitySummary,
+  },
+  {
+    id: 'SUPABASE',
+    displayName: 'Supabase',
+    prefix: 'composio_SUPABASE_',
+    cap: 30,
+    appMatchers: ['supabase'],
+    sortFn: sortBySupabasePriority,
+    systemPromptFn: getSupabaseSystemPrompt,
+    logStatsFn: logSupabaseToolkitStats,
+    capabilitySummaryFn: getSupabaseCapabilitySummary,
+  },
+  {
+    id: 'CLOUDFLARE',
+    displayName: 'Cloudflare',
+    prefix: 'composio_CLOUDFLARE_',
+    cap: 30,
+    appMatchers: ['cloudflare'],
+    sortFn: sortByCloudflarePriority,
+    systemPromptFn: getCloudflareSystemPrompt,
+    logStatsFn: logCloudflareToolkitStats,
+    capabilitySummaryFn: getCloudflareCapabilitySummary,
+  },
+  {
+    id: 'REDDIT',
+    displayName: 'Reddit',
+    prefix: 'composio_REDDIT_',
+    cap: 28,
+    appMatchers: ['reddit'],
+    sortFn: sortByRedditPriority,
+    systemPromptFn: getRedditSystemPrompt,
+    logStatsFn: logRedditToolkitStats,
+    capabilitySummaryFn: getRedditCapabilitySummary,
+  },
+  {
+    id: 'SHOPIFY',
+    displayName: 'Shopify',
+    prefix: 'composio_SHOPIFY_',
+    cap: 40,
+    appMatchers: ['shopify'],
+    sortFn: sortByShopifyPriority,
+    systemPromptFn: getShopifySystemPrompt,
+    logStatsFn: logShopifyToolkitStats,
+    capabilitySummaryFn: getShopifyCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_SLIDES',
+    displayName: 'Google Slides',
+    prefix: 'composio_GOOGLESLIDES_',
+    cap: 22,
+    appMatchers: ['googleslides'],
+    sortFn: sortByGoogleSlidesPriority,
+    systemPromptFn: getGoogleSlidesSystemPrompt,
+    logStatsFn: logGoogleSlidesToolkitStats,
+    capabilitySummaryFn: getGoogleSlidesCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_TASKS',
+    displayName: 'Google Tasks',
+    prefix: 'composio_GOOGLETASKS_',
+    cap: 16,
+    appMatchers: ['googletasks'],
+    sortFn: sortByGoogleTasksPriority,
+    systemPromptFn: getGoogleTasksSystemPrompt,
+    logStatsFn: logGoogleTasksToolkitStats,
+    capabilitySummaryFn: getGoogleTasksCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_MEET',
+    displayName: 'Google Meet',
+    prefix: 'composio_GOOGLEMEET_',
+    cap: 16,
+    appMatchers: ['googlemeet'],
+    sortFn: sortByGoogleMeetPriority,
+    systemPromptFn: getGoogleMeetSystemPrompt,
+    logStatsFn: logGoogleMeetToolkitStats,
+    capabilitySummaryFn: getGoogleMeetCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_PHOTOS',
+    displayName: 'Google Photos',
+    prefix: 'composio_GOOGLEPHOTOS_',
+    cap: 16,
+    appMatchers: ['googlephotos'],
+    sortFn: sortByGooglePhotosPriority,
+    systemPromptFn: getGooglePhotosSystemPrompt,
+    logStatsFn: logGooglePhotosToolkitStats,
+    capabilitySummaryFn: getGooglePhotosCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_ANALYTICS',
+    displayName: 'Google Analytics',
+    prefix: 'composio_GOOGLEANALYTICS_',
+    cap: 20,
+    appMatchers: ['googleanalytics'],
+    sortFn: sortByGoogleAnalyticsPriority,
+    systemPromptFn: getGoogleAnalyticsSystemPrompt,
+    logStatsFn: logGoogleAnalyticsToolkitStats,
+    capabilitySummaryFn: getGoogleAnalyticsCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_SEARCH_CONSOLE',
+    displayName: 'Google Search Console',
+    prefix: 'composio_GOOGLESEARCHCONSOLE_',
+    cap: 16,
+    appMatchers: ['googlesearchconsole'],
+    sortFn: sortByGoogleSearchConsolePriority,
+    systemPromptFn: getGoogleSearchConsoleSystemPrompt,
+    logStatsFn: logGoogleSearchConsoleToolkitStats,
+    capabilitySummaryFn: getGoogleSearchConsoleCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_ADS',
+    displayName: 'Google Ads',
+    prefix: 'composio_GOOGLEADS_',
+    cap: 24,
+    appMatchers: ['googleads'],
+    sortFn: sortByGoogleAdsPriority,
+    systemPromptFn: getGoogleAdsSystemPrompt,
+    logStatsFn: logGoogleAdsToolkitStats,
+    capabilitySummaryFn: getGoogleAdsCapabilitySummary,
+  },
+  {
+    id: 'GOOGLE_MAPS',
+    displayName: 'Google Maps',
+    prefix: 'composio_GOOGLEMAPS_',
+    cap: 14,
+    appMatchers: ['googlemaps'],
+    sortFn: sortByGoogleMapsPriority,
+    systemPromptFn: getGoogleMapsSystemPrompt,
+    logStatsFn: logGoogleMapsToolkitStats,
+    capabilitySummaryFn: getGoogleMapsCapabilitySummary,
+  },
+  {
+    id: 'DROPBOX',
+    displayName: 'Dropbox',
+    prefix: 'composio_DROPBOX_',
+    cap: 24,
+    appMatchers: ['dropbox'],
+    sortFn: sortByDropboxPriority,
+    systemPromptFn: getDropboxSystemPrompt,
+    logStatsFn: logDropboxToolkitStats,
+    capabilitySummaryFn: getDropboxCapabilitySummary,
+  },
+  {
+    id: 'ELEVENLABS',
+    displayName: 'ElevenLabs',
+    prefix: 'composio_ELEVENLABS_',
+    cap: 16,
+    appMatchers: ['elevenlabs'],
+    sortFn: sortByElevenLabsPriority,
+    systemPromptFn: getElevenLabsSystemPrompt,
+    logStatsFn: logElevenLabsToolkitStats,
+    capabilitySummaryFn: getElevenLabsCapabilitySummary,
+  },
+  {
+    id: 'SERPAPI',
+    displayName: 'SerpAPI',
+    prefix: 'composio_SERPAPI_',
+    cap: 14,
+    appMatchers: ['serpapi'],
+    sortFn: sortBySerpAPIPriority,
+    systemPromptFn: getSerpAPISystemPrompt,
+    logStatsFn: logSerpAPIToolkitStats,
+    capabilitySummaryFn: getSerpAPICapabilitySummary,
+  },
+  {
+    id: 'PERPLEXITY_AI',
+    displayName: 'Perplexity AI',
+    prefix: 'composio_PERPLEXITYAI_',
+    cap: 10,
+    appMatchers: ['perplexityai', 'perplexity'],
+    sortFn: sortByPerplexityAIPriority,
+    systemPromptFn: getPerplexityAISystemPrompt,
+    logStatsFn: logPerplexityAIToolkitStats,
+    capabilitySummaryFn: getPerplexityAICapabilitySummary,
   },
 ];
 
@@ -838,6 +1221,94 @@ export function isComposioGoogleDriveTool(toolName: string): boolean {
 
 export function isComposioAirtableTool(toolName: string): boolean {
   return toolName.startsWith('composio_AIRTABLE_');
+}
+
+export function isComposioMicrosoftTeamsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_MICROSOFTTEAMS_');
+}
+
+export function isComposioLinearTool(toolName: string): boolean {
+  return toolName.startsWith('composio_LINEAR_');
+}
+
+export function isComposioGoogleCalendarTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLECALENDAR_');
+}
+
+export function isComposioHubSpotTool(toolName: string): boolean {
+  return toolName.startsWith('composio_HUBSPOT_');
+}
+
+export function isComposioSalesforceTool(toolName: string): boolean {
+  return toolName.startsWith('composio_SALESFORCE_');
+}
+
+export function isComposioSentryTool(toolName: string): boolean {
+  return toolName.startsWith('composio_SENTRY_');
+}
+
+export function isComposioSupabaseTool(toolName: string): boolean {
+  return toolName.startsWith('composio_SUPABASE_');
+}
+
+export function isComposioCloudfareTool(toolName: string): boolean {
+  return toolName.startsWith('composio_CLOUDFLARE_');
+}
+
+export function isComposioRedditTool(toolName: string): boolean {
+  return toolName.startsWith('composio_REDDIT_');
+}
+
+export function isComposioShopifyTool(toolName: string): boolean {
+  return toolName.startsWith('composio_SHOPIFY_');
+}
+
+export function isComposioGoogleSlidesTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLESLIDES_');
+}
+
+export function isComposioGoogleTasksTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLETASKS_');
+}
+
+export function isComposioGoogleMeetTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEMEET_');
+}
+
+export function isComposioGooglePhotosTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEPHOTOS_');
+}
+
+export function isComposioGoogleAnalyticsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEANALYTICS_');
+}
+
+export function isComposioGoogleSearchConsoleTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLESEARCHCONSOLE_');
+}
+
+export function isComposioGoogleAdsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEADS_');
+}
+
+export function isComposioGoogleMapsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_GOOGLEMAPS_');
+}
+
+export function isComposioDropboxTool(toolName: string): boolean {
+  return toolName.startsWith('composio_DROPBOX_');
+}
+
+export function isComposioElevenLabsTool(toolName: string): boolean {
+  return toolName.startsWith('composio_ELEVENLABS_');
+}
+
+export function isComposioSerpAPITool(toolName: string): boolean {
+  return toolName.startsWith('composio_SERPAPI_');
+}
+
+export function isComposioPerplexityAITool(toolName: string): boolean {
+  return toolName.startsWith('composio_PERPLEXITYAI_');
 }
 
 // ============================================================================
