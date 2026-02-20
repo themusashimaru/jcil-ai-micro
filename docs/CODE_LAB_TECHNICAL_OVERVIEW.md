@@ -110,7 +110,7 @@ Code Lab supports multiple AI providers through a unified adapter system:
 
 | Provider               | Models                           | Capabilities                            |
 | ---------------------- | -------------------------------- | --------------------------------------- |
-| **Claude (Anthropic)** | Opus 4.5, Sonnet 4.5, Haiku 4.5  | Vision, Extended Thinking, Tool Calling |
+| **Claude (Anthropic)** | Opus 4.5, Sonnet 4.6, Haiku 4.5  | Vision, Extended Thinking, Tool Calling |
 | **OpenAI**             | GPT-5.2, GPT-5 Codex, GPT-5 Mini | Vision, JSON Mode, Tool Calling         |
 | **xAI (Grok)**         | Grok 4, Grok 4.1 Fast            | Vision, 2M Context, Tool Calling        |
 | **DeepSeek**           | DeepSeek Reasoner                | Reasoning, Cost-Effective               |

@@ -113,8 +113,8 @@ This isn't a simple search. This is an autonomous research army. I'm about to de
 
 **THE RESEARCH HIERARCHY**
 • **Claude Opus 4.6** — Research Director (designs your investigation, maximum intelligence)
-• **Claude Sonnet 4.5** — Domain Leads (coordinate research teams by topic)
-• **Up to 100 Claude Sonnet 4.5 Investigators** (parallel research army)
+• **Claude Sonnet 4.6** — Domain Leads (coordinate research teams by topic)
+• **Up to 100 Claude Sonnet 4.6 Investigators** (parallel research army)
 
 **EACH INVESTIGATOR HAS ACCESS TO:**
 • **E2B Cloud Sandbox** — Secure isolated execution environment

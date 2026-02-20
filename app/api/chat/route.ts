@@ -4,10 +4,10 @@
  * PURPOSE:
  * - Handle chat messages with streaming responses
  * - Route research requests to Brave-powered Research Agent
- * - Use Claude Sonnet 4.5 for intelligent tool orchestration
+ * - Use Claude Sonnet 4.6 for intelligent tool orchestration
  *
  * MODEL:
- * - Claude Sonnet 4.5: Primary model with full tool access
+ * - Claude Sonnet 4.6: Primary model with full tool access
  *   - Web search, code execution, vision, browser automation
  *   - Parallel research agents (mini_agent tool)
  *   - PDF extraction, table extraction
@@ -15,7 +15,7 @@
  *
  * ROUTING:
  * - Research requests → Research Agent (explicit button)
- * - All other queries → Sonnet 4.5 with native tool use
+ * - All other queries → Sonnet 4.6 with native tool use
  */
 
 import { NextRequest } from 'next/server';
@@ -3479,7 +3479,7 @@ export async function POST(request: NextRequest) {
         ];
         const result = await completeChat(docMessages, {
           systemPrompt: schemaPrompt,
-          model: 'claude-sonnet-4-5-20250929', // Use Sonnet for document generation
+          model: 'claude-sonnet-4-6', // Use Sonnet for document generation
           maxTokens: 4096,
           temperature: 0.3, // Lower temp for structured output
         });
@@ -3488,7 +3488,7 @@ export async function POST(request: NextRequest) {
         if (result.usage) {
           trackTokenUsage({
             userId: rateLimitIdentifier,
-            modelName: result.model || 'claude-sonnet-4-5-20250929',
+            modelName: result.model || 'claude-sonnet-4-6',
             inputTokens: result.usage.inputTokens,
             outputTokens: result.usage.outputTokens,
             source: 'chat-document',
@@ -3686,7 +3686,7 @@ If information is missing, make reasonable professional assumptions or leave opt
             },
           ];
           const extractionResult = await completeChat(extractionMessages, {
-            model: 'claude-sonnet-4-5-20250929',
+            model: 'claude-sonnet-4-6',
             maxTokens: 4096,
             temperature: 0.1,
           });
@@ -3695,7 +3695,7 @@ If information is missing, make reasonable professional assumptions or leave opt
           if (extractionResult.usage) {
             trackTokenUsage({
               userId: rateLimitIdentifier,
-              modelName: extractionResult.model || 'claude-sonnet-4-5-20250929',
+              modelName: extractionResult.model || 'claude-sonnet-4-6',
               inputTokens: extractionResult.usage.inputTokens,
               outputTokens: extractionResult.usage.outputTokens,
               source: 'chat-resume',
@@ -3809,13 +3809,13 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
         // Use routeChat for streaming with xAI fallback
         const streamResult = await routeChat(truncatedMessages, {
           systemPrompt: resumeSystemPrompt,
-          model: 'claude-sonnet-4-5-20250929',
+          model: 'claude-sonnet-4-6',
           maxTokens: 1024,
           temperature: 0.7,
           onUsage: (usage) => {
             trackTokenUsage({
               userId: rateLimitIdentifier,
-              modelName: 'claude-sonnet-4-5-20250929',
+              modelName: 'claude-sonnet-4-6',
               inputTokens: usage.inputTokens,
               outputTokens: usage.outputTokens,
               source: 'chat-resume',
@@ -3984,7 +3984,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
             ];
             const result = await completeChat(retryMessages, {
               systemPrompt: retryPrompt,
-              model: 'claude-sonnet-4-5-20250929',
+              model: 'claude-sonnet-4-6',
               maxTokens: 4096,
               temperature: attempt > 0 ? 0.1 : 0.3, // Lower temp on retry
             });
@@ -3993,7 +3993,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
             if (result.usage) {
               trackTokenUsage({
                 userId: rateLimitIdentifier,
-                modelName: result.model || 'claude-sonnet-4-5-20250929',
+                modelName: result.model || 'claude-sonnet-4-6',
                 inputTokens: result.usage.inputTokens,
                 outputTokens: result.usage.outputTokens,
                 source: 'chat-document',
@@ -6140,7 +6140,7 @@ SECURITY:
     // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
     // User can select provider: Claude, xAI, DeepSeek, OpenAI, Google
     // Default: Claude Haiku 4.5 (fast, cost-effective for general chat)
-    // Sonnet 4.5 reserved for complex tasks (document gen, extraction)
+    // Sonnet 4.6 reserved for complex tasks (document gen, extraction)
     // Fallback: xAI Grok 4.1 (full capability parity)
     // Claude can call tools autonomously when needed
     // ========================================

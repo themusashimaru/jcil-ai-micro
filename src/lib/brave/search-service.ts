@@ -321,7 +321,7 @@ export async function search(request: SearchRequest): Promise<SearchResult> {
   log.info('Synthesizing results with AI');
 
   const synthesisResult = await completeChat(synthesisMessages, {
-    model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better synthesis
+    model: 'claude-sonnet-4-6', // Use Sonnet for better synthesis
     maxTokens: 2048,
     temperature: 0.3, // Lower temperature for factual responses
   });

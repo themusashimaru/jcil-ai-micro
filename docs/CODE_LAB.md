@@ -493,8 +493,8 @@ Code Lab supports multiple AI providers with different models for various use ca
 | Use Case        | Model             | Reasoning                    |
 |-----------------|-------------------|------------------------------|
 | Code Lab Chat   | Opus 4.5          | Best reasoning, tool use     |
-| Bug Oracle      | Sonnet 4.5        | Good balance for analysis    |
-| App Generator   | Sonnet 4.5        | Structured output            |
+| Bug Oracle      | Sonnet 4.6        | Good balance for analysis    |
+| App Generator   | Sonnet 4.6        | Structured output            |
 | Regular Chat    | Haiku 4.5         | Fast, cost-effective         |
 ```
 
@@ -505,7 +505,7 @@ Code Lab supports multiple AI providers with different models for various use ca
 | Model             | Context | Input (per 1M) | Output (per 1M) | Tier     |
 | ----------------- | ------- | -------------- | --------------- | -------- |
 | Claude Opus 4.5   | 200K    | $15.00         | $75.00          | Premium  |
-| Claude Sonnet 4.5 | 200K    | $3.00          | $15.00          | Standard |
+| Claude Sonnet 4.6 | 200K    | $3.00          | $15.00          | Standard |
 | Claude Haiku 4.5  | 200K    | $0.80          | $4.00           | Budget   |
 
 #### OpenAI GPT

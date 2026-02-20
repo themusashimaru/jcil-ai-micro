@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS public.provider_settings (
     active_provider TEXT NOT NULL DEFAULT 'openai',
 
     -- Provider-specific settings (JSON for flexibility)
-    -- e.g., { "model": "gpt-5-mini" } or { "model": "claude-sonnet-4-5-20250929" }
+    -- e.g., { "model": "gpt-5-mini" } or { "model": "claude-sonnet-4-6" }
     provider_config JSONB DEFAULT '{}'::jsonb,
 
     -- Metadata

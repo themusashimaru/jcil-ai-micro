@@ -192,7 +192,7 @@ Result: Comprehensive relocation strategy with:
 | Tier                 | Model      | Role                                                           |
 | -------------------- | ---------- | -------------------------------------------------------------- |
 | **Master Brain**     | Opus 4.5   | Designs the agent army, validates findings, synthesizes output |
-| **Project Managers** | Sonnet 4.5 | Coordinate groups of Scouts, aggregate research                |
+| **Project Managers** | Sonnet 4.6 | Coordinate groups of Scouts, aggregate research                |
 | **Scout Army**       | Haiku 4.5  | Execute targeted searches via Brave Search API                 |
 
 ### Features
@@ -222,36 +222,37 @@ The main chat interface is now the **most capable AI chat ever built** with **18
 
 ### February 2026 - 10 Major Enhancements
 
-| # | Enhancement | Description |
-|---|-------------|-------------|
-| 1 | **Real MCP Client** | Live server management, health monitoring |
-| 2 | **Persistent Workspaces** | E2B sandboxes that persist across turns |
-| 3 | **Smart Tool Chaining** | 6 predefined workflow templates |
-| 4 | **GitHub Repo Context** | Full repository understanding |
-| 5 | **Project View** | Multi-file tree navigation with syntax highlighting |
-| 6 | **Live Preview** | Sandboxed HTML/React preview |
-| 7 | **Code Memory** | Artifact persistence with semantic search |
-| 8 | **Agentic Workflows** | Trigger phrases ("ship it", "test everything") |
-| 9 | **Code Streaming** | Real-time file-by-file generation |
-| 10 | **Self-Improving Tools** | Telemetry with failure detection |
+| #   | Enhancement               | Description                                         |
+| --- | ------------------------- | --------------------------------------------------- |
+| 1   | **Real MCP Client**       | Live server management, health monitoring           |
+| 2   | **Persistent Workspaces** | E2B sandboxes that persist across turns             |
+| 3   | **Smart Tool Chaining**   | 6 predefined workflow templates                     |
+| 4   | **GitHub Repo Context**   | Full repository understanding                       |
+| 5   | **Project View**          | Multi-file tree navigation with syntax highlighting |
+| 6   | **Live Preview**          | Sandboxed HTML/React preview                        |
+| 7   | **Code Memory**           | Artifact persistence with semantic search           |
+| 8   | **Agentic Workflows**     | Trigger phrases ("ship it", "test everything")      |
+| 9   | **Code Streaming**        | Real-time file-by-file generation                   |
+| 10  | **Self-Improving Tools**  | Telemetry with failure detection                    |
 
 ### Tool Categories Overview
 
-| Category | Count | Description |
-|----------|-------|-------------|
-| **Code Development** | 8 | Full-stack: generate, analyze, test, refactor |
-| **Tool Orchestration** | 3 | Workflows, chaining, GitHub context |
-| **Cybersecurity** | 100+ | SIEM, SOC, threat intel, compliance |
-| **Science** | 80+ | Physics, chemistry, biology, astronomy |
-| **Engineering** | 60+ | Mechanical, electrical, chemical |
-| **Mathematics** | 30+ | Calculus, statistics, optimization |
-| **Web & Research** | 15+ | Search, scraping, browser automation |
-| **Media & Graphics** | 20+ | Image, audio, video processing |
-| **Utilities** | 30+ | Conversion, validation, encoding |
+| Category               | Count | Description                                   |
+| ---------------------- | ----- | --------------------------------------------- |
+| **Code Development**   | 8     | Full-stack: generate, analyze, test, refactor |
+| **Tool Orchestration** | 3     | Workflows, chaining, GitHub context           |
+| **Cybersecurity**      | 100+  | SIEM, SOC, threat intel, compliance           |
+| **Science**            | 80+   | Physics, chemistry, biology, astronomy        |
+| **Engineering**        | 60+   | Mechanical, electrical, chemical              |
+| **Mathematics**        | 30+   | Calculus, statistics, optimization            |
+| **Web & Research**     | 15+   | Search, scraping, browser automation          |
+| **Media & Graphics**   | 20+   | Image, audio, video processing                |
+| **Utilities**          | 30+   | Conversion, validation, encoding              |
 
 ### Key Tool Highlights
 
 **Code Development (Pro Developer Suite)**
+
 - `workspace` - Full coding workspace with bash, git, file operations
 - `generate_code` - Production-quality code in any language
 - `analyze_code` - Security, performance, quality analysis
@@ -259,11 +260,13 @@ The main chat interface is now the **most capable AI chat ever built** with **18
 - `fix_error` - Debug and fix code errors with explanations
 
 **Tool Orchestration (NEW)**
+
 - `run_workflow` - Smart tool chaining with 6 predefined workflows
 - `github_context` - Full repository understanding with code search
 - Agentic triggers: "ship it", "test everything", "clean start"
 
 **Research & Information**
+
 - `web_search` - Real-time search via Brave API
 - `fetch_url` - URL content extraction
 - `youtube_transcript` - Video transcript extraction
@@ -423,7 +426,7 @@ JCIL.AI is built **exclusively** on [Anthropic's Claude](https://anthropic.com/)
 | Use Case    | Model             | Purpose                                     |
 | ----------- | ----------------- | ------------------------------------------- |
 | Chat (Fast) | Claude Haiku 4.5  | Quick responses, cost-effective             |
-| Documents   | Claude Sonnet 4.5 | Quality JSON output, structured generation  |
+| Documents   | Claude Sonnet 4.6 | Quality JSON output, structured generation  |
 | Code Lab    | Claude Opus 4.5   | Complex reasoning, multi-step agentic tasks |
 
 ---
@@ -688,6 +691,6 @@ Copyright (c) 2024-2026 JCIL.AI
 
 [Website](https://jcil.ai) | [Code Lab](https://jcil.ai/code-lab) | [Documentation](https://jcil.ai/docs)
 
-*Last updated: February 1, 2026 at 23:30 UTC - Version 3.2.0*
+_Last updated: February 1, 2026 at 23:30 UTC - Version 3.2.0_
 
 </div>

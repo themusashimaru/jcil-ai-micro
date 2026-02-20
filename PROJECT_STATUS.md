@@ -54,13 +54,13 @@ The Code Lab is now fully functional with complete Claude Code capabilities.
 
 ### Model Configuration
 
-| Use Case      | Model             | Model ID                     |
-| ------------- | ----------------- | ---------------------------- |
-| Chat (Fast)   | Claude Haiku 4.5  | `claude-haiku-4-5-20250929`  |
-| Documents     | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` |
-| Code Lab      | Claude Opus 4.5   | `claude-opus-4-5-20251101`   |
-| Bug Oracle    | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` |
-| App Generator | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` |
+| Use Case      | Model             | Model ID                    |
+| ------------- | ----------------- | --------------------------- |
+| Chat (Fast)   | Claude Haiku 4.5  | `claude-haiku-4-5-20250929` |
+| Documents     | Claude Sonnet 4.6 | `claude-sonnet-4-6`         |
+| Code Lab      | Claude Opus 4.5   | `claude-opus-4-5-20251101`  |
+| Bug Oracle    | Claude Sonnet 4.6 | `claude-sonnet-4-6`         |
+| App Generator | Claude Sonnet 4.6 | `claude-sonnet-4-6`         |
 
 ---
 
@@ -166,7 +166,7 @@ See [CODE_LAB_CRITICAL_BUGS.md](./CODE_LAB_CRITICAL_BUGS.md) for full audit repo
 
 ### January 2026 - Code Lab Engineering Fixes
 
-- [x] **Updated Claude model names** to `claude-sonnet-4-5-20250929`
+- [x] **Updated Claude model names** to `claude-sonnet-4-6`
 - [x] **Implemented real MCP tool execution** (removed all stubs)
 - [x] **Added full deployment status polling** for all 4 platforms
 - [x] **Implemented skills-enabled completion** with agentic tool loop

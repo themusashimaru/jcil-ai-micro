@@ -2,7 +2,7 @@
  * DEEP STRATEGY AGENT - Main Orchestrator
  *
  * The most advanced self-replicating AI agent ever built.
- * Coordinates Opus 4.6, Sonnet 4.5, and Haiku 4.5 to create
+ * Coordinates Opus 4.6, Sonnet 4.6, and Haiku 4.5 to create
  * a dynamic army of specialized agents.
  */
 
@@ -113,11 +113,7 @@ export class StrategyAgent {
       onStream,
       this.prompts.qualityControl
     );
-    this.synthesizer = createSynthesizer(
-      this.client,
-      onStream,
-      this.prompts.synthesizer
-    );
+    this.synthesizer = createSynthesizer(this.client, onStream, this.prompts.synthesizer);
   }
 
   private initCostTracker(): CostTracker {
@@ -396,7 +392,9 @@ export class StrategyAgent {
               `Findings organized: ${this.synthesizedResult.uniqueFindingsAfterDedup} unique findings, ${this.synthesizedResult.topFindings.length} key insights`
             );
           } catch (synthError) {
-            log.warn('Pre-QC synthesis failed, continuing with raw findings', { error: synthError });
+            log.warn('Pre-QC synthesis failed, continuing with raw findings', {
+              error: synthError,
+            });
             // Non-fatal - QC can still review raw findings
           }
         }
@@ -1044,7 +1042,9 @@ You have ${this.allFindings.length} findings to work with.
         title: isWriterMode ? 'Written Content' : 'Strategy Recommendation',
         summary: response.slice(0, 500),
         confidence: 50,
-        reasoning: isWriterMode ? ['Creative content generated'] : ['Based on comprehensive research'],
+        reasoning: isWriterMode
+          ? ['Creative content generated']
+          : ['Based on comprehensive research'],
         tradeoffs: [],
         bestFor: isWriterMode ? 'The requested writing task' : 'General guidance',
       },
@@ -1057,12 +1057,14 @@ You have ${this.allFindings.length} findings to work with.
       gaps: [],
       nextSteps: [],
       // For writer modes, preserve the raw response as document content
-      ...(isWriterMode ? {
-        document: {
-          title: problem.summary || 'Written Content',
-          content: response,
-        },
-      } : {}),
+      ...(isWriterMode
+        ? {
+            document: {
+              title: problem.summary || 'Written Content',
+              content: response,
+            },
+          }
+        : {}),
       metadata,
     };
 
@@ -1112,8 +1114,14 @@ You have ${this.allFindings.length} findings to work with.
     };
 
     // Normalize alternatives: ensure all required fields have values
-    const normalizeAlternatives = (raw: unknown[]): Array<{
-      title: string; summary: string; confidence: number; whyNotTop: string; bestFor: string;
+    const normalizeAlternatives = (
+      raw: unknown[]
+    ): Array<{
+      title: string;
+      summary: string;
+      confidence: number;
+      whyNotTop: string;
+      bestFor: string;
     }> => {
       if (!Array.isArray(raw)) return [];
       return raw.map((item) => {
@@ -1147,34 +1155,40 @@ You have ${this.allFindings.length} findings to work with.
         byDomain: [],
         riskAssessment: { overallRisk: 'medium', risks: [], mitigations: [] },
       },
-      actionPlan: Array.isArray(parsed.actionPlan) ? parsed.actionPlan.map((item: unknown, index: number) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ap = item as any;
-        const validPriorities = ['critical', 'high', 'medium', 'low'] as const;
-        const rawPriority = String(ap?.priority || 'medium').toLowerCase();
-        const priority = validPriorities.includes(rawPriority as typeof validPriorities[number])
-          ? (rawPriority as 'critical' | 'high' | 'medium' | 'low')
-          : ('medium' as const);
-        return {
-          order: Number(ap?.order || index + 1),
-          action: String(ap?.action || ''),
-          priority,
-          timeframe: String(ap?.timeframe || ''),
-          details: ap?.details ? String(ap.details) : undefined,
-        };
-      }) : [],
+      actionPlan: Array.isArray(parsed.actionPlan)
+        ? parsed.actionPlan.map((item: unknown, index: number) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const ap = item as any;
+            const validPriorities = ['critical', 'high', 'medium', 'low'] as const;
+            const rawPriority = String(ap?.priority || 'medium').toLowerCase();
+            const priority = validPriorities.includes(
+              rawPriority as (typeof validPriorities)[number]
+            )
+              ? (rawPriority as 'critical' | 'high' | 'medium' | 'low')
+              : ('medium' as const);
+            return {
+              order: Number(ap?.order || index + 1),
+              action: String(ap?.action || ''),
+              priority,
+              timeframe: String(ap?.timeframe || ''),
+              details: ap?.details ? String(ap.details) : undefined,
+            };
+          })
+        : [],
       gaps: Array.isArray(parsed.gaps) ? parsed.gaps.map(String) : [],
       nextSteps: Array.isArray(parsed.nextSteps) ? parsed.nextSteps.map(String) : [],
       // Preserve document field for writer modes (creative content, articles, etc.)
-      ...(parsed.document ? {
-        document: {
-          title: String(parsed.document.title || rec.title || 'Document'),
-          content: String(parsed.document.content || ''),
-          citations: Array.isArray(parsed.document.citations)
-            ? parsed.document.citations.map(String)
-            : undefined,
-        },
-      } : {}),
+      ...(parsed.document
+        ? {
+            document: {
+              title: String(parsed.document.title || rec.title || 'Document'),
+              content: String(parsed.document.content || ''),
+              citations: Array.isArray(parsed.document.citations)
+                ? parsed.document.citations.map(String)
+                : undefined,
+            },
+          }
+        : {}),
       metadata,
     };
   }

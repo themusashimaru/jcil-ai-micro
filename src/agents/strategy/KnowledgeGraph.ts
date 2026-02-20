@@ -21,7 +21,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import type { Finding, StrategyStreamCallback } from './types';
-import { CLAUDE_SONNET_45 } from './constants';
+import { CLAUDE_SONNET_46 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('KnowledgeGraph');
@@ -743,7 +743,7 @@ export class KnowledgeGraph {
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         temperature: 0.3,
         system: EXTRACTION_PROMPT,

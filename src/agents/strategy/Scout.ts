@@ -1,7 +1,7 @@
 /**
  * SCOUT FRAMEWORK - Research Execution
  *
- * Scouts are strategic research agents using Sonnet 4.5.
+ * Scouts are strategic research agents using Sonnet 4.6.
  * They intelligently select from powerful tools: Brave Search, Puppeteer browser,
  * E2B code execution, Vision analysis, and more.
  * Sonnet enables surgical, high-yield research with fewer iterations.
@@ -18,7 +18,7 @@ import type {
   StrategyStreamCallback,
   ScoutToolType,
 } from './types';
-import { CLAUDE_SONNET_45, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
+import { CLAUDE_SONNET_46, SCOUT_PROMPT, MODEL_CONFIGS } from './constants';
 import { extractJSON } from './utils';
 import { braveWebSearch, type BraveSearchResponse, type BraveWebResult } from '@/lib/brave';
 import { logger } from '@/lib/logger';
@@ -80,7 +80,7 @@ export class Scout {
     this.scoutPrompt = scoutPrompt || SCOUT_PROMPT;
 
     // Select model based on tier - defaults to Sonnet for strategic research
-    this.model = MODEL_CONFIGS[blueprint.modelTier]?.id || CLAUDE_SONNET_45;
+    this.model = MODEL_CONFIGS[blueprint.modelTier]?.id || CLAUDE_SONNET_46;
 
     this.state = {
       id: blueprint.id,

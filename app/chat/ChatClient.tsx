@@ -1625,7 +1625,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
 
 This isn't just ChatGPT with a fancy prompt. I'm about to deploy:
 - **Opus 4.5** as the Master Architect (designs your strategy)
-- **Sonnet 4.5** Project Managers (coordinate research teams)
+- **Sonnet 4.6** Project Managers (coordinate research teams)
 - **Up to 100 Haiku 4.5 Scouts** (parallel research army)
 - **Hundreds of web searches** for real-time data
 
@@ -1928,7 +1928,9 @@ I'll update you as scouts report back with findings.`,
 
     // Check if this is a writer mode result with a document
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc = (result as any).document as { title?: string; content?: string; citations?: string[] } | undefined;
+    const doc = (result as any).document as
+      | { title?: string; content?: string; citations?: string[] }
+      | undefined;
     let content: string;
 
     if (doc?.content) {
@@ -2041,7 +2043,7 @@ ${artifactSection}
 
 This isn't a simple search. I'm about to deploy an autonomous research army:
 - **Opus 4.5** as the Research Director (designs your investigation)
-- **Sonnet 4.5** Domain Leads (coordinate research teams)
+- **Sonnet 4.6** Domain Leads (coordinate research teams)
 - **Up to 100 Haiku 4.5 Investigators** (parallel research army)
 - **14 specialized tools** including browser automation, vision AI, PDF extraction
 
@@ -2425,7 +2427,7 @@ ${artifactSection}
 I'll deploy a focused research team to investigate your topic.
 
 **What you get:**
-- **10-15 intelligent scouts** (Claude Sonnet 4.5)
+- **10-15 intelligent scouts** (Claude Sonnet 4.6)
 - **All research tools:** Browser automation, web search, PDF extraction, vision analysis
 - **Opus synthesis:** Claude Opus 4.5 compiles findings
 
@@ -2697,7 +2699,7 @@ I'll update you as scouts report back with findings.`,
 I'll deploy a focused team to help you make this decision.
 
 **What you get:**
-- **10-15 intelligent scouts** (Claude Sonnet 4.5)
+- **10-15 intelligent scouts** (Claude Sonnet 4.6)
 - **All research tools:** Browser automation, web search, data analysis
 - **Opus synthesis:** Claude Opus 4.5 analyzes and recommends
 
@@ -2969,7 +2971,7 @@ I'll update you as scouts report back with findings.`,
 
 This is a full publishing operation:
 - **Claude Opus 4.6** - Editorial Director & Writers
-- **Claude Sonnet 4.5** - Research Corps (15-50 agents)
+- **Claude Sonnet 4.6** - Research Corps (15-50 agents)
 - **Full browser tools** - Web research, PDF extraction, data gathering
 
 **The Process:**
@@ -3251,7 +3253,7 @@ This may take 5-15 minutes depending on document length.`,
 I'll deploy a focused team to research and write your content.
 
 **What you get:**
-- **10-15 research scouts** (Claude Sonnet 4.5) - gather facts first
+- **10-15 research scouts** (Claude Sonnet 4.6) - gather facts first
 - **Opus writers** (Claude Opus 4.6) - craft polished content
 - **Fast turnaround:** 2-3 minutes
 
@@ -3391,7 +3393,7 @@ I'll deploy a focused team to research and write your content.
     const statusMessage: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: "**Writing in progress...** Opus is crafting your content.",
+      content: '**Writing in progress...** Opus is crafting your content.',
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, statusMessage]);
@@ -4890,13 +4892,17 @@ I'll deploy a focused team to research and write your content.
       }
 
       // Parse suggested follow-ups from AI response
-      const followupsMatch = finalContent.match(/<suggested-followups>\s*(\[[\s\S]*?\])\s*<\/suggested-followups>/);
+      const followupsMatch = finalContent.match(
+        /<suggested-followups>\s*(\[[\s\S]*?\])\s*<\/suggested-followups>/
+      );
       if (followupsMatch) {
         try {
           const followups = JSON.parse(followupsMatch[1]) as string[];
           if (Array.isArray(followups) && followups.length > 0) {
             // Strip the tag from displayed content
-            const cleanedContent = finalContent.replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/, '').trimEnd();
+            const cleanedContent = finalContent
+              .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/, '')
+              .trimEnd();
             finalContent = cleanedContent;
             setMessages((prev) =>
               prev.map((msg) =>
@@ -4908,7 +4914,9 @@ I'll deploy a focused team to research and write your content.
           }
         } catch {
           // Malformed JSON — just strip the tag
-          finalContent = finalContent.replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/, '').trimEnd();
+          finalContent = finalContent
+            .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/, '')
+            .trimEnd();
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId ? { ...msg, content: finalContent } : msg
@@ -4960,7 +4968,15 @@ I'll deploy a focused team to research and write your content.
 
       // Save assistant message to database (skip for images - already saved above)
       if (!isImageResponse) {
-        await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text', undefined, undefined, documentDownloadMeta);
+        await saveMessageToDatabase(
+          newChatId,
+          'assistant',
+          finalContent,
+          'text',
+          undefined,
+          undefined,
+          documentDownloadMeta
+        );
       }
 
       // Generate chat title for new conversations OR regenerate if current title is generic

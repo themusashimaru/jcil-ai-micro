@@ -17,7 +17,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { StrategyStreamCallback, StrategyAttachment } from './types';
-import { CLAUDE_SONNET_45, CLAUDE_OPUS_46 } from './constants';
+import { CLAUDE_SONNET_46, CLAUDE_OPUS_46 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('DocumentAnalyzer');
@@ -328,7 +328,7 @@ export class DocumentAnalyzer {
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         system: CHART_EXTRACTION_PROMPT,
         messages: [
@@ -408,7 +408,7 @@ export class DocumentAnalyzer {
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         system: COMPARISON_EXTRACTION_PROMPT,
         messages: [
@@ -457,7 +457,7 @@ export class DocumentAnalyzer {
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         messages: [
           {
@@ -657,7 +657,7 @@ Output in JSON:
 
   private async analyzeImage(attachment: StrategyAttachment): Promise<DocumentAnalysis> {
     const response = await this.client.messages.create({
-      model: CLAUDE_SONNET_45,
+      model: CLAUDE_SONNET_46,
       max_tokens: 8192,
       system: DOCUMENT_ANALYSIS_PROMPT,
       messages: [
@@ -713,7 +713,7 @@ Output in JSON:
     }
 
     const response = await this.client.messages.create({
-      model: CLAUDE_SONNET_45,
+      model: CLAUDE_SONNET_46,
       max_tokens: 8192,
       system: DOCUMENT_ANALYSIS_PROMPT,
       messages: [

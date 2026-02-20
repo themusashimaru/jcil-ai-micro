@@ -59,7 +59,7 @@ JCIL.AI is a modern, cloud-native AI platform built on Next.js 14 with a multi-a
 │  │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │   │  │
 │  │  │  ┌────────────────────────────────────────────────────────┐  │   │  │
 │  │  │  │         DEEP STRATEGY AGENT (Multi-Tier System)        │  │   │  │
-│  │  │  │  Opus 4.5 → Sonnet 4.5 PMs → Haiku 4.5 Scout Army     │  │   │  │
+│  │  │  │  Opus 4.5 → Sonnet 4.6 PMs → Haiku 4.5 Scout Army     │  │   │  │
 │  │  │  └────────────────────────────────────────────────────────┘  │   │  │
 │  │  └───────────────────────────────────────────────────────────────┘   │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
@@ -289,7 +289,7 @@ The Deep Strategy Agent is our most advanced feature—a self-designing multi-ag
 │                               │                                      │
 │                               ▼                                      │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │            TIER 2: SONNET 4.5 (Project Managers)               │  │
+│  │            TIER 2: SONNET 4.6 (Project Managers)               │  │
 │  │                                                                 │  │
 │  │   PM: Legal │ PM: Market │ PM: Strategy │ PM: Technical │ ...  │  │
 │  │                                                                 │  │
@@ -577,7 +577,7 @@ Code Lab supports multiple AI providers with configurable model selection:
 
 | Provider               | Models                                                           | Pricing Range (per 1M tokens)          | Context  |
 | ---------------------- | ---------------------------------------------------------------- | -------------------------------------- | -------- |
-| **Claude (Anthropic)** | Opus 4.5, Sonnet 4.5, Haiku 4.5                                  | $0.80-$15 input / $4-$75 output        | 200K     |
+| **Claude (Anthropic)** | Opus 4.5, Sonnet 4.6, Haiku 4.5                                  | $0.80-$15 input / $4-$75 output        | 200K     |
 | **OpenAI**             | GPT-5.2, GPT-5.2 Pro, GPT-5.2 Codex, GPT-5 Mini/Nano             | $0.10-$10 input / $0.30-$30 output     | 64K-200K |
 | **xAI (Grok)**         | Grok 4, Grok 4.1 Fast (R/NR), Grok 4 Fast (R/NR), Grok Code Fast | $0.20-$3 input / $0.50-$15 output      | 256K-2M  |
 | **DeepSeek**           | DeepSeek Chat, DeepSeek Reasoner                                 | $0.27-$0.55 input / $1.10-$2.19 output | 128K     |

@@ -1207,10 +1207,10 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 // HYBRID ROUTING (Haiku + Sonnet)
 // ========================================
 
-// Model IDs - Current Claude 4.5 models (Claude 3.x retired July 2025)
+// Model IDs - Current Claude 4.6 models (Claude 3.x retired July 2025)
 // See: https://docs.anthropic.com/en/docs/about-claude/models
 export const CLAUDE_HAIKU = 'claude-haiku-4-5-20251001'; // Fast, cost-effective
-export const CLAUDE_SONNET = 'claude-sonnet-4-5-20250929'; // Smart, balanced - used for document generation
+export const CLAUDE_SONNET = 'claude-sonnet-4-6'; // Smart, balanced - used for document generation
 
 /**
  * Simple model selection: Haiku for chat, Sonnet for documents

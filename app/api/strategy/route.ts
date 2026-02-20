@@ -315,7 +315,7 @@ async function storeResultAndUsage(
     trackingPromises.push(
       trackTokenUsage({
         userId,
-        modelName: 'claude-sonnet-4-5-20250929',
+        modelName: 'claude-sonnet-4-6',
         inputTokens: modelUsage.sonnet.tokens,
         outputTokens: 0,
         source: 'strategy',
@@ -1039,7 +1039,12 @@ async function handleInput(
     const intakeMessages = await getIntakeMessages(supabase, sessionId);
 
     // Create a new agent and restore its state with the correct mode from DB
-    const agent = createStrategyAgent(apiKey, { userId, sessionId, isAdmin, mode: dbSession.mode || 'strategy' });
+    const agent = createStrategyAgent(apiKey, {
+      userId,
+      sessionId,
+      isAdmin,
+      mode: dbSession.mode || 'strategy',
+    });
 
     // Restore the intake messages if we have them
     if (intakeMessages && intakeMessages.length > 0) {
@@ -1258,7 +1263,10 @@ async function handleExecute(
 
     if (intakeMessages && intakeMessages.length > 0) {
       agent.restoreIntakeMessages(intakeMessages);
-      log.info('Restored intake messages for execution', { sessionId, messageCount: intakeMessages.length });
+      log.info('Restored intake messages for execution', {
+        sessionId,
+        messageCount: intakeMessages.length,
+      });
     }
 
     // Restore problem data if available (stored as UserProblem in DB)
