@@ -517,7 +517,7 @@ const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '500', 1
 // Token limits
 const MAX_RESPONSE_TOKENS = 4096;
 const DEFAULT_RESPONSE_TOKENS = 2048;
-const MAX_CONTEXT_MESSAGES = 40;
+const MAX_CONTEXT_MESSAGES = 60;
 
 // ============================================================================
 // RATE LIMITING
@@ -542,13 +542,24 @@ let lastCleanup = Date.now();
 const researchRateLimits = new Map<string, { count: number; resetAt: number }>();
 const RESEARCH_WINDOW_MS = 60 * 60 * 1000; // 1 hour window
 
+// CHAT-016: Per-tool rate limiting for expensive operations
+const toolRateLimits = new Map<string, { count: number; resetAt: number }>();
+const TOOL_RATE_LIMITS: Record<string, number> = {
+  run_code: 100, // code executions per hour
+  browser_visit: 50, // browser visits per hour
+  generate_image: 30, // image generations per hour
+  generate_video: 10, // video generations per hour
+  extract_pdf: 60, // PDF extractions per hour
+  analyze_image: 60, // image analyses per hour
+};
+
 /**
  * Clean up expired entries from the in-memory rate limit maps
  * Prevents memory leak from unbounded growth
  */
 function cleanupExpiredEntries(force = false): void {
   const now = Date.now();
-  const totalSize = memoryRateLimits.size + researchRateLimits.size;
+  const totalSize = memoryRateLimits.size + researchRateLimits.size + toolRateLimits.size;
 
   // Force cleanup if we're over the size limit, otherwise respect the interval
   const shouldCleanup =
@@ -570,6 +581,14 @@ function cleanupExpiredEntries(force = false): void {
   for (const [key, value] of researchRateLimits.entries()) {
     if (value.resetAt < now) {
       researchRateLimits.delete(key);
+      cleaned++;
+    }
+  }
+
+  // Cleanup tool rate limits
+  for (const [key, value] of toolRateLimits.entries()) {
+    if (value.resetAt < now) {
+      toolRateLimits.delete(key);
       cleaned++;
     }
   }
@@ -617,6 +636,33 @@ function checkResearchRateLimit(identifier: string): { allowed: boolean; remaini
 
   entry.count++;
   return { allowed: true, remaining: RATE_LIMIT_RESEARCH - entry.count };
+}
+
+/**
+ * CHAT-016: Check per-tool rate limit for expensive operations
+ */
+function checkToolRateLimit(
+  identifier: string,
+  toolName: string
+): { allowed: boolean; limit?: number } {
+  const maxPerHour = TOOL_RATE_LIMITS[toolName];
+  if (!maxPerHour) return { allowed: true }; // No limit for this tool
+
+  const key = `${identifier}:${toolName}`;
+  const now = Date.now();
+  const entry = toolRateLimits.get(key);
+
+  if (!entry || entry.resetAt < now) {
+    toolRateLimits.set(key, { count: 1, resetAt: now + RESEARCH_WINDOW_MS });
+    return { allowed: true };
+  }
+
+  if (entry.count >= maxPerHour) {
+    return { allowed: false, limit: maxPerHour };
+  }
+
+  entry.count++;
+  return { allowed: true };
 }
 
 function checkMemoryRateLimit(identifier: string): { allowed: boolean; remaining: number } {
@@ -761,9 +807,10 @@ function truncateMessages(
     summaryText += keyPoints.map((point) => `• ${point}`).join('\n');
     summaryText += `\n[END OF SUMMARY - Continue the conversation naturally]\n`;
 
+    // CHAT-013: Use 'user' role instead of 'system' for conversation summaries
     const summaryMessage: CoreMessage = {
-      role: 'system',
-      content: summaryText,
+      role: 'user',
+      content: `[Context from earlier in our conversation]\n${summaryText}`,
     };
 
     return [keepFirst, summaryMessage, ...keepLast];
@@ -2154,6 +2201,9 @@ Generate a Word document JSON with type "document" and appropriate sections for 
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  // CHAT-014: Track response time
+  const requestStartTime = Date.now();
+
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -4414,6 +4464,21 @@ SECURITY:
         }
       }
 
+      // CHAT-016: Per-tool rate limiting for expensive operations
+      const toolRateCheck = checkToolRateLimit(rateLimitIdentifier, toolName);
+      if (!toolRateCheck.allowed) {
+        log.warn('Tool rate limit exceeded', {
+          identifier: rateLimitIdentifier,
+          tool: toolName,
+          limit: toolRateCheck.limit,
+        });
+        return {
+          toolCallId: toolCall.id,
+          content: `Rate limit exceeded for ${toolName}. Please try again later.`,
+          isError: true,
+        };
+      }
+
       // Skip native server tools (web_search) — handled by Anthropic server-side
       if (isNativeServerTool(toolName)) {
         log.info('Skipping native server tool (handled by Anthropic)', { tool: toolName });
@@ -5610,9 +5675,11 @@ SECURITY:
     // CRITICAL FIX: Track slot release with a promise-based cleanup
     // This ensures slot is released even if client disconnects mid-stream
     let slotReleased = false;
+    let slotTimeoutId: ReturnType<typeof setTimeout> | null = null;
     const ensureSlotReleased = () => {
       if (slotAcquired && !slotReleased) {
         slotReleased = true;
+        if (slotTimeoutId) clearTimeout(slotTimeoutId);
         releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
       }
     };
@@ -5625,6 +5692,15 @@ SECURITY:
       flush() {
         // Release slot when stream is fully consumed (normal completion)
         ensureSlotReleased();
+
+        // CHAT-014: Log response time
+        log.info('Chat response completed', {
+          requestId,
+          durationMs: Date.now() - requestStartTime,
+          model: routeResult.model,
+          provider: routeResult.providerId,
+          toolsUsed: routeResult.toolsUsed.length,
+        });
 
         // ========================================
         // PENDING REQUEST - Mark as completed (stream finished successfully)
@@ -5660,6 +5736,17 @@ SECURITY:
       log.debug('Request aborted (client disconnect)');
       ensureSlotReleased();
     });
+
+    // CHAT-004: Timeout-based safety release — 5 minutes max hold
+    slotTimeoutId = setTimeout(
+      () => {
+        if (!slotReleased) {
+          log.warn('Queue slot timeout — force releasing after 5 minutes', { requestId });
+          ensureSlotReleased();
+        }
+      },
+      5 * 60 * 1000
+    );
 
     // Pipe through the wrapper - slot released when stream ends
     const finalStream = routeResult.stream.pipeThrough(wrappedStream);
