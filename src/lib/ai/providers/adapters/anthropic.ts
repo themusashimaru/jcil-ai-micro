@@ -13,7 +13,6 @@ import type {
   ProviderFamily,
   UnifiedMessage,
   UnifiedTool,
-  UnifiedToolCall,
   UnifiedToolResult,
   UnifiedStreamChunk,
   UnifiedContentBlock,
@@ -151,25 +150,23 @@ export class AnthropicAdapter extends BaseAIAdapter {
         tools,
       });
 
-      // Track current tool call being built
-      let currentToolCall: Partial<UnifiedToolCall> | null = null;
-      let toolCallArgumentsBuffer = '';
+      // Track whether current content block is a server tool (web_search)
+      // so we can suppress stray tool_call_delta/tool_call_end events for it
+      let isServerToolBlock = false;
 
       for await (const event of stream) {
-        const chunk = this.parseStreamEvent(event, currentToolCall, toolCallArgumentsBuffer);
+        const chunk = this.parseStreamEvent(event, isServerToolBlock);
+
+        // Track server tool blocks to suppress stray events
+        if (event.type === 'content_block_start') {
+          const blockType = (event.content_block as { type: string }).type;
+          isServerToolBlock =
+            blockType === 'server_tool_use' || blockType === 'web_search_tool_result';
+        } else if (event.type === 'content_block_stop') {
+          isServerToolBlock = false;
+        }
 
         if (chunk) {
-          // Update tool call tracking
-          if (chunk.type === 'tool_call_start' && chunk.toolCall) {
-            currentToolCall = chunk.toolCall;
-            toolCallArgumentsBuffer = '';
-          } else if (chunk.type === 'tool_call_delta' && chunk.toolCall?.arguments) {
-            toolCallArgumentsBuffer += JSON.stringify(chunk.toolCall.arguments);
-          } else if (chunk.type === 'tool_call_end') {
-            currentToolCall = null;
-            toolCallArgumentsBuffer = '';
-          }
-
           yield chunk;
         }
       }
@@ -457,8 +454,7 @@ export class AnthropicAdapter extends BaseAIAdapter {
    */
   private parseStreamEvent(
     event: Anthropic.MessageStreamEvent,
-    _currentToolCall: Partial<UnifiedToolCall> | null,
-    _argumentsBuffer: string
+    isServerToolBlock: boolean
   ): UnifiedStreamChunk | null {
     switch (event.type) {
       case 'message_start': {
@@ -493,17 +489,14 @@ export class AnthropicAdapter extends BaseAIAdapter {
             },
           };
         }
-        // Native server tools (web_search) — these are handled by Anthropic server-side.
-        // We don't need to execute them. Just ignore the block start.
-        if (
-          event.content_block.type === 'server_tool_use' ||
-          event.content_block.type === 'web_search_tool_result'
-        ) {
-          return null; // Server handles these — no action needed
-        }
+        // Native server tools (web_search) — handled by Anthropic server-side.
+        // server_tool_use = Claude's search query, web_search_tool_result = search results
         return null;
 
       case 'content_block_delta':
+        // Suppress deltas from server tool blocks (search query JSON, etc.)
+        if (isServerToolBlock) return null;
+
         if (event.delta.type === 'text_delta') {
           return { type: 'text', text: event.delta.text };
         }
@@ -520,7 +513,8 @@ export class AnthropicAdapter extends BaseAIAdapter {
         return null;
 
       case 'content_block_stop':
-        // Check if this was a tool use block
+        // Suppress stop events from server tool blocks
+        if (isServerToolBlock) return null;
         return { type: 'tool_call_end' };
 
       case 'message_stop':

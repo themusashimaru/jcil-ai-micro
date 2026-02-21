@@ -31,11 +31,10 @@ import {
   type ToolExecutor,
 } from '@/lib/ai/chat-router';
 // Research agent removed - now using quick-research mode via strategy engine
-// Brave Search removed - now using native Anthropic web_search_20260209
+// Native Anthropic web_search_20260209 — server-side search with dynamic filtering on Sonnet 4.6+ / Opus 4.6
 import {
   // All chat tools
   webSearchTool,
-  executeWebSearch,
   isWebSearchAvailable,
   fetchUrlTool,
   executeFetchUrl,
@@ -5000,9 +4999,7 @@ SECURITY:
       };
       try {
         switch (toolName) {
-          case 'web_search':
-            result = await executeWebSearch(toolCallWithSession);
-            break;
+          // web_search is a native server tool — handled by isNativeServerTool guard above
           case 'fetch_url':
             result = await executeFetchUrl(toolCallWithSession);
             break;
@@ -6062,15 +6059,16 @@ SECURITY:
 
     // AUTO-ESCALATION: When web search is available and model is Haiku,
     // escalate to Sonnet 4.6 for dynamic filtering (11% more accurate, 24% fewer tokens).
-    // Native web search with dynamic filtering requires Sonnet 4.6+ or Opus 4.6.
+    // web_search_20260209 with dynamic filtering requires Sonnet 4.6+ or Opus 4.6.
+    // Haiku doesn't get dynamic filtering, so we always escalate for search quality.
     const hasNativeSearch = tools.some(
       (t) =>
         t.name === '__native_web_search__' ||
         (t as unknown as Record<string, unknown>)._nativeWebSearch
     );
     if (hasNativeSearch && selectedModel === 'claude-haiku-4-5-20251001') {
-      selectedModel = 'claude-sonnet-4-5-20250929';
-      log.info('Auto-escalated to Sonnet for native web search with dynamic filtering');
+      selectedModel = 'claude-sonnet-4-6';
+      log.info('Auto-escalated to Sonnet 4.6 for native web search with dynamic filtering');
     }
 
     // CRITICAL: Pass the providerId to ensure the correct adapter is used
