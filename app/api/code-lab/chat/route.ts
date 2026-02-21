@@ -45,6 +45,7 @@ import { getAdapter } from '@/lib/ai/providers/adapters/factory';
 import type { UnifiedMessage, UnifiedToolCall } from '@/lib/ai/providers/types';
 // Persistent memory + RAG + Tools (parity with main chat)
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
+import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
 // Composio/Connectors (150+ connected apps)
@@ -1604,6 +1605,22 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
     } catch (memErr) {
       log.warn('Failed to load persistent memory', { error: memErr });
     }
+
+    // ========================================
+    // LEARNED STYLE PREFERENCES
+    // ========================================
+    try {
+      const learning = await getLearningContext(user.id);
+      if (learning.loaded && learning.contextString) {
+        systemPrompt += `\n\n${learning.contextString}`;
+        log.info('Injected learned style preferences');
+      }
+    } catch (learnErr) {
+      log.warn('Failed to load learning context', { error: learnErr });
+    }
+
+    // Fire-and-forget: observe current message for learning signals
+    observeAndLearn(user.id, content).catch(() => {});
 
     // ========================================
     // RAG - Document Context
