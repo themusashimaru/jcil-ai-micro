@@ -278,6 +278,144 @@ const EMBEDDED_SVGS: Record<string, React.ReactNode> = {
       <path d="M11.086 0v17.067L0 24V6.933zm1.828 6.933L24 0v17.067l-11.086 6.933zm-.914 3.667a5.543 5.543 0 110 11.086 5.543 5.543 0 010-11.086zM24 5.543a5.543 5.543 0 11-11.086 0 5.543 5.543 0 0111.086 0z" />
     </svg>
   ),
+
+  // ===== GOOGLE EXTENDED SUITE =====
+  GOOGLE_SLIDES: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path
+        fill="#FBBC05"
+        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+      />
+      <path fill="#fff" d="M18 14H6v-4h12v4z" />
+    </svg>
+  ),
+  GOOGLE_TASKS: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+      <path fill="#fff" d="M10 16.4l-3.7-3.7 1.4-1.4 2.3 2.3 5.3-5.3 1.4 1.4z" />
+    </svg>
+  ),
+  GOOGLE_MEET: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path fill="#00832D" d="M3.5 5.5h10v13h-10z" />
+      <path fill="#0066DA" d="M13.5 11l7-5.5v13L13.5 13z" />
+      <path fill="#E94235" d="M13.5 5.5h3l4 3v-3h-7z" />
+      <path fill="#2684FC" d="M20.5 18.5h-7v-5.5l7 5.5z" />
+      <path fill="#00AC47" d="M3.5 5.5h10v4h-10z" />
+      <path fill="#00832D" d="M3.5 14.5h10v4h-10z" />
+      <path fill="#FFBA00" d="M13.5 13v5.5h3l4-3v-2.5z" />
+      <path fill="#188038" d="M3.5 5.5v13c0 .55.45 1 1 1h9v-14h-10z" opacity=".1" />
+    </svg>
+  ),
+  GOOGLE_PHOTOS: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path fill="#FBBC05" d="M12 12H3.37A8.63 8.63 0 0112 3.37V12z" />
+      <path fill="#EA4335" d="M12 12V3.37A8.63 8.63 0 0120.63 12H12z" />
+      <path fill="#4285F4" d="M12 12h8.63A8.63 8.63 0 0112 20.63V12z" />
+      <path fill="#34A853" d="M12 12v8.63A8.63 8.63 0 013.37 12H12z" />
+    </svg>
+  ),
+  GOOGLE_ANALYTICS: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path
+        fill="#F9AB00"
+        d="M19.5 21h-2c-.83 0-1.5-.67-1.5-1.5v-15c0-.83.67-1.5 1.5-1.5h2c.83 0 1.5.67 1.5 1.5v15c0 .83-.67 1.5-1.5 1.5z"
+      />
+      <path
+        fill="#E37400"
+        d="M12 21h-2c-.83 0-1.5-.67-1.5-1.5v-9c0-.83.67-1.5 1.5-1.5h2c.83 0 1.5.67 1.5 1.5v9c0 .83-.67 1.5-1.5 1.5z"
+      />
+      <circle fill="#E37400" cx="5" cy="19.5" r="2.5" />
+    </svg>
+  ),
+  GOOGLE_SEARCH_CONSOLE: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path
+        fill="#4285F4"
+        d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"
+      />
+      <circle fill="#fff" cx="9.5" cy="9.5" r="4.5" />
+    </svg>
+  ),
+  GOOGLE_ADS: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path fill="#FBBC05" d="M3.2 18.4l4-12L11.6 18.4z" />
+      <path fill="#4285F4" d="M12.4 6.4l4 12h-8z" />
+      <path fill="#34A853" d="M16.4 18.4l4-12-4.4-2-4 12z" />
+      <circle fill="#34A853" cx="18.4" cy="18.4" r="2.8" />
+    </svg>
+  ),
+  GOOGLE_MAPS: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path
+        fill="#4285F4"
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+      />
+      <circle fill="#fff" cx="12" cy="9" r="2.5" />
+    </svg>
+  ),
+
+  // ===== DEVELOPMENT EXTENDED =====
+  VERCEL: (
+    <svg viewBox="0 0 24 24" fill="#000000" className="w-full h-full">
+      <path d="M12 1L24 22H0z" />
+    </svg>
+  ),
+  SUPABASE: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path fill="#3ECF8E" d="M13.7 21.8c-.5.7-1.6.3-1.6-.5V13h8.7c1.1 0 1.7 1.3 1 2.1l-8.1 6.7z" />
+      <path
+        fill="#3ECF8E"
+        opacity=".5"
+        d="M13.7 21.8c-.5.7-1.6.3-1.6-.5V13h8.7c1.1 0 1.7 1.3 1 2.1l-8.1 6.7z"
+      />
+      <path fill="#37996B" d="M10.3 2.2c.5-.7 1.6-.3 1.6.5V11H3.2c-1.1 0-1.7-1.3-1-2.1l8.1-6.7z" />
+    </svg>
+  ),
+  SENTRY: (
+    <svg viewBox="0 0 24 24" fill="#362D59" className="w-full h-full">
+      <path d="M13.91 2.505c-.873-1.448-2.972-1.448-3.845 0L6.572 8.17a7.074 7.074 0 014.16 6.448h-1.63a5.47 5.47 0 00-3.042-4.891L3.27 14.2a2.705 2.705 0 001.418 1.573h-1.27a.6.6 0 00-.6.6v.6h3.27A3.904 3.904 0 018.12 19.58H6.49a2.305 2.305 0 01-1.143-1.97h-.6a2.905 2.905 0 001.743 2.57h2.83a5.07 5.07 0 00-2.84-4.57l1.36-2.3a7.073 7.073 0 013.84 6.27v.6h1.2v-.6a8.273 8.273 0 00-4.14-7.17l2.89-4.87c.218-.36.764-.36.982 0l6.07 10.21a.6.6 0 01-.52.9H19.2v1.2h2.16a1.8 1.8 0 001.558-2.7z" />
+    </svg>
+  ),
+  CLOUDFLARE: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path
+        fill="#F38020"
+        d="M16.51 15.86l.85-2.95c.08-.27.04-.52-.1-.71-.14-.19-.36-.3-.62-.32l-8.56-.12c-.06 0-.11-.03-.14-.07-.03-.05-.03-.1-.01-.15.04-.09.13-.15.23-.16l8.69-.12c.95-.05 1.97-.84 2.33-1.81l.45-1.22a.36.36 0 00.02-.16C19.21 4.93 16.37 2.4 12.94 2.4c-3.02 0-5.58 1.96-6.47 4.68-.56-.42-1.27-.64-2.04-.56-1.38.15-2.48 1.28-2.6 2.67-.03.34 0 .66.07.97C.84 10.2 0 11.17 0 12.35c0 .19.01.38.05.57.03.12.14.21.27.21h15.83c.1 0 .2-.07.23-.17l.13-.45z"
+      />
+      <path
+        fill="#FAAE40"
+        d="M18.94 10.08c-.11 0-.22 0-.33.02-.06.01-.12.06-.14.12l-.59 2.05c-.08.27-.04.52.1.71.14.19.36.3.62.32l2.01.03c.06 0 .11.03.14.07.03.05.03.1.01.15-.04.09-.13.15-.23.16l-2.13.03c-.96.05-1.97.84-2.33 1.81l-.13.34c-.03.08.03.16.12.16H24c.11 0 .21-.08.23-.19.13-.61.2-1.24.2-1.89 0-2.12-1.72-3.89-3.49-3.89z"
+      />
+    </svg>
+  ),
+  LINEAR: (
+    <svg viewBox="0 0 24 24" fill="#5E6AD2" className="w-full h-full">
+      <path d="M2.77 17.72a10.96 10.96 0 01-1.19-3.07l5.49 5.5a10.96 10.96 0 01-3.07-1.2L2.77 17.72zM1.26 12.5a11.02 11.02 0 01.35-2.36l8.25 8.25a11.02 11.02 0 01-2.36.35L1.26 12.5zm.83-4.04A11 11 0 0112 1.09c2.8 0 5.36 1.04 7.31 2.77L4.54 18.63A10.97 10.97 0 011.77 11.3L2.09 8.46zm18.14-3.63L5.17 19.91A11 11 0 0022.91 12c0-2.8-1.04-5.36-2.77-7.31l.09.14zm2.51 5.67a11.02 11.02 0 01-.35 2.36l-8.25-8.25a11.02 11.02 0 012.36-.35l6.24 6.24zm-.83 4.04a10.96 10.96 0 01-1.19 3.07l-1.23 1.23a10.96 10.96 0 01-3.07 1.19l5.49-5.49z" />
+    </svg>
+  ),
+
+  // ===== AI & TOOLS =====
+  ELEVENLABS: (
+    <svg viewBox="0 0 24 24" fill="#000000" className="w-full h-full">
+      <rect x="8" y="3" width="3" height="18" rx="1.5" />
+      <rect x="13" y="3" width="3" height="18" rx="1.5" />
+    </svg>
+  ),
+  SERPAPI: (
+    <svg viewBox="0 0 24 24" className="w-full h-full">
+      <path
+        fill="#10A37F"
+        d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"
+      />
+      <circle fill="#fff" cx="9.5" cy="9.5" r="3.5" />
+    </svg>
+  ),
+  PERPLEXITY_AI: (
+    <svg viewBox="0 0 24 24" fill="#1FB8CD" className="w-full h-full">
+      <path d="M12 1L4 5v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V5l-8-4zm0 2.18L18 6.3v4.7c0 4.28-2.95 8.3-6 9.72-3.05-1.42-6-5.44-6-9.72V6.3L12 3.18zm-1 3.82v4h2v-4h3l-4-4-4 4h3z" />
+    </svg>
+  ),
 };
 
 // Brand colors for fallback initials
@@ -329,6 +467,21 @@ const BRAND_COLORS: Record<string, string> = {
   BUFFER: '#231F20',
   TWITCH: '#9146FF',
   SNAPCHAT: '#FFFC00',
+  GOOGLE_SLIDES: '#FBBC05',
+  GOOGLE_TASKS: '#4285F4',
+  GOOGLE_MEET: '#00832D',
+  GOOGLE_PHOTOS: '#4285F4',
+  GOOGLE_ANALYTICS: '#F9AB00',
+  GOOGLE_SEARCH_CONSOLE: '#4285F4',
+  GOOGLE_ADS: '#4285F4',
+  GOOGLE_MAPS: '#4285F4',
+  VERCEL: '#000000',
+  SUPABASE: '#3ECF8E',
+  SENTRY: '#362D59',
+  CLOUDFLARE: '#F38020',
+  ELEVENLABS: '#000000',
+  SERPAPI: '#10A37F',
+  PERPLEXITY_AI: '#1FB8CD',
 };
 
 interface BrandLogoProps {
