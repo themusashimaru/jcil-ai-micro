@@ -33,6 +33,7 @@ import {
   createSecureServiceClient,
   extractRequestContext,
 } from '@/lib/supabase/secure-service-role';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -1570,9 +1571,7 @@ Analyze the attached images carefully and provide helpful feedback.`
 - Explain your reasoning briefly`;
 
     // Inject CLAUDE.md memory into context
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sessionWithSettings } = await (supabase as any)
-      .from('code_lab_sessions')
+    const { data: sessionWithSettings } = await untypedFrom(supabase, 'code_lab_sessions')
       .select('settings')
       .eq('id', sessionId)
       .single();

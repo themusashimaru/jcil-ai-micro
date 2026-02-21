@@ -52,6 +52,18 @@ import { RepoSelector } from '@/components/chat/RepoSelector';
 // Deep Strategy - now handled in chat, not modals
 import type { StrategyStreamEvent, StrategyOutput } from '@/agents/strategy';
 import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
+import {
+  AGENT_CONFIGS,
+  ALL_MODE_IDS,
+  getActiveAgent,
+  isAnyModeInPhase,
+  isAnyModeExecuting,
+  formatResultContent,
+  parseSSELine,
+  type AgentModeId,
+  type AgentModeRegistry,
+  type Artifact,
+} from './agentModes';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 // Inline creative components removed - all creative features now work through natural chat flow
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
@@ -86,68 +98,15 @@ export function ChatClient() {
   const deepWriter = useAgentMode();
   const quickWriter = useAgentMode();
 
-  // Backward-compatible aliases for existing code references
-  const isStrategyMode = strategy.isActive;
-  const setIsStrategyMode = strategy.setActive;
-  const strategySessionId = strategy.sessionId;
-  const setStrategySessionId = strategy.setSessionId;
-  const strategyPhase = strategy.phase;
-  const setStrategyPhase = strategy.setPhase;
-  const strategyLoading = strategy.loading;
-  const setStrategyLoading = strategy.setLoading;
-  const strategyEvents = strategy.events;
-  const setStrategyEvents = strategy.setEvents;
-
-  const isDeepResearchMode = deepResearch.isActive;
-  const setIsDeepResearchMode = deepResearch.setActive;
-  const deepResearchSessionId = deepResearch.sessionId;
-  const setDeepResearchSessionId = deepResearch.setSessionId;
-  const deepResearchPhase = deepResearch.phase;
-  const setDeepResearchPhase = deepResearch.setPhase;
-  const deepResearchLoading = deepResearch.loading;
-  const setDeepResearchLoading = deepResearch.setLoading;
-  const deepResearchEvents = deepResearch.events;
-  const setDeepResearchEvents = deepResearch.setEvents;
-
-  const isQuickResearchMode = quickResearch.isActive;
-  const setIsQuickResearchMode = quickResearch.setActive;
-  const quickResearchSessionId = quickResearch.sessionId;
-  const setQuickResearchSessionId = quickResearch.setSessionId;
-  const quickResearchPhase = quickResearch.phase;
-  const setQuickResearchPhase = quickResearch.setPhase;
-  const quickResearchLoading = quickResearch.loading;
-  const setQuickResearchLoading = quickResearch.setLoading;
-  const setQuickResearchEvents = quickResearch.setEvents;
-
-  const isQuickStrategyMode = quickStrategy.isActive;
-  const setIsQuickStrategyMode = quickStrategy.setActive;
-  const quickStrategySessionId = quickStrategy.sessionId;
-  const setQuickStrategySessionId = quickStrategy.setSessionId;
-  const quickStrategyPhase = quickStrategy.phase;
-  const setQuickStrategyPhase = quickStrategy.setPhase;
-  const quickStrategyLoading = quickStrategy.loading;
-  const setQuickStrategyLoading = quickStrategy.setLoading;
-  const setQuickStrategyEvents = quickStrategy.setEvents;
-
-  const isDeepWriterMode = deepWriter.isActive;
-  const setIsDeepWriterMode = deepWriter.setActive;
-  const deepWriterSessionId = deepWriter.sessionId;
-  const setDeepWriterSessionId = deepWriter.setSessionId;
-  const deepWriterPhase = deepWriter.phase;
-  const setDeepWriterPhase = deepWriter.setPhase;
-  const deepWriterLoading = deepWriter.loading;
-  const setDeepWriterLoading = deepWriter.setLoading;
-  const setDeepWriterEvents = deepWriter.setEvents;
-
-  const isQuickWriterMode = quickWriter.isActive;
-  const setIsQuickWriterMode = quickWriter.setActive;
-  const quickWriterSessionId = quickWriter.sessionId;
-  const setQuickWriterSessionId = quickWriter.setSessionId;
-  const quickWriterPhase = quickWriter.phase;
-  const setQuickWriterPhase = quickWriter.setPhase;
-  const quickWriterLoading = quickWriter.loading;
-  const setQuickWriterLoading = quickWriter.setLoading;
-  const setQuickWriterEvents = quickWriter.setEvents;
+  // Agent mode registry — maps mode ID to its hook instance
+  const modes: AgentModeRegistry = {
+    strategy,
+    'deep-research': deepResearch,
+    'quick-research': quickResearch,
+    'quick-strategy': quickStrategy,
+    'deep-writer': deepWriter,
+    'quick-writer': quickWriter,
+  };
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1279,107 +1238,83 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
   };
 
   // ===========================================================================
-  // DEEP STRATEGY - Chat-integrated (no modals)
+  // PARAMETERIZED AGENT MODE OPERATIONS
+  // Replaces 18 duplicate functions with 4 config-driven ones
   // ===========================================================================
 
   /**
-   * Start Deep Strategy mode - adds intro message to chat and begins intake
+   * Start any agent mode — adds intro message and begins intake
    */
-  const startDeepStrategy = async () => {
-    if (isStrategyMode || strategyLoading) {
-      return;
-    }
+  const startAgentMode = async (modeId: AgentModeId) => {
+    const mode = modes[modeId];
+    const config = AGENT_CONFIGS[modeId];
+    if (mode.isActive || mode.loading) return;
 
-    setStrategyLoading(true);
+    mode.setLoading(true);
     setIsStreaming(true);
 
-    // Add intro message to chat
     const introMessage: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: `## 🧠 Deep Strategy Mode Activated
-
-**You've activated the most powerful AI strategy system ever built.**
-
-This isn't just ChatGPT with a fancy prompt. I'm about to deploy:
-- **Opus 4.6** as the Master Architect (designs your strategy)
-- **Sonnet 4.6** Project Managers (coordinate research teams)
-- **Up to 100 Haiku 4.5 Scouts** (parallel research army)
-- **Hundreds of web searches** for real-time data
-
-**But first, I need to understand your situation deeply.**
-
-Don't summarize. Don't filter. Don't worry about being organized. Just... tell me everything. Vent if you need to. The more context I have, the better strategy I can build.
-
-**What's going on? What are you trying to figure out?**
-
----
-*Estimated: 2-5 min | $8-15 | Stop anytime by typing "cancel"*`,
+      content: config.introMessage,
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, introMessage]);
 
     try {
-      // Start strategy session via API
+      const body: Record<string, string> = { action: 'start' };
+      if (config.apiMode) body.mode = config.apiMode;
+
       const response = await fetch('/api/strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start' }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to start strategy');
+        throw new Error(data.error || `Failed to start ${config.label.toLowerCase()}`);
       }
 
-      // Get session ID from response header
-      // Note: The API returns an SSE stream, not JSON, so we can only use the header
       const sessionId = response.headers.get('X-Session-Id');
+      if (!sessionId) throw new Error('No session ID returned from server.');
 
-      if (!sessionId) {
-        throw new Error('No session ID returned from server. Check API response headers.');
-      }
-
-      setStrategySessionId(sessionId);
-      setIsStrategyMode(true);
-      setStrategyPhase('intake');
-
-      log.debug('Strategy mode activated', { sessionId });
+      mode.setSessionId(sessionId);
+      mode.setActive(true);
+      mode.setPhase('intake');
+      log.debug(`${config.label} mode activated`, { sessionId });
     } catch (error) {
-      log.error('Failed to start strategy:', error as Error);
+      log.error(`Failed to start ${config.label.toLowerCase()}:`, error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `❌ **Strategy Error**\n\n${(error as Error).message}\n\nPlease try again.`,
+        content: `❌ **${config.errorPrefix} Error**\n\n${(error as Error).message}\n\nPlease try again.`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
-      setIsStrategyMode(false);
-      setStrategyPhase('idle');
+      mode.setActive(false);
+      mode.setPhase('idle');
     } finally {
       setIsStreaming(false);
-      setStrategyLoading(false);
+      mode.setLoading(false);
     }
   };
 
   /**
-   * Handle user input during strategy intake phase
+   * Handle user input during any agent mode's intake phase
    */
-  const handleStrategyInput = async (input: string) => {
-    if (!strategySessionId) {
-      return;
-    }
+  const handleAgentInput = async (modeId: AgentModeId, input: string) => {
+    const mode = modes[modeId];
+    const config = AGENT_CONFIGS[modeId];
+    if (!mode.sessionId) return;
 
-    // Check for cancel command
     if (input.toLowerCase().trim() === 'cancel') {
-      await cancelStrategy();
+      await cancelAgentMode(modeId);
       return;
     }
 
     setIsStreaming(true);
 
-    // Add user message to chat
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -1394,7 +1329,7 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'input',
-          sessionId: strategySessionId,
+          sessionId: mode.sessionId,
           input,
         }),
       });
@@ -1406,1646 +1341,38 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
 
       const data = await response.json();
 
-      // Add assistant response to chat
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.response || 'No response received',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // Check if intake is complete - start execution
       if (data.isComplete) {
-        await executeStrategy();
-      }
-    } catch (error) {
-      log.error('Strategy input error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Execute the strategy after intake is complete
-   */
-  const executeStrategy = async () => {
-    if (!strategySessionId) return;
-
-    setStrategyPhase('executing');
-    setIsStreaming(true);
-    setStrategyEvents([]); // Clear events for fresh start
-
-    // Add execution message
-    const execMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## ⚡ Deploying Strategy Army...
-
-Research is now underway. This will take 2-5 minutes.
-
-I'll update you as scouts report back with findings.`,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, execMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'execute',
-          sessionId: strategySessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to execute strategy');
-      }
-
-      // Read the streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      let buffer = '';
-      let lastProgressUpdate = Date.now();
-      let progressMessageId: string | null = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-            if (data) {
-              try {
-                const event = JSON.parse(data) as StrategyStreamEvent & {
-                  data?: {
-                    result?: StrategyOutput;
-                    artifacts?: Array<{
-                      id: string;
-                      type: string;
-                      title: string;
-                      fileName: string;
-                      mimeType: string;
-                      sizeBytes: number;
-                    }>;
-                  };
-                };
-
-                // Collect events for BrowserPreviewWindow
-                setStrategyEvents((prev) => [...prev, event]);
-
-                // Show periodic progress updates (every 5 seconds)
-                if (
-                  Date.now() - lastProgressUpdate > 5000 &&
-                  event.data?.completedAgents !== undefined
-                ) {
-                  lastProgressUpdate = Date.now();
-                  const progressContent = `📊 **Progress:** ${event.data.completedAgents}/${event.data.totalAgents || '?'} agents complete | $${(event.data.cost || 0).toFixed(2)}`;
-
-                  if (progressMessageId) {
-                    // Update existing progress message
-                    setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === progressMessageId ? { ...m, content: progressContent } : m
-                      )
-                    );
-                  } else {
-                    // Create new progress message
-                    progressMessageId = crypto.randomUUID();
-                    const progressMessage: Message = {
-                      id: progressMessageId,
-                      role: 'assistant',
-                      content: progressContent,
-                      timestamp: new Date(),
-                    };
-                    setMessages((prev) => [...prev, progressMessage]);
-                  }
-                }
-
-                // Check for completion
-                if (event.type === 'strategy_complete' && event.data?.result) {
-                  displayStrategyResult(event.data.result, event.data.artifacts);
-                  setStrategyPhase('complete');
-                  setIsStrategyMode(false);
-                }
-
-                // Check for error
-                if (event.type === 'error') {
-                  throw new Error(event.message);
-                }
-
-                // Check for kill switch
-                if (event.type === 'kill_switch') {
-                  throw new Error(`Strategy stopped: ${event.message}`);
-                }
-              } catch (e) {
-                if (e instanceof Error && e.message.includes('Strategy stopped')) {
-                  throw e;
-                }
-                log.warn('Failed to parse event:', { error: e });
-              }
-            }
-          }
+        // Standard modes show the response, then execute
+        if (modeId !== 'quick-writer' && data.response) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant' as const,
+              content: data.response,
+              timestamp: new Date(),
+            },
+          ]);
         }
-      }
-    } catch (error) {
-      log.error('Strategy execution error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Strategy Failed**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setStrategyPhase('error');
-      setIsStrategyMode(false);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Display the final strategy result as a rich chat message
-   */
-  const displayStrategyResult = (
-    result: StrategyOutput,
-    artifacts?: Array<{
-      id: string;
-      type: string;
-      title: string;
-      fileName: string;
-      mimeType: string;
-      sizeBytes: number;
-    }>
-  ) => {
-    const artifactSection =
-      artifacts && artifacts.length > 0
-        ? `\n### Generated Deliverables\n${artifacts
-            .map((a) => `- **${a.title}** (${a.fileName}) — ${(a.sizeBytes / 1024).toFixed(1)} KB`)
-            .join('\n')}\n\n*Deliverables are stored and can be retrieved from your session.*`
-        : '';
-
-    // Check if this is a writer mode result with a document
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc = (result as any).document as
-      | { title?: string; content?: string; citations?: string[] }
-      | undefined;
-    let content: string;
-
-    if (doc?.content) {
-      // Writer mode — display the full document
-      content = `# ${doc.title || result.recommendation.title}\n\n${doc.content}`;
-
-      if (doc.citations && doc.citations.length > 0) {
-        content += `\n\n---\n\n**Sources:**\n${doc.citations.map((c: string) => `- ${c}`).join('\n')}`;
-      }
-
-      content += `${artifactSection}\n\n---\n*Content generated by ${result.metadata.totalAgents} agents in ${Math.round(result.metadata.executionTime / 1000)}s.*`;
-    } else {
-      // Strategy/Research mode — display the standard strategy output
-      content = `## Strategy Complete
-
-### Recommendation
-**${result.recommendation.title}**
-
-${result.recommendation.summary}
-
-**Confidence:** ${result.recommendation.confidence}%
-**Best For:** ${result.recommendation.bestFor}
-
-### Key Reasoning
-${result.recommendation.reasoning.map((item, i) => `${i + 1}. ${item}`).join('\n')}
-
-### Trade-offs to Consider
-${result.recommendation.tradeoffs.map((item) => `- ${typeof item === 'object' && item !== null ? (item as { text?: string; description?: string }).text || (item as { text?: string; description?: string }).description || JSON.stringify(item) : item}`).join('\n')}
-
-${result.alternatives.length > 0 ? `### Alternative Options\n${result.alternatives.map((alt) => `- **${alt.title || 'Alternative'}** (${alt.confidence ?? 'N/A'}% confidence)\n  ${alt.summary || ''}\n  *Why not top:* ${alt.whyNotTop || 'Not specified'}`).join('\n\n')}` : ''}
-
-### Action Plan
-${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority: ${item.priority} | Timeframe: ${item.timeframe}${item.details ? `\n   ${item.details}` : ''}`).join('\n\n')}
-
-### Next Steps
-${result.nextSteps.map((step) => `- ${step}`).join('\n')}
-
-${result.gaps.length > 0 ? `### Information Gaps\n${result.gaps.map((gap) => `- ${gap}`).join('\n')}` : ''}
-${artifactSection}
-
-### Research Metadata
-- **Agents Deployed:** ${result.metadata.totalAgents}
-- **Searches Conducted:** ${result.metadata.totalSearches}
-- **Total Cost:** $${result.metadata.totalCost.toFixed(2)}
-- **Duration:** ${Math.round(result.metadata.executionTime / 1000)}s
-
----
-*Strategy complete. Ask follow-up questions or start a new strategy.*`;
-    }
-
-    const resultMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, resultMessage]);
-  };
-
-  /**
-   * Cancel the current strategy
-   */
-  const cancelStrategy = async () => {
-    if (!strategySessionId) return;
-
-    try {
-      await fetch(`/api/strategy?sessionId=${strategySessionId}`, {
-        method: 'DELETE',
-      });
-    } catch (e) {
-      log.warn('Cancel request failed:', { error: e });
-    }
-
-    const cancelMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '✋ **Strategy cancelled.** You can start a new one anytime.',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, cancelMessage]);
-
-    setIsStrategyMode(false);
-    setStrategyPhase('idle');
-    setStrategySessionId(null);
-    setIsStreaming(false);
-  };
-
-  // ===========================================================================
-  // DEEP RESEARCH - Same engine as Strategy, research-focused prompts
-  // ===========================================================================
-
-  /**
-   * Start Deep Research mode - adds intro message to chat and begins intake
-   */
-  const startDeepResearch = async () => {
-    if (isDeepResearchMode || deepResearchLoading) {
-      return;
-    }
-
-    setDeepResearchLoading(true);
-    setIsStreaming(true);
-
-    // Add intro message to chat
-    const introMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 📚 Deep Research Mode Activated
-
-**You've activated the most powerful AI research system ever built.**
-
-This isn't a simple search. I'm about to deploy an autonomous research army:
-- **Opus 4.6** as the Research Director (designs your investigation)
-- **Sonnet 4.6** Domain Leads (coordinate research teams)
-- **Up to 100 Haiku 4.5 Investigators** (parallel research army)
-- **14 specialized tools** including browser automation, vision AI, PDF extraction
-
-**But first, I need to understand what you want to research.**
-
-Tell me the topic, your questions, and what you'll use this research for. The more context you give me, the deeper I can go.
-
-**What topic do you want me to research?**
-
----
-*Estimated: 2-5 min | $8-15 | Stop anytime by typing "cancel"*`,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, introMessage]);
-
-    try {
-      // Start research session via strategy API with mode: 'research'
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', mode: 'research' }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start research');
-      }
-
-      const sessionId = response.headers.get('X-Session-Id');
-
-      if (!sessionId) {
-        throw new Error('No session ID returned from server.');
-      }
-
-      setDeepResearchSessionId(sessionId);
-      setIsDeepResearchMode(true);
-      setDeepResearchPhase('intake');
-
-      log.debug('Deep Research mode activated', { sessionId });
-    } catch (error) {
-      log.error('Failed to start deep research:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Research Error**\n\n${(error as Error).message}\n\nPlease try again.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setIsDeepResearchMode(false);
-      setDeepResearchPhase('idle');
-    } finally {
-      setIsStreaming(false);
-      setDeepResearchLoading(false);
-    }
-  };
-
-  /**
-   * Handle user input during deep research intake phase
-   */
-  const handleDeepResearchInput = async (input: string) => {
-    if (!deepResearchSessionId) {
-      return;
-    }
-
-    // Check for cancel command
-    if (input.toLowerCase().trim() === 'cancel') {
-      await cancelDeepResearch();
-      return;
-    }
-
-    setIsStreaming(true);
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'input',
-          sessionId: deepResearchSessionId,
-          input,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || data.error || 'Failed to process input');
-      }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.response || 'No response received',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      if (data.isComplete) {
-        await executeDeepResearch();
-      }
-    } catch (error) {
-      log.error('Deep research input error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Execute the deep research after intake is complete
-   */
-  const executeDeepResearch = async () => {
-    if (!deepResearchSessionId) return;
-
-    setDeepResearchPhase('executing');
-    setIsStreaming(true);
-    setDeepResearchEvents([]);
-
-    const execMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 🔬 Deploying Research Army...
-
-Research is now underway. This will take 2-5 minutes.
-
-I'll update you as investigators report back with findings.`,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, execMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'execute',
-          sessionId: deepResearchSessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to execute research');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      let buffer = '';
-      let lastProgressUpdate = Date.now();
-      let progressMessageId: string | null = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-            if (data) {
-              try {
-                const event = JSON.parse(data) as StrategyStreamEvent & {
-                  data?: {
-                    result?: StrategyOutput;
-                    artifacts?: Array<{
-                      id: string;
-                      type: string;
-                      title: string;
-                      fileName: string;
-                      mimeType: string;
-                      sizeBytes: number;
-                    }>;
-                  };
-                };
-
-                setDeepResearchEvents((prev) => [...prev, event]);
-
-                if (
-                  Date.now() - lastProgressUpdate > 5000 &&
-                  event.data?.completedAgents !== undefined
-                ) {
-                  lastProgressUpdate = Date.now();
-                  const progressContent = `📊 **Progress:** ${event.data.completedAgents}/${event.data.totalAgents || '?'} investigators complete | $${(event.data.cost || 0).toFixed(2)}`;
-
-                  if (progressMessageId) {
-                    setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === progressMessageId ? { ...m, content: progressContent } : m
-                      )
-                    );
-                  } else {
-                    progressMessageId = crypto.randomUUID();
-                    const progressMessage: Message = {
-                      id: progressMessageId,
-                      role: 'assistant',
-                      content: progressContent,
-                      timestamp: new Date(),
-                    };
-                    setMessages((prev) => [...prev, progressMessage]);
-                  }
-                }
-
-                if (event.type === 'strategy_complete' && event.data?.result) {
-                  displayResearchResult(event.data.result, event.data.artifacts);
-                  setDeepResearchPhase('complete');
-                  setIsDeepResearchMode(false);
-                }
-
-                if (event.type === 'error') {
-                  throw new Error(event.message);
-                }
-
-                if (event.type === 'kill_switch') {
-                  throw new Error(`Research stopped: ${event.message}`);
-                }
-              } catch (e) {
-                if (e instanceof Error && e.message.includes('Research stopped')) {
-                  throw e;
-                }
-                log.warn('Failed to parse event:', { error: e });
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      log.error('Deep research execution error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Research Failed**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setDeepResearchPhase('error');
-      setIsDeepResearchMode(false);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Display the final research result as a rich chat message
-   */
-  const displayResearchResult = (
-    result: StrategyOutput,
-    artifacts?: Array<{
-      id: string;
-      type: string;
-      title: string;
-      fileName: string;
-      mimeType: string;
-      sizeBytes: number;
-    }>
-  ) => {
-    const artifactSection =
-      artifacts && artifacts.length > 0
-        ? `\n### Generated Deliverables\n${artifacts
-            .map((a) => `- **${a.title}** (${a.fileName}) — ${(a.sizeBytes / 1024).toFixed(1)} KB`)
-            .join('\n')}\n\n*Deliverables are stored and can be retrieved from your session.*`
-        : '';
-
-    const content = `## 📚 Research Report Complete
-
-### Executive Summary
-**${result.recommendation.title}**
-
-${result.recommendation.summary}
-
-**Confidence:** ${result.recommendation.confidence}%
-
-### Key Findings
-${result.recommendation.reasoning.map((item, i) => `${i + 1}. ${item}`).join('\n')}
-
-### Limitations & Caveats
-${result.recommendation.tradeoffs.map((item) => `- ${typeof item === 'object' && item !== null ? (item as { text?: string; description?: string }).text || (item as { text?: string; description?: string }).description || JSON.stringify(item) : item}`).join('\n')}
-
-${result.alternatives.length > 0 ? `### Alternative Perspectives\n${result.alternatives.map((alt) => `- **${alt.title || 'Alternative'}** (${alt.confidence ?? 'N/A'}% confidence)\n  ${alt.summary || ''}`).join('\n\n')}` : ''}
-
-### Recommended Next Steps
-${result.actionPlan.map((item, i) => `${i + 1}. **${item.action}**\n   Priority: ${item.priority} | Timeframe: ${item.timeframe}${item.details ? `\n   ${item.details}` : ''}`).join('\n\n')}
-
-### Further Research
-${result.nextSteps.map((step) => `- ${step}`).join('\n')}
-
-${result.gaps.length > 0 ? `### Knowledge Gaps\n${result.gaps.map((gap) => `- ${gap}`).join('\n')}` : ''}
-${artifactSection}
-
-### Research Metadata
-- **Investigators Deployed:** ${result.metadata.totalAgents}
-- **Searches Conducted:** ${result.metadata.totalSearches}
-- **Total Cost:** $${result.metadata.totalCost.toFixed(2)}
-- **Duration:** ${Math.round(result.metadata.executionTime / 1000)}s
-
----
-*Research complete. Ask follow-up questions or start a new research session.*`;
-
-    const resultMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, resultMessage]);
-  };
-
-  /**
-   * Cancel the current deep research
-   */
-  const cancelDeepResearch = async () => {
-    if (!deepResearchSessionId) return;
-
-    try {
-      await fetch(`/api/strategy?sessionId=${deepResearchSessionId}`, {
-        method: 'DELETE',
-      });
-    } catch (e) {
-      log.warn('Cancel request failed:', { error: e });
-    }
-
-    const cancelMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '✋ **Research cancelled.** You can start a new research session anytime.',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, cancelMessage]);
-
-    setIsDeepResearchMode(false);
-    setDeepResearchPhase('idle');
-    setDeepResearchSessionId(null);
-    setIsStreaming(false);
-  };
-
-  // ===========================================================================
-  // QUICK RESEARCH - Lightweight version of Deep Research (1/4 scale)
-  // Uses the strategy engine with 'quick-research' mode for fast, focused research
-  // ===========================================================================
-
-  /**
-   * Start Quick Research mode - streamlined intake for fast research
-   */
-  const startQuickResearch = async () => {
-    if (isQuickResearchMode || quickResearchLoading) {
-      return;
-    }
-
-    setQuickResearchLoading(true);
-    setIsStreaming(true);
-
-    // Add intro message to chat
-    const introMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 🔍 Quick Research Mode
-
-I'll deploy a focused research team to investigate your topic.
-
-**What you get:**
-- **10-15 intelligent scouts** (Claude Sonnet 4.6)
-- **All research tools:** Browser automation, web search, PDF extraction, vision analysis
-- **Opus synthesis:** Claude Opus 4.6 compiles findings
-
-**Estimated: 1-2 min | $2-3**
-
-**What do you want me to research?**`,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, introMessage]);
-
-    try {
-      // Start research session via strategy API with mode: 'quick-research'
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', mode: 'quick-research' }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start research');
-      }
-
-      const sessionId = response.headers.get('X-Session-Id');
-
-      if (!sessionId) {
-        throw new Error('No session ID returned from server.');
-      }
-
-      setQuickResearchSessionId(sessionId);
-      setIsQuickResearchMode(true);
-      setQuickResearchPhase('intake');
-
-      log.debug('Quick Research mode activated', { sessionId });
-    } catch (error) {
-      log.error('Failed to start quick research:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Research Error**\n\n${(error as Error).message}\n\nPlease try again.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setIsQuickResearchMode(false);
-      setQuickResearchPhase('idle');
-    } finally {
-      setIsStreaming(false);
-      setQuickResearchLoading(false);
-    }
-  };
-
-  /**
-   * Handle user input during quick research intake phase
-   */
-  const handleQuickResearchInput = async (input: string) => {
-    if (!quickResearchSessionId) {
-      return;
-    }
-
-    // Check for cancel command
-    if (input.toLowerCase().trim() === 'cancel') {
-      await cancelQuickResearch();
-      return;
-    }
-
-    setIsStreaming(true);
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'input',
-          sessionId: quickResearchSessionId,
-          input,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || data.error || 'Failed to process input');
-      }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.response || 'No response received',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      if (data.isComplete) {
-        await executeQuickResearch();
-      }
-    } catch (error) {
-      log.error('Quick research input error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Execute the quick research after intake is complete
-   */
-  const executeQuickResearch = async () => {
-    if (!quickResearchSessionId) return;
-
-    setQuickResearchPhase('executing');
-    setIsStreaming(true);
-    setQuickResearchEvents([]);
-
-    const execMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 🚀 Deploying Research Scouts...
-
-Research is now underway. This will take 1-2 minutes.
-
-I'll update you as scouts report back with findings.`,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, execMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'execute',
-          sessionId: quickResearchSessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to execute research');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6)) as StrategyStreamEvent;
-              setQuickResearchEvents((prev) => [...prev, event]);
-
-              // Handle completion
-              if (event.type === 'strategy_complete' && event.data?.result) {
-                displayResearchResult(event.data.result, event.data.artifacts);
-                setQuickResearchPhase('complete');
-                setIsQuickResearchMode(false);
-              }
-
-              // Handle errors and kill switch
-              if (event.type === 'error') {
-                throw new Error(`Agent error: ${event.message}`);
-              }
-              if (event.type === 'kill_switch') {
-                throw new Error(`Agent error: ${event.message}`);
-              }
-            } catch (e) {
-              if (e instanceof Error && e.message.startsWith('Agent error:')) {
-                throw e;
-              }
-              log.warn('Failed to parse SSE event:', { error: e });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      log.error('Quick research execution error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Research Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setQuickResearchPhase('error');
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Cancel quick research session
-   */
-  const cancelQuickResearch = async () => {
-    if (!quickResearchSessionId) return;
-
-    try {
-      await fetch(`/api/strategy?sessionId=${quickResearchSessionId}`, {
-        method: 'DELETE',
-      });
-    } catch (e) {
-      log.warn('Cancel request failed:', { error: e });
-    }
-
-    const cancelMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '✋ **Research cancelled.** You can start a new research session anytime.',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, cancelMessage]);
-
-    setIsQuickResearchMode(false);
-    setQuickResearchPhase('idle');
-    setQuickResearchSessionId(null);
-    setIsStreaming(false);
-  };
-
-  // ===========================================================================
-  // QUICK STRATEGY - Lightweight version of Deep Strategy (1/4 scale)
-  // Uses the strategy engine with 'quick-strategy' mode for fast decisions
-  // ===========================================================================
-
-  /**
-   * Start Quick Strategy mode - streamlined intake for fast strategic decisions
-   */
-  const startQuickStrategy = async () => {
-    if (isQuickStrategyMode || quickStrategyLoading) {
-      return;
-    }
-
-    setQuickStrategyLoading(true);
-    setIsStreaming(true);
-
-    // Add intro message to chat
-    const introMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 🎯 Quick Strategy Mode
-
-I'll deploy a focused team to help you make this decision.
-
-**What you get:**
-- **10-15 intelligent scouts** (Claude Sonnet 4.6)
-- **All research tools:** Browser automation, web search, data analysis
-- **Opus synthesis:** Claude Opus 4.6 analyzes and recommends
-
-**Estimated: 1-2 min | $2-3**
-
-**What decision do you need help with?**`,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, introMessage]);
-
-    try {
-      // Start strategy session via strategy API with mode: 'quick-strategy'
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', mode: 'quick-strategy' }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start strategy');
-      }
-
-      const sessionId = response.headers.get('X-Session-Id');
-
-      if (!sessionId) {
-        throw new Error('No session ID returned from server.');
-      }
-
-      setQuickStrategySessionId(sessionId);
-      setIsQuickStrategyMode(true);
-      setQuickStrategyPhase('intake');
-
-      log.debug('Quick Strategy mode activated', { sessionId });
-    } catch (error) {
-      log.error('Failed to start quick strategy:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Strategy Error**\n\n${(error as Error).message}\n\nPlease try again.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setIsQuickStrategyMode(false);
-      setQuickStrategyPhase('idle');
-    } finally {
-      setIsStreaming(false);
-      setQuickStrategyLoading(false);
-    }
-  };
-
-  /**
-   * Handle user input during quick strategy intake phase
-   */
-  const handleQuickStrategyInput = async (input: string) => {
-    if (!quickStrategySessionId) {
-      return;
-    }
-
-    // Check for cancel command
-    if (input.toLowerCase().trim() === 'cancel') {
-      await cancelQuickStrategy();
-      return;
-    }
-
-    setIsStreaming(true);
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'input',
-          sessionId: quickStrategySessionId,
-          input,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || data.error || 'Failed to process input');
-      }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.response || 'No response received',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      if (data.isComplete) {
-        await executeQuickStrategy();
-      }
-    } catch (error) {
-      log.error('Quick strategy input error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Execute the quick strategy after intake is complete
-   */
-  const executeQuickStrategy = async () => {
-    if (!quickStrategySessionId) return;
-
-    setQuickStrategyPhase('executing');
-    setIsStreaming(true);
-    setQuickStrategyEvents([]);
-
-    const execMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 🚀 Deploying Strategy Scouts...
-
-Analysis is now underway. This will take 1-2 minutes.
-
-I'll update you as scouts report back with findings.`,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, execMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'execute',
-          sessionId: quickStrategySessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to execute strategy');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6)) as StrategyStreamEvent;
-              setQuickStrategyEvents((prev) => [...prev, event]);
-
-              // Handle completion
-              if (event.type === 'strategy_complete' && event.data?.result) {
-                displayStrategyResult(event.data.result, event.data.artifacts);
-                setQuickStrategyPhase('complete');
-                setIsQuickStrategyMode(false);
-              }
-
-              // Handle errors and kill switch
-              if (event.type === 'error') {
-                throw new Error(`Agent error: ${event.message}`);
-              }
-              if (event.type === 'kill_switch') {
-                throw new Error(`Agent error: ${event.message}`);
-              }
-            } catch (e) {
-              if (e instanceof Error && e.message.startsWith('Agent error:')) {
-                throw e;
-              }
-              log.warn('Failed to parse SSE event:', { error: e });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      log.error('Quick strategy execution error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Strategy Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setQuickStrategyPhase('error');
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Cancel quick strategy session
-   */
-  const cancelQuickStrategy = async () => {
-    if (!quickStrategySessionId) return;
-
-    try {
-      await fetch(`/api/strategy?sessionId=${quickStrategySessionId}`, {
-        method: 'DELETE',
-      });
-    } catch (e) {
-      log.warn('Cancel request failed:', { error: e });
-    }
-
-    const cancelMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '✋ **Strategy cancelled.** You can start a new strategy session anytime.',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, cancelMessage]);
-
-    setIsQuickStrategyMode(false);
-    setQuickStrategyPhase('idle');
-    setQuickStrategySessionId(null);
-    setIsStreaming(false);
-  };
-
-  // ===========================================================================
-  // DEEP WRITER AGENT - Professional AI Writing with Research
-  // ===========================================================================
-
-  /**
-   * Start Deep Writer mode - professional writing with full research
-   */
-  const startDeepWriter = async () => {
-    if (isDeepWriterMode || deepWriterLoading) {
-      return;
-    }
-
-    setDeepWriterLoading(true);
-    setIsStreaming(true);
-
-    // Add intro message to chat
-    const introMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## ✍️ Deep Writer Mode Activated
-
-**You've activated the most advanced AI writing system ever built.**
-
-This is a full publishing operation:
-- **Claude Opus 4.6** - Editorial Director & Writers
-- **Claude Sonnet 4.6** - Research Corps (15-50 agents)
-- **Full browser tools** - Web research, PDF extraction, data gathering
-
-**The Process:**
-1. Deep intake - I understand exactly what you're creating
-2. Research phase - Agents gather ALL facts first
-3. Writing phase - Professional writers craft each section
-4. Editorial phase - Voice consistency, polish, citations
-5. Export - Markdown, PDF, or DOCX
-
-**What are you writing today?**`,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, introMessage]);
-
-    try {
-      // Start strategy session via strategy API with mode: 'deep-writer'
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', mode: 'deep-writer' }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start writer');
-      }
-
-      const sessionId = response.headers.get('X-Session-Id');
-
-      if (!sessionId) {
-        throw new Error('No session ID returned from server.');
-      }
-
-      setDeepWriterSessionId(sessionId);
-      setIsDeepWriterMode(true);
-      setDeepWriterPhase('intake');
-
-      log.debug('Deep Writer mode activated', { sessionId });
-    } catch (error) {
-      log.error('Failed to start deep writer:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Writer Error**\n\n${(error as Error).message}\n\nPlease try again.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setIsDeepWriterMode(false);
-      setDeepWriterPhase('idle');
-    } finally {
-      setIsStreaming(false);
-      setDeepWriterLoading(false);
-    }
-  };
-
-  /**
-   * Handle user input during deep writer intake phase
-   */
-  const handleDeepWriterInput = async (input: string) => {
-    if (!deepWriterSessionId) {
-      return;
-    }
-
-    // Check for cancel command
-    if (input.toLowerCase().trim() === 'cancel') {
-      await cancelDeepWriter();
-      return;
-    }
-
-    setIsStreaming(true);
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'input',
-          sessionId: deepWriterSessionId,
-          input,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || data.error || 'Failed to process input');
-      }
-
-      const data = await response.json();
-
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.response || 'No response received',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      if (data.isComplete) {
-        await executeDeepWriter();
-      }
-    } catch (error) {
-      log.error('Deep writer input error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Execute the deep writer after intake is complete
-   */
-  const executeDeepWriter = async () => {
-    if (!deepWriterSessionId) return;
-
-    setDeepWriterPhase('executing');
-    setIsStreaming(true);
-    setDeepWriterEvents([]);
-
-    const execMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## 📚 Writing Operation Underway
-
-**Phase 1: Research**
-Deploying research scouts to gather facts, quotes, and sources...
-
-**Phase 2: Writing**
-Writers will craft each section using verified research...
-
-**Phase 3: Editorial**
-Final polish, voice consistency, and citations...
-
-This may take 5-15 minutes depending on document length.`,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, execMessage]);
-
-    try {
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'execute',
-          sessionId: deepWriterSessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to execute writer');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6)) as StrategyStreamEvent;
-              setDeepWriterEvents((prev) => [...prev, event]);
-
-              // Handle completion
-              if (event.type === 'strategy_complete' && event.data?.result) {
-                displayStrategyResult(event.data.result, event.data.artifacts);
-                setDeepWriterPhase('complete');
-                setIsDeepWriterMode(false);
-              }
-
-              // Handle errors and kill switch
-              if (event.type === 'error') {
-                throw new Error(`Agent error: ${event.message}`);
-              }
-              if (event.type === 'kill_switch') {
-                throw new Error(`Agent error: ${event.message}`);
-              }
-            } catch (e) {
-              if (e instanceof Error && e.message.startsWith('Agent error:')) {
-                throw e;
-              }
-              log.warn('Failed to parse SSE event:', { error: e });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      log.error('Deep writer execution error:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Writer Error**\n\n${(error as Error).message}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setDeepWriterPhase('error');
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  /**
-   * Cancel deep writer session
-   */
-  const cancelDeepWriter = async () => {
-    if (!deepWriterSessionId) return;
-
-    try {
-      await fetch(`/api/strategy?sessionId=${deepWriterSessionId}`, {
-        method: 'DELETE',
-      });
-    } catch (e) {
-      log.warn('Cancel request failed:', { error: e });
-    }
-
-    const cancelMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '✋ **Writing cancelled.** You can start a new writing project anytime.',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, cancelMessage]);
-
-    setIsDeepWriterMode(false);
-    setDeepWriterPhase('idle');
-    setDeepWriterSessionId(null);
-    setIsStreaming(false);
-  };
-
-  // ===========================================================================
-  // QUICK WRITER AGENT - Fast AI Writing with Focused Research
-  // ===========================================================================
-
-  /**
-   * Start Quick Writer mode - fast writing with focused research
-   */
-  const startQuickWriter = async () => {
-    if (isQuickWriterMode || quickWriterLoading) {
-      return;
-    }
-
-    setQuickWriterLoading(true);
-    setIsStreaming(true);
-
-    // Add intro message to chat
-    const introMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `## ✍️ Quick Writer Mode
-
-I'll deploy a focused team to research and write your content.
-
-**What you get:**
-- **10-15 research scouts** (Claude Sonnet 4.6) - gather facts first
-- **Opus writers** (Claude Opus 4.6) - craft polished content
-- **Fast turnaround:** 2-3 minutes
-
-**Best for:**
-- Blog posts and articles
-- Short reports and summaries
-- Professional emails
-- Product descriptions
-
-**What do you want me to write?**`,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, introMessage]);
-
-    try {
-      // Start strategy session via strategy API with mode: 'quick-writer'
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', mode: 'quick-writer' }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start writer');
-      }
-
-      const sessionId = response.headers.get('X-Session-Id');
-
-      if (!sessionId) {
-        throw new Error('No session ID returned from server.');
-      }
-
-      setQuickWriterSessionId(sessionId);
-      setIsQuickWriterMode(true);
-      setQuickWriterPhase('intake');
-
-      log.debug('Quick Writer mode activated', { sessionId });
-    } catch (error) {
-      log.error('Failed to start quick writer:', error as Error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `❌ **Writer Error**\n\n${(error as Error).message}\n\nPlease try again.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      setIsQuickWriterMode(false);
-      setQuickWriterPhase('idle');
-    } finally {
-      setIsStreaming(false);
-      setQuickWriterLoading(false);
-    }
-  };
-
-  /**
-   * Handle user input during quick writer intake phase
-   */
-  const handleQuickWriterInput = async (input: string) => {
-    if (!quickWriterSessionId) {
-      return;
-    }
-
-    // Check for cancel command
-    if (input.toLowerCase().trim() === 'cancel') {
-      await cancelQuickWriter();
-      return;
-    }
-
-    setIsStreaming(true);
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    try {
-      // Send to strategy API for intake processing
-      const response = await fetch('/api/strategy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'input',
-          sessionId: quickWriterSessionId,
-          input: input,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process input');
-      }
-
-      const data = await response.json();
-
-      if (data.isComplete) {
-        // Intake complete - start execution
-        setQuickWriterPhase('executing');
-        await executeQuickWriter();
+        await executeAgentMode(modeId);
       } else {
-        // More intake needed - show follow-up question
-        const followUp: Message = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content:
-            data.response || 'Could you provide more details about what you want me to write?',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, followUp]);
+        // More intake needed — show follow-up
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant' as const,
+            content: data.response || 'No response received',
+            timestamp: new Date(),
+          },
+        ]);
       }
     } catch (error) {
-      log.error('Quick writer intake error:', error as Error);
+      log.error(`${config.label} input error:`, error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: '❌ Something went wrong. Please try again or type "cancel" to exit.',
+        content: `❌ **Error**\n\n${(error as Error).message}`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -3055,20 +1382,24 @@ I'll deploy a focused team to research and write your content.
   };
 
   /**
-   * Execute quick writer research and writing
+   * Execute any agent mode after intake is complete
    */
-  const executeQuickWriter = async () => {
-    if (!quickWriterSessionId) return;
+  const executeAgentMode = async (modeId: AgentModeId) => {
+    const mode = modes[modeId];
+    const config = AGENT_CONFIGS[modeId];
+    if (!mode.sessionId) return;
 
+    mode.setPhase('executing');
     setIsStreaming(true);
+    mode.setEvents([]);
 
-    const statusMessage: Message = {
+    const execMessage: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: '**Writing in progress...** Opus is crafting your content.',
+      content: config.execMessage,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, statusMessage]);
+    setMessages((prev) => [...prev, execMessage]);
 
     try {
       const response = await fetch('/api/strategy', {
@@ -3076,18 +1407,22 @@ I'll deploy a focused team to research and write your content.
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'execute',
-          sessionId: quickWriterSessionId,
+          sessionId: mode.sessionId,
         }),
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error('Failed to execute quick writer');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || `Failed to execute ${config.label.toLowerCase()}`);
       }
 
-      // Process SSE stream
-      const reader = response.body.getReader();
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
+      if (!reader) throw new Error('No response body');
+
       let buffer = '';
+      let lastProgressUpdate = Date.now();
+      let progressMessageId: string | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -3098,90 +1433,100 @@ I'll deploy a focused team to research and write your content.
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6);
-            if (jsonStr === '[DONE]') continue;
+          const sseData = parseSSELine(line);
+          if (!sseData) continue;
 
-            try {
-              const event: StrategyStreamEvent = JSON.parse(jsonStr);
-              setQuickWriterEvents((prev) => [...prev, event]);
+          try {
+            const event = JSON.parse(sseData) as StrategyStreamEvent & {
+              data?: {
+                result?: StrategyOutput;
+                artifacts?: Artifact[];
+                completedAgents?: number;
+                totalAgents?: number;
+                cost?: number;
+              };
+            };
 
-              // Handle completion
-              if (event.type === 'strategy_complete' && event.data?.result) {
-                const result = event.data.result;
-                const doc = result.recommendation;
+            mode.setEvents((prev) => [...prev, event]);
 
-                // Format the final document
-                let finalContent = `# ${doc.title}\n\n`;
+            // Progress tracking (deep modes only)
+            if (
+              config.hasProgressTracking &&
+              Date.now() - lastProgressUpdate > 5000 &&
+              event.data?.completedAgents !== undefined
+            ) {
+              lastProgressUpdate = Date.now();
+              const progressContent = `📊 **Progress:** ${event.data.completedAgents}/${event.data.totalAgents || '?'} ${config.progressLabel} complete | $${(event.data.cost || 0).toFixed(2)}`;
 
-                if ('document' in result && result.document) {
-                  const docData = result.document as {
-                    content?: string;
-                    citations?: string[];
-                  };
-                  finalContent += docData.content || doc.summary;
-
-                  // Add citations if present
-                  if (docData.citations && docData.citations.length > 0) {
-                    finalContent += '\n\n---\n\n**Sources:**\n';
-                    docData.citations.forEach((citation: string) => {
-                      finalContent += `- ${citation}\n`;
-                    });
-                  }
-                } else {
-                  finalContent += doc.summary;
-                }
-
-                const finalMessage: Message = {
-                  id: crypto.randomUUID(),
+              if (progressMessageId) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === progressMessageId ? { ...m, content: progressContent } : m
+                  )
+                );
+              } else {
+                progressMessageId = crypto.randomUUID();
+                const progressMessage: Message = {
+                  id: progressMessageId,
                   role: 'assistant',
-                  content: finalContent,
+                  content: progressContent,
                   timestamp: new Date(),
                 };
-                setMessages((prev) => [...prev, finalMessage]);
-                setQuickWriterPhase('complete');
-                setIsQuickWriterMode(false);
-                setQuickWriterSessionId(null);
+                setMessages((prev) => [...prev, progressMessage]);
               }
-
-              // Handle errors and kill switch
-              if (event.type === 'error' || event.type === 'kill_switch') {
-                throw new Error(`Agent error: ${event.message || 'Writer error'}`);
-              }
-            } catch (e) {
-              if (e instanceof Error && e.message.startsWith('Agent error:')) {
-                throw e;
-              }
-              log.warn('Failed to parse SSE event:', { error: e });
             }
+
+            // Completion
+            if (event.type === 'strategy_complete' && event.data?.result) {
+              const content = formatResultContent(config, event.data.result, event.data.artifacts);
+              const resultMessage: Message = {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content,
+                timestamp: new Date(),
+              };
+              setMessages((prev) => [...prev, resultMessage]);
+              mode.setPhase('complete');
+              mode.setActive(false);
+              if (config.clearSessionOnComplete) mode.setSessionId(null);
+            }
+
+            // Error / kill switch
+            if (event.type === 'error' || event.type === 'kill_switch') {
+              throw new Error(`Agent error: ${event.message}`);
+            }
+          } catch (e) {
+            if (e instanceof Error && e.message.startsWith('Agent error:')) throw e;
+            log.warn('Failed to parse SSE event:', { error: e });
           }
         }
       }
     } catch (error) {
-      log.error('Quick writer execution error:', error as Error);
+      log.error(`${config.label} execution error:`, error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `❌ **Writing Error**\n\n${(error as Error).message}`,
+        content: `❌ **${config.errorPrefix} ${config.hasProgressTracking ? 'Failed' : 'Error'}**\n\n${(error as Error).message}`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
-      setQuickWriterPhase('error');
+      mode.setPhase('error');
+      if (config.deactivateOnError) mode.setActive(false);
     } finally {
       setIsStreaming(false);
     }
   };
 
   /**
-   * Cancel quick writer session
+   * Cancel any agent mode
    */
-  const cancelQuickWriter = async () => {
-    if (!quickWriterSessionId) return;
+  const cancelAgentMode = async (modeId: AgentModeId) => {
+    const mode = modes[modeId];
+    const config = AGENT_CONFIGS[modeId];
+    if (!mode.sessionId) return;
 
     try {
-      await fetch(`/api/strategy?sessionId=${quickWriterSessionId}`, {
-        method: 'DELETE',
-      });
+      await fetch(`/api/strategy?sessionId=${mode.sessionId}`, { method: 'DELETE' });
     } catch (e) {
       log.warn('Cancel request failed:', { error: e });
     }
@@ -3189,17 +1534,47 @@ I'll deploy a focused team to research and write your content.
     const cancelMessage: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: '✋ **Writing cancelled.** You can start a new writing project anytime.',
+      content: config.cancelMessage,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, cancelMessage]);
 
-    setIsQuickWriterMode(false);
-    setQuickWriterPhase('idle');
-    setQuickWriterSessionId(null);
+    mode.setActive(false);
+    mode.setPhase('idle');
+    mode.setSessionId(null);
     setIsStreaming(false);
   };
 
+  /**
+   * Exit all active agent modes (used when switching between modes)
+   */
+  const exitAllAgentModes = async () => {
+    for (const id of ALL_MODE_IDS) {
+      const mode = modes[id];
+      if (mode.isActive && mode.sessionId) {
+        try {
+          await fetch(`/api/strategy?sessionId=${mode.sessionId}`, { method: 'DELETE' });
+        } catch {
+          // Silently fail — session may already be cleaned up
+        }
+      }
+      mode.reset();
+    }
+  };
+
+  // Backward-compatible aliases for carousel and strategy session restore
+  const startDeepStrategy = () => startAgentMode('strategy');
+  const startDeepResearch = () => startAgentMode('deep-research');
+  const displayStrategyResult = (result: StrategyOutput, artifacts?: Artifact[]) => {
+    const content = formatResultContent(AGENT_CONFIGS.strategy, result, artifacts);
+    const resultMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, resultMessage]);
+  };
   const handleSendMessage = async (
     content: string,
     attachments: Attachment[],
@@ -3260,59 +1635,18 @@ I'll deploy a focused team to research and write your content.
       }
     }
 
-    // DEEP STRATEGY MODE: If we're in strategy intake, send to strategy API
-    if (isStrategyMode && strategyPhase === 'intake' && strategySessionId) {
-      await handleStrategyInput(content);
-      return;
-    }
-
-    // DEEP RESEARCH MODE: If we're in deep research intake, send to strategy API
-    if (isDeepResearchMode && deepResearchPhase === 'intake' && deepResearchSessionId) {
-      await handleDeepResearchInput(content);
-      return;
-    }
-
-    // QUICK RESEARCH MODE: If we're in quick research intake, send to strategy API
-    if (isQuickResearchMode && quickResearchPhase === 'intake' && quickResearchSessionId) {
-      await handleQuickResearchInput(content);
-      return;
-    }
-
-    // QUICK STRATEGY MODE: If we're in quick strategy intake, send to strategy API
-    if (isQuickStrategyMode && quickStrategyPhase === 'intake' && quickStrategySessionId) {
-      await handleQuickStrategyInput(content);
-      return;
-    }
-
-    // DEEP WRITER MODE: If we're in deep writer intake, send to strategy API
-    if (isDeepWriterMode && deepWriterPhase === 'intake' && deepWriterSessionId) {
-      await handleDeepWriterInput(content);
-      return;
-    }
-
-    // QUICK WRITER MODE: If we're in quick writer intake, send to strategy API
-    if (isQuickWriterMode && quickWriterPhase === 'intake' && quickWriterSessionId) {
-      await handleQuickWriterInput(content);
+    // AGENT MODE INTAKE: Route to the active agent's intake handler
+    const intakeMode = isAnyModeInPhase(modes, 'intake');
+    if (intakeMode.active && intakeMode.modeId) {
+      await handleAgentInput(intakeMode.modeId, content);
       return;
     }
 
     // STEERING: If we're in execution phase, send as context/steering command
-    if (
-      (isStrategyMode && strategyPhase === 'executing' && strategySessionId) ||
-      (isDeepResearchMode && deepResearchPhase === 'executing' && deepResearchSessionId) ||
-      (isQuickResearchMode && quickResearchPhase === 'executing' && quickResearchSessionId) ||
-      (isQuickStrategyMode && quickStrategyPhase === 'executing' && quickStrategySessionId) ||
-      (isDeepWriterMode && deepWriterPhase === 'executing' && deepWriterSessionId) ||
-      (isQuickWriterMode && quickWriterPhase === 'executing' && quickWriterSessionId)
-    ) {
-      const sessionId =
-        strategySessionId ||
-        deepResearchSessionId ||
-        quickResearchSessionId ||
-        quickStrategySessionId ||
-        deepWriterSessionId ||
-        quickWriterSessionId;
-      if (sessionId) {
+    const execMode = isAnyModeExecuting(modes);
+    if (execMode.executing && execMode.sessionId) {
+      const sessionId = execMode.sessionId;
+      {
         // Show user message in chat
         const userMsg: Message = {
           id: crypto.randomUUID(),
@@ -4181,8 +2515,9 @@ I'll deploy a focused team to research and write your content.
                 // This prevents streaming responses from appearing in wrong conversations
                 // Use ref instead of state to avoid stale closure during async streaming
                 if (currentChatIdRef.current === newChatId) {
-                  // Strip suggested-followups tags during streaming so users never see raw markup
+                  // Strip SSE markers and suggested-followups tags during streaming
                   const displayContent = accumulatedContent
+                    .replace(/\n?\[DONE]\n?/g, '')
                     .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/g, '')
                     .replace(/<suggested-followups>[\s\S]*$/g, '')
                     .trimEnd();
@@ -4202,7 +2537,7 @@ I'll deploy a focused team to research and write your content.
               // If we have some content, use it instead of showing an error
               if (accumulatedContent.length > 0) {
                 log.debug('Using partial content, length:', { length: accumulatedContent.length });
-                finalContent = accumulatedContent;
+                finalContent = accumulatedContent.replace(/\n?\[DONE]\n?/g, '').trimEnd();
               } else {
                 // Re-throw to trigger the outer error handler
                 throw readerError;
@@ -4211,10 +2546,10 @@ I'll deploy a focused team to research and write your content.
               reader.releaseLock();
             }
 
-            // Set final content from accumulated stream
+            // Set final content from accumulated stream (strip SSE completion marker)
             if (!finalContent && accumulatedContent) {
               log.debug('Stream finished, total length:', { length: accumulatedContent.length });
-              finalContent = accumulatedContent;
+              finalContent = accumulatedContent.replace(/\n?\[DONE]\n?/g, '').trimEnd();
             }
           }
         }
@@ -5081,23 +3416,22 @@ I'll deploy a focused team to research and write your content.
             />
             {/* Live To-Do List removed - user prefers simple agentic approach
                 The AI can manage its own tasks internally without showing a UI widget */}
-            {/* Deep Strategy Progress - shows live research activity */}
-            {strategyPhase === 'executing' && strategyEvents.length > 0 && (
+            {/* Agent mode progress — shows live research/strategy activity */}
+            {strategy.phase === 'executing' && strategy.events.length > 0 && (
               <div className="px-4 pb-4">
                 <DeepStrategyProgress
-                  events={strategyEvents}
+                  events={strategy.events}
                   isComplete={false}
-                  onCancel={cancelStrategy}
+                  onCancel={() => cancelAgentMode('strategy')}
                 />
               </div>
             )}
-            {/* Deep Research Progress - same visual preview for research mode */}
-            {deepResearchPhase === 'executing' && deepResearchEvents.length > 0 && (
+            {deepResearch.phase === 'executing' && deepResearch.events.length > 0 && (
               <div className="px-4 pb-4">
                 <DeepStrategyProgress
-                  events={deepResearchEvents}
+                  events={deepResearch.events}
                   isComplete={false}
-                  onCancel={cancelDeepResearch}
+                  onCancel={() => cancelAgentMode('deep-research')}
                 />
               </div>
             )}
@@ -5120,220 +3454,27 @@ I'll deploy a focused team to research and write your content.
               onClearReply={() => setReplyingTo(null)}
               initialText={quickPromptText}
               isAdmin={isAdmin}
-              activeAgent={
-                isStrategyMode
-                  ? 'strategy'
-                  : isDeepResearchMode
-                    ? 'deep-research'
-                    : isQuickResearchMode
-                      ? 'quick-research'
-                      : isQuickStrategyMode
-                        ? 'quick-strategy'
-                        : isDeepWriterMode
-                          ? 'deep-writer'
-                          : isQuickWriterMode
-                            ? 'quick-writer'
-                            : null
-              }
-              strategyLoading={strategyLoading}
-              deepResearchLoading={deepResearchLoading}
-              quickResearchLoading={quickResearchLoading}
-              quickStrategyLoading={quickStrategyLoading}
-              deepWriterLoading={deepWriterLoading}
-              quickWriterLoading={quickWriterLoading}
+              activeAgent={getActiveAgent(modes)}
+              strategyLoading={strategy.loading}
+              deepResearchLoading={deepResearch.loading}
+              quickResearchLoading={quickResearch.loading}
+              quickStrategyLoading={quickStrategy.loading}
+              deepWriterLoading={deepWriter.loading}
+              quickWriterLoading={quickWriter.loading}
               onAgentSelect={async (agent) => {
-                // Helper to cancel strategy session on server
-                const cancelStrategySession = async () => {
-                  if (strategySessionId) {
-                    try {
-                      await fetch(`/api/strategy?sessionId=${strategySessionId}`, {
-                        method: 'DELETE',
-                      });
-                    } catch {
-                      // Silently fail - session may already be cleaned up
-                    }
-                  }
-                };
-
-                // Helper to cancel deep research session on server
-                const cancelDeepResearchSession = async () => {
-                  if (deepResearchSessionId) {
-                    try {
-                      await fetch(`/api/strategy?sessionId=${deepResearchSessionId}`, {
-                        method: 'DELETE',
-                      });
-                    } catch {
-                      // Silently fail
-                    }
-                  }
-                };
-
-                // Helper to cancel quick research session on server
-                const cancelQuickResearchSession = async () => {
-                  if (quickResearchSessionId) {
-                    try {
-                      await fetch(`/api/strategy?sessionId=${quickResearchSessionId}`, {
-                        method: 'DELETE',
-                      });
-                    } catch {
-                      // Silently fail
-                    }
-                  }
-                };
-
-                // Helper to cancel quick strategy session on server
-                const cancelQuickStrategySession = async () => {
-                  if (quickStrategySessionId) {
-                    try {
-                      await fetch(`/api/strategy?sessionId=${quickStrategySessionId}`, {
-                        method: 'DELETE',
-                      });
-                    } catch {
-                      // Silently fail
-                    }
-                  }
-                };
-
-                // Helper to cancel deep writer session on server
-                const cancelDeepWriterSession = async () => {
-                  if (deepWriterSessionId) {
-                    try {
-                      await fetch(`/api/strategy?sessionId=${deepWriterSessionId}`, {
-                        method: 'DELETE',
-                      });
-                    } catch {
-                      // Silently fail
-                    }
-                  }
-                };
-
-                // Helper to cancel quick writer session on server
-                const cancelQuickWriterSession = async () => {
-                  if (quickWriterSessionId) {
-                    try {
-                      await fetch(`/api/strategy?sessionId=${quickWriterSessionId}`, {
-                        method: 'DELETE',
-                      });
-                    } catch {
-                      // Silently fail
-                    }
-                  }
-                };
-
-                // Helper to exit all other agent modes
-                const exitAllAgentModes = async () => {
-                  if (isStrategyMode) {
-                    await cancelStrategySession();
-                    setIsStrategyMode(false);
-                    setStrategyPhase('idle');
-                    setStrategySessionId(null);
-                  }
-                  if (isDeepResearchMode) {
-                    await cancelDeepResearchSession();
-                    setIsDeepResearchMode(false);
-                    setDeepResearchPhase('idle');
-                    setDeepResearchSessionId(null);
-                  }
-                  if (isQuickResearchMode) {
-                    await cancelQuickResearchSession();
-                    setIsQuickResearchMode(false);
-                    setQuickResearchPhase('idle');
-                    setQuickResearchSessionId(null);
-                  }
-                  if (isQuickStrategyMode) {
-                    await cancelQuickStrategySession();
-                    setIsQuickStrategyMode(false);
-                    setQuickStrategyPhase('idle');
-                    setQuickStrategySessionId(null);
-                  }
-                  if (isDeepWriterMode) {
-                    await cancelDeepWriterSession();
-                    setIsDeepWriterMode(false);
-                    setDeepWriterPhase('idle');
-                    setDeepWriterSessionId(null);
-                  }
-                  if (isQuickWriterMode) {
-                    await cancelQuickWriterSession();
-                    setIsQuickWriterMode(false);
-                    setQuickWriterPhase('idle');
-                    setQuickWriterSessionId(null);
-                  }
-                };
-
-                if (agent === 'strategy') {
-                  if (isStrategyMode) {
-                    // Toggle off - cancel strategy mode
-                    await cancelStrategySession();
-                    setIsStrategyMode(false);
-                    setStrategyPhase('idle');
-                    setStrategySessionId(null);
+                const modeId = agent as AgentModeId;
+                const mode = modes[modeId];
+                if (mode) {
+                  if (mode.isActive) {
+                    // Toggle off — cancel the active mode
+                    await cancelAgentMode(modeId);
                   } else {
-                    // Exit other modes and start strategy
+                    // Exit all other modes, then start the selected one
                     await exitAllAgentModes();
-                    await startDeepStrategy();
-                  }
-                } else if (agent === 'deep-research') {
-                  if (isDeepResearchMode) {
-                    // Toggle off - cancel deep research mode
-                    await cancelDeepResearchSession();
-                    setIsDeepResearchMode(false);
-                    setDeepResearchPhase('idle');
-                    setDeepResearchSessionId(null);
-                  } else {
-                    // Exit other modes and start deep research
-                    await exitAllAgentModes();
-                    await startDeepResearch();
-                  }
-                } else if (agent === 'quick-research') {
-                  if (isQuickResearchMode) {
-                    // Toggle off - cancel quick research mode
-                    await cancelQuickResearchSession();
-                    setIsQuickResearchMode(false);
-                    setQuickResearchPhase('idle');
-                    setQuickResearchSessionId(null);
-                  } else {
-                    // Exit other modes and start quick research
-                    await exitAllAgentModes();
-                    await startQuickResearch();
-                  }
-                } else if (agent === 'quick-strategy') {
-                  if (isQuickStrategyMode) {
-                    // Toggle off - cancel quick strategy mode
-                    await cancelQuickStrategySession();
-                    setIsQuickStrategyMode(false);
-                    setQuickStrategyPhase('idle');
-                    setQuickStrategySessionId(null);
-                  } else {
-                    // Exit other modes and start quick strategy
-                    await exitAllAgentModes();
-                    await startQuickStrategy();
-                  }
-                } else if (agent === 'deep-writer') {
-                  if (isDeepWriterMode) {
-                    // Toggle off - cancel deep writer mode
-                    await cancelDeepWriterSession();
-                    setIsDeepWriterMode(false);
-                    setDeepWriterPhase('idle');
-                    setDeepWriterSessionId(null);
-                  } else {
-                    // Exit other modes and start deep writer
-                    await exitAllAgentModes();
-                    await startDeepWriter();
-                  }
-                } else if (agent === 'quick-writer') {
-                  if (isQuickWriterMode) {
-                    // Toggle off - cancel quick writer mode
-                    await cancelQuickWriterSession();
-                    setIsQuickWriterMode(false);
-                    setQuickWriterPhase('idle');
-                    setQuickWriterSessionId(null);
-                  } else {
-                    // Exit other modes and start quick writer
-                    await exitAllAgentModes();
-                    await startQuickWriter();
+                    await startAgentMode(modeId);
                   }
                 } else if (agent === 'research') {
-                  // Legacy: exit all modes (old research mode is replaced by quick-research)
+                  // Legacy: exit all modes
                   await exitAllAgentModes();
                 }
               }}
