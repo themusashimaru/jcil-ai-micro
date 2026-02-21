@@ -126,13 +126,7 @@ const toolLoaders: Record<string, ToolLoader> = {
     return { tool: chartTool, execute: executeChart, isAvailable: isChartAvailable };
   },
 
-  // Utilities
-  calculator: async () => {
-    const { calculatorTool, executeCalculator, isCalculatorAvailable } = await import(
-      '@/lib/ai/tools'
-    );
-    return { tool: calculatorTool, execute: executeCalculator, isAvailable: isCalculatorAvailable };
-  },
+  // Calculator removed - Claude handles math natively
   screenshot: async () => {
     const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
       '@/lib/ai/tools'

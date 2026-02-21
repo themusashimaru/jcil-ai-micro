@@ -193,9 +193,6 @@ export { getRepoSummaryForPrompt } from './github-tool';
 // Screenshot Tool
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
 
-// Calculator/Math Tool
-export { calculatorTool, executeCalculator, isCalculatorAvailable } from './calculator-tool';
-
 // Chart/Data Visualization Tool
 export { chartTool, executeChart, isChartAvailable } from './chart-tool';
 
@@ -288,29 +285,14 @@ export { zipTool, executeZip, isZipAvailable } from './zip-tool';
 // Web Capture (Puppeteer)
 export { webCaptureTool, executeWebCapture, isWebCaptureAvailable } from './web-capture-tool';
 
-// Advanced Math (math.js)
-export { mathTool, executeMath, isMathAvailable } from './math-tool';
-
 // EXIF/Image Metadata (exifr)
 export { exifTool, executeExif, isExifAvailable } from './exif-tool';
 
 // Search Index (Lunr.js)
 export { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } from './search-index-tool';
 
-// ASCII Art (FIGlet)
-export { asciiArtTool, executeAsciiArt, isAsciiArtAvailable } from './ascii-art-tool';
-
-// Color Tools (chroma-js)
-export { colorTool, executeColor, isColorAvailable } from './color-tool';
-
 // Data Validation (validator.js)
 export { validatorTool, executeValidator, isValidatorAvailable } from './validator-tool';
-
-// Cron Expression (cron-parser)
-export { cronTool, executeCron, isCronAvailable } from './cron-tool';
-
-// Unit Conversion (convert-units)
-export { unitConvertTool, executeUnitConvert, isUnitConvertAvailable } from './unit-convert-tool';
 
 // Audio Synthesis (Tone.js)
 export { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } from './audio-synth-tool';
@@ -319,47 +301,14 @@ export { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } from './audi
 // SCIENTIFIC & RESEARCH TOOLS (12 new tools)
 // ============================================================================
 
-// Statistical Analysis (simple-statistics + jstat)
-export { statisticsTool, executeStatistics, isStatisticsAvailable } from './statistics-tool';
-
 // Geospatial Calculations (turf.js)
 export { geospatialTool, executeGeospatial, isGeospatialAvailable } from './geospatial-tool';
 
 // Phone Validation (libphonenumber-js)
 export { phoneTool, executePhone, isPhoneAvailable } from './phone-tool';
 
-// Password Strength (zxcvbn)
-export {
-  passwordStrengthTool,
-  executePasswordStrength,
-  isPasswordStrengthAvailable,
-} from './password-strength-tool';
-
-// Chemistry/Molecules (openchemlib-js)
-export { chemistryTool, executeChemistry, isChemistryAvailable } from './chemistry-tool';
-
 // DNA/Bio Sequences (custom)
 export { dnaBioTool, executeDnaBio, isDnaBioAvailable } from './dna-bio-tool';
-
-// Matrix/Linear Algebra (ml-matrix)
-export { matrixTool, executeMatrix, isMatrixAvailable } from './matrix-tool';
-
-// Graph/Network Analysis (graphology)
-export { graphTool, executeGraph, isGraphAvailable } from './graph-tool';
-
-// Periodic Table (custom)
-export {
-  periodicTableTool,
-  executePeriodicTable,
-  isPeriodicTableAvailable,
-} from './periodic-table-tool';
-
-// Physics Constants (custom)
-export {
-  physicsConstantsTool,
-  executePhysicsConstants,
-  isPhysicsConstantsAvailable,
-} from './physics-constants-tool';
 
 // Signal Processing (fft-js)
 export { signalTool, executeSignal, isSignalAvailable } from './signal-tool';
@@ -375,122 +324,15 @@ export {
 // COMPUTATIONAL & ALGORITHMIC TOOLS (12 new tools)
 // ============================================================================
 
-// Symbolic Math / CAS (nerdamer)
-export {
-  symbolicMathTool,
-  executeSymbolicMath,
-  isSymbolicMathAvailable,
-} from './symbolic-math-tool';
-
-// ODE Solver (odex)
-export { odeSolverTool, executeOdeSolver, isOdeSolverAvailable } from './ode-solver-tool';
-
-// Optimization / LP (javascript-lp-solver)
-export {
-  optimizationTool,
-  executeOptimization,
-  isOptimizationAvailable,
-} from './optimization-tool';
-
-// Financial Math (financial)
-export { financialTool, executeFinancial, isFinancialAvailable } from './financial-tool';
-
-// Music Theory (tonal)
-export { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } from './music-theory-tool';
-
-// Computational Geometry (delaunator + earcut)
-export { geometryTool, executeGeometry, isGeometryAvailable } from './geometry-tool';
-
 // Parser / Grammar (nearley)
 export { parserTool, executeParser, isParserAvailable } from './parser-tool';
-
-// Recurrence Rules (rrule)
-export { recurrenceTool, executeRecurrence, isRecurrenceAvailable } from './recurrence-tool';
 
 // Constraint Solver (logic-solver)
 export { constraintTool, executeConstraint, isConstraintAvailable } from './constraint-tool';
 
-// Time Series Analysis
-export { timeseriesTool, executeTimeseries, isTimeseriesAvailable } from './timeseries-tool';
-
-// Tensor / N-dimensional Arrays (ndarray)
-export { tensorTool, executeTensor, isTensorAvailable } from './tensor-tool';
-
-// String Distance / Fuzzy Matching (fastest-levenshtein)
-export {
-  stringDistanceTool,
-  executeStringDistance,
-  isStringDistanceAvailable,
-} from './string-distance-tool';
-
 // ============================================================================
 // ADVANCED SCIENTIFIC COMPUTING TOOLS (12 new tools)
 // ============================================================================
-
-// Numerical Integration (Simpson's, Gaussian, Romberg)
-export {
-  numericalIntegrateTool,
-  executeNumericalIntegrate,
-  isNumericalIntegrateAvailable,
-} from './numerical-integrate-tool';
-
-// Root Finding (Newton, Bisection, Brent)
-export { rootFinderTool, executeRootFinder, isRootFinderAvailable } from './root-finder-tool';
-
-// Interpolation (Lagrange, Spline, Polynomial)
-export {
-  interpolationTool,
-  executeInterpolation,
-  isInterpolationAvailable,
-} from './interpolation-tool';
-
-// Special Functions (Gamma, Bessel, erf, Legendre)
-export {
-  specialFunctionsTool,
-  executeSpecialFunctions,
-  isSpecialFunctionsAvailable,
-} from './special-functions-tool';
-
-// Complex Math (complex.js)
-export { complexMathTool, executeComplexMath, isComplexMathAvailable } from './complex-math-tool';
-
-// Combinatorics (js-combinatorics)
-export {
-  combinatoricsTool,
-  executeCombinatorics,
-  isCombinatoricsAvailable,
-} from './combinatorics-tool';
-
-// Number Theory (big-integer)
-export {
-  numberTheoryTool,
-  executeNumberTheory,
-  isNumberTheoryAvailable,
-} from './number-theory-tool';
-
-// Probability Distributions
-export {
-  probabilityDistTool,
-  executeProbabilityDist,
-  isProbabilityDistAvailable,
-} from './probability-dist-tool';
-
-// Polynomial Operations
-export {
-  polynomialOpsTool,
-  executePolynomialOps,
-  isPolynomialOpsAvailable,
-} from './polynomial-ops-tool';
-
-// Astronomy Calculations (astronomy-engine)
-export { astronomyTool, executeAstronomy, isAstronomyAvailable } from './astronomy-tool';
-
-// Coordinate Transformations (proj4)
-export {
-  coordinateTransformTool,
-  executeCoordinateTransform,
-  isCoordinateTransformAvailable,
-} from './coordinate-transform-tool';
 
 // Sequence Analysis
 export {
@@ -503,195 +345,23 @@ export {
 // TIER OMEGA - ADVANCED SCIENTIFIC COMPUTING TOOLS (12 new tools)
 // ============================================================================
 
-// Machine Learning Toolkit (K-means, PCA, regression, neural networks)
-export { mlToolkitTool, executeMLToolkit, isMLToolkitAvailable } from './ml-toolkit-tool';
-
-// Quantum Circuit Simulator (gates, Bell states, Grover's algorithm)
-export {
-  quantumCircuitTool,
-  executeQuantumCircuit,
-  isQuantumCircuitAvailable,
-} from './quantum-circuit-tool';
-
-// Control Theory (transfer functions, PID tuning, Bode plots)
-export {
-  controlTheoryTool,
-  executeControlTheory,
-  isControlTheoryAvailable,
-} from './control-theory-tool';
-
-// Monte Carlo Simulation (integration, option pricing, VaR, bootstrap)
-export { monteCarloTool, executeMonteCarlo, isMonteCarloAvailable } from './monte-carlo-tool';
-
-// Game Theory Solver (Nash equilibrium, minimax, replicator dynamics)
-export { gameTheoryTool, executeGameTheory, isGameTheoryAvailable } from './game-theory-tool';
-
-// Orbital Mechanics (Hohmann transfers, delta-v, orbital elements)
-export {
-  orbitalMechanicsTool,
-  executeOrbitalMechanics,
-  isOrbitalMechanicsAvailable,
-} from './orbital-mechanics-tool';
-
-// Thermodynamics (gas laws, Carnot cycle, heat transfer)
-export {
-  thermodynamicsTool,
-  executeThermodynamics,
-  isThermodynamicsAvailable,
-} from './thermodynamics-tool';
-
-// Electromagnetics (E/B fields, transmission lines, antennas)
-export { emFieldsTool, executeEMFields, isEMFieldsAvailable } from './em-fields-tool';
-
-// Image Processing (convolution, edge detection, morphology)
-export {
-  imageComputeTool,
-  executeImageCompute,
-  isImageComputeAvailable,
-} from './image-compute-tool';
-
-// Wavelet Transforms (DWT, CWT, denoising, multi-resolution analysis)
-export {
-  waveletTransformTool,
-  executeWaveletTransform,
-  isWaveletTransformAvailable,
-} from './wavelet-transform-tool';
-
-// LaTeX Rendering (MathML/SVG output, equation templates)
-export { latexRenderTool, executeLatexRender, isLatexRenderAvailable } from './latex-render-tool';
-
 // ============================================================================
 // TIER INFINITY - ROCKET SCIENCE & ENGINEERING TOOLS (12 new tools)
 // ============================================================================
-
-// Rocket Propulsion (Tsiolkovsky, staging, thrust curves)
-export {
-  rocketPropulsionTool,
-  executeRocketPropulsion,
-  isRocketPropulsionAvailable,
-} from './rocket-propulsion-tool';
-
-// Fluid Dynamics (Reynolds, Bernoulli, pipe flow, drag)
-export {
-  fluidDynamicsTool,
-  executeFluidDynamics,
-  isFluidDynamicsAvailable,
-} from './fluid-dynamics-tool';
-
-// Aerodynamics (lift/drag, airfoils, atmosphere)
-export {
-  aerodynamicsTool,
-  executeAerodynamics,
-  isAerodynamicsAvailable,
-} from './aerodynamics-tool';
-
-// Drone/UAV Flight (hover, endurance, waypoints, battery)
-export { droneFlightTool, executeDroneFlight, isDroneFlightAvailable } from './drone-flight-tool';
-
-// Pathfinding Algorithms (A*, Dijkstra, TSP, BFS)
-export { pathfinderTool, executePathfinder, isPathfinderAvailable } from './pathfinder-tool';
-
-// Circuit Simulation (RC/RLC, impedance, filters)
-export { circuitSimTool, executeCircuitSim, isCircuitSimAvailable } from './circuit-sim-tool';
-
-// Ballistics (projectile motion, drag, wind, Coriolis)
-export { ballisticsTool, executeBallistics, isBallisticsAvailable } from './ballistics-tool';
-
-// Genetic Algorithm (evolutionary optimization)
-export {
-  geneticAlgorithmTool,
-  executeGeneticAlgorithm,
-  isGeneticAlgorithmAvailable,
-} from './genetic-algorithm-tool';
-
-// Chaos Dynamics (Lorenz, Lyapunov, bifurcation, fractals)
-export {
-  chaosDynamicsTool,
-  executeChaosDynamics,
-  isChaosDynamicsAvailable,
-} from './chaos-dynamics-tool';
-
-// Robotics Kinematics (forward/inverse kinematics, Jacobian)
-export {
-  roboticsKinematicsTool,
-  executeRoboticsKinematics,
-  isRoboticsKinematicsAvailable,
-} from './robotics-kinematics-tool';
-
-// Optics Simulation (Snell's law, lenses, diffraction)
-export { opticsSimTool, executeOpticsSim, isOpticsSimAvailable } from './optics-sim-tool';
-
-// Epidemiology (SIR/SEIR models, R0, herd immunity)
-export {
-  epidemiologyTool,
-  executeEpidemiology,
-  isEpidemiologyAvailable,
-} from './epidemiology-tool';
 
 // ============================================================================
 // TIER BEYOND - ADVANCED ENGINEERING TOOLS (6 bonus tools)
 // ============================================================================
 
-// Finite Element Analysis (stress/strain, beams, buckling)
-export {
-  finiteElementTool,
-  executeFiniteElement,
-  isFiniteElementAvailable,
-} from './finite-element-tool';
-
-// Antenna/RF Engineering (link budgets, path loss, impedance)
-export { antennaRfTool, executeAntennaRf, isAntennaRfAvailable } from './antenna-rf-tool';
-
-// Materials Science (crystals, phase diagrams, Hall-Petch)
-export {
-  materialsScienceTool,
-  executeMaterialsScience,
-  isMaterialsScienceAvailable,
-} from './materials-science-tool';
-
-// Seismology (earthquake magnitude, waves, ground motion)
-export { seismologyTool, executeSeismology, isSeismologyAvailable } from './seismology-tool';
-
-// Advanced Bioinformatics (Needleman-Wunsch, Smith-Waterman, phylogenetics)
-export {
-  bioinformaticsProTool,
-  executeBioinformaticsPro,
-  isBioinformaticsProAvailable,
-} from './bioinformatics-pro-tool';
-
-// Acoustics (room modes, RT60, speaker design)
-export { acousticsTool, executeAcoustics, isAcousticsAvailable } from './acoustics-tool';
-
 // ============================================================================
 // TIER GODMODE - ULTIMATE INTELLIGENCE TOOLS (9 new tools)
 // ============================================================================
-
-// Symbolic Logic - Formal logic, theorem proving, SAT solving
-export {
-  symbolicLogicTool,
-  executeSymbolicLogic,
-  isSymbolicLogicAvailable,
-} from './symbolic-logic-tool';
-
-// Cellular Automata - Game of Life, Wolfram rules, Langton's Ant
-export {
-  cellularAutomataTool,
-  executeCellularAutomata,
-  isCellularAutomataAvailable,
-} from './cellular-automata-tool';
 
 // Medical Calculator - Clinical scores, drug dosing, body calculations
 export { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } from './medical-calc-tool';
 
 // Graphics 3D - 3D mesh generation, OBJ/STL export, scene composition
 export { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } from './graphics-3d-tool';
-
-// Compression Algorithms - Huffman, LZ77, RLE, BWT demonstrations
-export {
-  compressionAlgoTool,
-  executeCompressionAlgo,
-  isCompressionAlgoAvailable,
-} from './compression-algo-tool';
 
 // Error Correction - Hamming codes, CRC, checksums, SECDED
 export {
@@ -702,13 +372,6 @@ export {
 
 // Hough Vision - Computer vision: edge detection, Hough transform, corners
 export { houghVisionTool, executeHoughVision, isHoughVisionAvailable } from './hough-vision-tool';
-
-// Cryptography Advanced - Elliptic curves, DH, ECDSA, zero-knowledge proofs
-export {
-  cryptographyAdvancedTool,
-  executeCryptographyAdvanced,
-  isCryptographyAdvancedAvailable,
-} from './cryptography-advanced-tool';
 
 // Solar Environmental - Solar energy, carbon footprint, sustainability
 export {
@@ -734,16 +397,6 @@ export {
   isFractalGeneratorAvailable,
 } from './fractal-generator-tool';
 
-// Color Theory - Color manipulation, harmonies, palettes
-export { colorTheoryTool, executeColorTheory, isColorTheoryAvailable } from './color-theory-tool';
-
-// Animation Easing - Easing functions for smooth animation
-export {
-  animationEasingTool,
-  executeAnimationEasing,
-  isAnimationEasingAvailable,
-} from './animation-easing-tool';
-
 // Particle System - Physics-based particle simulation
 export {
   particleSystemTool,
@@ -756,13 +409,6 @@ export {
 // ============================================================================
 
 // Music Theory is already exported in COMPUTATIONAL & ALGORITHMIC TOOLS section (line 391)
-
-// Bezier Curves - Mathematical bezier curve calculations
-export {
-  bezierCurvesTool,
-  executeBezierCurves,
-  isBezierCurvesAvailable,
-} from './bezier-curves-tool';
 
 // ============================================================================
 // TIER EDUCATION - Interactive Learning Tools
@@ -800,26 +446,12 @@ export {
   isShaderGeneratorAvailable,
 } from './shader-generator-tool';
 
-// Signal Processing - FFT, filters, DSP
-export {
-  signalProcessingTool,
-  executeSignalProcessing,
-  isSignalProcessingAvailable,
-} from './signal-processing-tool';
-
 // Neural Network - Educational neural network demonstrations
 export {
   neuralNetworkTool,
   executeNeuralNetwork,
   isNeuralNetworkAvailable,
 } from './neural-network-tool';
-
-// Information Theory - Entropy, coding, compression bounds
-export {
-  informationTheoryTool,
-  executeInformationTheory,
-  isInformationTheoryAvailable,
-} from './information-theory-tool';
 
 // Procedural Generation - Terrain, noise, dungeons, mazes
 export {
@@ -837,13 +469,6 @@ export {
   executeAutomataTheory,
   isAutomataTheoryAvailable,
 } from './automata-theory-tool';
-
-// Computational Complexity - Big-O, recurrences, algorithm analysis
-export {
-  computationalComplexityTool,
-  executeComputationalComplexity,
-  isComputationalComplexityAvailable,
-} from './computational-complexity-tool';
 
 // ============================================================================
 // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
@@ -876,9 +501,6 @@ export {
   executeQuantumMechanics,
   isQuantumMechanicsAvailable,
 } from './quantum-mechanics-tool';
-
-// Relativity - Lorentz transformations, time dilation
-export { relativityTool, executeRelativity, isRelativityAvailable } from './relativity-tool';
 
 // Statistical Mechanics - Boltzmann, partition functions
 export {
@@ -1048,264 +670,11 @@ export {
 // CYBERSECURITY TOOLS (32 tools) - Full Security Operations Suite
 // ============================================================================
 
-// Network & Infrastructure Security
-export {
-  networkSecurityTool,
-  executeNetworkSecurity,
-  isNetworkSecurityAvailable,
-} from './network-security-tool';
-
-export { dnsSecurityTool, executeDnsSecurity, isDnsSecurityAvailable } from './dns-security-tool';
-
-export { ipSecurityTool, executeIpSecurity, isIpSecurityAvailable } from './ip-security-tool';
-
-export {
-  wirelessSecurityTool,
-  executeWirelessSecurity,
-  isWirelessSecurityAvailable,
-} from './wireless-security-tool';
-
-// Application Security
-export { apiSecurityTool, executeApiSecurity, isApiSecurityAvailable } from './api-security-tool';
-
-export { webSecurityTool, executeWebSecurity, isWebSecurityAvailable } from './web-security-tool';
-
-export {
-  browserSecurityTool,
-  executeBrowserSecurity,
-  isBrowserSecurityAvailable,
-} from './browser-security-tool';
-
-export {
-  mobileSecurityTool,
-  executeMobileSecurity,
-  isMobileSecurityAvailable,
-} from './mobile-security-tool';
-
-// Cloud & Container Security
-export {
-  cloudSecurityTool,
-  executeCloudSecurity,
-  isCloudSecurityAvailable,
-} from './cloud-security-tool';
-
-export {
-  cloudNativeSecurityTool,
-  executeCloudNativeSecurity,
-  isCloudNativeSecurityAvailable,
-} from './cloud-native-security-tool';
-
-export {
-  containerSecurityTool,
-  executeContainerSecurity,
-  isContainerSecurityAvailable,
-} from './container-security-tool';
-
-// Data & Identity Security
-export {
-  dataSecurityTool,
-  executeDataSecurity,
-  isDataSecurityAvailable,
-} from './data-security-tool';
-
-export {
-  databaseSecurityTool,
-  executeDatabaseSecurity,
-  isDatabaseSecurityAvailable,
-} from './database-security-tool';
-
-export {
-  credentialSecurityTool,
-  executeCredentialSecurity,
-  isCredentialSecurityAvailable,
-} from './credential-security-tool';
-
-export {
-  emailSecurityTool,
-  executeEmailSecurity,
-  isEmailSecurityAvailable,
-} from './email-security-tool';
-
-// Endpoint & IoT Security
-export {
-  endpointSecurityTool,
-  executeEndpointSecurity,
-  isEndpointSecurityAvailable,
-} from './endpoint-security-tool';
-
-export { iotSecurityTool, executeIotSecurity, isIotSecurityAvailable } from './iot-security-tool';
-
-export {
-  physicalSecurityTool,
-  executePhysicalSecurity,
-  isPhysicalSecurityAvailable,
-} from './physical-security-tool';
-
-// Specialized Security
-export {
-  blockchainSecurityTool,
-  executeBlockchainSecurity,
-  isBlockchainSecurityAvailable,
-} from './blockchain-security-tool';
-
-export { aiSecurityTool, executeAiSecurity, isAiSecurityAvailable } from './ai-security-tool';
-
-export {
-  supplyChainSecurityTool,
-  executeSupplyChainSecurity,
-  isSupplyChainSecurityAvailable,
-} from './supply-chain-security-tool';
-
-// Security Operations & Analysis
-export {
-  securityOperationsTool,
-  executeSecurityOperations,
-  isSecurityOperationsAvailable,
-} from './security-operations-tool';
-
-export {
-  securityHeadersTool,
-  executeSecurityHeaders,
-  isSecurityHeadersAvailable,
-} from './security-headers-tool';
-
-export {
-  securityTestingTool,
-  executeSecurityTesting,
-  isSecurityTestingAvailable,
-} from './security-testing-tool';
-
-export {
-  securityAuditTool,
-  executeSecurityAudit,
-  isSecurityAuditAvailable,
-} from './security-audit-tool';
-
-// Security Architecture & Governance
-export {
-  securityArchitectureTool,
-  executeSecurityArchitecture,
-  isSecurityArchitectureAvailable,
-} from './security-architecture-tool';
-
-export {
-  securityArchitecturePatternsTool,
-  executeSecurityArchitecturePatterns,
-  isSecurityArchitecturePatternsAvailable,
-} from './security-architecture-patterns-tool';
-
-export {
-  securityPolicyTool,
-  executeSecurityPolicy,
-  isSecurityPolicyAvailable,
-} from './security-policy-tool';
-
-// Security Culture & Awareness
-export {
-  securityAwarenessTool,
-  executeSecurityAwareness,
-  isSecurityAwarenessAvailable,
-} from './security-awareness-tool';
-
-export {
-  securityCultureTool,
-  executeSecurityCulture,
-  isSecurityCultureAvailable,
-} from './security-culture-tool';
-
-export {
-  securityBudgetTool,
-  executeSecurityBudget,
-  isSecurityBudgetAvailable,
-} from './security-budget-tool';
-
-// Advanced Cybersecurity (30 more tools)
-export {
-  threatHuntingTool,
-  executeThreatHunting,
-  isThreatHuntingAvailable,
-} from './threat-hunting-tool';
-export { threatIntelTool, executeThreatIntel, isThreatIntelAvailable } from './threat-intel-tool';
-export { threatModelTool, executeThreatModel, isThreatModelAvailable } from './threat-model-tool';
-export {
-  threatModelingTool,
-  executeThreatModeling,
-  isThreatModelingAvailable,
-} from './threat-modeling-tool';
-export {
-  malwareAnalysisTool,
-  executeMalwareAnalysis,
-  isMalwareAnalysisAvailable,
-} from './malware-analysis-tool';
-export {
-  malwareIndicatorsTool,
-  executeMalwareIndicators,
-  isMalwareIndicatorsAvailable,
-} from './malware-indicators-tool';
-export { siemTool, executeSiem, isSiemAvailable } from './siem-tool';
-export { forensicsTool, executeForensics, isForensicsAvailable } from './forensics-tool';
-export { soarTool, executeSoar, isSoarAvailable } from './soar-tool';
-export { socTool, executeSoc, isSocAvailable } from './soc-tool';
-export { xdrTool, executeXdr, isXdrAvailable } from './xdr-tool';
-export { redTeamTool, executeRedTeam, isRedTeamAvailable } from './red-team-tool';
-export { blueTeamTool, executeBlueTeam, isBlueTeamAvailable } from './blue-team-tool';
-export { osintTool, executeOsint, isOsintAvailable } from './osint-tool';
-export {
-  ransomwareDefenseTool,
-  executeRansomwareDefense,
-  isRansomwareDefenseAvailable,
-} from './ransomware-defense-tool';
-export {
-  complianceFrameworkTool,
-  executeComplianceFramework,
-  isComplianceFrameworkAvailable,
-} from './compliance-framework-tool';
-export {
-  riskManagementTool,
-  executeRiskManagement,
-  isRiskManagementAvailable,
-} from './risk-management-tool';
-export {
-  incidentResponseTool,
-  executeIncidentResponse,
-  isIncidentResponseAvailable,
-} from './incident-response-tool';
-export { idsIpsTool, executeIdsIps, isIdsIpsAvailable } from './ids-ips-tool';
-export { firewallTool, executeFirewall, isFirewallAvailable } from './firewall-tool';
-export { honeypotTool, executeHoneypot, isHoneypotAvailable } from './honeypot-tool';
-export { penTestTool, executePenTest, isPenTestAvailable } from './pen-test-tool';
-export {
-  vulnAssessmentTool,
-  executeVulnAssessment,
-  isVulnAssessmentAvailable,
-} from './vuln-assessment-tool';
-export {
-  vulnerabilityScannerTool,
-  executeVulnerabilityScanner,
-  isVulnerabilityScannerAvailable,
-} from './vulnerability-scanner-tool';
-export { zeroTrustTool, executeZeroTrust, isZeroTrustAvailable } from './zero-trust-tool';
-export {
-  attackSurfaceTool,
-  executeAttackSurface,
-  isAttackSurfaceAvailable,
-} from './attack-surface-tool';
 export {
   networkDefenseTool,
   executeNetworkDefense,
   isNetworkDefenseAvailable,
 } from './network-defense-tool';
-export {
-  cyberInsuranceTool,
-  executeCyberInsurance,
-  isCyberInsuranceAvailable,
-} from './cyber-insurance-tool';
-export { vendorRiskTool, executeVendorRisk, isVendorRiskAvailable } from './vendor-risk-tool';
-export {
-  socialEngineeringTool,
-  executeSocialEngineering,
-  isSocialEngineeringAvailable,
-} from './social-engineering-tool';
 
 // ============================================================================
 // MEGA BATCH - 158 Additional Engineering/Science/Manufacturing Tools
@@ -1342,14 +711,6 @@ export {
   isBusinessContinuityAvailable,
 } from './business-continuity-tool';
 export { certificateTool, executeCertificate, isCertificateAvailable } from './certificate-tool';
-export { cipherTool, executeCipher, isCipherAvailable } from './cipher-tool';
-export { complianceTool, executeCompliance, isComplianceAvailable } from './compliance-tool';
-export { cosmologyTool, executeCosmology, isCosmologyAvailable } from './cosmology-tool';
-export {
-  cryptanalysisTool,
-  executeCryptanalysis,
-  isCryptanalysisAvailable,
-} from './cryptanalysis-tool';
 export {
   crystallographyTool,
   executeCrystallography,
@@ -1367,7 +728,6 @@ export {
 } from './data-loss-prevention-tool';
 export { devsecOpsTool, executeDevsecOps, isDevsecOpsAvailable } from './devsecops-tool';
 export { ecologyTool, executeEcology, isEcologyAvailable } from './ecology-tool';
-export { economicsTool, executeEconomics, isEconomicsAvailable } from './economics-tool';
 export { encryptionTool, executeEncryption, isEncryptionAvailable } from './encryption-tool';
 export {
   entropyAnalysisTool,
@@ -1375,11 +735,6 @@ export {
   isEntropyAnalysisAvailable,
 } from './entropy-analysis-tool';
 export { geologyTool, executeGeology, isGeologyAvailable } from './geology-tool';
-export {
-  heatTransferTool,
-  executeHeatTransfer,
-  isHeatTransferAvailable,
-} from './heat-transfer-tool';
 export {
   identityGovernanceTool,
   executeIdentityGovernance,
@@ -1401,7 +756,6 @@ export {
   executeKeyManagement,
   isKeyManagementAvailable,
 } from './key-management-tool';
-export { linguisticsTool, executeLinguistics, isLinguisticsAvailable } from './linguistics-tool';
 export { logAnalysisTool, executeLogAnalysis, isLogAnalysisAvailable } from './log-analysis-tool';
 export {
   logManagementTool,
@@ -1488,11 +842,6 @@ export {
   isTrafficEngineeringAvailable,
 } from './traffic-engineering-tool';
 export { vpnTool, executeVpn, isVpnAvailable } from './vpn-tool';
-export {
-  vulnerabilityTool,
-  executeVulnerability,
-  isVulnerabilityAvailable,
-} from './vulnerability-tool';
 
 // ============================================================================
 // TOOL REGISTRY
@@ -1542,10 +891,6 @@ async function initializeTools() {
   // GitHub tool removed - now handled by Composio GitHub connector
   const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
     './screenshot-tool'
-  );
-
-  const { calculatorTool, executeCalculator, isCalculatorAvailable } = await import(
-    './calculator-tool'
   );
 
   const { chartTool, executeChart, isChartAvailable } = await import('./chart-tool');
@@ -1598,29 +943,17 @@ async function initializeTools() {
     './web-capture-tool'
   );
 
-  const { mathTool, executeMath, isMathAvailable } = await import('./math-tool');
   const { exifTool, executeExif, isExifAvailable } = await import('./exif-tool');
   const { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } = await import(
     './search-index-tool'
   );
 
-  const { asciiArtTool, executeAsciiArt, isAsciiArtAvailable } = await import('./ascii-art-tool');
-  const { colorTool, executeColor, isColorAvailable } = await import('./color-tool');
   const { validatorTool, executeValidator, isValidatorAvailable } = await import(
     './validator-tool'
   );
 
-  const { cronTool, executeCron, isCronAvailable } = await import('./cron-tool');
-  const { unitConvertTool, executeUnitConvert, isUnitConvertAvailable } = await import(
-    './unit-convert-tool'
-  );
-
   const { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } = await import(
     './audio-synth-tool'
-  );
-  // Scientific & Research tools (12 new)
-  const { statisticsTool, executeStatistics, isStatisticsAvailable } = await import(
-    './statistics-tool'
   );
 
   const { geospatialTool, executeGeospatial, isGeospatialAvailable } = await import(
@@ -1628,222 +961,30 @@ async function initializeTools() {
   );
 
   const { phoneTool, executePhone, isPhoneAvailable } = await import('./phone-tool');
-  const { passwordStrengthTool, executePasswordStrength, isPasswordStrengthAvailable } =
-    await import('./password-strength-tool');
-  const { chemistryTool, executeChemistry, isChemistryAvailable } = await import(
-    './chemistry-tool'
-  );
 
   const { dnaBioTool, executeDnaBio, isDnaBioAvailable } = await import('./dna-bio-tool');
-  const { matrixTool, executeMatrix, isMatrixAvailable } = await import('./matrix-tool');
-  const { graphTool, executeGraph, isGraphAvailable } = await import('./graph-tool');
-  const { periodicTableTool, executePeriodicTable, isPeriodicTableAvailable } = await import(
-    './periodic-table-tool'
-  );
 
-  const { physicsConstantsTool, executePhysicsConstants, isPhysicsConstantsAvailable } =
-    await import('./physics-constants-tool');
   const { signalTool, executeSignal, isSignalAvailable } = await import('./signal-tool');
   const { accessibilityTool, executeAccessibility, isAccessibilityAvailable } = await import(
     './accessibility-tool'
   );
-  // Computational & Algorithmic tools (12 new)
-  const { symbolicMathTool, executeSymbolicMath, isSymbolicMathAvailable } = await import(
-    './symbolic-math-tool'
-  );
 
-  const { odeSolverTool, executeOdeSolver, isOdeSolverAvailable } = await import(
-    './ode-solver-tool'
-  );
-
-  const { optimizationTool, executeOptimization, isOptimizationAvailable } = await import(
-    './optimization-tool'
-  );
-
-  const { financialTool, executeFinancial, isFinancialAvailable } = await import(
-    './financial-tool'
-  );
-
-  const { musicTheoryTool, executeMusicTheory, isMusicTheoryAvailable } = await import(
-    './music-theory-tool'
-  );
-
-  const { geometryTool, executeGeometry, isGeometryAvailable } = await import('./geometry-tool');
   const { parserTool, executeParser, isParserAvailable } = await import('./parser-tool');
-  const { recurrenceTool, executeRecurrence, isRecurrenceAvailable } = await import(
-    './recurrence-tool'
-  );
 
   const { constraintTool, executeConstraint, isConstraintAvailable } = await import(
     './constraint-tool'
   );
 
-  const { timeseriesTool, executeTimeseries, isTimeseriesAvailable } = await import(
-    './timeseries-tool'
-  );
-
-  const { tensorTool, executeTensor, isTensorAvailable } = await import('./tensor-tool');
-  const { stringDistanceTool, executeStringDistance, isStringDistanceAvailable } = await import(
-    './string-distance-tool'
-  );
-  // Advanced Scientific Computing tools (12 new)
-  const { numericalIntegrateTool, executeNumericalIntegrate, isNumericalIntegrateAvailable } =
-    await import('./numerical-integrate-tool');
-  const { rootFinderTool, executeRootFinder, isRootFinderAvailable } = await import(
-    './root-finder-tool'
-  );
-
-  const { interpolationTool, executeInterpolation, isInterpolationAvailable } = await import(
-    './interpolation-tool'
-  );
-
-  const { specialFunctionsTool, executeSpecialFunctions, isSpecialFunctionsAvailable } =
-    await import('./special-functions-tool');
-  const { complexMathTool, executeComplexMath, isComplexMathAvailable } = await import(
-    './complex-math-tool'
-  );
-
-  const { combinatoricsTool, executeCombinatorics, isCombinatoricsAvailable } = await import(
-    './combinatorics-tool'
-  );
-
-  const { numberTheoryTool, executeNumberTheory, isNumberTheoryAvailable } = await import(
-    './number-theory-tool'
-  );
-
-  const { probabilityDistTool, executeProbabilityDist, isProbabilityDistAvailable } = await import(
-    './probability-dist-tool'
-  );
-
-  const { polynomialOpsTool, executePolynomialOps, isPolynomialOpsAvailable } = await import(
-    './polynomial-ops-tool'
-  );
-
-  const { astronomyTool, executeAstronomy, isAstronomyAvailable } = await import(
-    './astronomy-tool'
-  );
-
-  const { coordinateTransformTool, executeCoordinateTransform, isCoordinateTransformAvailable } =
-    await import('./coordinate-transform-tool');
   const { sequenceAnalyzeTool, executeSequenceAnalyze, isSequenceAnalyzeAvailable } = await import(
     './sequence-analyze-tool'
   );
-  // Tier Omega - Advanced Scientific Computing tools (12 new)
-  const { mlToolkitTool, executeMLToolkit, isMLToolkitAvailable } = await import(
-    './ml-toolkit-tool'
-  );
 
-  const { quantumCircuitTool, executeQuantumCircuit, isQuantumCircuitAvailable } = await import(
-    './quantum-circuit-tool'
-  );
-
-  const { controlTheoryTool, executeControlTheory, isControlTheoryAvailable } = await import(
-    './control-theory-tool'
-  );
-
-  const { monteCarloTool, executeMonteCarlo, isMonteCarloAvailable } = await import(
-    './monte-carlo-tool'
-  );
-
-  const { gameTheoryTool, executeGameTheory, isGameTheoryAvailable } = await import(
-    './game-theory-tool'
-  );
-
-  const { orbitalMechanicsTool, executeOrbitalMechanics, isOrbitalMechanicsAvailable } =
-    await import('./orbital-mechanics-tool');
-  const { thermodynamicsTool, executeThermodynamics, isThermodynamicsAvailable } = await import(
-    './thermodynamics-tool'
-  );
-
-  const { emFieldsTool, executeEMFields, isEMFieldsAvailable } = await import('./em-fields-tool');
-  const { imageComputeTool, executeImageCompute, isImageComputeAvailable } = await import(
-    './image-compute-tool'
-  );
-
-  const { waveletTransformTool, executeWaveletTransform, isWaveletTransformAvailable } =
-    await import('./wavelet-transform-tool');
-  const { latexRenderTool, executeLatexRender, isLatexRenderAvailable } = await import(
-    './latex-render-tool'
-  );
-  // Tier Infinity - Rocket Science & Engineering tools (12 new)
-  const { rocketPropulsionTool, executeRocketPropulsion, isRocketPropulsionAvailable } =
-    await import('./rocket-propulsion-tool');
-  const { fluidDynamicsTool, executeFluidDynamics, isFluidDynamicsAvailable } = await import(
-    './fluid-dynamics-tool'
-  );
-
-  const { aerodynamicsTool, executeAerodynamics, isAerodynamicsAvailable } = await import(
-    './aerodynamics-tool'
-  );
-
-  const { droneFlightTool, executeDroneFlight, isDroneFlightAvailable } = await import(
-    './drone-flight-tool'
-  );
-
-  const { pathfinderTool, executePathfinder, isPathfinderAvailable } = await import(
-    './pathfinder-tool'
-  );
-
-  const { circuitSimTool, executeCircuitSim, isCircuitSimAvailable } = await import(
-    './circuit-sim-tool'
-  );
-
-  const { ballisticsTool, executeBallistics, isBallisticsAvailable } = await import(
-    './ballistics-tool'
-  );
-
-  const { geneticAlgorithmTool, executeGeneticAlgorithm, isGeneticAlgorithmAvailable } =
-    await import('./genetic-algorithm-tool');
-  const { chaosDynamicsTool, executeChaosDynamics, isChaosDynamicsAvailable } = await import(
-    './chaos-dynamics-tool'
-  );
-
-  const { roboticsKinematicsTool, executeRoboticsKinematics, isRoboticsKinematicsAvailable } =
-    await import('./robotics-kinematics-tool');
-  const { opticsSimTool, executeOpticsSim, isOpticsSimAvailable } = await import(
-    './optics-sim-tool'
-  );
-
-  const { epidemiologyTool, executeEpidemiology, isEpidemiologyAvailable } = await import(
-    './epidemiology-tool'
-  );
-  // Tier Beyond - Advanced Engineering tools (6 new)
-  const { finiteElementTool, executeFiniteElement, isFiniteElementAvailable } = await import(
-    './finite-element-tool'
-  );
-
-  const { antennaRfTool, executeAntennaRf, isAntennaRfAvailable } = await import(
-    './antenna-rf-tool'
-  );
-
-  const { materialsScienceTool, executeMaterialsScience, isMaterialsScienceAvailable } =
-    await import('./materials-science-tool');
-  const { seismologyTool, executeSeismology, isSeismologyAvailable } = await import(
-    './seismology-tool'
-  );
-
-  const { bioinformaticsProTool, executeBioinformaticsPro, isBioinformaticsProAvailable } =
-    await import('./bioinformatics-pro-tool');
-  const { acousticsTool, executeAcoustics, isAcousticsAvailable } = await import(
-    './acoustics-tool'
-  );
-  // Tier GODMODE - Ultimate Intelligence tools (9 new)
-  const { symbolicLogicTool, executeSymbolicLogic, isSymbolicLogicAvailable } = await import(
-    './symbolic-logic-tool'
-  );
-
-  const { cellularAutomataTool, executeCellularAutomata, isCellularAutomataAvailable } =
-    await import('./cellular-automata-tool');
   const { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } = await import(
     './medical-calc-tool'
   );
 
   const { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } = await import(
     './graphics-3d-tool'
-  );
-
-  const { compressionAlgoTool, executeCompressionAlgo, isCompressionAlgoAvailable } = await import(
-    './compression-algo-tool'
   );
 
   const { errorCorrectionTool, executeErrorCorrection, isErrorCorrectionAvailable } = await import(
@@ -1854,8 +995,6 @@ async function initializeTools() {
     './hough-vision-tool'
   );
 
-  const { cryptographyAdvancedTool, executeCryptographyAdvanced, isCryptographyAdvancedAvailable } =
-    await import('./cryptography-advanced-tool');
   await import('./solar-environmental-tool');
 
   // TIER VISUAL MADNESS - Graphics & Animation Tools
@@ -1865,13 +1004,6 @@ async function initializeTools() {
 
   const { fractalGeneratorTool, executeFractalGenerator, isFractalGeneratorAvailable } =
     await import('./fractal-generator-tool');
-  const { colorTheoryTool, executeColorTheory, isColorTheoryAvailable } = await import(
-    './color-theory-tool'
-  );
-
-  const { animationEasingTool, executeAnimationEasing, isAnimationEasingAvailable } = await import(
-    './animation-easing-tool'
-  );
 
   const { particleSystemTool, executeParticleSystem, isParticleSystemAvailable } = await import(
     './particle-system-tool'
@@ -1879,10 +1011,6 @@ async function initializeTools() {
   // TIER SOUND & MUSIC - Audio Tools
   // musicTheoryTool already imported in Computational & Algorithmic tools section
 
-  // Additional VISUAL MADNESS
-  const { bezierCurvesTool, executeBezierCurves, isBezierCurvesAvailable } = await import(
-    './bezier-curves-tool'
-  );
   // TIER EDUCATION - Interactive Learning Tools
   const { sortingVisualizerTool, executeSortingVisualizer, isSortingVisualizerAvailable } =
     await import('./sorting-visualizer-tool');
@@ -1896,14 +1024,9 @@ async function initializeTools() {
     './shader-generator-tool'
   );
 
-  const { signalProcessingTool, executeSignalProcessing, isSignalProcessingAvailable } =
-    await import('./signal-processing-tool');
   const { neuralNetworkTool, executeNeuralNetwork, isNeuralNetworkAvailable } = await import(
     './neural-network-tool'
   );
-  // TIER ADVANCED SCIENCE - Part 2 (5 more tools)
-  const { informationTheoryTool, executeInformationTheory, isInformationTheoryAvailable } =
-    await import('./information-theory-tool');
   const { proceduralGenerationTool, executeProceduralGeneration, isProceduralGenerationAvailable } =
     await import('./procedural-generation-tool');
   const { rayTracingTool, executeRayTracing, isRayTracingAvailable } = await import(
@@ -1913,12 +1036,6 @@ async function initializeTools() {
   const { automataTheoryTool, executeAutomataTheory, isAutomataTheoryAvailable } = await import(
     './automata-theory-tool'
   );
-
-  const {
-    computationalComplexityTool,
-    executeComputationalComplexity,
-    isComputationalComplexityAvailable,
-  } = await import('./computational-complexity-tool');
 
   // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
   const { reactionKineticsTool, executeReactionKinetics, isReactionKineticsAvailable } =
@@ -1931,9 +1048,6 @@ async function initializeTools() {
 
   const { quantumMechanicsTool, executeQuantumMechanics, isQuantumMechanicsAvailable } =
     await import('./quantum-mechanics-tool');
-  const { relativityTool, executeRelativity, isRelativityAvailable } = await import(
-    './relativity-tool'
-  );
 
   const { statisticalMechanicsTool, executeStatisticalMechanics, isStatisticalMechanicsAvailable } =
     await import('./statistical-mechanics-tool');
@@ -1948,19 +1062,12 @@ async function initializeTools() {
     './semiconductor-tool'
   );
 
-  const { cosmologyTool, executeCosmology, isCosmologyAvailable } = await import(
-    './cosmology-tool'
-  );
-
   const { crystallographyTool, executeCrystallography, isCrystallographyAvailable } = await import(
     './crystallography-tool'
   );
 
   const { polymerChemistryTool, executePolymerChemistry, isPolymerChemistryAvailable } =
     await import('./polymer-chemistry-tool');
-  const { heatTransferTool, executeHeatTransfer, isHeatTransferAvailable } = await import(
-    './heat-transfer-tool'
-  );
 
   const { powerSystemsTool, executePowerSystems, isPowerSystemsAvailable } = await import(
     './power-systems-tool'
@@ -2009,18 +1116,8 @@ async function initializeTools() {
   );
 
   const { ecologyTool, executeEcology, isEcologyAvailable } = await import('./ecology-tool');
-  const { economicsTool, executeEconomics, isEconomicsAvailable } = await import(
-    './economics-tool'
-  );
-
-  const { forensicsTool, executeForensics, isForensicsAvailable } = await import(
-    './forensics-tool'
-  );
 
   const { geologyTool, executeGeology, isGeologyAvailable } = await import('./geology-tool');
-  const { linguisticsTool, executeLinguistics, isLinguisticsAvailable } = await import(
-    './linguistics-tool'
-  );
 
   const { meteorologyTool, executeMeteorology, isMeteorologyAvailable } = await import(
     './meteorology-tool'
@@ -2050,10 +1147,6 @@ async function initializeTools() {
     './plasma-physics-tool'
   );
 
-  const { vulnerabilityTool, executeVulnerability, isVulnerabilityAvailable } = await import(
-    './vulnerability-tool'
-  );
-
   const { encryptionTool, executeEncryption, isEncryptionAvailable } = await import(
     './encryption-tool'
   );
@@ -2066,9 +1159,6 @@ async function initializeTools() {
   // Cybersecurity tools batch 1 (15 new tools)
 
   const { jwtTool, executeJwt, isJwtAvailable } = await import('./jwt-tool');
-  const { ipSecurityTool, executeIpSecurity, isIpSecurityAvailable } = await import(
-    './ip-security-tool'
-  );
 
   const { certificateTool, executeCertificate, isCertificateAvailable } = await import(
     './certificate-tool'
@@ -2078,57 +1168,19 @@ async function initializeTools() {
     './entropy-analysis-tool'
   );
 
-  const { securityHeadersTool, executeSecurityHeaders, isSecurityHeadersAvailable } = await import(
-    './security-headers-tool'
-  );
-
-  const { malwareIndicatorsTool, executeMalwareIndicators, isMalwareIndicatorsAvailable } =
-    await import('./malware-indicators-tool');
   const { portScannerTool, executePortScanner, isPortScannerAvailable } = await import(
     './port-scanner-tool'
   );
 
   const { owaspTool, executeOwasp, isOwaspAvailable } = await import('./owasp-tool');
-  const { dnsSecurityTool, executeDnsSecurity, isDnsSecurityAvailable } = await import(
-    './dns-security-tool'
-  );
-
-  const { threatModelTool, executeThreatModel, isThreatModelAvailable } = await import(
-    './threat-model-tool'
-  );
-
-  const { complianceTool, executeCompliance, isComplianceAvailable } = await import(
-    './compliance-tool'
-  );
-
-  const { cipherTool, executeCipher, isCipherAvailable } = await import('./cipher-tool');
 
   // Cybersecurity tools batch 2 (55 more tools)
   const { authProtocolTool, executeAuthProtocol, isAuthProtocolAvailable } = await import(
     './auth-protocol-tool'
   );
 
-  const { vulnAssessmentTool, executeVulnAssessment, isVulnAssessmentAvailable } = await import(
-    './vuln-assessment-tool'
-  );
-
-  const { incidentResponseTool, executeIncidentResponse, isIncidentResponseAvailable } =
-    await import('./incident-response-tool');
-  const { networkSecurityTool, executeNetworkSecurity, isNetworkSecurityAvailable } = await import(
-    './network-security-tool'
-  );
-
-  const { firewallTool, executeFirewall, isFirewallAvailable } = await import('./firewall-tool');
-  const { idsIpsTool, executeIdsIps, isIdsIpsAvailable } = await import('./ids-ips-tool');
   const { logAnalysisTool, executeLogAnalysis, isLogAnalysisAvailable } = await import(
     './log-analysis-tool'
-  );
-
-  const { penTestTool, executePenTest, isPenTestAvailable } = await import('./pen-test-tool');
-  const { socialEngineeringTool, executeSocialEngineering, isSocialEngineeringAvailable } =
-    await import('./social-engineering-tool');
-  const { cryptanalysisTool, executeCryptanalysis, isCryptanalysisAvailable } = await import(
-    './cryptanalysis-tool'
   );
 
   const { secureSdlcTool, executeSecureSdlc, isSecureSdlcAvailable } = await import(
@@ -2140,95 +1192,25 @@ async function initializeTools() {
     './access-control-tool'
   );
 
-  const { siemTool, executeSiem, isSiemAvailable } = await import('./siem-tool');
-  const { vulnerabilityScannerTool, executeVulnerabilityScanner, isVulnerabilityScannerAvailable } =
-    await import('./vulnerability-scanner-tool');
-  const { malwareAnalysisTool, executeMalwareAnalysis, isMalwareAnalysisAvailable } = await import(
-    './malware-analysis-tool'
-  );
-
-  const { endpointSecurityTool, executeEndpointSecurity, isEndpointSecurityAvailable } =
-    await import('./endpoint-security-tool');
-  const { cloudSecurityTool, executeCloudSecurity, isCloudSecurityAvailable } = await import(
-    './cloud-security-tool'
-  );
-
-  const { containerSecurityTool, executeContainerSecurity, isContainerSecurityAvailable } =
-    await import('./container-security-tool');
-  const { apiSecurityTool, executeApiSecurity, isApiSecurityAvailable } = await import(
-    './api-security-tool'
-  );
-
-  const { mobileSecurityTool, executeMobileSecurity, isMobileSecurityAvailable } = await import(
-    './mobile-security-tool'
-  );
-
-  const { iotSecurityTool, executeIotSecurity, isIotSecurityAvailable } = await import(
-    './iot-security-tool'
-  );
-
-  const { zeroTrustTool, executeZeroTrust, isZeroTrustAvailable } = await import(
-    './zero-trust-tool'
-  );
-
-  const { securityArchitectureTool, executeSecurityArchitecture, isSecurityArchitectureAvailable } =
-    await import('./security-architecture-tool');
-  const { riskManagementTool, executeRiskManagement, isRiskManagementAvailable } = await import(
-    './risk-management-tool'
-  );
-
   const { businessContinuityTool, executeBusinessContinuity, isBusinessContinuityAvailable } =
     await import('./business-continuity-tool');
-  const { securityAwarenessTool, executeSecurityAwareness, isSecurityAwarenessAvailable } =
-    await import('./security-awareness-tool');
-  const { threatIntelTool, executeThreatIntel, isThreatIntelAvailable } = await import(
-    './threat-intel-tool'
-  );
 
   const { devsecOpsTool, executeDevsecOps, isDevsecOpsAvailable } = await import(
     './devsecops-tool'
   );
 
-  const { blockchainSecurityTool, executeBlockchainSecurity, isBlockchainSecurityAvailable } =
-    await import('./blockchain-security-tool');
-  const { wirelessSecurityTool, executeWirelessSecurity, isWirelessSecurityAvailable } =
-    await import('./wireless-security-tool');
   const { vpnTool, executeVpn, isVpnAvailable } = await import('./vpn-tool');
   const { pkiTool, executePki, isPkiAvailable } = await import('./pki-tool');
   const { dataLossPreventionTool, executeDataLossPrevention, isDataLossPreventionAvailable } =
     await import('./data-loss-prevention-tool');
-  const { redTeamTool, executeRedTeam, isRedTeamAvailable } = await import('./red-team-tool');
-  const { blueTeamTool, executeBlueTeam, isBlueTeamAvailable } = await import('./blue-team-tool');
-  const { socTool, executeSoc, isSocAvailable } = await import('./soc-tool');
   const { identityManagementTool, executeIdentityManagement, isIdentityManagementAvailable } =
     await import('./identity-management-tool');
-  const { emailSecurityTool, executeEmailSecurity, isEmailSecurityAvailable } = await import(
-    './email-security-tool'
-  );
-
-  const { vendorRiskTool, executeVendorRisk, isVendorRiskAvailable } = await import(
-    './vendor-risk-tool'
-  );
 
   const { patchManagementTool, executePatchManagement, isPatchManagementAvailable } = await import(
     './patch-management-tool'
   );
 
-  const { threatHuntingTool, executeThreatHunting, isThreatHuntingAvailable } = await import(
-    './threat-hunting-tool'
-  );
-
-  const { osintTool, executeOsint, isOsintAvailable } = await import('./osint-tool');
-  const { ransomwareDefenseTool, executeRansomwareDefense, isRansomwareDefenseAvailable } =
-    await import('./ransomware-defense-tool');
-  const { credentialSecurityTool, executeCredentialSecurity, isCredentialSecurityAvailable } =
-    await import('./credential-security-tool');
-  const { databaseSecurityTool, executeDatabaseSecurity, isDatabaseSecurityAvailable } =
-    await import('./database-security-tool');
   const { scadaIcsTool, executeScadaIcs, isScadaIcsAvailable } = await import('./scada-ics-tool');
-  const { attackSurfaceTool, executeAttackSurface, isAttackSurfaceAvailable } = await import(
-    './attack-surface-tool'
-  );
 
   const { dataClassificationTool, executeDataClassification, isDataClassificationAvailable } =
     await import('./data-classification-tool');
@@ -2236,31 +1218,8 @@ async function initializeTools() {
     './key-management-tool'
   );
 
-  const { securityPolicyTool, executeSecurityPolicy, isSecurityPolicyAvailable } = await import(
-    './security-policy-tool'
-  );
-
-  const { securityAuditTool, executeSecurityAudit, isSecurityAuditAvailable } = await import(
-    './security-audit-tool'
-  );
-
   const { assetManagementTool, executeAssetManagement, isAssetManagementAvailable } = await import(
     './asset-management-tool'
-  );
-  // Additional security tools batch 3 (13 more tools)
-  const { honeypotTool, executeHoneypot, isHoneypotAvailable } = await import('./honeypot-tool');
-  const { complianceFrameworkTool, executeComplianceFramework, isComplianceFrameworkAvailable } =
-    await import('./compliance-framework-tool');
-  const {
-    securityArchitecturePatternsTool,
-    executeSecurityArchitecturePatterns,
-    isSecurityArchitecturePatternsAvailable,
-  } = await import('./security-architecture-patterns-tool');
-  const { soarTool, executeSoar, isSoarAvailable } = await import('./soar-tool');
-  const { supplyChainSecurityTool, executeSupplyChainSecurity, isSupplyChainSecurityAvailable } =
-    await import('./supply-chain-security-tool');
-  const { webSecurityTool, executeWebSecurity, isWebSecurityAvailable } = await import(
-    './web-security-tool'
   );
 
   const { networkDefenseTool, executeNetworkDefense, isNetworkDefenseAvailable } = await import(
@@ -2269,38 +1228,13 @@ async function initializeTools() {
 
   const { secretsManagementTool, executeSecretsManagement, isSecretsManagementAvailable } =
     await import('./secrets-management-tool');
-  const { xdrTool, executeXdr, isXdrAvailable } = await import('./xdr-tool');
   const { privacyEngineeringTool, executePrivacyEngineering, isPrivacyEngineeringAvailable } =
     await import('./privacy-engineering-tool');
   const { secureCommunicationsTool, executeSecureCommunications, isSecureCommunicationsAvailable } =
     await import('./secure-communications-tool');
-  const { securityTestingTool, executeSecurityTesting, isSecurityTestingAvailable } = await import(
-    './security-testing-tool'
-  );
 
   const { industrialControlTool, executeIndustrialControl, isIndustrialControlAvailable } =
     await import('./industrial-control-tool');
-  const { cloudNativeSecurityTool, executeCloudNativeSecurity, isCloudNativeSecurityAvailable } =
-    await import('./cloud-native-security-tool');
-  const { browserSecurityTool, executeBrowserSecurity, isBrowserSecurityAvailable } = await import(
-    './browser-security-tool'
-  );
-
-  const { physicalSecurityTool, executePhysicalSecurity, isPhysicalSecurityAvailable } =
-    await import('./physical-security-tool');
-  const { securityOperationsTool, executeSecurityOperations, isSecurityOperationsAvailable } =
-    await import('./security-operations-tool');
-  const { threatModelingTool, executeThreatModeling, isThreatModelingAvailable } = await import(
-    './threat-modeling-tool'
-  );
-
-  const { aiSecurityTool, executeAiSecurity, isAiSecurityAvailable } = await import(
-    './ai-security-tool'
-  );
-
-  const { securityCultureTool, executeSecurityCulture, isSecurityCultureAvailable } = await import(
-    './security-culture-tool'
-  );
 
   const { logManagementTool, executeLogManagement, isLogManagementAvailable } = await import(
     './log-management-tool'
@@ -2313,21 +1247,10 @@ async function initializeTools() {
   const { backupRecoveryTool, executeBackupRecovery, isBackupRecoveryAvailable } = await import(
     './backup-recovery-tool'
   );
-  // Additional security tools batch 4
-  const { securityBudgetTool, executeSecurityBudget, isSecurityBudgetAvailable } = await import(
-    './security-budget-tool'
-  );
-
-  const { cyberInsuranceTool, executeCyberInsurance, isCyberInsuranceAvailable } = await import(
-    './cyber-insurance-tool'
-  );
 
   const { saseTool, executeSase, isSaseAvailable } = await import('./sase-tool');
   const { identityGovernanceTool, executeIdentityGovernance, isIdentityGovernanceAvailable } =
     await import('./identity-governance-tool');
-  const { dataSecurityTool, executeDataSecurity, isDataSecurityAvailable } = await import(
-    './data-security-tool'
-  );
   // ============================================================================
   // CODE AGENT BRAIN TOOLS - Full coding capabilities
   // ============================================================================
@@ -2427,9 +1350,6 @@ async function initializeTools() {
     './api-design-tool'
   );
 
-  const { graphqlSchemaTool, executeGraphqlSchema, isGraphqlSchemaAvailable } = await import(
-    './graphql-schema-tool'
-  );
   // Architecture & Design
   const { systemDesignTool, executeSystemDesign, isSystemDesignAvailable } = await import(
     './system-design-tool'
@@ -2476,14 +1396,6 @@ async function initializeTools() {
   const { smartContractTool, executeSmartContract, isSmartContractAvailable } = await import(
     './smart-contract-tool'
   );
-  // Real-time & WebSockets
-  const { websocketDesignTool, executeWebsocketDesign, isWebsocketDesignAvailable } = await import(
-    './websocket-design-tool'
-  );
-  // Game Development
-  const { gameLogicTool, executeGameLogic, isGameLogicAvailable } = await import(
-    './game-logic-tool'
-  );
   // Documentation
   const { readmeGeneratorTool, executeReadmeGenerator, isReadmeGeneratorAvailable } = await import(
     './readme-generator-tool'
@@ -2499,11 +1411,7 @@ async function initializeTools() {
     './maze-generator-tool'
   );
 
-  const { voronoiTool, executeVoronoi, isVoronoiAvailable } = await import('./voronoi-tool');
   const { lSystemTool, executeLSystem, isLSystemAvailable } = await import('./l-system-tool');
-  const { markovChainTool, executeMarkovChain, isMarkovChainAvailable } = await import(
-    './markov-chain-tool'
-  );
 
   const { pathfindingTool, executePathfinding, isPathfindingAvailable } = await import(
     './pathfinding-tool'
@@ -2528,13 +1436,6 @@ async function initializeTools() {
 
   const { chordProgressionTool, executeChordProgression, isChordProgressionAvailable } =
     await import('./chord-progression-tool');
-  const { regexBuilderTool, executeRegexBuilder, isRegexBuilderAvailable } = await import(
-    './regex-builder-tool'
-  );
-
-  const { haversineTool, executeHaversine, isHaversineAvailable } = await import(
-    './haversine-tool'
-  );
 
   const { lootTableTool, executeLootTable, isLootTableAvailable } = await import(
     './loot-table-tool'
@@ -2544,10 +1445,6 @@ async function initializeTools() {
     await import('./procedural-dungeon-tool');
   const { nameGeneratorTool, executeNameGenerator, isNameGeneratorAvailable } = await import(
     './name-generator-tool'
-  );
-
-  const { decisionMatrixTool, executeDecisionMatrix, isDecisionMatrixAvailable } = await import(
-    './decision-matrix-tool'
   );
 
   const { waveFunctionCollapseTool, executeWaveFunctionCollapse, isWaveFunctionCollapseAvailable } =
@@ -2586,10 +1483,6 @@ async function initializeTools() {
     './inventory-system-tool'
   );
 
-  const { musicScaleTool, executeMusicScale, isMusicScaleAvailable } = await import(
-    './music-scale-tool'
-  );
-
   const { drumPatternTool, executeDrumPattern, isDrumPatternAvailable } = await import(
     './drum-pattern-tool'
   );
@@ -2609,10 +1502,6 @@ async function initializeTools() {
   const { entityComponentTool, executeEntityComponent, isEntityComponentAvailable } = await import(
     './entity-component-tool'
   );
-  // NEW MEGA BATCH - 10 more tools
-  const { physicsEngineTool, executePhysicsEngine, isPhysicsEngineAvailable } = await import(
-    './physics-engine-tool'
-  );
 
   const { pathPlanningTool, executePathPlanning, isPathPlanningAvailable } = await import(
     './path-planning-tool'
@@ -2631,16 +1520,8 @@ async function initializeTools() {
     './text-adventure-tool'
   );
 
-  const { gameEconomyTool, executeGameEconomy, isGameEconomyAvailable } = await import(
-    './game-economy-tool'
-  );
-
   const { proceduralStoryTool, executeProceduralStory, isProceduralStoryAvailable } = await import(
     './procedural-story-tool'
-  );
-
-  const { colorSchemeTool, executeColorScheme, isColorSchemeAvailable } = await import(
-    './color-scheme-tool'
   );
 
   const { dataVisualizationTool, executeDataVisualization, isDataVisualizationAvailable } =
@@ -2681,14 +1562,6 @@ async function initializeTools() {
     './stock-analysis-tool'
   );
 
-  const { portfolioOptimizerTool, executePortfolioOptimizer, isPortfolioOptimizerAvailable } =
-    await import('./portfolio-optimizer-tool');
-  const { decisionTreeTool, executeDecisionTree, isDecisionTreeAvailable } = await import(
-    './decision-tree-tool'
-  );
-
-  const { kmeansClusteringTool, executeKmeansClustering, isKmeansClusteringAvailable } =
-    await import('./kmeans-clustering-tool');
   const { apiRateLimiterTool, executeApiRateLimiter, isApiRateLimiterAvailable } = await import(
     './api-rate-limiter-tool'
   );
@@ -2701,20 +1574,8 @@ async function initializeTools() {
     './chess-engine-tool'
   );
 
-  const { dnaSequenceTool, executeDnaSequence, isDnaSequenceAvailable } = await import(
-    './dna-sequence-tool'
-  );
-
   const { artificialLifeTool, executeArtificialLife, isArtificialLifeAvailable } = await import(
     './artificial-life-tool'
-  );
-  // MEGA BATCH #3 - CS Fundamentals, Medical, Legal, Education, Advanced Math
-  const { satSolverTool, executeSatSolver, isSatSolverAvailable } = await import(
-    './sat-solver-tool'
-  );
-
-  const { theoremProverTool, executeTheoremProver, isTheoremProverAvailable } = await import(
-    './theorem-prover-tool'
   );
 
   const { compilerTool, executeCompiler, isCompilerAvailable } = await import('./compiler-tool');
@@ -2722,22 +1583,12 @@ async function initializeTools() {
     './type-inference-tool'
   );
 
-  const { linearProgrammingTool, executeLinearProgramming, isLinearProgrammingAvailable } =
-    await import('./linear-programming-tool');
   const { knowledgeGraphTool, executeKnowledgeGraph, isKnowledgeGraphAvailable } = await import(
     './knowledge-graph-tool'
   );
 
   const { proteinFoldingTool, executeProteinFolding, isProteinFoldingAvailable } = await import(
     './protein-folding-tool'
-  );
-
-  const { regexEngineTool, executeRegexEngine, isRegexEngineAvailable } = await import(
-    './regex-engine-tool'
-  );
-
-  const { timeSeriesTool, executeTimeSeries, isTimeSeriesAvailable } = await import(
-    './time-series-tool'
   );
 
   const { cspSolverTool, executeCspSolver, isCspSolverAvailable } = await import(
@@ -2772,26 +1623,8 @@ async function initializeTools() {
 
   // Legal tools
 
-  // Advanced math tools
-  const { categorytheoryTool, executecategorytheory, iscategorytheoryAvailable } = await import(
-    './category-theory-tool'
-  );
-
-  const { abstractalgebraTool, executeabstractalgebra, isabstractalgebraAvailable } = await import(
-    './abstract-algebra-tool'
-  );
-
-  const { differentialgeometryTool, executedifferentialgeometry, isdifferentialgeometryAvailable } =
-    await import('./differential-geometry-tool');
-
   // Algorithm tools
 
-  const { convexoptimizationTool, executeconvexoptimization, isconvexoptimizationAvailable } =
-    await import('./convex-optimization-tool');
-  const { dynamicprogrammingTool, executedynamicprogramming, isdynamicprogrammingAvailable } =
-    await import('./dynamic-programming-tool');
-  const { greedyalgorithmsTool, executegreedyalgorithms, isgreedyalgorithmsAvailable } =
-    await import('./greedy-algorithms-tool');
   const { divideconquerTool, executedivideconquer, isdivideconquerAvailable } = await import(
     './divide-conquer-tool'
   );
@@ -2836,8 +1669,6 @@ async function initializeTools() {
   );
   // Robotics
 
-  const { inversekinematicsTool, executeinversekinematics, isinversekinematicsAvailable } =
-    await import('./inverse-kinematics-tool');
   const { forwardkinematicsTool, executeforwardkinematics, isforwardkinematicsAvailable } =
     await import('./forward-kinematics-tool');
   const { motionplanningTool, executemotionplanning, ismotionplanningAvailable } = await import(
@@ -2905,9 +1736,6 @@ async function initializeTools() {
 
   const { consistenthashingTool, executeconsistenthashing, isconsistenthashingAvailable } =
     await import('./consistent-hashing-tool');
-  const { vectorclockTool, executevectorclock, isvectorclockAvailable } = await import(
-    './vector-clock-tool'
-  );
 
   const { lamportclockTool, executelamportclock, islamportclockAvailable } = await import(
     './lamport-clock-tool'
@@ -2935,14 +1763,6 @@ async function initializeTools() {
     './bayesian-network-tool'
   );
 
-  const { hiddenmarkovTool, executehiddenmarkov, ishiddenmarkovAvailable } = await import(
-    './hidden-markov-tool'
-  );
-
-  const { kalmanfilterTool, executekalmanfilter, iskalmanfilterAvailable } = await import(
-    './kalman-filter-tool'
-  );
-
   const { cmaesTool, executecmaes, iscmaesAvailable } = await import('./cma-es-tool');
 
   const { antcolonyTool, executeantcolony, isantcolonyAvailable } = await import(
@@ -2952,9 +1772,6 @@ async function initializeTools() {
   const { latticeboltzmannTool, executelatticeboltzmann, islatticeboltzmannAvailable } =
     await import('./lattice-boltzmann-tool');
   const { sphfluidTool, executesphfluid, issphfluidAvailable } = await import('./sph-fluid-tool');
-  const { nbodysimulationTool, executenbodysimulation, isnbodysimulationAvailable } = await import(
-    './nbody-simulation-tool'
-  );
 
   const { clothsimulationTool, executeclothsimulation, isclothsimulationAvailable } = await import(
     './cloth-simulation-tool'
@@ -2973,8 +1790,6 @@ async function initializeTools() {
     './buoyancy-sim-tool'
   );
 
-  const { projectilemotionTool, executeprojectilemotion, isprojectilemotionAvailable } =
-    await import('./projectile-motion-tool');
   const { pendulumsimTool, executependulumsim, ispendulumsimAvailable } = await import(
     './pendulum-sim-tool'
   );
@@ -2993,10 +1808,6 @@ async function initializeTools() {
   // Database Internals
   const { btreeindexTool, executebtreeindex, isbtreeindexAvailable } = await import(
     './btree-index-tool'
-  );
-
-  const { hashindexTool, executehashindex, ishashindexAvailable } = await import(
-    './hash-index-tool'
   );
 
   const { bloomfilterTool, executebloomfilter, isbloomfilterAvailable } = await import(
@@ -3085,14 +1896,6 @@ async function initializeTools() {
     './anti-aliasing-tool'
   );
 
-  const { colorgradingTool, executecolorgrading, iscolorgradingAvailable } = await import(
-    './color-grading-tool'
-  );
-  // Audio DSP
-  const { fftanalyzerTool, executefftanalyzer, isfftanalyzerAvailable } = await import(
-    './fft-analyzer-tool'
-  );
-
   const { equalizerTool, executeequalizer, isequalizerAvailable } = await import(
     './equalizer-tool'
   );
@@ -3130,17 +1933,11 @@ async function initializeTools() {
 
   const { digitalsignatureTool, executedigitalsignature, isdigitalsignatureAvailable } =
     await import('./digital-signature-tool');
-  const { ellipticcurveTool, executeellipticcurve, isellipticcurveAvailable } = await import(
-    './elliptic-curve-tool'
-  );
 
   const { keyderivationTool, executekeyderivation, iskeyderivationAvailable } = await import(
     './key-derivation-tool'
   );
 
-  const { randomgeneratorTool, executerandomgenerator, israndomgeneratorAvailable } = await import(
-    './random-generator-tool'
-  );
   // Quantum Computing
   const { qubitsimulatorTool, executequbitsimulator, isqubitsimulatorAvailable } = await import(
     './qubit-simulator-tool'
@@ -3200,8 +1997,6 @@ async function initializeTools() {
     './gene-expression-tool'
   );
 
-  const { moleculardynamicsTool, executemoleculardynamics, ismoleculardynamicsAvailable } =
-    await import('./molecular-dynamics-tool');
   // Signal Processing & Control
   const { filterdesignTool, executefilterdesign, isfilterdesignAvailable } = await import(
     './filter-design-tool'
@@ -3209,12 +2004,7 @@ async function initializeTools() {
 
   const { signalconvolutionTool, executesignalconvolution, issignalconvolutionAvailable } =
     await import('./signal-convolution-tool');
-  const { statespaceTool, executestatespace, isstatespaceAvailable } = await import(
-    './state-space-tool'
-  );
 
-  const { transferfunctionTool, executetransferfunction, istransferfunctionAvailable } =
-    await import('./transfer-function-tool');
   const { bodeplotTool, executebodeplot, isbodeplotAvailable } = await import('./bode-plot-tool');
   const { rootlocusTool, executerootlocus, isrootlocusAvailable } = await import(
     './root-locus-tool'
@@ -3223,44 +2013,12 @@ async function initializeTools() {
   const { nyquistplotTool, executenyquistplot, isnyquistplotAvailable } = await import(
     './nyquist-plot-tool'
   );
-  // Finance & Economics
-  const { blackscholesTool, executeblackscholes, isblackscholesAvailable } = await import(
-    './black-scholes-tool'
-  );
-
-  const { binomialoptionsTool, executebinomialoptions, isbinomialoptionsAvailable } = await import(
-    './binomial-options-tool'
-  );
-
-  const { valueatriskTool, executevalueatrisk, isvalueatriskAvailable } = await import(
-    './value-at-risk-tool'
-  );
 
   const {
     portfoliooptimizationTool,
     executeportfoliooptimization,
     isportfoliooptimizationAvailable,
   } = await import('./portfolio-optimization-tool');
-  // Game Theory
-  const { nashequilibriumTool, executenashequilibrium, isnashequilibriumAvailable } = await import(
-    './nash-equilibrium-tool'
-  );
-
-  const { payoffmatrixTool, executepayoffmatrix, ispayoffmatrixAvailable } = await import(
-    './payoff-matrix-tool'
-  );
-
-  const { auctiontheoryTool, executeauctiontheory, isauctiontheoryAvailable } = await import(
-    './auction-theory-tool'
-  );
-  // Computational Geometry
-  const { convexhullTool, executeconvexhull, isconvexhullAvailable } = await import(
-    './convex-hull-tool'
-  );
-
-  const { voronoidiagramTool, executevoronoidiagram, isvoronoidiagramAvailable } = await import(
-    './voronoi-diagram-tool'
-  );
 
   const { kdtreeTool, executekdtree, iskdtreeAvailable } = await import('./kd-tree-tool');
   const { rtreeTool, executertree, isrtreeAvailable } = await import('./r-tree-tool');
@@ -3268,20 +2026,10 @@ async function initializeTools() {
     await import('./line-intersection-tool');
   const { polygontriangulationTool, executepolygontriangulation, ispolygontriangulationAvailable } =
     await import('./polygon-triangulation-tool');
-  // Simulation & Modeling
-  const { discreteeventsimTool, executediscreteeventsim, isdiscreteeventsimAvailable } =
-    await import('./discrete-event-sim-tool');
   const { agentbasedmodelTool, executeagentbasedmodel, isagentbasedmodelAvailable } = await import(
     './agent-based-model-tool'
   );
 
-  const { systemdynamicsTool, executesystemdynamics, issystemdynamicsAvailable } = await import(
-    './system-dynamics-tool'
-  );
-
-  const { chaostheoryTool, executechaostheory, ischaostheoryAvailable } = await import(
-    './chaos-theory-tool'
-  );
   // Earth & Space Sciences
   const { epidemicmodelTool, executeepidemicmodel, isepidemicmodelAvailable } = await import(
     './epidemic-model-tool'
@@ -3314,14 +2062,6 @@ async function initializeTools() {
   // MEGA BATCH #6-8: Blockchain, Compiler, Computer Architecture
   const { defiprotocolTool, executedefiprotocol, isdefiprotocolAvailable } = await import(
     './defi-protocol-tool'
-  );
-
-  const { merkletreeTool, executemerkletree, ismerkletreeAvailable } = await import(
-    './merkle-tree-tool'
-  );
-
-  const { zeroknowledgeTool, executezeroknowledge, iszeroknowledgeAvailable } = await import(
-    './zero-knowledge-tool'
   );
 
   const { tokeneconomicsTool, executetokeneconomics, istokeneconomicsAvailable } = await import(
@@ -3366,16 +2106,10 @@ async function initializeTools() {
     './dns-resolver-tool'
   );
 
-  const { huffmancodingTool, executehuffmancoding, ishuffmancodingAvailable } = await import(
-    './huffman-coding-tool'
-  );
-
   const { lzcompressionTool, executelzcompression, islzcompressionAvailable } = await import(
     './lz-compression-tool'
   );
 
-  const { entropycalculatorTool, executeentropycalculator, isentropycalculatorAvailable } =
-    await import('./entropy-calculator-tool');
   const { reedsolomonTool, executereedsolomon, isreedsolomonAvailable } = await import(
     './reed-solomon-tool'
   );
@@ -3387,14 +2121,6 @@ async function initializeTools() {
   const { crisprTool, executecrispr, iscrisprAvailable } = await import('./crispr-tool');
   const { votingsystemTool, executevotingsystem, isvotingsystemAvailable } = await import(
     './voting-system-tool'
-  );
-
-  const { socialnetworkTool, executesocialnetwork, issocialnetworkAvailable } = await import(
-    './social-network-tool'
-  );
-
-  const { modallogicTool, executemodallogic, ismodallogicAvailable } = await import(
-    './modal-logic-tool'
   );
 
   const { economicssimulatorTool, executeeconomicssimulator, iseconomicssimulatorAvailable } =
@@ -3425,10 +2151,6 @@ async function initializeTools() {
     './black-hole-tool'
   );
 
-  const { kinshipsystemTool, executekinshipsystem, iskinshipsystemAvailable } = await import(
-    './kinship-system-tool'
-  );
-
   const { fashionanalysisTool, executefashionanalysis, isfashionanalysisAvailable } = await import(
     './fashion-analysis-tool'
   );
@@ -3440,18 +2162,10 @@ async function initializeTools() {
   const { carbonfootprintTool, executecarbonfootprint, iscarbonfootprintAvailable } = await import(
     './carbon-footprint-tool'
   );
-  // MEGA BATCH #8: Meta-Cognition, Cutting-Edge AI/ML, Security, Developer Tools
-  const {
-    uncertaintyquantifierTool,
-    executeuncertaintyquantifier,
-    isuncertaintyquantifierAvailable,
-  } = await import('./uncertainty-quantifier-tool');
   const { causalinferenceTool, executecausalinference, iscausalinferenceAvailable } = await import(
     './causal-inference-tool'
   );
 
-  const { analogicalreasoningTool, executeanalogicalreasoning, isanalogicalreasoningAvailable } =
-    await import('./analogical-reasoning-tool');
   const {
     transformerarchitectureTool,
     executetransformerarchitecture,
@@ -3467,9 +2181,6 @@ async function initializeTools() {
     executecognitivearchitecture,
     iscognitivearchitectureAvailable,
   } = await import('./cognitive-architecture-tool');
-
-  const { adversarialattackTool, executeadversarialattack, isadversarialattackAvailable } =
-    await import('./adversarial-attack-tool');
 
   CHAT_TOOLS.push(
     { tool: webSearchTool, executor: executeWebSearch, checkAvailability: isWebSearchAvailable },
@@ -3512,7 +2223,6 @@ async function initializeTools() {
     },
     // GitHub tool removed - now handled by Composio GitHub connector
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
-    { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },
     { tool: documentTool, executor: executeDocument, checkAvailability: isDocumentAvailable },
     {
@@ -3566,288 +2276,33 @@ async function initializeTools() {
     { tool: cryptoTool, executor: executeCryptoTool, checkAvailability: isCryptoToolAvailable },
     { tool: zipTool, executor: executeZip, checkAvailability: isZipAvailable },
     { tool: webCaptureTool, executor: executeWebCapture, checkAvailability: isWebCaptureAvailable },
-    { tool: mathTool, executor: executeMath, checkAvailability: isMathAvailable },
     { tool: exifTool, executor: executeExif, checkAvailability: isExifAvailable },
     {
       tool: searchIndexTool,
       executor: executeSearchIndex,
       checkAvailability: isSearchIndexAvailable,
     },
-    { tool: asciiArtTool, executor: executeAsciiArt, checkAvailability: isAsciiArtAvailable },
-    { tool: colorTool, executor: executeColor, checkAvailability: isColorAvailable },
     { tool: validatorTool, executor: executeValidator, checkAvailability: isValidatorAvailable },
-    { tool: cronTool, executor: executeCron, checkAvailability: isCronAvailable },
-    {
-      tool: unitConvertTool,
-      executor: executeUnitConvert,
-      checkAvailability: isUnitConvertAvailable,
-    },
     { tool: audioSynthTool, executor: executeAudioSynth, checkAvailability: isAudioSynthAvailable },
-    // Scientific & Research tools (12 new)
-    { tool: statisticsTool, executor: executeStatistics, checkAvailability: isStatisticsAvailable },
     { tool: geospatialTool, executor: executeGeospatial, checkAvailability: isGeospatialAvailable },
     { tool: phoneTool, executor: executePhone, checkAvailability: isPhoneAvailable },
-    {
-      tool: passwordStrengthTool,
-      executor: executePasswordStrength,
-      checkAvailability: isPasswordStrengthAvailable,
-    },
-    { tool: chemistryTool, executor: executeChemistry, checkAvailability: isChemistryAvailable },
     { tool: dnaBioTool, executor: executeDnaBio, checkAvailability: isDnaBioAvailable },
-    { tool: matrixTool, executor: executeMatrix, checkAvailability: isMatrixAvailable },
-    { tool: graphTool, executor: executeGraph, checkAvailability: isGraphAvailable },
-    {
-      tool: periodicTableTool,
-      executor: executePeriodicTable,
-      checkAvailability: isPeriodicTableAvailable,
-    },
-    {
-      tool: physicsConstantsTool,
-      executor: executePhysicsConstants,
-      checkAvailability: isPhysicsConstantsAvailable,
-    },
     { tool: signalTool, executor: executeSignal, checkAvailability: isSignalAvailable },
     {
       tool: accessibilityTool,
       executor: executeAccessibility,
       checkAvailability: isAccessibilityAvailable,
     },
-    // Computational & Algorithmic tools (12 new)
-    {
-      tool: symbolicMathTool,
-      executor: executeSymbolicMath,
-      checkAvailability: isSymbolicMathAvailable,
-    },
-    { tool: odeSolverTool, executor: executeOdeSolver, checkAvailability: isOdeSolverAvailable },
-    {
-      tool: optimizationTool,
-      executor: executeOptimization,
-      checkAvailability: isOptimizationAvailable,
-    },
-    { tool: financialTool, executor: executeFinancial, checkAvailability: isFinancialAvailable },
-    {
-      tool: musicTheoryTool,
-      executor: executeMusicTheory,
-      checkAvailability: isMusicTheoryAvailable,
-    },
-    { tool: geometryTool, executor: executeGeometry, checkAvailability: isGeometryAvailable },
     { tool: parserTool, executor: executeParser, checkAvailability: isParserAvailable },
-    {
-      tool: recurrenceTool,
-      executor: executeRecurrence,
-      checkAvailability: isRecurrenceAvailable,
-    },
     {
       tool: constraintTool,
       executor: executeConstraint,
       checkAvailability: isConstraintAvailable,
     },
     {
-      tool: timeseriesTool,
-      executor: executeTimeseries,
-      checkAvailability: isTimeseriesAvailable,
-    },
-    { tool: tensorTool, executor: executeTensor, checkAvailability: isTensorAvailable },
-    {
-      tool: stringDistanceTool,
-      executor: executeStringDistance,
-      checkAvailability: isStringDistanceAvailable,
-    },
-    // Advanced Scientific Computing tools (12 new)
-    {
-      tool: numericalIntegrateTool,
-      executor: executeNumericalIntegrate,
-      checkAvailability: isNumericalIntegrateAvailable,
-    },
-    { tool: rootFinderTool, executor: executeRootFinder, checkAvailability: isRootFinderAvailable },
-    {
-      tool: interpolationTool,
-      executor: executeInterpolation,
-      checkAvailability: isInterpolationAvailable,
-    },
-    {
-      tool: specialFunctionsTool,
-      executor: executeSpecialFunctions,
-      checkAvailability: isSpecialFunctionsAvailable,
-    },
-    {
-      tool: complexMathTool,
-      executor: executeComplexMath,
-      checkAvailability: isComplexMathAvailable,
-    },
-    {
-      tool: combinatoricsTool,
-      executor: executeCombinatorics,
-      checkAvailability: isCombinatoricsAvailable,
-    },
-    {
-      tool: numberTheoryTool,
-      executor: executeNumberTheory,
-      checkAvailability: isNumberTheoryAvailable,
-    },
-    {
-      tool: probabilityDistTool,
-      executor: executeProbabilityDist,
-      checkAvailability: isProbabilityDistAvailable,
-    },
-    {
-      tool: polynomialOpsTool,
-      executor: executePolynomialOps,
-      checkAvailability: isPolynomialOpsAvailable,
-    },
-    { tool: astronomyTool, executor: executeAstronomy, checkAvailability: isAstronomyAvailable },
-    {
-      tool: coordinateTransformTool,
-      executor: executeCoordinateTransform,
-      checkAvailability: isCoordinateTransformAvailable,
-    },
-    {
       tool: sequenceAnalyzeTool,
       executor: executeSequenceAnalyze,
       checkAvailability: isSequenceAnalyzeAvailable,
-    },
-    // Tier Omega - Advanced Scientific Computing tools (12 new)
-    { tool: mlToolkitTool, executor: executeMLToolkit, checkAvailability: isMLToolkitAvailable },
-    {
-      tool: quantumCircuitTool,
-      executor: executeQuantumCircuit,
-      checkAvailability: isQuantumCircuitAvailable,
-    },
-    {
-      tool: controlTheoryTool,
-      executor: executeControlTheory,
-      checkAvailability: isControlTheoryAvailable,
-    },
-    { tool: monteCarloTool, executor: executeMonteCarlo, checkAvailability: isMonteCarloAvailable },
-    { tool: gameTheoryTool, executor: executeGameTheory, checkAvailability: isGameTheoryAvailable },
-    {
-      tool: orbitalMechanicsTool,
-      executor: executeOrbitalMechanics,
-      checkAvailability: isOrbitalMechanicsAvailable,
-    },
-    {
-      tool: thermodynamicsTool,
-      executor: executeThermodynamics,
-      checkAvailability: isThermodynamicsAvailable,
-    },
-    { tool: emFieldsTool, executor: executeEMFields, checkAvailability: isEMFieldsAvailable },
-    {
-      tool: imageComputeTool,
-      executor: executeImageCompute,
-      checkAvailability: isImageComputeAvailable,
-    },
-    {
-      tool: waveletTransformTool,
-      executor: executeWaveletTransform,
-      checkAvailability: isWaveletTransformAvailable,
-    },
-    {
-      tool: latexRenderTool,
-      executor: executeLatexRender,
-      checkAvailability: isLatexRenderAvailable,
-    },
-    // Tier Infinity - Rocket Science & Engineering tools (12 new)
-    {
-      tool: rocketPropulsionTool,
-      executor: executeRocketPropulsion,
-      checkAvailability: isRocketPropulsionAvailable,
-    },
-    {
-      tool: fluidDynamicsTool,
-      executor: executeFluidDynamics,
-      checkAvailability: isFluidDynamicsAvailable,
-    },
-    {
-      tool: aerodynamicsTool,
-      executor: executeAerodynamics,
-      checkAvailability: isAerodynamicsAvailable,
-    },
-    {
-      tool: droneFlightTool,
-      executor: executeDroneFlight,
-      checkAvailability: isDroneFlightAvailable,
-    },
-    {
-      tool: pathfinderTool,
-      executor: executePathfinder,
-      checkAvailability: isPathfinderAvailable,
-    },
-    {
-      tool: circuitSimTool,
-      executor: executeCircuitSim,
-      checkAvailability: isCircuitSimAvailable,
-    },
-    {
-      tool: ballisticsTool,
-      executor: executeBallistics,
-      checkAvailability: isBallisticsAvailable,
-    },
-    {
-      tool: geneticAlgorithmTool,
-      executor: executeGeneticAlgorithm,
-      checkAvailability: isGeneticAlgorithmAvailable,
-    },
-    {
-      tool: chaosDynamicsTool,
-      executor: executeChaosDynamics,
-      checkAvailability: isChaosDynamicsAvailable,
-    },
-    {
-      tool: roboticsKinematicsTool,
-      executor: executeRoboticsKinematics,
-      checkAvailability: isRoboticsKinematicsAvailable,
-    },
-    {
-      tool: opticsSimTool,
-      executor: executeOpticsSim,
-      checkAvailability: isOpticsSimAvailable,
-    },
-    {
-      tool: epidemiologyTool,
-      executor: executeEpidemiology,
-      checkAvailability: isEpidemiologyAvailable,
-    },
-    // Tier Beyond - Advanced Engineering tools (6 new)
-    {
-      tool: finiteElementTool,
-      executor: executeFiniteElement,
-      checkAvailability: isFiniteElementAvailable,
-    },
-    {
-      tool: antennaRfTool,
-      executor: executeAntennaRf,
-      checkAvailability: isAntennaRfAvailable,
-    },
-    {
-      tool: materialsScienceTool,
-      executor: executeMaterialsScience,
-      checkAvailability: isMaterialsScienceAvailable,
-    },
-    {
-      tool: seismologyTool,
-      executor: executeSeismology,
-      checkAvailability: isSeismologyAvailable,
-    },
-    {
-      tool: bioinformaticsProTool,
-      executor: executeBioinformaticsPro,
-      checkAvailability: isBioinformaticsProAvailable,
-    },
-    {
-      tool: acousticsTool,
-      executor: executeAcoustics,
-      checkAvailability: isAcousticsAvailable,
-    },
-    // Tier GODMODE - Ultimate Intelligence tools (9 new)
-    {
-      tool: symbolicLogicTool,
-      executor: executeSymbolicLogic,
-      checkAvailability: isSymbolicLogicAvailable,
-    },
-    {
-      tool: cellularAutomataTool,
-      executor: executeCellularAutomata,
-      checkAvailability: isCellularAutomataAvailable,
     },
     {
       tool: medicalCalcTool,
@@ -3860,11 +2315,6 @@ async function initializeTools() {
       checkAvailability: isGraphics3DAvailable,
     },
     {
-      tool: compressionAlgoTool,
-      executor: executeCompressionAlgo,
-      checkAvailability: isCompressionAlgoAvailable,
-    },
-    {
       tool: errorCorrectionTool,
       executor: executeErrorCorrection,
       checkAvailability: isErrorCorrectionAvailable,
@@ -3873,11 +2323,6 @@ async function initializeTools() {
       tool: houghVisionTool,
       executor: executeHoughVision,
       checkAvailability: isHoughVisionAvailable,
-    },
-    {
-      tool: cryptographyAdvancedTool,
-      executor: executeCryptographyAdvanced,
-      checkAvailability: isCryptographyAdvancedAvailable,
     },
 
     // TIER VISUAL MADNESS - Graphics & Animation Tools (6 new)
@@ -3892,27 +2337,9 @@ async function initializeTools() {
       checkAvailability: isFractalGeneratorAvailable,
     },
     {
-      tool: colorTheoryTool,
-      executor: executeColorTheory,
-      checkAvailability: isColorTheoryAvailable,
-    },
-    {
-      tool: animationEasingTool,
-      executor: executeAnimationEasing,
-      checkAvailability: isAnimationEasingAvailable,
-    },
-    {
       tool: particleSystemTool,
       executor: executeParticleSystem,
       checkAvailability: isParticleSystemAvailable,
-    },
-    // TIER SOUND & MUSIC - Audio Tools
-    // musicTheoryTool already registered in Computational & Algorithmic tools section
-    // Additional VISUAL MADNESS
-    {
-      tool: bezierCurvesTool,
-      executor: executeBezierCurves,
-      checkAvailability: isBezierCurvesAvailable,
     },
     // TIER EDUCATION - Interactive Learning Tools
     {
@@ -3937,20 +2364,9 @@ async function initializeTools() {
       checkAvailability: isShaderGeneratorAvailable,
     },
     {
-      tool: signalProcessingTool,
-      executor: executeSignalProcessing,
-      checkAvailability: isSignalProcessingAvailable,
-    },
-    {
       tool: neuralNetworkTool,
       executor: executeNeuralNetwork,
       checkAvailability: isNeuralNetworkAvailable,
-    },
-    // TIER ADVANCED SCIENCE - Part 2 (5 more tools)
-    {
-      tool: informationTheoryTool,
-      executor: executeInformationTheory,
-      checkAvailability: isInformationTheoryAvailable,
     },
     {
       tool: proceduralGenerationTool,
@@ -3966,11 +2382,6 @@ async function initializeTools() {
       tool: automataTheoryTool,
       executor: executeAutomataTheory,
       checkAvailability: isAutomataTheoryAvailable,
-    },
-    {
-      tool: computationalComplexityTool,
-      executor: executeComputationalComplexity,
-      checkAvailability: isComputationalComplexityAvailable,
     },
     // TIER PHYSICS & CHEMISTRY - Deep Science Tools (6 new tools)
     {
@@ -3994,11 +2405,6 @@ async function initializeTools() {
       checkAvailability: isQuantumMechanicsAvailable,
     },
     {
-      tool: relativityTool,
-      executor: executeRelativity,
-      checkAvailability: isRelativityAvailable,
-    },
-    {
       tool: statisticalMechanicsTool,
       executor: executeStatisticalMechanics,
       checkAvailability: isStatisticalMechanicsAvailable,
@@ -4011,7 +2417,6 @@ async function initializeTools() {
       executor: executeSemiconductor,
       checkAvailability: isSemiconductorAvailable,
     },
-    { tool: cosmologyTool, executor: executeCosmology, checkAvailability: isCosmologyAvailable },
     {
       tool: crystallographyTool,
       executor: executeCrystallography,
@@ -4021,11 +2426,6 @@ async function initializeTools() {
       tool: polymerChemistryTool,
       executor: executePolymerChemistry,
       checkAvailability: isPolymerChemistryAvailable,
-    },
-    {
-      tool: heatTransferTool,
-      executor: executeHeatTransfer,
-      checkAvailability: isHeatTransferAvailable,
     },
     {
       tool: powerSystemsTool,
@@ -4071,14 +2471,7 @@ async function initializeTools() {
       checkAvailability: isAgricultureAvailable,
     },
     { tool: ecologyTool, executor: executeEcology, checkAvailability: isEcologyAvailable },
-    { tool: economicsTool, executor: executeEconomics, checkAvailability: isEconomicsAvailable },
-    { tool: forensicsTool, executor: executeForensics, checkAvailability: isForensicsAvailable },
     { tool: geologyTool, executor: executeGeology, checkAvailability: isGeologyAvailable },
-    {
-      tool: linguisticsTool,
-      executor: executeLinguistics,
-      checkAvailability: isLinguisticsAvailable,
-    },
     {
       tool: meteorologyTool,
       executor: executeMeteorology,
@@ -4109,11 +2502,6 @@ async function initializeTools() {
       tool: plasmaPhysicsTool,
       executor: executePlasmaPhysics,
       checkAvailability: isPlasmaPhysicsAvailable,
-    },
-    {
-      tool: vulnerabilityTool,
-      executor: executeVulnerability,
-      checkAvailability: isVulnerabilityAvailable,
     },
     { tool: encryptionTool, executor: executeEncryption, checkAvailability: isEncryptionAvailable },
     // Previously unregistered tools (95 tools)
@@ -4186,209 +2574,15 @@ async function initializeTools() {
       checkAvailability: isSearchIndexAvailable,
     },
     {
-      tool: unitConvertTool,
-      executor: executeUnitConvert,
-      checkAvailability: isUnitConvertAvailable,
-    },
-    {
-      tool: passwordStrengthTool,
-      executor: executePasswordStrength,
-      checkAvailability: isPasswordStrengthAvailable,
-    },
-    {
-      tool: periodicTableTool,
-      executor: executePeriodicTable,
-      checkAvailability: isPeriodicTableAvailable,
-    },
-    {
-      tool: physicsConstantsTool,
-      executor: executePhysicsConstants,
-      checkAvailability: isPhysicsConstantsAvailable,
-    },
-    {
       tool: accessibilityTool,
       executor: executeAccessibility,
       checkAvailability: isAccessibilityAvailable,
     },
-    {
-      tool: symbolicMathTool,
-      executor: executeSymbolicMath,
-      checkAvailability: isSymbolicMathAvailable,
-    },
-    {
-      tool: optimizationTool,
-      executor: executeOptimization,
-      checkAvailability: isOptimizationAvailable,
-    },
-    {
-      tool: musicTheoryTool,
-      executor: executeMusicTheory,
-      checkAvailability: isMusicTheoryAvailable,
-    },
-    { tool: recurrenceTool, executor: executeRecurrence, checkAvailability: isRecurrenceAvailable },
     { tool: constraintTool, executor: executeConstraint, checkAvailability: isConstraintAvailable },
-    { tool: timeseriesTool, executor: executeTimeseries, checkAvailability: isTimeseriesAvailable },
-    {
-      tool: stringDistanceTool,
-      executor: executeStringDistance,
-      checkAvailability: isStringDistanceAvailable,
-    },
-    {
-      tool: numericalIntegrateTool,
-      executor: executeNumericalIntegrate,
-      checkAvailability: isNumericalIntegrateAvailable,
-    },
-    {
-      tool: interpolationTool,
-      executor: executeInterpolation,
-      checkAvailability: isInterpolationAvailable,
-    },
-    {
-      tool: specialFunctionsTool,
-      executor: executeSpecialFunctions,
-      checkAvailability: isSpecialFunctionsAvailable,
-    },
-    {
-      tool: complexMathTool,
-      executor: executeComplexMath,
-      checkAvailability: isComplexMathAvailable,
-    },
-    {
-      tool: combinatoricsTool,
-      executor: executeCombinatorics,
-      checkAvailability: isCombinatoricsAvailable,
-    },
-    {
-      tool: numberTheoryTool,
-      executor: executeNumberTheory,
-      checkAvailability: isNumberTheoryAvailable,
-    },
-    {
-      tool: probabilityDistTool,
-      executor: executeProbabilityDist,
-      checkAvailability: isProbabilityDistAvailable,
-    },
-    {
-      tool: polynomialOpsTool,
-      executor: executePolynomialOps,
-      checkAvailability: isPolynomialOpsAvailable,
-    },
-    {
-      tool: coordinateTransformTool,
-      executor: executeCoordinateTransform,
-      checkAvailability: isCoordinateTransformAvailable,
-    },
     {
       tool: sequenceAnalyzeTool,
       executor: executeSequenceAnalyze,
       checkAvailability: isSequenceAnalyzeAvailable,
-    },
-    {
-      tool: quantumCircuitTool,
-      executor: executeQuantumCircuit,
-      checkAvailability: isQuantumCircuitAvailable,
-    },
-    {
-      tool: controlTheoryTool,
-      executor: executeControlTheory,
-      checkAvailability: isControlTheoryAvailable,
-    },
-    {
-      tool: orbitalMechanicsTool,
-      executor: executeOrbitalMechanics,
-      checkAvailability: isOrbitalMechanicsAvailable,
-    },
-    {
-      tool: thermodynamicsTool,
-      executor: executeThermodynamics,
-      checkAvailability: isThermodynamicsAvailable,
-    },
-    {
-      tool: imageComputeTool,
-      executor: executeImageCompute,
-      checkAvailability: isImageComputeAvailable,
-    },
-    {
-      tool: waveletTransformTool,
-      executor: executeWaveletTransform,
-      checkAvailability: isWaveletTransformAvailable,
-    },
-    {
-      tool: latexRenderTool,
-      executor: executeLatexRender,
-      checkAvailability: isLatexRenderAvailable,
-    },
-    {
-      tool: rocketPropulsionTool,
-      executor: executeRocketPropulsion,
-      checkAvailability: isRocketPropulsionAvailable,
-    },
-    {
-      tool: fluidDynamicsTool,
-      executor: executeFluidDynamics,
-      checkAvailability: isFluidDynamicsAvailable,
-    },
-    {
-      tool: aerodynamicsTool,
-      executor: executeAerodynamics,
-      checkAvailability: isAerodynamicsAvailable,
-    },
-    {
-      tool: droneFlightTool,
-      executor: executeDroneFlight,
-      checkAvailability: isDroneFlightAvailable,
-    },
-    { tool: pathfinderTool, executor: executePathfinder, checkAvailability: isPathfinderAvailable },
-    { tool: circuitSimTool, executor: executeCircuitSim, checkAvailability: isCircuitSimAvailable },
-    { tool: ballisticsTool, executor: executeBallistics, checkAvailability: isBallisticsAvailable },
-    {
-      tool: geneticAlgorithmTool,
-      executor: executeGeneticAlgorithm,
-      checkAvailability: isGeneticAlgorithmAvailable,
-    },
-    {
-      tool: chaosDynamicsTool,
-      executor: executeChaosDynamics,
-      checkAvailability: isChaosDynamicsAvailable,
-    },
-    {
-      tool: roboticsKinematicsTool,
-      executor: executeRoboticsKinematics,
-      checkAvailability: isRoboticsKinematicsAvailable,
-    },
-    { tool: opticsSimTool, executor: executeOpticsSim, checkAvailability: isOpticsSimAvailable },
-    {
-      tool: epidemiologyTool,
-      executor: executeEpidemiology,
-      checkAvailability: isEpidemiologyAvailable,
-    },
-    {
-      tool: finiteElementTool,
-      executor: executeFiniteElement,
-      checkAvailability: isFiniteElementAvailable,
-    },
-    { tool: antennaRfTool, executor: executeAntennaRf, checkAvailability: isAntennaRfAvailable },
-    {
-      tool: materialsScienceTool,
-      executor: executeMaterialsScience,
-      checkAvailability: isMaterialsScienceAvailable,
-    },
-    { tool: seismologyTool, executor: executeSeismology, checkAvailability: isSeismologyAvailable },
-    {
-      tool: bioinformaticsProTool,
-      executor: executeBioinformaticsPro,
-      checkAvailability: isBioinformaticsProAvailable,
-    },
-    { tool: acousticsTool, executor: executeAcoustics, checkAvailability: isAcousticsAvailable },
-    {
-      tool: symbolicLogicTool,
-      executor: executeSymbolicLogic,
-      checkAvailability: isSymbolicLogicAvailable,
-    },
-    {
-      tool: cellularAutomataTool,
-      executor: executeCellularAutomata,
-      checkAvailability: isCellularAutomataAvailable,
     },
     {
       tool: medicalCalcTool,
@@ -4396,11 +2590,6 @@ async function initializeTools() {
       checkAvailability: isMedicalCalcAvailable,
     },
     { tool: graphics3dTool, executor: executeGraphics3D, checkAvailability: isGraphics3DAvailable },
-    {
-      tool: compressionAlgoTool,
-      executor: executeCompressionAlgo,
-      checkAvailability: isCompressionAlgoAvailable,
-    },
     {
       tool: errorCorrectionTool,
       executor: executeErrorCorrection,
@@ -4410,11 +2599,6 @@ async function initializeTools() {
       tool: houghVisionTool,
       executor: executeHoughVision,
       checkAvailability: isHoughVisionAvailable,
-    },
-    {
-      tool: cryptographyAdvancedTool,
-      executor: executeCryptographyAdvanced,
-      checkAvailability: isCryptographyAdvancedAvailable,
     },
 
     {
@@ -4428,24 +2612,9 @@ async function initializeTools() {
       checkAvailability: isFractalGeneratorAvailable,
     },
     {
-      tool: colorTheoryTool,
-      executor: executeColorTheory,
-      checkAvailability: isColorTheoryAvailable,
-    },
-    {
-      tool: animationEasingTool,
-      executor: executeAnimationEasing,
-      checkAvailability: isAnimationEasingAvailable,
-    },
-    {
       tool: particleSystemTool,
       executor: executeParticleSystem,
       checkAvailability: isParticleSystemAvailable,
-    },
-    {
-      tool: bezierCurvesTool,
-      executor: executeBezierCurves,
-      checkAvailability: isBezierCurvesAvailable,
     },
     {
       tool: sortingVisualizerTool,
@@ -4468,19 +2637,9 @@ async function initializeTools() {
       checkAvailability: isShaderGeneratorAvailable,
     },
     {
-      tool: signalProcessingTool,
-      executor: executeSignalProcessing,
-      checkAvailability: isSignalProcessingAvailable,
-    },
-    {
       tool: neuralNetworkTool,
       executor: executeNeuralNetwork,
       checkAvailability: isNeuralNetworkAvailable,
-    },
-    {
-      tool: informationTheoryTool,
-      executor: executeInformationTheory,
-      checkAvailability: isInformationTheoryAvailable,
     },
     {
       tool: proceduralGenerationTool,
@@ -4492,11 +2651,6 @@ async function initializeTools() {
       tool: automataTheoryTool,
       executor: executeAutomataTheory,
       checkAvailability: isAutomataTheoryAvailable,
-    },
-    {
-      tool: computationalComplexityTool,
-      executor: executeComputationalComplexity,
-      checkAvailability: isComputationalComplexityAvailable,
     },
     {
       tool: reactionKineticsTool,
@@ -4518,7 +2672,6 @@ async function initializeTools() {
       executor: executeQuantumMechanics,
       checkAvailability: isQuantumMechanicsAvailable,
     },
-    { tool: relativityTool, executor: executeRelativity, checkAvailability: isRelativityAvailable },
     {
       tool: statisticalMechanicsTool,
       executor: executeStatisticalMechanics,
@@ -4529,7 +2682,6 @@ async function initializeTools() {
     // Cybersecurity tools batch 1 (15 new tools)
 
     { tool: jwtTool, executor: executeJwt, checkAvailability: isJwtAvailable },
-    { tool: ipSecurityTool, executor: executeIpSecurity, checkAvailability: isIpSecurityAvailable },
     {
       tool: certificateTool,
       executor: executeCertificate,
@@ -4541,33 +2693,11 @@ async function initializeTools() {
       checkAvailability: isEntropyAnalysisAvailable,
     },
     {
-      tool: securityHeadersTool,
-      executor: executeSecurityHeaders,
-      checkAvailability: isSecurityHeadersAvailable,
-    },
-    {
-      tool: malwareIndicatorsTool,
-      executor: executeMalwareIndicators,
-      checkAvailability: isMalwareIndicatorsAvailable,
-    },
-    {
       tool: portScannerTool,
       executor: executePortScanner,
       checkAvailability: isPortScannerAvailable,
     },
     { tool: owaspTool, executor: executeOwasp, checkAvailability: isOwaspAvailable },
-    {
-      tool: dnsSecurityTool,
-      executor: executeDnsSecurity,
-      checkAvailability: isDnsSecurityAvailable,
-    },
-    {
-      tool: threatModelTool,
-      executor: executeThreatModel,
-      checkAvailability: isThreatModelAvailable,
-    },
-    { tool: complianceTool, executor: executeCompliance, checkAvailability: isComplianceAvailable },
-    { tool: cipherTool, executor: executeCipher, checkAvailability: isCipherAvailable },
     // Cybersecurity tools batch 2 (55 more tools)
     {
       tool: authProtocolTool,
@@ -4575,37 +2705,9 @@ async function initializeTools() {
       checkAvailability: isAuthProtocolAvailable,
     },
     {
-      tool: vulnAssessmentTool,
-      executor: executeVulnAssessment,
-      checkAvailability: isVulnAssessmentAvailable,
-    },
-    {
-      tool: incidentResponseTool,
-      executor: executeIncidentResponse,
-      checkAvailability: isIncidentResponseAvailable,
-    },
-    {
-      tool: networkSecurityTool,
-      executor: executeNetworkSecurity,
-      checkAvailability: isNetworkSecurityAvailable,
-    },
-    { tool: firewallTool, executor: executeFirewall, checkAvailability: isFirewallAvailable },
-    { tool: idsIpsTool, executor: executeIdsIps, checkAvailability: isIdsIpsAvailable },
-    {
       tool: logAnalysisTool,
       executor: executeLogAnalysis,
       checkAvailability: isLogAnalysisAvailable,
-    },
-    { tool: penTestTool, executor: executePenTest, checkAvailability: isPenTestAvailable },
-    {
-      tool: socialEngineeringTool,
-      executor: executeSocialEngineering,
-      checkAvailability: isSocialEngineeringAvailable,
-    },
-    {
-      tool: cryptanalysisTool,
-      executor: executeCryptanalysis,
-      checkAvailability: isCryptanalysisAvailable,
     },
     { tool: secureSdlcTool, executor: executeSecureSdlc, checkAvailability: isSecureSdlcAvailable },
     { tool: privacyTool, executor: executePrivacy, checkAvailability: isPrivacyAvailable },
@@ -4614,84 +2716,12 @@ async function initializeTools() {
       executor: executeAccessControl,
       checkAvailability: isAccessControlAvailable,
     },
-    { tool: siemTool, executor: executeSiem, checkAvailability: isSiemAvailable },
-    {
-      tool: vulnerabilityScannerTool,
-      executor: executeVulnerabilityScanner,
-      checkAvailability: isVulnerabilityScannerAvailable,
-    },
-    {
-      tool: malwareAnalysisTool,
-      executor: executeMalwareAnalysis,
-      checkAvailability: isMalwareAnalysisAvailable,
-    },
-    {
-      tool: endpointSecurityTool,
-      executor: executeEndpointSecurity,
-      checkAvailability: isEndpointSecurityAvailable,
-    },
-    {
-      tool: cloudSecurityTool,
-      executor: executeCloudSecurity,
-      checkAvailability: isCloudSecurityAvailable,
-    },
-    {
-      tool: containerSecurityTool,
-      executor: executeContainerSecurity,
-      checkAvailability: isContainerSecurityAvailable,
-    },
-    {
-      tool: apiSecurityTool,
-      executor: executeApiSecurity,
-      checkAvailability: isApiSecurityAvailable,
-    },
-    {
-      tool: mobileSecurityTool,
-      executor: executeMobileSecurity,
-      checkAvailability: isMobileSecurityAvailable,
-    },
-    {
-      tool: iotSecurityTool,
-      executor: executeIotSecurity,
-      checkAvailability: isIotSecurityAvailable,
-    },
-    { tool: zeroTrustTool, executor: executeZeroTrust, checkAvailability: isZeroTrustAvailable },
-    {
-      tool: securityArchitectureTool,
-      executor: executeSecurityArchitecture,
-      checkAvailability: isSecurityArchitectureAvailable,
-    },
-    {
-      tool: riskManagementTool,
-      executor: executeRiskManagement,
-      checkAvailability: isRiskManagementAvailable,
-    },
     {
       tool: businessContinuityTool,
       executor: executeBusinessContinuity,
       checkAvailability: isBusinessContinuityAvailable,
     },
-    {
-      tool: securityAwarenessTool,
-      executor: executeSecurityAwareness,
-      checkAvailability: isSecurityAwarenessAvailable,
-    },
-    {
-      tool: threatIntelTool,
-      executor: executeThreatIntel,
-      checkAvailability: isThreatIntelAvailable,
-    },
     { tool: devsecOpsTool, executor: executeDevsecOps, checkAvailability: isDevsecOpsAvailable },
-    {
-      tool: blockchainSecurityTool,
-      executor: executeBlockchainSecurity,
-      checkAvailability: isBlockchainSecurityAvailable,
-    },
-    {
-      tool: wirelessSecurityTool,
-      executor: executeWirelessSecurity,
-      checkAvailability: isWirelessSecurityAvailable,
-    },
     { tool: vpnTool, executor: executeVpn, checkAvailability: isVpnAvailable },
     { tool: pkiTool, executor: executePki, checkAvailability: isPkiAvailable },
     {
@@ -4699,52 +2729,17 @@ async function initializeTools() {
       executor: executeDataLossPrevention,
       checkAvailability: isDataLossPreventionAvailable,
     },
-    { tool: redTeamTool, executor: executeRedTeam, checkAvailability: isRedTeamAvailable },
-    { tool: blueTeamTool, executor: executeBlueTeam, checkAvailability: isBlueTeamAvailable },
-    { tool: socTool, executor: executeSoc, checkAvailability: isSocAvailable },
     {
       tool: identityManagementTool,
       executor: executeIdentityManagement,
       checkAvailability: isIdentityManagementAvailable,
     },
     {
-      tool: emailSecurityTool,
-      executor: executeEmailSecurity,
-      checkAvailability: isEmailSecurityAvailable,
-    },
-    { tool: vendorRiskTool, executor: executeVendorRisk, checkAvailability: isVendorRiskAvailable },
-    {
       tool: patchManagementTool,
       executor: executePatchManagement,
       checkAvailability: isPatchManagementAvailable,
     },
-    {
-      tool: threatHuntingTool,
-      executor: executeThreatHunting,
-      checkAvailability: isThreatHuntingAvailable,
-    },
-    { tool: osintTool, executor: executeOsint, checkAvailability: isOsintAvailable },
-    {
-      tool: ransomwareDefenseTool,
-      executor: executeRansomwareDefense,
-      checkAvailability: isRansomwareDefenseAvailable,
-    },
-    {
-      tool: credentialSecurityTool,
-      executor: executeCredentialSecurity,
-      checkAvailability: isCredentialSecurityAvailable,
-    },
-    {
-      tool: databaseSecurityTool,
-      executor: executeDatabaseSecurity,
-      checkAvailability: isDatabaseSecurityAvailable,
-    },
     { tool: scadaIcsTool, executor: executeScadaIcs, checkAvailability: isScadaIcsAvailable },
-    {
-      tool: attackSurfaceTool,
-      executor: executeAttackSurface,
-      checkAvailability: isAttackSurfaceAvailable,
-    },
     {
       tool: dataClassificationTool,
       executor: executeDataClassification,
@@ -4756,42 +2751,9 @@ async function initializeTools() {
       checkAvailability: isKeyManagementAvailable,
     },
     {
-      tool: securityPolicyTool,
-      executor: executeSecurityPolicy,
-      checkAvailability: isSecurityPolicyAvailable,
-    },
-    {
-      tool: securityAuditTool,
-      executor: executeSecurityAudit,
-      checkAvailability: isSecurityAuditAvailable,
-    },
-    {
       tool: assetManagementTool,
       executor: executeAssetManagement,
       checkAvailability: isAssetManagementAvailable,
-    },
-    // Additional security tools batch 3 (23 more tools)
-    { tool: honeypotTool, executor: executeHoneypot, checkAvailability: isHoneypotAvailable },
-    {
-      tool: complianceFrameworkTool,
-      executor: executeComplianceFramework,
-      checkAvailability: isComplianceFrameworkAvailable,
-    },
-    {
-      tool: securityArchitecturePatternsTool,
-      executor: executeSecurityArchitecturePatterns,
-      checkAvailability: isSecurityArchitecturePatternsAvailable,
-    },
-    { tool: soarTool, executor: executeSoar, checkAvailability: isSoarAvailable },
-    {
-      tool: supplyChainSecurityTool,
-      executor: executeSupplyChainSecurity,
-      checkAvailability: isSupplyChainSecurityAvailable,
-    },
-    {
-      tool: webSecurityTool,
-      executor: executeWebSecurity,
-      checkAvailability: isWebSecurityAvailable,
     },
     {
       tool: networkDefenseTool,
@@ -4803,7 +2765,6 @@ async function initializeTools() {
       executor: executeSecretsManagement,
       checkAvailability: isSecretsManagementAvailable,
     },
-    { tool: xdrTool, executor: executeXdr, checkAvailability: isXdrAvailable },
     {
       tool: privacyEngineeringTool,
       executor: executePrivacyEngineering,
@@ -4815,45 +2776,9 @@ async function initializeTools() {
       checkAvailability: isSecureCommunicationsAvailable,
     },
     {
-      tool: securityTestingTool,
-      executor: executeSecurityTesting,
-      checkAvailability: isSecurityTestingAvailable,
-    },
-    {
       tool: industrialControlTool,
       executor: executeIndustrialControl,
       checkAvailability: isIndustrialControlAvailable,
-    },
-    {
-      tool: cloudNativeSecurityTool,
-      executor: executeCloudNativeSecurity,
-      checkAvailability: isCloudNativeSecurityAvailable,
-    },
-    {
-      tool: browserSecurityTool,
-      executor: executeBrowserSecurity,
-      checkAvailability: isBrowserSecurityAvailable,
-    },
-    {
-      tool: physicalSecurityTool,
-      executor: executePhysicalSecurity,
-      checkAvailability: isPhysicalSecurityAvailable,
-    },
-    {
-      tool: securityOperationsTool,
-      executor: executeSecurityOperations,
-      checkAvailability: isSecurityOperationsAvailable,
-    },
-    {
-      tool: threatModelingTool,
-      executor: executeThreatModeling,
-      checkAvailability: isThreatModelingAvailable,
-    },
-    { tool: aiSecurityTool, executor: executeAiSecurity, checkAvailability: isAiSecurityAvailable },
-    {
-      tool: securityCultureTool,
-      executor: executeSecurityCulture,
-      checkAvailability: isSecurityCultureAvailable,
     },
     {
       tool: logManagementTool,
@@ -4870,27 +2795,11 @@ async function initializeTools() {
       executor: executeBackupRecovery,
       checkAvailability: isBackupRecoveryAvailable,
     },
-    // Additional security tools batch 4
-    {
-      tool: securityBudgetTool,
-      executor: executeSecurityBudget,
-      checkAvailability: isSecurityBudgetAvailable,
-    },
-    {
-      tool: cyberInsuranceTool,
-      executor: executeCyberInsurance,
-      checkAvailability: isCyberInsuranceAvailable,
-    },
     { tool: saseTool, executor: executeSase, checkAvailability: isSaseAvailable },
     {
       tool: identityGovernanceTool,
       executor: executeIdentityGovernance,
       checkAvailability: isIdentityGovernanceAvailable,
-    },
-    {
-      tool: dataSecurityTool,
-      executor: executeDataSecurity,
-      checkAvailability: isDataSecurityAvailable,
     },
     // Code Agent Brain Tools - Full coding capabilities (8 new tools)
     { tool: workspaceTool, executor: executeWorkspace, checkAvailability: isWorkspaceAvailable },
@@ -5004,11 +2913,6 @@ async function initializeTools() {
     },
     // API Development
     { tool: apiDesignTool, executor: executeApiDesign, checkAvailability: isApiDesignAvailable },
-    {
-      tool: graphqlSchemaTool,
-      executor: executeGraphqlSchema,
-      checkAvailability: isGraphqlSchemaAvailable,
-    },
     // Architecture & Design
     {
       tool: systemDesignTool,
@@ -5069,14 +2973,6 @@ async function initializeTools() {
       executor: executeSmartContract,
       checkAvailability: isSmartContractAvailable,
     },
-    // Real-time & WebSockets
-    {
-      tool: websocketDesignTool,
-      executor: executeWebsocketDesign,
-      checkAvailability: isWebsocketDesignAvailable,
-    },
-    // Game Development
-    { tool: gameLogicTool, executor: executeGameLogic, checkAvailability: isGameLogicAvailable },
     // Documentation
     {
       tool: readmeGeneratorTool,
@@ -5096,13 +2992,7 @@ async function initializeTools() {
       executor: executeMazeGenerator,
       checkAvailability: isMazeGeneratorAvailable,
     },
-    { tool: voronoiTool, executor: executeVoronoi, checkAvailability: isVoronoiAvailable },
     { tool: lSystemTool, executor: executeLSystem, checkAvailability: isLSystemAvailable },
-    {
-      tool: markovChainTool,
-      executor: executeMarkovChain,
-      checkAvailability: isMarkovChainAvailable,
-    },
     {
       tool: pathfindingTool,
       executor: executePathfinding,
@@ -5139,12 +3029,6 @@ async function initializeTools() {
       executor: executeChordProgression,
       checkAvailability: isChordProgressionAvailable,
     },
-    {
-      tool: regexBuilderTool,
-      executor: executeRegexBuilder,
-      checkAvailability: isRegexBuilderAvailable,
-    },
-    { tool: haversineTool, executor: executeHaversine, checkAvailability: isHaversineAvailable },
     { tool: lootTableTool, executor: executeLootTable, checkAvailability: isLootTableAvailable },
     {
       tool: proceduralDungeonTool,
@@ -5155,11 +3039,6 @@ async function initializeTools() {
       tool: nameGeneratorTool,
       executor: executeNameGenerator,
       checkAvailability: isNameGeneratorAvailable,
-    },
-    {
-      tool: decisionMatrixTool,
-      executor: executeDecisionMatrix,
-      checkAvailability: isDecisionMatrixAvailable,
     },
     {
       tool: waveFunctionCollapseTool,
@@ -5207,7 +3086,6 @@ async function initializeTools() {
       executor: executeInventorySystem,
       checkAvailability: isInventorySystemAvailable,
     },
-    { tool: musicScaleTool, executor: executeMusicScale, checkAvailability: isMusicScaleAvailable },
     {
       tool: drumPatternTool,
       executor: executeDrumPattern,
@@ -5234,12 +3112,6 @@ async function initializeTools() {
       executor: executeEntityComponent,
       checkAvailability: isEntityComponentAvailable,
     },
-    // NEW MEGA BATCH - 10 more tools
-    {
-      tool: physicsEngineTool,
-      executor: executePhysicsEngine,
-      checkAvailability: isPhysicsEngineAvailable,
-    },
     {
       tool: pathPlanningTool,
       executor: executePathPlanning,
@@ -5262,19 +3134,9 @@ async function initializeTools() {
       checkAvailability: isTextAdventureAvailable,
     },
     {
-      tool: gameEconomyTool,
-      executor: executeGameEconomy,
-      checkAvailability: isGameEconomyAvailable,
-    },
-    {
       tool: proceduralStoryTool,
       executor: executeProceduralStory,
       checkAvailability: isProceduralStoryAvailable,
-    },
-    {
-      tool: colorSchemeTool,
-      executor: executeColorScheme,
-      checkAvailability: isColorSchemeAvailable,
     },
     {
       tool: dataVisualizationTool,
@@ -5320,21 +3182,6 @@ async function initializeTools() {
       checkAvailability: isStockAnalysisAvailable,
     },
     {
-      tool: portfolioOptimizerTool,
-      executor: executePortfolioOptimizer,
-      checkAvailability: isPortfolioOptimizerAvailable,
-    },
-    {
-      tool: decisionTreeTool,
-      executor: executeDecisionTree,
-      checkAvailability: isDecisionTreeAvailable,
-    },
-    {
-      tool: kmeansClusteringTool,
-      executor: executeKmeansClustering,
-      checkAvailability: isKmeansClusteringAvailable,
-    },
-    {
       tool: apiRateLimiterTool,
       executor: executeApiRateLimiter,
       checkAvailability: isApiRateLimiterAvailable,
@@ -5346,32 +3193,15 @@ async function initializeTools() {
       checkAvailability: isChessEngineAvailable,
     },
     {
-      tool: dnaSequenceTool,
-      executor: executeDnaSequence,
-      checkAvailability: isDnaSequenceAvailable,
-    },
-    {
       tool: artificialLifeTool,
       executor: executeArtificialLife,
       checkAvailability: isArtificialLifeAvailable,
-    },
-    // MEGA BATCH #3 - CS Fundamentals
-    { tool: satSolverTool, executor: executeSatSolver, checkAvailability: isSatSolverAvailable },
-    {
-      tool: theoremProverTool,
-      executor: executeTheoremProver,
-      checkAvailability: isTheoremProverAvailable,
     },
     { tool: compilerTool, executor: executeCompiler, checkAvailability: isCompilerAvailable },
     {
       tool: typeInferenceTool,
       executor: executeTypeInference,
       checkAvailability: isTypeInferenceAvailable,
-    },
-    {
-      tool: linearProgrammingTool,
-      executor: executeLinearProgramming,
-      checkAvailability: isLinearProgrammingAvailable,
     },
     {
       tool: knowledgeGraphTool,
@@ -5383,12 +3213,6 @@ async function initializeTools() {
       executor: executeProteinFolding,
       checkAvailability: isProteinFoldingAvailable,
     },
-    {
-      tool: regexEngineTool,
-      executor: executeRegexEngine,
-      checkAvailability: isRegexEngineAvailable,
-    },
-    { tool: timeSeriesTool, executor: executeTimeSeries, checkAvailability: isTimeSeriesAvailable },
     { tool: cspSolverTool, executor: executeCspSolver, checkAvailability: isCspSolverAvailable },
     {
       tool: virtualMachineTool,
@@ -5428,41 +3252,8 @@ async function initializeTools() {
 
     // Legal tools
 
-    // Advanced math tools
-    {
-      tool: categorytheoryTool,
-      executor: executecategorytheory,
-      checkAvailability: iscategorytheoryAvailable,
-    },
-    {
-      tool: abstractalgebraTool,
-      executor: executeabstractalgebra,
-      checkAvailability: isabstractalgebraAvailable,
-    },
-    {
-      tool: differentialgeometryTool,
-      executor: executedifferentialgeometry,
-      checkAvailability: isdifferentialgeometryAvailable,
-    },
-
     // Algorithm tools
 
-    {
-      tool: convexoptimizationTool,
-      executor: executeconvexoptimization,
-      checkAvailability: isconvexoptimizationAvailable,
-    },
-
-    {
-      tool: dynamicprogrammingTool,
-      executor: executedynamicprogramming,
-      checkAvailability: isdynamicprogrammingAvailable,
-    },
-    {
-      tool: greedyalgorithmsTool,
-      executor: executegreedyalgorithms,
-      checkAvailability: isgreedyalgorithmsAvailable,
-    },
     {
       tool: divideconquerTool,
       executor: executedivideconquer,
@@ -5519,11 +3310,6 @@ async function initializeTools() {
     },
     // Robotics & Control tools
 
-    {
-      tool: inversekinematicsTool,
-      executor: executeinversekinematics,
-      checkAvailability: isinversekinematicsAvailable,
-    },
     {
       tool: forwardkinematicsTool,
       executor: executeforwardkinematics,
@@ -5623,11 +3409,6 @@ async function initializeTools() {
       checkAvailability: isconsistenthashingAvailable,
     },
     {
-      tool: vectorclockTool,
-      executor: executevectorclock,
-      checkAvailability: isvectorclockAvailable,
-    },
-    {
       tool: lamportclockTool,
       executor: executelamportclock,
       checkAvailability: islamportclockAvailable,
@@ -5655,17 +3436,7 @@ async function initializeTools() {
       executor: executebayesiannetwork,
       checkAvailability: isbayesiannetworkAvailable,
     },
-    {
-      tool: hiddenmarkovTool,
-      executor: executehiddenmarkov,
-      checkAvailability: ishiddenmarkovAvailable,
-    },
 
-    {
-      tool: kalmanfilterTool,
-      executor: executekalmanfilter,
-      checkAvailability: iskalmanfilterAvailable,
-    },
     { tool: cmaesTool, executor: executecmaes, checkAvailability: iscmaesAvailable },
 
     { tool: antcolonyTool, executor: executeantcolony, checkAvailability: isantcolonyAvailable },
@@ -5677,11 +3448,6 @@ async function initializeTools() {
       checkAvailability: islatticeboltzmannAvailable,
     },
     { tool: sphfluidTool, executor: executesphfluid, checkAvailability: issphfluidAvailable },
-    {
-      tool: nbodysimulationTool,
-      executor: executenbodysimulation,
-      checkAvailability: isnbodysimulationAvailable,
-    },
 
     {
       tool: clothsimulationTool,
@@ -5705,11 +3471,6 @@ async function initializeTools() {
       checkAvailability: isbuoyancysimAvailable,
     },
     {
-      tool: projectilemotionTool,
-      executor: executeprojectilemotion,
-      checkAvailability: isprojectilemotionAvailable,
-    },
-    {
       tool: pendulumsimTool,
       executor: executependulumsim,
       checkAvailability: ispendulumsimAvailable,
@@ -5731,7 +3492,6 @@ async function initializeTools() {
     { tool: lrparserTool, executor: executelrparser, checkAvailability: islrparserAvailable },
     // Database Internals tools
     { tool: btreeindexTool, executor: executebtreeindex, checkAvailability: isbtreeindexAvailable },
-    { tool: hashindexTool, executor: executehashindex, checkAvailability: ishashindexAvailable },
     {
       tool: bloomfilterTool,
       executor: executebloomfilter,
@@ -5828,17 +3588,6 @@ async function initializeTools() {
       executor: executeantialiasing,
       checkAvailability: isantialiasingAvailable,
     },
-    {
-      tool: colorgradingTool,
-      executor: executecolorgrading,
-      checkAvailability: iscolorgradingAvailable,
-    },
-    // Audio DSP tools
-    {
-      tool: fftanalyzerTool,
-      executor: executefftanalyzer,
-      checkAvailability: isfftanalyzerAvailable,
-    },
     { tool: equalizerTool, executor: executeequalizer, checkAvailability: isequalizerAvailable },
     { tool: compressorTool, executor: executecompressor, checkAvailability: iscompressorAvailable },
     { tool: reverbTool, executor: executereverb, checkAvailability: isreverbAvailable },
@@ -5875,19 +3624,9 @@ async function initializeTools() {
       checkAvailability: isdigitalsignatureAvailable,
     },
     {
-      tool: ellipticcurveTool,
-      executor: executeellipticcurve,
-      checkAvailability: isellipticcurveAvailable,
-    },
-    {
       tool: keyderivationTool,
       executor: executekeyderivation,
       checkAvailability: iskeyderivationAvailable,
-    },
-    {
-      tool: randomgeneratorTool,
-      executor: executerandomgenerator,
-      checkAvailability: israndomgeneratorAvailable,
     },
     // Quantum Computing tools
     {
@@ -5968,11 +3707,6 @@ async function initializeTools() {
       executor: executegeneexpression,
       checkAvailability: isgeneexpressionAvailable,
     },
-    {
-      tool: moleculardynamicsTool,
-      executor: executemoleculardynamics,
-      checkAvailability: ismoleculardynamicsAvailable,
-    },
     // Signal Processing & Control tools
     {
       tool: filterdesignTool,
@@ -5984,12 +3718,6 @@ async function initializeTools() {
       executor: executesignalconvolution,
       checkAvailability: issignalconvolutionAvailable,
     },
-    { tool: statespaceTool, executor: executestatespace, checkAvailability: isstatespaceAvailable },
-    {
-      tool: transferfunctionTool,
-      executor: executetransferfunction,
-      checkAvailability: istransferfunctionAvailable,
-    },
     { tool: bodeplotTool, executor: executebodeplot, checkAvailability: isbodeplotAvailable },
     { tool: rootlocusTool, executor: executerootlocus, checkAvailability: isrootlocusAvailable },
     {
@@ -5997,49 +3725,10 @@ async function initializeTools() {
       executor: executenyquistplot,
       checkAvailability: isnyquistplotAvailable,
     },
-    // Finance & Economics tools
-    {
-      tool: blackscholesTool,
-      executor: executeblackscholes,
-      checkAvailability: isblackscholesAvailable,
-    },
-    {
-      tool: binomialoptionsTool,
-      executor: executebinomialoptions,
-      checkAvailability: isbinomialoptionsAvailable,
-    },
-    {
-      tool: valueatriskTool,
-      executor: executevalueatrisk,
-      checkAvailability: isvalueatriskAvailable,
-    },
     {
       tool: portfoliooptimizationTool,
       executor: executeportfoliooptimization,
       checkAvailability: isportfoliooptimizationAvailable,
-    },
-    // Game Theory tools
-    {
-      tool: nashequilibriumTool,
-      executor: executenashequilibrium,
-      checkAvailability: isnashequilibriumAvailable,
-    },
-    {
-      tool: payoffmatrixTool,
-      executor: executepayoffmatrix,
-      checkAvailability: ispayoffmatrixAvailable,
-    },
-    {
-      tool: auctiontheoryTool,
-      executor: executeauctiontheory,
-      checkAvailability: isauctiontheoryAvailable,
-    },
-    // Computational Geometry tools
-    { tool: convexhullTool, executor: executeconvexhull, checkAvailability: isconvexhullAvailable },
-    {
-      tool: voronoidiagramTool,
-      executor: executevoronoidiagram,
-      checkAvailability: isvoronoidiagramAvailable,
     },
     { tool: kdtreeTool, executor: executekdtree, checkAvailability: iskdtreeAvailable },
     { tool: rtreeTool, executor: executertree, checkAvailability: isrtreeAvailable },
@@ -6053,26 +3742,10 @@ async function initializeTools() {
       executor: executepolygontriangulation,
       checkAvailability: ispolygontriangulationAvailable,
     },
-    // Simulation & Modeling tools
-    {
-      tool: discreteeventsimTool,
-      executor: executediscreteeventsim,
-      checkAvailability: isdiscreteeventsimAvailable,
-    },
     {
       tool: agentbasedmodelTool,
       executor: executeagentbasedmodel,
       checkAvailability: isagentbasedmodelAvailable,
-    },
-    {
-      tool: systemdynamicsTool,
-      executor: executesystemdynamics,
-      checkAvailability: issystemdynamicsAvailable,
-    },
-    {
-      tool: chaostheoryTool,
-      executor: executechaostheory,
-      checkAvailability: ischaostheoryAvailable,
     },
     // Earth & Space Sciences tools
     {
@@ -6116,13 +3789,6 @@ async function initializeTools() {
       tool: defiprotocolTool,
       executor: executedefiprotocol,
       checkAvailability: isdefiprotocolAvailable,
-    },
-
-    { tool: merkletreeTool, executor: executemerkletree, checkAvailability: ismerkletreeAvailable },
-    {
-      tool: zeroknowledgeTool,
-      executor: executezeroknowledge,
-      checkAvailability: iszeroknowledgeAvailable,
     },
 
     {
@@ -6184,19 +3850,9 @@ async function initializeTools() {
       checkAvailability: isdnsresolverAvailable,
     },
     {
-      tool: huffmancodingTool,
-      executor: executehuffmancoding,
-      checkAvailability: ishuffmancodingAvailable,
-    },
-    {
       tool: lzcompressionTool,
       executor: executelzcompression,
       checkAvailability: islzcompressionAvailable,
-    },
-    {
-      tool: entropycalculatorTool,
-      executor: executeentropycalculator,
-      checkAvailability: isentropycalculatorAvailable,
     },
     {
       tool: reedsolomonTool,
@@ -6216,12 +3872,6 @@ async function initializeTools() {
       executor: executevotingsystem,
       checkAvailability: isvotingsystemAvailable,
     },
-    {
-      tool: socialnetworkTool,
-      executor: executesocialnetwork,
-      checkAvailability: issocialnetworkAvailable,
-    },
-    { tool: modallogicTool, executor: executemodallogic, checkAvailability: ismodallogicAvailable },
     {
       tool: economicssimulatorTool,
       executor: executeeconomicssimulator,
@@ -6251,12 +3901,6 @@ async function initializeTools() {
     { tool: blackholeTool, executor: executeblackhole, checkAvailability: isblackholeAvailable },
 
     {
-      tool: kinshipsystemTool,
-      executor: executekinshipsystem,
-      checkAvailability: iskinshipsystemAvailable,
-    },
-
-    {
       tool: fashionanalysisTool,
       executor: executefashionanalysis,
       checkAvailability: isfashionanalysisAvailable,
@@ -6272,21 +3916,10 @@ async function initializeTools() {
       executor: executecarbonfootprint,
       checkAvailability: iscarbonfootprintAvailable,
     },
-    // MEGA BATCH #8: Meta-Cognition, Cutting-Edge AI/ML, Security, Developer Tools
-    {
-      tool: uncertaintyquantifierTool,
-      executor: executeuncertaintyquantifier,
-      checkAvailability: isuncertaintyquantifierAvailable,
-    },
     {
       tool: causalinferenceTool,
       executor: executecausalinference,
       checkAvailability: iscausalinferenceAvailable,
-    },
-    {
-      tool: analogicalreasoningTool,
-      executor: executeanalogicalreasoning,
-      checkAvailability: isanalogicalreasoningAvailable,
     },
 
     {
@@ -6305,11 +3938,6 @@ async function initializeTools() {
       tool: cognitivearchitectureTool,
       executor: executecognitivearchitecture,
       checkAvailability: iscognitivearchitectureAvailable,
-    },
-    {
-      tool: adversarialattackTool,
-      executor: executeadversarialattack,
-      checkAvailability: isadversarialattackAvailable,
     }
   );
 
