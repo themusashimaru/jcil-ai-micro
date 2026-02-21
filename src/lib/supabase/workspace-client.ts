@@ -31,8 +31,8 @@ export function untypedFrom(supabase: SupabaseClient<any>, table: string) {
  * Usage:
  *   await untypedRpc(supabase, 'upsert_code_lab_presence', { p_session_id: '...' });
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function untypedRpc(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any>,
   fn: string,
   params: Record<string, unknown> = {}

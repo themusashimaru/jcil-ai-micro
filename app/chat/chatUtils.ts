@@ -106,11 +106,11 @@ export function formatActionSuccessMessage(
 
   // Twitter/X
   if (platformLower === 'twitter' || platformLower === 'x') {
-    if (actionLower.includes('tweet') || actionLower.includes('post')) {
-      return '🐦 Tweet posted successfully!';
-    }
     if (actionLower.includes('retweet')) {
       return '🔁 Retweeted successfully!';
+    }
+    if (actionLower.includes('tweet') || actionLower.includes('post')) {
+      return '🐦 Tweet posted successfully!';
     }
     if (actionLower.includes('like')) {
       return '❤️ Liked successfully!';
