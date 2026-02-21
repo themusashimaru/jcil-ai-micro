@@ -21,6 +21,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Chat, ChatFolder } from '@/app/chat/types';
 import InboxButton from '@/components/inbox/InboxButton';
 import MyFilesPanel from '@/components/documents/MyFilesPanel';
+import { CodeLabLazyList } from '@/components/code-lab/CodeLabVirtualizedList';
 
 // Strategy session type
 interface StrategySession {
@@ -877,11 +878,17 @@ export function ChatSidebar({
                 >
                   Recent
                 </h3>
-                <div className="space-y-1">
-                  {unorganizedChats.map((chat) => (
-                    <ChatItem key={chat.id} chat={chat} />
-                  ))}
-                </div>
+                {/* PERF-001: Virtualize large chat lists for 1000+ conversations */}
+                <CodeLabLazyList
+                  items={unorganizedChats}
+                  keyExtractor={(chat) => chat.id}
+                  renderItem={(chat) => (
+                    <div className="mb-1">
+                      <ChatItem chat={chat} />
+                    </div>
+                  )}
+                  threshold={100}
+                />
               </div>
             )}
 
