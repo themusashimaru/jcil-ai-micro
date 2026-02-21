@@ -28,6 +28,7 @@ const CLAUDE_CONFIG: ProviderConfig = {
     systemMessages: true,
     jsonMode: false,
     toolCalling: true,
+    extendedThinking: true,
   },
   models: [
     {
@@ -78,6 +79,7 @@ const OPENAI_CONFIG: ProviderConfig = {
     systemMessages: true,
     jsonMode: true,
     toolCalling: true,
+    extendedThinking: false,
   },
   models: [
     {
@@ -115,6 +117,7 @@ const XAI_CONFIG: ProviderConfig = {
     systemMessages: true,
     jsonMode: true,
     toolCalling: true,
+    extendedThinking: false,
   },
   models: [
     {
@@ -160,6 +163,7 @@ const DEEPSEEK_CONFIG: ProviderConfig = {
     systemMessages: true,
     jsonMode: true,
     toolCalling: true,
+    extendedThinking: false,
   },
   models: [
     {
@@ -196,6 +200,7 @@ const GOOGLE_CONFIG: ProviderConfig = {
     systemMessages: true,
     jsonMode: true,
     toolCalling: true,
+    extendedThinking: false,
   },
   models: [
     {
@@ -367,6 +372,14 @@ export function getDefaultModel(providerId: ProviderId): ModelConfig | undefined
   const provider = PROVIDERS[providerId];
   if (!provider) return undefined;
   return provider.models.find((m) => m.isDefault) ?? provider.models[0];
+}
+
+/**
+ * Get the default Claude model ID for main chat
+ * This is THE single source of truth for what model the main chat uses.
+ */
+export function getDefaultChatModelId(): string {
+  return getDefaultModel('claude')?.id ?? 'claude-sonnet-4-6';
 }
 
 /**

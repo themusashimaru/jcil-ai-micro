@@ -222,3 +222,37 @@ export interface ShopProduct {
   image?: string;
   url: string;
 }
+
+/**
+ * Extract citation URLs from assistant response text.
+ * Handles markdown links [title](url) and bare URLs.
+ * Deduplicates and returns unique source URLs.
+ */
+export function extractCitationsFromText(text: string): string[] {
+  const urls = new Set<string>();
+
+  // 1. Extract markdown links: [title](https://...)
+  const mdLinkRegex = /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+  let match;
+  while ((match = mdLinkRegex.exec(text)) !== null) {
+    urls.add(match[2]);
+  }
+
+  // 2. Extract bare URLs not already captured in markdown links
+  const bareUrlRegex = /(?<!\]\()https?:\/\/[^\s\])"'<>,]+/g;
+  while ((match = bareUrlRegex.exec(text)) !== null) {
+    // Clean trailing punctuation that's part of prose, not the URL
+    let url = match[0];
+    url = url.replace(/[.)]+$/, '');
+    urls.add(url);
+  }
+
+  // Filter out internal URLs (our own domain, placeholder URLs, data URIs)
+  return Array.from(urls).filter(
+    (url) =>
+      !url.includes('localhost') &&
+      !url.includes('jcilai.com') &&
+      !url.includes('example.com') &&
+      !url.startsWith('data:')
+  );
+}

@@ -4,11 +4,18 @@
  * AES-256-GCM encryption/decryption for secure token storage.
  * Used across the application for GitHub tokens, Vercel tokens, and other secrets.
  *
- * FORMAT: iv:authTag:encryptedData (all hex-encoded)
+ * FORMAT v1: v1:iv:authTag:encryptedData (all hex-encoded)
+ * LEGACY FORMAT: iv:authTag:encryptedData (auto-detected on decrypt)
  * - IV: 16 bytes (32 hex chars)
  * - Auth Tag: 16 bytes (32 hex chars)
  * - Encrypted Data: variable length (hex chars)
+ *
+ * SEC-012: Key versioning — all new encryptions use v1 prefix.
+ * When ENCRYPTION_KEY is rotated, bump the version and add the old key
+ * to ENCRYPTION_KEY_V1 so existing data can still be decrypted.
  */
+
+const CURRENT_KEY_VERSION = 'v1';
 
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
@@ -82,8 +89,16 @@ export function encrypt(plaintext: string): string {
 
     const authTag = cipher.getAuthTag();
 
-    // Combine IV + authTag + encrypted data
-    return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+    // SEC-012: Version-prefixed format for key rotation support
+    return (
+      CURRENT_KEY_VERSION +
+      ':' +
+      iv.toString('hex') +
+      ':' +
+      authTag.toString('hex') +
+      ':' +
+      encrypted
+    );
   } catch (error) {
     log.error('Encryption failed', error instanceof Error ? error : { error });
     throw new EncryptionError('Failed to encrypt data', 'ENCRYPT_FAILED');
@@ -102,14 +117,27 @@ export function decrypt(encryptedData: string): string {
   }
 
   const parts = encryptedData.split(':');
-  if (parts.length !== 3) {
+
+  // SEC-012: Support both versioned (v1:iv:authTag:data) and legacy (iv:authTag:data) formats
+  let ivHex: string, authTagHex: string, encrypted: string;
+
+  if (parts.length === 4 && parts[0].startsWith('v')) {
+    // Versioned format: v1:iv:authTag:data
+    const version = parts[0];
+    if (version !== CURRENT_KEY_VERSION) {
+      // Future: look up key for older versions via ENCRYPTION_KEY_V{n}
+      log.warn('Decrypting data with older key version', { version });
+    }
+    [, ivHex, authTagHex, encrypted] = parts;
+  } else if (parts.length === 3) {
+    // Legacy format: iv:authTag:data (pre-versioning)
+    [ivHex, authTagHex, encrypted] = parts;
+  } else {
     throw new DecryptionError(
-      'Invalid encrypted format - expected iv:authTag:data',
+      'Invalid encrypted format - expected [version:]iv:authTag:data',
       'INVALID_FORMAT'
     );
   }
-
-  const [ivHex, authTagHex, encrypted] = parts;
 
   // Validate format
   if (!/^[0-9a-fA-F]{32}$/.test(ivHex)) {
@@ -152,22 +180,26 @@ export function validateEncryptedFormat(encryptedData: string): { valid: boolean
   }
 
   const parts = encryptedData.split(':');
-  if (parts.length !== 3) {
-    return { valid: false, error: 'Invalid token format - expected 3 parts separated by colons' };
+
+  // SEC-012: Support both versioned (4 parts) and legacy (3 parts) formats
+  let ivIdx: number, authIdx: number, dataIdx: number;
+  if (parts.length === 4 && parts[0].startsWith('v')) {
+    [ivIdx, authIdx, dataIdx] = [1, 2, 3];
+  } else if (parts.length === 3) {
+    [ivIdx, authIdx, dataIdx] = [0, 1, 2];
+  } else {
+    return { valid: false, error: 'Invalid token format - expected [version:]iv:authTag:data' };
   }
 
-  // Validate IV (should be 32 hex chars = 16 bytes)
-  if (!/^[0-9a-fA-F]{32}$/.test(parts[0])) {
+  if (!/^[0-9a-fA-F]{32}$/.test(parts[ivIdx])) {
     return { valid: false, error: 'Invalid IV format' };
   }
 
-  // Validate auth tag (should be 32 hex chars = 16 bytes)
-  if (!/^[0-9a-fA-F]{32}$/.test(parts[1])) {
+  if (!/^[0-9a-fA-F]{32}$/.test(parts[authIdx])) {
     return { valid: false, error: 'Invalid auth tag format' };
   }
 
-  // Validate encrypted content (should be hex)
-  if (!/^[0-9a-fA-F]+$/.test(parts[2])) {
+  if (!/^[0-9a-fA-F]+$/.test(parts[dataIdx])) {
     return { valid: false, error: 'Invalid encrypted content format' };
   }
 

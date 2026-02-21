@@ -142,6 +142,8 @@ export function getCapabilityWarnings(
     jsonMode: 'JSON output mode is not available. Responses may not be valid JSON.',
     toolCalling:
       'Tool/function calling is not supported. The AI cannot use workspace tools with this provider.',
+    extendedThinking:
+      'Extended thinking is not available. The model will not show its reasoning process.',
   };
 
   for (const cap of lost) {

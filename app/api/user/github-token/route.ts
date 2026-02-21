@@ -4,15 +4,20 @@
  *
  * Securely stores and retrieves user's GitHub Personal Access Token.
  * Tokens are encrypted with AES-256-GCM before storage.
+ *
+ * SEC-008: Uses SecureServiceRoleClient for audited, scoped access.
  */
 
 import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { encrypt as encryptToken, decrypt as decryptToken } from '@/lib/security/crypto';
+import {
+  createSecureServiceClient,
+  extractRequestContext,
+} from '@/lib/supabase/secure-service-role';
 
 const log = logger('GitHubToken');
 
@@ -51,7 +56,7 @@ async function getUser() {
 /**
  * GET - Check if user has a GitHub token stored
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const { user, error } = await getUser();
 
   if (error || !user) {
@@ -65,34 +70,28 @@ export async function GET() {
   );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
-  // Use service role to read from users table
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+  // SEC-008: Use SecureServiceRoleClient with audit logging
+  const secureClient = createSecureServiceClient(
+    { id: user.id, email: user.email || undefined },
+    extractRequestContext(request, '/api/user/github-token')
   );
 
-  const { data: userData } = await adminClient
-    .from('users')
-    .select('github_token, github_username')
-    .eq('id', user.id)
-    .single();
+  const userData = await secureClient.getUserData(user.id, ['github_token', 'github_username']);
 
   if (userData?.github_token) {
     // Verify the token is still valid by making a test request
     let token: string;
     try {
-      token = decryptToken(userData.github_token);
+      token = decryptToken(userData.github_token as string);
     } catch (decryptError) {
       // Decryption failed - token was encrypted with a different key
-      // Clear the invalid token and return disconnected state
       log.warn('[GitHub Token] Decryption failed, clearing invalid token', {
         error: decryptError instanceof Error ? decryptError.message : 'Unknown error',
       });
-      await adminClient
-        .from('users')
-        .update({ github_token: null, github_username: null })
-        .eq('id', user.id);
+      await secureClient.updateUserData(user.id, {
+        github_token: null,
+        github_username: null,
+      });
       return successResponse({
         connected: false,
         error: 'Token encryption changed, please reconnect',
@@ -116,10 +115,10 @@ export async function GET() {
         });
       } else {
         // Token is invalid, clear it
-        await adminClient
-          .from('users')
-          .update({ github_token: null, github_username: null })
-          .eq('id', user.id);
+        await secureClient.updateUserData(user.id, {
+          github_token: null,
+          github_username: null,
+        });
 
         return successResponse({ connected: false, error: 'Token expired or invalid' });
       }
@@ -183,30 +182,18 @@ export async function POST(request: NextRequest) {
       return errors.badRequest('Token needs "repo" scope to push code');
     }
 
-    // Store encrypted token
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
+    // SEC-008: Use SecureServiceRoleClient for audited storage
+    const secureClient = createSecureServiceClient(
+      { id: user.id, email: user.email || undefined },
+      extractRequestContext(request, '/api/user/github-token')
     );
 
     const encryptedToken = encryptToken(token);
 
-    const { error: updateError } = await adminClient
-      .from('users')
-      .update({
-        github_token: encryptedToken,
-        github_username: ghUser.login,
-      })
-      .eq('id', user.id);
-
-    if (updateError) {
-      log.error(
-        '[GitHub Token] Save error:',
-        updateError instanceof Error ? updateError : { updateError }
-      );
-      return errors.serverError();
-    }
+    await secureClient.updateUserData(user.id, {
+      github_token: encryptedToken,
+      github_username: ghUser.login,
+    });
 
     return successResponse({
       success: true,
@@ -222,7 +209,7 @@ export async function POST(request: NextRequest) {
 /**
  * DELETE - Remove GitHub token
  */
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   const { user, error } = await getUser();
 
   if (error || !user) {
@@ -236,16 +223,16 @@ export async function DELETE() {
   );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+  // SEC-008: Use SecureServiceRoleClient for audited deletion
+  const secureClient = createSecureServiceClient(
+    { id: user.id, email: user.email || undefined },
+    extractRequestContext(request, '/api/user/github-token')
   );
 
-  await adminClient
-    .from('users')
-    .update({ github_token: null, github_username: null })
-    .eq('id', user.id);
+  await secureClient.updateUserData(user.id, {
+    github_token: null,
+    github_username: null,
+  });
 
   return successResponse({ success: true });
 }

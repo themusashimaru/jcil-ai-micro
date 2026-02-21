@@ -12,6 +12,7 @@ import type {
   UnifiedStreamChunk,
   ChatOptions,
   ProviderConfig,
+  ProviderCapabilities,
   HandoffResult,
   HandoffOptions,
 } from './types';
@@ -101,16 +102,18 @@ export class ProviderService {
 
   /**
    * Set the current provider
+   * PROV-001: Returns false and logs error if provider unavailable (instead of silent fallback)
    */
-  setProvider(providerId: ProviderId): void {
+  setProvider(providerId: ProviderId): boolean {
     if (!checkProviderAvailable(providerId)) {
-      log.warn('Provider not configured, keeping current provider', {
+      log.error('Provider not configured — cannot switch', {
         requested: providerId,
         current: this.currentProviderId,
       });
-      return;
+      return false;
     }
     this.currentProviderId = providerId;
+    return true;
   }
 
   /**
@@ -311,16 +314,7 @@ export class ProviderService {
   /**
    * Check if current provider has a capability
    */
-  hasCapability(
-    capability:
-      | 'vision'
-      | 'parallelToolCalls'
-      | 'streaming'
-      | 'systemMessages'
-      | 'jsonMode'
-      | 'toolCalling',
-    providerId?: ProviderId
-  ): boolean {
+  hasCapability(capability: keyof ProviderCapabilities, providerId?: ProviderId): boolean {
     const adapter = getAdapter(providerId ?? this.currentProviderId);
     return adapter?.hasCapability(capability) ?? false;
   }

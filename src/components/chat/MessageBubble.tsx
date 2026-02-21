@@ -16,7 +16,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -314,8 +314,30 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
+  const [thinkingExpanded, setThinkingExpanded] = useState(false);
   // Track save status per file (by index)
   const [savingFiles, setSavingFiles] = useState<Record<number, 'saving' | 'saved' | 'error'>>({});
+
+  // Parse thinking blocks from AI response content
+  const { thinkingContent, displayContent } = useMemo(() => {
+    if (isUser || !message.content) {
+      return { thinkingContent: '', displayContent: message.content };
+    }
+    const thinkingRegex = /\n?<thinking>\n([\s\S]*?)\n<\/thinking>\n?/g;
+    const thinkingParts: string[] = [];
+    let cleaned = message.content;
+    let match;
+    while ((match = thinkingRegex.exec(message.content)) !== null) {
+      thinkingParts.push(match[1]);
+    }
+    if (thinkingParts.length > 0) {
+      cleaned = message.content.replace(thinkingRegex, '').trim();
+    }
+    return {
+      thinkingContent: thinkingParts.join('\n\n'),
+      displayContent: cleaned,
+    };
+  }, [message.content, isUser]);
 
   // Copy message content to clipboard
   const handleCopy = async () => {
@@ -1001,8 +1023,44 @@ export function MessageBubble({
             ) : (
               // AI messages: full markdown rendering with optional code actions
               <>
+                {thinkingContent && (
+                  <div
+                    className="mb-3 rounded-lg text-xs"
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <button
+                      onClick={() => setThinkingExpanded(!thinkingExpanded)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <span
+                        style={{
+                          transform: thinkingExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.15s',
+                        }}
+                      >
+                        ▶
+                      </span>
+                      <span>Thinking</span>
+                    </button>
+                    {thinkingExpanded && (
+                      <div
+                        className="px-3 pb-3 whitespace-pre-wrap"
+                        style={{
+                          color: 'var(--text-tertiary)',
+                          borderTop: '1px solid var(--border)',
+                        }}
+                      >
+                        {thinkingContent}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <MarkdownRenderer
-                  content={message.content}
+                  content={displayContent}
                   enableCodeActions={enableCodeActions}
                   onActionSend={onActionSend}
                   onActionEdit={onActionEdit}
