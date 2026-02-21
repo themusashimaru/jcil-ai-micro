@@ -32,7 +32,7 @@ This document provides security assessments of all third-party vendors that proc
 
 | Attribute          | Details                                         |
 | ------------------ | ----------------------------------------------- |
-| **Service**        | Claude AI API (Haiku 4.5, Sonnet 4.5, Opus 4.5) |
+| **Service**        | Claude AI API (Haiku 4.5, Sonnet 4.6, Opus 4.5) |
 | **Risk Level**     | Critical                                        |
 | **Data Processed** | User prompts, conversation content              |
 | **Last Review**    | January 2025                                    |

@@ -199,7 +199,7 @@ export class AppGenerator {
   private async planArchitecture(input: AppDescription): Promise<AppStack> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: `You are a senior software architect. Analyze the app requirements and recommend the best tech stack.
 
@@ -268,7 +268,7 @@ Tech preferences: ${JSON.stringify(input.techPreferences || {})}`,
   ): Promise<DatabaseSchema> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a database architect. Design a complete database schema.
 
@@ -340,7 +340,7 @@ Features: ${input.features?.join(', ') || 'Standard features'}`,
   ): Promise<APIEndpoint[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are an API designer. Design RESTful API endpoints.
 
@@ -403,7 +403,7 @@ ${JSON.stringify(
   ): Promise<ComponentSpec[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a UI/UX designer. Design the component hierarchy for a web application.
 
@@ -848,7 +848,7 @@ ${ep.method === 'POST' || ep.method === 'PUT' || ep.method === 'PATCH' ? `    co
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4096,
           system: `You are a React/TypeScript expert. Generate a complete, production-ready component.
 
@@ -955,7 +955,7 @@ ${propsInterface}export function ${comp.name}(${propsArg}) {
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4096,
           system: `You are a React/Next.js expert. Generate a complete page component.
 

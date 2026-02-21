@@ -25,8 +25,8 @@ const MODEL_PRICING: Record<
     cacheRead: 0.5,
     cacheWrite: 6.25,
   },
-  // Claude Sonnet 4.5
-  'claude-sonnet-4-5-20250929': {
+  // Claude Sonnet 4.6
+  'claude-sonnet-4-6': {
     input: 3.0,
     output: 15.0,
     cacheRead: 0.3,
@@ -97,7 +97,8 @@ export function calculateCost(
     return (inputTokens / 1_000_000) * 3.0 + (outputTokens / 1_000_000) * 15.0;
   }
 
-  let cost = (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output;
+  let cost =
+    (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output;
 
   // Cached input tokens are cheaper than regular input tokens
   if (cachedInputTokens && cachedInputTokens > 0 && pricing.cacheRead) {
@@ -144,7 +145,10 @@ export async function trackTokenUsage(record: UsageRecord): Promise<void> {
     });
 
     if (error) {
-      log.warn('Failed to track usage', { error: error.message, userId: record.userId.substring(0, 8) });
+      log.warn('Failed to track usage', {
+        error: error.message,
+        userId: record.userId.substring(0, 8),
+      });
     } else {
       log.debug('Usage tracked', {
         userId: record.userId.substring(0, 8),

@@ -40,7 +40,7 @@ The JCIL AI Micro main chat system is a **production-grade, enterprise-level con
 | **Styling**        | Tailwind CSS, Glassmorphism design        |
 | **Backend**        | Next.js API Routes (App Router)           |
 | **Database**       | Supabase (PostgreSQL)                     |
-| **AI Primary**     | Claude Haiku 4.5 / Sonnet 4.5 (Anthropic) |
+| **AI Primary**     | Claude Haiku 4.5 / Sonnet 4.6 (Anthropic) |
 | **AI Fallback**    | xAI Grok 4.1 (automatic failover)         |
 | **Web Search**     | Brave Search API (search/factcheck)       |
 | **Deep Research**  | Perplexity API (Research Agent only)      |
@@ -267,7 +267,7 @@ This is the heart of the system. Key responsibilities:
 9. AI Routing
    ├── Research → ResearchAgent (Perplexity)
    ├── Simple → Claude Haiku 4.5
-   └── Complex → Claude Sonnet 4.5
+   └── Complex → Claude Sonnet 4.6
 
 10. Response Streaming
     └── Token-by-token SSE delivery
@@ -402,7 +402,7 @@ interface ApiKeyState {
 | Model                       | Use Case                               | Cost   |
 | --------------------------- | -------------------------------------- | ------ |
 | `claude-haiku-4-5-20251001` | Simple queries, fast responses         | Low    |
-| `claude-sonnet-4-5`         | Complex reasoning, document generation | Medium |
+| `claude-sonnet-4-6`         | Complex reasoning, document generation | Medium |
 
 ### 4.2 Brave Search Integration (Main Chat)
 
@@ -526,7 +526,7 @@ Used as fallback when Brave Search is not configured:
 │   PHASE 3: First AI Synthesis                                    │
 │   └── completeChat() via Brave search service                    │
 │       • Mode-specific prompts (factcheck, news, local, etc.)     │
-│       • Claude Sonnet 4.5 for high-quality synthesis             │
+│       • Claude Sonnet 4.6 for high-quality synthesis             │
 │       • xAI fallback if Claude rate-limited                      │
 │                                                                  │
 │   PHASE 4: Second AI Synthesis (Voice Consistency)               │

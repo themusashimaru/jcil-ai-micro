@@ -115,8 +115,8 @@ This isn't ChatGPT. This is an autonomous research army. I'm about to deploy:
 
 **THE BRAIN HIERARCHY**
 • **Claude Opus 4.6** — Master Architect (designs your strategy, maximum intelligence)
-• **Claude Sonnet 4.5** — Project Managers (coordinate research teams)
-• **Up to 100 Claude Sonnet 4.5 Scouts** (parallel research army)
+• **Claude Sonnet 4.6** — Project Managers (coordinate research teams)
+• **Up to 100 Claude Sonnet 4.6 Scouts** (parallel research army)
 
 **EACH SCOUT HAS ACCESS TO:**
 • **E2B Cloud Sandbox** — Secure isolated execution environment

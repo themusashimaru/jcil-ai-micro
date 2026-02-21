@@ -87,7 +87,7 @@ This is an extremely powerful tool. Users must agree to use it responsibly:
 │                                    │                                         │
 │                                    ▼                                         │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │                TIER 2: SONNET 4.5 (Project Managers)                    │ │
+│  │                TIER 2: SONNET 4.6 (Project Managers)                    │ │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 │ │
 │  │  │   PM: Legal  │  │ PM: Market   │  │ PM: Strategy │  ...           │ │
 │  │  │   Research   │  │  Analysis    │  │    Options   │                 │ │
@@ -146,7 +146,7 @@ This is an extremely powerful tool. Users must agree to use it responsibly:
 - Produces actionable steps with priorities
 - Creates executive summary for the user
 
-#### Tier 2: Sonnet 4.5 (Project Managers)
+#### Tier 2: Sonnet 4.6 (Project Managers)
 
 Project Managers coordinate groups of Scout agents:
 
@@ -915,7 +915,7 @@ interface RoutingDecision {
 | Model      | Best For                         | Speed | Quality | Cost Efficiency |
 | ---------- | -------------------------------- | ----- | ------- | --------------- |
 | Opus 4.5   | Complex reasoning, extreme tasks | ★★☆☆  | ★★★★★   | ★★☆☆☆           |
-| Sonnet 4.5 | Balanced tasks, most use cases   | ★★★★☆ | ★★★★☆   | ★★★★☆           |
+| Sonnet 4.6 | Balanced tasks, most use cases   | ★★★★☆ | ★★★★☆   | ★★★★☆           |
 | Haiku 4.5  | Fast extraction, simple tasks    | ★★★★★ | ★★★☆☆   | ★★★★★           |
 
 **Usage:**

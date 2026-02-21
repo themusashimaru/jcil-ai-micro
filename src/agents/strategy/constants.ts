@@ -15,13 +15,13 @@ import type { ModelConfig, StrategyLimits } from './types';
  *
  * Set these environment variables to override the default model IDs:
  * - CLAUDE_OPUS_MODEL: The Opus model ID (default: claude-opus-4-6)
- * - CLAUDE_SONNET_MODEL: The Sonnet model ID (default: claude-sonnet-4-5-20250929)
+ * - CLAUDE_SONNET_MODEL: The Sonnet model ID (default: claude-sonnet-4-6)
  * - CLAUDE_HAIKU_MODEL: The Haiku model ID (default: claude-haiku-4-5-20251001)
  *
  * This allows updating models without code changes when Anthropic releases new versions.
  */
 export const CLAUDE_OPUS_46 = process.env.CLAUDE_OPUS_MODEL || 'claude-opus-4-6';
-export const CLAUDE_SONNET_45 = process.env.CLAUDE_SONNET_MODEL || 'claude-sonnet-4-5-20250929';
+export const CLAUDE_SONNET_46 = process.env.CLAUDE_SONNET_MODEL || 'claude-sonnet-4-6';
 export const CLAUDE_HAIKU_45 = process.env.CLAUDE_HAIKU_MODEL || 'claude-haiku-4-5-20251001';
 
 /**
@@ -37,7 +37,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     description: 'Most intelligent - for architecture, synthesis, and critical decisions',
   },
   sonnet: {
-    id: CLAUDE_SONNET_45,
+    id: CLAUDE_SONNET_46,
     tier: 'sonnet',
     costPerMillionInput: 3.0,
     costPerMillionOutput: 15.0,
@@ -189,11 +189,11 @@ YOUR TASK:
 Design a comprehensive team of specialized agents. Each agent should have a specific focus, clear deliverables, and contribute to the overall strategy.
 
 AGENT HIERARCHY:
-1. PROJECT MANAGERS (Sonnet 4.5) - 3-8 PMs coordinating major domains
+1. PROJECT MANAGERS (Sonnet 4.6) - 3-8 PMs coordinating major domains
    - Each PM oversees a domain (Housing, Career, Finance, etc.)
    - They coordinate their scouts and synthesize findings
 
-2. SCOUTS (Sonnet 4.5) - Strategic research agents
+2. SCOUTS (Sonnet 4.6) - Strategic research agents
    - Highly specialized for specific tasks
    - INTELLIGENT tool selection - knows when to use browser vs search vs vision
    - Executes SURGICAL, high-yield searches (quality over quantity)

@@ -20,7 +20,7 @@ import type {
   SynthesizedProblem,
   StrategyRecommendation,
 } from './types';
-import { CLAUDE_OPUS_46, CLAUDE_SONNET_45 } from './constants';
+import { CLAUDE_OPUS_46, CLAUDE_SONNET_46 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('PredictiveSimulator');
@@ -346,7 +346,7 @@ Output in JSON format.`;
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         temperature: 0.6,
         messages: [{ role: 'user', content: prompt }],
@@ -417,7 +417,7 @@ Output in JSON format.`;
 
       try {
         const response = await this.client.messages.create({
-          model: CLAUDE_SONNET_45,
+          model: CLAUDE_SONNET_46,
           max_tokens: 2048,
           temperature: 0.5,
           messages: [{ role: 'user', content: prompt }],
@@ -500,7 +500,7 @@ Output in JSON format.`;
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         temperature: 0.5,
         messages: [{ role: 'user', content: prompt }],

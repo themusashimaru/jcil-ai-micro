@@ -17,7 +17,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { Finding, StrategyStreamCallback, SynthesizedProblem } from './types';
-import { CLAUDE_OPUS_46, CLAUDE_SONNET_45 } from './constants';
+import { CLAUDE_OPUS_46, CLAUDE_SONNET_46 } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('CausalReasoningEngine');
@@ -368,7 +368,7 @@ Output a root cause analysis in JSON format.`;
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         temperature: 0.5,
         system:
@@ -451,7 +451,7 @@ Output as JSON array of counterfactual analyses.`;
 
     try {
       const response = await this.client.messages.create({
-        model: CLAUDE_SONNET_45,
+        model: CLAUDE_SONNET_46,
         max_tokens: 4096,
         temperature: 0.6,
         messages: [{ role: 'user', content: prompt }],

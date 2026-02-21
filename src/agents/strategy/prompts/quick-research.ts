@@ -85,7 +85,7 @@ REMEMBER:
 I'll deploy a focused research team to investigate your topic.
 
 **What you get:**
-• **10-15 intelligent scouts** (Claude Sonnet 4.5)
+• **10-15 intelligent scouts** (Claude Sonnet 4.6)
 • **All research tools:** Browser automation, web search, PDF extraction, vision analysis
 • **Opus synthesis:** Claude Opus 4.6 compiles findings
 • **Fast turnaround:** 1-2 minutes

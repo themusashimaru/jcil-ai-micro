@@ -316,11 +316,7 @@ describe('Model Selection', () => {
   });
 
   it('should accept valid model IDs', () => {
-    const validModels = [
-      'claude-opus-4-6',
-      'claude-sonnet-4-5-20250929',
-      'claude-haiku-4-5-20250929',
-    ];
+    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20250929'];
 
     for (const model of validModels) {
       expect(model.startsWith('claude-')).toBe(true);
@@ -340,7 +336,7 @@ describe('Extended Thinking', () => {
   });
 
   it('should only enable for supported models', () => {
-    const supportedModels = ['claude-sonnet-4-5-20250929', 'claude-opus-4-6'];
+    const supportedModels = ['claude-sonnet-4-6', 'claude-opus-4-6'];
     const unsupportedModels = ['claude-haiku-4-5-20250929'];
 
     for (const model of supportedModels) {

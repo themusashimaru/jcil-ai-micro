@@ -26,10 +26,10 @@ export interface PromptSet {
   /** System prompt for QualityControl (Opus 4.5) */
   qualityControl: string;
 
-  /** System prompt for ProjectManagers (Sonnet 4.5) */
+  /** System prompt for ProjectManagers (Sonnet 4.6) */
   projectManager: string;
 
-  /** System prompt for Scouts (Sonnet 4.5) - intelligent, surgical research */
+  /** System prompt for Scouts (Sonnet 4.6) - intelligent, surgical research */
   scout: string;
 
   /** System prompt for pre-QC Synthesizer (Opus 4.5) - organizes findings */

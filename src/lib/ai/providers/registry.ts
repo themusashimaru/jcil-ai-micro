@@ -40,8 +40,8 @@ const CLAUDE_CONFIG: ProviderConfig = {
       tier: 'premium',
     },
     {
-      id: 'claude-sonnet-4-5-20250929',
-      name: 'Claude Sonnet 4.5',
+      id: 'claude-sonnet-4-6',
+      name: 'Claude Sonnet 4.6',
       contextWindow: 200000,
       maxOutputTokens: 64000,
       inputPricePer1M: 3,

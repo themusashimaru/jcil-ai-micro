@@ -414,7 +414,7 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
                       <Bot className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">Claude Sonnet 4.5</p>
+                      <p className="text-sm font-bold text-white">Claude Sonnet 4.6</p>
                       <p className="text-xs text-blue-300">
                         Project Managers — coordinate research teams
                       </p>

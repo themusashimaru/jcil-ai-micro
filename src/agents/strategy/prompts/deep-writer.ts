@@ -147,7 +147,7 @@ This isn't ChatGPT writing a paragraph. This is a full publishing operation:
 **THE WRITING HIERARCHY**
 - **Claude Opus 4.6** - Editorial Director (understands your vision, designs the project)
 - **Claude Opus 4.6** - Master Architect (plans research + document structure)
-- **Claude Sonnet 4.5** - Research Corps (15-50 agents gathering facts, sources, data)
+- **Claude Sonnet 4.6** - Research Corps (15-50 agents gathering facts, sources, data)
 - **Claude Opus 4.6** - Research Synthesizer (compiles findings into writer's brief)
 - **Claude Opus 4.6** - Writer Corps (dedicated writer per section/chapter)
 - **Claude Opus 4.6** - Editor-in-Chief (voice consistency, flow, polish)

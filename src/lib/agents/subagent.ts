@@ -62,7 +62,7 @@ export interface SubagentContext {
 // ============================================================================
 
 const MODEL_MAP: Record<SubagentModel, string> = {
-  sonnet: 'claude-sonnet-4-20250514',
+  sonnet: 'claude-sonnet-4-6',
   opus: 'claude-opus-4-6',
   haiku: 'claude-haiku-4-5-20251001',
 };
@@ -597,10 +597,7 @@ Instructions:
 
         case 'list_files': {
           const listPath = this.shellEscape(String(input.path || '/workspace'));
-          const listResult = await this.container.executeCommand(
-            workspaceId,
-            `ls -la ${listPath}`
-          );
+          const listResult = await this.container.executeCommand(workspaceId, `ls -la ${listPath}`);
           return listResult.stdout || 'Empty directory';
         }
 
@@ -772,7 +769,11 @@ export async function executeSubagentTool(
             await new Promise((resolve) => setTimeout(resolve, pollInterval));
             pollInterval = Math.min(pollInterval * 1.5, 3000);
             const polledResult = manager.getStatus(agentId);
-            if (polledResult && polledResult.status !== 'running' && polledResult.status !== 'background') {
+            if (
+              polledResult &&
+              polledResult.status !== 'running' &&
+              polledResult.status !== 'background'
+            ) {
               return formatSubagentResult(polledResult);
             }
           }

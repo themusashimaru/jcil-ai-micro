@@ -365,7 +365,7 @@ export class BugOracle {
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are a senior QA engineer with psychic abilities to predict bugs before they happen.
 

@@ -6,7 +6,7 @@ JCIL Code Lab supports multiple AI providers with seamless mid-conversation swit
 
 | Provider     | Models                              | Vision | Tool Calling | Notes                                        |
 | ------------ | ----------------------------------- | ------ | ------------ | -------------------------------------------- |
-| **Claude**   | Opus 4.5, Sonnet 4.5, Haiku 4.5     | Yes    | Yes          | Default provider, best for complex reasoning |
+| **Claude**   | Opus 4.5, Sonnet 4.6, Haiku 4.5     | Yes    | Yes          | Default provider, best for complex reasoning |
 | **OpenAI**   | GPT-5.2, GPT-5.2 Codex, GPT-5.2 Pro | Yes    | Yes          | Latest GPT models with strong coding         |
 | **xAI**      | Grok 4, Grok 4 Vision               | Yes    | Yes          | Excels at real-time knowledge                |
 | **DeepSeek** | V3.2, Coder V3.2                    | No     | Yes          | Cost-effective coding assistant              |

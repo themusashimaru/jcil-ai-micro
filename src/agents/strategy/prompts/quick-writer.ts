@@ -94,7 +94,7 @@ REMEMBER:
 I'll deploy a focused team to research and write your content.
 
 **What you get:**
-- **10-15 research scouts** (Claude Sonnet 4.5) - gather facts first
+- **10-15 research scouts** (Claude Sonnet 4.6) - gather facts first
 - **All research tools:** Web search, data extraction, source verification
 - **Opus writers** (Claude Opus 4.6) - craft polished content
 - **Fast turnaround:** 2-3 minutes

@@ -33,7 +33,7 @@
   - ChatOptions, HandoffResult types
 
 - [x] `src/lib/ai/providers/registry.ts` - Provider configurations with production model IDs
-  - Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001
+  - Claude: claude-opus-4-5-20251101, claude-sonnet-4-6, claude-haiku-4-5-20251001
   - OpenAI: gpt-5.2, gpt-5.2-pro, gpt-5.2-codex, gpt-5-mini, gpt-5-nano
   - xAI: x-ai/grok-4, x-ai/grok-4.1-fast, x-ai/grok-code-fast-1
   - DeepSeek: deepseek-ai/DeepSeek-V3.2, deepseek-ai/DeepSeek-V3.2-Speciale
@@ -144,9 +144,9 @@ This document outlines the implementation plan for adding multi-provider AI supp
 
 ### Anthropic Adapter (Wrap Existing)
 
-| Provider   | Models                                                                          | Vision | Tool Calls | Streaming | Price Tier |
-| ---------- | ------------------------------------------------------------------------------- | ------ | ---------- | --------- | ---------- |
-| **Claude** | claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001 | Yes    | Yes        | Yes       | Premium    |
+| Provider   | Models                                                                 | Vision | Tool Calls | Streaming | Price Tier |
+| ---------- | ---------------------------------------------------------------------- | ------ | ---------- | --------- | ---------- |
+| **Claude** | claude-opus-4-5-20251101, claude-sonnet-4-6, claude-haiku-4-5-20251001 | Yes    | Yes        | Yes       | Premium    |
 
 ### Google Adapter (Implemented)
 
