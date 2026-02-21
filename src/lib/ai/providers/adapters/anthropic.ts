@@ -5,6 +5,7 @@
  * This adapter allows Claude to be used interchangeably with other providers.
  */
 
+import { NATIVE_WEB_SEARCH_SENTINEL } from '@/lib/ai/tools/web-search';
 import Anthropic from '@anthropic-ai/sdk';
 import { BaseAIAdapter } from './base';
 import type {
@@ -403,18 +404,36 @@ export class AnthropicAdapter extends BaseAIAdapter {
   // ============================================================================
 
   /**
-   * Convert unified tools to Anthropic format
+   * Convert unified tools to Anthropic format.
+   * Handles both custom tools and native server tools (web_search_20260209).
    */
-  formatTools(tools: UnifiedTool[]): Anthropic.Tool[] {
-    return tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      input_schema: {
-        type: 'object' as const,
-        properties: tool.parameters.properties,
-        required: tool.parameters.required,
-      },
-    }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formatTools(tools: UnifiedTool[]): any[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formatted: any[] = [];
+
+    for (const tool of tools) {
+      // Native web search tool — pass as server tool type, not custom tool
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (tool.name === NATIVE_WEB_SEARCH_SENTINEL && (tool as any)._nativeConfig) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        formatted.push((tool as any)._nativeConfig);
+        continue;
+      }
+
+      // Standard custom tool
+      formatted.push({
+        name: tool.name,
+        description: tool.description,
+        input_schema: {
+          type: 'object' as const,
+          properties: tool.parameters.properties,
+          required: tool.parameters.required,
+        },
+      });
+    }
+
+    return formatted;
   }
 
   /**
@@ -444,7 +463,9 @@ export class AnthropicAdapter extends BaseAIAdapter {
     switch (event.type) {
       case 'message_start': {
         // Extract input token usage from message_start event
-        const msgEvent = event as { message?: { usage?: { input_tokens?: number; cache_read_input_tokens?: number } } };
+        const msgEvent = event as {
+          message?: { usage?: { input_tokens?: number; cache_read_input_tokens?: number } };
+        };
         const startUsage = msgEvent.message?.usage;
         if (startUsage?.input_tokens) {
           return {
@@ -471,6 +492,14 @@ export class AnthropicAdapter extends BaseAIAdapter {
               arguments: {},
             },
           };
+        }
+        // Native server tools (web_search) — these are handled by Anthropic server-side.
+        // We don't need to execute them. Just ignore the block start.
+        if (
+          event.content_block.type === 'server_tool_use' ||
+          event.content_block.type === 'web_search_tool_result'
+        ) {
+          return null; // Server handles these — no action needed
         }
         return null;
 

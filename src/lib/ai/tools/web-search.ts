@@ -1,176 +1,94 @@
 /**
- * WEB SEARCH TOOL - Native Claude Tool Use
+ * WEB SEARCH TOOL - Native Anthropic Server Tool
  *
- * Defines the web_search tool that Claude can call when it needs
- * current information. Uses Brave Search under the hood.
+ * Uses Anthropic's native web_search_20260209 server tool with dynamic filtering.
+ * The search is executed server-side by Anthropic — we never handle it ourselves.
+ * Dynamic filtering (Sonnet 4.6+ / Opus 4.6) writes code to filter results before
+ * they enter the context window: 11% more accurate, 24% fewer tokens.
+ *
+ * When this tool is active, the chat route auto-escalates to Sonnet 4.6
+ * to ensure dynamic filtering is available.
+ *
+ * Cost: $10 per 1,000 searches ($0.01/search) + standard token costs.
  */
 
-import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
-import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
 import { logger } from '@/lib/logger';
-import { canExecuteTool, recordToolCost } from './safety';
 
 const log = logger('WebSearchTool');
 
-// Cost per search (Brave API cost)
-const TOOL_COST = 0.001;
-
 // ============================================================================
-// TOOL DEFINITION
+// NATIVE WEB SEARCH TOOL (Anthropic Server Tool)
 // ============================================================================
 
 /**
- * Web search tool definition for Claude
- * Claude will call this when it needs current/real-time information
+ * Sentinel name used to identify the native web search tool in the tools array.
+ * The Anthropic adapter detects this and converts it to the native format.
  */
-export const webSearchTool: UnifiedTool = {
-  name: 'web_search',
-  description: `Search the web for current information. Use this tool when you need:
-- Current news, events, or recent developments
-- Real-time data like stock prices, weather, sports scores
-- Information that may have changed since your training data
-- Facts you want to verify with current sources
-- Information about recent events (2024-2026)
+export const NATIVE_WEB_SEARCH_SENTINEL = '__native_web_search__';
 
-Always use this tool rather than saying "I don't have access to real-time information."`,
+/**
+ * Native web search tool configuration.
+ * This is NOT a custom tool — it's a server tool handled by Anthropic.
+ * The Anthropic adapter converts this into the proper API format:
+ * { type: "web_search_20260209", name: "web_search", max_uses: 5 }
+ */
+export const webSearchTool = {
+  name: NATIVE_WEB_SEARCH_SENTINEL,
+  description: 'Native Anthropic web search with dynamic filtering (server-side)',
   parameters: {
-    type: 'object',
-    properties: {
-      query: {
-        type: 'string',
-        description: 'The search query. Be specific and include relevant context.',
-      },
-      search_type: {
-        type: 'string',
-        description: 'Type of search to optimize results',
-        enum: ['general', 'news', 'factcheck'],
-        default: 'general',
-      },
-    },
-    required: ['query'],
+    type: 'object' as const,
+    properties: {},
+    required: [] as string[],
+  },
+  // Metadata for the Anthropic adapter
+  _nativeWebSearch: true,
+  _nativeConfig: {
+    type: 'web_search_20260209' as const,
+    name: 'web_search',
+    max_uses: 5,
   },
 };
 
 // ============================================================================
-// TOOL EXECUTOR
+// AVAILABILITY CHECK
 // ============================================================================
 
 /**
- * Execute the web_search tool
- * Called when Claude uses the web_search tool
- */
-export async function executeWebSearch(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
-  const { id, name, arguments: rawArgs } = toolCall;
-
-  if (name !== 'web_search') {
-    return {
-      toolCallId: id,
-      content: `Unknown tool: ${name}`,
-      isError: true,
-    };
-  }
-
-  // Handle case where arguments might still be a string (should be parsed by now, but defensive)
-  const args = typeof rawArgs === 'string' ? {} : rawArgs;
-  const query = args.query as string;
-  const searchType = (args.search_type as string) || 'general';
-
-  if (!query) {
-    return {
-      toolCallId: id,
-      content: 'No search query provided',
-      isError: true,
-    };
-  }
-
-  if (!isBraveConfigured()) {
-    log.warn('Brave Search not configured, returning error');
-    return {
-      toolCallId: id,
-      content: 'Web search is not currently available.',
-      isError: true,
-    };
-  }
-
-  // Cost check (use passed session ID or generate fallback)
-  const sessionId = toolCall.sessionId || `chat_${Date.now()}`;
-  const costCheck = canExecuteTool(sessionId, 'web_search', TOOL_COST);
-  if (!costCheck.allowed) {
-    log.warn('Web search cost limit exceeded', { sessionId, reason: costCheck.reason });
-    return {
-      toolCallId: id,
-      content: `Cannot search: ${costCheck.reason}`,
-      isError: true,
-    };
-  }
-
-  log.info('Executing web search', { query, searchType, sessionId });
-
-  try {
-    // Map search type to Brave mode
-    const mode =
-      searchType === 'factcheck' ? 'factcheck' : searchType === 'news' ? 'news' : 'search';
-
-    const result = await braveSearch({
-      query,
-      mode,
-    });
-
-    // Format result for Claude
-    let content = result.answer;
-
-    // Add sources if available
-    if (result.sources && result.sources.length > 0) {
-      content += '\n\n**Sources:**\n';
-      result.sources.slice(0, 5).forEach((source, i) => {
-        content += `${i + 1}. [${source.title}](${source.url})\n`;
-      });
-    }
-
-    log.info('Web search completed', {
-      query,
-      resultLength: content.length,
-      sourceCount: result.sources?.length || 0,
-    });
-
-    // Record successful search cost
-    recordToolCost(sessionId, 'web_search', TOOL_COST);
-
-    return {
-      toolCallId: id,
-      content,
-      isError: false,
-    };
-  } catch (error) {
-    log.error('Web search failed', { query, error: (error as Error).message });
-    return {
-      toolCallId: id,
-      content: `Search failed: ${(error as Error).message}`,
-      isError: true,
-    };
-  }
-}
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Check if web search tool is available
+ * Web search is always available — it's a native Anthropic capability.
+ * No external API keys required.
  */
 export function isWebSearchAvailable(): boolean {
-  return isBraveConfigured();
+  return true;
+}
+
+// ============================================================================
+// EXECUTOR (NO-OP — handled by Anthropic server)
+// ============================================================================
+
+/**
+ * The native web search tool is executed server-side by Anthropic.
+ * If this function is ever called, something went wrong in the routing.
+ */
+export async function executeWebSearch(toolCall: { id: string; name: string }): Promise<{
+  toolCallId: string;
+  content: string;
+  isError: boolean;
+}> {
+  log.warn('executeWebSearch called but native search is server-side', {
+    toolCallId: toolCall.id,
+    toolName: toolCall.name,
+  });
+  return {
+    toolCallId: toolCall.id,
+    content: 'Web search is handled natively by the AI model. No manual execution needed.',
+    isError: false,
+  };
 }
 
 /**
- * Get all available tools (currently just web_search)
+ * Check if a tool name is the native web search tool (server-side).
+ * Used by the tool executor to skip execution for server-handled tools.
  */
-export function getAvailableTools(): UnifiedTool[] {
-  const tools: UnifiedTool[] = [];
-
-  if (isWebSearchAvailable()) {
-    tools.push(webSearchTool);
-  }
-
-  return tools;
+export function isNativeServerTool(toolName: string): boolean {
+  return toolName === 'web_search' || toolName === NATIVE_WEB_SEARCH_SENTINEL;
 }
