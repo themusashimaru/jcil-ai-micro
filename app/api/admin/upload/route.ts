@@ -27,6 +27,35 @@ const IMAGE_TYPES = [
 ];
 const VIDEO_TYPES = ['video/mp4', 'video/webm'];
 
+/**
+ * Verify file content matches claimed MIME type via magic bytes.
+ * Prevents MIME type spoofing attacks.
+ */
+function verifyMagicBytes(buffer: Buffer, claimedMime: string): boolean {
+  if (buffer.length < 12) return false;
+
+  // Map of magic byte signatures
+  const signatures: Array<{ mime: string[]; bytes: number[]; offset?: number }> = [
+    { mime: ['image/png'], bytes: [0x89, 0x50, 0x4e, 0x47] }, // PNG: \x89PNG
+    { mime: ['image/jpeg', 'image/jpg'], bytes: [0xff, 0xd8, 0xff] }, // JPEG: \xFF\xD8\xFF
+    { mime: ['image/gif'], bytes: [0x47, 0x49, 0x46, 0x38] }, // GIF: GIF8
+    { mime: ['image/x-icon', 'image/vnd.microsoft.icon'], bytes: [0x00, 0x00, 0x01, 0x00] }, // ICO
+    { mime: ['video/mp4'], bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }, // MP4: ftyp at offset 4
+    { mime: ['video/webm'], bytes: [0x1a, 0x45, 0xdf, 0xa3] }, // WebM: EBML header
+  ];
+
+  for (const sig of signatures) {
+    if (sig.mime.includes(claimedMime)) {
+      const offset = sig.offset || 0;
+      if (buffer.length < offset + sig.bytes.length) return false;
+      const matches = sig.bytes.every((b, i) => buffer[offset + i] === b);
+      if (matches) return true;
+    }
+  }
+
+  return false;
+}
+
 // Get Supabase admin client for storage operations
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -78,14 +107,29 @@ export async function POST(request: NextRequest) {
       return errors.badRequest(`File size must be less than ${maxSizeLabel}`);
     }
 
+    // Read file buffer once for all operations
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // SEC-004: Verify file content matches MIME type via magic bytes
+    if (!verifyMagicBytes(buffer, file.type)) {
+      log.warn('[Upload] Magic byte verification failed', {
+        claimedMime: file.type,
+        firstBytes: Array.from(buffer.slice(0, 12))
+          .map((b) => b.toString(16))
+          .join(' '),
+      });
+      return errors.badRequest(
+        'File content does not match its type. Please upload a valid image or video file.'
+      );
+    }
+
     // Get Supabase admin client
     const supabase = getSupabaseAdmin();
 
     if (!supabase) {
       // Fallback to base64 if Supabase not configured
       log.warn('[Upload] Supabase not configured, falling back to base64');
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
       const base64 = buffer.toString('base64');
       const dataUrl = `data:${file.type};base64,${base64}`;
 
@@ -102,10 +146,6 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     const filename = `${fileType || 'logo'}_${timestamp}_${randomStr}.${ext}`;
-
-    // Convert file to buffer for upload
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
 
     // Upload to Supabase Storage 'branding' bucket
     const { error } = await supabase.storage.from('branding').upload(filename, buffer, {
