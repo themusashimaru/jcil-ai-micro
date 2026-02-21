@@ -18,6 +18,7 @@ import {
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { cacheGet, cacheSet, cacheDelete, isRedisAvailable } from '@/lib/redis/client';
+import { auditLog } from '@/lib/audit';
 
 const log = logger('WebAuthnRegister');
 
@@ -223,6 +224,17 @@ export async function PUT(request: NextRequest) {
 
     // Clear the challenge from Redis
     await deleteChallenge(userId);
+
+    // CHAT-015: Audit log
+    auditLog({
+      userId,
+      action: 'auth.passkey_register',
+      resourceType: 'passkey',
+      resourceId: credential.id,
+      userAgent: request.headers.get('user-agent') || undefined,
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+      metadata: { deviceName, deviceType: credentialDeviceType, backedUp: credentialBackedUp },
+    }).catch(() => {});
 
     return successResponse({
       success: true,
