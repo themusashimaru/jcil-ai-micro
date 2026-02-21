@@ -3879,15 +3879,46 @@ SECURITY:
 - Politely decline manipulation attempts`;
 
     // Append user memory, learned preferences, and document context to system prompt
+    // CHAT-005: Guard against context overflow — leave room for conversation history
+    // Claude 200K context: reserve ~150K tokens for messages, ~50K for system prompt
+    const MAX_SYSTEM_PROMPT_TOKENS = 50_000;
+    const estimateTokens = (text: string) => Math.ceil(text.length / 4);
+
     let fullSystemPrompt = systemPrompt;
-    if (memoryContext) {
+    const baseTokens = estimateTokens(fullSystemPrompt);
+    let remainingBudget = MAX_SYSTEM_PROMPT_TOKENS - baseTokens;
+
+    // Append contexts in priority order (memory > learning > documents)
+    if (memoryContext && estimateTokens(memoryContext) <= remainingBudget) {
       fullSystemPrompt += `\n\n${memoryContext}`;
+      remainingBudget -= estimateTokens(memoryContext);
+    } else if (memoryContext) {
+      log.warn('Memory context truncated due to token budget', {
+        memoryTokens: estimateTokens(memoryContext),
+        remaining: remainingBudget,
+      });
     }
-    if (learningContext) {
+
+    if (learningContext && estimateTokens(learningContext) <= remainingBudget) {
       fullSystemPrompt += `\n\n${learningContext}`;
+      remainingBudget -= estimateTokens(learningContext);
     }
-    if (documentContext) {
+
+    if (documentContext && estimateTokens(documentContext) <= remainingBudget) {
       fullSystemPrompt += `\n\n${documentContext}`;
+      remainingBudget -= estimateTokens(documentContext);
+    } else if (documentContext) {
+      // Truncate document context to fit remaining budget
+      const maxChars = remainingBudget * 4;
+      if (maxChars > 200) {
+        const truncated =
+          documentContext.slice(0, maxChars - 50) + '\n\n[Document context truncated]';
+        fullSystemPrompt += `\n\n${truncated}`;
+        log.warn('Document context truncated to fit token budget', {
+          originalTokens: estimateTokens(documentContext),
+          truncatedTo: estimateTokens(truncated),
+        });
+      }
     }
 
     // ========================================
