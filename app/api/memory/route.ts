@@ -27,6 +27,7 @@ import {
 } from '@/lib/api/utils';
 import { loadUserMemory, deleteUserMemory, updateUserMemory } from '@/lib/memory';
 import type { UserPreferences } from '@/lib/memory';
+import { loadPreferences, deleteUserLearning } from '@/lib/learning';
 import { z } from 'zod';
 
 const log = logger('MemoryAPI');
@@ -81,8 +82,11 @@ async function getSupabaseClient() {
  * - Key topics discussed
  * - Learned preferences
  * - Recent conversation context
+ *
+ * Query params:
+ * - export=true: Returns full data export for GDPR data portability
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await getSupabaseClient();
 
@@ -104,6 +108,41 @@ export async function GET() {
 
     // Load user memory
     const memory = await loadUserMemory(user.id);
+
+    // Check if this is a GDPR data export request
+    const isExport = request.nextUrl.searchParams.get('export') === 'true';
+
+    if (isExport) {
+      // Full data export for GDPR data portability
+      const learnedPreferences = await loadPreferences(user.id, 0); // All preferences, no threshold
+
+      return successResponse({
+        export: {
+          exported_at: new Date().toISOString(),
+          user_id: user.id,
+          memory: memory
+            ? {
+                summary: memory.summary,
+                key_topics: memory.key_topics,
+                topic_timestamps: memory.topic_timestamps,
+                preferences: memory.user_preferences,
+                conversation_ids: memory.conversation_ids,
+                last_conversations: memory.last_conversations,
+                created_at: memory.created_at,
+                updated_at: memory.updated_at,
+              }
+            : null,
+          learned_style_preferences: learnedPreferences.map((p) => ({
+            type: p.preference_type,
+            value: p.preference_value,
+            confidence: p.confidence,
+            observation_count: p.observation_count,
+            first_observed: p.created_at,
+            last_observed: p.updated_at,
+          })),
+        },
+      });
+    }
 
     if (!memory) {
       return successResponse({
@@ -235,21 +274,22 @@ export async function DELETE(request: NextRequest) {
     });
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
-    // Delete all memory
-    const deleted = await deleteUserMemory(user.id);
+    // Delete all memory and learned preferences
+    const [memoryDeleted, learningDeleted] = await Promise.all([
+      deleteUserMemory(user.id),
+      deleteUserLearning(user.id),
+    ]);
 
-    if (deleted) {
-      log.info('User memory deleted (GDPR erasure)', { userId: user.id });
-      return successResponse({
-        success: true,
-        message: 'All memory has been permanently deleted',
-      });
-    } else {
-      return successResponse({
-        success: true,
-        message: 'No memory existed to delete',
-      });
-    }
+    log.info('User data deleted (GDPR erasure)', {
+      userId: user.id,
+      memoryDeleted,
+      learningDeleted,
+    });
+
+    return successResponse({
+      success: true,
+      message: 'All memory and learned preferences have been permanently deleted',
+    });
   } catch (error) {
     log.error('Error deleting memory', error as Error);
     return errors.serverError();
