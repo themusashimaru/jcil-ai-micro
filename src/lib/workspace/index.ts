@@ -390,19 +390,6 @@ export class ShellExecutor {
     command: string,
     options: { timeout?: number; cwd?: string }
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    // IMPLEMENTATION OPTIONS:
-
-    // Option 1: E2B (recommended for production)
-    // const sandbox = await Sandbox.create({ template: 'base' });
-    // const result = await sandbox.process.startAndWait(command);
-    // return { stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode };
-
-    // Option 2: Docker API
-    // const container = docker.getContainer(this.workspaceId);
-    // const exec = await container.exec({ Cmd: ['bash', '-c', command] });
-    // return exec.start();
-
-    // Option 3: Self-hosted with node child_process (for development)
     const { exec } = await import('child_process');
     const { promisify } = await import('util');
     const execAsync = promisify(exec);
@@ -1293,12 +1280,6 @@ export class SessionManager {
    * Generate a summary of messages
    */
   private async generateSummary(messages: SessionMessage[]): Promise<string> {
-    // In production, call Claude/GPT to summarize with the conversation text
-    // For now, return a simple placeholder
-    // TODO: Implement AI summarization using:
-    // const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
-    // const response = await anthropic.messages.create({ ... });
-
     // Placeholder: return summary with message count
     return `Conversation summary: ${messages.length} messages exchanged. Key context preserved.`;
   }
