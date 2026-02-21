@@ -6037,14 +6037,14 @@ SECURITY:
     // ========================================
     // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
     // User can select provider: Claude, xAI, DeepSeek, OpenAI, Google
-    // Default: Claude Haiku 4.5 (fast, cost-effective for general chat)
-    // Sonnet 4.6 reserved for complex tasks (document gen, extraction)
+    // Default: Claude Sonnet 4.6 — balances quality, speed, and cost.
+    // Supports native web search with dynamic filtering (11% more accurate, 24% fewer tokens).
     // Fallback: xAI Grok 4.1 (full capability parity)
-    // Claude can call tools autonomously when needed
+    // Code Lab uses Opus 4.6 for complex code tasks (separate route).
     // ========================================
 
     // Determine which model to use based on provider selection
-    let selectedModel = 'claude-haiku-4-5-20251001'; // Default to Haiku for cost efficiency
+    let selectedModel = 'claude-sonnet-4-6'; // Sonnet 4.6 for all main chat
 
     // If user selected a specific provider, get its default model
     if (provider && isProviderAvailable(provider)) {
@@ -6055,20 +6055,6 @@ SECURITY:
       }
     } else if (provider && !isProviderAvailable(provider)) {
       log.warn('Selected provider not available, falling back to Claude', { provider });
-    }
-
-    // AUTO-ESCALATION: When web search is available and model is Haiku,
-    // escalate to Sonnet 4.6 for dynamic filtering (11% more accurate, 24% fewer tokens).
-    // web_search_20260209 with dynamic filtering requires Sonnet 4.6+ or Opus 4.6.
-    // Haiku doesn't get dynamic filtering, so we always escalate for search quality.
-    const hasNativeSearch = tools.some(
-      (t) =>
-        t.name === '__native_web_search__' ||
-        (t as unknown as Record<string, unknown>)._nativeWebSearch
-    );
-    if (hasNativeSearch && selectedModel === 'claude-haiku-4-5-20251001') {
-      selectedModel = 'claude-sonnet-4-6';
-      log.info('Auto-escalated to Sonnet 4.6 for native web search with dynamic filtering');
     }
 
     // CRITICAL: Pass the providerId to ensure the correct adapter is used
