@@ -55,6 +55,12 @@ import {
   isComposioConfigured,
 } from '@/lib/composio';
 import { trackTokenUsage } from '@/lib/usage/track';
+import {
+  canMakeRequest,
+  getTokenUsage,
+  getTokenLimitWarningMessage,
+  incrementTokenUsage,
+} from '@/lib/limits';
 
 const log = logger('CodeLabChat');
 
@@ -600,27 +606,60 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Load user's GitHub token for tool use (non-blocking)
+    // Load user's GitHub token and subscription tier for tool use + quota enforcement
     let userGitHubToken: string | undefined;
+    let userPlanKey = 'free';
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (supabaseUrl && serviceKey) {
         const adminClient = createClient(supabaseUrl, serviceKey);
-        const { data: tokenData } = await adminClient
+        const { data: userData } = await adminClient
           .from('users')
-          .select('github_token')
+          .select('github_token, subscription_tier, is_admin')
           .eq('id', user.id)
           .single();
-        if (tokenData?.github_token) {
-          const decrypted = decryptToken(tokenData.github_token);
+        if (userData?.github_token) {
+          const decrypted = decryptToken(userData.github_token);
           if (decrypted) {
             userGitHubToken = decrypted;
           }
         }
+        userPlanKey = userData?.subscription_tier || 'free';
       }
     } catch {
-      // GitHub token loading should never block chat
+      // User data loading should never block chat
+    }
+
+    // ========================================
+    // TOKEN QUOTA ENFORCEMENT
+    // ========================================
+    const canProceed = await canMakeRequest(user.id, userPlanKey);
+    if (!canProceed) {
+      const usage = await getTokenUsage(user.id, userPlanKey);
+      const isFreeUser = userPlanKey === 'free';
+      const warningMessage = getTokenLimitWarningMessage(usage, isFreeUser);
+
+      log.warn('Token quota exceeded', {
+        userId: user.id,
+        plan: userPlanKey,
+        usage: usage.percentage,
+      });
+
+      return chatErrorResponse(402, {
+        error: 'Token quota exceeded',
+        code: ERROR_CODES.QUOTA_EXCEEDED,
+        message:
+          warningMessage ||
+          'You have exceeded your token limit. Please upgrade your plan to continue.',
+        usage: {
+          used: usage.used,
+          limit: usage.limit,
+          percentage: usage.percentage,
+        },
+        action: 'upgrade',
+        actionUrl: '/settings?tab=subscription',
+      });
     }
 
     // Process attachments for Claude vision
@@ -2333,6 +2372,10 @@ Rules:
             source: 'code-lab',
             conversationId: sessionId,
           }).catch(() => {});
+
+          // Enforce token budget limits (parity with main chat route)
+          const totalTokens = (inputTokens || 0) + (outputTokens || 0);
+          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch(() => {});
 
           // Save assistant message
           await (supabase.from('code_lab_messages') as AnySupabase).insert({
