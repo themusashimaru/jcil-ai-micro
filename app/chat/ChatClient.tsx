@@ -1267,44 +1267,6 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
     }
   };
 
-  /* REMOVED: handleImageGenerated, Code and Data handlers - all handled naturally in chat
-  const handleCodeGenerated = (response: string, request: string) => {
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: request,
-      timestamp: new Date(),
-    };
-    const codeMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: response,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage, codeMessage]);
-  };
-
-  const handleSearchComplete = (response: string, query: string) => {
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: `Search: ${query}`,
-      timestamp: new Date(),
-    };
-    const searchMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: response,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage, searchMessage]);
-  };
-
-  const handleDataAnalysisComplete = async (response: string, source: string, type: 'file' | 'url') => {
-    // Data analysis now handled in regular chat
-  };
-  */
-
   /**
    * Helper to safely parse JSON response and extract error message
    */
@@ -5556,13 +5518,6 @@ I'll deploy a focused team to research and write your content.
               conversationId={currentChatId || undefined}
               onImageGenerated={handleImageGenerated}
             />
-            {/* Voice Button - Hidden until feature is production-ready
-              <VoiceButton
-                onStart={startVoiceChat}
-                onUserText={addUserVoiceMessage}
-                onAssistantText={upsertAssistantStreaming}
-              />
-              */}
           </main>
         </div>
 
