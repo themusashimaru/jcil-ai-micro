@@ -13,6 +13,7 @@
 
 import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { untypedRpc } from '@/lib/supabase/workspace-client';
 import { logger } from '@/lib/logger';
 import {
   getCollaborationManager,
@@ -395,9 +396,7 @@ export async function POST(request: NextRequest) {
     if (type === 'presence:update') {
       const presencePayload = payload as PresenceUpdate;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const anySupabase = supabase as any;
-        await anySupabase.rpc('upsert_code_lab_presence', {
+        await untypedRpc(supabase, 'upsert_code_lab_presence', {
           p_session_id: sessionId,
           p_user_id: user.id,
           p_user_name: presencePayload.userName || user.email?.split('@')[0] || 'Anonymous',

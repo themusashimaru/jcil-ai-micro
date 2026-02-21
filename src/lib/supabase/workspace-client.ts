@@ -1,23 +1,55 @@
 /**
  * WORKSPACE SUPABASE CLIENT
  *
- * This module provides type-safe access to workspace-related tables.
- * These tables are created by the workspace schema (src/lib/workspace/schema.sql)
- * and are not included in the auto-generated Supabase types.
+ * Provides access to workspace-related tables that aren't in the
+ * auto-generated Supabase types yet. Uses a typed accessor pattern
+ * so callers don't need eslint-disable comments.
  *
- * Once the schema is deployed and types are regenerated, this can be removed.
+ * Once the schema is deployed and types are regenerated, replace
+ * `untypedFrom()` calls with standard `supabase.from()`.
  */
 
 import { createClient } from './server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Get a Supabase client with workspace table access
- * Bypasses type checking for workspace tables until schema is deployed
+ * Access a Supabase table that isn't in the generated types yet.
+ * Provides query builder access without per-callsite eslint-disable.
+ *
+ * Usage:
+ *   const { data } = await untypedFrom(supabase, 'strategy_sessions').select('*');
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function untypedFrom(supabase: SupabaseClient<any>, table: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as any).from(table);
+}
+
+/**
+ * Call an RPC function that isn't in the generated types yet.
+ *
+ * Usage:
+ *   await untypedRpc(supabase, 'upsert_code_lab_presence', { p_session_id: '...' });
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function untypedRpc(
+  supabase: SupabaseClient<any>,
+  fn: string,
+  params: Record<string, unknown> = {}
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as any).rpc(fn, params);
+}
+
+/**
+ * Get a Supabase client + untyped table accessor
  */
 export async function getWorkspaceClient() {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return supabase as any;
+  return {
+    supabase,
+    from: (table: string) => untypedFrom(supabase, table),
+  };
 }
 
 /**
