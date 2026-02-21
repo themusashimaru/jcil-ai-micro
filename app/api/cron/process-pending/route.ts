@@ -30,13 +30,20 @@ export const maxDuration = 60; // 60 seconds max for cron jobs
 
 export async function GET(request: NextRequest) {
   // SECURITY FIX: Verify cron secret - REQUIRE it even if not set
-  // Previously, if CRON_SECRET was unset, ANY request was allowed
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  // ALWAYS require authentication - don't skip if secret is not configured
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    log.info('[Cron] Unauthorized request - CRON_SECRET required');
+  if (!cronSecret) {
+    log.warn('CRON_SECRET not configured — cron jobs will be rejected');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    log.warn('Cron secret mismatch', {
+      hasAuthHeader: !!authHeader,
+      headerFormat: authHeader ? (authHeader.startsWith('Bearer ') ? 'Bearer' : 'other') : 'none',
+      source: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
