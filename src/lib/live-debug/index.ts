@@ -83,10 +83,7 @@ export class LiveDebugger {
   /**
    * Process a runtime error and generate fix
    */
-  async onError(
-    sessionId: string,
-    error: RuntimeError
-  ): Promise<DebugFix | null> {
+  async onError(sessionId: string, error: RuntimeError): Promise<DebugFix | null> {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
 
@@ -134,9 +131,10 @@ Your fixes must:
 5. Optionally include a test case
 
 Be surgical - change only what's necessary.`,
-      messages: [{
-        role: 'user',
-        content: `Debug this ${error.type}:
+      messages: [
+        {
+          role: 'user',
+          content: `Debug this ${error.type}:
 
 ## Error
 \`\`\`
@@ -168,7 +166,8 @@ Return a JSON object with:
   "prevention": "How to prevent this in future",
   "testCase": "Optional test to verify fix"
 }`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -196,7 +195,8 @@ Return a JSON object with:
     const start = Math.max(0, error.line - 10);
     const end = Math.min(lines.length, error.line + 10);
 
-    return lines.slice(start, end)
+    return lines
+      .slice(start, end)
       .map((line, i) => {
         const lineNum = start + i + 1;
         const marker = lineNum === error.line ? '>>> ' : '    ';
@@ -242,11 +242,12 @@ Return a JSON object with:
    */
   async explainError(error: RuntimeError): Promise<string> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: `Explain this error in simple terms:
+      messages: [
+        {
+          role: 'user',
+          content: `Explain this error in simple terms:
 
 \`\`\`
 ${error.message}
@@ -259,7 +260,8 @@ Explain:
 3. How to fix it
 
 Use simple language, avoid jargon.`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -272,18 +274,24 @@ Use simple language, avoid jargon.`,
   /**
    * Predict potential errors in code before execution
    */
-  async predictErrors(code: string, language: string): Promise<Array<{
-    line: number;
-    issue: string;
-    severity: 'error' | 'warning' | 'potential';
-    suggestedFix: string;
-  }>> {
+  async predictErrors(
+    code: string,
+    language: string
+  ): Promise<
+    Array<{
+      line: number;
+      issue: string;
+      severity: 'error' | 'warning' | 'potential';
+      suggestedFix: string;
+    }>
+  > {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
-      messages: [{
-        role: 'user',
-        content: `Analyze this ${language} code for potential runtime errors:
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze this ${language} code for potential runtime errors:
 
 \`\`\`${language}
 ${code}
@@ -301,7 +309,8 @@ Return JSON array:
   "severity": "error" | "warning" | "potential",
   "suggestedFix": "code fix"
 }]`,
-      }],
+        },
+      ],
     });
 
     let content = '';

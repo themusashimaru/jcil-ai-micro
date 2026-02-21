@@ -19,10 +19,7 @@ export const maxDuration = 300; // 5 minutes for complex tasks
 /**
  * POST - Run the AI agent with streaming
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -30,7 +27,9 @@ export async function POST(
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -54,14 +53,16 @@ export async function POST(
       });
     }
 
-    const jsonResult = await safeParseJSON<{ prompt?: string; mode?: string; model?: string }>(request);
+    const jsonResult = await safeParseJSON<{ prompt?: string; mode?: string; model?: string }>(
+      request
+    );
     if (!jsonResult.success) {
       return new Response(JSON.stringify({ error: jsonResult.error }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { prompt, mode = 'interactive', model = 'claude-sonnet-4-20250514' } = jsonResult.data;
+    const { prompt, mode = 'interactive', model = 'claude-sonnet-4-6' } = jsonResult.data;
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), {
@@ -101,10 +102,7 @@ export async function POST(
 
           response = await agent.runAutonomous(prompt);
         } else {
-          const agent = new StreamingCodingAgent(
-            { workspaceId, model },
-            onUpdate
-          );
+          const agent = new StreamingCodingAgent({ workspaceId, model }, onUpdate);
 
           response = await agent.runWithStreaming(prompt);
         }
@@ -112,7 +110,13 @@ export async function POST(
         await sendEvent('complete', response);
 
         // Log the agent run (table created by workspace schema)
-        await (supabase as unknown as { from: (table: string) => { insert: (data: Record<string, unknown>) => Promise<unknown> } })
+        await (
+          supabase as unknown as {
+            from: (table: string) => {
+              insert: (data: Record<string, unknown>) => Promise<unknown>;
+            };
+          }
+        )
           .from('tool_executions')
           .insert({
             workspace_id: workspaceId,
@@ -122,7 +126,6 @@ export async function POST(
             result: response,
             success: true,
           });
-
       } catch (error) {
         await sendEvent('error', {
           message: error instanceof Error ? error.message : 'Unknown error',
@@ -136,32 +139,33 @@ export async function POST(
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
-
   } catch (error) {
     log.error('Agent error', error as Error);
-    return new Response(JSON.stringify({
-      error: 'Agent execution failed',
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Agent execution failed',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 }
 
 /**
  * GET - Get agent execution history
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -187,7 +191,6 @@ export async function GET(
     return new Response(JSON.stringify({ executions }), {
       headers: { 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     log.error('Failed to get agent history', error as Error);
     return new Response(JSON.stringify({ error: 'Failed to get agent history' }), {

@@ -30,12 +30,15 @@ const SUPPORTED_PROVIDERS = ['claude', 'openai', 'deepseek', 'xai', 'gemini'] as
 type ProviderId = (typeof SUPPORTED_PROVIDERS)[number];
 
 // Provider display info
-const PROVIDER_INFO: Record<ProviderId, { name: string; keyPrefix: string; testUrl: string; defaultModel: string }> = {
+const PROVIDER_INFO: Record<
+  ProviderId,
+  { name: string; keyPrefix: string; testUrl: string; defaultModel: string }
+> = {
   claude: {
     name: 'Anthropic (Claude)',
     keyPrefix: 'sk-ant-',
     testUrl: 'https://api.anthropic.com/v1/messages',
-    defaultModel: 'claude-sonnet-4-20250514',
+    defaultModel: 'claude-sonnet-4-6',
   },
   openai: {
     name: 'OpenAI',
@@ -72,7 +75,10 @@ interface ProviderConfig {
 /**
  * Test if an API key is valid by making a simple API call
  */
-async function testApiKey(provider: ProviderId, apiKey: string): Promise<{ valid: boolean; error?: string }> {
+async function testApiKey(
+  provider: ProviderId,
+  apiKey: string
+): Promise<{ valid: boolean; error?: string }> {
   const info = PROVIDER_INFO[provider];
 
   try {
@@ -89,7 +95,7 @@ async function testApiKey(provider: ProviderId, apiKey: string): Promise<{ valid
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 1,
           messages: [{ role: 'user', content: 'test' }],
         }),
@@ -110,7 +116,7 @@ async function testApiKey(provider: ProviderId, apiKey: string): Promise<{ valid
       response = await fetch(info.testUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
       });
@@ -189,7 +195,10 @@ export async function GET() {
       defaultModel: string;
     }> = [];
 
-    const storedConfigs = (prefs?.provider_api_keys || {}) as Record<string, string | ProviderConfig>;
+    const storedConfigs = (prefs?.provider_api_keys || {}) as Record<
+      string,
+      string | ProviderConfig
+    >;
 
     for (const provider of SUPPORTED_PROVIDERS) {
       const stored = storedConfigs[provider];
@@ -293,17 +302,23 @@ export async function POST(request: NextRequest) {
     // Validate key format
     const info = PROVIDER_INFO[provider as ProviderId];
     if (!apiKey.startsWith(info.keyPrefix)) {
-      return NextResponse.json({
-        error: `Invalid ${info.name} API key format. Key should start with "${info.keyPrefix}"`
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: `Invalid ${info.name} API key format. Key should start with "${info.keyPrefix}"`,
+        },
+        { status: 400 }
+      );
     }
 
     // Test the key before saving
     const testResult = await testApiKey(provider, apiKey);
     if (!testResult.valid) {
-      return NextResponse.json({
-        error: testResult.error || 'Invalid API key'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: testResult.error || 'Invalid API key',
+        },
+        { status: 400 }
+      );
     }
 
     // Encrypt and save with optional custom model
@@ -326,26 +341,34 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    const existingKeys = (existing?.provider_api_keys || {}) as Record<string, string | ProviderConfig>;
+    const existingKeys = (existing?.provider_api_keys || {}) as Record<
+      string,
+      string | ProviderConfig
+    >;
     const updatedKeys = { ...existingKeys, [provider]: providerConfig };
 
     // Upsert the preferences
-    const { error: upsertError } = await adminClient
-      .from('user_provider_preferences')
-      .upsert({
+    const { error: upsertError } = await adminClient.from('user_provider_preferences').upsert(
+      {
         user_id: user.id,
         provider_api_keys: updatedKeys,
         updated_at: new Date().toISOString(),
-      }, {
+      },
+      {
         onConflict: 'user_id',
-      });
+      }
+    );
 
     if (upsertError) {
       log.error('Error saving API key', { error: upsertError });
       return NextResponse.json({ error: 'Failed to save API key' }, { status: 500 });
     }
 
-    log.info('API key saved', { userId: user.id, provider, hasCustomModel: !!providerConfig.model });
+    log.info('API key saved', {
+      userId: user.id,
+      provider,
+      hasCustomModel: !!providerConfig.model,
+    });
 
     return NextResponse.json({
       success: true,
@@ -419,7 +442,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No API keys found' }, { status: 404 });
     }
 
-    const existingKeys = (existing.provider_api_keys || {}) as Record<string, string | ProviderConfig>;
+    const existingKeys = (existing.provider_api_keys || {}) as Record<
+      string,
+      string | ProviderConfig
+    >;
     delete existingKeys[provider];
 
     // Update

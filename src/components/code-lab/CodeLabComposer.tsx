@@ -67,8 +67,8 @@ const MODEL_DISPLAY_NAMES: Record<
   // ========================================
   // CLAUDE MODELS (Anthropic)
   // ========================================
-  'claude-sonnet-4-20250514': {
-    name: 'Sonnet',
+  'claude-sonnet-4-6': {
+    name: 'Sonnet 4.6',
     description: 'Fast & capable',
     provider: 'claude',
   },
@@ -83,7 +83,7 @@ const MODEL_DISPLAY_NAMES: Record<
     provider: 'claude',
   },
   // Extended thinking variants (deeper reasoning)
-  'claude-sonnet-4-20250514-thinking': {
+  'claude-sonnet-4-6-thinking': {
     name: 'Sonnet (Thinking)',
     description: 'Deep reasoning',
     provider: 'claude',
@@ -1473,8 +1473,13 @@ export function CodeLabComposer({
         }
 
         @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
         }
 
         .agents-dropdown,
@@ -1601,7 +1606,9 @@ export function CodeLabComposer({
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         /* Extra small screens */

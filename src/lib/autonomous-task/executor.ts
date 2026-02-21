@@ -35,14 +35,11 @@ function generateId(): string {
 /**
  * Plan an autonomous task from a user request
  */
-export async function planTask(
-  request: string,
-  context: TaskContext
-): Promise<TaskPlan> {
+export async function planTask(request: string, context: TaskContext): Promise<TaskPlan> {
   log.debug('Planning task', { requestPreview: request.substring(0, 50) });
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: `You are a task planner for an autonomous coding assistant.
 
@@ -84,7 +81,10 @@ Return only valid JSON, no markdown.`,
 
   try {
     // Parse JSON, removing any markdown
-    const jsonStr = content.replace(/```json?\s*/g, '').replace(/```\s*/g, '').trim();
+    const jsonStr = content
+      .replace(/```json?\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
     return JSON.parse(jsonStr) as TaskPlan;
   } catch {
     // Fallback to simple plan
@@ -117,10 +117,7 @@ Return only valid JSON, no markdown.`,
 /**
  * Create and queue a new autonomous task
  */
-export async function createTask(
-  request: string,
-  context: TaskContext
-): Promise<AutonomousTask> {
+export async function createTask(request: string, context: TaskContext): Promise<AutonomousTask> {
   const supabase = createServiceClient();
 
   // Plan the task
@@ -176,10 +173,7 @@ export async function createTask(
 /**
  * Execute an autonomous task
  */
-export async function executeTask(
-  taskId: string,
-  context: TaskContext
-): Promise<TaskResult> {
+export async function executeTask(taskId: string, context: TaskContext): Promise<TaskResult> {
   const supabase = createServiceClient();
 
   // Get task from database
@@ -221,7 +215,8 @@ export async function executeTask(
   log.info('Starting execution of task', { taskId });
 
   let fullOutput = '';
-  const allFiles: Array<{ path: string; content: string; action: 'create' | 'update' | 'delete' }> = [];
+  const allFiles: Array<{ path: string; content: string; action: 'create' | 'update' | 'delete' }> =
+    [];
 
   try {
     // Execute each step
@@ -240,12 +235,14 @@ export async function executeTask(
       const agentContext = {
         userId: context.userId,
         sessionId: context.sessionId,
-        repo: context.repo ? {
-          owner: context.repo.owner,
-          name: context.repo.name,
-          branch: context.repo.branch,
-          fullName: `${context.repo.owner}/${context.repo.name}`,
-        } : undefined,
+        repo: context.repo
+          ? {
+              owner: context.repo.owner,
+              name: context.repo.name,
+              branch: context.repo.branch,
+              fullName: `${context.repo.owner}/${context.repo.name}`,
+            }
+          : undefined,
         previousMessages: context.conversationHistory,
       };
 
@@ -260,11 +257,13 @@ export async function executeTask(
 
       // Collect files
       if (result.files) {
-        allFiles.push(...result.files.map(f => ({
-          path: f.path,
-          content: f.content,
-          action: 'create' as const,
-        })));
+        allFiles.push(
+          ...result.files.map((f) => ({
+            path: f.path,
+            content: f.content,
+            action: 'create' as const,
+          }))
+        );
       }
 
       // Update step status
@@ -311,7 +310,10 @@ export async function executeTask(
     return {
       success: false,
       output: fullOutput || 'Task execution failed',
-      suggestions: ['Try breaking down the task into smaller parts', 'Check for any missing dependencies'],
+      suggestions: [
+        'Try breaking down the task into smaller parts',
+        'Check for any missing dependencies',
+      ],
     };
   }
 }
@@ -319,7 +321,9 @@ export async function executeTask(
 /**
  * Get the appropriate agent type for a step
  */
-function getAgentForStepType(step: TaskStep & { type?: string; agentType?: string }): 'frontend' | 'backend' | 'test' | 'reviewer' {
+function getAgentForStepType(
+  step: TaskStep & { type?: string; agentType?: string }
+): 'frontend' | 'backend' | 'test' | 'reviewer' {
   // Use explicit agent type if provided
   if (step.agentType) {
     return step.agentType as 'frontend' | 'backend' | 'test' | 'reviewer';
@@ -341,7 +345,11 @@ function getAgentForStepType(step: TaskStep & { type?: string; agentType?: strin
 /**
  * Build instruction for a step
  */
-function buildStepInstruction(step: TaskStep, task: AutonomousTask, previousOutput: string): string {
+function buildStepInstruction(
+  step: TaskStep,
+  task: AutonomousTask,
+  previousOutput: string
+): string {
   let instruction = `Task: ${task.title}\n\n`;
   instruction += `Overall Goal: ${task.description}\n\n`;
   instruction += `Current Step: ${step.name}\n`;
@@ -471,7 +479,7 @@ export async function getUserTasks(userId: string, limit = 10): Promise<Autonomo
 
   if (error || !data) return [];
 
-  return data.map(task => ({
+  return data.map((task) => ({
     id: task.id,
     userId: task.user_id,
     sessionId: task.session_id,

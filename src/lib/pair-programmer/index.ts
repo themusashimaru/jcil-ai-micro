@@ -68,7 +68,10 @@ export class AIPairProgrammer {
   /**
    * Process a code edit and generate intelligent suggestions
    */
-  async onEdit(edit: CodeEdit, context: PairProgrammerContext): Promise<PairProgrammerSuggestion[]> {
+  async onEdit(
+    edit: CodeEdit,
+    context: PairProgrammerContext
+  ): Promise<PairProgrammerSuggestion[]> {
     this.editHistory.push(edit);
 
     // Keep last 20 edits for pattern recognition
@@ -92,7 +95,9 @@ export class AIPairProgrammer {
   /**
    * Analyze current context and generate suggestions
    */
-  private async analyzeAndSuggest(context: PairProgrammerContext): Promise<PairProgrammerSuggestion[]> {
+  private async analyzeAndSuggest(
+    context: PairProgrammerContext
+  ): Promise<PairProgrammerSuggestion[]> {
     const suggestions: PairProgrammerSuggestion[] = [];
 
     // Analyze edit patterns
@@ -103,7 +108,7 @@ export class AIPairProgrammer {
 
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514', // Fast model for real-time
+        model: 'claude-sonnet-4-6', // Fast model for real-time
         max_tokens: 1024,
         system: `You are an AI pair programmer watching code edits in real-time.
 Your role is to:
@@ -154,23 +159,23 @@ Return JSON array of suggestions with confidence scores.`,
     const recentEdits = this.editHistory.slice(-5);
 
     // Check if user is writing a function
-    const isWritingFunction = recentEdits.some(e =>
+    const isWritingFunction = recentEdits.some((e) =>
       /function\s+\w+|const\s+\w+\s*=\s*(async\s*)?\(|=>\s*{?/.test(e.newContent)
     );
 
     // Check if user is debugging (lots of console.log or deletes)
-    const isDebugging = recentEdits.filter(e =>
-      e.newContent.includes('console.log') ||
-      e.newContent.includes('debugger') ||
-      e.oldContent.length > e.newContent.length * 2
-    ).length >= 2;
+    const isDebugging =
+      recentEdits.filter(
+        (e) =>
+          e.newContent.includes('console.log') ||
+          e.newContent.includes('debugger') ||
+          e.oldContent.length > e.newContent.length * 2
+      ).length >= 2;
 
     // Check if user is refactoring (similar edits in multiple places)
-    const editContents = recentEdits.map(e => e.newContent.trim());
+    const editContents = recentEdits.map((e) => e.newContent.trim());
     const repetitivePattern = editContents.find((content, i) =>
-      editContents.slice(i + 1).some(other =>
-        this.similarity(content, other) > 0.8
-      )
+      editContents.slice(i + 1).some((other) => this.similarity(content, other) > 0.8)
     );
 
     // Predict likely next action
@@ -203,10 +208,9 @@ Return JSON array of suggestions with confidence scores.`,
     patterns: ReturnType<typeof this.detectEditPatterns>
   ): string {
     const lines = context.fileContent.split('\n');
-    const surroundingLines = lines.slice(
-      Math.max(0, context.cursorLine - 10),
-      Math.min(lines.length, context.cursorLine + 10)
-    ).join('\n');
+    const surroundingLines = lines
+      .slice(Math.max(0, context.cursorLine - 10), Math.min(lines.length, context.cursorLine + 10))
+      .join('\n');
 
     let prompt = `Current file: ${context.currentFile}\n`;
     prompt += `Cursor at line ${context.cursorLine}\n\n`;
@@ -218,7 +222,7 @@ Return JSON array of suggestions with confidence scores.`,
 
     if (context.diagnostics && context.diagnostics.length > 0) {
       prompt += `Current errors/warnings:\n`;
-      context.diagnostics.forEach(d => {
+      context.diagnostics.forEach((d) => {
         prompt += `- Line ${d.line}: [${d.severity}] ${d.message}\n`;
       });
       prompt += '\n';
@@ -227,11 +231,12 @@ Return JSON array of suggestions with confidence scores.`,
     prompt += `Edit patterns detected:\n`;
     if (patterns.isWritingFunction) prompt += `- User is writing a function\n`;
     if (patterns.isDebugging) prompt += `- User appears to be debugging\n`;
-    if (patterns.isRefactoring) prompt += `- User is refactoring (repeated pattern: ${patterns.repetitivePattern})\n`;
+    if (patterns.isRefactoring)
+      prompt += `- User is refactoring (repeated pattern: ${patterns.repetitivePattern})\n`;
     if (patterns.likelyNextAction) prompt += `- Likely next action: ${patterns.likelyNextAction}\n`;
 
     prompt += `\nRecent edits:\n`;
-    this.editHistory.slice(-3).forEach(edit => {
+    this.editHistory.slice(-3).forEach((edit) => {
       prompt += `- Changed "${edit.oldContent.slice(0, 50)}" to "${edit.newContent.slice(0, 50)}"\n`;
     });
 
@@ -251,11 +256,12 @@ Return JSON array of suggestions with confidence scores.`,
    */
   async onFileOpen(context: PairProgrammerContext): Promise<PairProgrammerSuggestion[]> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: `Quickly scan this file and identify any immediate issues or improvements:
+      messages: [
+        {
+          role: 'user',
+          content: `Quickly scan this file and identify any immediate issues or improvements:
 
 File: ${context.currentFile}
 \`\`\`
@@ -263,7 +269,8 @@ ${context.fileContent.slice(0, 3000)}
 \`\`\`
 
 Return JSON array with max 3 most important suggestions.`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -292,7 +299,7 @@ Return JSON array with max 3 most important suggestions.`,
     const currentLine = lines[context.cursorLine] || '';
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 256,
       system: `You are a code completion engine. Complete the code at the cursor.
 Rules:
@@ -300,9 +307,10 @@ Rules:
 - Match the existing code style exactly
 - Be concise - complete the current thought, not paragraphs
 - If unsure, return empty string`,
-      messages: [{
-        role: 'user',
-        content: `Complete this code:
+      messages: [
+        {
+          role: 'user',
+          content: `Complete this code:
 
 \`\`\`${context.projectContext?.language || 'typescript'}
 ${linesBefore.join('\n')}
@@ -311,7 +319,8 @@ ${linesAfter.join('\n')}
 \`\`\`
 
 Return only the completion text, nothing else.`,
-      }],
+        },
+      ],
     });
 
     let completion = '';
@@ -320,7 +329,10 @@ Return only the completion text, nothing else.`,
     }
 
     // Clean up completion
-    completion = completion.replace(/^```\w*\n?/, '').replace(/```$/, '').trim();
+    completion = completion
+      .replace(/^```\w*\n?/, '')
+      .replace(/```$/, '')
+      .trim();
 
     return completion || null;
   }
@@ -331,7 +343,7 @@ Return only the completion text, nothing else.`,
   private similarity(a: string, b: string): number {
     const setA = new Set(a.split(/\s+/));
     const setB = new Set(b.split(/\s+/));
-    const intersection = new Set([...setA].filter(x => setB.has(x)));
+    const intersection = new Set([...setA].filter((x) => setB.has(x)));
     const union = new Set([...setA, ...setB]);
     return intersection.size / union.size;
   }

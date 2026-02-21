@@ -144,7 +144,7 @@ describe('Provider Registry', () => {
   describe('estimateCost', () => {
     it('should estimate cost for token usage', () => {
       const claudeModel = getDefaultModel('claude');
-      const cost = estimateCost('claude', claudeModel?.id ?? 'claude-sonnet-4-20250514', 1000, 500);
+      const cost = estimateCost('claude', claudeModel?.id ?? 'claude-sonnet-4-6', 1000, 500);
       // Cost should be a number (may be 0 if model not found)
       expect(typeof cost).toBe('number');
       expect(cost).toBeGreaterThanOrEqual(0);
@@ -408,7 +408,7 @@ describe('Message Types', () => {
         content: 'Response text',
         metadata: {
           provider: 'claude',
-          model: 'claude-opus-4-20250514',
+          model: 'claude-opus-4-6',
           timestamp: '2025-01-20T00:00:00Z',
           usage: {
             inputTokens: 100,

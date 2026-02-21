@@ -40,7 +40,7 @@ export type PricingTier = 'premium' | 'standard' | 'budget';
  * Model configuration within a provider
  */
 export interface ModelConfig {
-  /** Model identifier for API calls (e.g., 'gpt-4o', 'claude-opus-4-20250514') */
+  /** Model identifier for API calls (e.g., 'gpt-4o', 'claude-opus-4-6') */
   id: string;
   /** Human-readable display name */
   name: string;

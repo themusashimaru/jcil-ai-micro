@@ -63,7 +63,7 @@ export async function convertVisualToCode(
  */
 async function analyzeDesign(imageData: string) {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     messages: [
       {
@@ -134,7 +134,10 @@ Be specific about colors and styling. Return only valid JSON.`,
   }
 
   try {
-    const jsonStr = content.replace(/```json?\s*/g, '').replace(/```\s*/g, '').trim();
+    const jsonStr = content
+      .replace(/```json?\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
     return JSON.parse(jsonStr);
   } catch {
     return {
@@ -167,7 +170,8 @@ async function generateComponents(
   const typesNote = typescript ? 'Include TypeScript types.' : '';
 
   const stylingInstructions = {
-    tailwind: 'Use Tailwind CSS classes for all styling. Use responsive prefixes (sm:, md:, lg:) for responsive design.',
+    tailwind:
+      'Use Tailwind CSS classes for all styling. Use responsive prefixes (sm:, md:, lg:) for responsive design.',
     css: 'Use CSS modules with a separate .module.css file.',
     'styled-components': 'Use styled-components for styling.',
     'css-modules': 'Use CSS modules with a separate .module.css file.',
@@ -236,7 +240,10 @@ Create production-ready, clean code. Return only valid JSON.`,
   }
 
   try {
-    const jsonStr = content.replace(/```json?\s*/g, '').replace(/```\s*/g, '').trim();
+    const jsonStr = content
+      .replace(/```json?\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
     const result = JSON.parse(jsonStr);
     const components = result.components || [];
 
@@ -296,9 +303,8 @@ export default ${name};`;
  * Generate preview HTML for the component
  */
 function generatePreviewHtml(component: GeneratedComponent, styling: string): string {
-  const tailwindCdn = styling === 'tailwind'
-    ? '<script src="https://cdn.tailwindcss.com"></script>'
-    : '';
+  const tailwindCdn =
+    styling === 'tailwind' ? '<script src="https://cdn.tailwindcss.com"></script>' : '';
 
   // Extract just the JSX from the component for preview
   const jsxMatch = component.code.match(/return\s*\(\s*([\s\S]*?)\s*\);/);
@@ -348,7 +354,7 @@ export async function quickConvert(
   componentName: string = 'Component'
 ): Promise<string> {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 4096,
     messages: [
       {

@@ -6,7 +6,14 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { PRInfo, FileDiff, CodeReviewResult, ReviewComment, ReviewOptions, ReviewSeverity } from './types';
+import {
+  PRInfo,
+  FileDiff,
+  CodeReviewResult,
+  ReviewComment,
+  ReviewOptions,
+  ReviewSeverity,
+} from './types';
 import { logger } from '@/lib/logger';
 
 const log = logger('CodeReview');
@@ -82,21 +89,23 @@ export async function fetchPRDiff(
 
     const files = await response.json();
 
-    return files.map((file: {
-      filename: string;
-      status: string;
-      additions: number;
-      deletions: number;
-      patch?: string;
-      previous_filename?: string;
-    }) => ({
-      filename: file.filename,
-      status: file.status as FileDiff['status'],
-      additions: file.additions,
-      deletions: file.deletions,
-      patch: file.patch || '',
-      previousFilename: file.previous_filename,
-    }));
+    return files.map(
+      (file: {
+        filename: string;
+        status: string;
+        additions: number;
+        deletions: number;
+        patch?: string;
+        previous_filename?: string;
+      }) => ({
+        filename: file.filename,
+        status: file.status as FileDiff['status'],
+        additions: file.additions,
+        deletions: file.deletions,
+        patch: file.patch || '',
+        previousFilename: file.previous_filename,
+      })
+    );
   } catch (error) {
     log.error('Error fetching PR diff', error as Error);
     return [];
@@ -141,7 +150,7 @@ export async function reviewPR(
   const systemPrompt = `You are an expert code reviewer performing a thorough review of a pull request.
 
 ## Review Focus Areas
-${focusAreas.map(area => `- ${area}`).join('\n')}
+${focusAreas.map((area) => `- ${area}`).join('\n')}
 
 ## Review Guidelines
 1. Look for bugs, logic errors, and potential runtime issues
@@ -177,7 +186,7 @@ Limit to ${maxComments} most important comments.`;
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: systemPrompt,
       messages: [
@@ -212,7 +221,10 @@ Return ONLY valid JSON, no markdown formatting.`,
 
     // Parse the response
     try {
-      const jsonStr = content.replace(/```json?\s*/g, '').replace(/```\s*/g, '').trim();
+      const jsonStr = content
+        .replace(/```json?\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
       const review = JSON.parse(jsonStr);
 
       // Calculate statistics
@@ -309,7 +321,7 @@ export function formatReviewAsMarkdown(review: CodeReviewResult, prInfo: PRInfo)
   // Security concerns
   if (review.securityConcerns.length > 0) {
     md += `### 🛡️ Security Concerns\n`;
-    review.securityConcerns.forEach(concern => {
+    review.securityConcerns.forEach((concern) => {
       md += `- ${concern}\n`;
     });
     md += '\n';
@@ -318,7 +330,7 @@ export function formatReviewAsMarkdown(review: CodeReviewResult, prInfo: PRInfo)
   // Performance concerns
   if (review.performanceConcerns.length > 0) {
     md += `### ⚡ Performance Concerns\n`;
-    review.performanceConcerns.forEach(concern => {
+    review.performanceConcerns.forEach((concern) => {
       md += `- ${concern}\n`;
     });
     md += '\n';
@@ -354,7 +366,7 @@ export function formatReviewAsMarkdown(review: CodeReviewResult, prInfo: PRInfo)
   // Recommendations
   if (review.recommendations.length > 0) {
     md += `### 💡 Recommendations\n`;
-    review.recommendations.forEach(rec => {
+    review.recommendations.forEach((rec) => {
       md += `- ${rec}\n`;
     });
   }
@@ -374,11 +386,12 @@ export async function postReviewToGitHub(
 ): Promise<boolean> {
   try {
     // Map our rating to GitHub's event
-    const event = review.overallRating === 'approve'
-      ? 'APPROVE'
-      : review.overallRating === 'request-changes'
-      ? 'REQUEST_CHANGES'
-      : 'COMMENT';
+    const event =
+      review.overallRating === 'approve'
+        ? 'APPROVE'
+        : review.overallRating === 'request-changes'
+          ? 'REQUEST_CHANGES'
+          : 'COMMENT';
 
     // Create the review
     const response = await fetch(
@@ -392,11 +405,12 @@ export async function postReviewToGitHub(
         },
         body: JSON.stringify({
           event,
-          body: `## AI Code Review\n\n${review.summary}\n\n` +
+          body:
+            `## AI Code Review\n\n${review.summary}\n\n` +
             `**Rating**: ${review.overallRating.toUpperCase()}\n` +
             `**Issues Found**: ${review.statistics.criticalIssues} critical, ${review.statistics.warnings} warnings\n\n` +
             (review.recommendations.length > 0
-              ? `### Recommendations\n${review.recommendations.map(r => `- ${r}`).join('\n')}\n`
+              ? `### Recommendations\n${review.recommendations.map((r) => `- ${r}`).join('\n')}\n`
               : '') +
             `\n---\n*This review was generated by AI. Please verify all suggestions.*`,
         }),

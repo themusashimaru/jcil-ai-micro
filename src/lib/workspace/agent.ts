@@ -395,7 +395,7 @@ export class CodingAgent {
   constructor(config: AgentConfig) {
     this.anthropic = new Anthropic();
     this.config = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       maxIterations: 20,
       autoApprove: false,
       ...config,
@@ -426,7 +426,7 @@ export class CodingAgent {
 
       // Call Claude with tools
       const response = await this.anthropic.messages.create({
-        model: this.config.model || 'claude-sonnet-4-20250514',
+        model: this.config.model || 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: this.getSystemPrompt(),
         tools: AGENT_TOOLS,

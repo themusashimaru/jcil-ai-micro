@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
       {
         error: 'Failed to generate code from image',
         code: 'VISUAL_TO_CODE_FAILED',
-        details: error instanceof Error ? error.message : undefined,
       },
       { status: 500 }
     );

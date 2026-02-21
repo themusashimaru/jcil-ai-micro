@@ -80,7 +80,7 @@ export interface RuntimeInfo {
 }
 
 export interface ArchitectureInfo {
-  pattern: string;  // MVC, Clean, Hexagonal, etc.
+  pattern: string; // MVC, Clean, Hexagonal, etc.
   layers: string[];
   entryPoints: string[];
   dataFlow: string;
@@ -144,15 +144,12 @@ export interface CodebaseInsight {
 
 export class CodebaseAnalyzer {
   // Model available for future AI-powered analysis
-  // private model = 'claude-opus-4-5-20251101';
+  // private model = 'claude-opus-4-6';
 
   /**
    * Perform complete codebase analysis
    */
-  async analyze(
-    repoFiles: string[],
-    onStream: AgentStreamCallback
-  ): Promise<CodebaseProfile> {
+  async analyze(repoFiles: string[], onStream: AgentStreamCallback): Promise<CodebaseProfile> {
     onStream({
       type: 'thinking',
       message: '🔍 Analyzing codebase structure...',
@@ -324,7 +321,7 @@ export class CodebaseAnalyzer {
 
         if (!current.children) current.children = [];
 
-        let child = current.children.find(c => c.name === part);
+        let child = current.children.find((c) => c.name === part);
         if (!child) {
           child = {
             name: part,
@@ -339,48 +336,48 @@ export class CodebaseAnalyzer {
 
     // Identify key directories
     const keyDirPatterns: Record<string, string> = {
-      'src': 'Source code',
-      'lib': 'Library code',
-      'app': 'Application code (Next.js/Rails)',
-      'pages': 'Page components',
-      'components': 'UI components',
-      'hooks': 'React hooks',
-      'utils': 'Utility functions',
-      'helpers': 'Helper functions',
-      'services': 'Business logic services',
-      'api': 'API routes/handlers',
-      'models': 'Data models',
-      'controllers': 'Request controllers',
-      'views': 'View templates',
-      'tests': 'Test files',
-      '__tests__': 'Jest test files',
-      'spec': 'Test specifications',
-      'config': 'Configuration files',
-      'public': 'Static assets',
-      'assets': 'Asset files',
-      'styles': 'Style files',
-      'types': 'TypeScript types',
-      'interfaces': 'Interface definitions',
-      'constants': 'Constant values',
-      'middleware': 'Middleware functions',
-      'routes': 'Route definitions',
-      'schemas': 'Data schemas',
-      'migrations': 'Database migrations',
-      'seeds': 'Database seeds',
+      src: 'Source code',
+      lib: 'Library code',
+      app: 'Application code (Next.js/Rails)',
+      pages: 'Page components',
+      components: 'UI components',
+      hooks: 'React hooks',
+      utils: 'Utility functions',
+      helpers: 'Helper functions',
+      services: 'Business logic services',
+      api: 'API routes/handlers',
+      models: 'Data models',
+      controllers: 'Request controllers',
+      views: 'View templates',
+      tests: 'Test files',
+      __tests__: 'Jest test files',
+      spec: 'Test specifications',
+      config: 'Configuration files',
+      public: 'Static assets',
+      assets: 'Asset files',
+      styles: 'Style files',
+      types: 'TypeScript types',
+      interfaces: 'Interface definitions',
+      constants: 'Constant values',
+      middleware: 'Middleware functions',
+      routes: 'Route definitions',
+      schemas: 'Data schemas',
+      migrations: 'Database migrations',
+      seeds: 'Database seeds',
     };
 
     const topLevelDirs = new Set<string>();
-    files.forEach(f => {
+    files.forEach((f) => {
       const firstDir = f.split('/')[0];
       if (!f.includes('/') || !firstDir.includes('.')) {
         topLevelDirs.add(firstDir);
       }
     });
 
-    topLevelDirs.forEach(dir => {
+    topLevelDirs.forEach((dir) => {
       const purpose = keyDirPatterns[dir.toLowerCase()];
       if (purpose) {
-        const dirFiles = files.filter(f => f.startsWith(dir + '/') || f === dir);
+        const dirFiles = files.filter((f) => f.startsWith(dir + '/') || f === dir);
         keyDirs.push({
           path: dir,
           purpose,
@@ -397,8 +394,11 @@ export class CodebaseAnalyzer {
    */
   private detectLanguages(files: string[]): LanguageBreakdown[] {
     const extMap: Record<string, string> = {
-      ts: 'TypeScript', tsx: 'TypeScript',
-      js: 'JavaScript', jsx: 'JavaScript', mjs: 'JavaScript',
+      ts: 'TypeScript',
+      tsx: 'TypeScript',
+      js: 'JavaScript',
+      jsx: 'JavaScript',
+      mjs: 'JavaScript',
       py: 'Python',
       rs: 'Rust',
       go: 'Go',
@@ -406,23 +406,33 @@ export class CodebaseAnalyzer {
       rb: 'Ruby',
       php: 'PHP',
       cs: 'C#',
-      cpp: 'C++', cc: 'C++', cxx: 'C++',
-      c: 'C', h: 'C',
+      cpp: 'C++',
+      cc: 'C++',
+      cxx: 'C++',
+      c: 'C',
+      h: 'C',
       swift: 'Swift',
       kt: 'Kotlin',
       scala: 'Scala',
       sql: 'SQL',
-      sh: 'Shell', bash: 'Shell',
-      css: 'CSS', scss: 'CSS', sass: 'CSS', less: 'CSS',
-      html: 'HTML', htm: 'HTML',
+      sh: 'Shell',
+      bash: 'Shell',
+      css: 'CSS',
+      scss: 'CSS',
+      sass: 'CSS',
+      less: 'CSS',
+      html: 'HTML',
+      htm: 'HTML',
       json: 'JSON',
-      yaml: 'YAML', yml: 'YAML',
-      md: 'Markdown', mdx: 'Markdown',
+      yaml: 'YAML',
+      yml: 'YAML',
+      md: 'Markdown',
+      mdx: 'Markdown',
     };
 
     const counts: Record<string, number> = {};
 
-    files.forEach(file => {
+    files.forEach((file) => {
       const ext = file.split('.').pop()?.toLowerCase() || '';
       const lang = extMap[ext];
       if (lang) {
@@ -448,31 +458,42 @@ export class CodebaseAnalyzer {
     const keyFilePatterns = [
       'package.json',
       'tsconfig.json',
-      'next.config.js', 'next.config.mjs', 'next.config.ts',
-      'vite.config.ts', 'vite.config.js',
+      'next.config.js',
+      'next.config.mjs',
+      'next.config.ts',
+      'vite.config.ts',
+      'vite.config.js',
       'webpack.config.js',
-      'requirements.txt', 'pyproject.toml', 'setup.py',
+      'requirements.txt',
+      'pyproject.toml',
+      'setup.py',
       'Cargo.toml',
       'go.mod',
       'Gemfile',
       'composer.json',
-      '.eslintrc', '.eslintrc.js', '.eslintrc.json',
-      '.prettierrc', '.prettierrc.js', '.prettierrc.json',
-      'jest.config.js', 'jest.config.ts',
+      '.eslintrc',
+      '.eslintrc.js',
+      '.eslintrc.json',
+      '.prettierrc',
+      '.prettierrc.js',
+      '.prettierrc.json',
+      'jest.config.js',
+      'jest.config.ts',
       'vitest.config.ts',
-      '.github/workflows/ci.yml', '.github/workflows/main.yml',
+      '.github/workflows/ci.yml',
+      '.github/workflows/main.yml',
       '.gitlab-ci.yml',
-      'Dockerfile', 'docker-compose.yml',
+      'Dockerfile',
+      'docker-compose.yml',
       'README.md',
     ];
 
     const result: Record<string, string> = {};
 
     for (const pattern of keyFilePatterns) {
-      const match = files.find(f =>
-        f === pattern ||
-        f.endsWith('/' + pattern) ||
-        f.toLowerCase() === pattern.toLowerCase()
+      const match = files.find(
+        (f) =>
+          f === pattern || f.endsWith('/' + pattern) || f.toLowerCase() === pattern.toLowerCase()
       );
 
       if (match) {
@@ -493,18 +514,29 @@ export class CodebaseAnalyzer {
   /**
    * Detect framework
    */
-  private detectFramework(keyFiles: Record<string, string>, languages: LanguageBreakdown[]): FrameworkInfo {
-    const pkg = this.parseJson(keyFiles['package.json']) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> } | null;
+  private detectFramework(
+    keyFiles: Record<string, string>,
+    languages: LanguageBreakdown[]
+  ): FrameworkInfo {
+    const pkg = this.parseJson(keyFiles['package.json']) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    } | null;
     const deps = { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) };
 
     // TypeScript/JavaScript frameworks
     if (deps) {
-      if (deps['next']) return { name: 'Next.js', version: deps['next'], type: 'fullstack', confidence: 0.95 };
-      if (deps['react'] && deps['vite']) return { name: 'React + Vite', type: 'frontend', confidence: 0.9 };
-      if (deps['react']) return { name: 'React', version: deps['react'], type: 'frontend', confidence: 0.85 };
-      if (deps['vue']) return { name: 'Vue.js', version: deps['vue'], type: 'frontend', confidence: 0.9 };
+      if (deps['next'])
+        return { name: 'Next.js', version: deps['next'], type: 'fullstack', confidence: 0.95 };
+      if (deps['react'] && deps['vite'])
+        return { name: 'React + Vite', type: 'frontend', confidence: 0.9 };
+      if (deps['react'])
+        return { name: 'React', version: deps['react'], type: 'frontend', confidence: 0.85 };
+      if (deps['vue'])
+        return { name: 'Vue.js', version: deps['vue'], type: 'frontend', confidence: 0.9 };
       if (deps['svelte']) return { name: 'Svelte', type: 'frontend', confidence: 0.9 };
-      if (deps['express']) return { name: 'Express', version: deps['express'], type: 'backend', confidence: 0.9 };
+      if (deps['express'])
+        return { name: 'Express', version: deps['express'], type: 'backend', confidence: 0.9 };
       if (deps['hono']) return { name: 'Hono', type: 'backend', confidence: 0.9 };
       if (deps['fastify']) return { name: 'Fastify', type: 'backend', confidence: 0.9 };
       if (deps['koa']) return { name: 'Koa', type: 'backend', confidence: 0.9 };
@@ -549,10 +581,16 @@ export class CodebaseAnalyzer {
    */
   private detectRuntime(keyFiles: Record<string, string>): RuntimeInfo {
     if (keyFiles['package.json']) {
-      const pkg = this.parseJson(keyFiles['package.json']) as { engines?: { node?: string } } | null;
-      const packageManager = keyFiles['yarn.lock'] ? 'yarn' :
-                            keyFiles['pnpm-lock.yaml'] ? 'pnpm' :
-                            keyFiles['bun.lockb'] ? 'bun' : 'npm';
+      const pkg = this.parseJson(keyFiles['package.json']) as {
+        engines?: { node?: string };
+      } | null;
+      const packageManager = keyFiles['yarn.lock']
+        ? 'yarn'
+        : keyFiles['pnpm-lock.yaml']
+          ? 'pnpm'
+          : keyFiles['bun.lockb']
+            ? 'bun'
+            : 'npm';
       return {
         name: 'Node.js',
         version: pkg?.engines?.node,
@@ -584,19 +622,28 @@ export class CodebaseAnalyzer {
     _onStream: AgentStreamCallback
   ): Promise<ArchitectureInfo> {
     // Detect common patterns
-    const hasPages = files.some(f => f.includes('/pages/') || f.startsWith('pages/'));
-    const hasApp = files.some(f => f.includes('/app/') || f.startsWith('app/'));
-    const hasControllers = files.some(f => f.includes('/controllers/'));
-    const hasModels = files.some(f => f.includes('/models/'));
-    const hasServices = files.some(f => f.includes('/services/'));
-    const hasRepositories = files.some(f => f.includes('/repositories/'));
-    const hasUseCases = files.some(f => f.includes('/usecases/') || f.includes('/use-cases/'));
-    const hasDomain = files.some(f => f.includes('/domain/'));
+    const hasPages = files.some((f) => f.includes('/pages/') || f.startsWith('pages/'));
+    const hasApp = files.some((f) => f.includes('/app/') || f.startsWith('app/'));
+    const hasControllers = files.some((f) => f.includes('/controllers/'));
+    const hasModels = files.some((f) => f.includes('/models/'));
+    const hasServices = files.some((f) => f.includes('/services/'));
+    const hasRepositories = files.some((f) => f.includes('/repositories/'));
+    const hasUseCases = files.some((f) => f.includes('/usecases/') || f.includes('/use-cases/'));
+    const hasDomain = files.some((f) => f.includes('/domain/'));
 
     // Detect entry points
     const entryPoints: string[] = [];
-    const entryPatterns = ['index.ts', 'index.js', 'main.ts', 'main.js', 'app.ts', 'app.js', 'server.ts', 'server.js'];
-    files.forEach(f => {
+    const entryPatterns = [
+      'index.ts',
+      'index.js',
+      'main.ts',
+      'main.js',
+      'app.ts',
+      'app.js',
+      'server.ts',
+      'server.js',
+    ];
+    files.forEach((f) => {
       const filename = f.split('/').pop() || '';
       if (entryPatterns.includes(filename)) {
         entryPoints.push(f);
@@ -651,7 +698,8 @@ export class CodebaseAnalyzer {
   ): Promise<CodingConventions> {
     // Check ESLint/Prettier configs
     // eslint config reserved for future enhanced style detection
-    const prettier = keyFiles['.prettierrc'] || keyFiles['.prettierrc.js'] || keyFiles['.prettierrc.json'];
+    const prettier =
+      keyFiles['.prettierrc'] || keyFiles['.prettierrc.js'] || keyFiles['.prettierrc.json'];
 
     let quotes: 'single' | 'double' | 'mixed' = 'single';
     let semicolons = true;
@@ -671,25 +719,29 @@ export class CodebaseAnalyzer {
     }
 
     // Detect naming style from file names
-    const srcFiles = files.filter(f => f.includes('/src/') || f.startsWith('src/'));
+    const srcFiles = files.filter((f) => f.includes('/src/') || f.startsWith('src/'));
     let namingStyle: CodingConventions['namingStyle'] = 'camelCase';
 
-    const fileNames = srcFiles.map(f => f.split('/').pop()?.replace(/\.[^.]+$/, '') || '');
-    const hasSnakeCase = fileNames.some(f => f.includes('_'));
-    const hasPascalCase = fileNames.some(f => /^[A-Z]/.test(f));
-    const hasKebabCase = fileNames.some(f => f.includes('-'));
+    const fileNames = srcFiles.map(
+      (f) =>
+        f
+          .split('/')
+          .pop()
+          ?.replace(/\.[^.]+$/, '') || ''
+    );
+    const hasSnakeCase = fileNames.some((f) => f.includes('_'));
+    const hasPascalCase = fileNames.some((f) => /^[A-Z]/.test(f));
+    const hasKebabCase = fileNames.some((f) => f.includes('-'));
 
     if (hasSnakeCase && !hasPascalCase && !hasKebabCase) namingStyle = 'snake_case';
     else if (hasPascalCase && !hasSnakeCase && !hasKebabCase) namingStyle = 'PascalCase';
     else if (hasKebabCase && !hasSnakeCase && !hasPascalCase) namingStyle = 'kebab-case';
-    else if ((hasSnakeCase || hasPascalCase || hasKebabCase)) namingStyle = 'mixed';
+    else if (hasSnakeCase || hasPascalCase || hasKebabCase) namingStyle = 'mixed';
 
     // Detect component style (for React projects)
     let componentStyle: 'functional' | 'class' | 'mixed' | undefined;
-    const componentFiles = files.filter(f =>
-      f.includes('/components/') ||
-      f.endsWith('.tsx') ||
-      f.endsWith('.jsx')
+    const componentFiles = files.filter(
+      (f) => f.includes('/components/') || f.endsWith('.tsx') || f.endsWith('.jsx')
     );
 
     if (componentFiles.length > 0) {
@@ -735,19 +787,20 @@ export class CodebaseAnalyzer {
     return {
       runtime,
       dev,
-      hasCriticalVulnerabilities: false,  // Would need npm audit
-      outdatedCount: 0,  // Would need npm outdated
+      hasCriticalVulnerabilities: false, // Would need npm audit
+      outdatedCount: 0, // Would need npm outdated
     };
   }
 
   /**
    * Detect test setup
    */
-  private detectTestSetup(files: string[], keyFiles: Record<string, string>): { hasTests: boolean; testFramework?: string } {
-    const testFiles = files.filter(f =>
-      f.includes('.test.') ||
-      f.includes('.spec.') ||
-      f.includes('__tests__/')
+  private detectTestSetup(
+    files: string[],
+    keyFiles: Record<string, string>
+  ): { hasTests: boolean; testFramework?: string } {
+    const testFiles = files.filter(
+      (f) => f.includes('.test.') || f.includes('.spec.') || f.includes('__tests__/')
     );
 
     const hasTests = testFiles.length > 0;
@@ -758,7 +811,9 @@ export class CodebaseAnalyzer {
     } else if (keyFiles['vitest.config.ts']) {
       testFramework = 'Vitest';
     } else {
-      const pkg = this.parseJson(keyFiles['package.json']) as { devDependencies?: Record<string, string> } | null;
+      const pkg = this.parseJson(keyFiles['package.json']) as {
+        devDependencies?: Record<string, string>;
+      } | null;
       if (pkg?.devDependencies?.jest) testFramework = 'Jest';
       else if (pkg?.devDependencies?.vitest) testFramework = 'Vitest';
       else if (pkg?.devDependencies?.mocha) testFramework = 'Mocha';
@@ -771,9 +826,9 @@ export class CodebaseAnalyzer {
    * Detect CI setup
    */
   private detectCiSetup(files: string[]): { hasCi: boolean; ciPlatform?: string } {
-    const hasGitHubActions = files.some(f => f.includes('.github/workflows/'));
-    const hasGitLabCi = files.some(f => f === '.gitlab-ci.yml');
-    const hasCircleCi = files.some(f => f.includes('.circleci/'));
+    const hasGitHubActions = files.some((f) => f.includes('.github/workflows/'));
+    const hasGitLabCi = files.some((f) => f === '.gitlab-ci.yml');
+    const hasCircleCi = files.some((f) => f.includes('.circleci/'));
 
     if (hasGitHubActions) return { hasCi: true, ciPlatform: 'GitHub Actions' };
     if (hasGitLabCi) return { hasCi: true, ciPlatform: 'GitLab CI' };
@@ -820,7 +875,8 @@ export class CodebaseAnalyzer {
       insights.push({
         type: 'opportunity',
         title: 'Architecture Improvement',
-        description: 'Consider organizing code into layers (services, controllers, models) for better maintainability.',
+        description:
+          'Consider organizing code into layers (services, controllers, models) for better maintainability.',
         severity: 'low',
       });
     }
@@ -842,8 +898,8 @@ export class CodebaseAnalyzer {
    */
   private generateImprovements(insights: CodebaseInsight[]): string[] {
     return insights
-      .filter(i => i.type === 'weakness' || i.type === 'opportunity')
-      .map(i => i.description);
+      .filter((i) => i.type === 'weakness' || i.type === 'opportunity')
+      .map((i) => i.description);
   }
 
   /**
@@ -852,14 +908,15 @@ export class CodebaseAnalyzer {
   private detectPatterns(files: string[]): string[] {
     const patterns: string[] = [];
 
-    if (files.some(f => f.includes('/hooks/'))) patterns.push('Custom Hooks');
-    if (files.some(f => f.includes('/context/'))) patterns.push('React Context');
-    if (files.some(f => f.includes('/store/'))) patterns.push('State Management');
-    if (files.some(f => f.includes('/hoc/') || f.includes('withAuth'))) patterns.push('Higher-Order Components');
-    if (files.some(f => f.includes('/middleware/'))) patterns.push('Middleware Pattern');
-    if (files.some(f => f.includes('/factories/'))) patterns.push('Factory Pattern');
-    if (files.some(f => f.includes('/adapters/'))) patterns.push('Adapter Pattern');
-    if (files.some(f => f.includes('/observers/'))) patterns.push('Observer Pattern');
+    if (files.some((f) => f.includes('/hooks/'))) patterns.push('Custom Hooks');
+    if (files.some((f) => f.includes('/context/'))) patterns.push('React Context');
+    if (files.some((f) => f.includes('/store/'))) patterns.push('State Management');
+    if (files.some((f) => f.includes('/hoc/') || f.includes('withAuth')))
+      patterns.push('Higher-Order Components');
+    if (files.some((f) => f.includes('/middleware/'))) patterns.push('Middleware Pattern');
+    if (files.some((f) => f.includes('/factories/'))) patterns.push('Factory Pattern');
+    if (files.some((f) => f.includes('/adapters/'))) patterns.push('Adapter Pattern');
+    if (files.some((f) => f.includes('/observers/'))) patterns.push('Observer Pattern');
 
     return patterns;
   }

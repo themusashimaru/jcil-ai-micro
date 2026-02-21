@@ -112,7 +112,7 @@ const DEVELOPER_INFO_PATTERNS: RegExp[] = [
   /(?:latest|newest|current) (?:model|version) (?:information|details)/i,
 
   // MODEL NAMES/IDs (change with every release - critical for developers)
-  // Examples: claude-sonnet-4-20250514, gpt-4-turbo-2024-04-09, claude-opus-4-5-20251101
+  // Examples: claude-sonnet-4-6, gpt-4-turbo-2024-04-09, claude-opus-4-6
   /(?:model|models?) (?:name|names?|id|ids?|identifier) (?:may|might|could) (?:be|have) (?:different|changed|updated)/i,
   /(?:model|models?) (?:string|parameter|value) (?:may|might|could) (?:be|have) (?:changed|outdated)/i,
   /(?:exact|specific|correct) (?:model|models?) (?:name|id|string|identifier)/i,

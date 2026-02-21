@@ -26,7 +26,7 @@ export const frontendAgent: AgentConfig = {
     'Form handling and validation',
     'Client-side routing',
   ],
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 8192,
   systemPrompt: `You are a Frontend Architect agent in Code Lab - a specialized AI focused on frontend development.
 
@@ -80,7 +80,7 @@ export const backendAgent: AgentConfig = {
     'Background jobs and queues',
     'Security best practices',
   ],
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 8192,
   systemPrompt: `You are a Backend Engineer agent in Code Lab - a specialized AI focused on server-side development.
 
@@ -134,7 +134,7 @@ export const testAgent: AgentConfig = {
     'Test-driven development (TDD)',
     'Snapshot testing',
   ],
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 8192,
   systemPrompt: `You are a Test Engineer agent in Code Lab - a specialized AI focused on testing and quality assurance.
 
@@ -187,7 +187,7 @@ export const reviewerAgent: AgentConfig = {
     'Technical debt identification',
     'Refactoring suggestions',
   ],
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 8192,
   systemPrompt: `You are a Code Reviewer agent in Code Lab - a specialized AI focused on code quality and best practices.
 
@@ -237,7 +237,7 @@ export const orchestratorAgent: AgentConfig = {
     'Context management',
     'Quality assurance',
   ],
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 2048,
   systemPrompt: `You are the Task Orchestrator in Code Lab's Multi-Agent system.
 
