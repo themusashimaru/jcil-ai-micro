@@ -7,7 +7,7 @@
  * Uses native <dialog> element for best accessibility.
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useId } from 'react';
 
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
@@ -96,8 +96,9 @@ export function Modal({
     [closeOnBackdrop, onClose]
   );
 
-  const titleId = title ? 'modal-title' : undefined;
-  const descId = description ? 'modal-description' : undefined;
+  const uniqueId = useId();
+  const titleId = title ? `modal-title-${uniqueId}` : undefined;
+  const descId = description ? `modal-desc-${uniqueId}` : undefined;
 
   return (
     <dialog

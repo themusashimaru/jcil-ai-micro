@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface SuggestedFollowupsProps {
@@ -9,7 +9,11 @@ interface SuggestedFollowupsProps {
   disabled?: boolean;
 }
 
-export function SuggestedFollowups({ suggestions, onSelect, disabled }: SuggestedFollowupsProps) {
+export const SuggestedFollowups = memo(function SuggestedFollowups({
+  suggestions,
+  onSelect,
+  disabled,
+}: SuggestedFollowupsProps) {
   const { theme } = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -72,9 +76,7 @@ export function SuggestedFollowups({ suggestions, onSelect, disabled }: Suggeste
           onMouseLeave={(e) => {
             if (!disabled && !selected) {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = isDark
-                ? 'rgba(255,255,255,0.7)'
-                : 'rgba(0,0,0,0.6)';
+              e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
               e.currentTarget.style.borderColor = isDark
                 ? 'rgba(255,255,255,0.12)'
                 : 'rgba(0,0,0,0.12)';
@@ -92,6 +94,6 @@ export function SuggestedFollowups({ suggestions, onSelect, disabled }: Suggeste
       `}</style>
     </div>
   );
-}
+});
 
 export default SuggestedFollowups;
