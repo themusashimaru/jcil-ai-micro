@@ -4,7 +4,7 @@
  * CODE LAB - Main Layout Component
  *
  * A professional developer workspace that combines:
- * - Chat with Claude Opus 4.5
+ * - Chat with Claude Opus 4.6
  * - Code generation via Code Agent V2
  * - Web search via Perplexity
  *
@@ -454,7 +454,10 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || 'Failed to save repository';
-        log.error('Error setting repo - API returned error', { status: response.status, error: errorMessage });
+        log.error('Error setting repo - API returned error', {
+          status: response.status,
+          error: errorMessage,
+        });
         toast.error('Repository Error', errorMessage);
         return;
       }

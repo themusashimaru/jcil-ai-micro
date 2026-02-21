@@ -6024,7 +6024,7 @@ SECURITY:
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
-        model: 'claude-haiku-4-5-20251001', // Default model for stream recovery
+        model: 'claude-sonnet-4-6', // Default model for stream recovery
       });
       if (pendingRequestId) {
         log.debug('Created pending request for stream recovery', {

@@ -12,7 +12,7 @@
  * - Self-Healing (error detection, auto-fixing, iterative improvement)
  * - Memory & Learning (user preferences, project history, patterns)
  *
- * Powered by Claude Opus 4.5.
+ * Powered by Claude Opus 4.6.
  */
 
 import { BaseAgent } from '../core/BaseAgent';
@@ -123,7 +123,7 @@ export interface CodeAgentV2Output extends CodeAgentOutput {
 
 export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> {
   name = 'CodeAgentV2';
-  description = 'The Ultimate Autonomous Coding Agent - Built by Claude Opus 4.5';
+  description = 'The Ultimate Autonomous Coding Agent - Built by Claude Opus 4.6';
   version = '2.0.0';
 
   // Configuration
@@ -159,9 +159,9 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
     try {
       // Initialize tools if we have GitHub context
       if (opts.existingRepo) {
-        const githubToken = context.previousMessages?.find(m =>
-          m.content.includes('github_token:')
-        )?.content.match(/github_token:(\S+)/)?.[1];
+        const githubToken = context.previousMessages
+          ?.find((m) => m.content.includes('github_token:'))
+          ?.content.match(/github_token:(\S+)/)?.[1];
 
         if (githubToken) {
           toolOrchestrator.initialize({
@@ -175,7 +175,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       // Get memory context
       const memoryContext = context.userId
-        ? memorySystem.getContextMemory(context.userId, this.intent || {} as CodeIntent)
+        ? memorySystem.getContextMemory(context.userId, this.intent || ({} as CodeIntent))
         : null;
 
       // Route to appropriate mode
@@ -237,23 +237,22 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       }
 
       // Use Tree-of-Thought to explore approaches
-      const reasoningResult = await reasoner.reason(
-        input.request,
-        this.intent,
-        context,
-        onStream
-      );
+      const reasoningResult = await reasoner.reason(input.request, this.intent, context, onStream);
 
-      this.emit(onStream, 'thinking',
-        `✓ Selected approach: ${reasoningResult.selectedPath.description} (${Math.round(reasoningResult.confidence * 100)}% confident)`, {
+      this.emit(
+        onStream,
+        'thinking',
+        `✓ Selected approach: ${reasoningResult.selectedPath.description} (${Math.round(reasoningResult.confidence * 100)}% confident)`,
+        {
           phase: 'Reasoning',
           progress: 15,
           details: {
             approach: reasoningResult.selectedPath.description,
             confidence: reasoningResult.confidence,
-            alternatives: reasoningResult.alternativePaths.map(p => p.description),
+            alternatives: reasoningResult.alternativePaths.map((p) => p.description),
           },
-        });
+        }
+      );
     } else {
       // Quick analysis without reasoning
       this.intent = await codeIntentAnalyzer.analyze(input.request, context);
@@ -283,15 +282,19 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
     this.plan = await projectPlanner.plan(this.intent);
 
-    this.emit(onStream, 'thinking',
-      `✓ Planned ${this.plan.fileTree.length} files with ${this.plan.architecture.pattern} architecture`, {
+    this.emit(
+      onStream,
+      'thinking',
+      `✓ Planned ${this.plan.fileTree.length} files with ${this.plan.architecture.pattern} architecture`,
+      {
         phase: 'Planning',
         progress: 30,
         details: {
           architecture: this.plan.architecture.pattern,
-          files: this.plan.fileTree.map(f => f.path),
+          files: this.plan.fileTree.map((f) => f.path),
         },
-      });
+      }
+    );
 
     // ========================================
     // PHASE 3: CODE GENERATION
@@ -328,11 +331,15 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       this.files.push(...testResult.testFiles);
 
-      this.emit(onStream, 'thinking',
-        `✓ Generated ${testResult.totalTests} tests (${testResult.coverageEstimate.lines}% coverage)`, {
+      this.emit(
+        onStream,
+        'thinking',
+        `✓ Generated ${testResult.totalTests} tests (${testResult.coverageEstimate.lines}% coverage)`,
+        {
           phase: 'Test Generation',
           progress: 60,
-        });
+        }
+      );
     }
 
     // ========================================
@@ -349,11 +356,15 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       // Auto-fix security issues if found
       if (securityResult.vulnerabilities.length > 0) {
-        this.emit(onStream, 'pivoting',
-          `⚠️ Found ${securityResult.vulnerabilities.length} security issues. Auto-fixing...`, {
+        this.emit(
+          onStream,
+          'pivoting',
+          `⚠️ Found ${securityResult.vulnerabilities.length} security issues. Auto-fixing...`,
+          {
             phase: 'Security Fix',
             progress: 68,
-          });
+          }
+        );
 
         const fixResult = await autoFixer.fixSecurityIssues(
           this.files,
@@ -364,11 +375,15 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
         this.errorsFixed += fixResult.summary.fixed;
       }
 
-      this.emit(onStream, 'thinking',
-        `✓ Security: Grade ${securityResult.grade} (${securityResult.overallScore}/100)`, {
+      this.emit(
+        onStream,
+        'thinking',
+        `✓ Security: Grade ${securityResult.grade} (${securityResult.overallScore}/100)`,
+        {
           phase: 'Security Scan',
           progress: 70,
-        });
+        }
+      );
     }
 
     // ========================================
@@ -383,11 +398,15 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       performanceResult = await performanceAnalyzer.analyze(this.files, onStream);
 
-      this.emit(onStream, 'thinking',
-        `✓ Performance: Grade ${performanceResult.grade} (${performanceResult.overallScore}/100)`, {
+      this.emit(
+        onStream,
+        'thinking',
+        `✓ Performance: Grade ${performanceResult.grade} (${performanceResult.overallScore}/100)`,
+        {
           phase: 'Performance Analysis',
           progress: 75,
-        });
+        }
+      );
     }
 
     // ========================================
@@ -402,7 +421,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
       this.emit(onStream, 'evaluating', `🔄 Build & test iteration ${iteration}...`, {
         phase: `Build & Test (${iteration}/${this.MAX_ITERATIONS})`,
-        progress: 75 + (iteration * 3),
+        progress: 75 + iteration * 3,
       });
 
       if (sandboxExecutor.isAvailable()) {
@@ -426,7 +445,9 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
         } else {
           // Parse and auto-fix errors
           const issues = autoFixer.parseTypeScriptErrors(
-            this.testResult.errors.map(e => `${e.file}(${e.line},1): error ${e.type}: ${e.message}`).join('\n')
+            this.testResult.errors
+              .map((e) => `${e.file}(${e.line},1): error ${e.type}: ${e.message}`)
+              .join('\n')
           );
 
           if (issues.length > 0) {
@@ -458,13 +479,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
         progress: 88,
       });
 
-      docResult = await docGenerator.generate(
-        this.files,
-        this.intent,
-        this.plan,
-        {},
-        onStream
-      );
+      docResult = await docGenerator.generate(this.files, this.intent, this.plan, {}, onStream);
 
       this.files.push(...docResult.files);
 
@@ -484,7 +499,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
 
     const reflection = await reasoner.reflect(
       input.request,
-      this.files.map(f => f.path).join('\n'),
+      this.files.map((f) => f.path).join('\n'),
       `Generated ${this.files.length} files`,
       onStream
     );
@@ -501,8 +516,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       });
 
       if (githubExecutor.isAvailable()) {
-        const repoName = opts.repoName ||
-          await githubExecutor.suggestRepoName(this.plan.name);
+        const repoName = opts.repoName || (await githubExecutor.suggestRepoName(this.plan.name));
 
         const pushResult = await githubExecutor.push(
           this.files,
@@ -560,10 +574,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       summary: {
         totalFiles: this.files.length,
         totalLines: this.files.reduce((acc, f) => acc + f.linesOfCode, 0),
-        technologies: [
-          this.intent.technologies.primary,
-          ...this.intent.technologies.secondary,
-        ],
+        technologies: [this.intent.technologies.primary, ...this.intent.technologies.secondary],
         architecture: this.plan.architecture.pattern,
       },
       nextSteps: this.generateNextSteps(buildSuccess, githubResult),
@@ -575,26 +586,35 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       },
 
       // Enhanced output
-      security: securityResult ? {
-        score: securityResult.overallScore,
-        grade: securityResult.grade,
-        criticalIssues: securityResult.summary.critical,
-      } : undefined,
-      performance: performanceResult ? {
-        score: performanceResult.overallScore,
-        grade: performanceResult.grade,
-        optimizations: performanceResult.optimizations.map(o => o.title),
-      } : undefined,
-      tests: opts.enableTests !== false ? {
-        totalTests: this.files.filter(f => f.path.includes('.test.')).length * 5, // Estimate
-        coverage: 80,
-        testFiles: this.files.filter(f => f.path.includes('.test.')).map(f => f.path),
-      } : undefined,
-      documentation: docResult ? {
-        files: docResult.files.map(f => f.path),
-        readme: true,
-        apiDocs: !!docResult.apiDocs,
-      } : undefined,
+      security: securityResult
+        ? {
+            score: securityResult.overallScore,
+            grade: securityResult.grade,
+            criticalIssues: securityResult.summary.critical,
+          }
+        : undefined,
+      performance: performanceResult
+        ? {
+            score: performanceResult.overallScore,
+            grade: performanceResult.grade,
+            optimizations: performanceResult.optimizations.map((o) => o.title),
+          }
+        : undefined,
+      tests:
+        opts.enableTests !== false
+          ? {
+              totalTests: this.files.filter((f) => f.path.includes('.test.')).length * 5, // Estimate
+              coverage: 80,
+              testFiles: this.files.filter((f) => f.path.includes('.test.')).map((f) => f.path),
+            }
+          : undefined,
+      documentation: docResult
+        ? {
+            files: docResult.files.map((f) => f.path),
+            readme: true,
+            apiDocs: !!docResult.apiDocs,
+          }
+        : undefined,
     };
 
     this.emit(onStream, 'complete', '🎉 Project generation complete!', {
@@ -644,7 +664,7 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
       summary: {
         totalFiles: files.length,
         totalLines: 0,
-        technologies: [profile.framework.name, ...profile.languages.map(l => l.language)],
+        technologies: [profile.framework.name, ...profile.languages.map((l) => l.language)],
         architecture: profile.architecture.pattern,
       },
       nextSteps: profile.suggestedImprovements,
@@ -792,7 +812,9 @@ export class CodeAgentV2 extends BaseAgent<CodeAgentV2Input, CodeAgentV2Output> 
     }
   }
 
-  private applyMemoryPreferences(memoryContext: ReturnType<typeof memorySystem.getContextMemory>): void {
+  private applyMemoryPreferences(
+    memoryContext: ReturnType<typeof memorySystem.getContextMemory>
+  ): void {
     if (!this.intent) return;
 
     const prefs = memoryContext.userPreferences;

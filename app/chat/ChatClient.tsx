@@ -1624,7 +1624,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
 **You've activated the most powerful AI strategy system ever built.**
 
 This isn't just ChatGPT with a fancy prompt. I'm about to deploy:
-- **Opus 4.5** as the Master Architect (designs your strategy)
+- **Opus 4.6** as the Master Architect (designs your strategy)
 - **Sonnet 4.6** Project Managers (coordinate research teams)
 - **Up to 100 Haiku 4.5 Scouts** (parallel research army)
 - **Hundreds of web searches** for real-time data
@@ -2042,7 +2042,7 @@ ${artifactSection}
 **You've activated the most powerful AI research system ever built.**
 
 This isn't a simple search. I'm about to deploy an autonomous research army:
-- **Opus 4.5** as the Research Director (designs your investigation)
+- **Opus 4.6** as the Research Director (designs your investigation)
 - **Sonnet 4.6** Domain Leads (coordinate research teams)
 - **Up to 100 Haiku 4.5 Investigators** (parallel research army)
 - **14 specialized tools** including browser automation, vision AI, PDF extraction
@@ -2429,7 +2429,7 @@ I'll deploy a focused research team to investigate your topic.
 **What you get:**
 - **10-15 intelligent scouts** (Claude Sonnet 4.6)
 - **All research tools:** Browser automation, web search, PDF extraction, vision analysis
-- **Opus synthesis:** Claude Opus 4.5 compiles findings
+- **Opus synthesis:** Claude Opus 4.6 compiles findings
 
 **Estimated: 1-2 min | $2-3**
 
@@ -2701,7 +2701,7 @@ I'll deploy a focused team to help you make this decision.
 **What you get:**
 - **10-15 intelligent scouts** (Claude Sonnet 4.6)
 - **All research tools:** Browser automation, web search, data analysis
-- **Opus synthesis:** Claude Opus 4.5 analyzes and recommends
+- **Opus synthesis:** Claude Opus 4.6 analyzes and recommends
 
 **Estimated: 1-2 min | $2-3**
 

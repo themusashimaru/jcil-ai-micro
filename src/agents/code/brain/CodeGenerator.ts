@@ -4,7 +4,7 @@
  * The third stage of the Code Agent brain.
  * Actually writes the code files based on the plan.
  *
- * Uses Opus 4.5 for maximum code quality.
+ * Uses Opus 4.6 for maximum code quality.
  * Generates each file with full context awareness.
  */
 

@@ -597,7 +597,7 @@ export function CodeLabSidebar({
                 Chat
               </Link>
               <span className="footer-divider">·</span>
-              <span className="powered-by">Claude Opus 4.5</span>
+              <span className="powered-by">Claude Opus 4.6</span>
             </div>
           </div>
         </>

@@ -113,7 +113,7 @@ export default function SocialProof() {
               <div className="text-xs text-slate-500 mt-1">In Code Lab</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">Opus 4.5</div>
+              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">Opus 4.6</div>
               <div className="text-sm text-slate-400">Claude Model</div>
               <div className="text-xs text-slate-500 mt-1">Latest & most capable</div>
             </div>

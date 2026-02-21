@@ -336,7 +336,7 @@ export default function HomePage() {
 
               <div className="space-y-2 mb-6">
                 {[
-                  'Claude Opus 4.5 with 200K context',
+                  'Claude Opus 4.6 with 200K context',
                   'Visual debugging & breakpoints',
                   'One-click deployment (Vercel, Netlify)',
                   'Real-time collaboration',

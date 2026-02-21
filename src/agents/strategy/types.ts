@@ -2,7 +2,7 @@
  * DEEP STRATEGY AGENT - TYPE DEFINITIONS
  *
  * The most advanced self-replicating AI agent ever built.
- * Uses Opus 4.5 for architecture, Sonnet 4.6 for management, Haiku 4.5 for execution.
+ * Uses Opus 4.6 for architecture, Sonnet 4.6 for management, Haiku 4.5 for execution.
  *
  * This agent can spawn up to 100 sub-agents dynamically based on the problem.
  */
