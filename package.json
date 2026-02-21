@@ -4,7 +4,7 @@
   "private": true,
   "description": "JCIL.AI - Christian Conservative AI Chat Interface - Production PWA with Next.js, Supabase, Claude AI",
   "engines": {
-    "node": ">=20.0.0",
+    "node": "22.x",
     "pnpm": ">=8.0.0"
   },
   "packageManager": "pnpm@10.20.0",
