@@ -137,16 +137,14 @@ function createRequest(
   url = 'http://localhost/api/conversations',
   body?: unknown
 ): NextRequest {
-  const init: RequestInit = {
+  const init = {
     method,
     headers: {
       'Content-Type': 'application/json',
       'x-csrf-token': 'valid-token',
     },
+    body: body ? JSON.stringify(body) : undefined,
   };
-  if (body) {
-    init.body = JSON.stringify(body);
-  }
   return new NextRequest(url, init);
 }
 
@@ -449,12 +447,14 @@ describe('Conversation Security', () => {
   });
 
   it('should default title to "New Chat" when not provided', () => {
-    const title = undefined || 'New Chat';
+    const rawTitle: string | undefined = undefined;
+    const title = rawTitle || 'New Chat';
     expect(title).toBe('New Chat');
   });
 
   it('should default tool_context to "general" when not provided', () => {
-    const context = undefined || 'general';
+    const rawContext: string | undefined = undefined;
+    const context = rawContext || 'general';
     expect(context).toBe('general');
   });
 });

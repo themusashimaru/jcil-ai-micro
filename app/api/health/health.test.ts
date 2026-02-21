@@ -187,10 +187,10 @@ describe('HEAD /api/health', () => {
 
 describe('Overall Health Status Determination', () => {
   it('should be healthy when all components are up', () => {
-    const checks = {
-      database: { status: 'up' as const },
-      cache: { status: 'up' as const },
-      ai: { status: 'up' as const },
+    const checks: Record<string, { status: string }> = {
+      database: { status: 'up' },
+      cache: { status: 'up' },
+      ai: { status: 'up' },
     };
 
     const statuses = Object.values(checks).map((c) => c.status);
@@ -202,10 +202,10 @@ describe('Overall Health Status Determination', () => {
   });
 
   it('should be degraded when non-database component is down', () => {
-    const checks = {
-      database: { status: 'up' as const },
-      cache: { status: 'down' as const },
-      ai: { status: 'up' as const },
+    const checks: Record<string, { status: string }> = {
+      database: { status: 'up' },
+      cache: { status: 'down' },
+      ai: { status: 'up' },
     };
 
     const isDatabaseDown = checks.database.status === 'down';
@@ -217,10 +217,10 @@ describe('Overall Health Status Determination', () => {
   });
 
   it('should be unhealthy when database is down', () => {
-    const checks = {
-      database: { status: 'down' as const },
-      cache: { status: 'up' as const },
-      ai: { status: 'up' as const },
+    const checks: Record<string, { status: string }> = {
+      database: { status: 'down' },
+      cache: { status: 'up' },
+      ai: { status: 'up' },
     };
 
     const isDatabaseDown = checks.database.status === 'down';
@@ -229,10 +229,10 @@ describe('Overall Health Status Determination', () => {
   });
 
   it('should be degraded when components report degraded status', () => {
-    const checks = {
-      database: { status: 'up' as const },
-      cache: { status: 'degraded' as const },
-      ai: { status: 'up' as const },
+    const checks: Record<string, { status: string }> = {
+      database: { status: 'up' },
+      cache: { status: 'degraded' },
+      ai: { status: 'up' },
     };
 
     const hasDegraded = Object.values(checks).some((c) => c.status === 'degraded');
@@ -240,13 +240,13 @@ describe('Overall Health Status Determination', () => {
   });
 
   it('should return 503 when unhealthy', () => {
-    const status = 'unhealthy';
+    const status: string = 'unhealthy';
     const httpStatus = status === 'healthy' ? 200 : status === 'degraded' ? 200 : 503;
     expect(httpStatus).toBe(503);
   });
 
   it('should return 200 even when degraded', () => {
-    const status = 'degraded';
+    const status: string = 'degraded';
     const httpStatus = status === 'healthy' ? 200 : status === 'degraded' ? 200 : 503;
     expect(httpStatus).toBe(200);
   });
@@ -254,23 +254,32 @@ describe('Overall Health Status Determination', () => {
 
 describe('Component Health Checks', () => {
   it('should report database as down when not configured', () => {
-    const hasConfig = !!(undefined && undefined); // Missing env vars
+    const dbUrl: string | undefined = undefined;
+    const dbKey: string | undefined = undefined;
+    const hasConfig = !!(dbUrl && dbKey); // Missing env vars
     expect(hasConfig).toBe(false);
   });
 
   it('should report cache as degraded when Redis not configured', () => {
     // Redis unavailable means in-memory fallback is active
-    const fallbackActive = true;
+    const redisUrl: string | undefined = undefined;
+    const fallbackActive = !redisUrl;
     expect(fallbackActive).toBe(true);
   });
 
   it('should report AI as down when no API key configured', () => {
-    const hasApiKey = !!(undefined || undefined || undefined);
+    const anthropicKey: string | undefined = undefined;
+    const openaiKey: string | undefined = undefined;
+    const xaiKey: string | undefined = undefined;
+    const hasApiKey = !!(anthropicKey || openaiKey || xaiKey);
     expect(hasApiKey).toBe(false);
   });
 
   it('should report AI as up when any API key is configured', () => {
-    const hasApiKey = !!('sk-test' || undefined || undefined);
+    const anthropicKey: string | undefined = 'sk-test';
+    const openaiKey: string | undefined = undefined;
+    const xaiKey: string | undefined = undefined;
+    const hasApiKey = !!(anthropicKey || openaiKey || xaiKey);
     expect(hasApiKey).toBe(true);
   });
 });

@@ -121,16 +121,14 @@ function createRequest(
   url = 'http://localhost/api/user/settings',
   body?: unknown
 ): NextRequest {
-  const init: RequestInit = {
+  const init = {
     method,
     headers: {
       'Content-Type': 'application/json',
       'x-csrf-token': 'valid-token',
     },
+    body: body ? JSON.stringify(body) : undefined,
   };
-  if (body) {
-    init.body = JSON.stringify(body);
-  }
   return new NextRequest(url, init);
 }
 
