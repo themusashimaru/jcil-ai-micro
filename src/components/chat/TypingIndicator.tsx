@@ -2,75 +2,52 @@
  * TYPING INDICATOR COMPONENT
  *
  * PURPOSE:
- * - Show INTELLIGENT, CONTEXT-AWARE loading messages while AI is processing
- * - Extracts the actual TOPIC from user's query and incorporates it
- * - Like ChatGPT/Claude - shows what it's actually doing
- * - Provides engaging visual feedback during streaming
+ * - Show a single, intelligent status message while the AI is processing
+ * - Derives context from the user's actual query — no canned rotation, no fake phases
+ * - Clean and professional — shows ONE relevant message, then the real stream takes over
  *
- * INTELLIGENT MESSAGE SELECTION:
- * - Extracts key topics/subjects from user query
- * - Search: "Searching for [topic]...", "Analyzing [topic]..."
- * - Website: Shows industry-specific progress
- * - Documents: Shows formatting progress
- * - Research: Shows research phases with topics
- * - Default: Uses extracted topic in generic messages
- *
- * TERMINAL AESTHETIC:
- * - Command echo effect showing user input as CLI command
- * - Typewriter character-by-character reveal
- * - Monospace font for authentic terminal feel
- * - Boot sequence on first load
+ * DESIGN:
+ * - Minimal: avatar + one contextual status line + cursor
+ * - No boot sequence, no terminal theater, no typewriter effect
+ * - Document generation gets specific progress messages (these take longer)
+ * - Regular chat gets one smart message that stays until text arrives
  */
 
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { NeuralThinking } from './NeuralThinking';
+import { useEffect, useState, useMemo } from 'react';
 
-// Document-specific messages
+// Document generation takes time — show specific phase progress
 const DOCUMENT_MESSAGES: Record<string, string[]> = {
   pdf: [
-    'Creating your PDF...',
-    'Formatting document layout...',
-    'Setting up margins and spacing...',
-    'Applying professional styling...',
+    'Structuring your PDF...',
+    'Formatting layout and styles...',
     'Generating downloadable PDF...',
-    'Almost ready...',
   ],
   docx: [
-    'Creating your Word document...',
+    'Structuring your document...',
     'Formatting headers and styles...',
-    'Setting up document structure...',
-    'Applying professional layout...',
     'Generating downloadable document...',
-    'Almost ready...',
   ],
   xlsx: [
-    'Creating your spreadsheet...',
-    'Formatting columns and rows...',
-    'Applying data formatting...',
-    'Setting up formulas...',
-    'Generating downloadable Excel file...',
-    'Almost ready...',
+    'Building your spreadsheet...',
+    'Formatting columns and data...',
+    'Generating downloadable file...',
   ],
   pptx: [
-    'Creating your presentation...',
-    'Designing slide layouts...',
-    'Formatting content...',
-    'Applying professional styling...',
-    'Generating downloadable PowerPoint...',
-    'Almost ready...',
+    'Designing your slides...',
+    'Formatting content and layout...',
+    'Generating downloadable presentation...',
   ],
 };
 
 /**
- * Extract the main topic/subject from a user query
- * This is what makes the messages intelligent
+ * Extract the core subject from a user query.
+ * Strips common prefixes and filler words to get the real topic.
  */
 function extractTopic(message: string): string {
   if (!message) return '';
 
-  // Remove common question starters and clean up
   const cleaned = message
     .replace(
       /^(can you |please |i want to |i need to |help me |tell me |what is |what are |who is |who are |where is |where are |when is |when are |how to |how do |how does |how can |why is |why are |explain |describe |find |search |research |look up |give me |show me |get me )/i,
@@ -79,10 +56,8 @@ function extractTopic(message: string): string {
     .replace(/\?$/, '')
     .trim();
 
-  // Extract the core subject (usually first 3-6 meaningful words)
   const words = cleaned.split(/\s+/);
 
-  // Filter out filler words
   const fillerWords = new Set([
     'the',
     'a',
@@ -110,9 +85,6 @@ function extractTopic(message: string): string {
     'shall',
     'can',
     'need',
-    'dare',
-    'ought',
-    'used',
     'to',
     'of',
     'in',
@@ -128,39 +100,7 @@ function extractTopic(message: string): string {
     'during',
     'before',
     'after',
-    'above',
-    'below',
     'between',
-    'under',
-    'again',
-    'further',
-    'then',
-    'once',
-    'here',
-    'there',
-    'when',
-    'where',
-    'why',
-    'how',
-    'all',
-    'each',
-    'few',
-    'more',
-    'most',
-    'other',
-    'some',
-    'such',
-    'no',
-    'nor',
-    'not',
-    'only',
-    'own',
-    'same',
-    'so',
-    'than',
-    'too',
-    'very',
-    'just',
     'and',
     'but',
     'if',
@@ -169,20 +109,15 @@ function extractTopic(message: string): string {
     'as',
     'until',
     'while',
-    'although',
     'i',
     'me',
     'my',
-    'myself',
     'we',
     'our',
-    'ours',
     'you',
     'your',
-    'yours',
     'it',
     'its',
-    'itself',
     'they',
     'them',
     'their',
@@ -190,457 +125,133 @@ function extractTopic(message: string): string {
     'that',
     'these',
     'those',
+    'so',
+    'very',
+    'just',
+    'not',
+    'no',
   ]);
 
-  // Get meaningful words (up to 5)
-  const meaningfulWords = words
+  const meaningful = words
     .filter((w) => !fillerWords.has(w.toLowerCase()) && w.length > 2)
-    .slice(0, 5);
+    .slice(0, 4);
 
-  if (meaningfulWords.length === 0) {
-    // Fallback: just use first few words
-    return words.slice(0, 3).join(' ');
-  }
+  if (meaningful.length === 0) return words.slice(0, 3).join(' ');
 
-  // Capitalize first letter of result
-  const topic = meaningfulWords.join(' ');
+  const topic = meaningful.join(' ');
   return topic.charAt(0).toUpperCase() + topic.slice(1).toLowerCase();
 }
 
 /**
- * Generate intelligent status messages based on user input
- * NOW WITH DYNAMIC TOPIC EXTRACTION
+ * Get ONE smart status message based on what the user actually asked.
+ * No rotation — this shows until real stream text replaces it.
  */
-function getIntelligentMessages(userMessage: string): string[] {
-  if (!userMessage) return getGenericMessages('');
+function getStatusMessage(userMessage: string): string {
+  if (!userMessage) return 'Thinking...';
 
   const msg = userMessage.toLowerCase();
   const topic = extractTopic(userMessage);
-  const shortTopic = topic.length > 30 ? topic.substring(0, 30) + '...' : topic;
+  const short = topic.length > 35 ? topic.substring(0, 35) + '...' : topic;
 
   // Website generation
   if (msg.match(/website|landing\s*page|web\s*page|site\s+for|build.*site/i)) {
-    // Try to extract business name or industry
     const businessMatch = userMessage.match(/(?:for|called|named)\s+["']?([^"'\n,]+)/i);
-    const business = businessMatch ? businessMatch[1].trim().substring(0, 20) : 'your business';
-
-    // Detect industry
-    let industry = 'your';
-    if (msg.match(/photography|photo/i)) industry = 'photography';
-    else if (msg.match(/restaurant|food|cafe|coffee/i)) industry = 'restaurant';
-    else if (msg.match(/salon|beauty|spa|nail/i)) industry = 'beauty';
-    else if (msg.match(/dental|dentist|clinic/i)) industry = 'dental';
-    else if (msg.match(/law|attorney|legal/i)) industry = 'law firm';
-    else if (msg.match(/gym|fitness|yoga/i)) industry = 'fitness';
-    else if (msg.match(/real\s*estate|realtor/i)) industry = 'real estate';
-    else if (msg.match(/agency|marketing|creative/i)) industry = 'agency';
-    else if (msg.match(/tech|startup|saas|ai/i)) industry = 'tech startup';
-    else if (msg.match(/ecommerce|shop|store/i)) industry = 'e-commerce';
-    else if (msg.match(/portfolio|personal/i)) industry = 'portfolio';
-
-    return [
-      `Analyzing ${industry} business needs...`,
-      `Researching ${industry} industry trends...`,
-      `Generating custom logo for ${business}...`,
-      `Creating hero section imagery...`,
-      `Building responsive layouts...`,
-      `Adding contact forms and CTAs...`,
-      `Optimizing for conversions...`,
-      `Polishing the final design...`,
-    ];
+    const biz = businessMatch ? businessMatch[1].trim().substring(0, 25) : null;
+    return biz ? `Building website for ${biz}...` : 'Designing your website...';
   }
 
   // Image generation
   if (msg.match(/generate.*image|create.*image|draw|design.*logo|illustration|picture of/i)) {
-    return [
-      `Visualizing "${shortTopic}"...`,
-      `Generating artistic concepts...`,
-      `Applying creative direction...`,
-      `Refining visual details...`,
-      `Enhancing composition...`,
-      `Finalizing your image...`,
-    ];
+    return `Creating "${short}"...`;
   }
 
-  // Code generation
+  // Code
   if (msg.match(/code|function|component|implement|write.*script|debug|fix.*bug/i)) {
-    return [
-      `Analyzing ${shortTopic} requirements...`,
-      `Designing solution architecture...`,
-      `Writing clean code...`,
-      `Adding best practices...`,
-      `Testing edge cases...`,
-      `Optimizing performance...`,
-    ];
+    return short ? `Working on ${short}...` : 'Writing code...';
   }
 
-  // Research/deep research
+  // Research
   if (msg.match(/research|investigate|deep dive|comprehensive|analyze|study/i)) {
-    return [
-      `Researching "${shortTopic}"...`,
-      `Gathering multiple sources...`,
-      `Analyzing ${shortTopic} data...`,
-      `Cross-referencing findings...`,
-      `Evaluating source quality...`,
-      `Synthesizing insights on ${shortTopic}...`,
-      `Preparing comprehensive report...`,
-    ];
+    return short ? `Researching ${short}...` : 'Researching...';
   }
 
-  // Search/lookup - MAKE VERY SPECIFIC
-  if (msg.match(/search|find|look up|what is|who is|what are|who are|tell me about|explain/i)) {
-    return [
-      `Searching for "${shortTopic}"...`,
-      `Finding information on ${shortTopic}...`,
-      `Gathering relevant data...`,
-      `Analyzing ${shortTopic} details...`,
-      `Synthesizing response...`,
-    ];
+  // Search / lookup
+  if (msg.match(/search|find|look up|what is|who is|what are|who are|tell me about/i)) {
+    return short ? `Looking up ${short}...` : 'Searching...';
   }
 
-  // Questions about places
-  if (
-    msg.match(
-      /where|location|travel|visit|country|city|state|region|destination|trip|vacation|hotel/i
-    )
-  ) {
-    return [
-      `Searching for ${shortTopic}...`,
-      `Finding location information...`,
-      `Gathering travel details...`,
-      `Checking relevant facts...`,
-      `Preparing your answer...`,
-    ];
-  }
-
-  // Questions about people
-  if (msg.match(/who is|who was|person|ceo|founder|actor|singer|president|leader/i)) {
-    return [
-      `Looking up ${shortTopic}...`,
-      `Finding biographical info...`,
-      `Gathering relevant details...`,
-      `Verifying information...`,
-      `Preparing response...`,
-    ];
-  }
-
-  // Questions about products/services
-  if (msg.match(/price|cost|buy|purchase|product|service|best|top|recommend|review/i)) {
-    return [
-      `Searching for ${shortTopic}...`,
-      `Comparing options...`,
-      `Analyzing ${shortTopic} details...`,
-      `Evaluating recommendations...`,
-      `Preparing your answer...`,
-    ];
-  }
-
-  // Weather
-  if (msg.match(/weather|temperature|forecast|rain|snow|sunny|cloudy|storm/i)) {
-    return [
-      `Checking weather for ${shortTopic}...`,
-      `Fetching forecast data...`,
-      `Analyzing conditions...`,
-      `Preparing weather report...`,
-    ];
-  }
-
-  // Sports
-  if (msg.match(/score|game|match|nfl|nba|mlb|nhl|soccer|football|basketball|team|player/i)) {
-    return [
-      `Looking up ${shortTopic}...`,
-      `Fetching sports data...`,
-      `Checking latest scores...`,
-      `Gathering team info...`,
-      `Preparing your answer...`,
-    ];
-  }
-
-  // Stocks/finance
-  if (msg.match(/stock|share|market|invest|price|nasdaq|nyse|crypto|bitcoin|ethereum/i)) {
-    return [
-      `Fetching ${shortTopic} data...`,
-      `Analyzing market info...`,
-      `Checking latest prices...`,
-      `Gathering financial data...`,
-      `Preparing your answer...`,
-    ];
-  }
-
-  // Resume/career
-  if (msg.match(/resume|cv|cover letter|job|career/i)) {
-    return [
-      'Analyzing your experience...',
-      'Optimizing for ATS systems...',
-      'Crafting compelling language...',
-      'Formatting professionally...',
-      'Finalizing your document...',
-    ];
-  }
-
-  // Business/marketing
-  if (msg.match(/business plan|marketing|strategy|pitch|proposal/i)) {
-    return [
-      `Analyzing ${shortTopic}...`,
-      'Researching market dynamics...',
-      'Developing recommendations...',
-      'Crafting compelling narrative...',
-      'Finalizing your plan...',
-    ];
+  // Document creation (resume, plan, etc.)
+  if (msg.match(/resume|cv|cover letter|business plan|proposal|pitch/i)) {
+    return short ? `Drafting ${short}...` : 'Drafting your document...';
   }
 
   // Translation
   if (msg.match(/translate|translation|spanish|french|chinese|japanese|german|korean/i)) {
-    return [
-      'Analyzing source text...',
-      'Understanding context...',
-      `Translating "${shortTopic}"...`,
-      'Preserving meaning...',
-      'Finalizing translation...',
-    ];
+    return 'Translating...';
   }
 
-  // Math/calculations
+  // Math
   if (msg.match(/calculate|math|equation|solve|formula/i)) {
-    return [
-      `Parsing ${shortTopic}...`,
-      'Applying formulas...',
-      'Computing results...',
-      'Verifying calculations...',
-      'Preparing solution...',
-    ];
+    return 'Calculating...';
   }
 
-  // How-to questions
-  if (msg.match(/how to|how do|how can|tutorial|guide|steps|instructions/i)) {
-    return [
-      `Researching "${shortTopic}"...`,
-      'Finding best practices...',
-      'Organizing steps...',
-      'Preparing instructions...',
-      'Finalizing guide...',
-    ];
-  }
-
-  // Comparison questions
+  // Comparison
   if (msg.match(/compare|versus|vs|difference|better|which one|pros and cons/i)) {
-    return [
-      `Comparing ${shortTopic}...`,
-      'Analyzing differences...',
-      'Evaluating pros and cons...',
-      'Preparing comparison...',
-    ];
+    return short ? `Comparing ${short}...` : 'Comparing options...';
   }
 
-  // Default: use the extracted topic in generic messages
-  return getGenericMessages(shortTopic);
-}
-
-/**
- * Get generic messages, optionally with a topic
- */
-function getGenericMessages(topic: string): string[] {
-  if (topic && topic.length > 3) {
-    return [
-      `Thinking about "${topic}"...`,
-      `Processing your request...`,
-      `Analyzing ${topic}...`,
-      `Gathering information...`,
-      `Synthesizing response...`,
-      `Almost there...`,
-    ];
+  // How-to
+  if (msg.match(/how to|how do|how can|tutorial|guide|steps|instructions|explain/i)) {
+    return short ? `Thinking about ${short}...` : 'Thinking...';
   }
 
-  return [
-    'Thinking...',
-    'Processing your request...',
-    'Analyzing information...',
-    'Generating response...',
-    'Crafting your answer...',
-    'Almost there...',
-  ];
-}
+  // Default — use the topic if we have one
+  if (short && short.length > 3) {
+    return `Thinking about ${short}...`;
+  }
 
-// Boot sequence messages - fast, punchy terminal startup
-const BOOT_SEQUENCE = [
-  { text: '[SYS] Initializing secure channel...', delay: 400 },
-  { text: '[OK] Context loaded', delay: 350 },
-  { text: '> _', delay: 250 },
-];
-
-/**
- * Custom hook for typewriter effect
- * Reveals text character by character at specified speed
- */
-function useTypewriter(text: string, speed: number = 35): string {
-  const [displayText, setDisplayText] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
-
-  useEffect(() => {
-    setDisplayText('');
-    setIsComplete(false);
-
-    if (!text) return;
-
-    let currentIndex = 0;
-    const timer = setInterval(() => {
-      if (currentIndex < text.length) {
-        setDisplayText(text.slice(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        setIsComplete(true);
-        clearInterval(timer);
-      }
-    }, speed);
-
-    return () => clearInterval(timer);
-  }, [text, speed]);
-
-  return isComplete ? text : displayText;
-}
-
-/**
- * Truncate user message for command echo display
- */
-function truncateForCommandEcho(message: string, maxLength: number = 50): string {
-  if (!message) return '';
-  const cleaned = message.replace(/\n/g, ' ').trim();
-  if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.slice(0, maxLength) + '...';
+  return 'Thinking...';
 }
 
 interface TypingIndicatorProps {
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
-  userMessage?: string; // The user's last message for intelligent status
-  showBootSequence?: boolean; // Show boot sequence on first load
-  showNeuralThinking?: boolean; // Show impressive neural processing display
+  userMessage?: string;
+  /** @deprecated No longer used — kept for backwards compat */
+  showBootSequence?: boolean;
+  /** @deprecated No longer used — kept for backwards compat */
+  showNeuralThinking?: boolean;
 }
 
-export function TypingIndicator({
-  documentType,
-  userMessage,
-  showBootSequence = false,
-  showNeuralThinking = false,
-}: TypingIndicatorProps = {}) {
-  const [messageIndex, setMessageIndex] = useState(0);
-  const [phase, setPhase] = useState<'boot' | 'neural' | 'command' | 'status'>('command');
-  const [bootIndex, setBootIndex] = useState(0);
-  const [showCommandEcho, setShowCommandEcho] = useState(true);
-  const [_neuralComplete, setNeuralComplete] = useState(false);
+export function TypingIndicator({ documentType, userMessage }: TypingIndicatorProps = {}) {
+  const [docMessageIndex, setDocMessageIndex] = useState(0);
 
-  // Select messages based on document type or user message
-  const messages = useMemo(() => {
-    // Document type takes priority
+  // For document generation, cycle through phase-specific messages
+  const docMessages = useMemo(() => {
     if (documentType && DOCUMENT_MESSAGES[documentType]) {
       return DOCUMENT_MESSAGES[documentType];
     }
-    // Otherwise, use intelligent messages based on user input
-    return getIntelligentMessages(userMessage || '');
-  }, [documentType, userMessage]);
+    return null;
+  }, [documentType]);
 
-  // Get the current status message for typewriter effect
-  const currentStatusMessage = messages[messageIndex] || '';
-  const displayedStatusText = useTypewriter(currentStatusMessage, 35);
+  // For regular chat, derive ONE message from the query
+  const statusMessage = useMemo(() => {
+    if (docMessages) return docMessages[0]; // Will be overridden by rotation
+    return getStatusMessage(userMessage || '');
+  }, [docMessages, userMessage]);
 
-  // Command echo text
-  const commandEchoText = truncateForCommandEcho(userMessage || '');
-  const displayedCommandText = useTypewriter(
-    showCommandEcho ? `$ ./analyze --input="${commandEchoText}"` : '',
-    25
-  );
-
+  // Only rotate for document generation (takes longer, needs progress feel)
   useEffect(() => {
-    // Reset state when context changes
-    setMessageIndex(0);
-    // Determine initial phase: boot -> neural -> command -> status
-    if (showBootSequence) {
-      setPhase('boot');
-    } else if (showNeuralThinking) {
-      setPhase('neural');
-    } else {
-      setPhase('command');
-    }
-    setBootIndex(0);
-    setShowCommandEcho(true);
-    setNeuralComplete(false);
-  }, [documentType, userMessage, showBootSequence, showNeuralThinking]);
+    if (!docMessages) return;
+    setDocMessageIndex(0);
 
-  // Boot sequence handler
-  useEffect(() => {
-    if (phase !== 'boot') return;
-
-    if (bootIndex < BOOT_SEQUENCE.length) {
-      const timer = setTimeout(() => {
-        setBootIndex((prev) => prev + 1);
-      }, BOOT_SEQUENCE[bootIndex].delay);
-      return () => clearTimeout(timer);
-    } else {
-      // Boot complete, move to neural or command phase
-      setPhase(showNeuralThinking ? 'neural' : 'command');
-    }
-  }, [phase, bootIndex, showNeuralThinking]);
-
-  // Handle neural thinking completion
-  const handleNeuralComplete = useCallback(() => {
-    setNeuralComplete(true);
-    // Brief pause before transitioning to status
-    setTimeout(() => {
-      setPhase('status');
-    }, 500);
-  }, []);
-
-  // Command echo phase - show briefly then transition to status
-  useEffect(() => {
-    if (phase !== 'command') return;
-
-    // After command echo displays, transition to status phase
-    const timer = setTimeout(() => {
-      setShowCommandEcho(false);
-      setPhase('status');
-    }, 1200); // Show command for 1.2s
-
-    return () => clearTimeout(timer);
-  }, [phase]);
-
-  // Rotate through status messages
-  useEffect(() => {
-    if (phase !== 'status') return;
-
-    const interval = setInterval(
-      () => {
-        setMessageIndex((prev) => (prev + 1) % messages.length);
-      },
-      documentType ? 3000 : 2500
-    );
+    const interval = setInterval(() => {
+      setDocMessageIndex((prev) => (prev + 1) % docMessages.length);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [phase, documentType, messages.length]);
+  }, [docMessages]);
 
-  // Render boot sequence
-  const renderBootSequence = useCallback(() => {
-    return (
-      <div className="font-mono text-xs space-y-0.5">
-        {BOOT_SEQUENCE.slice(0, bootIndex + 1).map((item, idx) => (
-          <div
-            key={idx}
-            className={`${idx === bootIndex ? 'animate-fadeIn' : ''}`}
-            style={{
-              color: item.text.startsWith('[OK]')
-                ? 'var(--success, #22c55e)'
-                : item.text.startsWith('[SYS]')
-                  ? 'var(--primary)'
-                  : 'var(--text-secondary)',
-            }}
-          >
-            {item.text}
-            {idx === bootIndex && idx < BOOT_SEQUENCE.length - 1 && (
-              <span className="animate-pulse ml-0.5">_</span>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  }, [bootIndex]);
+  const displayText = docMessages ? docMessages[docMessageIndex] : statusMessage;
 
   return (
     <div className="flex items-start gap-3 animate-fadeIn">
@@ -654,55 +265,29 @@ export function TypingIndicator({
         </svg>
       </div>
 
-      {/* Typing Message */}
-      <div className="flex-1 space-y-2">
+      {/* Status Message */}
+      <div className="flex-1">
         <div
           className="inline-block rounded-lg px-4 py-3"
           style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
         >
-          {/* Boot sequence phase */}
-          {phase === 'boot' && renderBootSequence()}
-
-          {/* Neural thinking phase - impressive AI analysis display */}
-          {phase === 'neural' && userMessage && (
-            <NeuralThinking userMessage={userMessage} onComplete={handleNeuralComplete} />
-          )}
-
-          {/* Command echo phase */}
-          {phase === 'command' && showCommandEcho && commandEchoText && (
-            <div className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
-              <span style={{ color: 'var(--primary)' }}>$</span>{' '}
-              <span>{displayedCommandText.slice(2)}</span>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-sm font-medium transition-all duration-300"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {displayText}
               <span
-                className="inline-block ml-0.5 animate-pulse"
-                style={{ color: 'var(--primary)' }}
+                className="inline-block ml-0.5"
+                style={{
+                  color: 'var(--primary)',
+                  animation: 'blink 1s step-end infinite',
+                }}
               >
-                _
+                ▋
               </span>
-            </div>
-          )}
-
-          {/* Status message phase */}
-          {phase === 'status' && (
-            <div className="flex items-center gap-2">
-              {/* Intelligent status message with typewriter effect */}
-              <span
-                className="text-sm font-mono font-medium transition-all duration-300"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {displayedStatusText}
-                <span
-                  className="inline-block ml-0.5"
-                  style={{
-                    color: 'var(--primary)',
-                    animation: 'blink 1s step-end infinite',
-                  }}
-                >
-                  ▋
-                </span>
-              </span>
-            </div>
-          )}
+            </span>
+          </div>
         </div>
       </div>
     </div>
