@@ -340,7 +340,7 @@ export function extractProviderFromRequest(
  * Validate provider ID
  */
 function isValidProvider(id: string): id is ProviderId {
-  return ['claude', 'openai', 'xai', 'deepseek'].includes(id);
+  return ['claude', 'openai', 'xai', 'deepseek', 'google'].includes(id);
 }
 
 /**
