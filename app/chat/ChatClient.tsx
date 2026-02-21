@@ -55,6 +55,7 @@ import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 // Inline creative components removed - all creative features now work through natural chat flow
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
 import type { Chat, Message, Attachment, GeneratedImage } from './types';
+import { extractCitationsFromText } from './types';
 import type { ProviderId } from '@/lib/ai/providers';
 
 // Re-export types for convenience
@@ -4770,6 +4771,24 @@ I'll deploy a focused team to research and write your content.
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId ? { ...msg, content: finalContent } : msg
+            )
+          );
+        }
+      }
+
+      // Extract citations from response text (URLs from web search results)
+      if (finalContent) {
+        const extractedCitations = extractCitationsFromText(finalContent);
+        if (extractedCitations.length > 0) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    citations: extractedCitations,
+                    sourcesUsed: extractedCitations.length,
+                  }
+                : msg
             )
           );
         }
