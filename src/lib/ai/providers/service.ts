@@ -12,6 +12,7 @@ import type {
   UnifiedStreamChunk,
   ChatOptions,
   ProviderConfig,
+  ProviderCapabilities,
   HandoffResult,
   HandoffOptions,
 } from './types';
@@ -311,16 +312,7 @@ export class ProviderService {
   /**
    * Check if current provider has a capability
    */
-  hasCapability(
-    capability:
-      | 'vision'
-      | 'parallelToolCalls'
-      | 'streaming'
-      | 'systemMessages'
-      | 'jsonMode'
-      | 'toolCalling',
-    providerId?: ProviderId
-  ): boolean {
+  hasCapability(capability: keyof ProviderCapabilities, providerId?: ProviderId): boolean {
     const adapter = getAdapter(providerId ?? this.currentProviderId);
     return adapter?.hasCapability(capability) ?? false;
   }
