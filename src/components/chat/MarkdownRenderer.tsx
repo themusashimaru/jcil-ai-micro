@@ -121,14 +121,6 @@ const components: Components = {
   // Links - use primary color
   // For document downloads (PDF, DOCX, XLSX), force download instead of opening
   a: ({ href, children }) => {
-    // Debug: log all links
-    log.debug(
-      'Link rendered: href=' +
-        href +
-        ', isDoc=' +
-        (href && (href.includes('/api/documents/') || href.includes('.pdf')))
-    );
-
     // SAFETY: If href is empty or invalid, render as plain text (prevents navigation crash)
     if (!href || href === '' || href === '#') {
       log.warn('Empty or invalid href detected, rendering as text');
@@ -152,7 +144,6 @@ const components: Components = {
             // Base64url decode: replace URL-safe chars and decode
             const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
             const decoded = JSON.parse(atob(base64));
-            log.debug('Decoded token:', decoded);
             return { type: decoded.t, filename: decoded.f };
           }
         } catch (e) {
@@ -230,8 +221,6 @@ const components: Components = {
         const filename = getFilename();
         const { mimeType } = getFileInfo();
 
-        log.debug('Starting download:', { href, filename, mimeType, tokenInfo });
-
         try {
           // Fetch the file first
           const response = await fetch(href, { credentials: 'include' });
@@ -247,7 +236,6 @@ const components: Components = {
           }
 
           const blob = await response.blob();
-          log.debug('Blob received', { size: blob.size });
 
           // On mobile with Web Share API support, use native share (Save to Files)
           if (isMobile && navigator.share && navigator.canShare) {
@@ -287,8 +275,6 @@ const components: Components = {
         }
       };
 
-      log.debug('Rendering download BUTTON for', { href });
-
       return (
         <button
           onClick={handleDownload}
@@ -314,8 +300,6 @@ const components: Components = {
     }
 
     // Regular links open in new tab
-    log.debug('Rendering regular LINK (not document) for', { href });
-
     return (
       <a
         href={href}
@@ -563,15 +547,9 @@ export function MarkdownRenderer({
       }
 
       // Block code - use CodeBlockWithActions when enabled
-      log.debug('Code block render:', {
-        enableCodeActions,
-        hasCodeExecution: !!codeExecution,
-        language,
-      });
       if (enableCodeActions && codeExecution) {
         const codeHash = getCodeHash(codeContent);
         const testState = testResults.get(codeHash);
-        log.debug('Rendering CodeBlockWithActions:', { codeHash, testState });
 
         return (
           <CodeBlockWithActions
@@ -588,8 +566,6 @@ export function MarkdownRenderer({
                 : undefined
             }
             onTest={async (code, lang) => {
-              log.debug('onTest called:', { lang, codeLength: code.length, codeHash });
-
               // Set testing state
               setTestResults((prev) => {
                 const next = new Map(prev);
@@ -599,7 +575,6 @@ export function MarkdownRenderer({
 
               try {
                 const result = await codeExecution.testCode(code, lang);
-                log.debug('testCode result', { result });
                 const output =
                   result.outputs.map((o) => o.stdout || o.stderr).join('\n') || result.error || '';
 
