@@ -98,9 +98,12 @@ export class ContextCompactionManager {
    * Estimate token count for messages (rough approximation)
    */
   estimateTokens(messages: CompactableMessage[]): number {
-    // Rough estimate: ~4 characters per token
-    const totalChars = messages.reduce((sum, m) => sum + m.content.length, 0);
-    return Math.ceil(totalChars / 4);
+    // Improved: ~1.3 tokens per word + punctuation overhead
+    return messages.reduce((sum, m) => {
+      const words = m.content.split(/\s+/).filter(Boolean).length;
+      const specials = (m.content.match(/[{}[\]().,;:!?@#$%^&*+=<>/\\|~`"']/g) || []).length;
+      return sum + Math.ceil(words * 1.3 + specials * 0.5);
+    }, 0);
   }
 
   /**
@@ -149,7 +152,8 @@ export class ContextCompactionManager {
 
       // Calculate tokens saved
       const originalTokens = this.estimateTokens(messagesToSummarize);
-      const summaryTokens = Math.ceil(summary.length / 4);
+      const summaryWords = summary.split(/\s+/).filter(Boolean).length;
+      const summaryTokens = Math.ceil(summaryWords * 1.3);
       const tokensSaved = Math.max(0, originalTokens - summaryTokens);
 
       // Build result

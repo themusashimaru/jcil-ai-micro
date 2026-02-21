@@ -242,12 +242,28 @@ export class ProviderService {
           // (don't try to use the original provider's model ID with the fallback)
           const fallbackModel = getDefaultModel(fallbackProviderId)?.id ?? undefined;
 
-          try {
-            yield* fallbackAdapter.chat(messages, { ...chatOptions, model: fallbackModel });
-          } catch (fallbackErr) {
-            // Fallback also failed
-            throw parseProviderError(fallbackErr, fallbackProviderId);
+          // Retry fallback up to 2 attempts (same pattern as primary)
+          let fallbackLastError: UnifiedAIError | null = null;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              yield* fallbackAdapter.chat(messages, { ...chatOptions, model: fallbackModel });
+              fallbackLastError = null;
+              break;
+            } catch (fallbackErr) {
+              fallbackLastError = parseProviderError(fallbackErr, fallbackProviderId);
+              if (!fallbackLastError.shouldRetry() || attempt === 1) {
+                throw fallbackLastError;
+              }
+              const delay = fallbackLastError.getRetryDelay() * Math.pow(2, attempt);
+              log.info('Retrying fallback provider', {
+                provider: fallbackProviderId,
+                attempt: attempt + 1,
+                delay,
+              });
+              await new Promise((resolve) => setTimeout(resolve, delay));
+            }
           }
+          if (fallbackLastError) throw fallbackLastError;
         } else {
           throw error;
         }

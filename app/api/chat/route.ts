@@ -3974,7 +3974,13 @@ SECURITY:
     // CHAT-005: Guard against context overflow — leave room for conversation history
     // Claude 200K context: reserve ~150K tokens for messages, ~50K for system prompt
     const MAX_SYSTEM_PROMPT_TOKENS = 50_000;
-    const estimateTokens = (text: string) => Math.ceil(text.length / 4);
+    // Improved token estimation: ~1.3 tokens/word + punctuation overhead
+    const estimateTokens = (text: string): number => {
+      if (!text) return 0;
+      const words = text.split(/\s+/).filter(Boolean).length;
+      const specials = (text.match(/[{}[\]().,;:!?@#$%^&*+=<>/\\|~`"']/g) || []).length;
+      return Math.ceil(words * 1.3 + specials * 0.5);
+    };
 
     let fullSystemPrompt = systemPrompt;
     const baseTokens = estimateTokens(fullSystemPrompt);
@@ -5716,51 +5722,62 @@ SECURITY:
     };
 
     // Wrap the stream to release the slot when streaming completes
-    const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        controller.enqueue(chunk);
-      },
-      flush() {
-        // Release slot when stream is fully consumed (normal completion)
-        ensureSlotReleased();
+    // Backpressure: limit internal queue to 64KB to prevent memory exhaustion under load
+    const encoder = new TextEncoder();
+    const wrappedStream = new TransformStream<Uint8Array, Uint8Array>(
+      {
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+        },
+        flush(controller) {
+          // Stream completion signal — clients can detect clean end-of-stream
+          controller.enqueue(encoder.encode('\n[DONE]\n'));
 
-        // CHAT-014: Log response time
-        log.info('Chat response completed', {
-          requestId,
-          durationMs: Date.now() - requestStartTime,
-          model: routeResult.model,
-          provider: routeResult.providerId,
-          toolsUsed: routeResult.toolsUsed.length,
-        });
+          // Release slot when stream is fully consumed (normal completion)
+          ensureSlotReleased();
 
-        // ========================================
-        // PENDING REQUEST - Mark as completed (stream finished successfully)
-        // This removes it from the queue so background worker won't reprocess
-        // ========================================
-        if (pendingRequestId) {
-          completePendingRequest(pendingRequestId).catch((err) => {
-            log.warn('Failed to complete pending request (non-critical)', err);
+          // CHAT-014: Log response time
+          log.info('Chat response completed', {
+            requestId,
+            durationMs: Date.now() - requestStartTime,
+            model: routeResult.model,
+            provider: routeResult.providerId,
+            toolsUsed: routeResult.toolsUsed.length,
           });
-        }
 
-        // ========================================
-        // PERSISTENT MEMORY - Extract and save (async, non-blocking)
-        // ========================================
-        if (isAuthenticated && messages.length >= 2) {
-          // Fire and forget - don't block the stream completion
-          processConversationForMemory(
-            rateLimitIdentifier,
-            messages.map((m) => ({
-              role: m.role,
-              content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-            })),
-            conversationId
-          ).catch((err) => {
-            log.warn('Memory extraction failed (non-critical)', err);
-          });
-        }
+          // ========================================
+          // PENDING REQUEST - Mark as completed (stream finished successfully)
+          // This removes it from the queue so background worker won't reprocess
+          // ========================================
+          if (pendingRequestId) {
+            completePendingRequest(pendingRequestId).catch((err) => {
+              log.warn('Failed to complete pending request (non-critical)', err);
+            });
+          }
+
+          // ========================================
+          // PERSISTENT MEMORY - Extract and save (async, non-blocking)
+          // ========================================
+          if (isAuthenticated && messages.length >= 2) {
+            // Fire and forget - don't block the stream completion
+            processConversationForMemory(
+              rateLimitIdentifier,
+              messages.map((m) => ({
+                role: m.role,
+                content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+              })),
+              conversationId
+            ).catch((err) => {
+              log.warn('Memory extraction failed (non-critical)', err);
+            });
+          }
+        },
       },
-    });
+      // WritableStream strategy: 64KB high water mark for backpressure
+      { highWaterMark: 65536 },
+      // ReadableStream strategy: 64KB high water mark
+      { highWaterMark: 65536 }
+    );
 
     // Also listen for request abort (client disconnected)
     request.signal.addEventListener('abort', () => {
@@ -5768,16 +5785,14 @@ SECURITY:
       ensureSlotReleased();
     });
 
-    // CHAT-004: Timeout-based safety release — 5 minutes max hold
-    slotTimeoutId = setTimeout(
-      () => {
-        if (!slotReleased) {
-          log.warn('Queue slot timeout — force releasing after 5 minutes', { requestId });
-          ensureSlotReleased();
-        }
-      },
-      5 * 60 * 1000
-    );
+    // CHAT-004: Timeout-based safety release — 30s max hold (was 5min, too long for serverless)
+    const SLOT_TIMEOUT_MS = 30 * 1000;
+    slotTimeoutId = setTimeout(() => {
+      if (!slotReleased) {
+        log.warn('Queue slot timeout — force releasing after 30s', { requestId });
+        ensureSlotReleased();
+      }
+    }, SLOT_TIMEOUT_MS);
 
     // Pipe through the wrapper - slot released when stream ends
     const finalStream = routeResult.stream.pipeThrough(wrappedStream);
