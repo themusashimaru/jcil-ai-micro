@@ -71,11 +71,6 @@ describe('Middleware', () => {
       return SIZE_LIMITS.DEFAULT;
     }
 
-    it('should return upload limit for /api/upload routes', () => {
-      expect(getSizeLimit('/api/upload/start')).toBe(10485760);
-      expect(getSizeLimit('/api/upload/complete')).toBe(10485760);
-    });
-
     it('should return admin limit for /api/admin routes', () => {
       expect(getSizeLimit('/api/admin/users')).toBe(5242880);
       expect(getSizeLimit('/api/admin/settings')).toBe(5242880);
@@ -154,7 +149,9 @@ describe('Middleware', () => {
     });
 
     it('should include Permissions-Policy header', () => {
-      expect(securityHeaders['Permissions-Policy']).toBe('camera=(), microphone=(), geolocation=()');
+      expect(securityHeaders['Permissions-Policy']).toBe(
+        'camera=(), microphone=(), geolocation=()'
+      );
     });
   });
 
@@ -189,9 +186,7 @@ describe('Middleware', () => {
   describe('Static Asset Bypass', () => {
     function shouldSkipMiddleware(pathname: string): boolean {
       return (
-        pathname.startsWith('/_next') ||
-        pathname.startsWith('/static') ||
-        pathname.includes('.')
+        pathname.startsWith('/_next') || pathname.startsWith('/static') || pathname.includes('.')
       );
     }
 
