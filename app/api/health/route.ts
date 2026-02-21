@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/auth/user-guard';
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -169,12 +170,27 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Detailed health check (checks all services)
-  const [database, cache, ai] = await Promise.all([
-    checkDatabase(),
-    checkCache(),
-    checkAI(),
-  ]);
+  // Detailed health check requires authentication to prevent abuse
+  const auth = await requireUser();
+  if (!auth.authorized) {
+    // Fall back to basic health check for unauthenticated requests
+    const response: HealthCheck = {
+      status: 'healthy',
+      timestamp,
+      version,
+      uptime,
+    };
+
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    });
+  }
+
+  // Authenticated detailed health check (checks all services)
+  const [database, cache, ai] = await Promise.all([checkDatabase(), checkCache(), checkAI()]);
 
   const checks = { database, cache, ai };
   const status = determineOverallStatus(checks);

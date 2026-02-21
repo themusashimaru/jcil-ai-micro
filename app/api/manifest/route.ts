@@ -5,6 +5,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
+const log = logger('ManifestAPI');
 
 export const dynamic = 'force-dynamic';
 
@@ -88,33 +91,36 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[Manifest API] Error:', error);
+    log.error('[Manifest API] Error:', error instanceof Error ? error : { error });
 
     // Return default manifest on error
-    return NextResponse.json({
-      name: 'JCIL.ai',
-      short_name: 'JCIL.ai',
-      description: 'AI-powered chat through a Christian conservative lens',
-      start_url: '/chat',
-      display: 'standalone',
-      background_color: '#000000',
-      theme_color: '#000000',
-      icons: [
-        {
-          src: '/icon-192.png',
-          sizes: '192x192',
-          type: 'image/png',
-        },
-        {
-          src: '/icon-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-        },
-      ],
-    }, {
-      headers: {
-        'Content-Type': 'application/manifest+json',
+    return NextResponse.json(
+      {
+        name: 'JCIL.ai',
+        short_name: 'JCIL.ai',
+        description: 'AI-powered chat through a Christian conservative lens',
+        start_url: '/chat',
+        display: 'standalone',
+        background_color: '#000000',
+        theme_color: '#000000',
+        icons: [
+          {
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+        ],
       },
-    });
+      {
+        headers: {
+          'Content-Type': 'application/manifest+json',
+        },
+      }
+    );
   }
 }

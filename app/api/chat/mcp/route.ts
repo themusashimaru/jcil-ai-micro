@@ -20,11 +20,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { getMCPManager } from '@/lib/mcp/mcp-client';
-import {
-  getUserServers,
-  getKnownToolsForServer,
-  DEFAULT_MCP_SERVERS,
-} from './helpers';
+import { getUserServers, getKnownToolsForServer, DEFAULT_MCP_SERVERS } from './helpers';
 
 const log = logger('chat-mcp-api');
 
@@ -201,7 +197,7 @@ export async function POST(request: NextRequest) {
           });
           return NextResponse.json(
             {
-              error: `Tool execution failed: ${(error as Error).message}`,
+              error: 'Tool execution failed',
               toolName,
               serverId,
             },

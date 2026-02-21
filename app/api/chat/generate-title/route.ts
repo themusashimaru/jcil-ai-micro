@@ -16,11 +16,18 @@ import { logger } from '@/lib/logger';
 import { generateTitleSchema } from '@/lib/validation/schemas';
 import { validateCSRF } from '@/lib/security/csrf';
 import { checkRequestRateLimit, rateLimits, errors } from '@/lib/api/utils';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('GenerateTitleAPI');
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
     // CSRF Protection
     const csrfCheck = validateCSRF(request);
     if (!csrfCheck.valid) return csrfCheck.response!;

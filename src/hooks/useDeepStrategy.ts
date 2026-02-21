@@ -170,8 +170,6 @@ export function useDeepStrategy(): UseDeepStrategyReturn {
 
     // If there was an executing session, try to reconnect
     if (storedSession.phase === 'executing') {
-      console.log('Found executing session, attempting to reconnect...', storedSession.sessionId);
-
       // Restore state from storage first
       setSessionId(storedSession.sessionId);
       setEvents(storedSession.events);

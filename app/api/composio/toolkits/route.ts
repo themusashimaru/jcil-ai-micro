@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
       configured: isComposioConfigured(),
     });
   } catch (error) {
-    console.error('Failed to get toolkits:', error);
+    log.error('Failed to get toolkits:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to get toolkits' }, { status: 500 });
   }
 }

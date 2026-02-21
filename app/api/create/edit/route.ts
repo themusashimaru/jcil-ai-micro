@@ -331,8 +331,7 @@ export async function POST(request: NextRequest) {
     log.error('Edit API error', error as Error);
     return NextResponse.json(
       {
-        error: 'Image edit failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Edit generation failed',
       },
       { status: 500 }
     );

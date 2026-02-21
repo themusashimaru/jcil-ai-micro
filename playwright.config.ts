@@ -22,10 +22,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
 
   // Reporter to use
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list'],
-  ],
+  reporter: [['html', { outputFolder: 'playwright-report' }], ['list']],
 
   // Shared settings for all the projects below
   use: {
@@ -64,15 +61,16 @@ export default defineConfig({
   ],
 
   // Run your local dev server before starting the tests
+  // In CI, use the production build (faster, more reliable)
   webServer: {
-    command: 'pnpm dev',
+    command: process.env.CI ? 'pnpm start' : 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
 
-  // Global timeout for each test
-  timeout: 30000,
+  // Global timeout for each test (45s to account for slower CI runners)
+  timeout: 45000,
 
   // Expect timeout
   expect: {

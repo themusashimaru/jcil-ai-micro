@@ -54,7 +54,10 @@ export async function GET(request: Request) {
     const excludeId = searchParams.get('exclude');
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -77,7 +80,7 @@ export async function GET(request: Request) {
 
     if (convError) {
       log.error('Error fetching conversations:', { error: convError ?? 'Unknown error' });
-      return NextResponse.json({ error: convError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
     }
 
     // Fetch messages for each conversation (limit to last 10 messages per conversation)
@@ -92,7 +95,9 @@ export async function GET(request: Request) {
           .limit(10);
 
         if (msgError) {
-          log.error('Error fetching messages for conversation:', { error: msgError ?? 'Unknown error' });
+          log.error('Error fetching messages for conversation:', {
+            error: msgError ?? 'Unknown error',
+          });
           return {
             ...conv,
             messages: [],
@@ -108,13 +113,13 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       conversations: conversationsWithMessages,
-      count: conversationsWithMessages.length
+      count: conversationsWithMessages.length,
     });
   } catch (error) {
-    log.error('Error in GET /api/conversations/history:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    log.error(
+      'Error in GET /api/conversations/history:',
+      error instanceof Error ? error : { error }
     );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

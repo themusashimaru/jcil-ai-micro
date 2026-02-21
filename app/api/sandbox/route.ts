@@ -16,13 +16,16 @@ import {
   isSandboxConfigured,
   getMissingSandboxConfig,
 } from '@/lib/connectors/vercel-sandbox';
+import { logger } from '@/lib/logger';
+
+const log = logger('SandboxAPI');
 
 // Rate limits per subscription tier (executions per month)
 // Maps to existing user subscription_tier values
 const RATE_LIMITS: Record<string, number> = {
   free: 10,
-  basic: 25,      // $18/month
-  pro: 100,       // $30/month
+  basic: 25, // $18/month
+  pro: 100, // $30/month
   executive: 500, // $99/month (premium)
 };
 
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
           missing,
           hint: missing.includes('VERCEL_TEAM_ID')
             ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
-            : undefined
+            : undefined,
         },
         { status: 503 }
       );
@@ -48,21 +51,18 @@ export async function POST(req: NextRequest) {
 
     const sandboxConfig = getSandboxConfig(oidcToken);
     if (!sandboxConfig) {
-      return NextResponse.json(
-        { error: 'Invalid sandbox configuration' },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: 'Invalid sandbox configuration' }, { status: 503 });
     }
 
     // Authenticate user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user's subscription tier from users table
@@ -115,11 +115,7 @@ export async function POST(req: NextRequest) {
     switch (type) {
       case 'quick':
         // Quick test: just run a code snippet
-        result = await quickTest(
-          sandboxConfig,
-          options.code,
-          options.language || 'javascript'
-        );
+        result = await quickTest(sandboxConfig, options.code, options.language || 'javascript');
         break;
 
       case 'build':
@@ -168,13 +164,9 @@ export async function POST(req: NextRequest) {
         remaining: limit - currentUsage - 1,
       },
     });
-
   } catch (error) {
-    console.error('Sandbox execution error:', error);
-    return NextResponse.json(
-      { error: 'Code execution failed' },
-      { status: 500 }
-    );
+    log.error('Sandbox execution error:', error instanceof Error ? error : { error });
+    return NextResponse.json({ error: 'Code execution failed' }, { status: 500 });
   }
 }
 
@@ -195,13 +187,16 @@ export async function GET(req: NextRequest) {
         missing,
         hint: missing.includes('VERCEL_TEAM_ID')
           ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
-          : undefined
+          : undefined,
       });
     }
 
     // Authenticate user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({
@@ -248,12 +243,8 @@ export async function GET(req: NextRequest) {
         remaining: Math.max(0, limit - currentUsage),
       },
     });
-
   } catch (error) {
-    console.error('Sandbox status error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get sandbox status' },
-      { status: 500 }
-    );
+    log.error('Sandbox status error:', error instanceof Error ? error : { error });
+    return NextResponse.json({ error: 'Failed to get sandbox status' }, { status: 500 });
   }
 }

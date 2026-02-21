@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCognitiveDebugger } from '@/lib/cognitive-debugger';
 import { DebugLanguage } from '@/lib/cognitive-debugger/types';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('CognitiveDebugAPI');
 
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const workspaceId = resolvedParams.id;
 
   try {
+    // Auth check
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
     const body = await request.json();
     const { action, code, language, userIntent, focusAreas, relatedFiles } = body;
 
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const debugger_ = getCognitiveDebugger();
 
     // Create or get session
-    const userId = 'default-user'; // Would get from auth in production
+    const userId = auth.user.id;
     let sessionId = body.sessionId;
 
     if (!sessionId) {

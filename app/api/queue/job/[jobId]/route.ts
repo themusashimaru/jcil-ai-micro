@@ -20,7 +20,9 @@ interface RouteParams {
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   // SECURITY FIX: Add authentication to prevent unauthorized job access
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -81,10 +83,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(response);
   } catch (error) {
     log.error('Failed to get job status', error as Error, { jobId });
-    return NextResponse.json(
-      { error: 'Failed to get job status', message: (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get job status' }, { status: 500 });
   }
 }
 
@@ -100,7 +99,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   // SECURITY FIX: Add authentication to prevent unauthorized job cancellation
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -140,9 +141,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     log.error('Failed to cancel job', error as Error, { jobId });
-    return NextResponse.json(
-      { error: 'Failed to cancel job', message: (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to cancel job' }, { status: 500 });
   }
 }

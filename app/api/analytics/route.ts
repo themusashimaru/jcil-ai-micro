@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/lib/auth/user-guard';
 import { v4 as uuidv4 } from 'uuid';
 import type { AnalyticsResult, ChartConfig, DataInsight, ChartDataPoint } from '@/app/chat/types';
 
@@ -472,6 +473,12 @@ async function analyzeData(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
     const body: AnalyzeRequest = await request.json();
     const { fileName, fileType, content, query } = body;
 
@@ -519,9 +526,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Analytics failed', error as Error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to analyze data' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to analyze data' }, { status: 500 });
   }
 }

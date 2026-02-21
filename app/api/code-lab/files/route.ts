@@ -93,7 +93,6 @@ export async function GET(request: NextRequest) {
       {
         error: 'Failed to access files',
         code: 'FILES_ACCESS_FAILED',
-        details: error instanceof Error ? error.message : undefined,
       },
       { status: 500 }
     );
@@ -157,7 +156,6 @@ export async function POST(request: NextRequest) {
       {
         error: 'Failed to create file',
         code: 'FILE_CREATE_FAILED',
-        details: error instanceof Error ? error.message : undefined,
       },
       { status: 500 }
     );
@@ -221,7 +219,6 @@ export async function PUT(request: NextRequest) {
       {
         error: 'Failed to update file',
         code: 'FILE_UPDATE_FAILED',
-        details: error instanceof Error ? error.message : undefined,
       },
       { status: 500 }
     );
@@ -287,7 +284,6 @@ export async function DELETE(request: NextRequest) {
       {
         error: 'Failed to delete file',
         code: 'FILE_DELETE_FAILED',
-        details: error instanceof Error ? error.message : undefined,
       },
       { status: 500 }
     );

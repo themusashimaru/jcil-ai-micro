@@ -573,7 +573,6 @@ export async function POST(request: NextRequest) {
     return new Response(
       JSON.stringify({
         error: 'Strategy operation failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,
@@ -835,14 +834,11 @@ async function handleStart(
   let dbId: string;
   try {
     dbId = await createSessionInDB(supabase, userId, sessionId, attachments, mode);
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: 'Failed to create session', message: (error as Error).message }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+  } catch (_error) {
+    return new Response(JSON.stringify({ error: 'Failed to create session' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Create the encoder and stream for SSE
@@ -932,14 +928,14 @@ async function handleStart(
           })}\n\n`
         )
       );
-    } catch (error) {
+    } catch (_error) {
       await updateSessionPhase(supabase, sessionId, 'error');
 
       await writer.write(
         encoder.encode(
           `event: error\ndata: ${JSON.stringify({
             type: 'error',
-            message: error instanceof Error ? error.message : 'Failed to start intake',
+            message: 'Strategy processing failed',
             timestamp: Date.now(),
           })}\n\n`
         )
@@ -1109,7 +1105,6 @@ async function handleInput(
     return new Response(
       JSON.stringify({
         error: 'Failed to process input',
-        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,
@@ -1190,7 +1185,6 @@ async function handleContext(
     return new Response(
       JSON.stringify({
         error: 'Failed to add context',
-        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,
@@ -1390,7 +1384,7 @@ async function handleExecute(
         encoder.encode(
           `event: error\ndata: ${JSON.stringify({
             type: 'error',
-            message: error instanceof Error ? error.message : 'Strategy execution failed',
+            message: 'Strategy processing failed',
             timestamp: Date.now(),
             data: { sessionId },
           })}\n\n`

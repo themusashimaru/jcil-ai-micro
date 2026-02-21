@@ -22,6 +22,9 @@ import {
   searchCode,
 } from '@/lib/github/client';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('GitHubAPI');
 
 export const runtime = 'nodejs';
 
@@ -29,7 +32,9 @@ export const runtime = 'nodejs';
  * Check if user is admin
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function requireAdmin(_request: NextRequest): Promise<{ isAdmin: boolean; userId?: string; error?: NextResponse }> {
+async function requireAdmin(
+  _request: NextRequest
+): Promise<{ isAdmin: boolean; userId?: string; error?: NextResponse }> {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,7 +57,10 @@ async function requireAdmin(_request: NextRequest): Promise<{ isAdmin: boolean; 
     }
   );
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return {
@@ -85,7 +93,10 @@ export async function GET(request: NextRequest) {
   if (!auth.isAdmin) return auth.error;
 
   if (!isGitHubConfigured()) {
-    return NextResponse.json({ error: 'GitHub not configured. Set GITHUB_PAT in environment.' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'GitHub not configured. Set GITHUB_PAT in environment.' },
+      { status: 503 }
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -168,7 +179,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
-    console.error('[GitHub API] Error:', error);
+    log.error('[GitHub API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'GitHub API error' }, { status: 500 });
   }
 }
@@ -185,7 +196,10 @@ export async function POST(request: NextRequest) {
   if (!auth.isAdmin) return auth.error;
 
   if (!isGitHubConfigured()) {
-    return NextResponse.json({ error: 'GitHub not configured. Set GITHUB_PAT in environment.' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'GitHub not configured. Set GITHUB_PAT in environment.' },
+      { status: 503 }
+    );
   }
 
   try {
@@ -197,7 +211,10 @@ export async function POST(request: NextRequest) {
         const { owner, repo, path, content, message, sha, branch } = body;
 
         if (!owner || !repo || !path || content === undefined || !message) {
-          return NextResponse.json({ error: 'owner, repo, path, content, and message required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, path, content, and message required' },
+            { status: 400 }
+          );
         }
 
         const result = await createOrUpdateFile(owner, repo, path, content, message, sha, branch);
@@ -212,7 +229,10 @@ export async function POST(request: NextRequest) {
         const { owner, repo, path, sha, message, branch } = body;
 
         if (!owner || !repo || !path || !sha || !message) {
-          return NextResponse.json({ error: 'owner, repo, path, sha, and message required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, path, sha, and message required' },
+            { status: 400 }
+          );
         }
 
         const success = await deleteFile(owner, repo, path, sha, message, branch);
@@ -223,7 +243,10 @@ export async function POST(request: NextRequest) {
         const { owner, repo, branchName, fromSha } = body;
 
         if (!owner || !repo || !branchName || !fromSha) {
-          return NextResponse.json({ error: 'owner, repo, branchName, and fromSha required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, branchName, and fromSha required' },
+            { status: 400 }
+          );
         }
 
         const success = await createBranch(owner, repo, branchName, fromSha);
@@ -234,7 +257,10 @@ export async function POST(request: NextRequest) {
         const { owner, repo, title, body: prBody, head, base } = body;
 
         if (!owner || !repo || !title || !head || !base) {
-          return NextResponse.json({ error: 'owner, repo, title, head, and base required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, title, head, and base required' },
+            { status: 400 }
+          );
         }
 
         const pr = await createPullRequest(owner, repo, title, prBody || '', head, base);
@@ -249,7 +275,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
-    console.error('[GitHub API] Error:', error);
+    log.error('[GitHub API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'GitHub API error' }, { status: 500 });
   }
 }

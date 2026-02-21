@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('FileParseAPI');
 
@@ -408,6 +409,12 @@ async function parsePDF(base64Data: string): Promise<{ text: string; pageCount: 
  */
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
     const body: ParseRequest = await request.json();
     const { fileName, fileType, content, extractStyle } = body;
 

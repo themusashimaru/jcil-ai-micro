@@ -13,23 +13,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import { downloadAnthropicFile } from '@/lib/anthropic/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('AnthropicFilesAPI');
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { fileId: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { fileId: string } }) {
   try {
     // Authenticate user
     const session = await getServerSession();
 
     if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // User is authenticated (session.user verified above)
@@ -37,10 +34,7 @@ export async function GET(
     const { fileId } = params;
 
     if (!fileId) {
-      return NextResponse.json(
-        { error: 'File ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
     }
 
     // Processing authenticated file download request
@@ -59,15 +53,12 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[Anthropic Files API] Download error:', error);
+    log.error('[Anthropic Files API] Download error:', error instanceof Error ? error : { error });
 
     // Check for specific error types
     if (error instanceof Error) {
       if (error.message.includes('not found') || error.message.includes('404')) {
-        return NextResponse.json(
-          { error: 'File not found or expired' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'File not found or expired' }, { status: 404 });
       }
       if (error.message.includes('rate limit')) {
         return NextResponse.json(
@@ -77,9 +68,6 @@ export async function GET(
       }
     }
 
-    return NextResponse.json(
-      { error: 'Failed to download file' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
   }
 }
