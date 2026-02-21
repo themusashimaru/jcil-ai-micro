@@ -2180,7 +2180,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, temperature, max_tokens, searchMode, conversationId, provider } =
+    const { messages, temperature, max_tokens, searchMode, conversationId, provider, thinking } =
       validation.data;
 
     // Get user auth and plan info
@@ -5462,6 +5462,7 @@ SECURITY:
       systemPrompt: fullSystemPrompt,
       maxTokens: clampedMaxTokens,
       temperature,
+      thinking, // Extended thinking config (Anthropic Sonnet/Opus only)
       tools, // Give AI all 58 available tools for autonomous use
       onProviderSwitch: (from, to, reason) => {
         log.info('Provider failover triggered', { from, to, reason });

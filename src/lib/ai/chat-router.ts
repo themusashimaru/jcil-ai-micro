@@ -216,9 +216,14 @@ export function createStreamFromChunks(
         let totalOutputTokens = 0;
 
         for await (const chunk of chunks) {
-          // Only emit text chunks to the stream
+          // Emit text chunks to the stream
           if (chunk.type === 'text' && chunk.text) {
             controller.enqueue(encoder.encode(chunk.text));
+          }
+
+          // Emit thinking chunks wrapped in markers for UI parsing
+          if (chunk.type === 'thinking' && chunk.text) {
+            controller.enqueue(encoder.encode(`\n<thinking>\n${chunk.text}\n</thinking>\n`));
           }
 
           // Accumulate token usage from message events
@@ -300,6 +305,15 @@ export interface ChatRouteOptions {
   tools?: UnifiedTool[];
   /** Callback with accumulated token usage when stream ends */
   onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void;
+  /**
+   * Extended thinking configuration
+   * When enabled, the model will show its reasoning process before responding.
+   * Only supported by Claude Sonnet 4.6+ and Opus 4.6+.
+   */
+  thinking?: {
+    enabled: boolean;
+    budgetTokens?: number;
+  };
 }
 
 /**
@@ -345,6 +359,7 @@ export async function routeChat(
     disableFallback = false,
     onProviderSwitch,
     onUsage,
+    thinking,
   } = options;
 
   log.debug('Routing chat request', {
@@ -373,6 +388,7 @@ export async function routeChat(
     maxTokens,
     temperature,
     systemPrompt, // CRITICAL: This passes to the adapter's system parameter
+    thinking, // Extended thinking config (Anthropic only)
     onProviderSwitch,
   };
 
@@ -449,6 +465,7 @@ export async function routeChatWithTools(
     onProviderSwitch,
     tools = [],
     onUsage,
+    thinking,
   } = options;
 
   if (tools.length === 0) {
@@ -486,6 +503,7 @@ export async function routeChatWithTools(
     maxTokens,
     temperature,
     systemPrompt,
+    thinking, // Extended thinking config (Anthropic only)
     tools,
     onProviderSwitch,
   };
@@ -532,6 +550,13 @@ export async function routeChatWithTools(
                 // Stream text directly to client
                 if (chunk.text) {
                   controller.enqueue(encoder.encode(chunk.text));
+                }
+                break;
+
+              case 'thinking':
+                // Stream thinking content to client (wrapped in markers for UI parsing)
+                if (chunk.text) {
+                  controller.enqueue(encoder.encode(`\n<thinking>\n${chunk.text}\n</thinking>\n`));
                 }
                 break;
 
