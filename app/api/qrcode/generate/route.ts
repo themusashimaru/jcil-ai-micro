@@ -7,6 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import QRCode from 'qrcode';
+import { logger } from '@/lib/logger';
+
+const log = logger('QRCodeAPI');
 
 export const runtime = 'nodejs';
 
@@ -20,18 +23,10 @@ interface QRCodeRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: QRCodeRequest = await request.json();
-    const {
-      data,
-      size = 300,
-      darkColor = '#000000',
-      lightColor = '#ffffff'
-    } = body;
+    const { data, size = 300, darkColor = '#000000', lightColor = '#ffffff' } = body;
 
     if (!data || typeof data !== 'string') {
-      return NextResponse.json(
-        { error: 'Data is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Data is required' }, { status: 400 });
     }
 
     // Validate data length (QR codes have limits)
@@ -59,12 +54,11 @@ export async function POST(request: NextRequest) {
       data: data,
       size: size,
     });
-
   } catch (error) {
-    console.error('[QR Code API] Error generating QR code:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate QR code' },
-      { status: 500 }
+    log.error(
+      '[QR Code API] Error generating QR code:',
+      error instanceof Error ? error : { error }
     );
+    return NextResponse.json({ error: 'Failed to generate QR code' }, { status: 500 });
   }
 }

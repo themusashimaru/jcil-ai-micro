@@ -64,6 +64,46 @@ function chunkText(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
 }
 
 /**
+ * Validate file content against claimed file type using magic bytes.
+ * Returns true if the file content matches the expected type.
+ */
+function validateFileType(buffer: Buffer, fileType: string): boolean {
+  switch (fileType) {
+    case 'pdf':
+      // PDF magic bytes: %PDF (0x25 0x50 0x44 0x46)
+      return (
+        buffer.length >= 4 &&
+        buffer[0] === 0x25 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x44 &&
+        buffer[3] === 0x46
+      );
+
+    case 'docx':
+    case 'doc':
+    case 'xlsx':
+    case 'xls':
+      // DOCX/XLSX/PPTX are ZIP-based: PK (0x50 0x4B)
+      return buffer.length >= 2 && buffer[0] === 0x50 && buffer[1] === 0x4b;
+
+    case 'txt':
+    case 'csv': {
+      // For text files, verify the content is valid UTF-8
+      try {
+        const decoded = new TextDecoder('utf-8', { fatal: true });
+        decoded.decode(buffer);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    default:
+      return false;
+  }
+}
+
+/**
  * Extract text from different file types
  */
 async function extractText(
@@ -193,8 +233,18 @@ export async function POST(request: NextRequest) {
         throw new Error('Failed to download file');
       }
 
-      // Extract text content
+      // Validate file content matches claimed type via magic bytes
       const fileBuffer = await fileData.arrayBuffer();
+      const fileContentBuffer = Buffer.from(fileBuffer);
+      if (!validateFileType(fileContentBuffer, document.file_type)) {
+        log.warn('File content does not match claimed type', {
+          documentId,
+          claimedType: document.file_type,
+        });
+        return NextResponse.json({ error: 'Invalid file format' }, { status: 400 });
+      }
+
+      // Extract text content
       const { text, pageCount } = await extractText(
         fileBuffer,
         document.file_type,

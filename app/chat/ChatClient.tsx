@@ -25,14 +25,9 @@ import { useState, useEffect, useRef } from 'react';
 import { logger } from '@/lib/logger';
 
 const log = logger('ChatClient');
-// Voice Chat imports - Hidden until feature is production-ready
-// import { useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer, SearchMode } from '@/components/chat/ChatComposer';
-// Voice Button - Hidden until feature is production-ready
-// import VoiceButton from './VoiceButton';
-// REMOVED: Notification system - users have built-in phone notifications
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import {
   ChatContinuationBanner,
@@ -371,107 +366,6 @@ export function ChatClient() {
   const isMountedRef = useRef(true);
   // Track last time conversations were loaded to debounce visibility refreshes
   const lastConversationLoadRef = useRef<number>(0);
-
-  /* Voice Chat - Hidden until feature is production-ready
-  // Track current streaming assistant message ID for voice
-  const currentAssistantMsgId = useRef<string | null>(null);
-
-  // Add a complete user voice message - inserts BEFORE current AI response if one is streaming
-  const addUserVoiceMessage = useCallback((text: string) => {
-    if (!text.trim()) return;
-
-    const newMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: text,
-      timestamp: new Date(),
-      isStreaming: false,
-    };
-
-    setMessages((prev) => {
-      // If there's a streaming AI message, insert user message BEFORE it
-      if (currentAssistantMsgId.current) {
-        const aiMsgIndex = prev.findIndex(m => m.id === currentAssistantMsgId.current);
-        if (aiMsgIndex >= 0) {
-          // Insert user message before the AI message
-          const next = [...prev];
-          next.splice(aiMsgIndex, 0, newMessage);
-          return next;
-        }
-      }
-      // Otherwise append at the end
-      return [...prev, newMessage];
-    });
-  }, []);
-
-  // Handle assistant voice streaming (delta updates)
-  const upsertAssistantStreaming = useCallback((delta: string, done?: boolean) => {
-    setMessages((prev) => {
-      // If done with empty delta, mark existing message as complete
-      if (done && !delta) {
-        if (currentAssistantMsgId.current) {
-          const msgIndex = prev.findIndex(m => m.id === currentAssistantMsgId.current);
-          if (msgIndex >= 0) {
-            const next = [...prev];
-            next[msgIndex] = { ...next[msgIndex], isStreaming: false };
-            currentAssistantMsgId.current = null;
-            return next;
-          }
-        }
-        return prev;
-      }
-
-      // If no delta content, ignore
-      if (!delta) return prev;
-
-      // Check if we have an existing streaming message
-      if (currentAssistantMsgId.current) {
-        const msgIndex = prev.findIndex(m => m.id === currentAssistantMsgId.current);
-        if (msgIndex >= 0 && prev[msgIndex].isStreaming) {
-          const next = [...prev];
-          next[msgIndex] = {
-            ...next[msgIndex],
-            content: next[msgIndex].content + delta,
-            isStreaming: !done
-          };
-          if (done) currentAssistantMsgId.current = null;
-          return next;
-        }
-      }
-
-      // Create new message
-      const newId = crypto.randomUUID();
-      currentAssistantMsgId.current = done ? null : newId;
-
-      return [...prev, {
-        id: newId,
-        role: 'assistant' as const,
-        content: delta,
-        timestamp: new Date(),
-        isStreaming: !done,
-      }];
-    });
-  }, []);
-
-  // Start a voice chat - creates a new chat if needed
-  const startVoiceChat = useCallback(() => {
-    if (!currentChatId) {
-      const newChatId = crypto.randomUUID();
-      const timestamp = new Date();
-      const newChat: Chat = {
-        id: newChatId,
-        title: 'Voice Conversation',
-        isPinned: false,
-        lastMessage: '🎤 Voice conversation started',
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-      setChats((prevChats) => [newChat, ...prevChats]);
-      setCurrentChatId(newChatId);
-      setMessages([]);
-    }
-  }, [currentChatId]);
-  */
 
   // Load header logo from design settings
   useEffect(() => {
@@ -1669,7 +1563,6 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
 
       log.debug('Strategy mode activated', { sessionId });
     } catch (error) {
-      console.error('[startDeepStrategy] Error:', error);
       log.error('Failed to start strategy:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -2085,7 +1978,6 @@ Tell me the topic, your questions, and what you'll use this research for. The mo
 
       log.debug('Deep Research mode activated', { sessionId });
     } catch (error) {
-      console.error('[startDeepResearch] Error:', error);
       log.error('Failed to start deep research:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -2464,7 +2356,6 @@ I'll deploy a focused research team to investigate your topic.
 
       log.debug('Quick Research mode activated', { sessionId });
     } catch (error) {
-      console.error('[startQuickResearch] Error:', error);
       log.error('Failed to start quick research:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -2736,7 +2627,6 @@ I'll deploy a focused team to help you make this decision.
 
       log.debug('Quick Strategy mode activated', { sessionId });
     } catch (error) {
-      console.error('[startQuickStrategy] Error:', error);
       log.error('Failed to start quick strategy:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -3012,7 +2902,6 @@ This is a full publishing operation:
 
       log.debug('Deep Writer mode activated', { sessionId });
     } catch (error) {
-      console.error('[startDeepWriter] Error:', error);
       log.error('Failed to start deep writer:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
@@ -3294,7 +3183,6 @@ I'll deploy a focused team to research and write your content.
 
       log.debug('Quick Writer mode activated', { sessionId });
     } catch (error) {
-      console.error('[startQuickWriter] Error:', error);
       log.error('Failed to start quick writer:', error as Error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),

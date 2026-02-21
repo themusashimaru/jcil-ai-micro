@@ -5,6 +5,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
+const log = logger('PWAIconAPI');
 
 export const dynamic = 'force-dynamic';
 
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[PWA Icon API] Error:', error);
+    log.error('[PWA Icon API] Error:', error instanceof Error ? error : { error });
     // Redirect to static fallback
     return NextResponse.redirect(new URL('/icon-192.png', request.url));
   }

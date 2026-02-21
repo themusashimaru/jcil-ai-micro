@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('EarningsReportAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -260,7 +263,10 @@ Format the report professionally with clear sections, bullet points where approp
       .single();
 
     if (saveError) {
-      console.error('Error saving report:', saveError);
+      log.error(
+        'Error saving report:',
+        saveError instanceof Error ? saveError : { error: saveError }
+      );
       // Continue anyway - report was generated
     }
 
@@ -278,7 +284,7 @@ Format the report professionally with clear sections, bullet points where approp
       },
     });
   } catch (error) {
-    console.error('Error generating report:', error);
+    log.error('Error generating report:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }

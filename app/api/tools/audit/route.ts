@@ -10,6 +10,9 @@
 
 import { NextResponse } from 'next/server';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
+import { logger } from '@/lib/logger';
+
+const log = logger('ToolsAuditAPI');
 
 export const dynamic = 'force-dynamic';
 
@@ -30,55 +33,139 @@ export async function GET() {
       media: [],
       web: [],
       utility: [],
-      other: []
+      other: [],
     };
 
-    const toolDetails = tools.map(tool => {
+    const toolDetails = tools.map((tool) => {
       const name = tool.name;
 
       // Categorize based on name patterns
-      if (name.includes('security') || name.includes('threat') || name.includes('cyber') ||
-          name.includes('auth') || name.includes('encrypt') || name.includes('firewall') ||
-          name.includes('malware') || name.includes('vulnerability') || name.includes('siem') ||
-          name.includes('soc') || name.includes('red_team') || name.includes('blue_team') ||
-          name.includes('incident') || name.includes('forensic') || name.includes('osint') ||
-          name.includes('pen_test') || name.includes('compliance') || name.includes('privacy') ||
-          name.includes('identity') || name.includes('access_control') || name.includes('pki') ||
-          name.includes('vpn') || name.includes('ids') || name.includes('honeypot') ||
-          name.includes('ransomware') || name.includes('phishing') || name.includes('xdr') ||
-          name.includes('soar') || name.includes('zero_trust') || name.includes('owasp')) {
+      if (
+        name.includes('security') ||
+        name.includes('threat') ||
+        name.includes('cyber') ||
+        name.includes('auth') ||
+        name.includes('encrypt') ||
+        name.includes('firewall') ||
+        name.includes('malware') ||
+        name.includes('vulnerability') ||
+        name.includes('siem') ||
+        name.includes('soc') ||
+        name.includes('red_team') ||
+        name.includes('blue_team') ||
+        name.includes('incident') ||
+        name.includes('forensic') ||
+        name.includes('osint') ||
+        name.includes('pen_test') ||
+        name.includes('compliance') ||
+        name.includes('privacy') ||
+        name.includes('identity') ||
+        name.includes('access_control') ||
+        name.includes('pki') ||
+        name.includes('vpn') ||
+        name.includes('ids') ||
+        name.includes('honeypot') ||
+        name.includes('ransomware') ||
+        name.includes('phishing') ||
+        name.includes('xdr') ||
+        name.includes('soar') ||
+        name.includes('zero_trust') ||
+        name.includes('owasp')
+      ) {
         categories.security.push(name);
-      } else if (name.includes('physics') || name.includes('chemistry') || name.includes('biology') ||
-                 name.includes('quantum') || name.includes('thermo') || name.includes('spectro') ||
-                 name.includes('molecular') || name.includes('genetics') || name.includes('ecology') ||
-                 name.includes('geology') || name.includes('astronomy') || name.includes('cosmology') ||
-                 name.includes('nuclear') || name.includes('particle') || name.includes('relativity')) {
+      } else if (
+        name.includes('physics') ||
+        name.includes('chemistry') ||
+        name.includes('biology') ||
+        name.includes('quantum') ||
+        name.includes('thermo') ||
+        name.includes('spectro') ||
+        name.includes('molecular') ||
+        name.includes('genetics') ||
+        name.includes('ecology') ||
+        name.includes('geology') ||
+        name.includes('astronomy') ||
+        name.includes('cosmology') ||
+        name.includes('nuclear') ||
+        name.includes('particle') ||
+        name.includes('relativity')
+      ) {
         categories.science.push(name);
-      } else if (name.includes('engineering') || name.includes('structural') || name.includes('fluid') ||
-                 name.includes('heat') || name.includes('circuit') || name.includes('control') ||
-                 name.includes('robotics') || name.includes('manufacturing') || name.includes('materials') ||
-                 name.includes('hvac') || name.includes('welding') || name.includes('casting')) {
+      } else if (
+        name.includes('engineering') ||
+        name.includes('structural') ||
+        name.includes('fluid') ||
+        name.includes('heat') ||
+        name.includes('circuit') ||
+        name.includes('control') ||
+        name.includes('robotics') ||
+        name.includes('manufacturing') ||
+        name.includes('materials') ||
+        name.includes('hvac') ||
+        name.includes('welding') ||
+        name.includes('casting')
+      ) {
         categories.engineering.push(name);
-      } else if (name.includes('math') || name.includes('calc') || name.includes('matrix') ||
-                 name.includes('polynomial') || name.includes('statistics') || name.includes('probability') ||
-                 name.includes('algebra') || name.includes('geometry') || name.includes('optimize') ||
-                 name.includes('number_theory') || name.includes('combinatorics')) {
+      } else if (
+        name.includes('math') ||
+        name.includes('calc') ||
+        name.includes('matrix') ||
+        name.includes('polynomial') ||
+        name.includes('statistics') ||
+        name.includes('probability') ||
+        name.includes('algebra') ||
+        name.includes('geometry') ||
+        name.includes('optimize') ||
+        name.includes('number_theory') ||
+        name.includes('combinatorics')
+      ) {
         categories.math.push(name);
-      } else if (name.includes('data') || name.includes('sql') || name.includes('csv') ||
-                 name.includes('json') || name.includes('xml') || name.includes('parse') ||
-                 name.includes('analyze') || name.includes('spreadsheet') || name.includes('excel')) {
+      } else if (
+        name.includes('data') ||
+        name.includes('sql') ||
+        name.includes('csv') ||
+        name.includes('json') ||
+        name.includes('xml') ||
+        name.includes('parse') ||
+        name.includes('analyze') ||
+        name.includes('spreadsheet') ||
+        name.includes('excel')
+      ) {
         categories.data.push(name);
-      } else if (name.includes('image') || name.includes('audio') || name.includes('video') ||
-                 name.includes('media') || name.includes('graphics') || name.includes('animation') ||
-                 name.includes('render') || name.includes('svg') || name.includes('chart')) {
+      } else if (
+        name.includes('image') ||
+        name.includes('audio') ||
+        name.includes('video') ||
+        name.includes('media') ||
+        name.includes('graphics') ||
+        name.includes('animation') ||
+        name.includes('render') ||
+        name.includes('svg') ||
+        name.includes('chart')
+      ) {
         categories.media.push(name);
-      } else if (name.includes('web') || name.includes('http') || name.includes('url') ||
-                 name.includes('browser') || name.includes('fetch') || name.includes('search') ||
-                 name.includes('screenshot') || name.includes('github')) {
+      } else if (
+        name.includes('web') ||
+        name.includes('http') ||
+        name.includes('url') ||
+        name.includes('browser') ||
+        name.includes('fetch') ||
+        name.includes('search') ||
+        name.includes('screenshot') ||
+        name.includes('github')
+      ) {
         categories.web.push(name);
-      } else if (name.includes('convert') || name.includes('format') || name.includes('validate') ||
-                 name.includes('generate') || name.includes('encode') || name.includes('compress') ||
-                 name.includes('hash') || name.includes('cron') || name.includes('diff')) {
+      } else if (
+        name.includes('convert') ||
+        name.includes('format') ||
+        name.includes('validate') ||
+        name.includes('generate') ||
+        name.includes('encode') ||
+        name.includes('compress') ||
+        name.includes('hash') ||
+        name.includes('cron') ||
+        name.includes('diff')
+      ) {
         categories.utility.push(name);
       } else {
         categories.other.push(name);
@@ -87,7 +174,7 @@ export async function GET() {
       return {
         name: tool.name,
         description: tool.description,
-        parameters: tool.parameters
+        parameters: tool.parameters,
       };
     });
 
@@ -108,19 +195,19 @@ export async function GET() {
         media: { count: categories.media.length, tools: categories.media.sort() },
         web: { count: categories.web.length, tools: categories.web.sort() },
         utility: { count: categories.utility.length, tools: categories.utility.sort() },
-        other: { count: categories.other.length, tools: categories.other.sort() }
+        other: { count: categories.other.length, tools: categories.other.sort() },
       },
-      allTools: toolDetails.sort((a, b) => a.name.localeCompare(b.name))
+      allTools: toolDetails.sort((a, b) => a.name.localeCompare(b.name)),
     };
 
     return NextResponse.json(audit, { status: 200 });
   } catch (error) {
-    console.error('Tool audit error:', error);
+    log.error('Tool audit error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       {
         error: 'Failed to audit tools',
         message: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
@@ -137,18 +224,15 @@ export async function POST(request: Request) {
     const { toolName, testArgs } = body;
 
     if (!toolName) {
-      return NextResponse.json(
-        { error: 'toolName is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'toolName is required' }, { status: 400 });
     }
 
     const tools = await getAvailableChatTools();
-    const tool = tools.find(t => t.name === toolName);
+    const tool = tools.find((t) => t.name === toolName);
 
     if (!tool) {
       return NextResponse.json(
-        { error: `Tool '${toolName}' not found`, availableTools: tools.map(t => t.name) },
+        { error: `Tool '${toolName}' not found`, availableTools: tools.map((t) => t.name) },
         { status: 404 }
       );
     }
@@ -157,24 +241,27 @@ export async function POST(request: Request) {
     const result = await executeChatTool({
       id: `test-${Date.now()}`,
       name: toolName,
-      arguments: testArgs || {}
+      arguments: testArgs || {},
     });
 
-    return NextResponse.json({
-      tool: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters
+    return NextResponse.json(
+      {
+        tool: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
+        testResult: result,
+        timestamp: new Date().toISOString(),
       },
-      testResult: result,
-      timestamp: new Date().toISOString()
-    }, { status: 200 });
+      { status: 200 }
+    );
   } catch (error) {
-    console.error('Tool test error:', error);
+    log.error('Tool test error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       {
         error: 'Failed to test tool',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

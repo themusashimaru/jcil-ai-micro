@@ -21,6 +21,9 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { getAvailableProviderIds } from '@/lib/ai/providers/registry';
+import { logger } from '@/lib/logger';
+
+const log = logger('ProviderStatusAPI');
 
 export async function GET() {
   try {
@@ -95,7 +98,7 @@ export async function GET() {
       default: defaultProvider,
     });
   } catch (error) {
-    console.error('Error fetching provider status:', error);
+    log.error('Error fetching provider status:', error instanceof Error ? error : { error });
     return NextResponse.json(
       {
         ok: false,

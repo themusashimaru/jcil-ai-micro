@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     // Build callback URL - validate it's a proper URL
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!appUrl && !redirectUrl) {
+    if (!appUrl) {
       log.error('NEXT_PUBLIC_APP_URL not configured');
       return NextResponse.json(
         { error: 'Server configuration error - callback URL not available' },
@@ -138,13 +138,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const callbackUrl = redirectUrl || `${appUrl}/api/composio/callback?toolkit=${toolkit}`;
+    // SEC-011: Validate redirectUrl against app origin to prevent open redirect
+    let callbackUrl: string;
+    if (redirectUrl) {
+      try {
+        const redirectParsed = new URL(redirectUrl);
+        const appParsed = new URL(appUrl);
+        if (redirectParsed.origin !== appParsed.origin) {
+          log.warn('Rejected cross-origin redirect URL', { redirectUrl, appUrl });
+          return NextResponse.json({ error: 'Invalid redirect URL' }, { status: 400 });
+        }
+        callbackUrl = redirectUrl;
+      } catch {
+        return NextResponse.json({ error: 'Invalid redirect URL format' }, { status: 400 });
+      }
+    } else {
+      callbackUrl = `${appUrl}/api/composio/callback?toolkit=${toolkit}`;
+    }
 
     // Validate URL format before sending to Composio
     try {
       new URL(callbackUrl);
     } catch {
-      log.error('Invalid callback URL', { callbackUrl, appUrl, redirectUrl });
+      log.error('Invalid callback URL', { callbackUrl, appUrl });
       return NextResponse.json({ error: 'Invalid callback URL configuration' }, { status: 500 });
     }
 

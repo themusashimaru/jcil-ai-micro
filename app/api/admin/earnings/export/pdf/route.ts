@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('EarningsPdfExportAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -30,7 +33,12 @@ function generateReportHTML(report: {
   key_metrics: {
     users: { total: number; byTier: Record<string, number> };
     revenue: { total: number; byTier: Record<string, number> };
-    costs: { total: number; api: number; news: number; byModel: Record<string, { count: number; cost: number }> };
+    costs: {
+      total: number;
+      api: number;
+      news: number;
+      byModel: Record<string, { count: number; cost: number }>;
+    };
     profit: { total: number; margin: string };
   };
   created_at: string;
@@ -313,13 +321,17 @@ function generateReportHTML(report: {
       </tr>
     </thead>
     <tbody>
-      ${Object.entries(report.key_metrics.costs.byModel).map(([model, stats]) => `
+      ${Object.entries(report.key_metrics.costs.byModel)
+        .map(
+          ([model, stats]) => `
         <tr>
           <td>${model}</td>
           <td style="text-align: right;">${stats.count}</td>
           <td style="text-align: right;">$${stats.cost.toFixed(6)}</td>
         </tr>
-      `).join('')}
+      `
+        )
+        .join('')}
     </tbody>
   </table>
 
@@ -376,12 +388,8 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'text/html',
       },
     });
-
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate PDF' },
-      { status: 500 }
-    );
+    log.error('Error generating PDF:', error instanceof Error ? error : { error });
+    return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
   }
 }

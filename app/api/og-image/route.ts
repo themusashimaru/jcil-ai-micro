@@ -9,6 +9,9 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
+
+const log = logger('OGImageAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -77,7 +80,7 @@ export async function GET() {
 
     return serveFallbackIcon();
   } catch (error) {
-    console.error('[OG Image API] Error:', error);
+    log.error('[OG Image API] Error:', error instanceof Error ? error : { error });
     return serveFallbackIcon();
   }
 }
