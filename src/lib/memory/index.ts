@@ -100,35 +100,53 @@ export async function processConversationForMemory(
   messages: Array<{ role: string; content: string }>,
   conversationId?: string
 ): Promise<void> {
-  try {
-    // Quick check if extraction is worthwhile
-    if (!shouldExtractMemory(messages)) {
-      log.debug('Skipping memory extraction - no personal content detected');
-      return;
+  // MEM-001: Retry with exponential backoff (max 3 attempts)
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      // Quick check if extraction is worthwhile
+      if (!shouldExtractMemory(messages)) {
+        log.debug('Skipping memory extraction - no personal content detected');
+        return;
+      }
+
+      // Extract memory from conversation
+      const extraction = await extractMemoryFromConversation(messages);
+
+      // Skip if nothing extracted
+      if (extraction.facts.length === 0 && extraction.topics.length === 0) {
+        log.debug('No memory extracted from conversation');
+        return;
+      }
+
+      // Update user memory
+      const result = await updateUserMemory(userId, extraction, conversationId);
+
+      if (result.success) {
+        log.info('Memory updated successfully', {
+          userId,
+          factsAdded: result.factsAdded,
+          topicsAdded: result.topicsAdded,
+          attempt,
+        });
+      }
+      return; // Success — exit retry loop
+    } catch (error) {
+      if (attempt < MAX_RETRIES) {
+        const delayMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        log.warn('Memory extraction failed, retrying', {
+          attempt,
+          maxRetries: MAX_RETRIES,
+          delayMs,
+          error: error instanceof Error ? error.message : 'Unknown',
+        });
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        // Don't throw - memory extraction should never break the main flow
+        log.error('Memory extraction failed after all retries', error as Error);
+      }
     }
-
-    // Extract memory from conversation
-    const extraction = await extractMemoryFromConversation(messages);
-
-    // Skip if nothing extracted
-    if (extraction.facts.length === 0 && extraction.topics.length === 0) {
-      log.debug('No memory extracted from conversation');
-      return;
-    }
-
-    // Update user memory
-    const result = await updateUserMemory(userId, extraction, conversationId);
-
-    if (result.success) {
-      log.info('Memory updated successfully', {
-        userId,
-        factsAdded: result.factsAdded,
-        topicsAdded: result.topicsAdded,
-      });
-    }
-  } catch (error) {
-    // Don't throw - memory extraction should never break the main flow
-    log.error('Error processing conversation for memory', error as Error);
   }
 }
 

@@ -140,15 +140,32 @@ export class AnthropicAdapter extends BaseAIAdapter {
     // Convert tools if provided
     const tools = options.tools ? (this.formatTools(options.tools) as Anthropic.Tool[]) : undefined;
 
+    // Build API parameters
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const apiParams: any = {
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system,
+      messages: anthropicMessages,
+      tools,
+    };
+
+    // Add extended thinking if enabled (requires Sonnet 4.6+ or Opus 4.6+)
+    if (options.thinking?.enabled && (model.includes('sonnet') || model.includes('opus'))) {
+      const budgetTokens = options.thinking.budgetTokens || 10000;
+      apiParams.thinking = {
+        type: 'enabled',
+        budget_tokens: budgetTokens,
+      };
+      // When thinking is enabled, max_tokens must accommodate both thinking + response
+      apiParams.max_tokens = Math.max(16000, budgetTokens + 8192);
+      // Temperature must be 1 when thinking is enabled (Anthropic requirement)
+      apiParams.temperature = 1;
+    }
+
     try {
-      const stream = await this.client.messages.stream({
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        system,
-        messages: anthropicMessages,
-        tools,
-      });
+      const stream = await this.client.messages.stream(apiParams);
 
       // Track whether current content block is a server tool (web_search)
       // so we can suppress stray tool_call_delta/tool_call_end events for it
@@ -479,6 +496,9 @@ export class AnthropicAdapter extends BaseAIAdapter {
         if (event.content_block.type === 'text') {
           return null; // Text block start doesn't need a chunk
         }
+        if (event.content_block.type === 'thinking') {
+          return null; // Thinking block start doesn't need a chunk (deltas carry the text)
+        }
         if (event.content_block.type === 'tool_use') {
           return {
             type: 'tool_call_start',
@@ -499,6 +519,10 @@ export class AnthropicAdapter extends BaseAIAdapter {
 
         if (event.delta.type === 'text_delta') {
           return { type: 'text', text: event.delta.text };
+        }
+        if (event.delta.type === 'thinking_delta') {
+          // Extended thinking content — stream it as a 'thinking' chunk
+          return { type: 'thinking', text: (event.delta as { thinking: string }).thinking };
         }
         if (event.delta.type === 'input_json_delta') {
           // Pass the raw partial_json string for accumulation

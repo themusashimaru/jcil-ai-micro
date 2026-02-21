@@ -10,6 +10,7 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { auditLog } from '@/lib/audit';
 import {
   successResponse,
   errors,
@@ -207,6 +208,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Conversation created successfully
+      // CHAT-015: Audit log
+      auditLog({
+        userId: user.id,
+        action: 'conversation.create',
+        resourceType: 'conversation',
+        resourceId: conversation?.id,
+      }).catch(() => {});
+
       return successResponse({ conversation });
     }
   } catch (error) {

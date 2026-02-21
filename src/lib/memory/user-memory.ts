@@ -124,6 +124,7 @@ export async function loadUserMemory(userId: string): Promise<UserMemory | null>
       user_id: data.user_id,
       summary: data.summary || '',
       key_topics: data.key_topics || [],
+      topic_timestamps: data.topic_timestamps || {},
       user_preferences: data.user_preferences || {},
       conversation_ids: data.conversation_ids || [],
       last_conversations: data.last_conversations || [],
@@ -230,10 +231,34 @@ export function formatMemoryForPrompt(
     lines.push('');
   }
 
-  // Add key topics (sanitized)
+  // Add key topics sorted by recency (most recently discussed first)
   if (memory.key_topics && memory.key_topics.length > 0) {
-    const topics = memory.key_topics.slice(0, maxTopics).map((t) => sanitizeForPrompt(t));
-    lines.push(`<topics_discussed>${topics.join(', ')}</topics_discussed>`);
+    const timestamps = memory.topic_timestamps || {};
+    const sortedTopics = [...memory.key_topics].sort((a, b) => {
+      const tsA = timestamps[a] ? new Date(timestamps[a]).getTime() : 0;
+      const tsB = timestamps[b] ? new Date(timestamps[b]).getTime() : 0;
+      return tsB - tsA; // Most recent first
+    });
+
+    // Split into recent (last 7 days) and older topics
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recentTopics: string[] = [];
+    const olderTopics: string[] = [];
+    for (const topic of sortedTopics.slice(0, maxTopics)) {
+      const ts = timestamps[topic] ? new Date(timestamps[topic]).getTime() : 0;
+      if (ts > sevenDaysAgo) {
+        recentTopics.push(sanitizeForPrompt(topic));
+      } else {
+        olderTopics.push(sanitizeForPrompt(topic));
+      }
+    }
+
+    if (recentTopics.length > 0) {
+      lines.push(`<recent_topics>${recentTopics.join(', ')}</recent_topics>`);
+    }
+    if (olderTopics.length > 0) {
+      lines.push(`<past_topics>${olderTopics.join(', ')}</past_topics>`);
+    }
     lines.push('');
   }
 
@@ -289,6 +314,7 @@ export async function createUserMemory(userId: string): Promise<UserMemory | nul
       user_id: userId,
       summary: '',
       key_topics: [],
+      topic_timestamps: {},
       user_preferences: {},
       conversation_ids: [],
       last_conversations: [],
@@ -317,6 +343,7 @@ export async function createUserMemory(userId: string): Promise<UserMemory | nul
       user_id: data.user_id,
       summary: data.summary || '',
       key_topics: data.key_topics || [],
+      topic_timestamps: data.topic_timestamps || {},
       user_preferences: data.user_preferences || {},
       conversation_ids: data.conversation_ids || [],
       last_conversations: data.last_conversations || [],
@@ -373,11 +400,15 @@ export async function updateUserMemory(
     // Merge preferences from extracted facts
     const updatedPrefs = mergePreferences(memory.user_preferences, extraction.facts);
 
-    // Merge topics (deduplicate)
+    // Merge topics (deduplicate) and update timestamps
+    const now = new Date().toISOString();
     const existingTopics = new Set(memory.key_topics);
+    const updatedTimestamps: Record<string, string> = { ...(memory.topic_timestamps || {}) };
     const newTopics: string[] = [];
     for (const topic of extraction.topics) {
       const normalizedTopic = topic.toLowerCase().trim();
+      // Update timestamp for all mentioned topics (new and existing)
+      updatedTimestamps[normalizedTopic] = now;
       if (!existingTopics.has(normalizedTopic)) {
         newTopics.push(normalizedTopic);
         existingTopics.add(normalizedTopic);
@@ -406,10 +437,11 @@ export async function updateUserMemory(
       .update({
         summary: updatedSummary,
         key_topics: mergedTopics,
+        topic_timestamps: updatedTimestamps,
         user_preferences: updatedPrefs,
         conversation_ids: updatedConvIds,
         last_conversations: updatedSummaries,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       })
       .eq('id', memory.id);
 
@@ -636,12 +668,17 @@ export async function forgetFromMemory(
 
     const removed: string[] = [];
 
-    // Remove specified topics
+    // Remove specified topics and their timestamps
     let updatedTopics = memory.key_topics;
+    const updatedTimestamps = { ...(memory.topic_timestamps || {}) };
     if (options.topics && options.topics.length > 0) {
       const topicsToRemove = new Set(options.topics.map((t) => t.toLowerCase()));
       const originalCount = updatedTopics.length;
       updatedTopics = updatedTopics.filter((t) => !topicsToRemove.has(t.toLowerCase()));
+      // Clean up timestamps for removed topics
+      for (const topic of options.topics) {
+        delete updatedTimestamps[topic.toLowerCase()];
+      }
       if (originalCount !== updatedTopics.length) {
         removed.push(`topics: ${options.topics.join(', ')}`);
       }
@@ -677,6 +714,7 @@ export async function forgetFromMemory(
       .from('conversation_memory')
       .update({
         key_topics: updatedTopics,
+        topic_timestamps: updatedTimestamps,
         user_preferences: updatedPrefs,
         summary: updatedSummary,
         last_conversations: updatedConversations,

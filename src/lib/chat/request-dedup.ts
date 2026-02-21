@@ -14,8 +14,8 @@ const log = logger('RequestDedup');
 // CONFIGURATION
 // ============================================================================
 
-/** How long to consider a request a duplicate (ms) */
-const DEDUP_WINDOW_MS = 2000;
+/** How long to consider a request a duplicate (ms) — CHAT-008: reduced to catch rapid double-clicks only */
+const DEDUP_WINDOW_MS = 500;
 
 /** How often to clean up expired entries (ms) */
 const CLEANUP_INTERVAL_MS = 30000;

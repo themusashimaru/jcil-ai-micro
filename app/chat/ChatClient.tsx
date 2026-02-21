@@ -22,6 +22,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useAgentMode } from '@/hooks/useAgentMode';
 import { logger } from '@/lib/logger';
 
 const log = logger('ChatClient');
@@ -55,6 +56,7 @@ import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 // Inline creative components removed - all creative features now work through natural chat flow
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
 import type { Chat, Message, Attachment, GeneratedImage } from './types';
+import { extractCitationsFromText } from './types';
 import type { ProviderId } from '@/lib/ai/providers';
 
 // Re-export types for convenience
@@ -278,54 +280,76 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  // Deep Strategy Agent state - now chat-integrated (no modals)
-  const [isStrategyMode, setIsStrategyMode] = useState(false);
-  const [strategySessionId, setStrategySessionId] = useState<string | null>(null);
-  const [strategyPhase, setStrategyPhase] = useState<
-    'idle' | 'intake' | 'executing' | 'complete' | 'error'
-  >('idle');
-  const [strategyLoading, setStrategyLoading] = useState(false); // Loading state while starting
-  const [strategyEvents, setStrategyEvents] = useState<StrategyStreamEvent[]>([]); // Events for visual preview
-  // Deep Research Agent state - shares engine with Strategy, different prompts
-  const [isDeepResearchMode, setIsDeepResearchMode] = useState(false);
-  const [deepResearchSessionId, setDeepResearchSessionId] = useState<string | null>(null);
-  const [deepResearchPhase, setDeepResearchPhase] = useState<
-    'idle' | 'intake' | 'executing' | 'complete' | 'error'
-  >('idle');
-  const [deepResearchLoading, setDeepResearchLoading] = useState(false);
-  const [deepResearchEvents, setDeepResearchEvents] = useState<StrategyStreamEvent[]>([]);
-  // Quick Research Agent state - lightweight version of Deep Research (1/4 scale)
-  const [isQuickResearchMode, setIsQuickResearchMode] = useState(false);
-  const [quickResearchSessionId, setQuickResearchSessionId] = useState<string | null>(null);
-  const [quickResearchPhase, setQuickResearchPhase] = useState<
-    'idle' | 'intake' | 'executing' | 'complete' | 'error'
-  >('idle');
-  const [quickResearchLoading, setQuickResearchLoading] = useState(false);
-  const [_quickResearchEvents, setQuickResearchEvents] = useState<StrategyStreamEvent[]>([]);
-  // Quick Strategy Agent state - lightweight version of Deep Strategy (1/4 scale)
-  const [isQuickStrategyMode, setIsQuickStrategyMode] = useState(false);
-  const [quickStrategySessionId, setQuickStrategySessionId] = useState<string | null>(null);
-  const [quickStrategyPhase, setQuickStrategyPhase] = useState<
-    'idle' | 'intake' | 'executing' | 'complete' | 'error'
-  >('idle');
-  const [quickStrategyLoading, setQuickStrategyLoading] = useState(false);
-  const [_quickStrategyEvents, setQuickStrategyEvents] = useState<StrategyStreamEvent[]>([]);
-  // Deep Writer Agent state - professional AI writing with research
-  const [isDeepWriterMode, setIsDeepWriterMode] = useState(false);
-  const [deepWriterSessionId, setDeepWriterSessionId] = useState<string | null>(null);
-  const [deepWriterPhase, setDeepWriterPhase] = useState<
-    'idle' | 'intake' | 'executing' | 'complete' | 'error'
-  >('idle');
-  const [deepWriterLoading, setDeepWriterLoading] = useState(false);
-  const [_deepWriterEvents, setDeepWriterEvents] = useState<StrategyStreamEvent[]>([]);
-  // Quick Writer Agent state - fast AI writing with focused research
-  const [isQuickWriterMode, setIsQuickWriterMode] = useState(false);
-  const [quickWriterSessionId, setQuickWriterSessionId] = useState<string | null>(null);
-  const [quickWriterPhase, setQuickWriterPhase] = useState<
-    'idle' | 'intake' | 'executing' | 'complete' | 'error'
-  >('idle');
-  const [quickWriterLoading, setQuickWriterLoading] = useState(false);
-  const [_quickWriterEvents, setQuickWriterEvents] = useState<StrategyStreamEvent[]>([]);
+  // UI-003: Agent mode state consolidated via useAgentMode hook
+  const strategy = useAgentMode();
+  const deepResearch = useAgentMode();
+  const quickResearch = useAgentMode();
+  const quickStrategy = useAgentMode();
+  const deepWriter = useAgentMode();
+  const quickWriter = useAgentMode();
+
+  // Backward-compatible aliases for existing code references
+  const isStrategyMode = strategy.isActive;
+  const setIsStrategyMode = strategy.setActive;
+  const strategySessionId = strategy.sessionId;
+  const setStrategySessionId = strategy.setSessionId;
+  const strategyPhase = strategy.phase;
+  const setStrategyPhase = strategy.setPhase;
+  const strategyLoading = strategy.loading;
+  const setStrategyLoading = strategy.setLoading;
+  const strategyEvents = strategy.events;
+  const setStrategyEvents = strategy.setEvents;
+
+  const isDeepResearchMode = deepResearch.isActive;
+  const setIsDeepResearchMode = deepResearch.setActive;
+  const deepResearchSessionId = deepResearch.sessionId;
+  const setDeepResearchSessionId = deepResearch.setSessionId;
+  const deepResearchPhase = deepResearch.phase;
+  const setDeepResearchPhase = deepResearch.setPhase;
+  const deepResearchLoading = deepResearch.loading;
+  const setDeepResearchLoading = deepResearch.setLoading;
+  const deepResearchEvents = deepResearch.events;
+  const setDeepResearchEvents = deepResearch.setEvents;
+
+  const isQuickResearchMode = quickResearch.isActive;
+  const setIsQuickResearchMode = quickResearch.setActive;
+  const quickResearchSessionId = quickResearch.sessionId;
+  const setQuickResearchSessionId = quickResearch.setSessionId;
+  const quickResearchPhase = quickResearch.phase;
+  const setQuickResearchPhase = quickResearch.setPhase;
+  const quickResearchLoading = quickResearch.loading;
+  const setQuickResearchLoading = quickResearch.setLoading;
+  const setQuickResearchEvents = quickResearch.setEvents;
+
+  const isQuickStrategyMode = quickStrategy.isActive;
+  const setIsQuickStrategyMode = quickStrategy.setActive;
+  const quickStrategySessionId = quickStrategy.sessionId;
+  const setQuickStrategySessionId = quickStrategy.setSessionId;
+  const quickStrategyPhase = quickStrategy.phase;
+  const setQuickStrategyPhase = quickStrategy.setPhase;
+  const quickStrategyLoading = quickStrategy.loading;
+  const setQuickStrategyLoading = quickStrategy.setLoading;
+  const setQuickStrategyEvents = quickStrategy.setEvents;
+
+  const isDeepWriterMode = deepWriter.isActive;
+  const setIsDeepWriterMode = deepWriter.setActive;
+  const deepWriterSessionId = deepWriter.sessionId;
+  const setDeepWriterSessionId = deepWriter.setSessionId;
+  const deepWriterPhase = deepWriter.phase;
+  const setDeepWriterPhase = deepWriter.setPhase;
+  const deepWriterLoading = deepWriter.loading;
+  const setDeepWriterLoading = deepWriter.setLoading;
+  const setDeepWriterEvents = deepWriter.setEvents;
+
+  const isQuickWriterMode = quickWriter.isActive;
+  const setIsQuickWriterMode = quickWriter.setActive;
+  const quickWriterSessionId = quickWriter.sessionId;
+  const setQuickWriterSessionId = quickWriter.setSessionId;
+  const quickWriterPhase = quickWriter.phase;
+  const setQuickWriterPhase = quickWriter.setPhase;
+  const quickWriterLoading = quickWriter.loading;
+  const setQuickWriterLoading = quickWriter.setLoading;
+  const setQuickWriterEvents = quickWriter.setEvents;
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -4770,6 +4794,24 @@ I'll deploy a focused team to research and write your content.
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId ? { ...msg, content: finalContent } : msg
+            )
+          );
+        }
+      }
+
+      // Extract citations from response text (URLs from web search results)
+      if (finalContent) {
+        const extractedCitations = extractCitationsFromText(finalContent);
+        if (extractedCitations.length > 0) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    citations: extractedCitations,
+                    sourcesUsed: extractedCitations.length,
+                  }
+                : msg
             )
           );
         }

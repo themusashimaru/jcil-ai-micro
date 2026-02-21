@@ -76,6 +76,8 @@ export interface ProviderCapabilities {
   jsonMode: boolean;
   /** Supports function/tool calling */
   toolCalling: boolean;
+  /** Supports extended thinking / reasoning */
+  extendedThinking: boolean;
 }
 
 /**
@@ -267,6 +269,7 @@ export interface UnifiedToolResult {
 export type StreamChunkType =
   | 'message_start'
   | 'text'
+  | 'thinking'
   | 'tool_call_start'
   | 'tool_call_delta'
   | 'tool_call_end'
@@ -279,7 +282,7 @@ export type StreamChunkType =
 export interface UnifiedStreamChunk {
   /** Chunk type */
   type: StreamChunkType;
-  /** Text content (for text chunks) */
+  /** Text content (for text and thinking chunks) */
   text?: string;
   /** Tool call data (for tool_call_* chunks) */
   toolCall?: Partial<UnifiedToolCall>;
@@ -381,6 +384,17 @@ export interface ChatOptions {
    * This enables users to use their own API keys without rate limiting from platform keys.
    */
   userApiKey?: string;
+  /**
+   * Extended thinking configuration
+   * When enabled, the model will show its reasoning process before responding.
+   * Only supported by Claude Sonnet 4.6+ and Opus 4.6+.
+   */
+  thinking?: {
+    /** Enable extended thinking */
+    enabled: boolean;
+    /** Token budget for thinking (1000-50000, default 10000) */
+    budgetTokens?: number;
+  };
 }
 
 // ============================================================================

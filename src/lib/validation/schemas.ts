@@ -130,6 +130,7 @@ export const userSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   language: z.string().min(2).max(10).optional(),
   notifications_enabled: z.boolean().optional(),
+  custom_instructions: z.string().max(2000).optional().nullable(),
 });
 
 // ========================================
@@ -400,6 +401,13 @@ export const chatRequestSchema = z.object({
   selectedRepo: selectedRepoSchema,
   // AI Provider selection - allows users to choose between Claude, xAI, DeepSeek, etc.
   provider: z.enum(['claude', 'openai', 'xai', 'deepseek', 'google']).optional(),
+  // Extended thinking configuration (Claude Sonnet 4.6+ / Opus 4.6+ only)
+  thinking: z
+    .object({
+      enabled: z.boolean(),
+      budgetTokens: z.number().int().min(1000).max(50000).optional(),
+    })
+    .optional(),
 });
 
 /** Generate title request */

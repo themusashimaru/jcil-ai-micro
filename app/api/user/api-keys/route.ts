@@ -20,6 +20,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { encrypt, decrypt } from '@/lib/security/crypto';
+import { auditLog, getAuditContext } from '@/lib/audit';
 
 const log = logger('UserAPIKeys');
 
@@ -370,6 +371,17 @@ export async function POST(request: NextRequest) {
       hasCustomModel: !!providerConfig.model,
     });
 
+    // CHAT-015: Audit log
+    const auditCtx = getAuditContext(request);
+    auditLog({
+      userId: user.id,
+      action: 'api.key_created',
+      resourceType: 'api_key',
+      resourceId: provider,
+      ...auditCtx,
+      metadata: { provider, hasCustomModel: !!providerConfig.model },
+    }).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: `${info.name} API key saved successfully`,
@@ -463,6 +475,17 @@ export async function DELETE(request: NextRequest) {
     }
 
     log.info('API key deleted', { userId: user.id, provider });
+
+    // CHAT-015: Audit log
+    const auditCtx = getAuditContext(request);
+    auditLog({
+      userId: user.id,
+      action: 'api.key_revoked',
+      resourceType: 'api_key',
+      resourceId: provider,
+      ...auditCtx,
+      metadata: { provider },
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

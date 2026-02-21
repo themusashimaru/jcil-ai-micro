@@ -22,7 +22,8 @@ import { logger } from '@/lib/logger';
 
 const log = logger('Anthropic');
 
-// Default model: Claude Haiku 4.5 (fast, cost-effective for general chat)
+// Default model: Use Haiku for internal utility calls (title gen, memory extraction)
+// Main chat defaults are set in the registry (getDefaultChatModelId → Sonnet 4.6)
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
 // ========================================

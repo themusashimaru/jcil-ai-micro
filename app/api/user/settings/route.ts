@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
   const bodyValidation = await validateBody(request, userSettingsSchema);
   if (!bodyValidation.success) return bodyValidation.response;
 
-  const { theme } = bodyValidation.data;
+  const { theme, custom_instructions } = bodyValidation.data;
 
   // Validate theme - light mode is admin only for now
   if (theme === 'light') {
@@ -118,19 +118,23 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  // Build upsert payload (only include fields that were provided)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const upsertData: Record<string, any> = {
+    user_id: user.id,
+    theme: theme || 'dark',
+    updated_at: new Date().toISOString(),
+  };
+  if (custom_instructions !== undefined) {
+    upsertData.custom_instructions = custom_instructions;
+  }
+
   // Upsert settings
   const { data: settings, error } = await supabase
     .from('user_settings')
-    .upsert(
-      {
-        user_id: user.id,
-        theme: theme || 'dark',
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id',
-      }
-    )
+    .upsert(upsertData, {
+      onConflict: 'user_id',
+    })
     .select()
     .single();
 

@@ -61,11 +61,11 @@ const nextConfig = {
           },
           {
             // Content Security Policy - protect against XSS
-            // Note: 'unsafe-inline' needed for Next.js styled-jsx and some third-party scripts
+            // Note: 'unsafe-inline' needed for Next.js styled-jsx; unsafe-eval removed (SEC-014)
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.stripe.com https://js.stripe.com https://va.vercel-scripts.com",
+              "script-src 'self' 'unsafe-inline' https://*.stripe.com https://js.stripe.com https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",

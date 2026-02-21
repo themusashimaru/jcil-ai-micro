@@ -22,6 +22,9 @@ export interface UserMemory {
   /** Key topics the user has discussed (e.g., ["theology", "programming", "family"]) */
   key_topics: string[];
 
+  /** Maps topic name → ISO timestamp of when each topic was last discussed */
+  topic_timestamps: Record<string, string>;
+
   /** Learned preferences in structured format */
   user_preferences: UserPreferences;
 

@@ -13,6 +13,8 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { createClient } from '@supabase/supabase-js';
+import { chatErrorResponse } from '@/lib/api/utils';
+import { ERROR_CODES, HTTP_STATUS } from '@/lib/constants';
 import {
   executeCodeAgent,
   shouldUseCodeAgent as checkCodeAgentIntent,
@@ -43,6 +45,7 @@ import { getAdapter } from '@/lib/ai/providers/adapters/factory';
 import type { UnifiedMessage, UnifiedToolCall } from '@/lib/ai/providers/types';
 // Persistent memory + RAG + Tools (parity with main chat)
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
+import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
 // Composio/Connectors (150+ connected apps)
@@ -53,6 +56,12 @@ import {
   isComposioConfigured,
 } from '@/lib/composio';
 import { trackTokenUsage } from '@/lib/usage/track';
+import {
+  canMakeRequest,
+  getTokenUsage,
+  getTokenLimitWarningMessage,
+  incrementTokenUsage,
+} from '@/lib/limits';
 
 const log = logger('CodeLabChat');
 
@@ -549,27 +558,24 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new Response('Unauthorized', { status: 401 });
+      return chatErrorResponse(HTTP_STATUS.UNAUTHORIZED, {
+        error: 'Authentication required',
+        code: ERROR_CODES.UNAUTHORIZED,
+        action: 'authenticate',
+      });
     }
 
     // SECURITY FIX: Rate limiting to prevent abuse
     const { allowed } = checkRateLimit(user.id);
     if (!allowed) {
       log.warn('Rate limit exceeded', { userId: user.id });
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded. Please wait a moment before sending more messages.',
-          code: 'RATE_LIMIT_EXCEEDED',
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60),
-          },
-        }
-      );
+      return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
+        error: 'Rate limit exceeded',
+        code: ERROR_CODES.RATE_LIMITED,
+        message: 'Please wait a moment before sending more messages.',
+        retryAfter: 60,
+        action: 'retry',
+      });
     }
 
     const body = await request.json();
@@ -578,15 +584,12 @@ export async function POST(request: NextRequest) {
     // P2a: Input validation - max content length to prevent abuse
     const MAX_CONTENT_LENGTH = 100000; // 100KB reasonable limit for chat messages
     if (content && typeof content === 'string' && content.length > MAX_CONTENT_LENGTH) {
-      return new Response(
-        JSON.stringify({
-          error: 'Message too long',
-          code: 'CONTENT_TOO_LONG',
-          maxLength: MAX_CONTENT_LENGTH,
-          actualLength: content.length,
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Message too long',
+        code: ERROR_CODES.REQUEST_TOO_LARGE,
+        message: `Message exceeds maximum length of ${MAX_CONTENT_LENGTH} characters.`,
+        action: 'validate',
+      });
     }
 
     // Model selection (Claude Code parity) - default to Opus 4.6
@@ -597,30 +600,67 @@ export async function POST(request: NextRequest) {
     const thinkingBudget = thinking?.budgetTokens || 10000;
 
     if (!sessionId || (!content && (!attachments || attachments.length === 0))) {
-      return new Response('Missing sessionId or content', { status: 400 });
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Missing sessionId or content',
+        code: ERROR_CODES.INVALID_INPUT,
+        action: 'validate',
+      });
     }
 
-    // Load user's GitHub token for tool use (non-blocking)
+    // Load user's GitHub token and subscription tier for tool use + quota enforcement
     let userGitHubToken: string | undefined;
+    let userPlanKey = 'free';
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (supabaseUrl && serviceKey) {
         const adminClient = createClient(supabaseUrl, serviceKey);
-        const { data: tokenData } = await adminClient
+        const { data: userData } = await adminClient
           .from('users')
-          .select('github_token')
+          .select('github_token, subscription_tier, is_admin')
           .eq('id', user.id)
           .single();
-        if (tokenData?.github_token) {
-          const decrypted = decryptToken(tokenData.github_token);
+        if (userData?.github_token) {
+          const decrypted = decryptToken(userData.github_token);
           if (decrypted) {
             userGitHubToken = decrypted;
           }
         }
+        userPlanKey = userData?.subscription_tier || 'free';
       }
     } catch {
-      // GitHub token loading should never block chat
+      // User data loading should never block chat
+    }
+
+    // ========================================
+    // TOKEN QUOTA ENFORCEMENT
+    // ========================================
+    const canProceed = await canMakeRequest(user.id, userPlanKey);
+    if (!canProceed) {
+      const usage = await getTokenUsage(user.id, userPlanKey);
+      const isFreeUser = userPlanKey === 'free';
+      const warningMessage = getTokenLimitWarningMessage(usage, isFreeUser);
+
+      log.warn('Token quota exceeded', {
+        userId: user.id,
+        plan: userPlanKey,
+        usage: usage.percentage,
+      });
+
+      return chatErrorResponse(402, {
+        error: 'Token quota exceeded',
+        code: ERROR_CODES.QUOTA_EXCEEDED,
+        message:
+          warningMessage ||
+          'You have exceeded your token limit. Please upgrade your plan to continue.',
+        usage: {
+          used: usage.used,
+          limit: usage.limit,
+          percentage: usage.percentage,
+        },
+        action: 'upgrade',
+        actionUrl: '/settings?tab=subscription',
+      });
     }
 
     // Process attachments for Claude vision
@@ -703,10 +743,10 @@ export async function POST(request: NextRequest) {
 
     if (sessionFetchError) {
       log.warn('Failed to get session', { error: sessionFetchError.message });
-      return new Response(
-        JSON.stringify({ error: 'Session not found', code: 'SESSION_NOT_FOUND' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.NOT_FOUND, {
+        error: 'Session not found',
+        code: ERROR_CODES.NOT_FOUND,
+      });
     }
 
     // SECURITY: Verify the authenticated user owns this session
@@ -716,10 +756,11 @@ export async function POST(request: NextRequest) {
         requestingUser: user.id,
         sessionOwner: currentSession.user_id,
       });
-      return new Response(
-        JSON.stringify({ error: 'Access denied', code: 'SESSION_ACCESS_DENIED' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.FORBIDDEN, {
+        error: 'Access denied',
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'You do not have access to this session.',
+      });
     }
 
     // Handle action commands that execute immediately (ownership verified)
@@ -1566,6 +1607,22 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
     }
 
     // ========================================
+    // LEARNED STYLE PREFERENCES
+    // ========================================
+    try {
+      const learning = await getLearningContext(user.id);
+      if (learning.loaded && learning.contextString) {
+        systemPrompt += `\n\n${learning.contextString}`;
+        log.info('Injected learned style preferences');
+      }
+    } catch (learnErr) {
+      log.warn('Failed to load learning context', { error: learnErr });
+    }
+
+    // Fire-and-forget: observe current message for learning signals
+    observeAndLearn(user.id, content).catch(() => {});
+
+    // ========================================
     // RAG - Document Context
     // ========================================
     try {
@@ -2333,6 +2390,10 @@ Rules:
             conversationId: sessionId,
           }).catch(() => {});
 
+          // Enforce token budget limits (parity with main chat route)
+          const totalTokens = (inputTokens || 0) + (outputTokens || 0);
+          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch(() => {});
+
           // Save assistant message
           await (supabase.from('code_lab_messages') as AnySupabase).insert({
             id: generateId(),
@@ -2403,7 +2464,10 @@ Rules:
     });
   } catch (error) {
     log.error('Request error', error as Error);
-    return new Response('Internal server error', { status: 500 });
+    return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
+      error: 'Internal server error',
+      code: ERROR_CODES.INTERNAL_ERROR,
+    });
   }
 }
 

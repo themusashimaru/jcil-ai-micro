@@ -155,6 +155,52 @@ export const errors = {
     ),
 };
 
+// ========================================
+// CHAT ROUTE ERROR HELPER
+// ========================================
+// Returns raw Response (not NextResponse) for streaming chat routes.
+// Produces a consistent error envelope: { error, code, message?, retryAfter?, usage?, action? }
+
+export interface ChatErrorOptions {
+  /** Human-readable error headline */
+  error: string;
+  /** Machine-readable error code from ERROR_CODES */
+  code: string;
+  /** Additional context for the user */
+  message?: string;
+  /** Seconds to wait before retrying (for 429/503) */
+  retryAfter?: number;
+  /** Token usage stats (for quota errors) */
+  usage?: { used: number; limit: number; percentage: number };
+  /** Suggested client action */
+  action?: 'retry' | 'authenticate' | 'upgrade' | 'validate';
+  /** URL for the action */
+  actionUrl?: string;
+  /** Validation error details */
+  details?: Array<{ field: string; message: string }>;
+}
+
+export function chatErrorResponse(status: number, opts: ChatErrorOptions): Response {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const body: Record<string, any> = {
+    error: opts.error,
+    code: opts.code,
+  };
+  if (opts.message) body.message = opts.message;
+  if (opts.retryAfter !== undefined) body.retryAfter = opts.retryAfter;
+  if (opts.usage) body.usage = opts.usage;
+  if (opts.action) body.action = opts.action;
+  if (opts.actionUrl) body.actionUrl = opts.actionUrl;
+  if (opts.details) body.details = opts.details;
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (opts.retryAfter !== undefined) {
+    headers['Retry-After'] = String(opts.retryAfter);
+  }
+
+  return new Response(JSON.stringify(body), { status, headers });
+}
+
 /**
  * Convert an exception to an appropriate error response
  * Useful for catch blocks in API handlers

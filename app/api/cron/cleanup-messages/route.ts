@@ -30,11 +30,20 @@ function verifyCronSecret(request: Request): boolean {
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret) {
-    log.warn('CRON_SECRET not configured');
+    log.warn('CRON_SECRET not configured — cron jobs will be rejected');
     return false;
   }
 
-  return authHeader === `Bearer ${cronSecret}`;
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    log.warn('Cron secret mismatch', {
+      hasAuthHeader: !!authHeader,
+      headerFormat: authHeader ? (authHeader.startsWith('Bearer ') ? 'Bearer' : 'other') : 'none',
+      source: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
+    });
+    return false;
+  }
+
+  return true;
 }
 
 export const maxDuration = 60; // Allow up to 60 seconds for this cron job
