@@ -174,11 +174,7 @@ const VULN_PATTERNS = {
     /rejectUnauthorized\s*:\s*false/gi,
     /NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*['"]?0['"]?/g,
   ],
-  cors: [
-    /Access-Control-Allow-Origin['"]\s*:\s*['"]\*/g,
-    /cors\s*\(\s*\)/g,
-    /origin\s*:\s*true/g,
-  ],
+  cors: [/Access-Control-Allow-Origin['"]\s*:\s*['"]\*/g, /cors\s*\(\s*\)/g, /origin\s*:\s*true/g],
 };
 
 // ============================================
@@ -252,7 +248,8 @@ export class AISecurityScanner {
         vulnerabilities.push({
           id: `sqli-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           title: 'Potential SQL Injection',
-          description: 'User input appears to be directly interpolated into a SQL query. Use parameterized queries instead.',
+          description:
+            'User input appears to be directly interpolated into a SQL query. Use parameterized queries instead.',
           severity: 'critical',
           category: 'injection',
           cweId: 'CWE-89',
@@ -279,7 +276,8 @@ export class AISecurityScanner {
         vulnerabilities.push({
           id: `xss-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           title: 'Potential Cross-Site Scripting (XSS)',
-          description: 'Unsanitized data may be rendered as HTML. This could allow attackers to inject malicious scripts.',
+          description:
+            'Unsanitized data may be rendered as HTML. This could allow attackers to inject malicious scripts.',
           severity: 'high',
           category: 'xss',
           cweId: 'CWE-79',
@@ -306,14 +304,18 @@ export class AISecurityScanner {
         const matchText = match[0].toLowerCase();
 
         // Skip false positives for eval
-        if (matchText === 'eval(' && !code.substring(match.index - 20, match.index).includes('user')) {
+        if (
+          matchText === 'eval(' &&
+          !code.substring(match.index - 20, match.index).includes('user')
+        ) {
           continue;
         }
 
         vulnerabilities.push({
           id: `cmdi-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           title: 'Potential Command Injection',
-          description: 'User input may be passed to a system command. This could allow attackers to execute arbitrary commands.',
+          description:
+            'User input may be passed to a system command. This could allow attackers to execute arbitrary commands.',
           severity: 'critical',
           category: 'injection',
           cweId: 'CWE-78',
@@ -404,10 +406,12 @@ export class AISecurityScanner {
     const secrets: SecretFinding[] = [];
 
     // Skip common false positive files
-    if (filePath.includes('.example') ||
-        filePath.includes('.sample') ||
-        filePath.includes('test') ||
-        filePath.includes('mock')) {
+    if (
+      filePath.includes('.example') ||
+      filePath.includes('.sample') ||
+      filePath.includes('test') ||
+      filePath.includes('mock')
+    ) {
       return secrets;
     }
 
@@ -471,7 +475,7 @@ export class AISecurityScanner {
   ): Promise<Vulnerability[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are a senior security researcher specializing in application security.
 Analyze code for security vulnerabilities beyond simple pattern matching.
@@ -586,11 +590,11 @@ Report any security issues found.`,
    */
   private summarizeVulnerabilities(vulns: Vulnerability[]): SecuritySummary {
     return {
-      critical: vulns.filter(v => v.severity === 'critical').length,
-      high: vulns.filter(v => v.severity === 'high').length,
-      medium: vulns.filter(v => v.severity === 'medium').length,
-      low: vulns.filter(v => v.severity === 'low').length,
-      info: vulns.filter(v => v.severity === 'info').length,
+      critical: vulns.filter((v) => v.severity === 'critical').length,
+      high: vulns.filter((v) => v.severity === 'high').length,
+      medium: vulns.filter((v) => v.severity === 'medium').length,
+      low: vulns.filter((v) => v.severity === 'low').length,
+      info: vulns.filter((v) => v.severity === 'info').length,
       total: vulns.length,
     };
   }
@@ -619,29 +623,39 @@ Report any security issues found.`,
    */
   private generateRecommendations(vulns: Vulnerability[]): string[] {
     const recommendations: string[] = [];
-    const categories = new Set(vulns.map(v => v.category));
+    const categories = new Set(vulns.map((v) => v.category));
 
     if (categories.has('injection')) {
-      recommendations.push('Implement parameterized queries and input validation across all database interactions');
+      recommendations.push(
+        'Implement parameterized queries and input validation across all database interactions'
+      );
     }
     if (categories.has('xss')) {
-      recommendations.push('Add Content Security Policy (CSP) headers and sanitize all user-generated content');
+      recommendations.push(
+        'Add Content Security Policy (CSP) headers and sanitize all user-generated content'
+      );
     }
     if (categories.has('secrets')) {
-      recommendations.push('Move all secrets to environment variables and add secret scanning to CI/CD pipeline');
+      recommendations.push(
+        'Move all secrets to environment variables and add secret scanning to CI/CD pipeline'
+      );
     }
     if (categories.has('authentication')) {
       recommendations.push('Review authentication flow and implement multi-factor authentication');
     }
     if (categories.has('cryptography')) {
-      recommendations.push('Upgrade cryptographic algorithms to current standards (SHA-256+, AES-256)');
+      recommendations.push(
+        'Upgrade cryptographic algorithms to current standards (SHA-256+, AES-256)'
+      );
     }
     if (categories.has('configuration')) {
       recommendations.push('Review security headers and CORS configuration');
     }
 
     if (vulns.length === 0) {
-      recommendations.push('No vulnerabilities detected. Consider adding security testing to CI/CD pipeline.');
+      recommendations.push(
+        'No vulnerabilities detected. Consider adding security testing to CI/CD pipeline.'
+      );
     }
 
     return recommendations;
@@ -674,7 +688,7 @@ Report any security issues found.`,
   async generateFix(vuln: Vulnerability, fullCode: string): Promise<SecurityFix | null> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a security engineer. Generate a fix for the security vulnerability.
 
@@ -727,10 +741,7 @@ export const securityScanner = new AISecurityScanner();
 /**
  * Quick scan function
  */
-export async function scanSecurity(
-  code: string,
-  filePath: string
-): Promise<Vulnerability[]> {
+export async function scanSecurity(code: string, filePath: string): Promise<Vulnerability[]> {
   return securityScanner.scanCode(code, filePath);
 }
 

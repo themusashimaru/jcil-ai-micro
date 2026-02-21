@@ -20,8 +20,8 @@ export type Provider = 'anthropic';
 // Claude models for different use cases
 // Must match IDs in anthropic/client.ts
 const CLAUDE_MODELS = {
-  fast: 'claude-haiku-4-5-20251001',    // Quick responses, simple tasks
-  smart: 'claude-sonnet-4-20250514',    // Complex reasoning, code
+  fast: 'claude-haiku-4-5-20251001', // Quick responses, simple tasks
+  smart: 'claude-sonnet-4-6', // Complex reasoning, code
 } as const;
 
 /**
@@ -87,10 +87,7 @@ export async function getPerplexityModel(): Promise<string> {
   }
 
   try {
-    const { data } = await supabase
-      .from('provider_settings')
-      .select('perplexity_model')
-      .single();
+    const { data } = await supabase.from('provider_settings').select('perplexity_model').single();
 
     return data?.perplexity_model || 'sonar-pro';
   } catch {

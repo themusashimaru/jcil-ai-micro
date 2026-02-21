@@ -58,11 +58,16 @@ export interface VoiceCommandHandler {
 
 const COMMAND_PATTERNS = {
   // Code generation
-  CREATE_FUNCTION: /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?function\s+(?:called\s+|named\s+)?(\w+)(?:\s+that\s+(.+))?$/i,
-  CREATE_CLASS: /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?class\s+(?:called\s+|named\s+)?(\w+)(?:\s+that\s+(.+))?$/i,
-  CREATE_COMPONENT: /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?(?:react\s+)?component\s+(?:called\s+|named\s+)?(\w+)(?:\s+that\s+(.+))?$/i,
-  CREATE_INTERFACE: /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?(?:interface|type)\s+(?:called\s+|named\s+)?(\w+)(?:\s+with\s+(.+))?$/i,
-  CREATE_API: /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?(?:api\s+)?(?:endpoint|route)\s+(?:for\s+)?(.+)$/i,
+  CREATE_FUNCTION:
+    /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?function\s+(?:called\s+|named\s+)?(\w+)(?:\s+that\s+(.+))?$/i,
+  CREATE_CLASS:
+    /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?class\s+(?:called\s+|named\s+)?(\w+)(?:\s+that\s+(.+))?$/i,
+  CREATE_COMPONENT:
+    /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?(?:react\s+)?component\s+(?:called\s+|named\s+)?(\w+)(?:\s+that\s+(.+))?$/i,
+  CREATE_INTERFACE:
+    /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?(?:interface|type)\s+(?:called\s+|named\s+)?(\w+)(?:\s+with\s+(.+))?$/i,
+  CREATE_API:
+    /^(?:create|make|write|add)\s+(?:a\s+)?(?:new\s+)?(?:api\s+)?(?:endpoint|route)\s+(?:for\s+)?(.+)$/i,
 
   // Editing
   RENAME: /^rename\s+(\w+)\s+to\s+(\w+)$/i,
@@ -107,10 +112,7 @@ export class VoiceCodingEngine {
   /**
    * Process a voice transcript and convert to code/action
    */
-  async processVoiceInput(
-    transcript: string,
-    context: VoiceContext
-  ): Promise<VoiceCodeResult> {
+  async processVoiceInput(transcript: string, context: VoiceContext): Promise<VoiceCodeResult> {
     const command: VoiceCommand = {
       type: this.classifyCommand(transcript),
       transcript,
@@ -136,33 +138,41 @@ export class VoiceCodingEngine {
   private classifyCommand(transcript: string): VoiceCommand['type'] {
     const lower = transcript.toLowerCase();
 
-    if (COMMAND_PATTERNS.SAVE.test(lower) ||
-        COMMAND_PATTERNS.UNDO.test(lower) ||
-        COMMAND_PATTERNS.REDO.test(lower) ||
-        COMMAND_PATTERNS.RUN.test(lower) ||
-        COMMAND_PATTERNS.BUILD.test(lower) ||
-        COMMAND_PATTERNS.COMMIT.test(lower)) {
+    if (
+      COMMAND_PATTERNS.SAVE.test(lower) ||
+      COMMAND_PATTERNS.UNDO.test(lower) ||
+      COMMAND_PATTERNS.REDO.test(lower) ||
+      COMMAND_PATTERNS.RUN.test(lower) ||
+      COMMAND_PATTERNS.BUILD.test(lower) ||
+      COMMAND_PATTERNS.COMMIT.test(lower)
+    ) {
       return 'command';
     }
 
-    if (COMMAND_PATTERNS.GO_TO_LINE.test(lower) ||
-        COMMAND_PATTERNS.GO_TO_FUNCTION.test(lower) ||
-        COMMAND_PATTERNS.GO_TO_FILE.test(lower) ||
-        COMMAND_PATTERNS.SEARCH.test(lower)) {
+    if (
+      COMMAND_PATTERNS.GO_TO_LINE.test(lower) ||
+      COMMAND_PATTERNS.GO_TO_FUNCTION.test(lower) ||
+      COMMAND_PATTERNS.GO_TO_FILE.test(lower) ||
+      COMMAND_PATTERNS.SEARCH.test(lower)
+    ) {
       return 'navigation';
     }
 
-    if (COMMAND_PATTERNS.RENAME.test(lower) ||
-        COMMAND_PATTERNS.DELETE_LINE.test(lower) ||
-        COMMAND_PATTERNS.DELETE_FUNCTION.test(lower) ||
-        COMMAND_PATTERNS.FIX_ERROR.test(lower) ||
-        COMMAND_PATTERNS.REFACTOR.test(lower)) {
+    if (
+      COMMAND_PATTERNS.RENAME.test(lower) ||
+      COMMAND_PATTERNS.DELETE_LINE.test(lower) ||
+      COMMAND_PATTERNS.DELETE_FUNCTION.test(lower) ||
+      COMMAND_PATTERNS.FIX_ERROR.test(lower) ||
+      COMMAND_PATTERNS.REFACTOR.test(lower)
+    ) {
       return 'edit';
     }
 
-    if (COMMAND_PATTERNS.EXPLAIN.test(lower) ||
-        COMMAND_PATTERNS.WHAT_DOES.test(lower) ||
-        COMMAND_PATTERNS.HOW_TO.test(lower)) {
+    if (
+      COMMAND_PATTERNS.EXPLAIN.test(lower) ||
+      COMMAND_PATTERNS.WHAT_DOES.test(lower) ||
+      COMMAND_PATTERNS.HOW_TO.test(lower)
+    ) {
       return 'query';
     }
 
@@ -251,7 +261,7 @@ export class VoiceCodingEngine {
   ): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a voice-to-code AI assistant. Convert natural language commands into code.
 
@@ -349,7 +359,7 @@ Generate the appropriate code or action.`,
   ): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are an expert programmer. Generate production-ready code from natural language descriptions.
 
@@ -400,13 +410,10 @@ Return ONLY the code, no explanations.`,
   /**
    * Fix code errors via voice command
    */
-  async fixError(
-    errorMessage: string,
-    context: VoiceContext
-  ): Promise<VoiceCodeResult> {
+  async fixError(errorMessage: string, context: VoiceContext): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a debugging expert. Fix the code error and return the corrected code.
 
@@ -453,9 +460,7 @@ Fix this error.`,
         code: result.fixedCode,
         language: context.language,
         explanation: result.explanation,
-        cursorPosition: result.lineNumber
-          ? { line: result.lineNumber, column: 0 }
-          : undefined,
+        cursorPosition: result.lineNumber ? { line: result.lineNumber, column: 0 } : undefined,
       };
     } catch (error) {
       return {
@@ -469,13 +474,10 @@ Fix this error.`,
   /**
    * Explain code via voice
    */
-  async explainCode(
-    code: string,
-    specificQuestion?: string
-  ): Promise<VoiceCodeResult> {
+  async explainCode(code: string, specificQuestion?: string): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: `You are a patient coding teacher. Explain code clearly and concisely.
 Keep explanations brief but informative - suitable for text-to-speech.
@@ -521,7 +523,7 @@ Use simple language and avoid jargon where possible.`,
         'Create a function called...',
         'Add a React component named...',
         'Create an interface for...',
-        'Add an API endpoint for...',
+        'Add an API endpoint for...'
       );
     }
 
@@ -529,7 +531,7 @@ Use simple language and avoid jargon where possible.`,
       suggestions.push(
         'Create a class called...',
         'Add a function that...',
-        'Create a FastAPI route for...',
+        'Create a FastAPI route for...'
       );
     }
 
@@ -543,7 +545,7 @@ Use simple language and avoid jargon where possible.`,
       'Go to line...',
       'Search for...',
       'Save file',
-      'Run tests',
+      'Run tests'
     );
 
     return suggestions;
@@ -553,46 +555,48 @@ Use simple language and avoid jargon where possible.`,
    * Convert spoken numbers and symbols
    */
   normalizeTranscript(transcript: string): string {
-    return transcript
-      // Numbers
-      .replace(/\bone\b/gi, '1')
-      .replace(/\btwo\b/gi, '2')
-      .replace(/\bthree\b/gi, '3')
-      .replace(/\bfour\b/gi, '4')
-      .replace(/\bfive\b/gi, '5')
-      .replace(/\bsix\b/gi, '6')
-      .replace(/\bseven\b/gi, '7')
-      .replace(/\beight\b/gi, '8')
-      .replace(/\bnine\b/gi, '9')
-      .replace(/\bten\b/gi, '10')
-      .replace(/\bzero\b/gi, '0')
-      // Symbols
-      .replace(/\bopen paren\b/gi, '(')
-      .replace(/\bclose paren\b/gi, ')')
-      .replace(/\bopen bracket\b/gi, '[')
-      .replace(/\bclose bracket\b/gi, ']')
-      .replace(/\bopen brace\b/gi, '{')
-      .replace(/\bclose brace\b/gi, '}')
-      .replace(/\bequals\b/gi, '=')
-      .replace(/\bplus\b/gi, '+')
-      .replace(/\bminus\b/gi, '-')
-      .replace(/\btimes\b/gi, '*')
-      .replace(/\bdivided by\b/gi, '/')
-      .replace(/\bgreater than\b/gi, '>')
-      .replace(/\bless than\b/gi, '<')
-      .replace(/\band\b/gi, '&&')
-      .replace(/\bor\b/gi, '||')
-      .replace(/\bnot\b/gi, '!')
-      .replace(/\barrow\b/gi, '=>')
-      .replace(/\bcolon\b/gi, ':')
-      .replace(/\bsemicolon\b/gi, ';')
-      .replace(/\bcomma\b/gi, ',')
-      .replace(/\bdot\b/gi, '.')
-      .replace(/\bquote\b/gi, '"')
-      .replace(/\bsingle quote\b/gi, "'")
-      .replace(/\bbacktick\b/gi, '`')
-      .replace(/\bnew line\b/gi, '\n')
-      .replace(/\btab\b/gi, '\t');
+    return (
+      transcript
+        // Numbers
+        .replace(/\bone\b/gi, '1')
+        .replace(/\btwo\b/gi, '2')
+        .replace(/\bthree\b/gi, '3')
+        .replace(/\bfour\b/gi, '4')
+        .replace(/\bfive\b/gi, '5')
+        .replace(/\bsix\b/gi, '6')
+        .replace(/\bseven\b/gi, '7')
+        .replace(/\beight\b/gi, '8')
+        .replace(/\bnine\b/gi, '9')
+        .replace(/\bten\b/gi, '10')
+        .replace(/\bzero\b/gi, '0')
+        // Symbols
+        .replace(/\bopen paren\b/gi, '(')
+        .replace(/\bclose paren\b/gi, ')')
+        .replace(/\bopen bracket\b/gi, '[')
+        .replace(/\bclose bracket\b/gi, ']')
+        .replace(/\bopen brace\b/gi, '{')
+        .replace(/\bclose brace\b/gi, '}')
+        .replace(/\bequals\b/gi, '=')
+        .replace(/\bplus\b/gi, '+')
+        .replace(/\bminus\b/gi, '-')
+        .replace(/\btimes\b/gi, '*')
+        .replace(/\bdivided by\b/gi, '/')
+        .replace(/\bgreater than\b/gi, '>')
+        .replace(/\bless than\b/gi, '<')
+        .replace(/\band\b/gi, '&&')
+        .replace(/\bor\b/gi, '||')
+        .replace(/\bnot\b/gi, '!')
+        .replace(/\barrow\b/gi, '=>')
+        .replace(/\bcolon\b/gi, ':')
+        .replace(/\bsemicolon\b/gi, ';')
+        .replace(/\bcomma\b/gi, ',')
+        .replace(/\bdot\b/gi, '.')
+        .replace(/\bquote\b/gi, '"')
+        .replace(/\bsingle quote\b/gi, "'")
+        .replace(/\bbacktick\b/gi, '`')
+        .replace(/\bnew line\b/gi, '\n')
+        .replace(/\btab\b/gi, '\t')
+    );
   }
 }
 

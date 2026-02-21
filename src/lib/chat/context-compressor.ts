@@ -29,7 +29,7 @@ const KEEP_RECENT_COUNT = 5;
 const SUMMARY_MAX_TOKENS = 500;
 
 /** Model to use for summarization (Haiku = cheap & fast) */
-const SUMMARIZATION_MODEL = 'claude-haiku-4-5-20251101';
+const SUMMARIZATION_MODEL = 'claude-haiku-4-5-20251001';
 
 // ============================================================================
 // TYPES
@@ -227,10 +227,7 @@ async function aiCompress(
  * Basic compression without AI (fallback)
  * Extracts key points using simple heuristics
  */
-async function basicCompress(
-  messages: Message[],
-  keepRecent: number
-): Promise<CompressedContext> {
+async function basicCompress(messages: Message[], keepRecent: number): Promise<CompressedContext> {
   const toSummarize = messages.slice(0, -keepRecent);
   const toKeep = messages.slice(-keepRecent);
 
@@ -269,9 +266,10 @@ async function basicCompress(
   // Deduplicate and limit
   const uniquePoints = [...new Set(keyPoints)].slice(0, 15);
 
-  const summary = uniquePoints.length > 0
-    ? `Key points from earlier conversation:\n${uniquePoints.map((p) => `• ${p}`).join('\n')}`
-    : 'Earlier conversation covered general discussion.';
+  const summary =
+    uniquePoints.length > 0
+      ? `Key points from earlier conversation:\n${uniquePoints.map((p) => `• ${p}`).join('\n')}`
+      : 'Earlier conversation covered general discussion.';
 
   // Estimate tokens saved
   const originalChars = toSummarize.reduce((sum, m) => sum + m.content.length, 0);

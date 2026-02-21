@@ -122,7 +122,7 @@ export class AIArchitect {
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are a software architect analyzing a codebase.
 
@@ -165,10 +165,13 @@ Return JSON:
             content: `Analyze this codebase architecture:
 
 Files:
-${files.map(f => f.path).join('\n')}
+${files.map((f) => f.path).join('\n')}
 
 Sample code:
-${files.slice(0, 15).map(f => `--- ${f.path} ---\n${f.content.substring(0, 1000)}`).join('\n\n')}`,
+${files
+  .slice(0, 15)
+  .map((f) => `--- ${f.path} ---\n${f.content.substring(0, 1000)}`)
+  .join('\n\n')}`,
           },
         ],
       });
@@ -225,7 +228,7 @@ ${files.slice(0, 15).map(f => `--- ${f.path} ---\n${f.content.substring(0, 1000)
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a diagram expert. Generate a ${format} system architecture diagram.
 
@@ -280,17 +283,18 @@ Title: ${request.title || 'System Architecture'}`,
     format: DiagramFormat
   ): Promise<GeneratedDiagram> {
     // Find schema files
-    const schemaFiles = files.filter(f =>
-      f.path.includes('schema') ||
-      f.path.includes('migration') ||
-      f.path.includes('prisma') ||
-      f.path.includes('model') ||
-      f.path.endsWith('.sql')
+    const schemaFiles = files.filter(
+      (f) =>
+        f.path.includes('schema') ||
+        f.path.includes('migration') ||
+        f.path.includes('prisma') ||
+        f.path.includes('model') ||
+        f.path.endsWith('.sql')
     );
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a database diagram expert. Generate a ${format} ER diagram.
 
@@ -316,7 +320,7 @@ Include all tables, columns, types, and relationships.`,
             role: 'user',
             content: `Generate an ER diagram from these schema files:
 
-${schemaFiles.map(f => `--- ${f.path} ---\n${f.content}`).join('\n\n')}`,
+${schemaFiles.map((f) => `--- ${f.path} ---\n${f.content}`).join('\n\n')}`,
           },
         ],
       });
@@ -350,15 +354,13 @@ ${schemaFiles.map(f => `--- ${f.path} ---\n${f.content}`).join('\n\n')}`,
     request: DiagramRequest,
     format: DiagramFormat
   ): Promise<GeneratedDiagram> {
-    const apiFiles = files.filter(f =>
-      f.path.includes('/api/') ||
-      f.path.includes('route') ||
-      f.path.includes('controller')
+    const apiFiles = files.filter(
+      (f) => f.path.includes('/api/') || f.path.includes('route') || f.path.includes('controller')
     );
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are an API documentation expert. Generate a ${format} API flow diagram.
 
@@ -375,7 +377,7 @@ Use flowchart or sequence diagram syntax.`,
             role: 'user',
             content: `Generate an API flow diagram from:
 
-${apiFiles.map(f => `--- ${f.path} ---\n${f.content.substring(0, 1500)}`).join('\n\n')}`,
+${apiFiles.map((f) => `--- ${f.path} ---\n${f.content.substring(0, 1500)}`).join('\n\n')}`,
           },
         ],
       });
@@ -409,15 +411,13 @@ ${apiFiles.map(f => `--- ${f.path} ---\n${f.content.substring(0, 1500)}`).join('
     request: DiagramRequest,
     format: DiagramFormat
   ): Promise<GeneratedDiagram> {
-    const componentFiles = files.filter(f =>
-      f.path.includes('component') ||
-      f.path.endsWith('.tsx') ||
-      f.path.endsWith('.vue')
+    const componentFiles = files.filter(
+      (f) => f.path.includes('component') || f.path.endsWith('.tsx') || f.path.endsWith('.vue')
     );
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a UI architecture expert. Generate a ${format} component dependency diagram.
 
@@ -434,10 +434,13 @@ Use graph TD or flowchart syntax for clear visualization.`,
             content: `Generate a component diagram from:
 
 Files:
-${componentFiles.map(f => f.path).join('\n')}
+${componentFiles.map((f) => f.path).join('\n')}
 
 Sample components:
-${componentFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring(0, 800)}`).join('\n\n')}`,
+${componentFiles
+  .slice(0, 10)
+  .map((f) => `--- ${f.path} ---\n${f.content.substring(0, 800)}`)
+  .join('\n\n')}`,
           },
         ],
       });
@@ -473,7 +476,7 @@ ${componentFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring
   ): Promise<GeneratedDiagram> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a sequence diagram expert. Generate a ${format} sequence diagram.
 
@@ -500,7 +503,10 @@ Show the main user flow through the system.`,
             content: `Generate a sequence diagram for: ${request.description || 'main user flow'}
 
 Code context:
-${files.slice(0, 10).map(f => `${f.path}`).join('\n')}`,
+${files
+  .slice(0, 10)
+  .map((f) => `${f.path}`)
+  .join('\n')}`,
           },
         ],
       });
@@ -535,21 +541,22 @@ ${files.slice(0, 10).map(f => `${f.path}`).join('\n')}`,
     format: DiagramFormat
   ): Promise<GeneratedDiagram> {
     // Look for infra config files
-    const infraFiles = files.filter(f =>
-      f.path.includes('docker') ||
-      f.path.includes('k8s') ||
-      f.path.includes('kubernetes') ||
-      f.path.includes('terraform') ||
-      f.path.includes('aws') ||
-      f.path.includes('.yaml') ||
-      f.path.includes('.yml') ||
-      f.path.includes('vercel') ||
-      f.path.includes('netlify')
+    const infraFiles = files.filter(
+      (f) =>
+        f.path.includes('docker') ||
+        f.path.includes('k8s') ||
+        f.path.includes('kubernetes') ||
+        f.path.includes('terraform') ||
+        f.path.includes('aws') ||
+        f.path.includes('.yaml') ||
+        f.path.includes('.yml') ||
+        f.path.includes('vercel') ||
+        f.path.includes('netlify')
     );
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are an infrastructure architect. Generate a ${format} infrastructure diagram.
 
@@ -568,9 +575,11 @@ Use appropriate icons or labels for cloud services.`,
             role: 'user',
             content: `Generate infrastructure diagram from:
 
-${infraFiles.length > 0
-  ? infraFiles.map(f => `--- ${f.path} ---\n${f.content}`).join('\n\n')
-  : 'No infrastructure files found. Generate a typical Next.js/Vercel deployment diagram.'}`,
+${
+  infraFiles.length > 0
+    ? infraFiles.map((f) => `--- ${f.path} ---\n${f.content}`).join('\n\n')
+    : 'No infrastructure files found. Generate a typical Next.js/Vercel deployment diagram.'
+}`,
           },
         ],
       });
@@ -604,15 +613,16 @@ ${infraFiles.length > 0
     request: DiagramRequest,
     format: DiagramFormat
   ): Promise<GeneratedDiagram> {
-    const classFiles = files.filter(f =>
-      f.content.includes('class ') ||
-      f.content.includes('interface ') ||
-      f.content.includes('type ')
+    const classFiles = files.filter(
+      (f) =>
+        f.content.includes('class ') ||
+        f.content.includes('interface ') ||
+        f.content.includes('type ')
     );
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a UML expert. Generate a ${format} class diagram.
 
@@ -640,7 +650,10 @@ Show:
             role: 'user',
             content: `Generate a class diagram from:
 
-${classFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring(0, 1000)}`).join('\n\n')}`,
+${classFiles
+  .slice(0, 10)
+  .map((f) => `--- ${f.path} ---\n${f.content.substring(0, 1000)}`)
+  .join('\n\n')}`,
           },
         ],
       });
@@ -676,7 +689,7 @@ ${classFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring(0, 
   ): Promise<GeneratedDiagram> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a flowchart expert. Generate a ${format} flowchart.
 
@@ -697,7 +710,10 @@ Create a clear, logical flow diagram.`,
             content: `Generate a flowchart for: ${request.description || 'main application flow'}
 
 Context:
-${files.slice(0, 5).map(f => f.path).join('\n')}`,
+${files
+  .slice(0, 5)
+  .map((f) => f.path)
+  .join('\n')}`,
           },
         ],
       });

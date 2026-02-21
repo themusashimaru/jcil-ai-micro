@@ -7,7 +7,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 import OpenAI from 'openai';
+
+const log = logger('whisper');
 
 // Lazy initialization to avoid build errors
 let openaiClient: OpenAI | null = null;
@@ -25,31 +28,23 @@ function getOpenAI(): OpenAI {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[Whisper API] Received transcription request');
-
   try {
     // Auth check
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.log('[Whisper API] Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    console.log('[Whisper API] User authenticated:', user.id);
 
     // Get the form data with audio file
     const formData = await request.formData();
     const audioFile = formData.get('file') as File;
     const language = formData.get('language') as string | null;
     const prompt = formData.get('prompt') as string | null;
-
-    console.log('[Whisper API] Received file:', {
-      name: audioFile?.name,
-      type: audioFile?.type,
-      size: audioFile?.size,
-    });
 
     if (!audioFile) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
@@ -62,7 +57,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Call OpenAI Whisper API with verbose_json to get no_speech_prob
-    console.log('[Whisper API] Calling OpenAI Whisper...');
     const openai = getOpenAI();
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
@@ -72,23 +66,17 @@ export async function POST(request: NextRequest) {
       response_format: 'verbose_json',
     });
 
-    console.log('[Whisper API] Transcription result:', {
-      text: transcription.text,
-      segments: transcription.segments?.length || 0,
-    });
-
     // Check if Whisper detected mostly silence
     // If any segment has high no_speech_prob, the transcription is likely a hallucination
     const segments = transcription.segments || [];
-    const avgNoSpeechProb = segments.length > 0
-      ? segments.reduce((sum, seg) => sum + (seg.no_speech_prob || 0), 0) / segments.length
-      : 0;
-
-    console.log('[Whisper API] Average no_speech_prob:', avgNoSpeechProb);
+    const avgNoSpeechProb =
+      segments.length > 0
+        ? segments.reduce((sum, seg) => sum + (seg.no_speech_prob || 0), 0) / segments.length
+        : 0;
 
     // If average no_speech_prob > 0.5, Whisper thinks it's mostly silence
     if (avgNoSpeechProb > 0.5) {
-      console.log('[Whisper API] High no_speech_prob, likely hallucination');
+      log.debug('Filtered likely hallucination', { avgNoSpeechProb });
       return NextResponse.json({
         text: '',
         filtered: true,
@@ -100,20 +88,18 @@ export async function POST(request: NextRequest) {
       text: transcription.text,
       no_speech_prob: avgNoSpeechProb,
     });
-
   } catch (error) {
-    console.error('[Whisper API] Error:', error);
+    log.error('Transcription failed', {
+      error: error instanceof Error ? error.message : 'Unknown',
+    });
 
     if (error instanceof OpenAI.APIError) {
       return NextResponse.json(
-        { error: `OpenAI error: ${error.message}` },
+        { error: 'Transcription service error' },
         { status: error.status || 500 }
       );
     }
 
-    return NextResponse.json(
-      { error: 'Failed to transcribe audio' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to transcribe audio' }, { status: 500 });
   }
 }

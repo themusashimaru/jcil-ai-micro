@@ -466,7 +466,7 @@ Generate a safe, sandboxed implementation. Remember:
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514', // Use Sonnet for code generation
+      model: 'claude-sonnet-4-6', // Use Sonnet for code generation
       max_tokens: 4096,
       temperature: 0.3,
       system: systemPrompt,

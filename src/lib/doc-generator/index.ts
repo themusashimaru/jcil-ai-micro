@@ -22,7 +22,14 @@ const log = logger('DocGenerator');
 // TYPES
 // ============================================
 
-export type DocType = 'readme' | 'api' | 'jsdoc' | 'architecture' | 'changelog' | 'guide' | 'openapi';
+export type DocType =
+  | 'readme'
+  | 'api'
+  | 'jsdoc'
+  | 'architecture'
+  | 'changelog'
+  | 'guide'
+  | 'openapi';
 
 export interface DocGenerationOptions {
   type: DocType;
@@ -155,7 +162,7 @@ export class AIDocGenerator {
     options: DocGenerationOptions
   ): Promise<GeneratedDoc> {
     // Find package.json for project info
-    const packageJson = files.find(f => f.path.endsWith('package.json'));
+    const packageJson = files.find((f) => f.path.endsWith('package.json'));
     let projectInfo: Record<string, unknown> = {};
 
     if (packageJson) {
@@ -171,7 +178,7 @@ export class AIDocGenerator {
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are a technical writer creating a professional README.md file.
 
@@ -204,7 +211,10 @@ Code Summary:
 ${codeSummary}
 
 Key Files:
-${files.slice(0, 10).map(f => f.path).join('\n')}`,
+${files
+  .slice(0, 10)
+  .map((f) => f.path)
+  .join('\n')}`,
           },
         ],
       });
@@ -243,11 +253,12 @@ ${files.slice(0, 10).map(f => f.path).join('\n')}`,
     options: DocGenerationOptions
   ): Promise<GeneratedDoc> {
     // Find API route files
-    const apiFiles = files.filter(f =>
-      f.path.includes('/api/') ||
-      f.path.includes('route.ts') ||
-      f.path.includes('routes.') ||
-      f.path.includes('controller')
+    const apiFiles = files.filter(
+      (f) =>
+        f.path.includes('/api/') ||
+        f.path.includes('route.ts') ||
+        f.path.includes('routes.') ||
+        f.path.includes('controller')
     );
 
     // Extract endpoints
@@ -332,7 +343,7 @@ ${files.slice(0, 10).map(f => f.path).join('\n')}`,
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 8192,
           system: `You are a documentation expert. Add comprehensive JSDoc/TSDoc comments to code.
 
@@ -393,7 +404,7 @@ Return the complete file with documentation added.`,
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are a software architect creating architecture documentation.
 
@@ -420,7 +431,10 @@ Project Structure:
 ${structure}
 
 Sample Files:
-${files.slice(0, 20).map(f => `${f.path}:\n${f.content.substring(0, 500)}`).join('\n\n---\n\n')}`,
+${files
+  .slice(0, 20)
+  .map((f) => `${f.path}:\n${f.content.substring(0, 500)}`)
+  .join('\n\n---\n\n')}`,
           },
         ],
       });
@@ -458,14 +472,13 @@ ${files.slice(0, 20).map(f => `${f.path}:\n${f.content.substring(0, 500)}`).join
     projectName: string
   ): Promise<GeneratedDoc> {
     // Find existing changelog or generate from code analysis
-    const existingChangelog = files.find(f =>
-      f.path.toLowerCase().includes('changelog') ||
-      f.path.toLowerCase().includes('history')
+    const existingChangelog = files.find(
+      (f) => f.path.toLowerCase().includes('changelog') || f.path.toLowerCase().includes('history')
     );
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are generating a CHANGELOG.md file following Keep a Changelog format.
 
@@ -484,7 +497,7 @@ Be specific and user-friendly in descriptions.`,
             role: 'user',
             content: existingChangelog
               ? `Update this changelog with any new changes:\n\n${existingChangelog.content}`
-              : `Generate a changelog for "${projectName}" based on the project structure:\n\n${files.map(f => f.path).join('\n')}`,
+              : `Generate a changelog for "${projectName}" based on the project structure:\n\n${files.map((f) => f.path).join('\n')}`,
           },
         ],
       });
@@ -524,7 +537,7 @@ Be specific and user-friendly in descriptions.`,
   ): Promise<GeneratedDoc> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: `You are a technical writer creating a user guide.
 
@@ -545,7 +558,10 @@ Use clear, simple language. Include screenshots placeholders where helpful.`,
         messages: [
           {
             role: 'user',
-            content: `Create a user guide for "${projectName}":\n\n${files.slice(0, 10).map(f => `${f.path}:\n${f.content.substring(0, 300)}`).join('\n\n')}`,
+            content: `Create a user guide for "${projectName}":\n\n${files
+              .slice(0, 10)
+              .map((f) => `${f.path}:\n${f.content.substring(0, 300)}`)
+              .join('\n\n')}`,
           },
         ],
       });
@@ -582,14 +598,11 @@ Use clear, simple language. Include screenshots placeholders where helpful.`,
     files: Array<{ path: string; content: string }>,
     projectName: string
   ): Promise<GeneratedDoc> {
-    const apiFiles = files.filter(f =>
-      f.path.includes('/api/') ||
-      f.path.includes('route.')
-    );
+    const apiFiles = files.filter((f) => f.path.includes('/api/') || f.path.includes('route.'));
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 16384,
         system: `You are an API documentation expert. Generate an OpenAPI 3.0 specification.
 
@@ -605,7 +618,7 @@ Ensure the YAML is valid and complete.`,
         messages: [
           {
             role: 'user',
-            content: `Generate OpenAPI spec for "${projectName}":\n\n${apiFiles.map(f => `${f.path}:\n${f.content}`).join('\n\n---\n\n')}`,
+            content: `Generate OpenAPI spec for "${projectName}":\n\n${apiFiles.map((f) => `${f.path}:\n${f.content}`).join('\n\n---\n\n')}`,
           },
         ],
       });
@@ -616,8 +629,9 @@ Ensure the YAML is valid and complete.`,
       }
 
       // Extract YAML from response
-      const yamlMatch = content.text.match(/```ya?ml\n([\s\S]*?)\n```/) ||
-                       content.text.match(/^(openapi:[\s\S]*)/m);
+      const yamlMatch =
+        content.text.match(/```ya?ml\n([\s\S]*?)\n```/) ||
+        content.text.match(/^(openapi:[\s\S]*)/m);
       const spec = yamlMatch ? yamlMatch[1] : content.text;
 
       return {
@@ -643,16 +657,14 @@ Ensure the YAML is valid and complete.`,
   /**
    * Summarize code for documentation
    */
-  private async summarizeCode(
-    files: Array<{ path: string; content: string }>
-  ): Promise<string> {
+  private async summarizeCode(files: Array<{ path: string; content: string }>): Promise<string> {
     const summary: string[] = [];
 
     summary.push(`Total files: ${files.length}`);
     summary.push(`Languages: ${this.detectLanguages(files).join(', ')}`);
 
     // Detect frameworks
-    const packageJson = files.find(f => f.path.endsWith('package.json'));
+    const packageJson = files.find((f) => f.path.endsWith('package.json'));
     if (packageJson) {
       try {
         const pkg = JSON.parse(packageJson.content);
@@ -682,9 +694,10 @@ Ensure the YAML is valid and complete.`,
         const path = `/api/${nextMatch[1]}`;
 
         // Detect HTTP methods
-        const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].filter(m =>
-          file.content.includes(`export async function ${m}`) ||
-          file.content.includes(`export function ${m}`)
+        const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].filter(
+          (m) =>
+            file.content.includes(`export async function ${m}`) ||
+            file.content.includes(`export function ${m}`)
         );
 
         for (const method of methods) {
@@ -756,9 +769,7 @@ Ensure the YAML is valid and complete.`,
   /**
    * Analyze project structure
    */
-  private analyzeProjectStructure(
-    files: Array<{ path: string; content: string }>
-  ): string {
+  private analyzeProjectStructure(files: Array<{ path: string; content: string }>): string {
     const dirs = new Set<string>();
 
     for (const file of files) {
@@ -805,7 +816,7 @@ Ensure the YAML is valid and complete.`,
     };
 
     return Array.from(extensions)
-      .map(ext => langMap[ext])
+      .map((ext) => langMap[ext])
       .filter(Boolean)
       .filter((v, i, a) => a.indexOf(v) === i);
   }

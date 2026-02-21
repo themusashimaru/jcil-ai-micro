@@ -55,14 +55,14 @@ interface ModelPricing {
 }
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
-  'claude-sonnet-4-20250514': {
+  'claude-sonnet-4-6': {
     inputPer1k: 0.3,
     outputPer1k: 1.5,
     cacheReadPer1k: 0.03,
     cacheWritePer1k: 0.375,
     contextWindow: 200000,
   },
-  'claude-opus-4-20250514': {
+  'claude-opus-4-6': {
     inputPer1k: 1.5,
     outputPer1k: 7.5,
     cacheReadPer1k: 0.15,
@@ -89,7 +89,7 @@ export class TokenTracker {
   private usageHistory: TokenUsage[] = [];
   private startedAt: number;
 
-  constructor(sessionId: string, modelId: string = 'claude-sonnet-4-20250514') {
+  constructor(sessionId: string, modelId: string = 'claude-sonnet-4-6') {
     this.sessionId = sessionId;
     this.modelId = modelId;
     this.startedAt = Date.now();
@@ -128,7 +128,7 @@ export class TokenTracker {
    */
   calculateCost(usage: TokenUsage, modelId?: string): CostBreakdown {
     const model = modelId || this.modelId;
-    const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-4-20250514'];
+    const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-4-6'];
 
     const inputCost = (usage.inputTokens / 1000) * pricing.inputPer1k;
     const outputCost = (usage.outputTokens / 1000) * pricing.outputPer1k;
@@ -178,7 +178,7 @@ export class TokenTracker {
     });
 
     // Calculate context usage
-    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-sonnet-4-20250514'];
+    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-sonnet-4-6'];
     const totalTokensInContext = totals.totalInputTokens + totals.totalOutputTokens;
     const contextUsagePercent = Math.min(100, (totalTokensInContext / pricing.contextWindow) * 100);
 
@@ -201,7 +201,7 @@ export class TokenTracker {
     remaining: number;
   } {
     const stats = this.getSessionStats();
-    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-sonnet-4-20250514'];
+    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-sonnet-4-6'];
     const used = stats.totalInputTokens + stats.totalOutputTokens;
 
     return {

@@ -32,21 +32,8 @@ const MODEL_PRICING: Record<
     cacheRead: 0.3,
     cacheWrite: 3.75,
   },
-  // Claude Sonnet 4 (older)
-  'claude-sonnet-4-20250514': {
-    input: 3.0,
-    output: 15.0,
-    cacheRead: 0.3,
-    cacheWrite: 3.75,
-  },
   // Claude Haiku 4.5
   'claude-haiku-4-5-20251001': {
-    input: 0.8,
-    output: 4.0,
-    cacheRead: 0.08,
-    cacheWrite: 1.0,
-  },
-  'claude-haiku-4-5-20251101': {
     input: 0.8,
     output: 4.0,
     cacheRead: 0.08,

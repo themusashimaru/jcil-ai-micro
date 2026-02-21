@@ -209,7 +209,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'active',
     capabilities: ['edit', 'open', 'complete', 'analyze'],
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     rateLimit: {
       limit: 60, // Centralized rate limit: 60 requests per minute
       window: '1 minute',

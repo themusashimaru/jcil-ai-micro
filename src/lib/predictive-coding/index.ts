@@ -55,9 +55,7 @@ export interface Prediction {
 /**
  * Predict what the user needs next
  */
-export async function predictNextActions(
-  context: PredictiveContext
-): Promise<Prediction[]> {
+export async function predictNextActions(context: PredictiveContext): Promise<Prediction[]> {
   const predictions: Prediction[] = [];
 
   // Analyze recent actions to understand intent
@@ -69,7 +67,7 @@ export async function predictNextActions(
 
   // Generate predictions with Claude
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: `You are a predictive coding assistant. Your job is to anticipate what the developer needs BEFORE they ask.
 
@@ -80,18 +78,25 @@ Analyze the context and predict:
 4. What task they're trying to accomplish
 
 Be specific and actionable. Generate ready-to-use code predictions.`,
-    messages: [{
-      role: 'user',
-      content: `Current context:
+    messages: [
+      {
+        role: 'user',
+        content: `Current context:
 
 ## Recent Conversation
-${context.conversationHistory.slice(-5).map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
+${context.conversationHistory
+  .slice(-5)
+  .map((m) => `${m.role}: ${m.content.slice(0, 200)}`)
+  .join('\n')}
 
 ## Current File: ${context.currentFile || 'None'}
 ${context.currentCode ? `\`\`\`\n${context.currentCode.slice(0, 1500)}\n\`\`\`` : ''}
 
 ## Recent Actions
-${context.recentActions.slice(-5).map(a => `- ${a.type}: ${a.target}`).join('\n')}
+${context.recentActions
+  .slice(-5)
+  .map((a) => `- ${a.type}: ${a.target}`)
+  .join('\n')}
 
 ## Detected Intent: ${intent.primary}
 ${intent.secondary ? `Secondary: ${intent.secondary}` : ''}
@@ -109,7 +114,8 @@ Generate 3-5 predictions as JSON array:
   "confidence": 0.0-1.0,
   "reasoning": "Why you predicted this"
 }]`,
-    }],
+      },
+    ],
   });
 
   let content = '';
@@ -142,19 +148,16 @@ function analyzeIntent(context: PredictiveContext): {
 
   // Pattern detection
   const patterns = {
-    building_feature: recentMessages.some(m =>
+    building_feature: recentMessages.some((m) =>
       /build|create|add|implement|make/i.test(m.content)
     ),
-    debugging: recentActions.filter(a =>
-      a.type === 'file_edit' || a.target.includes('log') || a.target.includes('debug')
-    ).length > 3,
-    exploring: recentActions.filter(a => a.type === 'file_open').length > 5,
-    refactoring: recentMessages.some(m =>
-      /refactor|clean|improve|optimize/i.test(m.content)
-    ),
-    testing: recentMessages.some(m =>
-      /test|spec|coverage|mock/i.test(m.content)
-    ),
+    debugging:
+      recentActions.filter(
+        (a) => a.type === 'file_edit' || a.target.includes('log') || a.target.includes('debug')
+      ).length > 3,
+    exploring: recentActions.filter((a) => a.type === 'file_open').length > 5,
+    refactoring: recentMessages.some((m) => /refactor|clean|improve|optimize/i.test(m.content)),
+    testing: recentMessages.some((m) => /test|spec|coverage|mock/i.test(m.content)),
   };
 
   // Determine primary intent
@@ -196,19 +199,22 @@ export async function generateProactiveSuggestions(
   code: string,
   language: string,
   _context: PredictiveContext
-): Promise<Array<{
-  type: 'optimization' | 'security' | 'best_practice' | 'missing_code';
-  title: string;
-  description: string;
-  suggestedCode?: string;
-  priority: 'high' | 'medium' | 'low';
-}>> {
+): Promise<
+  Array<{
+    type: 'optimization' | 'security' | 'best_practice' | 'missing_code';
+    title: string;
+    description: string;
+    suggestedCode?: string;
+    priority: 'high' | 'medium' | 'low';
+  }>
+> {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1500,
-    messages: [{
-      role: 'user',
-      content: `Analyze this ${language} code and proactively suggest improvements:
+    messages: [
+      {
+        role: 'user',
+        content: `Analyze this ${language} code and proactively suggest improvements:
 
 \`\`\`${language}
 ${code}
@@ -222,7 +228,8 @@ Look for:
 5. Missing code that should exist (like tests, validation, etc.)
 
 Return JSON array of suggestions with priority.`,
-    }],
+      },
+    ],
   });
 
   let content = '';
@@ -275,10 +282,10 @@ export async function predictNextFiles(
   if (currentFile.includes('/hooks/')) {
     const hookName = currentFile.split('/').pop()?.replace('.ts', '');
     if (hookName) {
-      const usageFiles = projectStructure.filter(f =>
-        f.includes('/components/') && !f.includes('.test.')
-      ).slice(0, 3);
-      usageFiles.forEach(f => {
+      const usageFiles = projectStructure
+        .filter((f) => f.includes('/components/') && !f.includes('.test.'))
+        .slice(0, 3);
+      usageFiles.forEach((f) => {
         predictions.push({
           file: f,
           reason: `May use ${hookName}`,

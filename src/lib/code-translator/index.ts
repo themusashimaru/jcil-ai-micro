@@ -192,16 +192,21 @@ export class CodeTranslator {
     files: Array<{ path: string; content: string }>,
     request: TranslationRequest
   ): Promise<TranslationResult> {
-    log.info('Translating files', { fileCount: files.length, from: request.sourceLanguage, to: request.targetLanguage });
+    log.info('Translating files', {
+      fileCount: files.length,
+      from: request.sourceLanguage,
+      to: request.targetLanguage,
+    });
 
     const translatedFiles: TranslatedFile[] = [];
     const warnings: string[] = [];
 
     // Filter translatable files
-    const codeFiles = files.filter(f =>
-      f.path.endsWith(FILE_EXTENSIONS[request.sourceLanguage]) ||
-      f.path.endsWith('.tsx') ||
-      f.path.endsWith('.jsx')
+    const codeFiles = files.filter(
+      (f) =>
+        f.path.endsWith(FILE_EXTENSIONS[request.sourceLanguage]) ||
+        f.path.endsWith('.tsx') ||
+        f.path.endsWith('.jsx')
     );
 
     // Translate each file
@@ -214,7 +219,9 @@ export class CodeTranslator {
           warnings.push(`${file.path}: Manual review recommended - ${translated.notes.join(', ')}`);
         }
       } catch (error) {
-        warnings.push(`${file.path}: Translation failed - ${error instanceof Error ? error.message : 'Unknown error'}`);
+        warnings.push(
+          `${file.path}: Translation failed - ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -251,7 +258,7 @@ export class CodeTranslator {
   ): Promise<TranslatedFile> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 16384,
         system: `You are an expert polyglot programmer. Translate code from ${request.sourceLanguage} to ${request.targetLanguage}.
 
@@ -338,9 +345,7 @@ ${file.content}
 
     // Handle TypeScript -> other
     if (request.sourceLanguage === 'typescript') {
-      return path
-        .replace('.tsx', targetExt)
-        .replace('.ts', targetExt);
+      return path.replace('.tsx', targetExt).replace('.ts', targetExt);
     }
 
     return path.replace(new RegExp(`${sourceExt}$`), targetExt);
@@ -354,7 +359,7 @@ ${file.content}
     request: TranslationRequest
   ): Promise<DependencyMapping> {
     // Find package.json or equivalent
-    const packageJson = files.find(f => f.path.endsWith('package.json'));
+    const packageJson = files.find((f) => f.path.endsWith('package.json'));
     // Future: Add support for requirements.txt, Cargo.toml, go.mod
 
     const original: Dependency[] = [];
@@ -362,7 +367,10 @@ ${file.content}
     const unmapped: string[] = [];
 
     // Parse dependencies based on source language
-    if (packageJson && (request.sourceLanguage === 'typescript' || request.sourceLanguage === 'javascript')) {
+    if (
+      packageJson &&
+      (request.sourceLanguage === 'typescript' || request.sourceLanguage === 'javascript')
+    ) {
       try {
         const pkg = JSON.parse(packageJson.content);
         const deps = { ...pkg.dependencies, ...pkg.devDependencies };
@@ -467,14 +475,14 @@ edition = "2021"
     files: TranslatedFile[],
     deps: DependencyMapping
   ): Promise<string> {
-    const lowConfidence = files.filter(f => f.confidence < 0.8);
-    const manualReview = files.filter(f => f.manualReviewRequired);
+    const lowConfidence = files.filter((f) => f.confidence < 0.8);
+    const manualReview = files.filter((f) => f.manualReviewRequired);
 
     let guide = `# Migration Guide: ${request.sourceLanguage} → ${request.targetLanguage}\n\n`;
 
     guide += `## Overview\n\n`;
     guide += `- **Files translated**: ${files.length}\n`;
-    guide += `- **Average confidence**: ${(files.reduce((sum, f) => sum + f.confidence, 0) / files.length * 100).toFixed(1)}%\n`;
+    guide += `- **Average confidence**: ${((files.reduce((sum, f) => sum + f.confidence, 0) / files.length) * 100).toFixed(1)}%\n`;
     guide += `- **Requires manual review**: ${manualReview.length}\n\n`;
 
     guide += `## Dependency Changes\n\n`;
@@ -485,7 +493,7 @@ edition = "2021"
     }
     if (deps.unmapped.length > 0) {
       guide += `\n**Unmapped dependencies** (need manual equivalents):\n`;
-      deps.unmapped.forEach(d => guide += `- ${d}\n`);
+      deps.unmapped.forEach((d) => (guide += `- ${d}\n`));
     }
 
     if (lowConfidence.length > 0) {
@@ -533,7 +541,7 @@ edition = "2021"
    */
   private estimateEffort(files: TranslatedFile[]): string {
     const totalLines = files.reduce((sum, f) => sum + f.translatedContent.split('\n').length, 0);
-    const lowConfidenceFiles = files.filter(f => f.confidence < 0.8).length;
+    const lowConfidenceFiles = files.filter((f) => f.confidence < 0.8).length;
 
     if (totalLines < 500 && lowConfidenceFiles < 3) return '1-2 hours';
     if (totalLines < 2000 && lowConfidenceFiles < 10) return '4-8 hours';
@@ -580,10 +588,6 @@ export async function translateProject(
 /**
  * Quick function to translate a snippet
  */
-export async function translateCode(
-  code: string,
-  from: Language,
-  to: Language
-): Promise<string> {
+export async function translateCode(code: string, from: Language, to: Language): Promise<string> {
   return codeTranslator.translateSnippet(code, from, to);
 }

@@ -113,14 +113,16 @@ export class ProductionIntelligence {
 
     // Group errors by hour
     const hourlyErrors = new Map<string, ProductionError[]>();
-    errors.forEach(error => {
+    errors.forEach((error) => {
       const hour = new Date(error.timestamp).toISOString().slice(0, 13);
       if (!hourlyErrors.has(hour)) hourlyErrors.set(hour, []);
       hourlyErrors.get(hour)!.push(error);
     });
 
     // Calculate average and detect spikes
-    const counts = Array.from(hourlyErrors.values()).map(e => e.reduce((sum, err) => sum + err.count, 0));
+    const counts = Array.from(hourlyErrors.values()).map((e) =>
+      e.reduce((sum, err) => sum + err.count, 0)
+    );
     const avg = counts.reduce((a, b) => a + b, 0) / counts.length || 0;
     const latest = counts[counts.length - 1] || 0;
 
@@ -150,17 +152,13 @@ export class ProductionIntelligence {
 
     // Find errors that started after a deployment
     for (const deployment of deployments.slice(0, 5)) {
-      const errorsAfterDeploy = errors.filter(e =>
-        e.firstSeen >= deployment.timestamp &&
-        e.count > 5
+      const errorsAfterDeploy = errors.filter(
+        (e) => e.firstSeen >= deployment.timestamp && e.count > 5
       );
 
       if (errorsAfterDeploy.length > 0) {
         // Use AI to correlate
-        const correlation = await this.correlateErrorsWithDeployment(
-          errorsAfterDeploy,
-          deployment
-        );
+        const correlation = await this.correlateErrorsWithDeployment(errorsAfterDeploy, deployment);
 
         if (correlation) {
           insights.push(correlation);
@@ -179,11 +177,12 @@ export class ProductionIntelligence {
     deployment: Deployment
   ): Promise<ProductionInsight | null> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: `Analyze if these production errors might be caused by this deployment:
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze if these production errors might be caused by this deployment:
 
 ## Deployment
 - Commit: ${deployment.commit}
@@ -192,7 +191,10 @@ export class ProductionIntelligence {
 - Time: ${deployment.timestamp.toISOString()}
 
 ## Errors (started after deployment)
-${errors.slice(0, 5).map(e => `- ${e.message} (${e.count} occurrences, ${e.affectedUsers} users)`).join('\n')}
+${errors
+  .slice(0, 5)
+  .map((e) => `- ${e.message} (${e.count} occurrences, ${e.affectedUsers} users)`)
+  .join('\n')}
 
 Is there likely a correlation? Return JSON:
 {
@@ -202,7 +204,8 @@ Is there likely a correlation? Return JSON:
   "suggestedFix": "if applicable",
   "affectedArea": "component or area affected"
 }`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -270,20 +273,27 @@ Is there likely a correlation? Return JSON:
    */
   private async generatePredictions(context: ProductionContext): Promise<ProductionInsight[]> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
-      messages: [{
-        role: 'user',
-        content: `Based on this production data, predict potential issues:
+      messages: [
+        {
+          role: 'user',
+          content: `Based on this production data, predict potential issues:
 
 ## Recent Errors (${context.errors.length} total)
-${context.errors.slice(0, 10).map(e => `- ${e.message} (${e.count}x, ${e.affectedUsers} users, severity: ${e.severity})`).join('\n')}
+${context.errors
+  .slice(0, 10)
+  .map((e) => `- ${e.message} (${e.count}x, ${e.affectedUsers} users, severity: ${e.severity})`)
+  .join('\n')}
 
 ## Recent Deployments
-${context.deployments.slice(0, 5).map(d => `- ${d.timestamp.toISOString()}: ${d.message} by ${d.author}`).join('\n')}
+${context.deployments
+  .slice(0, 5)
+  .map((d) => `- ${d.timestamp.toISOString()}: ${d.message} by ${d.author}`)
+  .join('\n')}
 
 ## Metrics
-${context.metrics.map(m => `- ${m.name}: ${m.value}${m.unit} (${m.trend}${m.anomaly ? ' ⚠️' : ''})`).join('\n')}
+${context.metrics.map((m) => `- ${m.name}: ${m.value}${m.unit} (${m.trend}${m.anomaly ? ' ⚠️' : ''})`).join('\n')}
 
 Predict:
 1. What issues might occur next?
@@ -300,7 +310,8 @@ Return JSON array:
   "suggestedFix": "",
   "confidence": 0-1
 }]`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -333,9 +344,10 @@ Return JSON array:
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 2048,
-      messages: [{
-        role: 'user',
-        content: `Generate a production-ready fix for this error:
+      messages: [
+        {
+          role: 'user',
+          content: `Generate a production-ready fix for this error:
 
 ## Error
 \`\`\`
@@ -363,7 +375,8 @@ Return JSON:
   "testing": "",
   "rollbackPlan": ""
 }`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -394,14 +407,14 @@ Return JSON:
     report += `**Period:** ${context.timeRange.start.toISOString()} to ${context.timeRange.end.toISOString()}\n\n`;
 
     // Summary
-    const critical = insights.filter(i => i.severity === 'critical').length;
-    const high = insights.filter(i => i.severity === 'high').length;
+    const critical = insights.filter((i) => i.severity === 'critical').length;
+    const high = insights.filter((i) => i.severity === 'high').length;
 
     report += `## Summary\n\n`;
     report += `- 🔴 Critical Issues: ${critical}\n`;
     report += `- 🟠 High Priority: ${high}\n`;
     report += `- Total Errors: ${context.errors.reduce((sum, e) => sum + e.count, 0)}\n`;
-    report += `- Affected Users: ${new Set(context.errors.flatMap(e => [e.affectedUsers])).size}\n`;
+    report += `- Affected Users: ${new Set(context.errors.flatMap((e) => [e.affectedUsers])).size}\n`;
     report += `- Deployments: ${context.deployments.length}\n\n`;
 
     // Insights

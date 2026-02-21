@@ -560,7 +560,7 @@ export class WorkspaceAgent {
   constructor(config: WorkspaceAgentConfig) {
     this.anthropic = new Anthropic();
     this.config = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       maxIterations: 25,
       ...config,
     };

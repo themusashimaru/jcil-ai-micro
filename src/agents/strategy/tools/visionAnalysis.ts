@@ -88,7 +88,7 @@ export async function analyzeScreenshot(
 
     // Analyze with Claude Vision
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514', // Using Sonnet for vision (good balance of cost/quality)
+      model: 'claude-sonnet-4-6', // Using Sonnet for vision (good balance of cost/quality)
       max_tokens: 4096,
       messages: [
         {
@@ -182,7 +182,7 @@ export async function extractTableFromScreenshot(
 
     // Extract table with Claude Vision
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       messages: [
         {
@@ -347,7 +347,7 @@ Analyze and compare these ${screenshots.length} screenshots. Provide:
 
     // Analyze with Claude Vision
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       messages: [{ role: 'user', content }],
     });

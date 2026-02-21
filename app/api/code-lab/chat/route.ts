@@ -193,7 +193,7 @@ async function generateConversationSummary(
     .join('\n\n');
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514', // Use Sonnet for efficient summarization
+    model: 'claude-sonnet-4-6', // Use Sonnet for efficient summarization
     max_tokens: 1024,
     system: `You are summarizing a developer conversation for context continuation.
 Create a concise technical summary that captures:
@@ -344,7 +344,7 @@ function shouldUseSearch(message: string): boolean {
 
   // ========================================
   // MODEL NAMES/IDs (change with every release - CRITICAL for API setup)
-  // Examples: claude-sonnet-4-20250514, gpt-4-turbo-2024-04-09, claude-opus-4-5-20251101
+  // Examples: claude-sonnet-4-6, gpt-4-turbo-2024-04-09, claude-opus-4-6
   // ========================================
   const modelNamePatterns = [
     // Direct model name/ID queries
@@ -1352,9 +1352,6 @@ export async function POST(request: NextRequest) {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Show search indicator
-            controller.enqueue(encoder.encode('`🔍 Searching the web...`\n\n'));
-
             // Perform Perplexity search
             const searchResult = await perplexitySearch({
               query: content,
@@ -2001,8 +1998,6 @@ Rules:
           // INTELLIGENT MODEL ROUTING (Meta-routing)
           // Priority: 1) BYOK custom model, 2) User-selected model, 3) Auto-classify
           let effectiveModel: string;
-          let routedByClassifier = false;
-
           if (claudeByokConfig?.model) {
             // User has BYOK with custom model - use their choice
             effectiveModel = claudeByokConfig.model;
@@ -2014,7 +2009,6 @@ Rules:
           } else {
             // No model specified — default to Opus 4.6 (the whole point of Code Lab)
             effectiveModel = 'claude-opus-4-6';
-            routedByClassifier = false;
             log.info('Using default Opus 4.6 for Code Lab', { model: effectiveModel });
           }
 
@@ -2317,7 +2311,6 @@ Rules:
               cacheRead: cacheReadTokens,
               cacheWrite: cacheWriteTokens,
               model: effectiveModel,
-              routed: routedByClassifier,
             })}-->`;
             controller.enqueue(encoder.encode(usageMarker));
             log.debug('Token usage', {
@@ -2326,7 +2319,6 @@ Rules:
               cacheReadTokens,
               cacheWriteTokens,
               model: effectiveModel,
-              routed: routedByClassifier,
             });
           }
 

@@ -145,16 +145,14 @@ export class CodeTelepathy {
     files: Array<{ path: string; content: string }>
   ) {
     // Sample files for analysis (limit for performance)
-    const sampleFiles = files
-      .filter(f => this.isAnalyzableFile(f.path))
-      .slice(0, 50);
+    const sampleFiles = files.filter((f) => this.isAnalyzableFile(f.path)).slice(0, 50);
 
     const allCode = sampleFiles
-      .map(f => `// File: ${f.path}\n${f.content.slice(0, 1000)}`)
+      .map((f) => `// File: ${f.path}\n${f.content.slice(0, 1000)}`)
       .join('\n\n---\n\n');
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       system: `You are analyzing code to understand a developer's patterns and preferences.
 Extract:
@@ -163,9 +161,10 @@ Extract:
 3. Conventions (naming, structure, style)
 
 Be specific and include code examples.`,
-      messages: [{
-        role: 'user',
-        content: `Analyze these files from ${owner}/${name}:
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze these files from ${owner}/${name}:
 
 ${allCode.slice(0, 10000)}
 
@@ -175,7 +174,8 @@ Return JSON:
   "solutions": [{ "problem": "", "solution": "code or description" }],
   "conventions": [{ "type": "naming|structure|style|architecture", "rule": "", "examples": [""] }]
 }`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -186,9 +186,21 @@ Return JSON:
     try {
       const analysis = JSON.parse(content.replace(/```json?\s*/g, '').replace(/```/g, ''));
       return {
-        patterns: (analysis.patterns || []).map((p: CodingPattern) => ({ ...p, frequency: 1, confidence: 0.7 })),
-        solutions: (analysis.solutions || []).map((s: Solution) => ({ ...s, repos: [`${owner}/${name}`], timesUsed: 1, lastUsed: new Date() })),
-        conventions: (analysis.conventions || []).map((c: Convention) => ({ ...c, consistency: 0.8 })),
+        patterns: (analysis.patterns || []).map((p: CodingPattern) => ({
+          ...p,
+          frequency: 1,
+          confidence: 0.7,
+        })),
+        solutions: (analysis.solutions || []).map((s: Solution) => ({
+          ...s,
+          repos: [`${owner}/${name}`],
+          timesUsed: 1,
+          lastUsed: new Date(),
+        })),
+        conventions: (analysis.conventions || []).map((c: Convention) => ({
+          ...c,
+          consistency: 0.8,
+        })),
       };
     } catch {
       return { patterns: [], solutions: [], conventions: [] };
@@ -202,7 +214,7 @@ Return JSON:
     const ext = path.split('.').pop()?.toLowerCase();
     const analyzable = ['ts', 'tsx', 'js', 'jsx', 'py', 'go', 'rs', 'java'];
     const skip = ['node_modules', '.next', 'dist', 'build', '.min.'];
-    return analyzable.includes(ext || '') && !skip.some(s => path.includes(s));
+    return analyzable.includes(ext || '') && !skip.some((s) => path.includes(s));
   }
 
   /**
@@ -220,7 +232,10 @@ Return JSON:
         existing.contexts.push(...pattern.contexts);
         existing.confidence = Math.max(existing.confidence, pattern.confidence);
       } else {
-        consolidated.set(key, { ...pattern, id: `pattern_${Date.now()}_${Math.random().toString(36).slice(2)}` });
+        consolidated.set(key, {
+          ...pattern,
+          id: `pattern_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        });
       }
     }
 
@@ -241,12 +256,14 @@ Return JSON:
         const existing = consolidated.get(key)!;
         existing.repos.push(...solution.repos);
         existing.timesUsed += solution.timesUsed;
-        existing.lastUsed = new Date(Math.max(
-          existing.lastUsed.getTime(),
-          solution.lastUsed.getTime()
-        ));
+        existing.lastUsed = new Date(
+          Math.max(existing.lastUsed.getTime(), solution.lastUsed.getTime())
+        );
       } else {
-        consolidated.set(key, { ...solution, id: `solution_${Date.now()}_${Math.random().toString(36).slice(2)}` });
+        consolidated.set(key, {
+          ...solution,
+          id: `solution_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        });
       }
     }
 
@@ -295,7 +312,8 @@ Return JSON:
       .slice(0, 10)
       .map(([domain, count]) => ({
         domain,
-        level: count > 50 ? 'expert' : count > 20 ? 'advanced' : count > 5 ? 'intermediate' : 'beginner',
+        level:
+          count > 50 ? 'expert' : count > 20 ? 'advanced' : count > 5 ? 'intermediate' : 'beginner',
         evidence: [`Found in ${count} files`],
         lastActivity: new Date(),
       }));
@@ -309,20 +327,30 @@ Return JSON:
     currentCode: string,
     currentFile: string
   ): Promise<CrossProjectInsight[]> {
-    const profile = this.profileCache.get(userId) || await this.loadProfile(userId);
+    const profile = this.profileCache.get(userId) || (await this.loadProfile(userId));
     if (!profile) return [];
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
-      messages: [{
-        role: 'user',
-        content: `Given this developer profile and current code, provide insights:
+      messages: [
+        {
+          role: 'user',
+          content: `Given this developer profile and current code, provide insights:
 
 ## Developer Profile
-Patterns: ${profile.patterns.slice(0, 5).map(p => p.name).join(', ')}
-Expertise: ${profile.expertise.slice(0, 5).map(e => `${e.domain}(${e.level})`).join(', ')}
-Common Solutions: ${profile.commonSolutions.slice(0, 3).map(s => s.problem).join(', ')}
+Patterns: ${profile.patterns
+            .slice(0, 5)
+            .map((p) => p.name)
+            .join(', ')}
+Expertise: ${profile.expertise
+            .slice(0, 5)
+            .map((e) => `${e.domain}(${e.level})`)
+            .join(', ')}
+Common Solutions: ${profile.commonSolutions
+            .slice(0, 3)
+            .map((s) => s.problem)
+            .join(', ')}
 
 ## Current Code (${currentFile})
 \`\`\`
@@ -344,7 +372,8 @@ Return JSON array:
   "code": "optional code",
   "confidence": 0-1
 }]`,
-      }],
+        },
+      ],
     });
 
     let content = '';
@@ -368,13 +397,22 @@ Return JSON array:
     request: string,
     context?: string
   ): Promise<string> {
-    const profile = this.profileCache.get(userId) || await this.loadProfile(userId);
+    const profile = this.profileCache.get(userId) || (await this.loadProfile(userId));
 
     const systemPrompt = profile
       ? `You are generating code for a developer with these characteristics:
-- Patterns they use: ${profile.patterns.slice(0, 5).map(p => p.name).join(', ')}
-- Conventions: ${profile.conventions.slice(0, 5).map(c => c.rule).join('; ')}
-- Expertise: ${profile.expertise.slice(0, 5).map(e => e.domain).join(', ')}
+- Patterns they use: ${profile.patterns
+          .slice(0, 5)
+          .map((p) => p.name)
+          .join(', ')}
+- Conventions: ${profile.conventions
+          .slice(0, 5)
+          .map((c) => c.rule)
+          .join('; ')}
+- Expertise: ${profile.expertise
+          .slice(0, 5)
+          .map((e) => e.domain)
+          .join(', ')}
 
 Generate code that matches their style and preferences.`
       : 'Generate clean, professional code.';
@@ -383,10 +421,12 @@ Generate code that matches their style and preferences.`
       model: 'claude-opus-4-6',
       max_tokens: 4096,
       system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: `${request}\n\n${context ? `Context:\n${context}` : ''}`,
-      }],
+      messages: [
+        {
+          role: 'user',
+          content: `${request}\n\n${context ? `Context:\n${context}` : ''}`,
+        },
+      ],
     });
 
     let code = '';

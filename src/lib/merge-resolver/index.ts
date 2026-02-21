@@ -23,9 +23,9 @@ const log = logger('MergeResolver');
 
 export interface MergeConflict {
   filePath: string;
-  baseContent: string;    // Original (common ancestor)
-  oursContent: string;    // Our changes (current branch)
-  theirsContent: string;  // Their changes (incoming branch)
+  baseContent: string; // Original (common ancestor)
+  oursContent: string; // Our changes (current branch)
+  theirsContent: string; // Their changes (incoming branch)
   conflictMarkers: ConflictMarker[];
 }
 
@@ -82,13 +82,13 @@ export interface ConflictAnalysis {
 }
 
 export type ConflictType =
-  | 'additive-both'       // Both sides add different things
-  | 'modification-same'   // Both modify the same code differently
-  | 'rename-conflict'     // Both rename differently
-  | 'delete-modify'       // One deletes, one modifies
-  | 'import-conflict'     // Import/dependency conflicts
-  | 'formatting-only'     // Only whitespace/formatting differences
-  | 'logic-conflict';     // Conflicting business logic
+  | 'additive-both' // Both sides add different things
+  | 'modification-same' // Both modify the same code differently
+  | 'rename-conflict' // Both rename differently
+  | 'delete-modify' // One deletes, one modifies
+  | 'import-conflict' // Import/dependency conflicts
+  | 'formatting-only' // Only whitespace/formatting differences
+  | 'logic-conflict'; // Conflicting business logic
 
 // ============================================
 // MERGE RESOLVER CLASS
@@ -108,9 +108,10 @@ export class SmartMergeResolver {
     log.info('Resolving conflicts', { filePath: conflict.filePath });
 
     // Parse conflict markers if not already parsed
-    const markers = conflict.conflictMarkers.length > 0
-      ? conflict.conflictMarkers
-      : this.parseConflictMarkers(conflict.oursContent);
+    const markers =
+      conflict.conflictMarkers.length > 0
+        ? conflict.conflictMarkers
+        : this.parseConflictMarkers(conflict.oursContent);
 
     const resolvedConflicts: ResolvedConflict[] = [];
     let resolvedContent = conflict.oursContent;
@@ -132,7 +133,9 @@ export class SmartMergeResolver {
 
       // Track issues and tests
       if (resolution.confidence < 0.8) {
-        potentialIssues.push(`Low confidence merge at lines ${marker.startLine}-${marker.endLine}: ${resolution.reasoning}`);
+        potentialIssues.push(
+          `Low confidence merge at lines ${marker.startLine}-${marker.endLine}: ${resolution.reasoning}`
+        );
       }
 
       // Suggest tests based on conflict type
@@ -209,7 +212,7 @@ export class SmartMergeResolver {
   ): Promise<ConflictAnalysis> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: `You are a code merge expert. Analyze this merge conflict to understand the intent of both sides.
 
@@ -247,10 +250,14 @@ THEIRS (incoming branch):
 ${marker.theirs}
 \`\`\`
 
-${marker.base ? `BASE (common ancestor):
+${
+  marker.base
+    ? `BASE (common ancestor):
 \`\`\`
 ${marker.base}
-\`\`\`` : ''}
+\`\`\``
+    : ''
+}
 
 Surrounding context (full file):
 \`\`\`
@@ -307,10 +314,13 @@ ${context.baseContent.substring(0, 2000)}...
     }
 
     // Complex cases - need AI to merge
-    if (analysis.suggestedStrategy === 'combine-both' || analysis.suggestedStrategy === 'semantic-merge') {
+    if (
+      analysis.suggestedStrategy === 'combine-both' ||
+      analysis.suggestedStrategy === 'semantic-merge'
+    ) {
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4096,
           system: `You are a code merge expert. Combine both changes intelligently.
 
@@ -345,10 +355,14 @@ THEIRS code:
 ${marker.theirs}
 \`\`\`
 
-${marker.base ? `BASE code:
+${
+  marker.base
+    ? `BASE code:
 \`\`\`
 ${marker.base}
-\`\`\`` : ''}
+\`\`\``
+    : ''
+}
 
 File context: ${context.filePath}`,
             },
@@ -418,17 +432,19 @@ File context: ${context.filePath}`,
    * Generate overall reasoning summary
    */
   private generateOverallReasoning(conflicts: ResolvedConflict[]): string {
-    const strategies = conflicts.map(c => c.strategy);
+    const strategies = conflicts.map((c) => c.strategy);
     const uniqueStrategies = [...new Set(strategies)];
 
     if (uniqueStrategies.length === 1) {
       return `All ${conflicts.length} conflicts resolved using "${uniqueStrategies[0]}" strategy.`;
     }
 
-    const summary = uniqueStrategies.map(s => {
-      const count = strategies.filter(x => x === s).length;
-      return `${count} "${s}"`;
-    }).join(', ');
+    const summary = uniqueStrategies
+      .map((s) => {
+        const count = strategies.filter((x) => x === s).length;
+        return `${count} "${s}"`;
+      })
+      .join(', ');
 
     return `Resolved ${conflicts.length} conflicts: ${summary}`;
   }
@@ -450,9 +466,7 @@ File context: ${context.filePath}`,
   /**
    * Resolve multiple conflicts at once
    */
-  async resolveMultipleConflicts(
-    conflicts: MergeConflict[]
-  ): Promise<MergeResolution[]> {
+  async resolveMultipleConflicts(conflicts: MergeConflict[]): Promise<MergeResolution[]> {
     const resolutions: MergeResolution[] = [];
 
     for (const conflict of conflicts) {
@@ -467,9 +481,9 @@ File context: ${context.filePath}`,
    * Detect if a file has conflicts
    */
   hasConflicts(content: string): boolean {
-    return content.includes('<<<<<<<') &&
-           content.includes('=======') &&
-           content.includes('>>>>>>>');
+    return (
+      content.includes('<<<<<<<') && content.includes('=======') && content.includes('>>>>>>>')
+    );
   }
 
   /**

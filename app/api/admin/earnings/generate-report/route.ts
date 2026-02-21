@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     // Parse request body
-    const body = await request.json() as ReportParams;
+    const body = (await request.json()) as ReportParams;
     const { reportType, startDate, endDate } = body;
 
     if (!reportType) {
@@ -52,19 +52,29 @@ export async function POST(request: NextRequest) {
       const now = new Date();
       switch (reportType) {
         case 'daily':
-          calculatedStartDate = new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0];
+          calculatedStartDate = new Date(now.setDate(now.getDate() - 1))
+            .toISOString()
+            .split('T')[0];
           break;
         case 'monthly':
-          calculatedStartDate = new Date(now.setMonth(now.getMonth() - 1)).toISOString().split('T')[0];
+          calculatedStartDate = new Date(now.setMonth(now.getMonth() - 1))
+            .toISOString()
+            .split('T')[0];
           break;
         case 'quarterly':
-          calculatedStartDate = new Date(now.setMonth(now.getMonth() - 3)).toISOString().split('T')[0];
+          calculatedStartDate = new Date(now.setMonth(now.getMonth() - 3))
+            .toISOString()
+            .split('T')[0];
           break;
         case 'half-yearly':
-          calculatedStartDate = new Date(now.setMonth(now.getMonth() - 6)).toISOString().split('T')[0];
+          calculatedStartDate = new Date(now.setMonth(now.getMonth() - 6))
+            .toISOString()
+            .split('T')[0];
           break;
         case 'yearly':
-          calculatedStartDate = new Date(now.setFullYear(now.getFullYear() - 1)).toISOString().split('T')[0];
+          calculatedStartDate = new Date(now.setFullYear(now.getFullYear() - 1))
+            .toISOString()
+            .split('T')[0];
           break;
       }
     }
@@ -94,17 +104,26 @@ export async function POST(request: NextRequest) {
       if (tier in tierCounts) tierCounts[tier as keyof typeof tierCounts]++;
     });
 
-    const tierPricing = { free: 0, plus: 18.00, pro: 30.00, executive: 99.00 };
+    const tierPricing = { free: 0, plus: 18.0, pro: 30.0, executive: 99.0 };
     const monthlyRevenue = {
       free: tierCounts.free * tierPricing.free,
       plus: tierCounts.plus * tierPricing.plus,
       pro: tierCounts.pro * tierPricing.pro,
       executive: tierCounts.executive * tierPricing.executive,
     };
-    const totalRevenue = monthlyRevenue.free + monthlyRevenue.plus + monthlyRevenue.pro + monthlyRevenue.executive;
+    const totalRevenue =
+      monthlyRevenue.free + monthlyRevenue.plus + monthlyRevenue.pro + monthlyRevenue.executive;
 
-    const totalCosts = usageData?.reduce((sum: number, u: { total_cost: number }) => sum + (parseFloat(String(u.total_cost)) || 0), 0) || 0;
-    const newsCosts = newsData?.reduce((sum: number, n: { cost: number }) => sum + (parseFloat(String(n.cost)) || 0), 0) || 0;
+    const totalCosts =
+      usageData?.reduce(
+        (sum: number, u: { total_cost: number }) => sum + (parseFloat(String(u.total_cost)) || 0),
+        0
+      ) || 0;
+    const newsCosts =
+      newsData?.reduce(
+        (sum: number, n: { cost: number }) => sum + (parseFloat(String(n.cost)) || 0),
+        0
+      ) || 0;
     const totalProfit = totalRevenue - totalCosts - newsCosts;
     const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : '0';
 
@@ -204,9 +223,10 @@ Format the report professionally with clear sections, bullet points where approp
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4000,
-        system: 'You are a professional business analyst specializing in SaaS and AI platform financial analysis.',
+        system:
+          'You are a professional business analyst specializing in SaaS and AI platform financial analysis.',
         messages: [
           {
             role: 'user',
@@ -257,12 +277,8 @@ Format the report professionally with clear sections, bullet points where approp
         report: reportContent,
       },
     });
-
   } catch (error) {
     console.error('Error generating report:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate report' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }
