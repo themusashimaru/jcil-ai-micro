@@ -2215,6 +2215,7 @@ export async function POST(request: NextRequest) {
     let isAuthenticated = false;
     let isAdmin = false;
     let userPlanKey = 'free';
+    let customInstructions = '';
 
     try {
       const cookieStore = await cookies();
@@ -2252,6 +2253,16 @@ export async function POST(request: NextRequest) {
           .single();
         isAdmin = userData?.is_admin === true;
         userPlanKey = userData?.subscription_tier || 'free';
+
+        // CHAT-009: Load custom instructions from user settings
+        const { data: userSettings } = await supabase
+          .from('user_settings')
+          .select('custom_instructions')
+          .eq('user_id', user.id)
+          .single();
+        if (userSettings?.custom_instructions) {
+          customInstructions = userSettings.custom_instructions;
+        }
       } else {
         log.warn('Unauthenticated chat attempt blocked');
         return chatErrorResponse(HTTP_STATUS.UNAUTHORIZED, {
@@ -3887,6 +3898,17 @@ SECURITY:
     let fullSystemPrompt = systemPrompt;
     const baseTokens = estimateTokens(fullSystemPrompt);
     let remainingBudget = MAX_SYSTEM_PROMPT_TOKENS - baseTokens;
+
+    // CHAT-009: Inject user's custom instructions (highest priority after base prompt)
+    if (customInstructions && estimateTokens(customInstructions) <= remainingBudget) {
+      fullSystemPrompt += `\n\nUSER'S CUSTOM INSTRUCTIONS:\n${customInstructions}`;
+      remainingBudget -= estimateTokens(`\n\nUSER'S CUSTOM INSTRUCTIONS:\n${customInstructions}`);
+    } else if (customInstructions) {
+      log.warn('Custom instructions truncated due to token budget', {
+        instructionTokens: estimateTokens(customInstructions),
+        remaining: remainingBudget,
+      });
+    }
 
     // Append contexts in priority order (memory > learning > documents)
     if (memoryContext && estimateTokens(memoryContext) <= remainingBudget) {

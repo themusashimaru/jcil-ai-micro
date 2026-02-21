@@ -130,6 +130,7 @@ export const userSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   language: z.string().min(2).max(10).optional(),
   notifications_enabled: z.boolean().optional(),
+  custom_instructions: z.string().max(2000).optional().nullable(),
 });
 
 // ========================================
