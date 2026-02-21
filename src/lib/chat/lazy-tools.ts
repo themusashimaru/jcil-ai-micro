@@ -382,7 +382,7 @@ export function getToolStats(): { registered: number; loaded: number; loadedTool
 /**
  * Core tools that should be preloaded for most chat interactions
  */
-export const CORE_TOOLS = ['web_search', 'run_code', 'calculator'];
+export const CORE_TOOLS = ['web_search', 'run_code'];
 
 /**
  * Document-related tools
@@ -410,4 +410,4 @@ export const MEDIA_TOOLS = [
 /**
  * Developer tools
  */
-export const DEVELOPER_TOOLS = ['run_code', 'github', 'mermaid_diagram', 'validator'];
+export const DEVELOPER_TOOLS = ['run_code', 'mermaid_diagram', 'validator'];

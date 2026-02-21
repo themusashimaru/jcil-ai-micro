@@ -17,7 +17,7 @@
  * - youtube_transcript: Extract transcripts from YouTube videos
  * - github: Search and browse GitHub repos, code, issues
  * - screenshot: Capture screenshots of any webpage
- * - calculator: Advanced math with Wolfram Alpha
+ * - ocr: Extract text from images via OCR
  * - create_chart: Generate charts and data visualizations
  * - create_document: Generate PDF, DOCX, TXT documents
  * - transcribe_audio: Transcribe audio files with Whisper
