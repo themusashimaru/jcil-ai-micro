@@ -639,6 +639,27 @@ function checkMemoryRateLimit(identifier: string): { allowed: boolean; remaining
   return { allowed: true, remaining: MEMORY_RATE_LIMIT - entry.count };
 }
 
+/**
+ * Sanitize error messages before including them in tool results.
+ * Strips sensitive details (stack traces, connection strings, DB schema)
+ * while keeping enough context for the model to understand the failure.
+ */
+function sanitizeToolError(toolName: string, rawMessage: string): string {
+  // Remove stack traces
+  let msg = rawMessage.split('\n')[0] || rawMessage;
+  // Remove file paths
+  msg = msg.replace(/(?:\/[\w.-]+)+/g, '[path]');
+  // Remove connection strings and URLs
+  msg = msg.replace(/https?:\/\/[^\s]+/g, '[url]');
+  // Remove potential SQL or DB references
+  msg = msg.replace(/(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)\b[^.]*\./gi, '[query]');
+  // Truncate to reasonable length
+  if (msg.length > 200) {
+    msg = msg.slice(0, 200) + '...';
+  }
+  return `Tool "${toolName}" encountered an error. ${msg}`;
+}
+
 async function checkChatRateLimit(
   identifier: string,
   isAuthenticated: boolean
@@ -5129,7 +5150,10 @@ SECURITY:
                   });
                   result = {
                     toolCallId: toolCall.id,
-                    content: `MCP tool error (${serverId}:${actualToolName}): ${(mcpError as Error).message}`,
+                    content: sanitizeToolError(
+                      `${serverId}:${actualToolName}`,
+                      (mcpError as Error).message
+                    ),
                     isError: true,
                   };
                 }
@@ -5170,7 +5194,7 @@ SECURITY:
                 } else {
                   result = {
                     toolCallId: toolCall.id,
-                    content: `Composio tool error: ${composioResult.error}`,
+                    content: sanitizeToolError(toolName, composioResult.error || 'Unknown error'),
                     isError: true,
                   };
                 }
@@ -5181,7 +5205,7 @@ SECURITY:
                 });
                 result = {
                   toolCallId: toolCall.id,
-                  content: `Composio tool error: ${(composioError as Error).message}`,
+                  content: sanitizeToolError(toolName, (composioError as Error).message),
                   isError: true,
                 };
               }
@@ -5201,7 +5225,7 @@ SECURITY:
         });
         result = {
           toolCallId: toolCall.id,
-          content: `Tool execution failed: ${(toolError as Error).message}`,
+          content: sanitizeToolError(toolName, (toolError as Error).message),
           isError: true,
         };
       }
