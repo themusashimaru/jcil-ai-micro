@@ -118,6 +118,7 @@ export async function GET() {
         id: memory.id,
         summary: memory.summary,
         key_topics: memory.key_topics,
+        topic_timestamps: memory.topic_timestamps,
         preferences: memory.user_preferences,
         created_at: memory.created_at,
         updated_at: memory.updated_at,

@@ -132,6 +132,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -158,6 +159,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -181,6 +183,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -204,6 +207,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -225,6 +229,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -249,6 +254,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -283,6 +289,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: ['Summary one', 'Summary two', 'Summary three'],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -311,6 +318,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -337,6 +345,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -362,6 +371,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -384,6 +394,7 @@ describe('Persistent Memory Agent', () => {
         last_conversations: ['Discussed project architecture', 'Reviewed database design'],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -683,6 +694,7 @@ describe('Memory Preferences Handling', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -705,6 +717,7 @@ describe('Memory Preferences Handling', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -727,6 +740,7 @@ describe('Memory Preferences Handling', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -749,6 +763,7 @@ describe('Memory Preferences Handling', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -778,6 +793,7 @@ describe('Memory Context Integration', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
@@ -801,6 +817,7 @@ describe('Memory Context Integration', () => {
         last_conversations: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        topic_timestamps: {},
         last_accessed_at: null,
       };
 
