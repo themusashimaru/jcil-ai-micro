@@ -852,7 +852,7 @@ import {
   getProviderAndModel,
 } from '@/lib/ai/providers/registry';
 import { getAdapter } from '@/lib/ai/providers/adapters';
-import type { UnifiedMessage, UnifiedContentBlock } from '@/lib/ai/providers/types';
+import type { UnifiedMessage, UnifiedContentBlock, UnifiedTool } from '@/lib/ai/providers/types';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
@@ -4223,10 +4223,10 @@ SECURITY:
     // This is the proper way to give Claude search autonomy
 
     // Build tools array with all available tools
-    const tools: (typeof webSearchTool)[] = [];
+    const tools: UnifiedTool[] = [];
 
     // Add tools based on availability
-    if (isWebSearchAvailable()) tools.push(webSearchTool);
+    if (isWebSearchAvailable()) tools.push(webSearchTool as unknown as UnifiedTool);
     if (isFetchUrlAvailable()) tools.push(fetchUrlTool);
     if (await isRunCodeAvailable()) tools.push(runCodeTool);
     if (await isVisionAnalyzeAvailable()) tools.push(visionAnalyzeTool);
@@ -4534,7 +4534,7 @@ SECURITY:
                   required: [],
                 },
               };
-              tools.push(anthropicTool as typeof webSearchTool);
+              tools.push(anthropicTool as UnifiedTool);
             }
           }
         }
@@ -6064,7 +6064,9 @@ SECURITY:
     // escalate to Sonnet 4.6 for dynamic filtering (11% more accurate, 24% fewer tokens).
     // Native web search with dynamic filtering requires Sonnet 4.6+ or Opus 4.6.
     const hasNativeSearch = tools.some(
-      (t) => t.name === '__native_web_search__' || (t as Record<string, unknown>)._nativeWebSearch
+      (t) =>
+        t.name === '__native_web_search__' ||
+        (t as unknown as Record<string, unknown>)._nativeWebSearch
     );
     if (hasNativeSearch && selectedModel === 'claude-haiku-4-5-20251001') {
       selectedModel = 'claude-sonnet-4-5-20250929';

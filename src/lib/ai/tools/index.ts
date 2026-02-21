@@ -129,7 +129,8 @@ export type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TOOL IMPORTS
 // ============================================================================
 
-// Web Search (existing)
+// Web Search (native Anthropic server tool)
+import { isNativeServerTool as _isNativeServerTool } from './web-search';
 export {
   webSearchTool,
   executeWebSearch,
@@ -6338,7 +6339,7 @@ export async function getAvailableChatTools(): Promise<UnifiedTool[]> {
  */
 export async function executeChatTool(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
   // Skip native server tools (web_search) — handled by Anthropic server-side
-  if (isNativeServerTool(toolCall.name)) {
+  if (_isNativeServerTool(toolCall.name)) {
     return {
       toolCallId: toolCall.id,
       content: 'Handled by server',
