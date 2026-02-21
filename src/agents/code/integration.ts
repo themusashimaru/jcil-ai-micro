@@ -51,7 +51,9 @@ export function shouldUseCodeAgent(request: string): boolean {
   }
 
   // Use the static method on the class if available, otherwise fallback
-  const AnalyzerClass = codeIntentAnalyzer.constructor as { isCodeRequest?: (r: string) => boolean };
+  const AnalyzerClass = codeIntentAnalyzer.constructor as {
+    isCodeRequest?: (r: string) => boolean;
+  };
   return typeof AnalyzerClass.isCodeRequest === 'function'
     ? AnalyzerClass.isCodeRequest(request)
     : isCodeRequest(request);
@@ -569,7 +571,7 @@ function formatCodeOutput(output: CodeAgentOutput): string {
   md += `---\n\n`;
   md += `\`Iterations: ${output.metadata.totalIterations}\` · `;
   md += `\`Errors Fixed: ${output.metadata.errorsFixed}\` · `;
-  md += `\`Powered by Claude Opus 4.5\`\n`;
+  md += `\`Powered by Claude Opus 4.6\`\n`;
 
   return md;
 }

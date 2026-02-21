@@ -5,7 +5,7 @@
  * Analyzes build/test errors and figures out how to fix them.
  *
  * This is the TROUBLESHOOTING component - critical thinking on errors.
- * Uses Opus 4.5 for maximum reasoning power.
+ * Uses Opus 4.6 for maximum reasoning power.
  */
 
 import { agentChat, ProviderId } from '@/lib/ai/providers';
@@ -176,16 +176,22 @@ export class ErrorAnalyzer {
     const allErrorMessages: Array<{ type: string; message: string; index: number }> = [];
     let errorMatch;
     while ((errorMatch = errorMsgPattern.exec(output)) !== null) {
-      allErrorMessages.push({ type: errorMatch[1], message: errorMatch[2], index: errorMatch.index });
+      allErrorMessages.push({
+        type: errorMatch[1],
+        message: errorMatch[2],
+        index: errorMatch.index,
+      });
     }
 
     let fileMatch: RegExpExecArray | null;
     while ((fileMatch = syntaxPattern.exec(output)) !== null) {
       const currentMatch = fileMatch;
       // Find the closest error message AFTER this file reference
-      const closestError = allErrorMessages.find((e) => e.index > currentMatch.index)
-        || allErrorMessages[allErrorMessages.length - 1]
-        || { type: 'Error', message: 'Unknown error' };
+      const closestError = allErrorMessages.find((e) => e.index > currentMatch.index) ||
+        allErrorMessages[allErrorMessages.length - 1] || {
+          type: 'Error',
+          message: 'Unknown error',
+        };
 
       errors.push({
         file: fileMatch[1],

@@ -14,16 +14,16 @@ export interface PromptSet {
   /** Human-readable mode name */
   name: string;
 
-  /** System prompt for ForensicIntake (Opus 4.5) */
+  /** System prompt for ForensicIntake (Opus 4.6) */
   intake: string;
 
   /** Opening message displayed to the user when the agent starts */
   intakeOpening: string;
 
-  /** System prompt for MasterArchitect (Opus 4.5) */
+  /** System prompt for MasterArchitect (Opus 4.6) */
   architect: string;
 
-  /** System prompt for QualityControl (Opus 4.5) */
+  /** System prompt for QualityControl (Opus 4.6) */
   qualityControl: string;
 
   /** System prompt for ProjectManagers (Sonnet 4.6) */
@@ -32,9 +32,9 @@ export interface PromptSet {
   /** System prompt for Scouts (Sonnet 4.6) - intelligent, surgical research */
   scout: string;
 
-  /** System prompt for pre-QC Synthesizer (Opus 4.5) - organizes findings */
+  /** System prompt for pre-QC Synthesizer (Opus 4.6) - organizes findings */
   synthesizer: string;
 
-  /** System prompt for final synthesis (Opus 4.5) */
+  /** System prompt for final synthesis (Opus 4.6) */
   synthesis: string;
 }

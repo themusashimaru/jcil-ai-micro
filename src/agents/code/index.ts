@@ -2,7 +2,7 @@
  * CODE AGENT MODULE
  *
  * Enterprise-grade autonomous code generation system.
- * Powered by Claude Opus 4.5.
+ * Powered by Claude Opus 4.6.
  *
  * Capabilities:
  * - Advanced reasoning (Chain-of-Thought, Tree-of-Thought)
@@ -44,7 +44,12 @@ export type { ThoughtNode, ReasoningPath, ReasoningResult, SelfReflection } from
 
 // Analysis
 export { codebaseAnalyzer, CodebaseAnalyzer } from './brain/CodebaseAnalyzer';
-export type { CodebaseProfile, FrameworkInfo, ArchitectureInfo, CodingConventions } from './brain/CodebaseAnalyzer';
+export type {
+  CodebaseProfile,
+  FrameworkInfo,
+  ArchitectureInfo,
+  CodingConventions,
+} from './brain/CodebaseAnalyzer';
 export { securityScanner, SecurityScanner } from './brain/SecurityScanner';
 export type { SecurityVulnerability, SecurityScanResult } from './brain/SecurityScanner';
 export { performanceAnalyzer, PerformanceAnalyzer } from './brain/PerformanceAnalyzer';

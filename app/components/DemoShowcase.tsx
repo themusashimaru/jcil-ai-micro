@@ -177,7 +177,10 @@ function CodeLabDemo() {
       </div>
 
       {/* Content */}
-      <div ref={containerRef} className="p-4 min-h-[320px] max-h-[320px] overflow-y-auto space-y-3 bg-gradient-to-b from-slate-900/50 to-slate-950/80">
+      <div
+        ref={containerRef}
+        className="p-4 min-h-[320px] max-h-[320px] overflow-y-auto space-y-3 bg-gradient-to-b from-slate-900/50 to-slate-950/80"
+      >
         {CODE_LAB_CONVERSATION.slice(0, step + 1).map((item, i) => {
           if (item.type === 'user') {
             return (
@@ -191,11 +194,23 @@ function CodeLabDemo() {
 
           if (item.type === 'thinking') {
             return (
-              <div key={i} className="flex items-center gap-2 text-cyan-400/70 text-xs animate-fadeIn">
+              <div
+                key={i}
+                className="flex items-center gap-2 text-cyan-400/70 text-xs animate-fadeIn"
+              >
                 <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div
+                    className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"
+                    style={{ animationDelay: '0ms' }}
+                  />
+                  <div
+                    className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"
+                    style={{ animationDelay: '150ms' }}
+                  />
+                  <div
+                    className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"
+                    style={{ animationDelay: '300ms' }}
+                  />
                 </div>
                 <span className="font-mono">{item.text}</span>
               </div>
@@ -207,7 +222,9 @@ function CodeLabDemo() {
               <div key={i} className="animate-fadeIn">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
                   <span className="text-cyan-400 text-xs font-mono font-semibold">{item.name}</span>
-                  {item.path && <span className="text-slate-400 text-xs font-mono">{item.path}</span>}
+                  {item.path && (
+                    <span className="text-slate-400 text-xs font-mono">{item.path}</span>
+                  )}
                 </div>
               </div>
             );
@@ -243,8 +260,18 @@ function CodeLabDemo() {
             return (
               <div key={i} className="animate-fadeIn">
                 <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
-                  <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="w-5 h-5 text-emerald-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <span className="text-sm text-emerald-300">{item.text}</span>
                 </div>
@@ -269,7 +296,7 @@ function CodeLabDemo() {
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
           Workspace Active
         </span>
-        <span className="text-slate-500 font-mono">Claude Opus 4.5</span>
+        <span className="text-slate-500 font-mono">Claude Opus 4.6</span>
       </div>
     </div>
   );
@@ -304,7 +331,12 @@ function ChatDemo() {
       <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-900/50 to-cyan-900/50 border-b border-blue-500/20">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+            />
           </svg>
         </div>
         <div>
@@ -342,9 +374,18 @@ function ChatDemo() {
               </div>
             ) : (
               <div className="flex items-center gap-1.5 py-2">
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div
+                  className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                  style={{ animationDelay: '0ms' }}
+                />
+                <div
+                  className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                  style={{ animationDelay: '150ms' }}
+                />
+                <div
+                  className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
+                  style={{ animationDelay: '300ms' }}
+                />
               </div>
             )}
           </div>
@@ -359,7 +400,12 @@ function ChatDemo() {
           </div>
           <button className="w-11 h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
             </svg>
           </button>
         </div>
@@ -377,7 +423,10 @@ export default function DemoShowcase() {
   ];
 
   return (
-    <section id="products" className="relative bg-gradient-to-b from-black via-slate-900/30 to-black py-16 sm:py-24 overflow-hidden">
+    <section
+      id="products"
+      className="relative bg-gradient-to-b from-black via-slate-900/30 to-black py-16 sm:py-24 overflow-hidden"
+    >
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[100px]" />
@@ -386,9 +435,7 @@ export default function DemoShowcase() {
       <div className="container mx-auto px-4 relative">
         {/* Section Header */}
         <div className="text-center mb-10 sm:mb-14">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            See it in action
-          </h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">See it in action</h2>
           <p className="text-slate-400 max-w-xl mx-auto">
             Real-time streaming. Real capabilities. Experience the difference.
           </p>
@@ -428,7 +475,10 @@ export default function DemoShowcase() {
                   { icon: '🔍', label: 'Web Search' },
                   { icon: '🎨', label: 'Image Gen' },
                 ].map((f) => (
-                  <div key={f.label} className="text-center p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+                  <div
+                    key={f.label}
+                    className="text-center p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 transition-colors"
+                  >
                     <span className="text-xl">{f.icon}</span>
                     <p className="text-xs text-blue-300/70 mt-1">{f.label}</p>
                   </div>
@@ -453,12 +503,15 @@ export default function DemoShowcase() {
               {/* Features */}
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { icon: '🧠', label: 'Claude Opus 4.5' },
+                  { icon: '🧠', label: 'Claude Opus 4.6' },
                   { icon: '🔒', label: 'E2B Sandbox' },
                   { icon: '📦', label: 'GitHub' },
                   { icon: '🔌', label: 'MCP Protocol' },
                 ].map((f) => (
-                  <div key={f.label} className="text-center p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 hover:border-cyan-500/40 transition-colors">
+                  <div
+                    key={f.label}
+                    className="text-center p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 hover:border-cyan-500/40 transition-colors"
+                  >
                     <span className="text-xl">{f.icon}</span>
                     <p className="text-xs text-cyan-300/70 mt-1">{f.label}</p>
                   </div>

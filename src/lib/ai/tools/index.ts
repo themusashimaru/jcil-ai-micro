@@ -129,8 +129,15 @@ export type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 // TOOL IMPORTS
 // ============================================================================
 
-// Web Search (existing)
-export { webSearchTool, executeWebSearch, isWebSearchAvailable } from './web-search';
+// Web Search (native Anthropic server tool)
+import { isNativeServerTool as _isNativeServerTool } from './web-search';
+export {
+  webSearchTool,
+  executeWebSearch,
+  isWebSearchAvailable,
+  isNativeServerTool,
+  NATIVE_WEB_SEARCH_SENTINEL,
+} from './web-search';
 
 // URL Fetcher
 export { fetchUrlTool, executeFetchUrl, isFetchUrlAvailable } from './fetch-url';
@@ -179,8 +186,9 @@ export {
   isYouTubeTranscriptAvailable,
 } from './youtube-transcript';
 
-// GitHub Tool (unified - includes context operations)
-export { githubTool, executeGitHub, isGitHubAvailable, getRepoSummaryForPrompt } from './github-tool';
+// GitHub Tool - REMOVED: Now handled by Composio GitHub connector
+// Keeping getRepoSummaryForPrompt for backward compatibility
+export { getRepoSummaryForPrompt } from './github-tool';
 
 // Screenshot Tool
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
@@ -1034,12 +1042,7 @@ export {
   type ToolChainStep,
 } from './tool-chain-executor';
 
-// GitHub Context Tool - backward compatibility (merged into unified github tool)
-export {
-  githubContextTool,
-  executeGitHubContext,
-  isGitHubContextAvailable,
-} from './github-context-tool';
+// GitHub Context Tool - REMOVED: Now handled by Composio GitHub connector
 
 // ============================================================================
 // CYBERSECURITY TOOLS (32 tools) - Full Security Operations Suite
@@ -1536,7 +1539,7 @@ async function initializeTools() {
 
   const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
     await import('./youtube-transcript');
-  const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
+  // GitHub tool removed - now handled by Composio GitHub connector
   const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
     './screenshot-tool'
   );
@@ -3507,7 +3510,7 @@ async function initializeTools() {
       executor: executeYouTubeTranscript,
       checkAvailability: isYouTubeTranscriptAvailable,
     },
-    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
+    // GitHub tool removed - now handled by Composio GitHub connector
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },
@@ -6335,6 +6338,15 @@ export async function getAvailableChatTools(): Promise<UnifiedTool[]> {
  * Execute a tool by name
  */
 export async function executeChatTool(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
+  // Skip native server tools (web_search) — handled by Anthropic server-side
+  if (_isNativeServerTool(toolCall.name)) {
+    return {
+      toolCallId: toolCall.id,
+      content: 'Handled by server',
+      isError: false,
+    };
+  }
+
   await initializeTools();
 
   const toolEntry = CHAT_TOOLS.find((t) => t.tool.name === toolCall.name);

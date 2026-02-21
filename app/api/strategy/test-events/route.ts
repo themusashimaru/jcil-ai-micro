@@ -39,7 +39,7 @@ export async function GET(_req: NextRequest) {
       await sleep(500);
 
       // Simulate architect
-      sendEvent('architect_designing', 'Opus 4.5 designing agent army...');
+      sendEvent('architect_designing', 'Opus 4.6 designing agent army...');
       await sleep(1000);
       sendEvent('agent_spawned', 'Spawned 10 scouts', { totalAgents: 10 });
       await sleep(500);
@@ -113,7 +113,7 @@ export async function GET(_req: NextRequest) {
       }
 
       // Synthesis
-      sendEvent('synthesis_start', 'Opus 4.5 synthesizing strategy...');
+      sendEvent('synthesis_start', 'Opus 4.6 synthesizing strategy...');
       await sleep(2000);
 
       // Complete

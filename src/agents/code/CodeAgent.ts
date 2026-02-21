@@ -11,7 +11,7 @@
  * - Sandbox testing before delivery
  * - GitHub integration for version control
  *
- * Powered by Claude Opus 4.5.
+ * Powered by Claude Opus 4.6.
  */
 
 import { BaseAgent } from '../core/BaseAgent';
@@ -105,15 +105,20 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
 
       this.plan = await projectPlanner.plan(this.intent);
 
-      this.emit(onStream, 'thinking', `Planned ${this.plan.fileTree.length} files, ${this.plan.taskBreakdown.length} tasks`, {
-        phase: 'Project Planning',
-        progress: 25,
-        details: {
-          architecture: this.plan.architecture.pattern,
-          files: this.plan.fileTree.map(f => f.path),
-          tasks: this.plan.taskBreakdown.map(t => t.title),
-        },
-      });
+      this.emit(
+        onStream,
+        'thinking',
+        `Planned ${this.plan.fileTree.length} files, ${this.plan.taskBreakdown.length} tasks`,
+        {
+          phase: 'Project Planning',
+          progress: 25,
+          details: {
+            architecture: this.plan.architecture.pattern,
+            files: this.plan.fileTree.map((f) => f.path),
+            tasks: this.plan.taskBreakdown.map((t) => t.title),
+          },
+        }
+      );
 
       // ========================================
       // PHASE 3: GENERATE CODE
@@ -134,7 +139,7 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
         phase: 'Code Generation',
         progress: 50,
         details: {
-          files: this.files.map(f => ({ path: f.path, lines: f.linesOfCode })),
+          files: this.files.map((f) => ({ path: f.path, lines: f.linesOfCode })),
         },
       });
 
@@ -150,7 +155,7 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
 
         this.emit(onStream, 'evaluating', `Testing iteration ${iteration}...`, {
           phase: `Test & Fix (${iteration}/${this.MAX_ITERATIONS})`,
-          progress: 50 + (iteration * 10),
+          progress: 50 + iteration * 10,
         });
 
         // Initialize sandbox if not done
@@ -180,10 +185,15 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
             });
           } else {
             // Analyze and fix errors
-            this.emit(onStream, 'pivoting', `Build failed. Analyzing ${this.testResult.errors.length} errors...`, {
-              phase: 'Error Analysis',
-              progress: 55 + (iteration * 10),
-            });
+            this.emit(
+              onStream,
+              'pivoting',
+              `Build failed. Analyzing ${this.testResult.errors.length} errors...`,
+              {
+                phase: 'Error Analysis',
+                progress: 55 + iteration * 10,
+              }
+            );
 
             const errors = errorAnalyzer.parseErrors(this.testResult);
 
@@ -205,7 +215,10 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
                 // Replan with error context
                 this.plan = await projectPlanner.plan({
                   ...this.intent,
-                  refinedDescription: `${this.intent.refinedDescription} (Note: Previous attempt had errors: ${errors.slice(0, 3).map(e => e.message).join('; ')})`,
+                  refinedDescription: `${this.intent.refinedDescription} (Note: Previous attempt had errors: ${errors
+                    .slice(0, 3)
+                    .map((e) => e.message)
+                    .join('; ')})`,
                 });
 
                 // Regenerate with new plan
@@ -214,22 +227,26 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
                 // Apply fixes
                 for (const analysis of analyses) {
                   if (analysis.confidence !== 'low') {
-                    const fileToFix = this.files.find(f =>
-                      f.path === analysis.suggestedFix.file ||
-                      f.path.endsWith('/' + analysis.suggestedFix.file)
+                    const fileToFix = this.files.find(
+                      (f) =>
+                        f.path === analysis.suggestedFix.file ||
+                        f.path.endsWith('/' + analysis.suggestedFix.file)
                     );
 
                     if (fileToFix) {
                       const fixed = errorAnalyzer.applyFix(fileToFix, analysis);
-                      this.files = this.files.map(f =>
-                        f.path === fileToFix.path ? fixed : f
-                      );
+                      this.files = this.files.map((f) => (f.path === fileToFix.path ? fixed : f));
                       this.errorsFixed++;
 
-                      this.emit(onStream, 'thinking', `Fixed: ${analysis.error.message.substring(0, 50)}...`, {
-                        phase: 'Error Fixing',
-                        progress: 60 + (iteration * 5),
-                      });
+                      this.emit(
+                        onStream,
+                        'thinking',
+                        `Fixed: ${analysis.error.message.substring(0, 50)}...`,
+                        {
+                          phase: 'Error Fixing',
+                          progress: 60 + iteration * 5,
+                        }
+                      );
                     }
                   }
                 }
@@ -267,8 +284,8 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
         });
 
         if (githubExecutor.isAvailable()) {
-          const repoName = input.options.repoName ||
-            await githubExecutor.suggestRepoName(this.plan.name);
+          const repoName =
+            input.options.repoName || (await githubExecutor.suggestRepoName(this.plan.name));
 
           const pushResult = await githubExecutor.push(
             this.files,
@@ -320,10 +337,7 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
         summary: {
           totalFiles: this.files.length,
           totalLines: this.files.reduce((acc, f) => acc + f.linesOfCode, 0),
-          technologies: [
-            this.intent.technologies.primary,
-            ...this.intent.technologies.secondary,
-          ],
+          technologies: [this.intent.technologies.primary, ...this.intent.technologies.secondary],
           architecture: this.plan.architecture.pattern,
         },
         nextSteps: this.generateNextSteps(buildSuccess, githubResult),
@@ -346,7 +360,6 @@ export class CodeAgent extends BaseAgent<CodeAgentInput, CodeAgentOutput> {
       });
 
       return this.success(output, output.metadata.confidenceScore);
-
     } catch (error) {
       this.stopHeartbeat();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

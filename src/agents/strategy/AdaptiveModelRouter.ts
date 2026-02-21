@@ -9,7 +9,7 @@
  * - Historical performance
  *
  * Models available:
- * - Opus 4.5: Most capable, highest cost, best for complex reasoning
+ * - Opus 4.6: Most capable, highest cost, best for complex reasoning
  * - Sonnet 4.6: Balanced performance/cost, good for most tasks
  * - Haiku 4.5: Fastest, lowest cost, good for simple tasks
  */

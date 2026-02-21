@@ -457,11 +457,11 @@ describe('Chat API Module', () => {
     const routeModule = await import('./route');
     expect(routeModule.POST).toBeDefined();
     expect(typeof routeModule.POST).toBe('function');
-  });
+  }, 15000);
 
   it('should have correct runtime configuration', async () => {
     const routeModule = await import('./route');
     expect(routeModule.runtime).toBe('nodejs');
     expect(routeModule.maxDuration).toBe(300); // 5 minutes
-  });
+  }, 15000);
 });

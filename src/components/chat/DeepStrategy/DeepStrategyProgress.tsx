@@ -100,100 +100,105 @@ export function DeepStrategyProgress({
     return events.filter((e) => e.type === 'user_context_added').map((e) => e.message);
   }, [events]);
 
-  // Build task list from events
+  // Build task list from events — uses REAL event messages, not canned labels
   const tasks = useMemo((): Task[] => {
     const taskList: Task[] = [];
+
+    // Helper: get the latest message for a given event type
+    const latestMsg = (type: string) => [...events].reverse().find((e) => e.type === type)?.message;
 
     // 1. Forensic Intake
     const intakeStart = events.find((e) => e.type === 'intake_start');
     const intakeComplete = events.find((e) => e.type === 'intake_complete');
     taskList.push({
       id: 'intake',
-      label: 'Understanding your situation',
+      label: latestMsg('intake_complete') || latestMsg('intake_start') || 'Analyzing your request',
       status: intakeComplete ? 'complete' : intakeStart ? 'active' : 'pending',
-      detail: intakeStart ? 'Forensic intake in progress...' : undefined,
     });
 
-    // 2. Designing Agent Army
+    // 2. Designing Agents
     const designStart = events.find((e) => e.type === 'architect_designing');
     const agentSpawned = events.find((e) => e.type === 'agent_spawned');
-    taskList.push({
-      id: 'design',
-      label: 'Designing agent army',
-      status: agentSpawned
-        ? 'complete'
-        : designStart
-          ? 'active'
-          : intakeComplete
-            ? 'pending'
-            : 'pending',
-      detail: designStart && !agentSpawned ? 'Opus 4.5 designing specialized scouts...' : undefined,
-      count: metrics.totalAgents || undefined,
-    });
-
-    // 3. Spawning Scouts
-    if (agentSpawned) {
+    if (designStart || intakeComplete) {
       taskList.push({
-        id: 'spawn',
-        label: 'Spawning research scouts',
-        status: metrics.completedAgents > 0 ? 'complete' : 'active',
+        id: 'design',
+        label: latestMsg('architect_designing') || 'Designing research strategy',
+        status: agentSpawned ? 'complete' : designStart ? 'active' : 'pending',
+        count: metrics.totalAgents || undefined,
+      });
+    }
+
+    // 3. Spawning & Executing Scouts
+    if (agentSpawned) {
+      const spawnMsg = latestMsg('agent_spawned');
+      const allComplete = metrics.completedAgents >= metrics.totalAgents && metrics.totalAgents > 0;
+      taskList.push({
+        id: 'scouts',
+        label: allComplete
+          ? `${metrics.totalAgents} scouts completed`
+          : spawnMsg || `Running ${metrics.totalAgents} research scouts`,
+        status: allComplete ? 'complete' : 'active',
+        detail:
+          !allComplete && metrics.completedAgents > 0
+            ? `${metrics.completedAgents}/${metrics.totalAgents} complete`
+            : undefined,
         count: metrics.totalAgents,
       });
     }
 
-    // 4. Executing Research
+    // 4. Research Activity (searches, browser visits, etc.)
     const hasSearches = events.some(
       (e) => e.type === 'search_executing' || e.type === 'search_complete'
     );
     if (hasSearches) {
-      const allSearchesComplete = metrics.completedAgents >= metrics.totalAgents;
+      const allScoutsDone =
+        metrics.completedAgents >= metrics.totalAgents && metrics.totalAgents > 0;
+      // Show the latest real search/browse message
+      const latestResearch =
+        latestMsg('browser_visiting') ||
+        latestMsg('search_executing') ||
+        latestMsg('search_complete');
       taskList.push({
         id: 'research',
-        label: 'Conducting web research',
-        status: allSearchesComplete ? 'complete' : 'active',
-        detail: !allSearchesComplete ? `${metrics.searches} searches completed...` : undefined,
+        label: allScoutsDone
+          ? `${metrics.searches} searches completed`
+          : latestResearch || 'Searching the web',
+        status: allScoutsDone ? 'complete' : 'active',
         count: metrics.searches,
       });
     }
 
-    // 5. Processing Scouts
-    if (metrics.completedAgents > 0) {
-      taskList.push({
-        id: 'processing',
-        label: 'Processing scout findings',
-        status: metrics.completedAgents >= metrics.totalAgents ? 'complete' : 'active',
-        detail:
-          metrics.completedAgents < metrics.totalAgents
-            ? `${metrics.completedAgents}/${metrics.totalAgents} scouts complete`
-            : undefined,
-        count: metrics.completedAgents,
-      });
-    }
-
-    // 6. Discovering Findings
+    // 5. Findings
     if (findings.length > 0) {
+      const latestFinding = findings[findings.length - 1];
       taskList.push({
         id: 'findings',
-        label: 'Discovering insights',
+        label: isComplete
+          ? `${findings.length} insights discovered`
+          : latestFinding?.title
+            ? `Found: ${latestFinding.title.substring(0, 50)}`
+            : `Discovering insights`,
         status: isComplete ? 'complete' : 'active',
         count: findings.length,
       });
     }
 
-    // 7. Synthesis
+    // 6. Synthesis
     const synthStart = events.find((e) => e.type === 'synthesis_start');
+    const synthProgress = latestMsg('synthesis_progress');
     const stratComplete = events.find((e) => e.type === 'strategy_complete');
     if (synthStart || stratComplete) {
       taskList.push({
         id: 'synthesis',
-        label: 'Synthesizing strategy',
+        label: stratComplete
+          ? latestMsg('strategy_complete') || 'Strategy complete'
+          : synthProgress || latestMsg('synthesis_start') || 'Synthesizing findings',
         status: stratComplete ? 'complete' : 'active',
-        detail: !stratComplete ? 'Opus 4.5 creating final recommendations...' : undefined,
       });
     }
 
     return taskList;
-  }, [events, metrics, findings.length, isComplete]);
+  }, [events, metrics, findings, isComplete]);
 
   // Get current status message
   const statusMessage = events.length > 0 ? events[events.length - 1].message : 'Initializing...';

@@ -17,7 +17,7 @@
  * - DocGenerator: Creates documentation
  * - MemorySystem: Learns and remembers patterns
  *
- * Powered by Claude Opus 4.5.
+ * Powered by Claude Opus 4.6.
  */
 
 // Core analysis

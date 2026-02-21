@@ -5,6 +5,7 @@
  * This adapter allows Claude to be used interchangeably with other providers.
  */
 
+import { NATIVE_WEB_SEARCH_SENTINEL } from '@/lib/ai/tools/web-search';
 import Anthropic from '@anthropic-ai/sdk';
 import { BaseAIAdapter } from './base';
 import type {
@@ -12,7 +13,6 @@ import type {
   ProviderFamily,
   UnifiedMessage,
   UnifiedTool,
-  UnifiedToolCall,
   UnifiedToolResult,
   UnifiedStreamChunk,
   UnifiedContentBlock,
@@ -150,25 +150,23 @@ export class AnthropicAdapter extends BaseAIAdapter {
         tools,
       });
 
-      // Track current tool call being built
-      let currentToolCall: Partial<UnifiedToolCall> | null = null;
-      let toolCallArgumentsBuffer = '';
+      // Track whether current content block is a server tool (web_search)
+      // so we can suppress stray tool_call_delta/tool_call_end events for it
+      let isServerToolBlock = false;
 
       for await (const event of stream) {
-        const chunk = this.parseStreamEvent(event, currentToolCall, toolCallArgumentsBuffer);
+        const chunk = this.parseStreamEvent(event, isServerToolBlock);
+
+        // Track server tool blocks to suppress stray events
+        if (event.type === 'content_block_start') {
+          const blockType = (event.content_block as { type: string }).type;
+          isServerToolBlock =
+            blockType === 'server_tool_use' || blockType === 'web_search_tool_result';
+        } else if (event.type === 'content_block_stop') {
+          isServerToolBlock = false;
+        }
 
         if (chunk) {
-          // Update tool call tracking
-          if (chunk.type === 'tool_call_start' && chunk.toolCall) {
-            currentToolCall = chunk.toolCall;
-            toolCallArgumentsBuffer = '';
-          } else if (chunk.type === 'tool_call_delta' && chunk.toolCall?.arguments) {
-            toolCallArgumentsBuffer += JSON.stringify(chunk.toolCall.arguments);
-          } else if (chunk.type === 'tool_call_end') {
-            currentToolCall = null;
-            toolCallArgumentsBuffer = '';
-          }
-
           yield chunk;
         }
       }
@@ -403,18 +401,36 @@ export class AnthropicAdapter extends BaseAIAdapter {
   // ============================================================================
 
   /**
-   * Convert unified tools to Anthropic format
+   * Convert unified tools to Anthropic format.
+   * Handles both custom tools and native server tools (web_search_20260209).
    */
-  formatTools(tools: UnifiedTool[]): Anthropic.Tool[] {
-    return tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      input_schema: {
-        type: 'object' as const,
-        properties: tool.parameters.properties,
-        required: tool.parameters.required,
-      },
-    }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formatTools(tools: UnifiedTool[]): any[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formatted: any[] = [];
+
+    for (const tool of tools) {
+      // Native web search tool — pass as server tool type, not custom tool
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (tool.name === NATIVE_WEB_SEARCH_SENTINEL && (tool as any)._nativeConfig) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        formatted.push((tool as any)._nativeConfig);
+        continue;
+      }
+
+      // Standard custom tool
+      formatted.push({
+        name: tool.name,
+        description: tool.description,
+        input_schema: {
+          type: 'object' as const,
+          properties: tool.parameters.properties,
+          required: tool.parameters.required,
+        },
+      });
+    }
+
+    return formatted;
   }
 
   /**
@@ -438,13 +454,14 @@ export class AnthropicAdapter extends BaseAIAdapter {
    */
   private parseStreamEvent(
     event: Anthropic.MessageStreamEvent,
-    _currentToolCall: Partial<UnifiedToolCall> | null,
-    _argumentsBuffer: string
+    isServerToolBlock: boolean
   ): UnifiedStreamChunk | null {
     switch (event.type) {
       case 'message_start': {
         // Extract input token usage from message_start event
-        const msgEvent = event as { message?: { usage?: { input_tokens?: number; cache_read_input_tokens?: number } } };
+        const msgEvent = event as {
+          message?: { usage?: { input_tokens?: number; cache_read_input_tokens?: number } };
+        };
         const startUsage = msgEvent.message?.usage;
         if (startUsage?.input_tokens) {
           return {
@@ -472,9 +489,14 @@ export class AnthropicAdapter extends BaseAIAdapter {
             },
           };
         }
+        // Native server tools (web_search) — handled by Anthropic server-side.
+        // server_tool_use = Claude's search query, web_search_tool_result = search results
         return null;
 
       case 'content_block_delta':
+        // Suppress deltas from server tool blocks (search query JSON, etc.)
+        if (isServerToolBlock) return null;
+
         if (event.delta.type === 'text_delta') {
           return { type: 'text', text: event.delta.text };
         }
@@ -491,7 +513,8 @@ export class AnthropicAdapter extends BaseAIAdapter {
         return null;
 
       case 'content_block_stop':
-        // Check if this was a tool use block
+        // Suppress stop events from server tool blocks
+        if (isServerToolBlock) return null;
         return { type: 'tool_call_end' };
 
       case 'message_stop':

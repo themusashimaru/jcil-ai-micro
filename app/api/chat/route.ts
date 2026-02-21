@@ -31,11 +31,10 @@ import {
   type ToolExecutor,
 } from '@/lib/ai/chat-router';
 // Research agent removed - now using quick-research mode via strategy engine
-import { search as braveSearch, isBraveConfigured } from '@/lib/brave';
+// Native Anthropic web_search_20260209 — server-side search with dynamic filtering on Sonnet 4.6+ / Opus 4.6
 import {
   // All chat tools
   webSearchTool,
-  executeWebSearch,
   isWebSearchAvailable,
   fetchUrlTool,
   executeFetchUrl,
@@ -66,10 +65,9 @@ import {
   youtubeTranscriptTool,
   executeYouTubeTranscript,
   isYouTubeTranscriptAvailable,
-  // GitHub Tool
-  githubTool,
-  executeGitHub,
-  isGitHubAvailable,
+  // GitHub Tool - REMOVED: Now handled by Composio GitHub connector
+  // Native Web Search (server-side)
+  isNativeServerTool,
   // Screenshot Tool
   screenshotTool,
   executeScreenshot,
@@ -853,7 +851,7 @@ import {
   getProviderAndModel,
 } from '@/lib/ai/providers/registry';
 import { getAdapter } from '@/lib/ai/providers/adapters';
-import type { UnifiedMessage, UnifiedContentBlock } from '@/lib/ai/providers/types';
+import type { UnifiedMessage, UnifiedContentBlock, UnifiedTool } from '@/lib/ai/providers/types';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
@@ -2649,33 +2647,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ========================================
-    // GITHUB TOKEN - Load for authenticated tool use
-    // ========================================
-    let userGitHubToken: string | undefined;
-    if (isAuthenticated) {
-      try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (supabaseUrl && serviceKey) {
-          const adminClient = createClient(supabaseUrl, serviceKey);
-          const { data: tokenData } = await adminClient
-            .from('users')
-            .select('github_token')
-            .eq('id', rateLimitIdentifier)
-            .single();
-          if (tokenData?.github_token) {
-            const { safeDecrypt } = await import('@/lib/security/crypto');
-            const decrypted = safeDecrypt(tokenData.github_token);
-            if (decrypted) {
-              userGitHubToken = decrypted;
-            }
-          }
-        }
-      } catch {
-        // GitHub token loading should never block chat
-      }
-    }
+    // GITHUB TOKEN - REMOVED: GitHub integration now handled by Composio connector
 
     // ========================================
     // USER DOCUMENTS - Search for relevant context (RAG)
@@ -3397,54 +3369,16 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 1: BRAVE SEARCH (Button-only - user must click Search/Fact-check)
-    // Note: Research Agent removed - now using quick-research mode via strategy engine
+    // ROUTE 1: SEARCH (Button-only - user must click Search/Fact-check)
+    // Now falls through to regular Claude chat with native web_search_20260209.
+    // The model auto-escalates to Sonnet 4.6 for dynamic filtering.
     // ========================================
-    if (
-      (effectiveToolMode === 'search' || effectiveToolMode === 'factcheck') &&
-      isBraveConfigured()
-    ) {
-      log.info('Search mode activated', { toolMode: effectiveToolMode });
-
-      try {
-        const searchResult = await braveSearch({
-          query: lastUserContent,
-          mode: effectiveToolMode,
-        });
-
-        // Build response with sources
-        let responseContent = searchResult.answer;
-
-        // Add sources footer
-        if (searchResult.sources.length > 0) {
-          responseContent += '\n\n**Sources:**\n';
-          searchResult.sources.forEach((source, i) => {
-            responseContent += `${i + 1}. [${source.title}](${source.url})\n`;
-          });
-        }
-
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: responseContent,
-            model: searchResult.model,
-            provider: searchResult.provider,
-            usedFallback: searchResult.usedFallback,
-          }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Search-Mode': effectiveToolMode,
-              'X-Search-Provider': 'brave',
-              'X-Synthesis-Provider': searchResult.provider,
-            },
-          }
-        );
-      } catch (error) {
-        log.error('Search error', error as Error);
-        // Fall through to regular chat
-      }
+    if (effectiveToolMode === 'search' || effectiveToolMode === 'factcheck') {
+      log.info('Search mode activated - using native web search via Claude', {
+        toolMode: effectiveToolMode,
+      });
+      // Fall through to regular chat flow which has native web search enabled.
+      // The auto-escalation to Sonnet 4.6 ensures dynamic filtering is active.
     }
 
     // NOTE: Visual slide generation (ROUTE 2.5) removed - text rendering on serverless not reliable
@@ -4288,10 +4222,10 @@ SECURITY:
     // This is the proper way to give Claude search autonomy
 
     // Build tools array with all available tools
-    const tools: (typeof webSearchTool)[] = [];
+    const tools: UnifiedTool[] = [];
 
     // Add tools based on availability
-    if (isWebSearchAvailable()) tools.push(webSearchTool);
+    if (isWebSearchAvailable()) tools.push(webSearchTool as unknown as UnifiedTool);
     if (isFetchUrlAvailable()) tools.push(fetchUrlTool);
     if (await isRunCodeAvailable()) tools.push(runCodeTool);
     if (await isVisionAnalyzeAvailable()) tools.push(visionAnalyzeTool);
@@ -4301,7 +4235,7 @@ SECURITY:
     if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
     if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
     if (isYouTubeTranscriptAvailable()) tools.push(youtubeTranscriptTool);
-    if (isGitHubAvailable()) tools.push(githubTool);
+    // GitHub tool removed - now handled by Composio GitHub connector
     if (await isScreenshotAvailable()) tools.push(screenshotTool);
     if (isCalculatorAvailable()) tools.push(calculatorTool);
     if (isChartAvailable()) tools.push(chartTool);
@@ -4599,7 +4533,7 @@ SECURITY:
                   required: [],
                 },
               };
-              tools.push(anthropicTool as typeof webSearchTool);
+              tools.push(anthropicTool as UnifiedTool);
             }
           }
         }
@@ -4626,19 +4560,6 @@ SECURITY:
         composioToolContext = await getComposioToolsForUser(rateLimitIdentifier);
 
         if (composioToolContext.tools.length > 0) {
-          // When Composio GitHub is connected, remove the custom github tool
-          // to prevent duplicate/conflicting tools. Composio provides a superset
-          // (100+ actions vs 9 read-only actions in the custom tool).
-          if (composioToolContext.hasGitHub) {
-            const ghIdx = tools.findIndex((t) => t.name === 'github');
-            if (ghIdx !== -1) {
-              tools.splice(ghIdx, 1);
-              log.info('Removed custom github tool (replaced by Composio GitHub toolkit)', {
-                userId: rateLimitIdentifier,
-              });
-            }
-          }
-
           // Add Composio tools to the tools array
           for (const composioTool of composioToolContext.tools) {
             tools.push({
@@ -5055,6 +4976,16 @@ SECURITY:
         }
       }
 
+      // Skip native server tools (web_search) — handled by Anthropic server-side
+      if (isNativeServerTool(toolName)) {
+        log.info('Skipping native server tool (handled by Anthropic)', { tool: toolName });
+        return {
+          toolCallId: toolCall.id,
+          content: 'Handled by server',
+          isError: false,
+        };
+      }
+
       log.info('Executing chat tool', { tool: toolName, sessionId });
 
       // Inject session ID into tool call for cost tracking
@@ -5068,9 +4999,7 @@ SECURITY:
       };
       try {
         switch (toolName) {
-          case 'web_search':
-            result = await executeWebSearch(toolCallWithSession);
-            break;
+          // web_search is a native server tool — handled by isNativeServerTool guard above
           case 'fetch_url':
             result = await executeFetchUrl(toolCallWithSession);
             break;
@@ -5098,18 +5027,7 @@ SECURITY:
           case 'youtube_transcript':
             result = await executeYouTubeTranscript(toolCallWithSession);
             break;
-          case 'github': {
-            // Inject user's GitHub token for authenticated operations
-            const ghArgs =
-              typeof toolCallWithSession.arguments === 'string'
-                ? JSON.parse(toolCallWithSession.arguments)
-                : { ...toolCallWithSession.arguments };
-            if (userGitHubToken) {
-              ghArgs._githubToken = userGitHubToken;
-            }
-            result = await executeGitHub({ ...toolCallWithSession, arguments: ghArgs });
-            break;
-          }
+          // case 'github' - REMOVED: Now handled by Composio GitHub connector
           case 'screenshot':
             result = await executeScreenshot(toolCallWithSession);
             break;
@@ -5459,27 +5377,7 @@ SECURITY:
             result = await chainExecutor(toolCallWithSession);
             break;
           }
-          case 'github_context': {
-            // Legacy: redirect to unified github tool with token injection
-            const ghCtxArgs =
-              typeof toolCallWithSession.arguments === 'string'
-                ? JSON.parse(toolCallWithSession.arguments)
-                : { ...toolCallWithSession.arguments };
-            if (userGitHubToken) {
-              ghCtxArgs._githubToken = userGitHubToken;
-            }
-            // Map old 'operation' param to 'action' for unified tool
-            if (ghCtxArgs.operation && !ghCtxArgs.action) {
-              ghCtxArgs.action = ghCtxArgs.operation;
-              delete ghCtxArgs.operation;
-            }
-            result = await executeGitHub({
-              ...toolCallWithSession,
-              name: 'github',
-              arguments: ghCtxArgs,
-            });
-            break;
-          }
+          // case 'github_context' - REMOVED: Now handled by Composio GitHub connector
           // Cybersecurity Tools (32 tools)
           case 'network_security':
             result = await executeNetworkSecurity(toolCallWithSession);
@@ -6126,7 +6024,7 @@ SECURITY:
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
-        model: 'claude-haiku-4-5-20251001', // Default model for stream recovery
+        model: 'claude-sonnet-4-6', // Default model for stream recovery
       });
       if (pendingRequestId) {
         log.debug('Created pending request for stream recovery', {
@@ -6139,14 +6037,14 @@ SECURITY:
     // ========================================
     // MULTI-PROVIDER CHAT ROUTING WITH NATIVE TOOL USE
     // User can select provider: Claude, xAI, DeepSeek, OpenAI, Google
-    // Default: Claude Haiku 4.5 (fast, cost-effective for general chat)
-    // Sonnet 4.6 reserved for complex tasks (document gen, extraction)
+    // Default: Claude Sonnet 4.6 — balances quality, speed, and cost.
+    // Supports native web search with dynamic filtering (11% more accurate, 24% fewer tokens).
     // Fallback: xAI Grok 4.1 (full capability parity)
-    // Claude can call tools autonomously when needed
+    // Code Lab uses Opus 4.6 for complex code tasks (separate route).
     // ========================================
 
     // Determine which model to use based on provider selection
-    let selectedModel = 'claude-haiku-4-5-20251001'; // Default to Haiku for cost efficiency
+    let selectedModel = 'claude-sonnet-4-6'; // Sonnet 4.6 for all main chat
 
     // If user selected a specific provider, get its default model
     if (provider && isProviderAvailable(provider)) {
