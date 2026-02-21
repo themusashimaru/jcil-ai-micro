@@ -3,7 +3,7 @@
  * ================================
  *
  * Approved app integrations available through Composio.
- * 57 approved integrations organized by category.
+ * 67 approved integrations organized by category.
  */
 
 import type { ToolkitConfig, ToolkitCategory } from './types';
@@ -64,6 +64,16 @@ import { getIntercomActionNamesByPriority } from './intercom-toolkit';
 import { getQuickBooksActionNamesByPriority } from './quickbooks-toolkit';
 import { getSendGridActionNamesByPriority } from './sendgrid-toolkit';
 import { getPipedriveActionNamesByPriority } from './pipedrive-toolkit';
+import { getTwilioActionNamesByPriority } from './twilio-toolkit';
+import { getFreshdeskActionNamesByPriority } from './freshdesk-toolkit';
+import { getTypeformActionNamesByPriority } from './typeform-toolkit';
+import { getBoxActionNamesByPriority } from './box-toolkit';
+import { getBitbucketActionNamesByPriority } from './bitbucket-toolkit';
+import { getTodoistActionNamesByPriority } from './todoist-toolkit';
+import { getEvernoteActionNamesByPriority } from './evernote-toolkit';
+import { getWebflowActionNamesByPriority } from './webflow-toolkit';
+import { getPagerDutyActionNamesByPriority } from './pagerduty-toolkit';
+import { getLoomActionNamesByPriority } from './loom-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -252,7 +262,7 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
 ];
 
 // ============================================================================
-// ALL AVAILABLE TOOLKITS (57 approved integrations)
+// ALL AVAILABLE TOOLKITS (67 approved integrations)
 // ============================================================================
 
 export const ALL_TOOLKITS: ToolkitConfig[] = [
@@ -928,6 +938,123 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     authType: 'oauth2',
     featuredActions: getPipedriveActionNamesByPriority(2),
     toolLimit: 27,
+  },
+
+  // ==================== COMMUNICATION (BATCH 4) ====================
+  {
+    id: 'TWILIO',
+    displayName: 'Twilio',
+    description:
+      'Full Twilio integration: SMS, MMS, voice calls, phone numbers, recordings, and more',
+    icon: '📞',
+    category: 'communication',
+    authType: 'api_key',
+    featuredActions: getTwilioActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+
+  // ==================== SUPPORT (BATCH 4) ====================
+  {
+    id: 'FRESHDESK',
+    displayName: 'Freshdesk',
+    description:
+      'Full Freshdesk integration: tickets, contacts, companies, agents, groups, and more',
+    icon: '🎫',
+    category: 'support',
+    authType: 'api_key',
+    featuredActions: getFreshdeskActionNamesByPriority(2),
+    toolLimit: 21,
+  },
+
+  // ==================== PRODUCTIVITY (BATCH 4) ====================
+  {
+    id: 'TYPEFORM',
+    displayName: 'Typeform',
+    description: 'Full Typeform integration: forms, responses, workspaces, themes, and more',
+    icon: '📝',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getTypeformActionNamesByPriority(2),
+    toolLimit: 16,
+  },
+  {
+    id: 'TODOIST',
+    displayName: 'Todoist',
+    description: 'Full Todoist integration: tasks, projects, sections, labels, comments, and more',
+    icon: '✅',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getTodoistActionNamesByPriority(2),
+    toolLimit: 21,
+  },
+  {
+    id: 'EVERNOTE',
+    displayName: 'Evernote',
+    description: 'Full Evernote integration: notes, notebooks, tags, search, and more',
+    icon: '🐘',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getEvernoteActionNamesByPriority(2),
+    toolLimit: 16,
+  },
+
+  // ==================== STORAGE (BATCH 4) ====================
+  {
+    id: 'BOX',
+    displayName: 'Box',
+    description: 'Full Box integration: files, folders, sharing, collaboration, comments, and more',
+    icon: '📦',
+    category: 'storage',
+    authType: 'oauth2',
+    featuredActions: getBoxActionNamesByPriority(2),
+    toolLimit: 22,
+  },
+
+  // ==================== DEVELOPMENT (BATCH 4) ====================
+  {
+    id: 'BITBUCKET',
+    displayName: 'Bitbucket',
+    description:
+      'Full Bitbucket integration: repos, pull requests, issues, branches, pipelines, and more',
+    icon: '🪣',
+    category: 'development',
+    authType: 'oauth2',
+    featuredActions: getBitbucketActionNamesByPriority(2),
+    toolLimit: 22,
+  },
+  {
+    id: 'WEBFLOW',
+    displayName: 'Webflow',
+    description:
+      'Full Webflow integration: sites, CMS collections, items, domains, forms, and more',
+    icon: '🌐',
+    category: 'development',
+    authType: 'oauth2',
+    featuredActions: getWebflowActionNamesByPriority(2),
+    toolLimit: 18,
+  },
+  {
+    id: 'PAGERDUTY',
+    displayName: 'PagerDuty',
+    description:
+      'Full PagerDuty integration: incidents, services, on-call, schedules, escalations, and more',
+    icon: '🚨',
+    category: 'development',
+    authType: 'api_key',
+    featuredActions: getPagerDutyActionNamesByPriority(2),
+    toolLimit: 21,
+  },
+
+  // ==================== MEDIA (BATCH 4) ====================
+  {
+    id: 'LOOM',
+    displayName: 'Loom',
+    description: 'Full Loom integration: videos, folders, sharing, transcripts, comments, and more',
+    icon: '🎥',
+    category: 'media',
+    authType: 'oauth2',
+    featuredActions: getLoomActionNamesByPriority(2),
+    toolLimit: 15,
   },
 ];
 
