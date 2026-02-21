@@ -452,6 +452,8 @@ import {
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
+import { chatErrorResponse } from '@/lib/api/utils';
+import { ERROR_CODES, HTTP_STATUS } from '@/lib/constants';
 import {
   getDefaultModel,
   getDefaultChatModelId,
@@ -2142,14 +2144,13 @@ export async function POST(request: NextRequest) {
     // Acquire queue slot
     slotAcquired = await acquireSlot(requestId);
     if (!slotAcquired) {
-      return new Response(
-        JSON.stringify({
-          error: 'Server busy',
-          message: 'Please try again in a few seconds.',
-          retryAfter: 5,
-        }),
-        { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, {
+        error: 'Server busy',
+        code: ERROR_CODES.SERVICE_UNAVAILABLE,
+        message: 'Please try again in a few seconds.',
+        retryAfter: 5,
+        action: 'retry',
+      });
     }
 
     // Parse and validate request body
@@ -2157,10 +2158,11 @@ export async function POST(request: NextRequest) {
     try {
       rawBody = await request.json();
     } catch {
-      return new Response(
-        JSON.stringify({ ok: false, error: 'Invalid JSON body', code: 'INVALID_JSON' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Invalid JSON body',
+        code: ERROR_CODES.INVALID_JSON,
+        action: 'validate',
+      });
     }
 
     // Validate request size (XLARGE = 5MB to allow image attachments)
@@ -2172,18 +2174,15 @@ export async function POST(request: NextRequest) {
     // Validate with Zod schema
     const validation = chatRequestSchema.safeParse(rawBody);
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_ERROR',
-          details: validation.error.errors.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
-          })),
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Validation failed',
+        code: ERROR_CODES.VALIDATION_ERROR,
+        action: 'validate',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
     }
 
     const { messages, temperature, max_tokens, searchMode, conversationId, provider, thinking } =
@@ -2233,13 +2232,12 @@ export async function POST(request: NextRequest) {
         userPlanKey = userData?.subscription_tier || 'free';
       } else {
         log.warn('Unauthenticated chat attempt blocked');
-        return new Response(
-          JSON.stringify({
-            error: 'Authentication required',
-            message: 'Please sign in to use chat.',
-          }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        );
+        return chatErrorResponse(HTTP_STATUS.UNAUTHORIZED, {
+          error: 'Authentication required',
+          code: ERROR_CODES.UNAUTHORIZED,
+          message: 'Please sign in to use chat.',
+          action: 'authenticate',
+        });
       }
     } catch (authErr) {
       log.error('Auth check failed', {
@@ -2310,20 +2308,13 @@ export async function POST(request: NextRequest) {
     if (!isAdmin) {
       const rateLimit = await checkChatRateLimit(rateLimitIdentifier, isAuthenticated);
       if (!rateLimit.allowed) {
-        return new Response(
-          JSON.stringify({
-            error: 'Rate limit exceeded',
-            message: `Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before continuing.`,
-            retryAfter: rateLimit.resetIn,
-          }),
-          {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              'Retry-After': String(rateLimit.resetIn),
-            },
-          }
-        );
+        return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
+          error: 'Rate limit exceeded',
+          code: ERROR_CODES.RATE_LIMITED,
+          message: `Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before continuing.`,
+          retryAfter: rateLimit.resetIn,
+          action: 'retry',
+        });
       }
     }
 
@@ -2344,22 +2335,20 @@ export async function POST(request: NextRequest) {
           usage: usage.percentage,
         });
 
-        return new Response(
-          JSON.stringify({
-            error: 'Token quota exceeded',
-            code: 'QUOTA_EXCEEDED',
-            message:
-              warningMessage ||
-              'You have exceeded your token limit. Please upgrade your plan to continue.',
-            usage: {
-              used: usage.used,
-              limit: usage.limit,
-              percentage: usage.percentage,
-            },
-            upgradeUrl: '/settings?tab=subscription',
-          }),
-          { status: 402, headers: { 'Content-Type': 'application/json' } }
-        );
+        return chatErrorResponse(402, {
+          error: 'Token quota exceeded',
+          code: ERROR_CODES.QUOTA_EXCEEDED,
+          message:
+            warningMessage ||
+            'You have exceeded your token limit. Please upgrade your plan to continue.',
+          usage: {
+            used: usage.used,
+            limit: usage.limit,
+            percentage: usage.percentage,
+          },
+          action: 'upgrade',
+          actionUrl: '/settings?tab=subscription',
+        });
       }
     }
 
@@ -2378,14 +2367,12 @@ export async function POST(request: NextRequest) {
         await releaseSlot(requestId);
         slotAcquired = false;
       }
-      return new Response(
-        JSON.stringify({
-          error: 'Duplicate request',
-          message: 'Please wait a moment before sending the same message again.',
-          code: 'DUPLICATE_REQUEST',
-        }),
-        { status: 429, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
+        error: 'Duplicate request',
+        code: ERROR_CODES.DUPLICATE_REQUEST,
+        message: 'Please wait a moment before sending the same message again.',
+        action: 'retry',
+      });
     }
 
     // ========================================
@@ -5270,13 +5257,10 @@ SECURITY:
     } else if (provider && !isProviderAvailable(provider)) {
       const availableIds = getAvailableProviderIds();
       log.warn('Selected provider not available', { provider, availableIds });
-      return new Response(
-        JSON.stringify({
-          error: 'The selected provider is not available. Please choose a different provider.',
-          availableProviders: availableIds,
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'The selected provider is not available. Please choose a different provider.',
+        code: ERROR_CODES.INVALID_INPUT,
+      });
     }
 
     // CRITICAL: Pass the providerId to ensure the correct adapter is used

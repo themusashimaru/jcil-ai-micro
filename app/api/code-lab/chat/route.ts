@@ -13,6 +13,8 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { createClient } from '@supabase/supabase-js';
+import { chatErrorResponse } from '@/lib/api/utils';
+import { ERROR_CODES, HTTP_STATUS } from '@/lib/constants';
 import {
   executeCodeAgent,
   shouldUseCodeAgent as checkCodeAgentIntent,
@@ -549,27 +551,24 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new Response('Unauthorized', { status: 401 });
+      return chatErrorResponse(HTTP_STATUS.UNAUTHORIZED, {
+        error: 'Authentication required',
+        code: ERROR_CODES.UNAUTHORIZED,
+        action: 'authenticate',
+      });
     }
 
     // SECURITY FIX: Rate limiting to prevent abuse
     const { allowed } = checkRateLimit(user.id);
     if (!allowed) {
       log.warn('Rate limit exceeded', { userId: user.id });
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded. Please wait a moment before sending more messages.',
-          code: 'RATE_LIMIT_EXCEEDED',
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60),
-          },
-        }
-      );
+      return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
+        error: 'Rate limit exceeded',
+        code: ERROR_CODES.RATE_LIMITED,
+        message: 'Please wait a moment before sending more messages.',
+        retryAfter: 60,
+        action: 'retry',
+      });
     }
 
     const body = await request.json();
@@ -578,15 +577,12 @@ export async function POST(request: NextRequest) {
     // P2a: Input validation - max content length to prevent abuse
     const MAX_CONTENT_LENGTH = 100000; // 100KB reasonable limit for chat messages
     if (content && typeof content === 'string' && content.length > MAX_CONTENT_LENGTH) {
-      return new Response(
-        JSON.stringify({
-          error: 'Message too long',
-          code: 'CONTENT_TOO_LONG',
-          maxLength: MAX_CONTENT_LENGTH,
-          actualLength: content.length,
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Message too long',
+        code: ERROR_CODES.REQUEST_TOO_LARGE,
+        message: `Message exceeds maximum length of ${MAX_CONTENT_LENGTH} characters.`,
+        action: 'validate',
+      });
     }
 
     // Model selection (Claude Code parity) - default to Opus 4.6
@@ -597,7 +593,11 @@ export async function POST(request: NextRequest) {
     const thinkingBudget = thinking?.budgetTokens || 10000;
 
     if (!sessionId || (!content && (!attachments || attachments.length === 0))) {
-      return new Response('Missing sessionId or content', { status: 400 });
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Missing sessionId or content',
+        code: ERROR_CODES.INVALID_INPUT,
+        action: 'validate',
+      });
     }
 
     // Load user's GitHub token for tool use (non-blocking)
@@ -703,10 +703,10 @@ export async function POST(request: NextRequest) {
 
     if (sessionFetchError) {
       log.warn('Failed to get session', { error: sessionFetchError.message });
-      return new Response(
-        JSON.stringify({ error: 'Session not found', code: 'SESSION_NOT_FOUND' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.NOT_FOUND, {
+        error: 'Session not found',
+        code: ERROR_CODES.NOT_FOUND,
+      });
     }
 
     // SECURITY: Verify the authenticated user owns this session
@@ -716,10 +716,11 @@ export async function POST(request: NextRequest) {
         requestingUser: user.id,
         sessionOwner: currentSession.user_id,
       });
-      return new Response(
-        JSON.stringify({ error: 'Access denied', code: 'SESSION_ACCESS_DENIED' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
+      return chatErrorResponse(HTTP_STATUS.FORBIDDEN, {
+        error: 'Access denied',
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'You do not have access to this session.',
+      });
     }
 
     // Handle action commands that execute immediately (ownership verified)
@@ -2403,7 +2404,10 @@ Rules:
     });
   } catch (error) {
     log.error('Request error', error as Error);
-    return new Response('Internal server error', { status: 500 });
+    return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
+      error: 'Internal server error',
+      code: ERROR_CODES.INTERNAL_ERROR,
+    });
   }
 }
 
