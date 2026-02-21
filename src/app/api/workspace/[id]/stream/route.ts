@@ -6,6 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
@@ -19,10 +20,7 @@ export const maxDuration = 300;
 /**
  * POST - Execute command with streaming output
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -30,7 +28,9 @@ export async function POST(
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -54,7 +54,9 @@ export async function POST(
       });
     }
 
-    const jsonResult = await safeParseJSON<{ command?: string; cwd?: string; timeout?: number }>(request);
+    const jsonResult = await safeParseJSON<{ command?: string; cwd?: string; timeout?: number }>(
+      request
+    );
     if (!jsonResult.success) {
       return new Response(JSON.stringify({ error: jsonResult.error }), {
         status: 400,
@@ -81,33 +83,46 @@ export async function POST(
       const startTime = Date.now();
 
       try {
-        await writer.write(encoder.encode(`event: start\ndata: ${JSON.stringify({ command, cwd })}\n\n`));
+        await writer.write(
+          encoder.encode(`event: start\ndata: ${JSON.stringify({ command, cwd })}\n\n`)
+        );
 
         const result = await container.executeCommand(workspaceId, command, {
           cwd: cwd || '/workspace',
           timeout,
           stream: {
             onStdout: async (data) => {
-              await writer.write(encoder.encode(`event: stdout\ndata: ${JSON.stringify({ content: data })}\n\n`));
+              await writer.write(
+                encoder.encode(`event: stdout\ndata: ${JSON.stringify({ content: data })}\n\n`)
+              );
             },
             onStderr: async (data) => {
-              await writer.write(encoder.encode(`event: stderr\ndata: ${JSON.stringify({ content: data })}\n\n`));
+              await writer.write(
+                encoder.encode(`event: stderr\ndata: ${JSON.stringify({ content: data })}\n\n`)
+              );
             },
             onExit: async (code) => {
-              await writer.write(encoder.encode(`event: exit\ndata: ${JSON.stringify({ code, duration: Date.now() - startTime })}\n\n`));
+              await writer.write(
+                encoder.encode(
+                  `event: exit\ndata: ${JSON.stringify({ code, duration: Date.now() - startTime })}\n\n`
+                )
+              );
             },
           },
         });
 
         // Final result
-        await writer.write(encoder.encode(`event: complete\ndata: ${JSON.stringify({
-          exitCode: result.exitCode,
-          executionTime: result.executionTime,
-        })}\n\n`));
+        await writer.write(
+          encoder.encode(
+            `event: complete\ndata: ${JSON.stringify({
+              exitCode: result.exitCode,
+              executionTime: result.executionTime,
+            })}\n\n`
+          )
+        );
 
         // Log the command (table created by workspace schema)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('shell_commands').insert({
+        await untypedFrom(supabase, 'shell_commands').insert({
           workspace_id: workspaceId,
           command,
           output: result.stdout + result.stderr,
@@ -115,11 +130,14 @@ export async function POST(
           duration_ms: result.executionTime,
           completed_at: new Date().toISOString(),
         });
-
       } catch (error) {
-        await writer.write(encoder.encode(`event: error\ndata: ${JSON.stringify({
-          message: error instanceof Error ? error.message : 'Unknown error',
-        })}\n\n`));
+        await writer.write(
+          encoder.encode(
+            `event: error\ndata: ${JSON.stringify({
+              message: error instanceof Error ? error.message : 'Unknown error',
+            })}\n\n`
+          )
+        );
       } finally {
         await writer.close();
       }
@@ -129,32 +147,33 @@ export async function POST(
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
-
   } catch (error) {
     log.error('Streaming error', error as Error);
-    return new Response(JSON.stringify({
-      error: 'Streaming failed',
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Streaming failed',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 }
 
 /**
  * GET - Subscribe to workspace events (file changes, task updates, etc.)
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -197,7 +216,9 @@ export async function GET(
     const sendHeartbeat = async () => {
       while (isOpen) {
         try {
-          await writer.write(encoder.encode(`event: heartbeat\ndata: ${JSON.stringify({ time: Date.now() })}\n\n`));
+          await writer.write(
+            encoder.encode(`event: heartbeat\ndata: ${JSON.stringify({ time: Date.now() })}\n\n`)
+          );
 
           // Check for new tasks
           const { data: tasks } = await supabase
@@ -209,10 +230,12 @@ export async function GET(
             .limit(5);
 
           if (tasks && tasks.length > 0) {
-            await writer.write(encoder.encode(`event: tasks\ndata: ${JSON.stringify({ tasks })}\n\n`));
+            await writer.write(
+              encoder.encode(`event: tasks\ndata: ${JSON.stringify({ tasks })}\n\n`)
+            );
           }
 
-          await new Promise(resolve => setTimeout(resolve, 5000)); // Every 5 seconds
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // Every 5 seconds
         } catch {
           isOpen = false;
           break;
@@ -241,10 +264,9 @@ export async function GET(
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
-
   } catch (error) {
     log.error('Event stream error', error as Error);
     return new Response(JSON.stringify({ error: 'Event stream failed' }), {

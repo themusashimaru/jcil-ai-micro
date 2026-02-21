@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { ContainerManager, getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { sanitizeFilePath, sanitizeGlobPattern } from '@/lib/workspace/security';
@@ -20,14 +21,13 @@ export const maxDuration = 120;
 /**
  * GET - Get current index status or simple search
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -57,9 +57,7 @@ export async function GET(
     }
 
     // Return index status
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: index } = await (supabase as any)
-      .from('codebase_indexes')
+    const { data: index } = await untypedFrom(supabase, 'codebase_indexes')
       .select('*')
       .eq('workspace_id', workspaceId)
       .single();
@@ -80,7 +78,6 @@ export async function GET(
         dependencies: index.dependencies?.length || 0,
       },
     });
-
   } catch (error) {
     log.error('Index operation failed', error as Error);
     return NextResponse.json({ error: 'Index operation failed' }, { status: 500 });
@@ -90,10 +87,7 @@ export async function GET(
 /**
  * POST - Index the codebase (symbols and structure only, no embeddings)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -101,7 +95,9 @@ export async function POST(
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -138,7 +134,7 @@ export async function POST(
         `find ${safePath} -name "${safePattern}" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" | head -200`
       );
 
-      const files = result.stdout.split('\n').filter(f => f.trim());
+      const files = result.stdout.split('\n').filter((f) => f.trim());
 
       for (const filePath of files) {
         try {
@@ -163,7 +159,7 @@ export async function POST(
     // Store basic index (no embeddings)
     const indexData = {
       workspace_id: workspaceId,
-      files: allFiles.map(f => ({
+      files: allFiles.map((f) => ({
         path: f.path,
         language: f.language,
         size: f.content.length,
@@ -173,10 +169,7 @@ export async function POST(
       last_indexed_at: new Date().toISOString(),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
-      .from('codebase_indexes')
-      .upsert(indexData);
+    await untypedFrom(supabase, 'codebase_indexes').upsert(indexData);
 
     return NextResponse.json({
       success: true,
@@ -187,12 +180,14 @@ export async function POST(
       },
       note: 'Index created. Use Code Lab grep/find tools for code search.',
     });
-
   } catch (error) {
     log.error('Indexing failed', error as Error);
-    return NextResponse.json({
-      error: 'Indexing failed',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Indexing failed',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -202,8 +197,10 @@ export async function POST(
 function detectLanguage(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase() || '';
   const langMap: Record<string, string> = {
-    ts: 'typescript', tsx: 'typescript',
-    js: 'javascript', jsx: 'javascript',
+    ts: 'typescript',
+    tsx: 'typescript',
+    js: 'javascript',
+    jsx: 'javascript',
     py: 'python',
     go: 'go',
     rs: 'rust',

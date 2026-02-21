@@ -15,6 +15,7 @@
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { createClient as createSupabaseClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { storeBackup, getBackup } from './backup-service';
 
 const log = logger('Checkpoint');
@@ -555,8 +556,7 @@ export class CheckpointManager {
   private async persistCheckpoint(checkpoint: WorkspaceCheckpoint): Promise<void> {
     try {
       const supabase = await createSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('workspace_checkpoints') as any).insert({
+      await untypedFrom(supabase, 'workspace_checkpoints').insert({
         id: checkpoint.id,
         session_id: checkpoint.sessionId,
         workspace_id: checkpoint.workspaceId,
@@ -577,8 +577,7 @@ export class CheckpointManager {
   private async loadCheckpoint(checkpointId: string): Promise<WorkspaceCheckpoint | null> {
     try {
       const supabase = await createSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.from('workspace_checkpoints') as any)
+      const { data, error } = await untypedFrom(supabase, 'workspace_checkpoints')
         .select('*')
         .eq('id', checkpointId)
         .single();
@@ -613,8 +612,7 @@ export class CheckpointManager {
   private async deletePersistedCheckpoint(checkpointId: string): Promise<void> {
     try {
       const supabase = await createSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('workspace_checkpoints') as any).delete().eq('id', checkpointId);
+      await untypedFrom(supabase, 'workspace_checkpoints').delete().eq('id', checkpointId);
     } catch (error) {
       log.warn('Failed to delete persisted checkpoint', { checkpointId, error });
     }

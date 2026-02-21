@@ -14,6 +14,7 @@
 import { generateImage, downloadAndStore, enhanceImagePrompt } from '@/lib/connectors/bfl';
 import { ASPECT_RATIOS } from '@/lib/connectors/bfl/models';
 import { logger } from '@/lib/logger';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const log = logger('SlideGenerator');
@@ -200,8 +201,7 @@ export async function generateSingleSlide(
     });
 
     // Create generation record in database
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (serviceClient as any).from('generations').insert({
+    await untypedFrom(serviceClient, 'generations').insert({
       id: genId,
       user_id: userId,
       conversation_id: conversationId || null,
@@ -235,9 +235,7 @@ export async function generateSingleSlide(
     const storedUrl = await downloadAndStore(result.imageUrl, userId, genId);
 
     // Step 3: Update generation record with results
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (serviceClient as any)
-      .from('generations')
+    await untypedFrom(serviceClient, 'generations')
       .update({
         status: 'completed',
         result_url: storedUrl,

@@ -13,6 +13,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { logger } from '@/lib/logger';
 import {
   MCPClientManager,
@@ -739,8 +740,7 @@ class MCPManager {
   async saveServerConfig(userId: string, config: MCPServerConfig): Promise<void> {
     try {
       const supabase = await createClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('code_lab_user_mcp_servers') as any).upsert({
+      await untypedFrom(supabase, 'code_lab_user_mcp_servers').upsert({
         user_id: userId,
         server_id: config.id,
         name: config.name,

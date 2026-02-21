@@ -32,6 +32,7 @@ import {
   BFLError,
 } from '@/lib/connectors/bfl';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 
 const log = logger('CreateImageAPI');
 
@@ -157,8 +158,7 @@ export async function POST(request: NextRequest) {
     const generationId = randomUUID();
     const serviceClient = createServiceRoleClient();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertError } = await (serviceClient as any).from('generations').insert({
+    const { error: insertError } = await untypedFrom(serviceClient, 'generations').insert({
       id: generationId,
       user_id: user.id,
       conversation_id: conversationId || null,
@@ -202,9 +202,7 @@ export async function POST(request: NextRequest) {
       const errorCode = genError instanceof BFLError ? genError.code : 'GENERATION_ERROR';
 
       // Update record with error
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (serviceClient as any)
-        .from('generations')
+      await untypedFrom(serviceClient, 'generations')
         .update({
           status:
             errorCode === 'CONTENT_MODERATED' || errorCode === 'REQUEST_MODERATED'
@@ -242,9 +240,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Update record with error
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (serviceClient as any)
-        .from('generations')
+      await untypedFrom(serviceClient, 'generations')
         .update({
           status: 'failed',
           error_code: 'STORAGE_FAILED',
@@ -283,9 +279,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update generation record with success
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (serviceClient as any)
-      .from('generations')
+    await untypedFrom(serviceClient, 'generations')
       .update({
         status: 'completed',
         result_url: storedUrl,

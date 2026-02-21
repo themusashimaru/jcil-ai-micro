@@ -18,6 +18,7 @@
 
 import { logger } from '@/lib/logger';
 import { createClient as createSupabaseClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 
 const log = logger('MCPScopes');
 
@@ -109,8 +110,7 @@ export class MCPScopeManager {
   async loadPermissions(): Promise<void> {
     try {
       const supabase = await createSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.from('mcp_server_permissions') as any)
+      const { data, error } = await untypedFrom(supabase, 'mcp_server_permissions')
         .select('*')
         .eq('user_id', this.userId);
 
@@ -262,8 +262,7 @@ export class MCPScopeManager {
     try {
       const supabase = await createSupabaseClient();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('mcp_server_permissions') as any).upsert(
+      await untypedFrom(supabase, 'mcp_server_permissions').upsert(
         {
           user_id: this.userId,
           server_id: permission.serverId,
@@ -304,8 +303,7 @@ export class MCPScopeManager {
     try {
       const supabase = await createSupabaseClient();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (supabase.from('mcp_server_permissions') as any)
+      let query = untypedFrom(supabase, 'mcp_server_permissions')
         .delete()
         .eq('user_id', this.userId)
         .eq('server_id', serverId)

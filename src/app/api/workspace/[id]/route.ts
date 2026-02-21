@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom, untypedRpc } from '@/lib/supabase/workspace-client';
 import { getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
@@ -17,23 +18,20 @@ export const maxDuration = 60;
 /**
  * GET - Get workspace details
  */
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Table created by workspace schema
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: workspace, error } = await (supabase as any)
-      .from('workspaces')
+    const { data: workspace, error } = await untypedFrom(supabase, 'workspaces')
       .select('*')
       .eq('id', id)
       .eq('user_id', user.id)
@@ -48,13 +46,13 @@ export async function GET(
     const containerStatus = await container.getStatus(id);
 
     // Get workspace stats (custom RPC function from workspace schema)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: stats } = await (supabase as any).rpc('get_workspace_stats', { p_workspace_id: id });
-
-    return NextResponse.json({
-      workspace: { ...workspace, containerStatus, stats }
+    const { data: stats } = await untypedRpc(supabase, 'get_workspace_stats', {
+      p_workspace_id: id,
     });
 
+    return NextResponse.json({
+      workspace: { ...workspace, containerStatus, stats },
+    });
   } catch (error) {
     log.error('Failed to get workspace', error as Error);
     return NextResponse.json({ error: 'Failed to get workspace' }, { status: 500 });
@@ -64,10 +62,7 @@ export async function GET(
 /**
  * PATCH - Update workspace
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -75,13 +70,19 @@ export async function PATCH(
   try {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const jsonResult = await safeParseJSON<{ name?: string; config?: Record<string, unknown>; status?: string }>(request);
+    const jsonResult = await safeParseJSON<{
+      name?: string;
+      config?: Record<string, unknown>;
+      status?: string;
+    }>(request);
     if (!jsonResult.success) {
       return NextResponse.json({ error: jsonResult.error }, { status: 400 });
     }
@@ -92,9 +93,7 @@ export async function PATCH(
     if (config) updates.config = config;
     if (status) updates.status = status;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: workspace, error } = await (supabase as any)
-      .from('workspaces')
+    const { data: workspace, error } = await untypedFrom(supabase, 'workspaces')
       .update(updates)
       .eq('id', id)
       .eq('user_id', user.id)
@@ -104,7 +103,6 @@ export async function PATCH(
     if (error) throw error;
 
     return NextResponse.json({ workspace });
-
   } catch (error) {
     log.error('Failed to update workspace', error as Error);
     return NextResponse.json({ error: 'Failed to update workspace' }, { status: 500 });
@@ -125,7 +123,9 @@ export async function DELETE(
   try {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -145,7 +145,6 @@ export async function DELETE(
     if (error) throw error;
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
     log.error('Failed to delete workspace', error as Error);
     return NextResponse.json({ error: 'Failed to delete workspace' }, { status: 500 });

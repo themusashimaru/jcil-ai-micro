@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
 import { validateQueryLimit, safeParseJSON } from '@/lib/security/validation';
@@ -19,14 +20,13 @@ export const maxDuration = 300;
 /**
  * GET - List background tasks
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -54,7 +54,6 @@ export async function GET(
     if (error) throw error;
 
     return NextResponse.json({ tasks });
-
   } catch (error) {
     log.error('Failed to list tasks', error as Error);
     return NextResponse.json({ error: 'Failed to list tasks' }, { status: 500 });
@@ -64,10 +63,7 @@ export async function GET(
 /**
  * POST - Start a background task
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -75,7 +71,9 @@ export async function POST(
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -105,8 +103,7 @@ export async function POST(
 
     // Create task record (table created by workspace schema)
     const taskId = crypto.randomUUID();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertError } = await (supabase as any).from('background_tasks').insert({
+    const { error: insertError } = await untypedFrom(supabase, 'background_tasks').insert({
       id: taskId,
       workspace_id: workspaceId,
       user_id: user.id,
@@ -123,15 +120,17 @@ export async function POST(
     // Start task execution in background (non-blocking)
     executeTaskInBackground(taskId, workspaceId, command, supabase);
 
-    return NextResponse.json({
-      task: {
-        id: taskId,
-        status: 'pending',
-        type,
-        command,
-      }
-    }, { status: 202 }); // 202 Accepted
-
+    return NextResponse.json(
+      {
+        task: {
+          id: taskId,
+          status: 'pending',
+          type,
+          command,
+        },
+      },
+      { status: 202 }
+    ); // 202 Accepted
   } catch (error) {
     log.error('Failed to start task', error as Error);
     return NextResponse.json({ error: 'Failed to start task' }, { status: 500 });
@@ -191,7 +190,6 @@ async function executeTaskInBackground(
         error: result.exitCode !== 0 ? result.stderr : null,
       })
       .eq('id', taskId);
-
   } catch (error) {
     await supabase
       .from('background_tasks')
@@ -207,10 +205,7 @@ async function executeTaskInBackground(
 /**
  * Quick task shortcuts
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // CSRF Protection
   const csrfCheck = validateCSRF(request);
   if (!csrfCheck.valid) return csrfCheck.response!;
@@ -218,7 +213,9 @@ export async function PUT(
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -268,7 +265,6 @@ export async function PUT(
       error: result.stderr,
       executionTime: result.executionTime,
     });
-
   } catch (error) {
     log.error('Task execution failed', error as Error);
     return NextResponse.json({ error: 'Task execution failed' }, { status: 500 });

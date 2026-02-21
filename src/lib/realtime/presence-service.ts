@@ -9,6 +9,7 @@
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { untypedRpc } from '@/lib/supabase/workspace-client';
 import { getWebSocketServer } from './websocket-server';
 import { getCollaborationManager } from '@/lib/collaboration/collaboration-manager';
 import { logger } from '@/lib/logger';
@@ -172,10 +173,8 @@ class PresenceService {
   async upsertPresence(sessionId: string, data: PresenceData): Promise<void> {
     try {
       const supabase = createServiceRoleClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anySupabase = supabase as any;
 
-      const { error } = await anySupabase.rpc('upsert_code_lab_presence', {
+      const { error } = await untypedRpc(supabase, 'upsert_code_lab_presence', {
         p_session_id: sessionId,
         p_user_id: data.userId,
         p_user_name: data.userName,
@@ -207,10 +206,8 @@ class PresenceService {
   async removePresence(sessionId: string, userId: string): Promise<void> {
     try {
       const supabase = createServiceRoleClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anySupabase = supabase as any;
 
-      const { error } = await anySupabase.rpc('remove_code_lab_presence', {
+      const { error } = await untypedRpc(supabase, 'remove_code_lab_presence', {
         p_session_id: sessionId,
         p_user_id: userId,
       });
@@ -229,10 +226,8 @@ class PresenceService {
   async getSessionPresence(sessionId: string): Promise<PresenceData[]> {
     try {
       const supabase = createServiceRoleClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anySupabase = supabase as any;
 
-      const { data, error } = await anySupabase.rpc('get_session_presence', {
+      const { data, error } = await untypedRpc(supabase, 'get_session_presence', {
         p_session_id: sessionId,
       });
 
@@ -284,10 +279,8 @@ class PresenceService {
   async cleanupStalePresence(): Promise<number> {
     try {
       const supabase = createServiceRoleClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anySupabase = supabase as any;
 
-      const { data, error } = await anySupabase.rpc('cleanup_stale_code_lab_presence');
+      const { data, error } = await untypedRpc(supabase, 'cleanup_stale_code_lab_presence');
 
       if (error) {
         log.error('Presence cleanup RPC error', { error });
