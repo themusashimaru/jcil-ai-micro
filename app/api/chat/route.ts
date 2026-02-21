@@ -461,7 +461,12 @@ import {
 import { getAdapter } from '@/lib/ai/providers/adapters';
 import type { UnifiedMessage, UnifiedContentBlock, UnifiedTool } from '@/lib/ai/providers/types';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
-import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
+import {
+  canMakeRequest,
+  getTokenUsage,
+  getTokenLimitWarningMessage,
+  incrementTokenUsage,
+} from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
@@ -3038,6 +3043,7 @@ export async function POST(request: NextRequest) {
 
         // Track token usage for document generation
         if (result.usage) {
+          const totalTokens = (result.usage.inputTokens || 0) + (result.usage.outputTokens || 0);
           trackTokenUsage({
             userId: rateLimitIdentifier,
             modelName: result.model || 'claude-sonnet-4-6',
@@ -3046,6 +3052,7 @@ export async function POST(request: NextRequest) {
             source: 'chat-document',
             conversationId: conversationId,
           }).catch(() => {});
+          incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
         }
 
         // Extract JSON from response
@@ -3245,6 +3252,9 @@ If information is missing, make reasonable professional assumptions or leave opt
 
           // Track token usage for resume extraction
           if (extractionResult.usage) {
+            const totalTokens =
+              (extractionResult.usage.inputTokens || 0) +
+              (extractionResult.usage.outputTokens || 0);
             trackTokenUsage({
               userId: rateLimitIdentifier,
               modelName: extractionResult.model || 'claude-sonnet-4-6',
@@ -3253,6 +3263,7 @@ If information is missing, make reasonable professional assumptions or leave opt
               source: 'chat-resume',
               conversationId: conversationId,
             }).catch(() => {});
+            incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
           }
 
           // Parse the extracted data
@@ -3365,6 +3376,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           maxTokens: 1024,
           temperature: 0.7,
           onUsage: (usage) => {
+            const totalTokens = (usage.inputTokens || 0) + (usage.outputTokens || 0);
             trackTokenUsage({
               userId: rateLimitIdentifier,
               modelName: 'claude-sonnet-4-6',
@@ -3373,6 +3385,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
               source: 'chat-resume',
               conversationId: conversationId,
             }).catch(() => {});
+            incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
           },
         });
 
@@ -3543,6 +3556,8 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 
             // Track token usage for auto-detected document generation
             if (result.usage) {
+              const totalTokens =
+                (result.usage.inputTokens || 0) + (result.usage.outputTokens || 0);
               trackTokenUsage({
                 userId: rateLimitIdentifier,
                 modelName: result.model || 'claude-sonnet-4-6',
@@ -3551,6 +3566,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
                 source: 'chat-document',
                 conversationId: conversationId,
               }).catch(() => {});
+              incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
             }
 
             // Extract JSON from response
@@ -5468,7 +5484,9 @@ SECURITY:
         log.info('Provider failover triggered', { from, to, reason });
       },
       onUsage: (usage) => {
-        // Fire-and-forget: persist token usage to usage_tracking table
+        const totalTokens = (usage.inputTokens || 0) + (usage.outputTokens || 0);
+
+        // Fire-and-forget: persist token usage to usage_tracking table (analytics)
         trackTokenUsage({
           userId: rateLimitIdentifier,
           modelName: selectedModel,
@@ -5477,6 +5495,9 @@ SECURITY:
           source: 'chat',
           conversationId: conversationId,
         }).catch(() => {}); // Already handles errors internally
+
+        // Fire-and-forget: increment token budget (enforces plan limits)
+        incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
       },
     };
 
