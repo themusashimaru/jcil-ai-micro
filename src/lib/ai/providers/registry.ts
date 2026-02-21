@@ -375,6 +375,14 @@ export function getDefaultModel(providerId: ProviderId): ModelConfig | undefined
 }
 
 /**
+ * Get the default Claude model ID for main chat
+ * This is THE single source of truth for what model the main chat uses.
+ */
+export function getDefaultChatModelId(): string {
+  return getDefaultModel('claude')?.id ?? 'claude-sonnet-4-6';
+}
+
+/**
  * Get all models for a provider
  */
 export function getModelsForProvider(providerId: ProviderId): ModelConfig[] {

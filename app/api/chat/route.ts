@@ -454,6 +454,7 @@ import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import {
   getDefaultModel,
+  getDefaultChatModelId,
   isProviderAvailable,
   getProviderAndModel,
   getAvailableProviderIds,
@@ -5237,7 +5238,7 @@ SECURITY:
           role: m.role,
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
-        model: 'claude-sonnet-4-6', // Default model for stream recovery
+        model: getDefaultChatModelId(), // Registry default for stream recovery
       });
       if (pendingRequestId) {
         log.debug('Created pending request for stream recovery', {
@@ -5257,7 +5258,7 @@ SECURITY:
     // ========================================
 
     // Determine which model to use based on provider selection
-    let selectedModel = 'claude-sonnet-4-6'; // Sonnet 4.6 for all main chat
+    let selectedModel = getDefaultChatModelId(); // Registry default (Sonnet 4.6)
 
     // If user selected a specific provider, get its default model
     if (provider && isProviderAvailable(provider)) {
