@@ -3,7 +3,7 @@
  * ================================
  *
  * Approved app integrations available through Composio.
- * 47 approved integrations organized by category.
+ * 57 approved integrations organized by category.
  */
 
 import type { ToolkitConfig, ToolkitCategory } from './types';
@@ -54,6 +54,16 @@ import { getClickUpActionNamesByPriority } from './clickup-toolkit';
 import { getTelegramActionNamesByPriority } from './telegram-toolkit';
 import { getMailchimpActionNamesByPriority } from './mailchimp-toolkit';
 import { getZendeskActionNamesByPriority } from './zendesk-toolkit';
+import { getWhatsAppActionNamesByPriority } from './whatsapp-toolkit';
+import { getFigmaActionNamesByPriority } from './figma-toolkit';
+import { getDocuSignActionNamesByPriority } from './docusign-toolkit';
+import { getGitLabActionNamesByPriority } from './gitlab-toolkit';
+import { getMondayActionNamesByPriority } from './monday-toolkit';
+import { getConfluenceActionNamesByPriority } from './confluence-toolkit';
+import { getIntercomActionNamesByPriority } from './intercom-toolkit';
+import { getQuickBooksActionNamesByPriority } from './quickbooks-toolkit';
+import { getSendGridActionNamesByPriority } from './sendgrid-toolkit';
+import { getPipedriveActionNamesByPriority } from './pipedrive-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -242,7 +252,7 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
 ];
 
 // ============================================================================
-// ALL AVAILABLE TOOLKITS (47 approved integrations)
+// ALL AVAILABLE TOOLKITS (57 approved integrations)
 // ============================================================================
 
 export const ALL_TOOLKITS: ToolkitConfig[] = [
@@ -793,6 +803,131 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     authType: 'oauth2',
     featuredActions: getZendeskActionNamesByPriority(2),
     toolLimit: 26,
+  },
+
+  // ==================== COMMUNICATION (BATCH 3) ====================
+  {
+    id: 'WHATSAPP',
+    displayName: 'WhatsApp Business',
+    description:
+      'Full WhatsApp Business integration: messages, media, contacts, templates, business profiles',
+    icon: '📱',
+    category: 'communication',
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getWhatsAppActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+
+  // ==================== DEVELOPMENT (BATCH 3) ====================
+  {
+    id: 'FIGMA',
+    displayName: 'Figma',
+    description:
+      'Full Figma integration: files, components, comments, projects, teams, styles, and more',
+    icon: '🎨',
+    category: 'development',
+    authType: 'oauth2',
+    featuredActions: getFigmaActionNamesByPriority(2),
+    toolLimit: 21,
+  },
+  {
+    id: 'GITLAB',
+    displayName: 'GitLab',
+    description:
+      'Full GitLab integration: projects, issues, merge requests, branches, pipelines, CI/CD, and more',
+    icon: '🦊',
+    category: 'development',
+    authType: 'oauth2',
+    featuredActions: getGitLabActionNamesByPriority(2),
+    toolLimit: 34,
+  },
+
+  // ==================== PRODUCTIVITY (BATCH 3) ====================
+  {
+    id: 'DOCUSIGN',
+    displayName: 'DocuSign',
+    description:
+      'Full DocuSign integration: envelopes, documents, recipients, templates, signing, and more',
+    icon: '✍️',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getDocuSignActionNamesByPriority(2),
+    toolLimit: 24,
+  },
+  {
+    id: 'MONDAY',
+    displayName: 'Monday.com',
+    description:
+      'Full Monday.com integration: items, boards, groups, columns, updates, users, and more',
+    icon: '📊',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getMondayActionNamesByPriority(2),
+    toolLimit: 21,
+  },
+  {
+    id: 'CONFLUENCE',
+    displayName: 'Confluence',
+    description:
+      'Full Confluence integration: pages, spaces, comments, labels, attachments, and more',
+    icon: '📖',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getConfluenceActionNamesByPriority(2),
+    toolLimit: 24,
+  },
+
+  // ==================== SUPPORT (BATCH 3) ====================
+  {
+    id: 'INTERCOM',
+    displayName: 'Intercom',
+    description:
+      'Full Intercom integration: conversations, contacts, companies, articles, tags, and more',
+    icon: '💬',
+    category: 'support',
+    authType: 'oauth2',
+    featuredActions: getIntercomActionNamesByPriority(2),
+    toolLimit: 26,
+  },
+
+  // ==================== FINANCE (BATCH 3) ====================
+  {
+    id: 'QUICKBOOKS',
+    displayName: 'QuickBooks',
+    description:
+      'Full QuickBooks integration: invoices, customers, payments, items, accounts, reports, and more',
+    icon: '💰',
+    category: 'finance',
+    authType: 'oauth2',
+    featuredActions: getQuickBooksActionNamesByPriority(2),
+    toolLimit: 23,
+  },
+
+  // ==================== MARKETING (BATCH 3) ====================
+  {
+    id: 'SENDGRID',
+    displayName: 'SendGrid',
+    description:
+      'Full SendGrid integration: email sending, contacts, lists, templates, stats, and more',
+    icon: '📤',
+    category: 'marketing',
+    authType: 'api_key',
+    featuredActions: getSendGridActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+
+  // ==================== CRM (BATCH 3) ====================
+  {
+    id: 'PIPEDRIVE',
+    displayName: 'Pipedrive',
+    description:
+      'Full Pipedrive integration: deals, contacts, organizations, activities, pipelines, and more',
+    icon: '🤝',
+    category: 'crm',
+    authType: 'oauth2',
+    featuredActions: getPipedriveActionNamesByPriority(2),
+    toolLimit: 27,
   },
 ];
 
