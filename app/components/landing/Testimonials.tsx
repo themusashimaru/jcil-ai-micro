@@ -98,7 +98,7 @@ export default function SocialProof() {
           </h3>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">721</div>
+              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">2,128</div>
               <div className="text-sm text-slate-400">Automated Tests</div>
               <div className="text-xs text-slate-500 mt-1">100% passing</div>
             </div>
@@ -108,7 +108,7 @@ export default function SocialProof() {
               <div className="text-xs text-slate-500 mt-1">Type-safe codebase</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">30+</div>
+              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">55+</div>
               <div className="text-sm text-slate-400">Dev Tools</div>
               <div className="text-xs text-slate-500 mt-1">In Code Lab</div>
             </div>

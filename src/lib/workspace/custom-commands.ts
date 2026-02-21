@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/logger';
 import { createClient as createSupabaseClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 
 const log = logger('CustomCommands');
 
@@ -116,8 +117,7 @@ export async function loadCommandsFromDatabase(
   try {
     const supabase = await createSupabaseClient();
 
-    let query = supabase
-      .from('custom_slash_commands')
+    let query = untypedFrom(supabase, 'custom_slash_commands')
       .select('*')
       .eq('user_id', userId)
       .eq('enabled', true);
@@ -128,16 +128,14 @@ export async function loadCommandsFromDatabase(
       query = query.is('workspace_id', null);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (query as any);
+    const { data, error } = await query;
 
     if (error) {
       log.error('Failed to load commands from database', { error });
       return [];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data || []).map((row: any) => ({
+    return (data || []).map((row: Record<string, unknown>) => ({
       name: row.name,
       description: row.description || '',
       promptTemplate: row.prompt_template,
@@ -199,8 +197,7 @@ export async function saveCommand(
   try {
     const supabase = await createSupabaseClient();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('custom_slash_commands') as any).upsert(
+    await untypedFrom(supabase, 'custom_slash_commands').upsert(
       {
         user_id: userId,
         workspace_id: command.workspaceId || null,

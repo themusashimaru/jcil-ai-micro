@@ -530,7 +530,7 @@ The Code Lab is a fully-functional agentic IDE with Claude Code-level capabiliti
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │                    CLAUDE OPUS 4.5                           │   │
 │  │                                                               │   │
-│  │  • Tool calling with 30+ tools                               │   │
+│  │  • Tool calling with 55+ tools                               │   │
 │  │  • Agentic loop for complex tasks                           │   │
 │  │  • Streaming responses                                       │   │
 │  └─────────────────────────────────┬───────────────────────────┘   │

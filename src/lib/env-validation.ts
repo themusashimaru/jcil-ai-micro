@@ -36,6 +36,14 @@ const RECOMMENDED_VARS: EnvVar[] = [
     description: 'Redis for rate limiting (falls back to in-memory)',
   },
   { name: 'E2B_API_KEY', description: 'E2B sandbox for code execution and browser tools' },
+  { name: 'STRIPE_SECRET_KEY', description: 'Stripe payments (subscriptions, billing)' },
+  { name: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook signature verification' },
+  { name: 'COMPOSIO_API_KEY', description: 'Composio connector integrations (150+ apps)' },
+  {
+    name: 'PERPLEXITY_API_KEY',
+    alternatives: ['PERPLEXITY_API_KEY_1'],
+    description: 'Perplexity for web search provider',
+  },
 ];
 
 function isSet(name: string): boolean {

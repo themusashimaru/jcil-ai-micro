@@ -12,7 +12,7 @@ What began as an ambitious 48-hour engineering sprint has culminated in a produc
 
 **Key Metrics:**
 
-- 1,482 tests passing across 52 test files
+- 2,128 tests passing across 72 test files
 - 55+ agentic tools available to Claude
 - 5 production MCP server implementations
 - 32 programming languages supported in visual debugger
@@ -1009,7 +1009,7 @@ The achievement of 100% Claude Code parity—combined with exclusive features li
 
 **Version:** 3.1.0
 **Last Updated:** January 21, 2026
-**Tests Passing:** 1,482 across 52 files
+**Tests Passing:** 2,128 across 72 files
 **Feature Parity:** 100% with Claude Code CLI
 **Supported Providers:** 5 (Claude, OpenAI, xAI, DeepSeek, Google)
 

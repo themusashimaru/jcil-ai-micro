@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import ComposioToolkitsSection from './ComposioToolkitsSection';
+import MCPServersSection from './MCPServersSection';
 
 interface GitHubStatus {
   connected: boolean;
@@ -253,6 +254,9 @@ export default function ConnectorsSection() {
           </div>
         )}
       </div>
+
+      {/* MCP Server Management */}
+      <MCPServersSection />
 
       {/* Composio App Integrations - 150+ Apps */}
       <ComposioToolkitsSection />

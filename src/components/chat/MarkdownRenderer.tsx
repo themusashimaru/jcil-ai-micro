@@ -14,7 +14,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
@@ -438,7 +438,7 @@ function filterInternalMarkers(text: string): string {
   return text.replace(/\[c:[A-Za-z0-9+/=]+\]/g, '');
 }
 
-export function MarkdownRenderer({
+export const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
   enableCodeActions = false,
   onTestResult,
@@ -649,7 +649,7 @@ export function MarkdownRenderer({
       <ReactMarkdown components={componentsWithActions}>{processedContent}</ReactMarkdown>
     </div>
   );
-}
+});
 
 // Helper to get file extension from language
 function getExtensionForLanguage(lang: string): string {

@@ -57,15 +57,15 @@ function sha1(s: string): string {
 
 export interface DocSection {
   i: number;
-  h: string;    // heading
+  h: string; // heading
   start: number;
   end: number;
 }
 
 export interface DocProfile {
   id: string;
-  version: string;      // sha1 of raw text
-  synopsis: string;     // ~300-500 tokens summary
+  version: string; // sha1 of raw text
+  synopsis: string; // ~300-500 tokens summary
   sections: DocSection[];
   totalLines: number;
   totalChars: number;
@@ -126,15 +126,17 @@ export async function makeDocProfile(id: string, rawText: string): Promise<DocPr
 
   try {
     const result = await createAnthropicCompletion({
-      messages: [{
-        role: 'user',
-        content: `Summarize the following document for retrieval.
+      messages: [
+        {
+          role: 'user',
+          content: `Summarize the following document for retrieval.
 Return ~350 tokens, include key entities, sections and terms:
 
 ${snippet}
 
-If needed, add "...(more sections not shown)".`
-      }],
+If needed, add "...(more sections not shown)".`,
+        },
+      ],
       model: CLAUDE_HAIKU,
       maxTokens: 600,
       temperature: 0.3,
@@ -177,10 +179,13 @@ function simpleScore(query: string, text: string): number {
 }
 
 /**
- * Estimate token count (rough: 4 chars per token)
+ * Estimate token count using improved word-based heuristic (~1.3 tokens/word)
  */
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  if (!text) return 0;
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const specials = (text.match(/[{}[\]().,;:!?@#$%^&*+=<>/\\|~`"']/g) || []).length;
+  return Math.ceil(words * 1.3 + specials * 0.5);
 }
 
 export interface ChunkResult {

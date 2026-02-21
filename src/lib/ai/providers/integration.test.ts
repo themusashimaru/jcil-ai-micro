@@ -457,7 +457,12 @@ describe('Provider Service Integration', () => {
 
     it('should throw if fallback also fails', async () => {
       const primaryError = new UnifiedAIError('rate_limited', 'Rate limited', 'claude', true);
-      const fallbackError = new Error('Fallback also failed');
+      const fallbackError = new UnifiedAIError(
+        'auth_failed',
+        'Fallback also failed',
+        'openai',
+        false
+      );
 
       mockAdapters.set('claude', createMockAdapter('claude', [], { throwError: primaryError }));
       mockAdapters.set('openai', createMockAdapter('openai', [], { throwError: fallbackError }));

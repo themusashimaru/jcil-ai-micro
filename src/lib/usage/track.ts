@@ -8,6 +8,7 @@
  */
 
 import { createServerClient } from '@/lib/supabase/client';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { logger } from '@/lib/logger';
 
 const log = logger('usage-tracking');
@@ -118,8 +119,7 @@ export async function trackTokenUsage(record: UsageRecord): Promise<void> {
     const supabase = createServerClient();
 
     // Table created via migration but not yet in generated Supabase types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from('usage_tracking').insert({
+    const { error } = await untypedFrom(supabase, 'usage_tracking').insert({
       user_id: record.userId,
       model_name: record.modelName,
       input_tokens: record.inputTokens,

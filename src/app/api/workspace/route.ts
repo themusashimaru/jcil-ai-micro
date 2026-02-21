@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { WorkspaceManager } from '@/lib/workspace';
 import { getContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -23,15 +24,15 @@ export const maxDuration = 60;
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: workspaces, error } = await (supabase as any)
-      .from('workspaces')
+    const { data: workspaces, error } = await untypedFrom(supabase, 'workspaces')
       .select('*')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
@@ -44,7 +45,6 @@ export async function GET(_request: NextRequest) {
     const container = getContainerManager();
     const MAX_STATUS_CHECKS = 10;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const workspacesWithStatus = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (workspaces || []).map(async (ws: any, index: number) => {
@@ -63,13 +63,9 @@ export async function GET(_request: NextRequest) {
     );
 
     return NextResponse.json({ workspaces: workspacesWithStatus });
-
   } catch (error) {
     log.error('Failed to list workspaces', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to list workspaces' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to list workspaces' }, { status: 500 });
   }
 }
 
@@ -83,14 +79,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     type WorkspaceType = 'sandbox' | 'github' | 'project';
-    const jsonResult = await safeParseJSON<{ name?: string; type?: WorkspaceType; githubRepo?: string; config?: Record<string, unknown> }>(request);
+    const jsonResult = await safeParseJSON<{
+      name?: string;
+      type?: WorkspaceType;
+      githubRepo?: string;
+      config?: Record<string, unknown>;
+    }>(request);
     if (!jsonResult.success) {
       return NextResponse.json({ error: jsonResult.error }, { status: 400 });
     }
@@ -110,12 +113,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ workspace }, { status: 201 });
-
   } catch (error) {
     log.error('Failed to create workspace', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to create workspace' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create workspace' }, { status: 500 });
   }
 }

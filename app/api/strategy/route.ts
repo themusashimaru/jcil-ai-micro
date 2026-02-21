@@ -15,6 +15,7 @@ import { NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createServerClient as createAdminClient } from '@/lib/supabase/client';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { validateCSRF } from '@/lib/security/csrf';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
@@ -81,9 +82,7 @@ async function createSessionInDB(
   // Generate a UUID for the primary key as well
   const id = randomUUID();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
     .insert({
       id, // Explicit UUID for primary key
       session_id: sessionId,
@@ -129,9 +128,7 @@ async function updateSessionPhase(
     updateData.completed_at = new Date().toISOString();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { error } = await untypedFrom(supabase, 'strategy_sessions')
     .update(updateData)
     .eq('session_id', sessionId);
 
@@ -149,9 +146,7 @@ async function storeProblemData(
   problemSummary: string,
   problemData: unknown
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { error } = await untypedFrom(supabase, 'strategy_sessions')
     .update({
       problem_summary: problemSummary,
       problem_data: problemData,
@@ -170,9 +165,7 @@ async function getProblemData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string
 ): Promise<unknown | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
     .select('problem_data')
     .eq('session_id', sessionId)
     .single();
@@ -193,9 +186,7 @@ async function storeIntakeMessages(
   sessionId: string,
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { error } = await untypedFrom(supabase, 'strategy_sessions')
     .update({ intake_messages: messages })
     .eq('session_id', sessionId);
 
@@ -211,9 +202,7 @@ async function getIntakeMessages(
   supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string
 ): Promise<Array<{ role: 'user' | 'assistant'; content: string }> | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
     .select('intake_messages')
     .eq('session_id', sessionId)
     .single();
@@ -233,8 +222,7 @@ async function storeFinding(
   dbSessionId: string,
   finding: Finding
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from('strategy_findings').insert({
+  const { error } = await untypedFrom(supabase, 'strategy_findings').insert({
     session_id: dbSessionId,
     title: finding.title,
     content: finding.content,
@@ -260,9 +248,7 @@ async function storeResultAndUsage(
   result: StrategyOutput
 ): Promise<void> {
   // Update session with result
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: sessionError } = await (supabase as any)
-    .from('strategy_sessions')
+  const { error: sessionError } = await untypedFrom(supabase, 'strategy_sessions')
     .update({
       phase: 'complete',
       completed_at: new Date().toISOString(),
@@ -279,8 +265,7 @@ async function storeResultAndUsage(
   }
 
   // Store usage for billing
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: usageError } = await (supabase as any).from('strategy_usage').insert({
+  const { error: usageError } = await untypedFrom(supabase, 'strategy_usage').insert({
     user_id: userId,
     session_id: dbSessionId,
     opus_tokens: result.metadata.modelUsage.opus.tokens,
@@ -348,9 +333,7 @@ async function addUserContext(
   message: string
 ): Promise<void> {
   // Get current context
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: session } = await (supabase as any)
-    .from('strategy_sessions')
+  const { data: session } = await untypedFrom(supabase, 'strategy_sessions')
     .select('user_context')
     .eq('session_id', sessionId)
     .single();
@@ -358,9 +341,7 @@ async function addUserContext(
   const currentContext = (session?.user_context as string[]) || [];
   currentContext.push(message);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { error } = await untypedFrom(supabase, 'strategy_sessions')
     .update({ user_context: currentContext })
     .eq('session_id', sessionId);
 
@@ -402,8 +383,7 @@ async function storeEvent(
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from('strategy_events').insert({
+  const { error } = await untypedFrom(supabase, 'strategy_events').insert({
     session_id: sessionId,
     event_type: event.type,
     message: event.message,
@@ -424,9 +404,7 @@ async function getStoredEvents(
   supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string
 ): Promise<StrategyStreamEvent[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('strategy_events')
+  const { data, error } = await untypedFrom(supabase, 'strategy_events')
     .select('*')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: true });
@@ -464,9 +442,7 @@ async function getSessionFromDB(
   total_searches: number;
   total_cost: number;
 } | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
-    .from('strategy_sessions')
+  const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
     .select('*')
     .eq('session_id', sessionId)
     .single();
@@ -663,9 +639,7 @@ export async function GET(request: NextRequest) {
 
     if (!sessionId) {
       // Return list of sessions for this user from database
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: sessions, error } = await (supabase as any)
-        .from('strategy_sessions')
+      const { data: sessions, error } = await untypedFrom(supabase, 'strategy_sessions')
         .select(
           'session_id, phase, started_at, total_agents, completed_agents, total_searches, total_cost'
         )
@@ -862,9 +836,7 @@ async function handleStart(
 
     // Update progress in database periodically
     if (event.type === 'agent_complete') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase as any)
-        .from('strategy_sessions')
+      untypedFrom(supabase, 'strategy_sessions')
         .update({
           completed_agents: event.data?.completedAgents || 0,
           total_cost: event.data?.cost || 0,
@@ -1266,8 +1238,7 @@ async function handleExecute(
     // Restore problem data if available (stored as UserProblem in DB)
     const problemData = await getProblemData(supabase, sessionId);
     if (problemData) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      agent.restoreProblem(problemData as any);
+      agent.restoreProblem(problemData as Parameters<typeof agent.restoreProblem>[0]);
     }
 
     session = {

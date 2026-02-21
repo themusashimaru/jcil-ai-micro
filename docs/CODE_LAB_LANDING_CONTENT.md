@@ -28,7 +28,7 @@ Code Lab: Enterprise-grade agentic IDE with 100% Claude Code parity, zero instal
 
 We're proud to introduce Code Lab—a revolutionary AI-powered development environment built in an intensive 48-hour engineering sprint. What started as an ambitious goal to bring Claude Code's power to the web has evolved into something far more capable: a complete IDE that not only matches every Claude Code feature but extends beyond with visual debugging, real-time collaboration, and enterprise-grade security.
 
-**1,482 tests. 55+ tools. 5 MCP servers. 100% parity. Built in 48 hours.**
+**2,128 tests. 55+ tools. 5 MCP servers. 100% parity. Built in 48 hours.**
 
 This isn't a proof of concept. This is production-ready software engineering infrastructure.
 
@@ -38,7 +38,7 @@ This isn't a proof of concept. This is production-ready software engineering inf
 
 ```
 ┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐
-│      55+        │       5         │      32         │     1,482       │
+│      55+        │       5         │      32         │     2,128       │
 │   Agentic       │    Production   │   Languages     │     Tests       │
 │    Tools        │  MCP Servers    │   Debugger      │    Passing      │
 └─────────────────┴─────────────────┴─────────────────┴─────────────────┘
@@ -401,8 +401,8 @@ Discover and install community extensions with one click. Tools, commands, hooks
 
 ### Metrics
 
-- **1,482** tests passing
-- **52** test files
+- **2,128** tests passing
+- **72** test files
 - **0** TypeScript errors
 - **0** ESLint warnings
 - **75%+** code coverage

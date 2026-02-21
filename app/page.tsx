@@ -135,7 +135,7 @@ export default function HomePage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span>1,482 Automated Tests</span>
+                <span>2,128 Automated Tests</span>
               </div>
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">

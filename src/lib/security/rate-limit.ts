@@ -173,14 +173,15 @@ export async function checkRateLimit(
     return checkRateLimitRedis(identifier, config);
   }
 
-  // In development without Redis, use memory
-  if (process.env.NODE_ENV === 'development') {
+  // In development/test without Redis, use memory fallback
+  if (process.env.NODE_ENV !== 'production') {
     return checkRateLimitMemory(identifier, config);
   }
 
-  // In production without Redis, log warning and use memory (but this shouldn't happen)
-  log.warn('Redis not configured in production - using in-memory rate limiting');
-  return checkRateLimitMemory(identifier, config);
+  // In production without Redis, fail closed — deny the request
+  // In-memory fallback is unreliable in serverless (resets on cold start)
+  log.error('Redis not configured in production — rate limiting fail-closed');
+  return { allowed: false, remaining: 0, resetAt: Date.now() + 60000, retryAfter: 60 };
 }
 
 // ========================================

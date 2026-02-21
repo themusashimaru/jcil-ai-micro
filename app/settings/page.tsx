@@ -44,6 +44,7 @@ import AccountSection from '@/app/components/AccountSection';
 import SupportSection from '@/app/components/SupportSection';
 import ConnectorsSection from '@/app/components/ConnectorsSection';
 import BYOKSection from '@/app/components/BYOKSection';
+import MemoryFeedbackSection from '@/app/components/MemoryFeedbackSection';
 
 type TabId =
   | 'membership'
@@ -53,7 +54,8 @@ type TabId =
   | 'preferences'
   | 'privacy'
   | 'connectors'
-  | 'byok';
+  | 'byok'
+  | 'memory';
 
 interface Tab {
   id: TabId;
@@ -67,6 +69,7 @@ const TABS: Tab[] = [
   { id: 'account', label: 'Account', icon: '👤' },
   { id: 'connectors', label: 'Connectors', icon: '🔗' },
   { id: 'byok', label: 'BYOK API Keys', icon: '🔑' },
+  { id: 'memory', label: 'AI Memory', icon: '🧠' },
   { id: 'support', label: 'Support', icon: '💬' },
   { id: 'preferences', label: 'Preferences', icon: '⚙️' },
   { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
@@ -231,6 +234,8 @@ function SettingsContent() {
           {activeTab === 'support' && <SupportSection />}
 
           {activeTab === 'byok' && <BYOKSection />}
+
+          {activeTab === 'memory' && <MemoryFeedbackSection />}
 
           {activeTab === 'preferences' && (
             <section className="glass-morphism rounded-2xl p-6">
