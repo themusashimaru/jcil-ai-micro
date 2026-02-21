@@ -8,13 +8,14 @@ const nextConfig = {
   reactStrictMode: true,
   // Note: swcMinify removed - deprecated in Next.js 16
 
+  // Server-side native packages (for @napi-rs/canvas)
+  serverExternalPackages: ['@napi-rs/canvas'],
+
   // App Router optimizations
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    // Server-side native packages (for @napi-rs/canvas)
-    serverComponentsExternalPackages: ['@napi-rs/canvas'],
   },
 
   // Image optimization
