@@ -89,12 +89,15 @@ interface SSEConnection {
   lastActivity: number;
   createdAt: number;
   cleanup: () => void; // HIGH-001: Cleanup function for listeners
+  cleaned: boolean; // Guard against double-cleanup
 }
 
 const activeConnections = new Map<string, SSEConnection>();
 
-// Client ID counter
-let clientIdCounter = 0;
+// Client ID counter — use crypto for uniqueness across concurrent requests
+function generateClientId(): string {
+  return `sse-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 // HIGH-001: Start stale connection cleanup interval
 let cleanupInterval: NodeJS.Timeout | null = null;
@@ -193,8 +196,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId') || undefined;
 
-    // Generate client ID
-    const clientId = `sse-${++clientIdCounter}-${Date.now()}`;
+    // Generate unique client ID (no shared counter — avoids race conditions)
+    const clientId = generateClientId();
 
     log.info('SSE connection requested', { clientId, userId: user.id, sessionId });
 
@@ -205,8 +208,18 @@ export async function GET(request: NextRequest) {
     // Create SSE stream
     const stream = new ReadableStream({
       start(controller) {
-        // HIGH-001: Central cleanup function
+        // Guard against double-cleanup (abort + cancel can both fire)
+        let cleaned = false;
+
+        // HIGH-001: Central cleanup function — idempotent
         const cleanup = () => {
+          if (cleaned) return;
+          cleaned = true;
+
+          // Mark connection as cleaned
+          const conn = activeConnections.get(clientId);
+          if (conn) conn.cleaned = true;
+
           // Clear heartbeat
           if (heartbeatInterval) {
             clearInterval(heartbeatInterval);
@@ -233,6 +246,7 @@ export async function GET(request: NextRequest) {
           lastActivity: now,
           createdAt: now,
           cleanup,
+          cleaned: false,
         });
 
         // Send connected event
