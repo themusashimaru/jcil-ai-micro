@@ -179,8 +179,9 @@ export {
   isYouTubeTranscriptAvailable,
 } from './youtube-transcript';
 
-// GitHub Tool (unified - includes context operations)
-export { githubTool, executeGitHub, isGitHubAvailable, getRepoSummaryForPrompt } from './github-tool';
+// GitHub Tool - REMOVED: Now handled by Composio GitHub connector
+// Keeping getRepoSummaryForPrompt for backward compatibility
+export { getRepoSummaryForPrompt } from './github-tool';
 
 // Screenshot Tool
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
@@ -1034,12 +1035,7 @@ export {
   type ToolChainStep,
 } from './tool-chain-executor';
 
-// GitHub Context Tool - backward compatibility (merged into unified github tool)
-export {
-  githubContextTool,
-  executeGitHubContext,
-  isGitHubContextAvailable,
-} from './github-context-tool';
+// GitHub Context Tool - REMOVED: Now handled by Composio GitHub connector
 
 // ============================================================================
 // CYBERSECURITY TOOLS (32 tools) - Full Security Operations Suite
@@ -1536,7 +1532,7 @@ async function initializeTools() {
 
   const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
     await import('./youtube-transcript');
-  const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
+  // GitHub tool removed - now handled by Composio GitHub connector
   const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
     './screenshot-tool'
   );
@@ -3507,7 +3503,7 @@ async function initializeTools() {
       executor: executeYouTubeTranscript,
       checkAvailability: isYouTubeTranscriptAvailable,
     },
-    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
+    // GitHub tool removed - now handled by Composio GitHub connector
     { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: calculatorTool, executor: executeCalculator, checkAvailability: isCalculatorAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },

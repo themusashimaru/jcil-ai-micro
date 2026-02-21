@@ -236,6 +236,32 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
     toolLimit: 45,
   },
 
+  // Development - Deploy & Database
+  {
+    id: 'VERCEL',
+    displayName: 'Vercel',
+    description:
+      'Full Vercel integration: deployments, projects, domains, env vars, edge config, and more',
+    icon: '▲',
+    category: 'development',
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getVercelActionNamesByPriority(2),
+    toolLimit: 50,
+  },
+  {
+    id: 'SUPABASE',
+    displayName: 'Supabase',
+    description:
+      'Full Supabase integration: database CRUD, auth, file storage, edge functions, and more',
+    icon: '🟢',
+    category: 'development',
+    authType: 'api_key',
+    popular: true,
+    featuredActions: getSupabaseActionNamesByPriority(2),
+    toolLimit: 30,
+  },
+
   // Productivity - Top Picks
   {
     id: 'NOTION',
@@ -490,9 +516,10 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     displayName: 'Supabase',
     description:
       'Full Supabase integration: database CRUD, auth, file storage, edge functions, and more',
-    icon: '⚡',
+    icon: '🟢',
     category: 'development',
     authType: 'api_key',
+    popular: true,
     featuredActions: getSupabaseActionNamesByPriority(2),
     toolLimit: 30,
   },

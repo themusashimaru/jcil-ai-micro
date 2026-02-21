@@ -66,10 +66,7 @@ import {
   youtubeTranscriptTool,
   executeYouTubeTranscript,
   isYouTubeTranscriptAvailable,
-  // GitHub Tool
-  githubTool,
-  executeGitHub,
-  isGitHubAvailable,
+  // GitHub Tool - REMOVED: Now handled by Composio GitHub connector
   // Screenshot Tool
   screenshotTool,
   executeScreenshot,
@@ -2649,33 +2646,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ========================================
-    // GITHUB TOKEN - Load for authenticated tool use
-    // ========================================
-    let userGitHubToken: string | undefined;
-    if (isAuthenticated) {
-      try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (supabaseUrl && serviceKey) {
-          const adminClient = createClient(supabaseUrl, serviceKey);
-          const { data: tokenData } = await adminClient
-            .from('users')
-            .select('github_token')
-            .eq('id', rateLimitIdentifier)
-            .single();
-          if (tokenData?.github_token) {
-            const { safeDecrypt } = await import('@/lib/security/crypto');
-            const decrypted = safeDecrypt(tokenData.github_token);
-            if (decrypted) {
-              userGitHubToken = decrypted;
-            }
-          }
-        }
-      } catch {
-        // GitHub token loading should never block chat
-      }
-    }
+    // GITHUB TOKEN - REMOVED: GitHub integration now handled by Composio connector
 
     // ========================================
     // USER DOCUMENTS - Search for relevant context (RAG)
@@ -4301,7 +4272,7 @@ SECURITY:
     if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
     if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
     if (isYouTubeTranscriptAvailable()) tools.push(youtubeTranscriptTool);
-    if (isGitHubAvailable()) tools.push(githubTool);
+    // GitHub tool removed - now handled by Composio GitHub connector
     if (await isScreenshotAvailable()) tools.push(screenshotTool);
     if (isCalculatorAvailable()) tools.push(calculatorTool);
     if (isChartAvailable()) tools.push(chartTool);
@@ -4626,19 +4597,6 @@ SECURITY:
         composioToolContext = await getComposioToolsForUser(rateLimitIdentifier);
 
         if (composioToolContext.tools.length > 0) {
-          // When Composio GitHub is connected, remove the custom github tool
-          // to prevent duplicate/conflicting tools. Composio provides a superset
-          // (100+ actions vs 9 read-only actions in the custom tool).
-          if (composioToolContext.hasGitHub) {
-            const ghIdx = tools.findIndex((t) => t.name === 'github');
-            if (ghIdx !== -1) {
-              tools.splice(ghIdx, 1);
-              log.info('Removed custom github tool (replaced by Composio GitHub toolkit)', {
-                userId: rateLimitIdentifier,
-              });
-            }
-          }
-
           // Add Composio tools to the tools array
           for (const composioTool of composioToolContext.tools) {
             tools.push({
@@ -5098,18 +5056,7 @@ SECURITY:
           case 'youtube_transcript':
             result = await executeYouTubeTranscript(toolCallWithSession);
             break;
-          case 'github': {
-            // Inject user's GitHub token for authenticated operations
-            const ghArgs =
-              typeof toolCallWithSession.arguments === 'string'
-                ? JSON.parse(toolCallWithSession.arguments)
-                : { ...toolCallWithSession.arguments };
-            if (userGitHubToken) {
-              ghArgs._githubToken = userGitHubToken;
-            }
-            result = await executeGitHub({ ...toolCallWithSession, arguments: ghArgs });
-            break;
-          }
+          // case 'github' - REMOVED: Now handled by Composio GitHub connector
           case 'screenshot':
             result = await executeScreenshot(toolCallWithSession);
             break;
@@ -5459,27 +5406,7 @@ SECURITY:
             result = await chainExecutor(toolCallWithSession);
             break;
           }
-          case 'github_context': {
-            // Legacy: redirect to unified github tool with token injection
-            const ghCtxArgs =
-              typeof toolCallWithSession.arguments === 'string'
-                ? JSON.parse(toolCallWithSession.arguments)
-                : { ...toolCallWithSession.arguments };
-            if (userGitHubToken) {
-              ghCtxArgs._githubToken = userGitHubToken;
-            }
-            // Map old 'operation' param to 'action' for unified tool
-            if (ghCtxArgs.operation && !ghCtxArgs.action) {
-              ghCtxArgs.action = ghCtxArgs.operation;
-              delete ghCtxArgs.operation;
-            }
-            result = await executeGitHub({
-              ...toolCallWithSession,
-              name: 'github',
-              arguments: ghCtxArgs,
-            });
-            break;
-          }
+          // case 'github_context' - REMOVED: Now handled by Composio GitHub connector
           // Cybersecurity Tools (32 tools)
           case 'network_security':
             result = await executeNetworkSecurity(toolCallWithSession);
