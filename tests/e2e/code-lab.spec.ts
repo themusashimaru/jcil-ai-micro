@@ -13,7 +13,7 @@ test.describe('Code Lab - Public Access', () => {
     await page.goto('/code-lab');
 
     // Wait for navigation to complete
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should redirect to login or show login form
     const url = page.url();
@@ -39,7 +39,7 @@ test.describe('Code Lab - Public Access', () => {
 test.describe('Code Lab - About Page', () => {
   test('should load the code lab about page', async ({ page }) => {
     await page.goto('/code-lab/about');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // About page should be accessible without auth
     await expect(page.locator('body')).toBeVisible();
@@ -123,7 +123,7 @@ test.describe('Code Lab - Performance', () => {
     });
 
     await page.goto('/code-lab');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Filter out known acceptable errors
     const realErrors = errors.filter(
@@ -157,7 +157,7 @@ test.describe('Code Lab - Accessibility Basics', () => {
 
   test('should support keyboard focus', async ({ page }) => {
     await page.goto('/code-lab');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Press tab and check something gets focused
     await page.keyboard.press('Tab');

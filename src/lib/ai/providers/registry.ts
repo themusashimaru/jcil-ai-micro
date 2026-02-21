@@ -47,6 +47,7 @@ const CLAUDE_CONFIG: ProviderConfig = {
       inputPricePer1M: 3,
       outputPricePer1M: 15,
       tier: 'standard',
+      isDefault: true,
     },
     {
       id: 'claude-haiku-4-5-20251001',
@@ -56,7 +57,6 @@ const CLAUDE_CONFIG: ProviderConfig = {
       inputPricePer1M: 0.8,
       outputPricePer1M: 4,
       tier: 'budget',
-      isDefault: true,
     },
   ],
 };
