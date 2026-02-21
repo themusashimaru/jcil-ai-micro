@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 const TOOLS_DIR = path.join(process.cwd(), 'src/lib/ai/tools');
 
@@ -21,43 +22,54 @@ interface TestOperation {
 }
 
 // GET - Test all operations for a specific tool
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ tool: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ tool: string }> }) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   const { tool: toolName } = await params;
 
   try {
     const toolFile = path.join(TOOLS_DIR, `${toolName}-tool.ts`);
 
     if (!fs.existsSync(toolFile)) {
-      return NextResponse.json({
-        success: false,
-        error: `Tool '${toolName}' not found`,
-        availableTools: fs.readdirSync(TOOLS_DIR)
-          .filter(f => f.endsWith('-tool.ts'))
-          .map(f => f.replace('-tool.ts', ''))
-          .filter(t => t.startsWith(toolName.charAt(0)))
-          .slice(0, 10)
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Tool '${toolName}' not found`,
+          availableTools: fs
+            .readdirSync(TOOLS_DIR)
+            .filter((f) => f.endsWith('-tool.ts'))
+            .map((f) => f.replace('-tool.ts', ''))
+            .filter((t) => t.startsWith(toolName.charAt(0)))
+            .slice(0, 10),
+        },
+        { status: 404 }
+      );
     }
 
     // Dynamic import
     const toolModule = await import(toolFile);
 
     // Find execute function
-    const executeKey = Object.keys(toolModule).find(k => k.startsWith('execute'));
+    const executeKey = Object.keys(toolModule).find((k) => k.startsWith('execute'));
     if (!executeKey) {
-      return NextResponse.json({
-        success: false,
-        error: 'No execute function found in tool'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No execute function found in tool',
+        },
+        { status: 400 }
+      );
     }
 
     const executeFn = toolModule[executeKey];
 
     // Find tool definition
-    const toolDefKey = Object.keys(toolModule).find(k => k.endsWith('Tool') && !k.startsWith('execute'));
+    const toolDefKey = Object.keys(toolModule).find(
+      (k) => k.endsWith('Tool') && !k.startsWith('execute')
+    );
     const toolDef = toolDefKey ? toolModule[toolDefKey] : null;
 
     // Extract operations from file
@@ -68,7 +80,7 @@ export async function GET(
     if (enumMatch) {
       const ops = enumMatch[1].match(/'([^']+)'/g);
       if (ops) {
-        operations = ops.map(o => o.replace(/'/g, ''));
+        operations = ops.map((o) => o.replace(/'/g, ''));
       }
     }
 
@@ -91,14 +103,14 @@ export async function GET(
 
         if (result.isError) {
           // Check if it's an expected error (missing params)
-          const isExpected = result.content.includes('requires') ||
-            result.content.includes('Unknown');
+          const isExpected =
+            result.content.includes('requires') || result.content.includes('Unknown');
 
           results.push({
             operation: op,
             success: isExpected,
             error: result.content,
-            duration
+            duration,
           });
 
           if (isExpected) passed++;
@@ -115,7 +127,7 @@ export async function GET(
             operation: op,
             success: true,
             result: parsedResult,
-            duration
+            duration,
           });
           passed++;
         }
@@ -125,7 +137,7 @@ export async function GET(
           operation: op,
           success: false,
           error: e instanceof Error ? e.message : 'Unknown error',
-          duration
+          duration,
         });
         failed++;
       }
@@ -140,24 +152,28 @@ export async function GET(
         operations: operations.length,
         passed,
         failed,
-        successRate: ((passed / operations.length) * 100).toFixed(1) + '%'
+        successRate: ((passed / operations.length) * 100).toFixed(1) + '%',
       },
-      results
+      results,
     });
-
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 
 // POST - Test with custom parameters
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ tool: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ tool: string }> }) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   const { tool: toolName } = await params;
 
   try {
@@ -167,21 +183,27 @@ export async function POST(
     const toolFile = path.join(TOOLS_DIR, `${toolName}-tool.ts`);
 
     if (!fs.existsSync(toolFile)) {
-      return NextResponse.json({
-        success: false,
-        error: `Tool '${toolName}' not found`
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Tool '${toolName}' not found`,
+        },
+        { status: 404 }
+      );
     }
 
     // Dynamic import
     const toolModule = await import(toolFile);
-    const executeKey = Object.keys(toolModule).find(k => k.startsWith('execute'));
+    const executeKey = Object.keys(toolModule).find((k) => k.startsWith('execute'));
 
     if (!executeKey) {
-      return NextResponse.json({
-        success: false,
-        error: 'No execute function found'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No execute function found',
+        },
+        { status: 400 }
+      );
     }
 
     const executeFn = toolModule[executeKey];
@@ -211,13 +233,15 @@ export async function POST(
       input: customParams,
       result: parsedResult,
       duration,
-      isError: result.isError || false
+      isError: result.isError || false,
     });
-
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

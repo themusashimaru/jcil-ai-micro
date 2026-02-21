@@ -157,10 +157,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     log.error('Cleanup cron error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal error', message: (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 

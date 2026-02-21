@@ -201,9 +201,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Failed to initiate connection', { error });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to initiate connection' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to initiate connection' }, { status: 500 });
   }
 }

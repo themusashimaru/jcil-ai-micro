@@ -10,15 +10,26 @@
 import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 // Import all tool modules dynamically
 const TOOLS_DIR = path.join(process.cwd(), 'src/lib/ai/tools');
 
 // Tools that require external services (skip in quick health checks)
 const EXTERNAL_SERVICE_TOOLS = new Set([
-  'deep-research', 'deep-strategy', 'image-generation', 'web-search',
-  'web-scrape', 'mcp', 'code-execution', 'file-operation', 'shell',
-  'database', 'workspace', 'screenshot', 'graph-viz'
+  'deep-research',
+  'deep-strategy',
+  'image-generation',
+  'web-search',
+  'web-scrape',
+  'mcp',
+  'code-execution',
+  'file-operation',
+  'shell',
+  'database',
+  'workspace',
+  'screenshot',
+  'graph-viz',
 ]);
 
 interface ToolTestResult {
@@ -33,6 +44,11 @@ interface ToolTestResult {
 
 // GET - Return test results summary
 export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   try {
     // Try to read cached results
     const resultsPath = path.join(process.cwd(), 'scripts/tests/test-results.json');
@@ -46,7 +62,7 @@ export async function GET() {
         .map((r: { tool: string; operation: string; error?: string }) => ({
           tool: r.tool,
           operation: r.operation,
-          error: r.error
+          error: r.error,
         }));
 
       // Group by tool
@@ -70,40 +86,52 @@ export async function GET() {
         healthyTools: Object.entries(toolSummary).filter(([, v]) => v.failed === 0).length,
         toolsWithIssues: Object.entries(toolSummary).filter(([, v]) => v.failed > 0).length,
         failureCategories: {
-          missingParams: failedTools.filter((f: { error?: string }) => f.error?.includes('requires')).length,
-          externalService: failedTools.filter((f: { error?: string }) =>
-            f.error?.includes('not available') || f.error?.includes('not configured')).length,
-          other: failedTools.filter((f: { error?: string }) =>
-            !f.error?.includes('requires') &&
-            !f.error?.includes('not available') &&
-            !f.error?.includes('not configured')).length
+          missingParams: failedTools.filter((f: { error?: string }) =>
+            f.error?.includes('requires')
+          ).length,
+          externalService: failedTools.filter(
+            (f: { error?: string }) =>
+              f.error?.includes('not available') || f.error?.includes('not configured')
+          ).length,
+          other: failedTools.filter(
+            (f: { error?: string }) =>
+              !f.error?.includes('requires') &&
+              !f.error?.includes('not available') &&
+              !f.error?.includes('not configured')
+          ).length,
         },
-        recentFailures: failedTools.slice(0, 20)
+        recentFailures: failedTools.slice(0, 20),
       });
     }
 
     // No cached results - return tool inventory
-    const toolFiles = fs.readdirSync(TOOLS_DIR)
-      .filter(f => f.endsWith('-tool.ts'));
+    const toolFiles = fs.readdirSync(TOOLS_DIR).filter((f) => f.endsWith('-tool.ts'));
 
     return NextResponse.json({
       success: true,
       message: 'No test results cached. Run tests first.',
       toolCount: toolFiles.length,
-      tools: toolFiles.map(f => f.replace('-tool.ts', '')),
-      runTestsCommand: 'npx tsx scripts/tests/tool-test-runner.ts'
+      tools: toolFiles.map((f) => f.replace('-tool.ts', '')),
+      runTestsCommand: 'npx tsx scripts/tests/tool-test-runner.ts',
     });
-
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 
 // POST - Run quick health check on specific tools
 export async function POST(request: Request) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     const { tools: requestedTools, quick = true } = body;
@@ -115,27 +143,27 @@ export async function POST(request: Request) {
       toolsToTest = requestedTools;
     } else {
       // Test all tools (quick mode skips external service tools)
-      const toolFiles = fs.readdirSync(TOOLS_DIR)
-        .filter(f => f.endsWith('-tool.ts'))
-        .map(f => f.replace('-tool.ts', ''));
+      const toolFiles = fs
+        .readdirSync(TOOLS_DIR)
+        .filter((f) => f.endsWith('-tool.ts'))
+        .map((f) => f.replace('-tool.ts', ''));
 
-      toolsToTest = quick
-        ? toolFiles.filter(t => !EXTERNAL_SERVICE_TOOLS.has(t))
-        : toolFiles;
+      toolsToTest = quick ? toolFiles.filter((t) => !EXTERNAL_SERVICE_TOOLS.has(t)) : toolFiles;
     }
 
     const results: ToolTestResult[] = [];
     const startTime = Date.now();
 
-    for (const toolName of toolsToTest.slice(0, 50)) { // Limit to 50 for API timeout
+    for (const toolName of toolsToTest.slice(0, 50)) {
+      // Limit to 50 for API timeout
       const result = await testSingleTool(toolName);
       results.push(result);
     }
 
     const totalDuration = Date.now() - startTime;
-    const passed = results.filter(r => r.status === 'pass').length;
-    const failed = results.filter(r => r.status === 'fail').length;
-    const skipped = results.filter(r => r.status === 'skip').length;
+    const passed = results.filter((r) => r.status === 'pass').length;
+    const failed = results.filter((r) => r.status === 'fail').length;
+    const skipped = results.filter((r) => r.status === 'skip').length;
 
     return NextResponse.json({
       success: true,
@@ -145,16 +173,18 @@ export async function POST(request: Request) {
         passed,
         failed,
         skipped,
-        successRate: ((passed / (passed + failed)) * 100).toFixed(1) + '%'
+        successRate: ((passed / (passed + failed)) * 100).toFixed(1) + '%',
       },
-      results
+      results,
     });
-
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -176,7 +206,7 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
         passed: 0,
         failed: 1,
         duration: Date.now() - startTime,
-        errors: ['Tool file not found']
+        errors: ['Tool file not found'],
       };
     }
 
@@ -184,7 +214,7 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
     const toolModule = await import(toolFile);
 
     // Find execute function
-    const executeKey = Object.keys(toolModule).find(k => k.startsWith('execute'));
+    const executeKey = Object.keys(toolModule).find((k) => k.startsWith('execute'));
     if (!executeKey) {
       return {
         tool: toolName,
@@ -193,7 +223,7 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
         passed: 0,
         failed: 0,
         duration: Date.now() - startTime,
-        errors: ['No execute function found']
+        errors: ['No execute function found'],
       };
     }
 
@@ -207,7 +237,7 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
     if (enumMatch) {
       const ops = enumMatch[1].match(/'([^']+)'/g);
       if (ops) {
-        operations = ops.map(o => o.replace(/'/g, ''));
+        operations = ops.map((o) => o.replace(/'/g, ''));
       }
     }
 
@@ -224,7 +254,11 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
 
       const result = await executeFn(mockCall);
 
-      if (result.isError && !result.content.includes('Unknown') && !result.content.includes('requires')) {
+      if (
+        result.isError &&
+        !result.content.includes('Unknown') &&
+        !result.content.includes('requires')
+      ) {
         errors.push(`${op}: ${result.content}`);
       } else {
         operationsPassed = 1;
@@ -240,9 +274,8 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
       passed: operationsPassed,
       failed: operationsTested - operationsPassed,
       duration: Date.now() - startTime,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     };
-
   } catch (e) {
     return {
       tool: toolName,
@@ -251,7 +284,7 @@ async function testSingleTool(toolName: string): Promise<ToolTestResult> {
       passed: 0,
       failed: 1,
       duration: Date.now() - startTime,
-      errors: [e instanceof Error ? e.message : 'Import error']
+      errors: [e instanceof Error ? e.message : 'Import error'],
     };
   }
 }

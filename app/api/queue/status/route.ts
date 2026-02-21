@@ -82,10 +82,7 @@ export async function GET(_request: Request) {
     };
 
     return NextResponse.json(status);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to get queue status', message: (error as Error).message },
-      { status: 500 }
-    );
+  } catch (_error) {
+    return NextResponse.json({ error: 'Failed to get queue status' }, { status: 500 });
   }
 }

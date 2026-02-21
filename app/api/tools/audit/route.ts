@@ -11,12 +11,18 @@
 import { NextResponse } from 'next/server';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
 import { logger } from '@/lib/logger';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 const log = logger('ToolsAuditAPI');
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   try {
     const startTime = Date.now();
 
@@ -219,6 +225,11 @@ export async function GET() {
  * Test a specific tool by name
  */
 export async function POST(request: Request) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     const { toolName, testArgs } = body;
