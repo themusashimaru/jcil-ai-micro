@@ -35,6 +35,7 @@ const RECOMMENDED_VARS: EnvVar[] = [
     name: 'UPSTASH_REDIS_REST_URL',
     description: 'Redis for rate limiting (falls back to in-memory)',
   },
+  { name: 'E2B_API_KEY', description: 'E2B sandbox for code execution and browser tools' },
 ];
 
 function isSet(name: string): boolean {

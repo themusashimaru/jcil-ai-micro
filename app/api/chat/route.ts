@@ -506,6 +506,28 @@ import { trackTokenUsage } from '@/lib/usage/track';
 
 const log = logger('ChatAPI');
 
+// AUTH-002: Cache admin check results to avoid DB hit every request (5-minute TTL)
+const adminCache = new Map<string, { isAdmin: boolean; tier: string; expiresAt: number }>();
+const ADMIN_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function getCachedUserData(userId: string): { isAdmin: boolean; tier: string } | null {
+  const entry = adminCache.get(userId);
+  if (!entry || entry.expiresAt < Date.now()) {
+    if (entry) adminCache.delete(userId);
+    return null;
+  }
+  return { isAdmin: entry.isAdmin, tier: entry.tier };
+}
+
+function setCachedUserData(userId: string, isAdmin: boolean, tier: string): void {
+  adminCache.set(userId, { isAdmin, tier, expiresAt: Date.now() + ADMIN_CACHE_TTL_MS });
+  // Periodic size check — evict oldest if over 10k entries
+  if (adminCache.size > 10000) {
+    const firstKey = adminCache.keys().next().value;
+    if (firstKey) adminCache.delete(firstKey);
+  }
+}
+
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
 const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
@@ -2296,13 +2318,22 @@ export async function POST(request: NextRequest) {
       if (user) {
         rateLimitIdentifier = user.id;
         isAuthenticated = true;
-        const { data: userData } = await supabase
-          .from('users')
-          .select('is_admin, subscription_tier')
-          .eq('id', user.id)
-          .single();
-        isAdmin = userData?.is_admin === true;
-        userPlanKey = userData?.subscription_tier || 'free';
+
+        // AUTH-002: Check admin cache first to avoid DB hit every request
+        const cached = getCachedUserData(user.id);
+        if (cached) {
+          isAdmin = cached.isAdmin;
+          userPlanKey = cached.tier;
+        } else {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('is_admin, subscription_tier')
+            .eq('id', user.id)
+            .single();
+          isAdmin = userData?.is_admin === true;
+          userPlanKey = userData?.subscription_tier || 'free';
+          setCachedUserData(user.id, isAdmin, userPlanKey);
+        }
 
         // CHAT-009: Load custom instructions from user settings
         const { data: userSettings } = await supabase
