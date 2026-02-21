@@ -23,9 +23,10 @@ const log = logger('ComposioConnectionCache');
 // CONFIGURATION
 // ============================================================================
 
-// Cache TTL in milliseconds (10 minutes)
+// Cache TTL in milliseconds (5 minutes)
 // Connections will be refreshed from Composio API after this period
-const CACHE_TTL_MS = 10 * 60 * 1000;
+// Reduced from 10 minutes to detect disconnections faster
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 // Maximum retries for Composio API calls
 const MAX_RETRIES = 3;
@@ -192,9 +193,34 @@ export async function saveConnectionsToCache(
     // Get toolkits from the new connections
     const activeToolkits = connections.map((c) => c.toolkit.toUpperCase());
 
-    // Mark any cached connections that are NOT in the new list as disconnected
-    // This handles the case where a connection was removed on Composio's side
-    if (activeToolkits.length > 0) {
+    // Safety check: Before marking connections as disconnected, verify this
+    // isn't a partial API response. If we previously had many connections
+    // and now get very few, the API may have returned incomplete data.
+    // Only mark as disconnected if we got a reasonable response.
+    const { data: existingCached } = await supabase
+      .from('composio_connection_cache')
+      .select('toolkit')
+      .eq('user_id', userId)
+      .in('status', ['connected', 'pending']);
+
+    const previousCount = existingCached?.length || 0;
+    const newCount = activeToolkits.length;
+
+    // If we had 3+ connections and the new list has less than half,
+    // this is likely a partial API response - don't mark others as disconnected
+    const isLikelyPartialResponse =
+      previousCount >= 3 && newCount > 0 && newCount < previousCount * 0.5;
+
+    if (isLikelyPartialResponse) {
+      log.warn('Possible partial API response detected - skipping disconnection marking', {
+        userId,
+        previousCount,
+        newCount,
+        activeToolkits,
+      });
+    } else if (activeToolkits.length > 0) {
+      // Mark any cached connections that are NOT in the new list as disconnected
+      // This handles the case where a connection was removed on Composio's side
       const { error: updateError } = await supabase
         .from('composio_connection_cache')
         .update({
@@ -212,20 +238,27 @@ export async function saveConnectionsToCache(
         });
       }
     } else {
-      // No active connections - mark all as disconnected
-      const { error: updateAllError } = await supabase
-        .from('composio_connection_cache')
-        .update({
-          status: 'disconnected',
-          last_verified_at: now,
-        })
-        .eq('user_id', userId)
-        .neq('status', 'disconnected');
+      // No active connections returned AND we had few/none before - mark all as disconnected
+      if (previousCount <= 2) {
+        const { error: updateAllError } = await supabase
+          .from('composio_connection_cache')
+          .update({
+            status: 'disconnected',
+            last_verified_at: now,
+          })
+          .eq('user_id', userId)
+          .neq('status', 'disconnected');
 
-      if (updateAllError) {
-        log.warn('Failed to mark all connections as disconnected', {
+        if (updateAllError) {
+          log.warn('Failed to mark all connections as disconnected', {
+            userId,
+            error: updateAllError.message,
+          });
+        }
+      } else {
+        log.warn('API returned 0 connections but user had many cached - preserving cache', {
           userId,
-          error: updateAllError.message,
+          previousCount,
         });
       }
     }

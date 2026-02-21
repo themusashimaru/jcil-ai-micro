@@ -123,11 +123,20 @@ export async function initiateConnection(
 
     log.info('Looking up auth configs', { toolkitSlug });
 
-    // Try to list existing auth configs for this toolkit
+    // Try to list existing auth configs for this toolkit (with retry for resilience)
     // SDK API: authConfigs.list({ toolkit_slug: 'app_name' })
-    const authConfigs = await client.authConfigs.list({
-      toolkit_slug: toolkitSlug,
-    });
+    const authConfigs = await withRetry(
+      async () => {
+        return await client.authConfigs.list({
+          toolkit_slug: toolkitSlug,
+        });
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        operationName: `listAuthConfigs(${toolkitSlug})`,
+      }
+    );
 
     log.info('Auth configs lookup result', {
       toolkitSlug,
@@ -417,7 +426,16 @@ export async function disconnectAccount(
   const client = getClient();
 
   try {
-    await client.connectedAccounts.delete(connectionId);
+    await withRetry(
+      async () => {
+        await client.connectedAccounts.delete(connectionId);
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        operationName: `disconnectAccount(${connectionId})`,
+      }
+    );
     log.info('Account disconnected', { connectionId });
 
     // Update local cache if we have userId and toolkit
