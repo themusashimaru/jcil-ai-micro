@@ -3,7 +3,7 @@
  * ================================
  *
  * Approved app integrations available through Composio.
- * Limited to 37 approved integrations organized by category.
+ * 47 approved integrations organized by category.
  */
 
 import type { ToolkitConfig, ToolkitCategory } from './types';
@@ -44,6 +44,16 @@ import { getDropboxActionNamesByPriority } from './dropbox-toolkit';
 import { getElevenLabsActionNamesByPriority } from './elevenlabs-toolkit';
 import { getSerpAPIActionNamesByPriority } from './serpapi-toolkit';
 import { getPerplexityAIActionNamesByPriority } from './perplexityai-toolkit';
+import { getNotionActionNamesByPriority } from './notion-toolkit';
+import { getJiraActionNamesByPriority } from './jira-toolkit';
+import { getAsanaActionNamesByPriority } from './asana-toolkit';
+import { getZoomActionNamesByPriority } from './zoom-toolkit';
+import { getTrelloActionNamesByPriority } from './trello-toolkit';
+import { getCalendlyActionNamesByPriority } from './calendly-toolkit';
+import { getClickUpActionNamesByPriority } from './clickup-toolkit';
+import { getTelegramActionNamesByPriority } from './telegram-toolkit';
+import { getMailchimpActionNamesByPriority } from './mailchimp-toolkit';
+import { getZendeskActionNamesByPriority } from './zendesk-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -205,10 +215,34 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
     featuredActions: getLinearActionNamesByPriority(2),
     toolLimit: 45,
   },
+
+  // Productivity - Top Picks
+  {
+    id: 'NOTION',
+    displayName: 'Notion',
+    description: 'Full Notion integration: pages, databases, blocks, comments, search, and more',
+    icon: '📝',
+    category: 'productivity',
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getNotionActionNamesByPriority(2),
+    toolLimit: 26,
+  },
+  {
+    id: 'JIRA',
+    displayName: 'Jira',
+    description: 'Full Jira integration: issues, projects, sprints, boards, comments, and more',
+    icon: '🎯',
+    category: 'development',
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getJiraActionNamesByPriority(2),
+    toolLimit: 38,
+  },
 ];
 
 // ============================================================================
-// ALL AVAILABLE TOOLKITS (37 approved integrations)
+// ALL AVAILABLE TOOLKITS (47 approved integrations)
 // ============================================================================
 
 export const ALL_TOOLKITS: ToolkitConfig[] = [
@@ -639,6 +673,126 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     authType: 'api_key',
     featuredActions: getPerplexityAIActionNamesByPriority(2),
     toolLimit: 10,
+  },
+
+  // ==================== PRODUCTIVITY (NEW) ====================
+  {
+    id: 'NOTION',
+    displayName: 'Notion',
+    description: 'Full Notion integration: pages, databases, blocks, comments, search, and more',
+    icon: '📝',
+    category: 'productivity',
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getNotionActionNamesByPriority(2),
+    toolLimit: 26,
+  },
+  {
+    id: 'ASANA',
+    displayName: 'Asana',
+    description: 'Full Asana integration: tasks, projects, sections, tags, comments, and more',
+    icon: '🎯',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getAsanaActionNamesByPriority(2),
+    toolLimit: 29,
+  },
+  {
+    id: 'TRELLO',
+    displayName: 'Trello',
+    description:
+      'Full Trello integration: cards, boards, lists, labels, checklists, comments, and more',
+    icon: '📋',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getTrelloActionNamesByPriority(2),
+    toolLimit: 29,
+  },
+  {
+    id: 'CLICKUP',
+    displayName: 'ClickUp',
+    description:
+      'Full ClickUp integration: tasks, spaces, lists, folders, goals, time tracking, and more',
+    icon: '✨',
+    category: 'productivity',
+    authType: 'oauth2',
+    featuredActions: getClickUpActionNamesByPriority(2),
+    toolLimit: 28,
+  },
+
+  // ==================== DEVELOPMENT (NEW) ====================
+  {
+    id: 'JIRA',
+    displayName: 'Jira',
+    description:
+      'Full Jira integration: issues, projects, sprints, boards, comments, attachments, and more',
+    icon: '🎯',
+    category: 'development',
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getJiraActionNamesByPriority(2),
+    toolLimit: 38,
+  },
+
+  // ==================== COMMUNICATION (NEW) ====================
+  {
+    id: 'TELEGRAM',
+    displayName: 'Telegram',
+    description: 'Full Telegram integration: messages, media, chats, photos, documents, and more',
+    icon: '✈️',
+    category: 'communication',
+    authType: 'api_key',
+    featuredActions: getTelegramActionNamesByPriority(2),
+    toolLimit: 18,
+  },
+
+  // ==================== CALENDAR (NEW) ====================
+  {
+    id: 'ZOOM',
+    displayName: 'Zoom',
+    description: 'Full Zoom integration: meetings, recordings, webinars, users, and more',
+    icon: '📹',
+    category: 'calendar',
+    authType: 'oauth2',
+    featuredActions: getZoomActionNamesByPriority(2),
+    toolLimit: 17,
+  },
+  {
+    id: 'CALENDLY',
+    displayName: 'Calendly',
+    description:
+      'Full Calendly integration: events, event types, invitees, scheduling links, and more',
+    icon: '📆',
+    category: 'calendar',
+    authType: 'oauth2',
+    featuredActions: getCalendlyActionNamesByPriority(2),
+    toolLimit: 18,
+  },
+
+  // ==================== MARKETING (NEW) ====================
+  {
+    id: 'MAILCHIMP',
+    displayName: 'Mailchimp',
+    description:
+      'Full Mailchimp integration: campaigns, audiences, subscribers, templates, reports, and more',
+    icon: '🐵',
+    category: 'marketing',
+    authType: 'oauth2',
+    featuredActions: getMailchimpActionNamesByPriority(2),
+    toolLimit: 26,
+  },
+
+  // ==================== SUPPORT (NEW) ====================
+  {
+    id: 'ZENDESK',
+    displayName: 'Zendesk',
+    description:
+      'Full Zendesk integration: tickets, users, organizations, comments, groups, and more',
+    icon: '🎧',
+    category: 'support',
+    authType: 'oauth2',
+    featuredActions: getZendeskActionNamesByPriority(2),
+    toolLimit: 26,
   },
 ];
 
