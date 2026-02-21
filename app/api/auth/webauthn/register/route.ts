@@ -27,8 +27,9 @@ export const runtime = 'nodejs';
 // Challenge TTL in seconds (5 minutes)
 const CHALLENGE_TTL_SECONDS = 5 * 60;
 
-// In-memory fallback only when Redis is unavailable (development only)
+// In-memory fallback only when Redis is unavailable (development only — rejected in production)
 const memoryFallbackStore = new Map<string, { challenge: string; expires: number }>();
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Create Supabase client inside functions to avoid build-time initialization
 function getSupabaseAdmin() {
@@ -50,8 +51,12 @@ async function storeChallenge(key: string, challenge: string): Promise<void> {
 
   if (isRedisAvailable()) {
     await cacheSet(redisKey, { challenge }, CHALLENGE_TTL_SECONDS);
+  } else if (IS_PRODUCTION) {
+    // SEC-007: Reject WebAuthn in production when Redis unavailable
+    log.error('Redis unavailable — WebAuthn challenge storage rejected in production');
+    throw new Error('WebAuthn requires Redis in production');
   } else {
-    // Memory fallback for development - cleanup old entries first
+    // Memory fallback for development only
     const now = Date.now();
     for (const [k, v] of memoryFallbackStore.entries()) {
       if (v.expires < now) memoryFallbackStore.delete(k);
@@ -60,12 +65,12 @@ async function storeChallenge(key: string, challenge: string): Promise<void> {
       challenge,
       expires: now + CHALLENGE_TTL_SECONDS * 1000,
     });
-    log.warn('Using memory fallback for challenge storage - not recommended in production');
+    log.warn('Using memory fallback for challenge storage — development only');
   }
 }
 
 /**
- * Get stored WebAuthn challenge (Redis-first with memory fallback)
+ * Get stored WebAuthn challenge (Redis-first, rejects in production without Redis)
  */
 async function getChallenge(key: string): Promise<string | null> {
   const redisKey = `webauthn:register:${key}`;
@@ -73,6 +78,9 @@ async function getChallenge(key: string): Promise<string | null> {
   if (isRedisAvailable()) {
     const data = await cacheGet<{ challenge: string }>(redisKey);
     return data?.challenge || null;
+  } else if (IS_PRODUCTION) {
+    log.error('Redis unavailable — cannot retrieve WebAuthn challenge in production');
+    return null;
   } else {
     const entry = memoryFallbackStore.get(key);
     if (!entry || entry.expires < Date.now()) {
@@ -91,7 +99,7 @@ async function deleteChallenge(key: string): Promise<void> {
 
   if (isRedisAvailable()) {
     await cacheDelete(redisKey);
-  } else {
+  } else if (!IS_PRODUCTION) {
     memoryFallbackStore.delete(key);
   }
 }

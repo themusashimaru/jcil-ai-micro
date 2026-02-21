@@ -19,19 +19,16 @@ import type {
 
 // Configuration
 const RP_NAME = 'Slingshot 2.0';
-const RP_ID = process.env.NODE_ENV === 'production'
-  ? 'jcil.ai'
-  : 'localhost';
-const ORIGIN = process.env.NODE_ENV === 'production'
-  ? 'https://jcil.ai'
-  : 'http://localhost:3000';
+const RP_ID =
+  process.env.WEBAUTHN_RP_ID || (process.env.NODE_ENV === 'production' ? 'jcil.ai' : 'localhost');
+const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://jcil.ai' : 'http://localhost:3000';
 
-// Also allow the Vercel preview URLs
-const ALLOWED_ORIGINS = [
-  ORIGIN,
-  'https://jcil-ai-stable.vercel.app',
-  'https://jcil-ai.vercel.app',
-];
+// SEC-015: Allowed origins from env var — no hardcoded preview URLs
+const ALLOWED_ORIGINS: string[] = process.env.WEBAUTHN_ALLOWED_ORIGINS
+  ? process.env.WEBAUTHN_ALLOWED_ORIGINS.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean)
+  : [ORIGIN];
 
 export interface StoredPasskey {
   id: string;
@@ -182,5 +179,9 @@ export function uint8ArrayToBase64URL(bytes: Uint8Array): string {
 
 // Re-export types for convenience
 export type { RegistrationResponseJSON, AuthenticationResponseJSON };
-export type PublicKeyCredentialCreationOptionsJSON = Awaited<ReturnType<typeof generateRegistrationOptions>>;
-export type PublicKeyCredentialRequestOptionsJSON = Awaited<ReturnType<typeof generateAuthenticationOptions>>;
+export type PublicKeyCredentialCreationOptionsJSON = Awaited<
+  ReturnType<typeof generateRegistrationOptions>
+>;
+export type PublicKeyCredentialRequestOptionsJSON = Awaited<
+  ReturnType<typeof generateAuthenticationOptions>
+>;
