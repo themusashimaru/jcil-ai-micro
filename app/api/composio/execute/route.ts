@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -50,10 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Check Composio configured
     if (!isComposioConfigured()) {
-      return NextResponse.json(
-        { error: 'Composio is not configured' },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: 'Composio is not configured' }, { status: 503 });
     }
 
     // Parse request
@@ -61,10 +60,7 @@ export async function POST(request: NextRequest) {
     const { action, params } = body;
 
     if (!action) {
-      return NextResponse.json(
-        { error: 'action is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'action is required' }, { status: 400 });
     }
 
     // Execute tool
@@ -85,16 +81,10 @@ export async function POST(request: NextRequest) {
         action,
         error: result.error,
       });
-      return NextResponse.json(
-        { error: result.error || 'Execution failed' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Execution failed' }, { status: 500 });
     }
   } catch (error) {
     log.error('Execute API error', { error });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Execution failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Execution failed' }, { status: 500 });
   }
 }

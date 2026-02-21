@@ -7,6 +7,7 @@
 
 import { getChatJob, getChatQueueEvents } from '@/lib/queue/bull-queue';
 import { logger } from '@/lib/logger';
+import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 
 const log = logger('JobStream');
 
@@ -15,6 +16,16 @@ interface RouteParams {
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
+  // SECURITY FIX: Require authentication to prevent unauthorized stream access
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const { jobId } = await params;
 
   if (!jobId) {
@@ -25,6 +36,11 @@ export async function GET(request: Request, { params }: RouteParams) {
   const job = await getChatJob(jobId);
   if (!job) {
     return new Response('Job not found', { status: 404 });
+  }
+
+  // SECURITY FIX: Verify the authenticated user owns this job
+  if (job.data.userId !== user.id) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   // Get queue events

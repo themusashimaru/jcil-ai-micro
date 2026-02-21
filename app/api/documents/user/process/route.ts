@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -108,7 +109,10 @@ async function extractText(
         const ExcelJS = await import('exceljs');
         const workbook = new ExcelJS.Workbook();
         // Convert Buffer to ArrayBuffer for ExcelJS compatibility
-        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        const arrayBuffer = buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength
+        );
         await workbook.xlsx.load(arrayBuffer);
 
         const textParts: string[] = [];
@@ -120,11 +124,13 @@ async function extractText(
             const values = row.values as (string | number | boolean | Date | null | undefined)[];
             const cells = values.slice(1); // ExcelJS is 1-indexed
             if (cells.length > 0) {
-              const rowText = cells.map(cell => {
-                if (cell === null || cell === undefined) return '';
-                if (cell instanceof Date) return cell.toISOString();
-                return String(cell);
-              }).join(',');
+              const rowText = cells
+                .map((cell) => {
+                  if (cell === null || cell === undefined) return '';
+                  if (cell instanceof Date) return cell.toISOString();
+                  return String(cell);
+                })
+                .join(',');
               textParts.push(rowText);
             }
           });
@@ -142,6 +148,12 @@ async function extractText(
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
     const { documentId } = await request.json();
 
     if (!documentId) {
@@ -162,11 +174,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
+    // Verify document belongs to the authenticated user
+    if (document.user_id !== auth.user.id) {
+      log.error('Unauthorized document access attempt', { documentId, userId: auth.user.id });
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
     // Update status to processing
-    await supabase
-      .from('user_documents')
-      .update({ status: 'processing' })
-      .eq('id', documentId);
+    await supabase.from('user_documents').update({ status: 'processing' }).eq('id', documentId);
 
     try {
       // Download file from storage
@@ -195,10 +210,7 @@ export async function POST(request: NextRequest) {
       log.info('Chunks created', { documentId, chunkCount: chunks.length });
 
       // Delete existing chunks (in case of re-processing)
-      await supabase
-        .from('user_document_chunks')
-        .delete()
-        .eq('document_id', documentId);
+      await supabase.from('user_document_chunks').delete().eq('document_id', documentId);
 
       // Insert chunks (no embeddings - keyword search only)
       const chunkRecords = chunks.map((content, index) => ({
@@ -213,9 +225,7 @@ export async function POST(request: NextRequest) {
       const insertBatchSize = 50;
       for (let i = 0; i < chunkRecords.length; i += insertBatchSize) {
         const batch = chunkRecords.slice(i, i + insertBatchSize);
-        const { error: insertError } = await supabase
-          .from('user_document_chunks')
-          .insert(batch);
+        const { error: insertError } = await supabase.from('user_document_chunks').insert(batch);
 
         if (insertError) {
           log.error('Chunk insert error', { error: insertError });
@@ -223,7 +233,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+      const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
 
       // Update document as ready
       await supabase
@@ -246,19 +256,26 @@ export async function POST(request: NextRequest) {
         pageCount,
       });
     } catch (processingError) {
-      log.error('Processing error', processingError instanceof Error ? processingError : { processingError });
+      log.error(
+        'Processing error',
+        processingError instanceof Error ? processingError : { processingError }
+      );
 
       await supabase
         .from('user_documents')
         .update({
           status: 'error',
-          error_message: processingError instanceof Error ? processingError.message : 'Processing failed',
+          error_message:
+            processingError instanceof Error ? processingError.message : 'Processing failed',
         })
         .eq('id', documentId);
 
-      return NextResponse.json({
-        error: processingError instanceof Error ? processingError.message : 'Processing failed'
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: processingError instanceof Error ? processingError.message : 'Processing failed',
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });

@@ -2618,16 +2618,26 @@ export async function POST(request: NextRequest) {
         isAdmin = userData?.is_admin === true;
         userPlanKey = userData?.subscription_tier || 'free';
       } else {
-        rateLimitIdentifier =
-          request.headers.get('x-forwarded-for')?.split(',')[0] ||
-          request.headers.get('x-real-ip') ||
-          'anonymous';
+        log.warn('Unauthenticated chat attempt blocked');
+        return new Response(
+          JSON.stringify({
+            error: 'Authentication required',
+            message: 'Please sign in to use chat.',
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
       }
-    } catch {
-      rateLimitIdentifier =
-        request.headers.get('x-forwarded-for')?.split(',')[0] ||
-        request.headers.get('x-real-ip') ||
-        'anonymous';
+    } catch (authErr) {
+      log.error('Auth check failed', {
+        error: authErr instanceof Error ? authErr.message : 'Unknown',
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication required',
+          message: 'Please sign in to use chat.',
+        }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     // ========================================
@@ -6186,7 +6196,11 @@ SECURITY:
             } else if (lowerError.includes('model') && lowerError.includes('not found')) {
               userMessage = `\n\n**Model Error**\n\nThe model "${selectedModel}" was not found. It may be unavailable or incorrectly configured.`;
             } else {
-              userMessage = `\n\n**Error**\n\n${errorMessage}`;
+              log.error('Stream error from provider', {
+                provider: selectedProviderId,
+                error: errorMessage,
+              });
+              userMessage = `\n\n**Error**\n\nSomething went wrong processing your request. Please try again.`;
             }
 
             try {

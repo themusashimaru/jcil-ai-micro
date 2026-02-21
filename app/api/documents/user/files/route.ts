@@ -69,7 +69,10 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -79,10 +82,12 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('user_documents')
-      .select(`
+      .select(
+        `
         *,
         folder:user_document_folders(id, name, color)
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -100,12 +105,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's stats for quota display
-    const { data: stats } = await supabase
-      .rpc('get_user_document_stats', { p_user_id: user.id });
+    const { data: stats } = await supabase.rpc('get_user_document_stats', { p_user_id: user.id });
 
     return NextResponse.json({
       documents,
-      stats: stats?.[0] || { total_documents: 0, total_folders: 0, total_size_bytes: 0, total_chunks: 0 }
+      stats: stats?.[0] || {
+        total_documents: 0,
+        total_folders: 0,
+        total_size_bytes: 0,
+        total_chunks: 0,
+      },
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
@@ -117,7 +126,10 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -134,16 +146,22 @@ export async function POST(request: NextRequest) {
     // Validate file type
     const fileType = ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES];
     if (!fileType) {
-      return NextResponse.json({
-        error: 'Invalid file type. Allowed: PDF, DOCX, XLSX, TXT, CSV'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Invalid file type. Allowed: PDF, DOCX, XLSX, TXT, CSV',
+        },
+        { status: 400 }
+      );
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({
-        error: 'File too large. Maximum size is 10MB'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'File too large. Maximum size is 10MB',
+        },
+        { status: 400 }
+      );
     }
 
     // Check document limit based on tier (we'll add tier check later)
@@ -155,9 +173,12 @@ export async function POST(request: NextRequest) {
     // Default limit - will be adjusted by tier
     const documentLimit = 30;
     if (count && count >= documentLimit) {
-      return NextResponse.json({
-        error: `Document limit reached (${documentLimit}). Upgrade your plan for more storage.`
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: `Document limit reached (${documentLimit}). Upgrade your plan for more storage.`,
+        },
+        { status: 403 }
+      );
     }
 
     // Create document record first to get ID
@@ -179,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       log.error('Upload error', { error: uploadError ?? 'Unknown error' });
-      return NextResponse.json({ error: `Failed to upload file: ${uploadError.message}` }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
     }
 
     // Create document record (use service role to bypass RLS for insert too)
@@ -204,7 +225,7 @@ export async function POST(request: NextRequest) {
       // Clean up uploaded file
       await storageClient.storage.from('user-documents').remove([storagePath]);
       log.error('Insert error', { error: insertError ?? 'Unknown error' });
-      return NextResponse.json({ error: `Failed to create document record: ${insertError.message}` }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
     }
 
     // Note: Processing is triggered by the client after upload completes
@@ -221,7 +242,10 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = await createSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -261,7 +285,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -294,16 +321,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete chunks (cascade should handle this, but be explicit)
-    await storageClient
-      .from('user_document_chunks')
-      .delete()
-      .eq('document_id', id);
+    await storageClient.from('user_document_chunks').delete().eq('document_id', id);
 
     // Delete document record
-    const { error } = await storageClient
-      .from('user_documents')
-      .delete()
-      .eq('id', id);
+    const { error } = await storageClient.from('user_documents').delete().eq('id', id);
 
     if (error) {
       log.error('Delete error', error instanceof Error ? error : { error });
