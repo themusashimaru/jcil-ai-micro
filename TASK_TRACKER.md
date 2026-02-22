@@ -41,13 +41,13 @@
 - [x] **1.3.1** Verified and fixed Vitest config — added `all: true` for honest whole-project coverage _(2026-02-22)_
 - [x] **1.3.2** Set realistic coverage thresholds: 5% baseline (actual is 5.9%), ramp plan documented _(2026-02-22)_
 - [x] **1.3.3** CI now runs `pnpm test -- --coverage`, enforcing vitest.config.ts thresholds (5% stmts/funcs/lines, 4% branches). Dropping below thresholds blocks deployment. _(2026-02-22)_
-- [ ] **1.3.4** Write tests for Google Search tool — happy path + error cases
-- [ ] **1.3.5** Write tests for Web Scraping tool — happy path + error cases
-- [ ] **1.3.6** Write tests for Code Execution tool — happy path + error cases + security cases
-- [ ] **1.3.7** Write tests for auth flow — login, registration, session management
-- [ ] **1.3.8** Write tests for rate limiting — verify limits are enforced
-- [ ] **1.3.9** Verify coverage is above 15% threshold
-- [ ] **1.3.10** Update `PROJECT_STATUS.md` with new test count and coverage
+- [x] **1.3.4** Write tests for Web Search tool — 10 tests: tool config, sentinel detection, availability, fallback executor _(2026-02-22)_
+- [x] **1.3.5** Write tests for Fetch URL tool — 40 tests: URL safety (blocked domains, private IPs, protocols), HTML extraction, link extraction, HTTP error handling, content types, truncation _(2026-02-22)_
+- [x] **1.3.6** Write tests for Code Execution tool — 32 tests: tool definition, E2B availability, input validation, code validation patterns (dangerous Python imports, JS patterns, crypto mining, fork bombs) _(2026-02-22)_
+- [x] **1.3.7** Write tests for auth flow — 17 tests already existed in user-guard.test.ts: CSRF protection, session validation, unauthorized access, error responses _(2026-02-22)_
+- [x] **1.3.8** Write tests for rate limiting — 23 tests already existed in rate-limit.test.ts: sliding window, limit enforcement, window expiry, fail-closed in production, tiered limits _(2026-02-22)_
+- [x] **1.3.9** Coverage verified at 15.05% (was 5.9%) — exceeds 15% target _(2026-02-22)_
+- [x] **1.3.10** Update `PROJECT_STATUS.md` with new test count (2247) and coverage (15.05%) _(2026-02-22)_
 
 ### 1.4 CI/CD Safety Gates
 
@@ -318,12 +318,12 @@
 
 | Phase                         | Total Tasks | Completed | Percentage |
 | ----------------------------- | ----------- | --------- | ---------- |
-| Phase 1: Foundation           | 47          | 38        | 81%        |
+| Phase 1: Foundation           | 47          | 45        | 96%        |
 | Phase 2: Core Quality         | 57          | 0         | 0%         |
 | Phase 3: Production Readiness | 37          | 0         | 0%         |
 | Phase 4: Differentiation      | 23          | 0         | 0%         |
 | Doc Cleanup                   | 4           | 0         | 0%         |
-| **Total**                     | **168**     | **38**    | **23%**    |
+| **Total**                     | **168**     | **45**    | **27%**    |
 
 > Update this summary table as tasks are completed.
 

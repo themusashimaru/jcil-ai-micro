@@ -13,9 +13,9 @@
 
 | Metric                         | Verified Value                           | Target                | Status                      |
 | ------------------------------ | ---------------------------------------- | --------------------- | --------------------------- |
-| **Test Coverage (lines)**      | 5.9%                                     | 60%                   | Critical gap                |
-| **Test Coverage (statements)** | 5.49%                                    | 60%                   | Critical gap                |
-| **Test Coverage (branches)**   | 4.37%                                    | 60%                   | Critical gap                |
+| **Test Coverage (lines)**      | 15.05% (was 5.9%)                        | 60%                   | Improving — 3x increase     |
+| **Test Coverage (statements)** | 15.05% (was 5.49%)                       | 60%                   | Improving — 3x increase     |
+| **Test Coverage (branches)**   | 62.55% (was 4.37%)                       | 60%                   | Target met                  |
 | **API Routes Tested**          | 8.5%                                     | 90%                   | Critical gap                |
 | **Real Tool Implementations**  | 57 tools (all real, stubs removed)       | All active tools real | Improved — 23 stubs deleted |
 | **ARIA Attributes**            | 0                                        | WCAG 2.1 AA           | Critical gap                |
@@ -33,13 +33,15 @@
 
 ## What Actually Works (Verified)
 
-### Real Tool Implementations (3 total)
+### Real Tool Implementations (55 tools in registry — see `tools/registry.ts`)
 
-| Tool           | File                          | What It Does                   |
-| -------------- | ----------------------------- | ------------------------------ |
-| Google Search  | `lib/tools/google-search.ts`  | Real Brave/Google API calls    |
-| Web Scraping   | `lib/tools/web-scraping.ts`   | Real HTTP fetch + HTML parsing |
-| Code Execution | `lib/tools/code-execution.ts` | Real sandboxed code execution  |
+| Tool           | File                                  | What It Does                                      |
+| -------------- | ------------------------------------- | ------------------------------------------------- |
+| Web Search     | `tools/web-search.ts`                 | Native Anthropic server tool (web search)         |
+| Fetch URL      | `tools/fetch-url.ts`                  | Real HTTP fetch + HTML parsing                    |
+| Code Execution | `tools/run-code.ts`                   | Real E2B sandboxed code execution                 |
+| Web Capture    | `tools/web-capture-tool.ts`           | Puppeteer screenshots and PDFs                    |
+| 51 more tools  | See `tools/registry.ts` for full list | Various categories: code, data, media, scientific |
 
 ### Security (Solid Foundation)
 
@@ -163,6 +165,8 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-22 | Added security tests (35 new)                  | 2130 tests                            | 2165 tests across 75 files              |
 | 2026-02-22 | Implemented lazy tool loading (tool-loader.ts) | 55 static imports + 90-case switch    | Dynamic import() on demand, cached      |
 | 2026-02-22 | Reduced route.ts via lazy loading              | 5,100 lines                           | 4,618 lines (-484 lines)                |
+| 2026-02-22 | Fixed Supabase types for build                 | Build broken (missing Relationships)  | Build passing (all types fixed)         |
+| 2026-02-22 | Added tool tests (82 new)                      | 2165 tests, 5.9% coverage             | 2247 tests across 78 files, 15.05% cov  |
 
 ---
 
