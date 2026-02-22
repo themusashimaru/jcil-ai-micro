@@ -52,8 +52,8 @@ import { GlobalErrorHandler } from '@/components/GlobalErrorHandler';
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#000000',
 };
 
@@ -141,12 +141,6 @@ export default function RootLayout({
                 price: '0',
                 priceCurrency: 'USD',
                 description: 'Free tier available',
-              },
-              aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: '4.9',
-                ratingCount: '150',
-                bestRating: '5',
               },
               creator: {
                 '@type': 'Organization',
