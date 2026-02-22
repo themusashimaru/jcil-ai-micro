@@ -241,37 +241,15 @@ export { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } from './erro
 export { refactorTool, executeRefactor, isRefactorAvailable } from './refactor-tool';
 
 // ============================================================================
-// STUB REPLACEMENTS — minimal pass-through for deleted modules
-// These provide the API surface that route.ts expects without fake functionality.
+// PASS-THROUGH MODULES — re-export from safety.ts and QC stubs
 // ============================================================================
 
-/**
- * Safety/cost control — simplified pass-through.
- * The full safety module was removed with the stub cleanup.
- * These allow unlimited tool execution until a real cost-tracking system is built.
- */
-export function canExecuteTool(
-  _sessionId: string,
-  _toolName: string,
-  _estimatedCost: number
-): { allowed: boolean; reason?: string } {
-  return { allowed: true };
-}
+// Safety/cost control — pass-through implementations in safety.ts
+export { canExecuteTool, recordToolCost } from './safety';
 
-export function recordToolCost(
-  _sessionId: string,
-  _toolName: string,
-  _estimatedCost: number
-): void {
-  // No-op until real cost tracking is implemented
-}
-
-/**
- * Quality control — simplified pass-through.
- * The full QC module was removed with the stub cleanup.
- */
+// Quality control — simplified pass-through (no real QC module yet)
 export function shouldRunQC(_toolName: string): boolean {
-  return false; // Disable QC until real verification is implemented
+  return false;
 }
 
 export async function verifyOutput(
