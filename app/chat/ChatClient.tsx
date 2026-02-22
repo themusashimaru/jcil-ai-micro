@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAgentMode } from '@/hooks/useAgentMode';
 import { logger } from '@/lib/logger';
 
@@ -98,15 +98,18 @@ export function ChatClient() {
   const deepWriter = useAgentMode();
   const quickWriter = useAgentMode();
 
-  // Agent mode registry — maps mode ID to its hook instance
-  const modes: AgentModeRegistry = {
-    strategy,
-    'deep-research': deepResearch,
-    'quick-research': quickResearch,
-    'quick-strategy': quickStrategy,
-    'deep-writer': deepWriter,
-    'quick-writer': quickWriter,
-  };
+  // Agent mode registry — maps mode ID to its hook instance (memoized to prevent re-renders)
+  const modes: AgentModeRegistry = useMemo(
+    () => ({
+      strategy,
+      'deep-research': deepResearch,
+      'quick-research': quickResearch,
+      'quick-strategy': quickStrategy,
+      'deep-writer': deepWriter,
+      'quick-writer': quickWriter,
+    }),
+    [strategy, deepResearch, quickResearch, quickStrategy, deepWriter, quickWriter]
+  );
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -881,9 +884,11 @@ export function ChatClient() {
     }
   };
 
-  const handleRenameChat = (chatId: string, newTitle: string) => {
-    setChats(chats.map((chat) => (chat.id === chatId ? { ...chat, title: newTitle } : chat)));
-  };
+  const handleRenameChat = useCallback((chatId: string, newTitle: string) => {
+    setChats((prev) =>
+      prev.map((chat) => (chat.id === chatId ? { ...chat, title: newTitle } : chat))
+    );
+  }, []);
 
   const handleDeleteChat = async (chatId: string) => {
     // Optimistically remove from UI
@@ -916,11 +921,11 @@ export function ChatClient() {
     }
   };
 
-  const handlePinChat = (chatId: string) => {
-    setChats(
-      chats.map((chat) => (chat.id === chatId ? { ...chat, isPinned: !chat.isPinned } : chat))
+  const handlePinChat = useCallback((chatId: string) => {
+    setChats((prev) =>
+      prev.map((chat) => (chat.id === chatId ? { ...chat, isPinned: !chat.isPinned } : chat))
     );
-  };
+  }, []);
 
   const handleMoveToFolder = async (
     chatId: string,
@@ -1159,14 +1164,14 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
   /**
    * Handle stop button - abort the current streaming request
    */
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     if (abortControllerRef.current) {
       log.debug('User clicked stop - aborting request');
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
     setIsStreaming(false);
-  };
+  }, []);
 
   /**
    * Handle chat continuation - summarize and start a new chat
@@ -3260,6 +3265,22 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
   // Get theme for conditional rendering
   const { theme } = useTheme();
 
+  // Memoize expensive derived values to prevent unnecessary child re-renders
+  const lastUserMessage = useMemo(
+    () => messages.filter((m) => m.role === 'user').pop()?.content || '',
+    [messages]
+  );
+  const handleReply = useCallback((message: Message) => setReplyingTo(message), []);
+  const handleQuickPrompt = useCallback((prompt: string) => setQuickPromptText(prompt), []);
+  // Use ref so the followup callback stays stable across renders
+  const handleSendMessageRef = useRef(handleSendMessage);
+  handleSendMessageRef.current = handleSendMessage;
+  const handleFollowupSelect = useCallback(
+    (suggestion: string) => handleSendMessageRef.current(suggestion, []),
+    []
+  );
+  const handleClearReply = useCallback(() => setReplyingTo(null), []);
+
   return (
     <CodeExecutionProvider>
       <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
@@ -3403,16 +3424,16 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
               currentChatId={currentChatId}
               isAdmin={isAdmin}
               documentType={pendingDocumentType}
-              onReply={(message) => setReplyingTo(message)}
+              onReply={handleReply}
               enableCodeActions
-              lastUserMessage={messages.filter((m) => m.role === 'user').pop()?.content || ''}
-              onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
+              lastUserMessage={lastUserMessage}
+              onQuickPrompt={handleQuickPrompt}
               onCarouselSelect={handleCarouselSelect}
               onRegenerateImage={handleRegenerateImage}
               onActionSend={handleActionSend}
               onActionEdit={handleActionEdit}
               onActionCancel={handleActionCancel}
-              onFollowupSelect={(suggestion) => handleSendMessage(suggestion, [])}
+              onFollowupSelect={handleFollowupSelect}
             />
             {/* Live To-Do List removed - user prefers simple agentic approach
                 The AI can manage its own tasks internally without showing a UI widget */}
@@ -3451,7 +3472,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
               isStreaming={isStreaming}
               disabled={isWaitingForReply}
               replyingTo={replyingTo}
-              onClearReply={() => setReplyingTo(null)}
+              onClearReply={handleClearReply}
               initialText={quickPromptText}
               isAdmin={isAdmin}
               activeAgent={getActiveAgent(modes)}
