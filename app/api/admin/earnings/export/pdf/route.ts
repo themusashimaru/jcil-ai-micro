@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { captureAPIError } from '@/lib/api/utils';
+import {
+  adminPdfExportQuerySchema,
+  validateQuery,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('EarningsPdfExportAPI');
 
@@ -354,19 +360,23 @@ function generateReportHTML(report: {
 
 export async function GET(request: NextRequest) {
   try {
-    // Require admin authentication
+    // Require admin authentication + export permission
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+    const perm = checkPermission(auth, 'can_export_data');
+    if (!perm.allowed) return perm.response;
 
     const supabase = getSupabaseAdmin();
 
-    // Get report ID from query
+    // Validate report ID from query
     const { searchParams } = new URL(request.url);
-    const reportId = searchParams.get('reportId');
-
-    if (!reportId) {
-      return NextResponse.json({ error: 'Report ID required' }, { status: 400 });
+    const validation = validateQuery(adminPdfExportQuerySchema, searchParams);
+    if (!validation.success) {
+      return NextResponse.json(validationErrorResponse(validation.error, validation.details), {
+        status: 400,
+      });
     }
+    const { reportId } = validation.data;
 
     // Fetch report from database
     const { data: report, error: reportError } = await supabase
@@ -390,6 +400,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Error generating PDF:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/earnings/export/pdf');
     return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
   }
 }

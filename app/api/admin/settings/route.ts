@@ -7,7 +7,18 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import {
+  designSettingsSchema,
+  validateBody,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('AdminSettings');
 
@@ -64,14 +75,21 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Just validate the structure
+    // Validate with Zod schema
+    const validation = validateBody(designSettingsSchema, body);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
+
     const settings: DesignSettings = {
-      mainLogo: body.mainLogo || DEFAULT_SETTINGS.mainLogo,
-      headerLogo: body.headerLogo || DEFAULT_SETTINGS.headerLogo,
-      loginLogo: body.loginLogo || DEFAULT_SETTINGS.loginLogo,
-      favicon: body.favicon || DEFAULT_SETTINGS.favicon,
-      siteName: body.siteName || DEFAULT_SETTINGS.siteName,
-      subtitle: body.subtitle || DEFAULT_SETTINGS.subtitle,
+      mainLogo: validation.data.mainLogo || DEFAULT_SETTINGS.mainLogo,
+      headerLogo: validation.data.headerLogo || DEFAULT_SETTINGS.headerLogo,
+      loginLogo: validation.data.loginLogo || DEFAULT_SETTINGS.loginLogo,
+      favicon: validation.data.favicon || DEFAULT_SETTINGS.favicon,
+      siteName: validation.data.siteName || DEFAULT_SETTINGS.siteName,
+      subtitle: validation.data.subtitle || DEFAULT_SETTINGS.subtitle,
     };
 
     return successResponse({
@@ -80,6 +98,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Error validating settings:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/settings');
     return errors.serverError();
   }
 }

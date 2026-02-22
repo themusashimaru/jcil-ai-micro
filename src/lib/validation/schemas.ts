@@ -466,6 +466,64 @@ export const codeLabDeploySchema = z.object({
 });
 
 // ========================================
+// ADMIN ROUTE-SPECIFIC SCHEMAS
+// ========================================
+
+/** Date string (YYYY-MM-DD) - looser than datetime for query params */
+export const dateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format');
+
+/** Admin earnings query params */
+export const adminEarningsQuerySchema = z.object({
+  startDate: dateStringSchema.optional(),
+  endDate: dateStringSchema.optional(),
+});
+
+/** Admin report generation body */
+export const adminReportGenerateSchema = z.object({
+  reportType: z.enum(['daily', 'monthly', 'quarterly', 'half-yearly', 'yearly']),
+  startDate: dateStringSchema.optional(),
+  endDate: dateStringSchema.optional(),
+});
+
+/** Admin PDF export query */
+export const adminPdfExportQuerySchema = z.object({
+  reportId: uuidSchema,
+});
+
+/** Admin ticket update (PATCH) */
+export const adminTicketPatchSchema = z
+  .object({
+    status: z.enum(['open', 'in_progress', 'awaiting_reply', 'resolved', 'closed']).optional(),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+    is_starred: z.boolean().optional(),
+    is_archived: z.boolean().optional(),
+    assigned_to: uuidSchema.optional().nullable(),
+  })
+  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+    message: 'At least one field must be provided',
+  });
+
+/** Admin ticket reply (POST) */
+export const adminTicketReplySchema = z.object({
+  message: z.string().min(1, 'Message is required').max(10000),
+  isInternalNote: z.boolean().default(false),
+  deliveryMethod: z.enum(['in_app', 'email', 'sms']).optional(),
+});
+
+/** Admin support tickets list query */
+export const adminTicketsListSchema = paginationSchema.extend({
+  source: z.enum(['internal', 'external']).optional(),
+  category: z.string().max(50).optional(),
+  status: z.string().max(30).optional(),
+  is_read: z.enum(['true', 'false']).optional(),
+  is_starred: z.enum(['true', 'false']).optional(),
+  is_archived: z.enum(['true', 'false']).default('false'),
+  search: z.string().max(200).optional(),
+});
+
+// ========================================
 // ADMIN EXTENDED SCHEMAS
 // ========================================
 

@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z, ZodSchema } from 'zod';
+import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit, RateLimitConfig } from '@/lib/security/rate-limit';
 import { HTTP_STATUS, ERROR_CODES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
@@ -378,7 +379,23 @@ export function withErrorHandler<T>(
 
   return handler().catch((error: unknown) => {
     moduleLog.error('Unhandled error', error instanceof Error ? error : { error });
+    Sentry.captureException(error, { tags: { module: moduleName } });
     return errors.serverError() as NextResponse<T | APIResponse>;
+  });
+}
+
+/**
+ * Capture an error to Sentry with route context.
+ * Use in catch blocks of API routes to ensure errors are tracked.
+ */
+export function captureAPIError(
+  error: unknown,
+  route: string,
+  extra?: Record<string, unknown>
+): void {
+  Sentry.captureException(error, {
+    tags: { route, type: 'api_error' },
+    extra,
   });
 }
 

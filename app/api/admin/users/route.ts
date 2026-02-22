@@ -20,10 +20,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 import { cacheGet, cacheSet } from '@/lib/redis/client';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
 
 const log = logger('AdminUsersAPI');
 
@@ -61,9 +67,11 @@ function getSupabaseAdmin() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Require admin authentication
+    // Require admin authentication + view users permission
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+    const perm = checkPermission(auth, 'can_view_users');
+    if (!perm.allowed) return perm.response;
 
     // Rate limit by admin
     const rateLimitResult = await checkRequestRateLimit(
@@ -232,6 +240,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/users');
     return errors.serverError();
   }
 }

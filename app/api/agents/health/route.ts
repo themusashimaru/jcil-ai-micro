@@ -3,6 +3,7 @@
  *
  * Comprehensive health check for all AI agents in the system.
  * Reports status, configuration, and availability of each agent.
+ * Also checks critical infrastructure: Supabase (database) and Redis (cache).
  *
  * GET /api/agents/health
  *
@@ -12,6 +13,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { redis, isRedisAvailable } from '@/lib/redis/client';
 
 // Agent imports
 import { isCodeAgentEnabled, shouldUseCodeAgent, isCodeReviewRequest } from '@/agents/code';
@@ -33,11 +35,19 @@ interface AgentStatus {
   error?: string;
 }
 
+interface ComponentHealth {
+  status: 'up' | 'down' | 'degraded';
+  latency?: number;
+  message?: string;
+}
+
 interface HealthResponse {
   timestamp: string;
   overall: 'healthy' | 'degraded' | 'unhealthy';
   agents: AgentStatus[];
   infrastructure: {
+    database: ComponentHealth;
+    redis: ComponentHealth;
     braveSearch: boolean;
     webSearchTool: boolean;
   };
@@ -49,6 +59,68 @@ interface HealthResponse {
   };
 }
 
+/**
+ * Check Supabase database connectivity
+ */
+async function checkDatabase(): Promise<ComponentHealth> {
+  const start = Date.now();
+  try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return { status: 'down', message: 'Supabase not configured' };
+    }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { error } = await supabase.from('users').select('id').limit(1);
+    const latency = Date.now() - start;
+
+    if (error) {
+      // Table not found is degraded, not down
+      if (error.code === '42P01') {
+        return {
+          status: 'degraded',
+          latency,
+          message: 'Table not found (may be expected in fresh setup)',
+        };
+      }
+      return { status: 'down', latency, message: error.message };
+    }
+
+    return { status: 'up', latency };
+  } catch (error) {
+    return {
+      status: 'down',
+      latency: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Check Redis connectivity
+ */
+async function checkRedis(): Promise<ComponentHealth> {
+  const start = Date.now();
+  try {
+    if (!isRedisAvailable() || !redis) {
+      return { status: 'degraded', message: 'Redis not configured (using in-memory fallback)' };
+    }
+
+    await redis.ping();
+    return { status: 'up', latency: Date.now() - start };
+  } catch (error) {
+    return {
+      status: 'down',
+      latency: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Redis ping failed',
+    };
+  }
+}
+
 export async function GET() {
   // Require admin auth
   const auth = await requireAdmin();
@@ -58,6 +130,22 @@ export async function GET() {
 
   const agents: AgentStatus[] = [];
   const issues: string[] = [];
+
+  // Run infrastructure checks in parallel with agent checks
+  const [dbHealth, redisHealth] = await Promise.all([checkDatabase(), checkRedis()]);
+
+  // Track infrastructure issues
+  if (dbHealth.status === 'down') {
+    issues.push(`Database: ${dbHealth.message || 'unreachable'}`);
+  } else if (dbHealth.status === 'degraded') {
+    issues.push(`Database: ${dbHealth.message || 'degraded'}`);
+  }
+
+  if (redisHealth.status === 'down') {
+    issues.push(`Redis: ${redisHealth.message || 'unreachable'}`);
+  } else if (redisHealth.status === 'degraded') {
+    issues.push(`Redis: ${redisHealth.message || 'degraded'}`);
+  }
 
   // 1. Code Agent Health Check
   try {
@@ -122,7 +210,7 @@ export async function GET() {
     issues.push(`Strategy Agent: ${(error as Error).message}`);
   }
 
-  // Infrastructure checks
+  // Additional infrastructure checks
   const braveConfigured = isBraveConfigured();
   const webSearchAvailable = isWebSearchAvailable();
 
@@ -130,12 +218,20 @@ export async function GET() {
     issues.push('Infrastructure: BRAVE_API_KEY not configured');
   }
 
-  // Calculate overall health
+  // Calculate overall health — infrastructure DOWN = unhealthy
   const enabledCount = agents.filter((a) => a.enabled).length;
   const availableCount = agents.filter((a) => a.available).length;
 
   let overall: 'healthy' | 'degraded' | 'unhealthy';
-  if (availableCount === agents.length && issues.length === 0) {
+  if (dbHealth.status === 'down' || redisHealth.status === 'down') {
+    // Critical infrastructure is down
+    overall = 'unhealthy';
+  } else if (
+    availableCount === agents.length &&
+    issues.length === 0 &&
+    dbHealth.status === 'up' &&
+    redisHealth.status === 'up'
+  ) {
     overall = 'healthy';
   } else if (availableCount >= 1) {
     overall = 'degraded';
@@ -148,6 +244,8 @@ export async function GET() {
     overall,
     agents,
     infrastructure: {
+      database: dbHealth,
+      redis: redisHealth,
       braveSearch: braveConfigured,
       webSearchTool: webSearchAvailable,
     },
@@ -161,10 +259,15 @@ export async function GET() {
 
   log.info('Agents health check complete', {
     overall,
+    database: dbHealth.status,
+    redis: redisHealth.status,
     enabled: enabledCount,
     available: availableCount,
     issues: issues.length,
   });
 
-  return NextResponse.json(response);
+  // Return 503 if unhealthy so load balancers and monitors catch it
+  const httpStatus = overall === 'unhealthy' ? 503 : 200;
+
+  return NextResponse.json(response, { status: httpStatus });
 }

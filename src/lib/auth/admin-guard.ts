@@ -32,6 +32,19 @@ import { logger } from '@/lib/logger';
 
 const log = logger('AdminGuard');
 
+/** Admin permission flags from the admin_users table */
+export interface AdminPermissions {
+  can_view_users: boolean;
+  can_edit_users: boolean;
+  can_view_conversations: boolean;
+  can_export_data: boolean;
+  can_manage_subscriptions: boolean;
+  can_ban_users: boolean;
+}
+
+/** Permission keys for type-safe checking */
+export type AdminPermission = keyof AdminPermissions;
+
 interface AdminAuthResult {
   authorized: true;
   user: {
@@ -40,6 +53,7 @@ interface AdminAuthResult {
   };
   adminUser: {
     id: string;
+    permissions: AdminPermissions;
   };
 }
 
@@ -70,7 +84,10 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
 
     // Get authenticated user from session cookies
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     // Check if user is authenticated
     if (authError || !user) {
@@ -80,17 +97,19 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
           {
             error: 'Authentication required',
             message: 'You must be signed in to access this resource.',
-            code: 'UNAUTHORIZED'
+            code: 'UNAUTHORIZED',
           },
           { status: 401 }
         ),
       };
     }
 
-    // Check if user has admin privileges (by user_id, not email)
+    // Check if user has admin privileges and fetch permissions (by user_id, not email)
     const { data: adminData, error: adminError } = await supabase
       .from('admin_users')
-      .select('id')
+      .select(
+        'id, can_view_users, can_edit_users, can_view_conversations, can_export_data, can_manage_subscriptions, can_ban_users'
+      )
       .eq('user_id', user.id)
       .single();
 
@@ -102,7 +121,7 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
           {
             error: 'Admin access required',
             message: 'You do not have permission to access this resource.',
-            code: 'FORBIDDEN'
+            code: 'FORBIDDEN',
           },
           { status: 403 }
         ),
@@ -110,8 +129,7 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
     }
 
     // Type assertion needed due to TypeScript's discriminated union limitation
-    // At this point, we know adminData is not null, but TS can't infer it properly
-    const adminUserId = (adminData as { id: string }).id;
+    const admin = adminData as { id: string } & AdminPermissions;
 
     // User is authenticated AND is an admin
     return {
@@ -121,7 +139,15 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
         email: user.email,
       },
       adminUser: {
-        id: adminUserId,
+        id: admin.id,
+        permissions: {
+          can_view_users: admin.can_view_users ?? true,
+          can_edit_users: admin.can_edit_users ?? true,
+          can_view_conversations: admin.can_view_conversations ?? true,
+          can_export_data: admin.can_export_data ?? true,
+          can_manage_subscriptions: admin.can_manage_subscriptions ?? true,
+          can_ban_users: admin.can_ban_users ?? true,
+        },
       },
     };
   } catch (error) {
@@ -134,10 +160,41 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
         {
           error: 'Authentication error',
           message: 'An error occurred while verifying your credentials.',
-          code: 'AUTH_ERROR'
+          code: 'AUTH_ERROR',
         },
         { status: 500 }
       ),
     };
   }
+}
+
+/**
+ * Check if an authenticated admin has a specific permission.
+ * Use after requireAdmin() succeeds to enforce granular RBAC.
+ *
+ * @example
+ * const auth = await requireAdmin();
+ * if (!auth.authorized) return auth.response;
+ * const permCheck = checkPermission(auth, 'can_export_data');
+ * if (!permCheck.allowed) return permCheck.response;
+ */
+export function checkPermission(
+  auth: AdminAuthResult,
+  permission: AdminPermission
+): { allowed: true } | { allowed: false; response: NextResponse } {
+  if (!auth.adminUser.permissions[permission]) {
+    log.warn(`Admin ${auth.user.email} denied: missing permission ${permission}`);
+    return {
+      allowed: false,
+      response: NextResponse.json(
+        {
+          error: 'Insufficient permissions',
+          message: `You do not have the "${permission.replace('can_', '').replace(/_/g, ' ')}" permission.`,
+          code: 'FORBIDDEN',
+        },
+        { status: 403 }
+      ),
+    };
+  }
+  return { allowed: true };
 }

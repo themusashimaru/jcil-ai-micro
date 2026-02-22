@@ -9,7 +9,13 @@ import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
 
 const log = logger('AdminUpload');
 
@@ -202,6 +208,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Upload error:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/upload');
     return errors.serverError();
   }
 }
