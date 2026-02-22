@@ -33,7 +33,7 @@ import {
 // Research agent removed - now using quick-research mode via strategy engine
 // Native Anthropic web_search_20260209 — server-side search with dynamic filtering on Sonnet 4.6+ / Opus 4.6
 import {
-  // All chat tools
+  // Core API tools
   webSearchTool,
   isWebSearchAvailable,
   fetchUrlTool,
@@ -57,386 +57,145 @@ import {
   miniAgentTool,
   executeMiniAgent,
   isMiniAgentAvailable,
-  // Dynamic tool creation
   dynamicToolTool,
   executeDynamicTool,
   isDynamicToolAvailable,
-  // YouTube Transcript
   youtubeTranscriptTool,
   executeYouTubeTranscript,
   isYouTubeTranscriptAvailable,
-  // GitHub Tool - REMOVED: Now handled by Composio GitHub connector
-  // Native Web Search (server-side)
   isNativeServerTool,
-  // Screenshot Tool
   screenshotTool,
   executeScreenshot,
   isScreenshotAvailable,
-  // Calculator Tool
-  // Chart Tool
   chartTool,
   executeChart,
   isChartAvailable,
-  // Document Generation Tool
   documentTool,
   executeDocument,
   isDocumentAvailable,
-  // Audio Transcription Tool
   audioTranscribeTool,
   executeAudioTranscribe,
   isAudioTranscribeAvailable,
-  // Spreadsheet Tool
   spreadsheetTool,
   executeSpreadsheet,
   isSpreadsheetAvailable,
-  // HTTP Request Tool
   httpRequestTool,
   executeHttpRequest,
   isHttpRequestAvailable,
-  // QR Code Tool
   qrCodeTool,
   executeQRCode,
   isQRCodeAvailable,
-  // Image Transform Tool
   imageTransformTool,
   executeImageTransform,
   isImageTransformAvailable,
-  // File Convert Tool
   fileConvertTool,
   executeFileConvert,
   isFileConvertAvailable,
-  // Link Shorten Tool
   linkShortenTool,
   executeLinkShorten,
   isLinkShortenAvailable,
-  // Mermaid Diagram Tool
-  mermaidDiagramTool,
-  executeMermaidDiagram,
-  isMermaidDiagramAvailable,
-  // Faker Tool
+  // Library-based tools
   fakerTool,
   executeFaker,
   isFakerAvailable,
-  // Diff Tool
   diffTool,
   executeDiff,
   isDiffAvailable,
-  // NLP Tool
   nlpTool,
   executeNLP,
   isNLPAvailable,
-  // Entity Extraction Tool
-  entityExtractionTool,
-  executeEntityExtraction,
-  isEntityExtractionAvailable,
-  // Barcode Tool
   barcodeTool,
   executeBarcode,
   isBarcodeAvailable,
-  // OCR Tool (Tesseract.js)
   ocrTool,
   executeOCR,
   isOCRAvailable,
-  // PDF Tool (pdf-lib)
   pdfTool,
   executePDF,
   isPDFAvailable,
-  // Media Tool (FFmpeg.js)
   mediaTool,
   executeMedia,
   isMediaAvailable,
-  // SQL Tool (SQL.js)
   sqlTool,
   executeSQL,
   isSQLAvailable,
-  // Excel Tool (SheetJS)
   excelTool,
   executeExcel,
   isExcelAvailable,
-  // Prettier Tool
   prettierTool,
   executePrettier,
   isPrettierAvailable,
-  // Crypto Tool (jose)
   cryptoTool,
   executeCryptoTool,
   isCryptoToolAvailable,
-  // ZIP Tool (JSZip)
   zipTool,
   executeZip,
   isZipAvailable,
-  // Web Capture Tool (Puppeteer)
   webCaptureTool,
   executeWebCapture,
   isWebCaptureAvailable,
-  // Math Tool (math.js)
-  // EXIF Tool (exifr)
   exifTool,
   executeExif,
   isExifAvailable,
-  // Search Index Tool (Lunr.js)
   searchIndexTool,
   executeSearchIndex,
   isSearchIndexAvailable,
-  // ASCII Art Tool (FIGlet)
-  // Color Tool (chroma-js)
-  // Validator Tool
   validatorTool,
   executeValidator,
   isValidatorAvailable,
-  // Cron Tool
-  // Unit Convert Tool
-  // Audio Synth Tool
   audioSynthTool,
   executeAudioSynth,
   isAudioSynthAvailable,
-  // Scientific & Research Tools (12 new)
-  // Statistics Tool
-  // Geospatial Tool
+  // Scientific & research tools
   geospatialTool,
   executeGeospatial,
   isGeospatialAvailable,
-  // Phone Validation Tool
   phoneTool,
   executePhone,
   isPhoneAvailable,
-  // Password Strength Tool
-  // Chemistry Tool
-  // DNA/Bio Tool
   dnaBioTool,
   executeDnaBio,
   isDnaBioAvailable,
-  // Matrix Tool
-  // Graph Tool
-  // Periodic Table Tool
-  // Physics Constants Tool
-  // Signal Processing Tool
   signalTool,
   executeSignal,
   isSignalAvailable,
-  // Accessibility Tool
   accessibilityTool,
   executeAccessibility,
   isAccessibilityAvailable,
-  // Symbolic Math Tool (nerdamer)
-  // ODE Solver Tool (odex)
-  // Optimization Tool (javascript-lp-solver)
-  // Financial Tool
-  // Music Theory Tool (tonal)
-  // Geometry Tool (delaunator + earcut)
-  // Parser Tool (nearley)
   parserTool,
   executeParser,
   isParserAvailable,
-  // Recurrence Tool (rrule)
-  // Constraint Tool (logic-solver)
   constraintTool,
   executeConstraint,
   isConstraintAvailable,
-  // Time Series Tool
-  // Tensor Tool (ndarray)
-  // String Distance Tool (fastest-levenshtein)
-  // Advanced Scientific Computing Tools (12 new)
   sequenceAnalyzeTool,
   executeSequenceAnalyze,
   isSequenceAnalyzeAvailable,
-  // Tier Omega - Advanced Scientific Computing (12 new tools)
-  // Tier Infinity - Rocket Science & Engineering (12 new tools)
-  // Tier Beyond - Advanced Engineering (6 bonus tools)
-  // Code Agent Brain Tools - Full Coding Capabilities
-  workspaceTool,
-  executeWorkspace,
-  isWorkspaceAvailable,
-  codeGenerationTool,
-  executeCodeGeneration,
-  isCodeGenerationAvailable,
-  codeAnalysisTool,
-  executeCodeAnalysis,
-  isCodeAnalysisAvailable,
-  projectBuilderTool,
-  executeProjectBuilder,
-  isProjectBuilderAvailable,
-  testGeneratorTool,
-  executeTestGenerator,
-  isTestGeneratorAvailable,
+  medicalCalcTool,
+  executeMedicalCalc,
+  isMedicalCalcAvailable,
+  graphics3dTool,
+  executeGraphics3D,
+  isGraphics3DAvailable,
+  houghVisionTool,
+  executeHoughVision,
+  isHoughVisionAvailable,
+  rayTracingTool,
+  executeRayTracing,
+  isRayTracingAvailable,
+  // AI-powered code tools
   errorFixerTool,
   executeErrorFixer,
   isErrorFixerAvailable,
   refactorTool,
   executeRefactor,
   isRefactorAvailable,
-  docGeneratorTool,
-  executeDocGenerator,
-  isDocGeneratorAvailable,
-  // Tool Chain Executor - Smart multi-tool workflows (Enhancement #3)
-  toolChainTool,
-  createToolChainExecutor,
-  // GitHub Context merged into unified 'github' tool
-  // Cybersecurity Tools (32 tools) - Full Security Operations Suite
-  // Advanced Cybersecurity (30 more tools)
-  networkDefenseTool,
-  executeNetworkDefense,
-  isNetworkDefenseAvailable,
-  // MEGA BATCH - 158 Additional Tools
-  accessControlTool,
-  executeAccessControl,
-  isAccessControlAvailable,
-  agricultureTool,
-  executeAgriculture,
-  isAgricultureAvailable,
-  assetManagementTool,
-  executeAssetManagement,
-  isAssetManagementAvailable,
-  authProtocolTool,
-  executeAuthProtocol,
-  isAuthProtocolAvailable,
-  authenticationTool,
-  executeAuthentication,
-  isAuthenticationAvailable,
-  backupRecoveryTool,
-  executeBackupRecovery,
-  isBackupRecoveryAvailable,
-  businessContinuityTool,
-  executeBusinessContinuity,
-  isBusinessContinuityAvailable,
-  certificateTool,
-  executeCertificate,
-  isCertificateAvailable,
-  crystallographyTool,
-  executeCrystallography,
-  isCrystallographyAvailable,
-  dataClassificationTool,
-  executeDataClassification,
-  isDataClassificationAvailable,
-  dataLossPreventionTool,
-  executeDataLossPrevention,
-  isDataLossPreventionAvailable,
-  devsecOpsTool,
-  executeDevsecOps,
-  isDevsecOpsAvailable,
-  ecologyTool,
-  executeEcology,
-  isEcologyAvailable,
-  encryptionTool,
-  executeEncryption,
-  isEncryptionAvailable,
-  entropyAnalysisTool,
-  executeEntropyAnalysis,
-  isEntropyAnalysisAvailable,
-  geologyTool,
-  executeGeology,
-  isGeologyAvailable,
-  identityGovernanceTool,
-  executeIdentityGovernance,
-  isIdentityGovernanceAvailable,
-  identityManagementTool,
-  executeIdentityManagement,
-  isIdentityManagementAvailable,
-  industrialControlTool,
-  executeIndustrialControl,
-  isIndustrialControlAvailable,
-  jwtTool,
-  executeJwt,
-  isJwtAvailable,
-  keyManagementTool,
-  executeKeyManagement,
-  isKeyManagementAvailable,
-  logAnalysisTool,
-  executeLogAnalysis,
-  isLogAnalysisAvailable,
-  logManagementTool,
-  executeLogManagement,
-  isLogManagementAvailable,
-  meteorologyTool,
-  executeMeteorology,
-  isMeteorologyAvailable,
-  mineralogyTool,
-  executeMineralogy,
-  isMineralogyAvailable,
-  networkAnalysisTool,
-  executeNetworkAnalysis,
-  isNetworkAnalysisAvailable,
-  nuclearPhysicsTool,
-  executeNuclearPhysics,
-  isNuclearPhysicsAvailable,
-  nutritionTool,
-  executeNutrition,
-  isNutritionAvailable,
-  oceanographyTool,
-  executeOceanography,
-  isOceanographyAvailable,
-  owaspTool,
-  executeOwasp,
-  isOwaspAvailable,
-  patchManagementTool,
-  executePatchManagement,
-  isPatchManagementAvailable,
-  pharmacologyTool,
-  executePharmacology,
-  isPharmacologyAvailable,
-  photonicsTool,
-  executePhotonics,
-  isPhotonicsAvailable,
-  pkiTool,
-  executePki,
-  isPkiAvailable,
-  plasmaPhysicsTool,
-  executePlasmaPhysics,
-  isPlasmaPhysicsAvailable,
-  polymerChemistryTool,
-  executePolymerChemistry,
-  isPolymerChemistryAvailable,
-  portScannerTool,
-  executePortScanner,
-  isPortScannerAvailable,
-  powerSystemsTool,
-  executePowerSystems,
-  isPowerSystemsAvailable,
-  privacyTool,
-  executePrivacy,
-  isPrivacyAvailable,
-  privacyEngineeringTool,
-  executePrivacyEngineering,
-  isPrivacyEngineeringAvailable,
-  psychologyTool,
-  executePsychology,
-  isPsychologyAvailable,
-  roboticsTool,
-  executeRobotics,
-  isRoboticsAvailable,
-  saseTool,
-  executeSase,
-  isSaseAvailable,
-  scadaIcsTool,
-  executeScadaIcs,
-  isScadaIcsAvailable,
-  secretsManagementTool,
-  executeSecretsManagement,
-  isSecretsManagementAvailable,
-  secureCommunicationsTool,
-  executeSecureCommunications,
-  isSecureCommunicationsAvailable,
-  secureSdlcTool,
-  executeSecureSdlc,
-  isSecureSdlcAvailable,
-  semiconductorTool,
-  executeSemiconductor,
-  isSemiconductorAvailable,
-  surveyingTool,
-  executeSurveying,
-  isSurveyingAvailable,
-  trafficEngineeringTool,
-  executeTrafficEngineering,
-  isTrafficEngineeringAvailable,
-  vpnTool,
-  executeVpn,
-  isVpnAvailable,
-  // Safety & cost control
+  // Safety & cost control (pass-through until real implementation)
   canExecuteTool,
   recordToolCost,
   type UnifiedToolResult,
   type UnifiedToolCall,
-  // Quality control
+  // Quality control (pass-through until real implementation)
   shouldRunQC,
   verifyOutput,
 } from '@/lib/ai/tools';
@@ -4074,11 +3833,9 @@ SECURITY:
     if (await isImageTransformAvailable()) tools.push(imageTransformTool);
     if (isFileConvertAvailable()) tools.push(fileConvertTool);
     if (isLinkShortenAvailable()) tools.push(linkShortenTool);
-    if (isMermaidDiagramAvailable()) tools.push(mermaidDiagramTool);
     if (await isFakerAvailable()) tools.push(fakerTool);
     if (await isDiffAvailable()) tools.push(diffTool);
     if (await isNLPAvailable()) tools.push(nlpTool);
-    if (await isEntityExtractionAvailable()) tools.push(entityExtractionTool);
     if (await isBarcodeAvailable()) tools.push(barcodeTool);
     // New Tier S/A/B tools (19 new)
     if (isOCRAvailable()) tools.push(ocrTool);
@@ -4103,80 +3860,16 @@ SECURITY:
     // Computational & Algorithmic tools (12 new)
     if (isParserAvailable()) tools.push(parserTool);
     if (isConstraintAvailable()) tools.push(constraintTool);
-    // Advanced Scientific Computing (12 new)
+    // Advanced Scientific Computing
     if (isSequenceAnalyzeAvailable()) tools.push(sequenceAnalyzeTool);
-
-    // Tier Omega - Advanced Scientific Computing tools
-
-    // Tier Infinity - Rocket Science & Engineering tools
-
-    // Tier Beyond - Advanced Engineering tools
-    // Code Agent Brain Tools - Full Coding Capabilities
-    if (await isWorkspaceAvailable()) tools.push(workspaceTool);
-    if (isCodeGenerationAvailable()) tools.push(codeGenerationTool);
-    if (isCodeAnalysisAvailable()) tools.push(codeAnalysisTool);
-    if (isProjectBuilderAvailable()) tools.push(projectBuilderTool);
-    if (isTestGeneratorAvailable()) tools.push(testGeneratorTool);
+    // Medical & vision tools
+    if (isMedicalCalcAvailable()) tools.push(medicalCalcTool);
+    if (isGraphics3DAvailable()) tools.push(graphics3dTool);
+    if (isHoughVisionAvailable()) tools.push(houghVisionTool);
+    if (isRayTracingAvailable()) tools.push(rayTracingTool);
+    // AI-powered code tools
     if (isErrorFixerAvailable()) tools.push(errorFixerTool);
     if (isRefactorAvailable()) tools.push(refactorTool);
-    if (isDocGeneratorAvailable()) tools.push(docGeneratorTool);
-    // Tool Orchestration - Smart workflows (Enhancement #3 & #4)
-    tools.push(toolChainTool); // run_workflow - always available
-    // Note: github_context merged into unified 'github' tool (already added above)
-    // Cybersecurity Tools (32 tools) - Full Security Operations Suite
-    // Advanced Cybersecurity (30 more tools)
-    if (isNetworkDefenseAvailable()) tools.push(networkDefenseTool);
-    if (isAccessControlAvailable()) tools.push(accessControlTool);
-    if (isAgricultureAvailable()) tools.push(agricultureTool);
-    if (isAssetManagementAvailable()) tools.push(assetManagementTool);
-    if (isAuthProtocolAvailable()) tools.push(authProtocolTool);
-    if (isAuthenticationAvailable()) tools.push(authenticationTool);
-    if (isBackupRecoveryAvailable()) tools.push(backupRecoveryTool);
-    if (isBusinessContinuityAvailable()) tools.push(businessContinuityTool);
-    if (isCertificateAvailable()) tools.push(certificateTool);
-    if (isCrystallographyAvailable()) tools.push(crystallographyTool);
-    if (isDataClassificationAvailable()) tools.push(dataClassificationTool);
-    if (isDataLossPreventionAvailable()) tools.push(dataLossPreventionTool);
-    if (isDevsecOpsAvailable()) tools.push(devsecOpsTool);
-    if (isEcologyAvailable()) tools.push(ecologyTool);
-    if (isEncryptionAvailable()) tools.push(encryptionTool);
-    if (isEntropyAnalysisAvailable()) tools.push(entropyAnalysisTool);
-    if (isGeologyAvailable()) tools.push(geologyTool);
-    if (isIdentityGovernanceAvailable()) tools.push(identityGovernanceTool);
-    if (isIdentityManagementAvailable()) tools.push(identityManagementTool);
-    if (isIndustrialControlAvailable()) tools.push(industrialControlTool);
-    if (isJwtAvailable()) tools.push(jwtTool);
-    if (isKeyManagementAvailable()) tools.push(keyManagementTool);
-    if (isLogAnalysisAvailable()) tools.push(logAnalysisTool);
-    if (isLogManagementAvailable()) tools.push(logManagementTool);
-    if (isMeteorologyAvailable()) tools.push(meteorologyTool);
-    if (isMineralogyAvailable()) tools.push(mineralogyTool);
-    if (isNetworkAnalysisAvailable()) tools.push(networkAnalysisTool);
-    if (isNuclearPhysicsAvailable()) tools.push(nuclearPhysicsTool);
-    if (isNutritionAvailable()) tools.push(nutritionTool);
-    if (isOceanographyAvailable()) tools.push(oceanographyTool);
-    if (isOwaspAvailable()) tools.push(owaspTool);
-    if (isPatchManagementAvailable()) tools.push(patchManagementTool);
-    if (isPharmacologyAvailable()) tools.push(pharmacologyTool);
-    if (isPhotonicsAvailable()) tools.push(photonicsTool);
-    if (isPkiAvailable()) tools.push(pkiTool);
-    if (isPlasmaPhysicsAvailable()) tools.push(plasmaPhysicsTool);
-    if (isPolymerChemistryAvailable()) tools.push(polymerChemistryTool);
-    if (isPortScannerAvailable()) tools.push(portScannerTool);
-    if (isPowerSystemsAvailable()) tools.push(powerSystemsTool);
-    if (isPrivacyAvailable()) tools.push(privacyTool);
-    if (isPrivacyEngineeringAvailable()) tools.push(privacyEngineeringTool);
-    if (isPsychologyAvailable()) tools.push(psychologyTool);
-    if (isRoboticsAvailable()) tools.push(roboticsTool);
-    if (isSaseAvailable()) tools.push(saseTool);
-    if (isScadaIcsAvailable()) tools.push(scadaIcsTool);
-    if (isSecretsManagementAvailable()) tools.push(secretsManagementTool);
-    if (isSecureCommunicationsAvailable()) tools.push(secureCommunicationsTool);
-    if (isSecureSdlcAvailable()) tools.push(secureSdlcTool);
-    if (isSemiconductorAvailable()) tools.push(semiconductorTool);
-    if (isSurveyingAvailable()) tools.push(surveyingTool);
-    if (isTrafficEngineeringAvailable()) tools.push(trafficEngineeringTool);
-    if (isVpnAvailable()) tools.push(vpnTool);
 
     // ========================================
     // MCP TOOLS INTEGRATION (ON-DEMAND)
@@ -4613,9 +4306,6 @@ SECURITY:
           case 'shorten_link':
             result = await executeLinkShorten(toolCallWithSession);
             break;
-          case 'generate_diagram':
-            result = await executeMermaidDiagram(toolCallWithSession);
-            break;
           case 'generate_fake_data':
             result = await executeFaker(toolCallWithSession);
             break;
@@ -4624,9 +4314,6 @@ SECURITY:
             break;
           case 'analyze_text_nlp':
             result = await executeNLP(toolCallWithSession);
-            break;
-          case 'extract_entities':
-            result = await executeEntityExtraction(toolCallWithSession);
             break;
           case 'generate_barcode':
             result = await executeBarcode(toolCallWithSession);
@@ -4763,506 +4450,24 @@ SECURITY:
           case 'sequence_analyze':
             result = await executeSequenceAnalyze(toolCallWithSession);
             break;
-          // Tier Omega - Advanced Scientific Computing
-          case 'ml_toolkit':
-            break;
-          case 'quantum_circuit':
-            break;
-          case 'control_theory':
-            break;
-          case 'monte_carlo_sim':
-            break;
-          case 'game_solver':
-            break;
-          case 'orbital_calc':
-            break;
-          case 'thermo_calc':
-            break;
-          case 'em_fields':
-            break;
-          case 'image_compute':
-            break;
-          case 'wavelet_transform':
-            break;
-          case 'latex_render':
-            break;
-          // Tier Infinity - Rocket Science & Engineering (12 new tools)
-          case 'rocket_propulsion':
-            break;
-          case 'fluid_dynamics':
-            break;
-          case 'aerodynamics':
-            break;
-          case 'drone_flight':
-            break;
-          case 'pathfinder':
-            break;
-          case 'circuit_sim':
-            break;
-          case 'ballistics':
-            break;
-          case 'genetic_algorithm':
-            break;
-          case 'chaos_dynamics':
-            break;
-          case 'robotics_kinematics':
-            break;
-          case 'optics_sim':
-            break;
-          case 'epidemiology':
-            break;
-          // Tier Beyond - Advanced Engineering (6 bonus tools)
-          case 'finite_element':
-            break;
-          case 'antenna_rf':
-            break;
-          case 'materials_science':
-            break;
-          case 'seismology':
-            break;
-          case 'bioinformatics_pro':
-            break;
-          case 'acoustics':
-            break;
-          // Code Agent Brain Tools - Full Coding Capabilities
-          case 'workspace':
-            result = await executeWorkspace(toolCallWithSession);
-            break;
-          case 'generate_code':
-            result = await executeCodeGeneration(toolCallWithSession);
-            break;
-          case 'analyze_code':
-            result = await executeCodeAnalysis(toolCallWithSession);
-            break;
-          case 'build_project':
-            result = await executeProjectBuilder(toolCallWithSession);
-            break;
-          case 'generate_tests':
-            result = await executeTestGenerator(toolCallWithSession);
-            break;
+          // AI-powered code tools
           case 'fix_error':
             result = await executeErrorFixer(toolCallWithSession);
             break;
           case 'refactor_code':
             result = await executeRefactor(toolCallWithSession);
             break;
-          case 'generate_docs':
-            result = await executeDocGenerator(toolCallWithSession);
+          case 'medical_calc':
+            result = await executeMedicalCalc(toolCallWithSession);
             break;
-          // Tool Orchestration (Enhancement #3 & #4)
-          case 'run_workflow': {
-            // Create executor map for tool chaining
-            const executorMap = new Map<
-              string,
-              (call: UnifiedToolCall) => Promise<UnifiedToolResult>
-            >();
-            executorMap.set('workspace', executeWorkspace);
-            executorMap.set('generate_code', executeCodeGeneration);
-            executorMap.set('analyze_code', executeCodeAnalysis);
-            executorMap.set('generate_tests', executeTestGenerator);
-            executorMap.set('refactor_code', executeRefactor);
-            executorMap.set('generate_docs', executeDocGenerator);
-            executorMap.set('fix_error', executeErrorFixer);
-            const chainExecutor = createToolChainExecutor(executorMap);
-            result = await chainExecutor(toolCallWithSession);
+          case 'graphics_3d':
+            result = await executeGraphics3D(toolCallWithSession);
             break;
-          }
-          // case 'github_context' - REMOVED: Now handled by Composio GitHub connector
-          // Cybersecurity Tools (32 tools)
-          case 'network_security':
+          case 'hough_vision':
+            result = await executeHoughVision(toolCallWithSession);
             break;
-          case 'dns_security':
-            break;
-          case 'ip_security':
-            break;
-          case 'wireless_security':
-            break;
-          case 'api_security':
-            break;
-          case 'web_security':
-            break;
-          case 'browser_security':
-            break;
-          case 'mobile_security':
-            break;
-          case 'cloud_security':
-            break;
-          case 'cloud_native_security':
-            break;
-          case 'container_security':
-            break;
-          case 'data_security':
-            break;
-          case 'database_security':
-            break;
-          case 'credential_security':
-            break;
-          case 'email_security':
-            break;
-          case 'endpoint_security':
-            break;
-          case 'iot_security':
-            break;
-          case 'physical_security':
-            break;
-          case 'blockchain_security':
-            break;
-          case 'ai_security':
-            break;
-          case 'supply_chain_security':
-            break;
-          case 'security_operations':
-            break;
-            break;
-          case 'security_headers':
-            break;
-          case 'security_testing':
-            break;
-          case 'security_audit':
-            break;
-          case 'security_architecture':
-            break;
-          case 'security_architecture_patterns':
-            break;
-          case 'security_policy':
-            break;
-          case 'security_awareness':
-            break;
-          case 'security_culture':
-            break;
-          case 'security_budget':
-            break;
-          // Advanced Cybersecurity (30 more tools)
-          case 'threat_hunting':
-            break;
-          case 'threat_intel':
-            break;
-          case 'threat_model':
-            break;
-          case 'threat_modeling':
-            break;
-          case 'malware_analysis':
-            break;
-          case 'malware_indicators':
-            break;
-          case 'siem':
-            break;
-          case 'forensics':
-            break;
-          case 'soar':
-            break;
-          case 'soc':
-            break;
-          case 'xdr':
-            break;
-          case 'red_team':
-            break;
-          case 'blue_team':
-            break;
-          case 'osint':
-            break;
-          case 'ransomware_defense':
-            break;
-          case 'compliance_framework':
-            break;
-          case 'risk_management':
-            break;
-          case 'incident_response':
-            break;
-          case 'ids_ips':
-            break;
-          case 'firewall':
-            break;
-          case 'honeypot':
-            break;
-          case 'pen_test':
-            break;
-          case 'vuln_assessment':
-            break;
-          case 'vulnerability_scanner':
-            break;
-          case 'zero_trust':
-            break;
-          case 'attack_surface':
-            break;
-          case 'network_defense':
-            result = await executeNetworkDefense(toolCallWithSession);
-            break;
-          case 'cyber_insurance':
-            break;
-          case 'vendor_risk':
-            break;
-          case 'social_engineering':
-            break;
-            // MEGA BATCH - 158 Additional Tools
-            break;
-          case 'Discretionary Access Control':
-            result = await executeAccessControl(toolCallWithSession);
-            break;
-            break;
-            break;
-          case 'agriculture':
-            result = await executeAgriculture(toolCallWithSession);
-            break;
-            break;
-          case 'asset_management':
-            result = await executeAssetManagement(toolCallWithSession);
-            break;
-          case 'auth_protocol':
-            result = await executeAuthProtocol(toolCallWithSession);
-            break;
-          case 'authentication':
-            result = await executeAuthentication(toolCallWithSession);
-            break;
-            break;
-            break;
-          case 'backup_recovery':
-            result = await executeBackupRecovery(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'Business Impact Analysis':
-            result = await executeBusinessContinuity(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-          case 'certificate':
-            result = await executeCertificate(toolCallWithSession);
-            break;
-            break;
-          case 'cipher':
-            break;
-            break;
-            break;
-            break;
-          case 'Payment Card Industry Data Security Standard':
-            break;
-            break;
-            break;
-          case 'cosmology':
-            break;
-            break;
-          case 'cryptanalysis':
-            break;
-            break;
-          case 'crystallography':
-            result = await executeCrystallography(toolCallWithSession);
-            break;
-          case 'Personally Identifiable Information':
-            result = await executeDataClassification(toolCallWithSession);
-            break;
-          case 'data_loss_prevention':
-            result = await executeDataLossPrevention(toolCallWithSession);
-            break;
-            break;
-            break;
-          case 'devsecops':
-            result = await executeDevsecOps(toolCallWithSession);
-            break;
-            break;
-            break;
-          case 'ecology':
-            result = await executeEcology(toolCallWithSession);
-            break;
-          case 'economics':
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'encryption':
-            result = await executeEncryption(toolCallWithSession);
-            break;
-            break;
-          case 'entropy_analysis':
-            result = await executeEntropyAnalysis(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'Carbon-14':
-            result = await executeGeology(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'heat_transfer':
-            break;
-            break;
-            break;
-            break;
-          case 'identity_governance':
-            result = await executeIdentityGovernance(toolCallWithSession);
-            break;
-          case 'Identity Provider':
-            result = await executeIdentityManagement(toolCallWithSession);
-            break;
-            break;
-          case 'Programmable Logic Controller':
-            result = await executeIndustrialControl(toolCallWithSession);
-            break;
-            break;
-          case 'jwt':
-            result = await executeJwt(toolCallWithSession);
-            break;
-          case 'Key Encryption Key':
-            result = await executeKeyManagement(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'linguistics':
-            break;
-          case 'Successful login':
-            result = await executeLogAnalysis(toolCallWithSession);
-            break;
-          case 'Common Event Format':
-            result = await executeLogManagement(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'meteorology':
-            result = await executeMeteorology(toolCallWithSession);
-            break;
-            break;
-            break;
-          case 'mineralogy':
-            result = await executeMineralogy(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'network_analysis':
-            result = await executeNetworkAnalysis(toolCallWithSession);
-            break;
-            break;
-          case 'nuclear_physics':
-            result = await executeNuclearPhysics(toolCallWithSession);
-            break;
-          case 'nutrition':
-            result = await executeNutrition(toolCallWithSession);
-            break;
-          case 'oceanography':
-            result = await executeOceanography(toolCallWithSession);
-            break;
-          case 'Broken Access Control':
-            result = await executeOwasp(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-          case 'patch_management':
-            result = await executePatchManagement(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-          case 'pharmacology':
-            result = await executePharmacology(toolCallWithSession);
-            break;
-            break;
-          case 'photonics':
-            result = await executePhotonics(toolCallWithSession);
-            break;
-          case 'Certificate Authority':
-            result = await executePki(toolCallWithSession);
-            break;
-          case 'plasma_physics':
-            result = await executePlasmaPhysics(toolCallWithSession);
-            break;
-            break;
-          case 'Polyethylene':
-            result = await executePolymerChemistry(toolCallWithSession);
-            break;
-          case 'port_scanner':
-            result = await executePortScanner(toolCallWithSession);
-            break;
-          case 'power_systems':
-            result = await executePowerSystems(toolCallWithSession);
-            break;
-          case 'printing_3d':
-            break;
-          case 'privacy':
-            result = await executePrivacy(toolCallWithSession);
-            break;
-          case 'privacy_engineering':
-            result = await executePrivacyEngineering(toolCallWithSession);
-            break;
-            break;
-          case 'psychology':
-            result = await executePsychology(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'robotics':
-            result = await executeRobotics(toolCallWithSession);
-            break;
-            break;
-            break;
-          case 'sase':
-            result = await executeSase(toolCallWithSession);
-            break;
-          case 'Supervisory Control and Data Acquisition':
-            result = await executeScadaIcs(toolCallWithSession);
-            break;
-          case 'secrets_management':
-            result = await executeSecretsManagement(toolCallWithSession);
-            break;
-          case 'secure_communications':
-            result = await executeSecureCommunications(toolCallWithSession);
-            break;
-          case 'Static Analysis':
-            result = await executeSecureSdlc(toolCallWithSession);
-            break;
-            break;
-          case 'semiconductor':
-            result = await executeSemiconductor(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-          case 'surveying':
-            result = await executeSurveying(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'traffic_engineering':
-            result = await executeTrafficEngineering(toolCallWithSession);
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-            break;
-          case 'vpn':
-            result = await executeVpn(toolCallWithSession);
-            break;
-          case 'Out-of-bounds Write':
-            break;
+          case 'ray_tracing':
+            result = await executeRayTracing(toolCallWithSession);
             break;
           default:
             // Check if this is an MCP tool (prefixed with 'mcp_')
