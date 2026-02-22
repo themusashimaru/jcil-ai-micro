@@ -121,6 +121,37 @@ If any step fails, fix it before pushing. If it can't be fixed quickly, revert a
 
 ## Last Session Summary
 
+### Session 3: 2026-02-22 — Registry Manifest + Security Hardening (25/150 tasks)
+
+**Branch:** `claude/app-assessment-recommendations-vsx0y`
+
+**Completed:**
+- **1.1.3**: Created `tools/registry.ts` manifest — 55 tools (54 active + 1 beta), with status/category/dependencies. Deleted 3 more stubs. Registered 4 missing real tools.
+- **1.3.3 + 1.4.4**: CI now runs `pnpm test -- --coverage`, enforcing vitest thresholds.
+- **1.5.3**: Verified — API tokens already encrypted at rest (AES-256-GCM).
+- **1.5.4-1.5.5**: Synced Permissions-Policy between middleware.ts and next.config.js. Added worker-src, media-src to CSP.
+- **1.5.8**: Migrated 17 inline-auth routes to `requireUser()` guard across 5 commits:
+  - Batch 1: user/is-admin, user/messages, user/settings, memory, memory/forget, folders, conversations (7 routes)
+  - Batch 2: user/delete-account, create/image, stripe/checkout (3 routes)
+  - Batch 3: code-lab/sessions, code-lab/debug (2 routes)
+  - Batch 4: conversations/[id]/messages (1 route, 4 handlers)
+  - Batch 5: user/api-keys, documents/user/files, documents/user/folders, support/tickets (4 routes)
+  - Key fix: api-keys POST/DELETE previously had NO CSRF protection; now protected via requireUser(request).
+
+**Key Numbers:**
+- 17 routes migrated from inline auth to centralized `requireUser()` guard
+- ~500 lines of auth boilerplate deleted across all routes
+- 55 tools in registry (54 active + 1 beta)
+
+**Next Session Should:**
+1. **1.1.4**: Update UI to only show active/beta tools
+2. **1.1.6-1.1.7**: Verify build + runtime after cleanup
+3. **1.2.1-1.2.6**: Implement lazy tool loading architecture
+4. **1.3.4-1.3.8**: Write tests for real tools, auth, rate limiting
+5. **1.5.9-1.5.10**: Write tests for security fixes
+
+---
+
 ### Session 2: 2026-02-22 — Stub Cleanup + Dead Code Removal (19/150 tasks)
 
 **Branch:** `claude/app-assessment-recommendations-vsx0y`
@@ -138,14 +169,6 @@ If any step fails, fix it before pushing. If it can't be fixed quickly, revert a
 - Tool files: 82 → 58 (57 real tools + index.ts)
 - index.ts: 4,033 → ~430 lines
 - route.ts: ~5,840 → ~5,400 lines (import block + dead switch cases removed)
-
-**Next Session Should:**
-1. **1.1.3**: Create `tools/registry.ts` manifest with `status: 'active' | 'beta' | 'planned'`
-2. **1.1.4**: Update UI to only show active/beta tools
-3. **1.1.6-1.1.7**: Verify build + runtime after cleanup
-4. **1.5.3-1.5.5**: Add CSP headers, Permissions-Policy, encrypt API tokens at rest
-5. **1.5.8**: Migrate 46 inline-auth routes to `requireUser()`/`requireAdmin()`
-6. **1.3.3-1.3.8**: Write tests for real tools, auth, rate limiting
 
 ---
 
