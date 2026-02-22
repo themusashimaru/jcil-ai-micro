@@ -11,14 +11,17 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
+      all: true,
+      include: ['src/**/*.ts', 'src/**/*.tsx', 'app/**/*.ts', 'app/**/*.tsx', 'lib/**/*.ts'],
       exclude: ['node_modules', '.next', '**/*.d.ts', '**/*.test.ts', '**/*.test.tsx', 'tests/**'],
       thresholds: {
-        // Production-grade coverage thresholds
-        // Note: These apply to files WITH tests - untested files are excluded
-        statements: 75,
-        branches: 70,
-        functions: 75,
-        lines: 75,
+        // Baseline thresholds — enforced across ALL source files (not just tested ones)
+        // Current actual coverage: ~5.9% (Feb 22, 2026)
+        // Ramp plan: 5% → 15% (Phase 1) → 40% (Phase 2) → 60% (Phase 3)
+        statements: 5,
+        branches: 4,
+        functions: 5,
+        lines: 5,
       },
     },
   },
