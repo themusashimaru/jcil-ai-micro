@@ -104,6 +104,8 @@ const ChatItem = memo(
   }: ChatItemProps) {
     return (
       <div
+        role="listitem"
+        aria-current={isActive ? 'page' : undefined}
         className="group relative rounded-lg"
         style={{ backgroundColor: isActive ? 'var(--glass-bg)' : 'transparent' }}
       >
@@ -703,7 +705,7 @@ export function ChatSidebar({
         </div>
 
         {!isCollapsed && (
-          <div className="mt-1 space-y-1 pl-2">
+          <div className="mt-1 space-y-1 pl-2" role="list">
             {folderChats.map((chat) => renderChatItem(chat))}
           </div>
         )}
@@ -723,6 +725,8 @@ export function ChatSidebar({
 
       {/* Sidebar */}
       <aside
+        role="navigation"
+        aria-label="Chat history"
         className={`
           glass-morphism fixed md:relative inset-y-0 left-0 z-50
           transform transition-all duration-300 ease-in-out
@@ -840,7 +844,9 @@ export function ChatSidebar({
                 >
                   Pinned
                 </h3>
-                <div className="space-y-1">{pinnedChats.map((chat) => renderChatItem(chat))}</div>
+                <div className="space-y-1" role="list" aria-label="Pinned chats">
+                  {pinnedChats.map((chat) => renderChatItem(chat))}
+                </div>
               </div>
             )}
 
@@ -1125,7 +1131,14 @@ export function ChatSidebar({
             style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
             onClick={() => setShowFolderModal(false)}
           />
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingFolder ? 'Edit Folder' : 'New Folder'}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setShowFolderModal(false);
+            }}
             className="relative w-full max-w-sm rounded-2xl p-6"
             style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
           >

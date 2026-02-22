@@ -24,6 +24,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAgentMode } from '@/hooks/useAgentMode';
 import { logger } from '@/lib/logger';
+import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 
 const log = logger('ChatClient');
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
@@ -3447,39 +3448,80 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
         {/* Main chat area */}
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <ChatSidebar
-            chats={chats}
-            currentChatId={currentChatId}
-            collapsed={sidebarCollapsed}
-            loadError={conversationLoadError}
-            onNewChat={handleNewChat}
-            onSelectChat={handleSelectChat}
-            onRenameChat={handleRenameChat}
-            onDeleteChat={handleDeleteChat}
-            onPinChat={handlePinChat}
-            onMoveToFolder={handleMoveToFolder}
-            onSelectStrategySession={handleSelectStrategySession}
-          />
+          <ErrorBoundary
+            fallback={
+              <aside
+                className="w-72 md:w-80 p-4 flex items-center justify-center"
+                style={{ borderRight: '1px solid var(--border)' }}
+              >
+                <div className="text-center">
+                  <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    Sidebar unavailable
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-xs underline"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    Reload
+                  </button>
+                </div>
+              </aside>
+            }
+          >
+            <ChatSidebar
+              chats={chats}
+              currentChatId={currentChatId}
+              collapsed={sidebarCollapsed}
+              loadError={conversationLoadError}
+              onNewChat={handleNewChat}
+              onSelectChat={handleSelectChat}
+              onRenameChat={handleRenameChat}
+              onDeleteChat={handleDeleteChat}
+              onPinChat={handlePinChat}
+              onMoveToFolder={handleMoveToFolder}
+              onSelectStrategySession={handleSelectStrategySession}
+            />
+          </ErrorBoundary>
 
           {/* Chat thread area */}
           <main className="flex flex-1 flex-col overflow-hidden relative">
-            <ChatThread
-              messages={messages}
-              isStreaming={isStreaming}
-              currentChatId={currentChatId}
-              isAdmin={isAdmin}
-              documentType={pendingDocumentType}
-              onReply={handleReply}
-              enableCodeActions
-              lastUserMessage={lastUserMessage}
-              onQuickPrompt={handleQuickPrompt}
-              onCarouselSelect={handleCarouselSelect}
-              onRegenerateImage={handleRegenerateImage}
-              onActionSend={handleActionSend}
-              onActionEdit={handleActionEdit}
-              onActionCancel={handleActionCancel}
-              onFollowupSelect={handleFollowupSelect}
-            />
+            <ErrorBoundary
+              fallback={
+                <div className="flex-1 flex items-center justify-center p-8">
+                  <div className="text-center">
+                    <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      Failed to load messages
+                    </p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="text-xs underline"
+                      style={{ color: 'var(--primary)' }}
+                    >
+                      Reload chat
+                    </button>
+                  </div>
+                </div>
+              }
+            >
+              <ChatThread
+                messages={messages}
+                isStreaming={isStreaming}
+                currentChatId={currentChatId}
+                isAdmin={isAdmin}
+                documentType={pendingDocumentType}
+                onReply={handleReply}
+                enableCodeActions
+                lastUserMessage={lastUserMessage}
+                onQuickPrompt={handleQuickPrompt}
+                onCarouselSelect={handleCarouselSelect}
+                onRegenerateImage={handleRegenerateImage}
+                onActionSend={handleActionSend}
+                onActionEdit={handleActionEdit}
+                onActionCancel={handleActionCancel}
+                onFollowupSelect={handleFollowupSelect}
+              />
+            </ErrorBoundary>
             {/* Live To-Do List removed - user prefers simple agentic approach
                 The AI can manage its own tasks internally without showing a UI widget */}
             {/* Agent mode progress — shows live research/strategy activity */}
@@ -3511,60 +3553,77 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
               />
             )}
 
-            <ChatComposer
-              onSendMessage={handleSendMessage}
-              onStop={handleStop}
-              isStreaming={isStreaming}
-              disabled={isWaitingForReply}
-              replyingTo={replyingTo}
-              onClearReply={handleClearReply}
-              initialText={quickPromptText}
-              isAdmin={isAdmin}
-              activeAgent={getActiveAgent(modes)}
-              strategyLoading={strategy.loading}
-              deepResearchLoading={deepResearch.loading}
-              quickResearchLoading={quickResearch.loading}
-              quickStrategyLoading={quickStrategy.loading}
-              deepWriterLoading={deepWriter.loading}
-              quickWriterLoading={quickWriter.loading}
-              onAgentSelect={async (agent) => {
-                const modeId = agent as AgentModeId;
-                const mode = modes[modeId];
-                if (mode) {
-                  if (mode.isActive) {
-                    // Toggle off — cancel the active mode
-                    await cancelAgentMode(modeId);
-                  } else {
-                    // Exit all other modes, then start the selected one
+            <ErrorBoundary
+              fallback={
+                <div className="p-4 text-center" style={{ borderTop: '1px solid var(--border)' }}>
+                  <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    Composer failed to load
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-xs underline"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    Reload
+                  </button>
+                </div>
+              }
+            >
+              <ChatComposer
+                onSendMessage={handleSendMessage}
+                onStop={handleStop}
+                isStreaming={isStreaming}
+                disabled={isWaitingForReply}
+                replyingTo={replyingTo}
+                onClearReply={handleClearReply}
+                initialText={quickPromptText}
+                isAdmin={isAdmin}
+                activeAgent={getActiveAgent(modes)}
+                strategyLoading={strategy.loading}
+                deepResearchLoading={deepResearch.loading}
+                quickResearchLoading={quickResearch.loading}
+                quickStrategyLoading={quickStrategy.loading}
+                deepWriterLoading={deepWriter.loading}
+                quickWriterLoading={quickWriter.loading}
+                onAgentSelect={async (agent) => {
+                  const modeId = agent as AgentModeId;
+                  const mode = modes[modeId];
+                  if (mode) {
+                    if (mode.isActive) {
+                      // Toggle off — cancel the active mode
+                      await cancelAgentMode(modeId);
+                    } else {
+                      // Exit all other modes, then start the selected one
+                      await exitAllAgentModes();
+                      await startAgentMode(modeId);
+                    }
+                  } else if (agent === 'research') {
+                    // Legacy: exit all modes
                     await exitAllAgentModes();
-                    await startAgentMode(modeId);
                   }
-                } else if (agent === 'research') {
-                  // Legacy: exit all modes
-                  await exitAllAgentModes();
-                }
-              }}
-              openCreateImage={openCreateImage}
-              openEditImage={openEditImage}
-              onCloseCreateImage={() => setOpenCreateImage(false)}
-              onCloseEditImage={() => setOpenEditImage(false)}
-              onCreativeMode={(mode) => {
-                // All creative features now use natural chat flow with prompt pre-fill
-                if (mode === 'view-gallery') {
-                  // Gallery still uses modal for now
-                } else if (mode === 'create-image') {
-                  setQuickPromptText('Create an image of ');
-                } else if (mode === 'edit-image') {
-                  setQuickPromptText('Edit this image: ');
-                }
-              }}
-              // Provider selection - allows users to pick between Claude, xAI, DeepSeek, etc.
-              selectedProvider={selectedProvider}
-              onProviderChange={setSelectedProvider}
-              configuredProviders={configuredProviders}
-              conversationId={currentChatId || undefined}
-              onImageGenerated={handleImageGenerated}
-            />
+                }}
+                openCreateImage={openCreateImage}
+                openEditImage={openEditImage}
+                onCloseCreateImage={() => setOpenCreateImage(false)}
+                onCloseEditImage={() => setOpenEditImage(false)}
+                onCreativeMode={(mode) => {
+                  // All creative features now use natural chat flow with prompt pre-fill
+                  if (mode === 'view-gallery') {
+                    // Gallery still uses modal for now
+                  } else if (mode === 'create-image') {
+                    setQuickPromptText('Create an image of ');
+                  } else if (mode === 'edit-image') {
+                    setQuickPromptText('Edit this image: ');
+                  }
+                }}
+                // Provider selection - allows users to pick between Claude, xAI, DeepSeek, etc.
+                selectedProvider={selectedProvider}
+                onProviderChange={setSelectedProvider}
+                configuredProviders={configuredProviders}
+                conversationId={currentChatId || undefined}
+                onImageGenerated={handleImageGenerated}
+              />
+            </ErrorBoundary>
           </main>
         </div>
 
