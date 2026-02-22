@@ -15,47 +15,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { auditLog, getAuditContext } from '@/lib/audit';
 import { checkRequestRateLimit } from '@/lib/api/utils';
-import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('AccountDeletion');
 
 export const runtime = 'nodejs';
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  return { user, error, supabase };
-}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -74,19 +42,12 @@ function getSupabaseAdmin() {
  * DELETE - Request account deletion (GDPR Right to Erasure)
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF Protection - Critical for account deletion
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const { user, error: authError, supabase } = await getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     // Strict rate limiting - prevent abuse (3 requests per hour max)
-    const rateLimitResult = await checkRequestRateLimit(`delete-account:${user.id}`, {
+    const rateLimitResult = await checkRequestRateLimit(`delete-account:${auth.user.id}`, {
       limit: 3,
       windowMs: 3600_000,
     });
@@ -97,7 +58,7 @@ export async function DELETE(request: NextRequest) {
     const auditContext = getAuditContext(request);
     const adminClient = getSupabaseAdmin();
 
-    log.info('Account deletion requested', { userId: user.id });
+    log.info('Account deletion requested', { userId: auth.user.id });
 
     // Start deletion process
     const deletionTimestamp = new Date().toISOString();
@@ -107,7 +68,7 @@ export async function DELETE(request: NextRequest) {
     const { error: convError } = await adminClient
       .from('conversations')
       .update({ deleted_at: deletionTimestamp })
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .is('deleted_at', null);
 
     if (convError) {
@@ -118,7 +79,7 @@ export async function DELETE(request: NextRequest) {
     const { data: userConversations } = await adminClient
       .from('conversations')
       .select('id')
-      .eq('user_id', user.id);
+      .eq('user_id', auth.user.id);
 
     if (userConversations && userConversations.length > 0) {
       const conversationIds = userConversations.map((c) => c.id);
@@ -134,12 +95,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 3. Delete passkeys (these are personal credentials)
-    await adminClient.from('user_passkeys').delete().eq('user_id', user.id);
+    await adminClient.from('user_passkeys').delete().eq('user_id', auth.user.id);
 
     // 4. Delete user documents (RAG data)
-    await adminClient.from('user_document_chunks').delete().eq('user_id', user.id);
+    await adminClient.from('user_document_chunks').delete().eq('user_id', auth.user.id);
 
-    await adminClient.from('user_documents').delete().eq('user_id', user.id);
+    await adminClient.from('user_documents').delete().eq('user_id', auth.user.id);
 
     // 5. Clear external tokens (GitHub, Vercel)
     await adminClient
@@ -150,7 +111,7 @@ export async function DELETE(request: NextRequest) {
         vercel_token: null,
         vercel_team_id: null,
       })
-      .eq('id', user.id);
+      .eq('id', auth.user.id);
 
     // 6. Mark user for deletion and deactivate
     const { error: userUpdateError } = await adminClient
@@ -163,7 +124,7 @@ export async function DELETE(request: NextRequest) {
         avatar_url: null,
         // Keep email temporarily for recovery period, then purge
       })
-      .eq('id', user.id);
+      .eq('id', auth.user.id);
 
     if (userUpdateError) {
       log.error('Failed to mark user as deleted', { error: userUpdateError });
@@ -171,26 +132,26 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 7. Sign user out from all sessions
-    await supabase.auth.signOut({ scope: 'global' });
+    await auth.supabase.auth.signOut({ scope: 'global' });
 
     // 8. Audit log the deletion (kept for compliance - audit logs are never deleted)
     await auditLog({
       action: 'user.delete_account',
       resourceType: 'user',
-      resourceId: user.id,
-      userId: user.id,
+      resourceId: auth.user.id,
+      userId: auth.user.id,
       ipAddress: auditContext.ipAddress,
       userAgent: auditContext.userAgent,
       metadata: {
         scheduledPurgeDate,
-        email: user.email, // Kept in audit for compliance
+        email: auth.user.email,
         reason: 'user_requested',
       },
       status: 'success',
     });
 
     log.info('Account deletion completed', {
-      userId: user.id,
+      userId: auth.user.id,
       scheduledPurge: scheduledPurgeDate,
     });
 
@@ -215,18 +176,15 @@ export async function DELETE(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const { user, error: authError } = await getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     const adminClient = getSupabaseAdmin();
 
     const { data: userData } = await adminClient
       .from('users')
       .select('deleted_at, scheduled_purge_at')
-      .eq('id', user.id)
+      .eq('id', auth.user.id)
       .single();
 
     if (userData?.deleted_at) {

@@ -4,8 +4,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { createCheckoutSession, STRIPE_PRICE_IDS } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
@@ -16,7 +15,6 @@ import {
   checkRequestRateLimit,
   rateLimits,
 } from '@/lib/api/utils';
-import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('StripeCheckout');
 
@@ -24,52 +22,14 @@ const checkoutSchema = z.object({
   tier: z.enum(['plus', 'pro', 'executive']),
 });
 
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 export async function POST(request: NextRequest) {
-  // CSRF Protection - Critical for payment operations
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `stripe:checkout:${user.id}`,
+      `stripe:checkout:${auth.user.id}`,
       rateLimits.strict
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -93,10 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user details from database
-    const { data: userData, error: userError } = await supabase
+    const { data: userData, error: userError } = await auth.supabase
       .from('users')
       .select('email')
-      .eq('id', user.id)
+      .eq('id', auth.user.id)
       .single();
 
     if (userError || !userData) {
@@ -105,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
-    const session = await createCheckoutSession(user.id, priceId, tier, userData.email);
+    const session = await createCheckoutSession(auth.user.id, priceId, tier, userData.email);
 
     return successResponse({ sessionId: session.id, url: session.url });
   } catch (error) {
