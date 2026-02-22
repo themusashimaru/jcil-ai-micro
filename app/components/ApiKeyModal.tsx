@@ -237,6 +237,7 @@ export default function ApiKeyModal({
                 onClick={() => setShowKey(!showKey)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                 style={{ color: 'var(--text-muted)' }}
+                aria-label={showKey ? 'Hide API key' : 'Show API key'}
               >
                 {showKey ? (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

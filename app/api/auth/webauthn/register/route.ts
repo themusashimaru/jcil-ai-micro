@@ -234,7 +234,9 @@ export async function PUT(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || undefined,
       ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
       metadata: { deviceName, deviceType: credentialDeviceType, backedUp: credentialBackedUp },
-    }).catch(() => {});
+    }).catch((err: unknown) =>
+      log.error('auditLog failed', err instanceof Error ? err : undefined)
+    );
 
     return successResponse({
       success: true,

@@ -19,6 +19,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { DEFAULT_CLAUDE_MD_TEMPLATE } from '@/lib/workspace/memory-files';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 // ============================================
 // TYPES
@@ -304,7 +305,9 @@ export function CodeLabMemoryEditor({
       .replace(/<!--(.*?)-->/g, '<span class="preview-comment">&lt;!--$1--&gt;</span>')
       .replace(/\n/g, '<br />');
 
-    return <div className="preview-content" dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div className="preview-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />
+    );
   };
 
   return (

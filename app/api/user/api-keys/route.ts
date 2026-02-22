@@ -380,7 +380,9 @@ export async function POST(request: NextRequest) {
       resourceId: provider,
       ...auditCtx,
       metadata: { provider, hasCustomModel: !!providerConfig.model },
-    }).catch(() => {});
+    }).catch((err: unknown) =>
+      log.error('auditLog failed', err instanceof Error ? err : undefined)
+    );
 
     return NextResponse.json({
       success: true,
@@ -485,7 +487,9 @@ export async function DELETE(request: NextRequest) {
       resourceId: provider,
       ...auditCtx,
       metadata: { provider },
-    }).catch(() => {});
+    }).catch((err: unknown) =>
+      log.error('auditLog failed', err instanceof Error ? err : undefined)
+    );
 
     return NextResponse.json({
       success: true,

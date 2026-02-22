@@ -214,7 +214,9 @@ export async function POST(request: NextRequest) {
         action: 'conversation.create',
         resourceType: 'conversation',
         resourceId: conversation?.id,
-      }).catch(() => {});
+      }).catch((err: unknown) =>
+        log.error('auditLog failed', err instanceof Error ? err : undefined)
+      );
 
       return successResponse({ conversation });
     }

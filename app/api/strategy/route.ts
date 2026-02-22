@@ -843,7 +843,9 @@ async function handleStart(
         })
         .eq('session_id', sessionId)
         .then(() => {})
-        .catch(() => {});
+        .catch((err: unknown) =>
+          log.error('strategy session update failed', err instanceof Error ? err : undefined)
+        );
     }
   };
 

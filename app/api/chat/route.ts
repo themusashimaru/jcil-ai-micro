@@ -2410,7 +2410,9 @@ export async function POST(request: NextRequest) {
           typeof lastUserMsg.content === 'string'
             ? lastUserMsg.content
             : JSON.stringify(lastUserMsg.content);
-        observeAndLearn(rateLimitIdentifier, msgText).catch(() => {});
+        observeAndLearn(rateLimitIdentifier, msgText).catch((err: unknown) =>
+          log.error('observeAndLearn failed', err instanceof Error ? err : undefined)
+        );
       }
     }
 
@@ -3173,8 +3175,12 @@ export async function POST(request: NextRequest) {
             outputTokens: result.usage.outputTokens,
             source: 'chat-document',
             conversationId: conversationId,
-          }).catch(() => {});
-          incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
+          }).catch((err: unknown) =>
+            log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+          );
+          incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch((err: unknown) =>
+            log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+          );
         }
 
         // Extract JSON from response
@@ -3384,8 +3390,13 @@ If information is missing, make reasonable professional assumptions or leave opt
               outputTokens: extractionResult.usage.outputTokens,
               source: 'chat-resume',
               conversationId: conversationId,
-            }).catch(() => {});
-            incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
+            }).catch((err: unknown) =>
+              log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+            );
+            incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(
+              (err: unknown) =>
+                log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+            );
           }
 
           // Parse the extracted data
@@ -3506,8 +3517,13 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
               outputTokens: usage.outputTokens,
               source: 'chat-resume',
               conversationId: conversationId,
-            }).catch(() => {});
-            incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
+            }).catch((err: unknown) =>
+              log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+            );
+            incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(
+              (err: unknown) =>
+                log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+            );
           },
         });
 
@@ -3687,8 +3703,13 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
                 outputTokens: result.usage.outputTokens,
                 source: 'chat-document',
                 conversationId: conversationId,
-              }).catch(() => {});
-              incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});
+              }).catch((err: unknown) =>
+                log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+              );
+              incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(
+                (err: unknown) =>
+                  log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+              );
             }
 
             // Extract JSON from response
@@ -5682,7 +5703,9 @@ SECURITY:
           outputTokens: usage.outputTokens,
           source: 'chat',
           conversationId: conversationId,
-        }).catch(() => {}); // Already handles errors internally
+        }).catch((err: unknown) =>
+          log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+        );
 
         // Fire-and-forget: increment token budget (enforces plan limits)
         incrementTokenUsage(rateLimitIdentifier, userPlanKey, totalTokens).catch(() => {});

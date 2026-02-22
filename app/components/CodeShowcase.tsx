@@ -26,7 +26,8 @@ const CODE_EXAMPLES: CodeExample[] = [
     id: 'execution',
     title: 'Live Code Execution',
     icon: '⚡',
-    userPrompt: 'Calculate the compound interest on a $10,000 investment at 7% annual rate over 30 years with monthly compounding. Show me the growth chart.',
+    userPrompt:
+      'Calculate the compound interest on a $10,000 investment at 7% annual rate over 30 years with monthly compounding. Show me the growth chart.',
     aiResponse: `I'll calculate this using Python and show you exactly how your investment grows:`,
     language: 'python',
     codeOutput: `# Compound Interest Calculator with Visualization
@@ -89,7 +90,8 @@ print("Return: 711.6%")
     id: 'fullstack',
     title: 'Full-Stack App Generation',
     icon: '🚀',
-    userPrompt: 'Build me a React dashboard with a dark theme that shows sales metrics, has animated charts, and a sidebar navigation',
+    userPrompt:
+      'Build me a React dashboard with a dark theme that shows sales metrics, has animated charts, and a sidebar navigation',
     aiResponse: `I'll create a complete React dashboard for you with all those features. Here's the implementation:`,
     language: 'tsx',
     codeOutput: `// Dashboard.tsx
@@ -183,7 +185,8 @@ export default function Dashboard() {
     id: 'debug',
     title: 'Intelligent Debugging',
     icon: '🔍',
-    userPrompt: 'My React app crashes when I click the submit button. Here\'s the error: "Cannot read property \'map\' of undefined" in UserList.jsx line 12',
+    userPrompt:
+      "My React app crashes when I click the submit button. Here's the error: \"Cannot read property 'map' of undefined\" in UserList.jsx line 12",
     aiResponse: `I can see the issue! The error occurs because \`users\` is undefined when the component first renders. Here's the fix:
 
 **Problem:** You're trying to map over \`users\` before the data loads.
@@ -234,7 +237,8 @@ function UserList() {
     id: 'api',
     title: 'API Integration',
     icon: '🔌',
-    userPrompt: 'Create a TypeScript function that fetches weather data, handles errors gracefully, implements caching, and has proper types',
+    userPrompt:
+      'Create a TypeScript function that fetches weather data, handles errors gracefully, implements caching, and has proper types',
     aiResponse: `Here's a production-ready weather API client with caching, error handling, and full TypeScript types:`,
     language: 'typescript',
     codeOutput: `// weather-client.ts
@@ -318,7 +322,8 @@ export async function getWeather(
     id: 'refactor',
     title: 'Code Refactoring',
     icon: '✨',
-    userPrompt: 'Refactor this messy function to be cleaner and more maintainable:\n\nfunction processOrder(o) { if(o.items.length>0){let t=0;for(let i=0;i<o.items.length;i++){t+=o.items[i].price*o.items[i].qty}if(o.coupon){if(o.coupon.type=="percent"){t=t-(t*o.coupon.value/100)}else{t=t-o.coupon.value}}if(t<0)t=0;return{total:t,items:o.items.length}} return null}',
+    userPrompt:
+      'Refactor this messy function to be cleaner and more maintainable:\n\nfunction processOrder(o) { if(o.items.length>0){let t=0;for(let i=0;i<o.items.length;i++){t+=o.items[i].price*o.items[i].qty}if(o.coupon){if(o.coupon.type=="percent"){t=t-(t*o.coupon.value/100)}else{t=t-o.coupon.value}}if(t<0)t=0;return{total:t,items:o.items.length}} return null}',
     aiResponse: `Here's the refactored version with proper typing, separation of concerns, and clear logic:`,
     language: 'typescript',
     codeOutput: `// types.ts
@@ -394,7 +399,8 @@ const result = processOrder({
     id: 'database',
     title: 'Database Schema Design',
     icon: '🗃️',
-    userPrompt: 'Design a database schema for a SaaS app with multi-tenant support, subscription billing, and user roles',
+    userPrompt:
+      'Design a database schema for a SaaS app with multi-tenant support, subscription billing, and user roles',
     aiResponse: `Here's a complete PostgreSQL schema with multi-tenancy, RLS policies, and Stripe integration:`,
     language: 'sql',
     codeOutput: `-- Enable UUID extension
@@ -496,9 +502,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
         {language}
       </div>
       <pre className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-sm">
-        <code className="text-slate-300 font-mono whitespace-pre">
-          {code}
-        </code>
+        <code className="text-slate-300 font-mono whitespace-pre">{code}</code>
       </pre>
     </div>
   );
@@ -559,8 +563,18 @@ export default function CodeShowcase() {
           <div className="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700/50">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                  />
                 </svg>
               </div>
               <div>
@@ -614,9 +628,17 @@ export default function CodeShowcase() {
               <div className="flex-1 bg-slate-700/50 rounded-xl px-4 py-2.5 text-slate-400 text-sm">
                 Describe what you want to build...
               </div>
-              <button className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-500 transition">
+              <button
+                className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-500 transition"
+                aria-label="Send message"
+              >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
                 </svg>
               </button>
             </div>

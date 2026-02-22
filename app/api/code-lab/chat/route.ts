@@ -1619,7 +1619,9 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
     }
 
     // Fire-and-forget: observe current message for learning signals
-    observeAndLearn(user.id, content).catch(() => {});
+    observeAndLearn(user.id, content).catch((err: unknown) =>
+      log.error('observeAndLearn failed', err instanceof Error ? err : undefined)
+    );
 
     // ========================================
     // RAG - Document Context
@@ -2387,11 +2389,15 @@ Rules:
             cachedInputTokens: cacheReadTokens,
             source: 'code-lab',
             conversationId: sessionId,
-          }).catch(() => {});
+          }).catch((err: unknown) =>
+            log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+          );
 
           // Enforce token budget limits (parity with main chat route)
           const totalTokens = (inputTokens || 0) + (outputTokens || 0);
-          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch(() => {});
+          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch((err: unknown) =>
+            log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+          );
 
           // Save assistant message
           await (supabase.from('code_lab_messages') as AnySupabase).insert({
