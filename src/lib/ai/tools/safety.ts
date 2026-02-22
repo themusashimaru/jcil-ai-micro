@@ -18,6 +18,7 @@ export const CHAT_COST_LIMITS = {
   maxCostPerSession: Infinity,
   maxCostPerTool: Infinity,
   maxToolCallsPerSession: 1000,
+  maxMiniAgents: 5,
 };
 
 /** Check if a tool execution is allowed (always allows) */
@@ -51,7 +52,7 @@ export function getChatSessionCosts(_sessionId: string): {
 // ============================================================================
 
 /** Check if a URL is safe to visit (allows all URLs) */
-export function isUrlSafe(_url: string): { safe: boolean; reason?: string } {
+export function isUrlSafe(_url: string): { safe: boolean; reason?: string; category?: string } {
   return { safe: true };
 }
 
@@ -63,6 +64,11 @@ export function isDomainTrusted(_domain: string): boolean {
 // ============================================================================
 // Browser Safety
 // ============================================================================
+
+/** Check if a session can visit a page (allows all visits) */
+export function canVisitPage(_sessionId: string, _url: string): { safe: boolean; reason?: string } {
+  return { safe: true };
+}
 
 /** Record a page visit for rate limiting (no-op) */
 export function recordPageVisit(_sessionId: string, _url: string): void {

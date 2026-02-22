@@ -104,11 +104,22 @@ export async function POST(request: NextRequest) {
 
     if (id) {
       // Update existing conversation
+      type ToolContext =
+        | 'general'
+        | 'email'
+        | 'study'
+        | 'research'
+        | 'code'
+        | 'image'
+        | 'video'
+        | 'sms'
+        | 'scripture'
+        | null;
       const { data: conversation, error } = await auth.supabase
         .from('conversations')
         .update({
           title,
-          tool_context,
+          tool_context: (tool_context as ToolContext) ?? undefined,
           summary,
           updated_at: new Date().toISOString(),
         })
@@ -125,12 +136,22 @@ export async function POST(request: NextRequest) {
       return successResponse({ conversation });
     } else {
       // Create new conversation
+      type ToolCtx =
+        | 'general'
+        | 'email'
+        | 'study'
+        | 'research'
+        | 'code'
+        | 'image'
+        | 'video'
+        | 'sms'
+        | 'scripture';
       const { data: conversation, error } = await auth.supabase
         .from('conversations')
         .insert({
           user_id: auth.user.id,
           title: title || 'New Chat',
-          tool_context: tool_context || 'general',
+          tool_context: (tool_context as ToolCtx) || 'general',
           summary: summary || null,
           has_memory: true,
           message_count: 0,

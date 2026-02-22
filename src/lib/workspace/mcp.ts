@@ -708,7 +708,7 @@ class MCPManager {
         return;
       }
 
-      for (const row of (data || []) as MCPServerRow[]) {
+      for (const row of (data || []) as unknown as MCPServerRow[]) {
         const config: MCPServerConfig = {
           id: row.server_id,
           name: row.name || row.server_id,

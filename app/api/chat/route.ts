@@ -4194,15 +4194,11 @@ SECURITY:
               log.warn('QC check failed', {
                 tool: toolName,
                 issues: qcResult.issues,
-                confidence: qcResult.confidence,
               });
               // Append QC warning to output (don't fail the result)
               result.content += `\n\n⚠️ Quality check: ${qcResult.issues.join(', ')}`;
             } else {
-              log.debug('QC check passed', {
-                tool: toolName,
-                confidence: qcResult.confidence,
-              });
+              log.debug('QC check passed', { tool: toolName });
             }
           } catch (qcError) {
             log.warn('QC check error', { error: (qcError as Error).message });

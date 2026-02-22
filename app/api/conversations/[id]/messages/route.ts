@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
+import type { Json } from '@/lib/supabase/types';
 import {
   successResponse,
   errors,
@@ -92,13 +93,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id: conversationId } = await params;
 
     // Rate limiting
-    const rateLimitResult = await checkRequestRateLimit(`messages:${auth.user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `messages:${auth.user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const contentType = request.headers.get('content-type') || '';
 
     // Variables to hold parsed data
-    let role = 'user';
+    let role: 'user' | 'assistant' | 'system' = 'user';
     let content = '';
     let content_type_field = 'text';
     let model_used: string | null = null;
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let image_url: string | null = null;
     let prompt: string | null = null;
     let type = 'text';
-    let metadata: Record<string, unknown> | null = null;
+    let metadata: Json | null = null;
 
     // Handle multipart/form-data (file uploads)
     if (contentType.includes('multipart/form-data')) {
@@ -130,7 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Extract role
       const roleValue = (formData.get('role') as string | null) ?? 'user';
-      if (['user', 'system', 'assistant'].includes(roleValue)) {
+      if (roleValue === 'user' || roleValue === 'assistant' || roleValue === 'system') {
         role = roleValue;
       }
 
@@ -208,7 +212,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       prompt = body.prompt || null;
       type = body.type;
       attachment_urls = body.attachment_urls || [];
-      metadata = body.metadata || null;
+      metadata = (body.metadata as Json) || null;
     }
 
     // Normalize content: handle different message types
@@ -263,7 +267,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         user_id: auth.user.id,
         role,
         content: normalizedContent,
-        content_type: type === 'image' ? 'image' : content_type_field,
+        content_type: (type === 'image' ? 'image' : content_type_field) as
+          | 'text'
+          | 'image'
+          | 'code'
+          | 'error',
         model_used,
         temperature,
         tokens_used,
