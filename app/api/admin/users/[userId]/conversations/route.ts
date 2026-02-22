@@ -6,9 +6,21 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import {
+  uuidSchema,
+  adminEarningsQuerySchema,
+  validateQuery,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('AdminUserConversationsAPI');
 
@@ -28,9 +40,11 @@ function getSupabaseAdmin() {
 
 export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    // Require admin authentication
+    // Require admin authentication + view conversations permission
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+    const perm = checkPermission(auth, 'can_view_conversations');
+    if (!perm.allowed) return perm.response;
 
     // Rate limit by admin
     const rateLimitResult = await checkRequestRateLimit(
@@ -40,11 +54,22 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { userId } = params;
-    const { searchParams } = new URL(request.url);
 
-    // Optional date filtering
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    // Validate userId format
+    const userIdResult = uuidSchema.safeParse(userId);
+    if (!userIdResult.success) {
+      return errors.badRequest('Invalid user ID format');
+    }
+
+    // Validate query params
+    const { searchParams } = new URL(request.url);
+    const validation = validateQuery(adminEarningsQuerySchema, searchParams);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
+    const { startDate, endDate } = validation.data;
 
     const supabase = getSupabaseAdmin();
 
@@ -89,6 +114,7 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/users/[userId]/conversations');
     return errors.serverError();
   }
 }

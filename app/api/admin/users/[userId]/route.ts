@@ -6,9 +6,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import { uuidSchema } from '@/lib/validation/schemas';
 
 const log = logger('AdminUserAPI');
 
@@ -28,9 +35,11 @@ function getSupabaseAdmin() {
 
 export async function GET(_request: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    // Require admin authentication
+    // Require admin authentication + view users permission
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+    const perm = checkPermission(auth, 'can_view_users');
+    if (!perm.allowed) return perm.response;
 
     // Rate limit by admin
     const rateLimitResult = await checkRequestRateLimit(
@@ -40,6 +49,13 @@ export async function GET(_request: NextRequest, { params }: { params: { userId:
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { userId } = params;
+
+    // Validate userId format
+    const userIdResult = uuidSchema.safeParse(userId);
+    if (!userIdResult.success) {
+      return errors.badRequest('Invalid user ID format');
+    }
+
     const supabase = getSupabaseAdmin();
 
     // Fetch single user by ID
@@ -106,6 +122,7 @@ export async function GET(_request: NextRequest, { params }: { params: { userId:
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/users/[userId]');
     return errors.serverError();
   }
 }

@@ -11,7 +11,18 @@ import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 import { sanitizePostgrestInput } from '@/lib/security/postgrest';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import {
+  adminTicketsListSchema,
+  validateQuery,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('AdminSupportAPI');
 
@@ -45,16 +56,24 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
 
-    // Parse filters
-    const source = searchParams.get('source'); // 'internal' | 'external'
-    const category = searchParams.get('category');
-    const status = searchParams.get('status');
-    const isRead = searchParams.get('is_read');
-    const isStarred = searchParams.get('is_starred');
-    const isArchived = searchParams.get('is_archived') || 'false';
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(100, parseInt(searchParams.get('limit') || '50', 10));
+    // Validate query params with Zod
+    const validation = validateQuery(adminTicketsListSchema, searchParams);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
+    const {
+      source,
+      category,
+      status,
+      is_read: isRead,
+      is_starred: isStarred,
+      is_archived: isArchived,
+      search,
+      page,
+      limit,
+    } = validation.data;
     const offset = (page - 1) * limit;
 
     // Build query
@@ -142,6 +161,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/support/tickets');
     return errors.serverError();
   }
 }

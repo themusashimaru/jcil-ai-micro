@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { captureAPIError } from '@/lib/api/utils';
+import {
+  adminEarningsQuerySchema,
+  validateQuery,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('EarningsExcelExportAPI');
 
@@ -27,16 +33,23 @@ function getSupabaseAdmin() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Require admin authentication
+    // Require admin authentication + export permission
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+    const perm = checkPermission(auth, 'can_export_data');
+    if (!perm.allowed) return perm.response;
 
     const supabase = getSupabaseAdmin();
 
-    // Parse query parameters
+    // Parse and validate query parameters
     const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const validation = validateQuery(adminEarningsQuerySchema, searchParams);
+    if (!validation.success) {
+      return NextResponse.json(validationErrorResponse(validation.error, validation.details), {
+        status: 400,
+      });
+    }
+    const { startDate, endDate } = validation.data;
 
     // Fetch earnings data (simplified version - reuse logic from main earnings endpoint)
     const { data: users } = await supabase
@@ -224,6 +237,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Error generating Excel export:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/earnings/export/excel');
     return NextResponse.json({ error: 'Failed to generate export' }, { status: 500 });
   }
 }

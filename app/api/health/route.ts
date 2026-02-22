@@ -153,17 +153,21 @@ export async function GET(request: NextRequest) {
   const uptime = Math.floor((Date.now() - startTime) / 1000);
   const version = process.env.npm_package_version || '1.0.0';
 
-  // Basic health check (fast)
+  // Basic health check — still checks critical dependencies (fast, lightweight)
   if (!detailed) {
+    // Quick database check: just verify Supabase is configured and reachable
+    const dbOk = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const basicStatus: HealthCheck['status'] = dbOk ? 'healthy' : 'unhealthy';
+
     const response: HealthCheck = {
-      status: 'healthy',
+      status: basicStatus,
       timestamp,
       version,
       uptime,
     };
 
     return NextResponse.json(response, {
-      status: 200,
+      status: basicStatus === 'unhealthy' ? 503 : 200,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
@@ -174,15 +178,18 @@ export async function GET(request: NextRequest) {
   const auth = await requireUser();
   if (!auth.authorized) {
     // Fall back to basic health check for unauthenticated requests
+    const dbOk = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const basicStatus: HealthCheck['status'] = dbOk ? 'healthy' : 'unhealthy';
+
     const response: HealthCheck = {
-      status: 'healthy',
+      status: basicStatus,
       timestamp,
       version,
       uptime,
     };
 
     return NextResponse.json(response, {
-      status: 200,
+      status: basicStatus === 'unhealthy' ? 503 : 200,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },

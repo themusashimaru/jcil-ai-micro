@@ -2,7 +2,18 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import {
+  adminEarningsQuerySchema,
+  validateQuery,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('AdminEarningsAPI');
 
@@ -43,10 +54,15 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Parse query parameters
+    // Parse and validate query parameters
     const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const validation = validateQuery(adminEarningsQuerySchema, searchParams);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
+    const { startDate, endDate } = validation.data;
 
     // 1. Get total users by subscription tier
     const { data: usersByTier, error: usersError } = await supabase
@@ -284,6 +300,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Error calculating earnings', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/earnings');
     return errors.serverError();
   }
 }

@@ -435,9 +435,10 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
                       style={{
                         position: 'relative',
                         display: 'inline-block',
-                        width: '44px',
-                        height: '24px',
+                        width: '52px',
+                        height: '28px',
                         cursor: 'pointer',
+                        flexShrink: 0,
                       }}
                     >
                       <input
@@ -451,17 +452,17 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
                           position: 'absolute',
                           inset: 0,
                           backgroundColor: server.enabled ? '#22c55e' : '#444',
-                          borderRadius: '12px',
+                          borderRadius: '14px',
                           transition: 'background-color 0.2s',
                         }}
                       >
                         <span
                           style={{
                             position: 'absolute',
-                            left: server.enabled ? '22px' : '2px',
+                            left: server.enabled ? '26px' : '2px',
                             top: '2px',
-                            width: '20px',
-                            height: '20px',
+                            width: '24px',
+                            height: '24px',
                             backgroundColor: 'white',
                             borderRadius: '50%',
                             transition: 'left 0.2s',

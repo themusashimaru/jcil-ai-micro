@@ -48,14 +48,14 @@ export const SuggestedFollowups = memo(function SuggestedFollowups({
             fontSize: '13px',
             lineHeight: '1.4',
             borderRadius: '18px',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)'}`,
             backgroundColor:
               selected === suggestion
                 ? isDark
                   ? 'rgba(255,255,255,0.15)'
                   : 'rgba(0,0,0,0.08)'
                 : 'transparent',
-            color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
+            color: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.6)',
             cursor: disabled || selected ? 'default' : 'pointer',
             opacity: selected && selected !== suggestion ? 0.4 : 1,
             transition: 'all 0.2s ease',
@@ -76,9 +76,9 @@ export const SuggestedFollowups = memo(function SuggestedFollowups({
           onMouseLeave={(e) => {
             if (!disabled && !selected) {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+              e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.6)';
               e.currentTarget.style.borderColor = isDark
-                ? 'rgba(255,255,255,0.12)'
+                ? 'rgba(255,255,255,0.2)'
                 : 'rgba(0,0,0,0.12)';
             }
           }}

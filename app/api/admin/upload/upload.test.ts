@@ -21,7 +21,17 @@ vi.mock('@/lib/auth/admin-guard', () => ({
   requireAdmin: vi.fn().mockResolvedValue({
     authorized: true,
     user: { id: 'admin-user-id', email: 'admin@example.com' },
-    adminUser: { id: 'admin-123' },
+    adminUser: {
+      id: 'admin-123',
+      permissions: {
+        can_view_users: true,
+        can_edit_users: true,
+        can_view_conversations: true,
+        can_export_data: true,
+        can_manage_subscriptions: true,
+        can_ban_users: true,
+      },
+    },
   }),
 }));
 
@@ -262,7 +272,17 @@ describe('Admin Authentication', () => {
     vi.mocked(requireAdmin).mockResolvedValue({
       authorized: true,
       user: { id: 'admin-user-id', email: 'admin@example.com' },
-      adminUser: { id: 'admin-123' },
+      adminUser: {
+        id: 'admin-123',
+        permissions: {
+          can_view_users: true,
+          can_edit_users: true,
+          can_view_conversations: true,
+          can_export_data: true,
+          can_manage_subscriptions: true,
+          can_ban_users: true,
+        },
+      },
     });
   });
 
@@ -291,7 +311,17 @@ describe('Admin Authentication', () => {
     vi.mocked(requireAdmin).mockResolvedValue({
       authorized: true,
       user: { id: 'admin-user-id', email: 'admin@example.com' },
-      adminUser: { id: 'admin-123' },
+      adminUser: {
+        id: 'admin-123',
+        permissions: {
+          can_view_users: true,
+          can_edit_users: true,
+          can_view_conversations: true,
+          can_export_data: true,
+          can_manage_subscriptions: true,
+          can_ban_users: true,
+        },
+      },
     });
   });
 });

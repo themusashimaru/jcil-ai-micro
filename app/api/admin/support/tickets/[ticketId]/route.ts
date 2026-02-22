@@ -9,7 +9,20 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import {
+  uuidSchema,
+  adminTicketPatchSchema,
+  adminTicketReplySchema,
+  validateBody,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('AdminTicketAPI');
 
@@ -104,6 +117,7 @@ export async function GET(_request: NextRequest, { params }: { params: { ticketI
     });
   } catch (error) {
     log.error('[Admin Support API] Error:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/support/tickets/[ticketId]');
     return errors.serverError();
   }
 }
@@ -125,24 +139,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { ticket
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { ticketId } = params;
-    const body = await request.json();
 
-    const allowedFields = ['status', 'priority', 'is_starred', 'is_archived', 'assigned_to'];
-    const updates: Record<string, unknown> = {};
-
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates[field] = body[field];
-      }
+    // Validate ticketId
+    const ticketIdResult = uuidSchema.safeParse(ticketId);
+    if (!ticketIdResult.success) {
+      return errors.badRequest('Invalid ticket ID format');
     }
+
+    const body = await request.json();
+    const validation = validateBody(adminTicketPatchSchema, body);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
+
+    const updates: Record<string, unknown> = { ...validation.data };
 
     // Set resolved_at when status changes to resolved or closed
-    if (body.status === 'resolved' || body.status === 'closed') {
+    if (validation.data.status === 'resolved' || validation.data.status === 'closed') {
       updates.resolved_at = new Date().toISOString();
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return errors.badRequest('No valid fields to update');
     }
 
     const supabase = getSupabaseAdmin();
@@ -166,6 +182,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { ticket
     return successResponse({ ticket, success: true });
   } catch (error) {
     log.error('[Admin Support API] Error:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/support/tickets/[ticketId]');
     return errors.serverError();
   }
 }
@@ -187,12 +204,21 @@ export async function POST(request: NextRequest, { params }: { params: { ticketI
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { ticketId } = params;
-    const body = await request.json();
-    const { message, isInternalNote, deliveryMethod } = body;
 
-    if (!message?.trim()) {
-      return errors.badRequest('Message is required');
+    // Validate ticketId
+    const ticketIdResult = uuidSchema.safeParse(ticketId);
+    if (!ticketIdResult.success) {
+      return errors.badRequest('Invalid ticket ID format');
     }
+
+    const body = await request.json();
+    const validation = validateBody(adminTicketReplySchema, body);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
+    const { message, isInternalNote, deliveryMethod } = validation.data;
 
     const supabase = getSupabaseAdmin();
 
@@ -269,6 +295,7 @@ export async function POST(request: NextRequest, { params }: { params: { ticketI
     return successResponse({ reply, success: true });
   } catch (error) {
     log.error('[Admin Support API] Error:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/support/tickets/[ticketId]');
     return errors.serverError();
   }
 }

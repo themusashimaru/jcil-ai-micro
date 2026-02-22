@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { captureAPIError } from '@/lib/api/utils';
+import {
+  adminReportGenerateSchema,
+  validateBody,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('EarningsReportAPI');
 
@@ -25,12 +31,6 @@ function getSupabaseAdmin() {
   });
 }
 
-interface ReportParams {
-  reportType: 'daily' | 'monthly' | 'quarterly' | 'half-yearly' | 'yearly';
-  startDate?: string;
-  endDate?: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
     // Require admin authentication with CSRF validation
@@ -39,13 +39,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Parse request body
-    const body = (await request.json()) as ReportParams;
-    const { reportType, startDate, endDate } = body;
-
-    if (!reportType) {
-      return NextResponse.json({ error: 'Report type is required' }, { status: 400 });
+    // Parse and validate request body
+    const body = await request.json();
+    const validation = validateBody(adminReportGenerateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(validationErrorResponse(validation.error, validation.details), {
+        status: 400,
+      });
     }
+    const { reportType, startDate, endDate } = validation.data;
 
     // Calculate date range if not provided
     let calculatedStartDate = startDate;
@@ -285,6 +287,7 @@ Format the report professionally with clear sections, bullet points where approp
     });
   } catch (error) {
     log.error('Error generating report:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/earnings/generate-report');
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }

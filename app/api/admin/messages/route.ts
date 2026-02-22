@@ -6,9 +6,22 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  captureAPIError,
+} from '@/lib/api/utils';
+import {
+  adminMessageSchema,
+  paginationSchema,
+  validateBody,
+  validateQuery,
+  validationErrorResponse,
+} from '@/lib/validation/schemas';
 
 const log = logger('AdminMessages');
 
@@ -26,18 +39,7 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const VALID_MESSAGE_TYPES = [
-  'general',
-  'account',
-  'feature',
-  'maintenance',
-  'promotion',
-  'support_response',
-  'welcome',
-  'warning',
-];
-
-const VALID_PRIORITIES = ['low', 'normal', 'high', 'urgent'];
+// Message types and priorities are now validated by Zod (adminMessageSchema)
 const VALID_TIERS = ['free', 'basic', 'pro', 'executive', 'all'];
 
 /**
@@ -57,8 +59,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const paginationResult = validateQuery(paginationSchema, searchParams);
+    if (!paginationResult.success) {
+      return errors.badRequest(
+        validationErrorResponse(paginationResult.error, paginationResult.details).message
+      );
+    }
+    const { page, limit } = paginationResult.data;
     const offset = (page - 1) * limit;
 
     // Get messages
@@ -131,6 +138,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/messages');
     return errors.serverError();
   }
 }
@@ -142,6 +150,8 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
+    const perm = checkPermission(auth, 'can_edit_users');
+    if (!perm.allowed) return perm.response;
 
     // Rate limit by admin - strict for sending messages
     const rateLimitResult = await checkRequestRateLimit(
@@ -163,30 +173,23 @@ export async function POST(request: NextRequest) {
     const adminId = auth.adminUser.id;
 
     const body = await request.json();
+    const validation = validateBody(adminMessageSchema, body);
+    if (!validation.success) {
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
+    }
     const {
-      recipient_type, // 'individual' or 'broadcast'
-      recipient_user_id, // For individual messages
-      recipient_email, // Alternative way to specify individual
-      recipient_tier, // For broadcasts: 'free', 'basic', 'pro', 'executive', 'all'
+      recipient_type,
+      recipient_user_id,
+      recipient_email,
+      recipient_tier,
       subject,
       message,
-      message_type = 'general',
-      priority = 'normal',
+      message_type,
+      priority,
       expires_at,
-    } = body;
-
-    // Validate required fields
-    if (!subject?.trim() || !message?.trim()) {
-      return errors.badRequest('Subject and message are required');
-    }
-
-    if (!VALID_MESSAGE_TYPES.includes(message_type)) {
-      return errors.badRequest('Invalid message type');
-    }
-
-    if (!VALID_PRIORITIES.includes(priority)) {
-      return errors.badRequest('Invalid priority');
-    }
+    } = validation.data;
 
     let finalRecipientUserId: string | null = null;
     let finalRecipientTier: string | null = null;
@@ -289,6 +292,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
+    captureAPIError(error, '/api/admin/messages');
     return errors.serverError();
   }
 }

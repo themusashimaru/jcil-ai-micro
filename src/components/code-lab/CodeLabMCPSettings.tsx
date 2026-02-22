@@ -202,24 +202,25 @@ function ToggleSwitch({
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
       style={{
-        width: 40,
-        height: 22,
-        borderRadius: 11,
+        width: 52,
+        height: 28,
+        borderRadius: 14,
         border: 'none',
         background: checked ? '#1e3a5f' : '#d1d5db',
         cursor: disabled ? 'not-allowed' : 'pointer',
         position: 'relative',
         transition: 'background 0.2s ease',
         opacity: disabled ? 0.5 : 1,
+        flexShrink: 0,
       }}
     >
       <span
         style={{
           position: 'absolute',
           top: 2,
-          left: checked ? 20 : 2,
-          width: 18,
-          height: 18,
+          left: checked ? 26 : 2,
+          width: 24,
+          height: 24,
           borderRadius: '50%',
           background: 'white',
           boxShadow: '0 1px 3px rgba(0,0,0,0.2)',

@@ -11,8 +11,7 @@ const log = logger('Redis');
 
 // Check if Redis is configured
 const isRedisConfigured = !!(
-  process.env.UPSTASH_REDIS_REST_URL &&
-  process.env.UPSTASH_REDIS_REST_TOKEN
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
 );
 
 // Only create client if configured
@@ -93,10 +92,18 @@ export async function cacheDeletePattern(pattern: string): Promise<boolean> {
 /**
  * Check rate limit using sliding window
  * Returns true if within limit, false if exceeded
- * SECURITY: Fails closed - returns false if Redis unavailable (deny by default)
+ * RESILIENCE: Fails open - returns true if Redis unavailable (allow by default)
+ * Blocking all users is worse than temporarily losing rate limiting
  */
-export async function checkRateLimit(key: string, limit: number, windowSeconds: number): Promise<boolean> {
-  if (!redis) return false; // SECURITY: Fail closed - deny if Redis not configured
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowSeconds: number
+): Promise<boolean> {
+  if (!redis) {
+    log.error('Redis not configured — rate limiting fail-open, allowing request');
+    return true; // RESILIENCE: Fail open - allow if Redis not configured
+  }
 
   try {
     const now = Date.now();
@@ -114,8 +121,8 @@ export async function checkRateLimit(key: string, limit: number, windowSeconds: 
 
     return count <= limit;
   } catch (error) {
-    log.error('Rate limit check error - failing closed', error as Error);
-    return false; // SECURITY: Fail closed - deny on error
+    log.error('Rate limit check error — fail-open, allowing request', error as Error);
+    return true; // RESILIENCE: Fail open - allow on error
   }
 }
 
