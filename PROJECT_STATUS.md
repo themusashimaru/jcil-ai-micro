@@ -17,13 +17,13 @@
 | **Test Coverage (statements)** | 5.49% | 60% | Critical gap |
 | **Test Coverage (branches)** | 4.37% | 60% | Critical gap |
 | **API Routes Tested** | 8.5% | 90% | Critical gap |
-| **Real Tool Implementations** | 3 of ~300 | All active tools real | Critical gap |
+| **Real Tool Implementations** | ~52 of 68 exported (28 API + 24 library) | All active tools real | Improved — stubs remain |
 | **ARIA Attributes** | 0 | WCAG 2.1 AA | Critical gap |
 | **Inline Styles** | 554 | 0 (use CSS classes) | Needs work |
 | **Largest Component** | 2,631 lines | <400 lines | Needs decomposition |
 | **Largest Route File** | 5,840 lines | <500 lines | Needs decomposition |
 | **Production Dependencies** | 152 | <50 | Needs audit |
-| **Tools Loaded Per Request** | ~393 | Lazy-loaded | Needs architecture change |
+| **Tool Files (total)** | 82 (was 393, deleted 311 unused) | Lazy-loaded | Improved |
 | **Error Boundaries** | 0 | All major sections | Needs work |
 | **TypeScript Errors** | TBD (verify) | 0 | Check each session |
 | **Build Status** | TBD (verify) | Passing | Check each session |
@@ -145,6 +145,16 @@ This document is updated whenever a verified metric changes. Each update include
 | Date | Change | Old Value | New Value |
 |---|---|---|---|
 | 2026-02-22 | Initial ground-truth baseline | (stale data) | All metrics above |
+| 2026-02-22 | Removed 311 unused tool files | 393 tool files | 82 tool files |
+| 2026-02-22 | Fixed admin permissions default | `?? true` (fail-open) | `?? false` (fail-closed) |
+| 2026-02-22 | Fixed rate limiting fail-open | `allowed: true` on Redis failure | `allowed: false` (fail-closed) |
+| 2026-02-22 | Fixed viewport scaling | `userScalable: false` | `userScalable: true` |
+| 2026-02-22 | Removed fake aggregate rating | 4.9/5 (150 reviews) | Removed |
+| 2026-02-22 | Fixed vitest coverage config | 75% threshold (files-with-tests only) | 5% threshold (all files) |
+| 2026-02-22 | Removed CI continue-on-error | Security audit non-blocking | Security audit blocks deploy |
+| 2026-02-22 | Aligned Node version | package.json: 22.x | package.json: 20.x (matches .nvmrc, CI) |
+| 2026-02-22 | Strengthened env validation | Log-only on missing vars | Throws in production |
+| 2026-02-22 | Google verification to env var | Hardcoded token | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` |
 
 ---
 

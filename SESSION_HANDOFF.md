@@ -120,32 +120,48 @@ If any step fails, fix it before pushing. If it can't be fixed quickly, revert a
 
 ## Last Session Summary
 
-### Session: 2026-02-22 — Full Assessment & Documentation Reset
+### Session: 2026-02-22 — Assessment + Phase 1 Execution (18/150 tasks)
 
 **Branch:** `claude/app-assessment-recommendations-vsx0y`
 
-**Completed:**
+**Completed — Assessment & Documentation:**
 - 7-dimension codebase audit (tools, tests, UX, build, security, database, competitive)
 - Competitor research (Manus.ai, ChatGPT/Codex, OpenClaw, Cursor, Windsurf, Replit)
-- Created `APP_ASSESSMENT_AND_RECOMMENDATIONS.md` (comprehensive report)
-- Created `CTO_ASSESSMENT_REPORT.md` (CTO-level review)
-- Created `CLAUDE.md` (session instructions, mission, standards)
-- Rewrote `PROJECT_STATUS.md` (ground-truth metrics)
-- Created `TASK_TRACKER.md` (150 checkable tasks across 4 phases)
-- Updated `SESSION_HANDOFF.md` (this file)
-- Updated `README.md` (reflect reality)
+- Created `APP_ASSESSMENT_AND_RECOMMENDATIONS.md`, `CTO_ASSESSMENT_REPORT.md`
+- Created `CLAUDE.md` (session instructions), `TASK_TRACKER.md` (150 tasks)
+- Rewrote `PROJECT_STATUS.md` (ground-truth), `SESSION_HANDOFF.md`, `README.md`
+
+**Completed — Phase 1 Execution (18 tasks):**
+- **1.1.1-1.1.2**: Tool inventory + removed 311 unused files (226,755 lines deleted, 393→82 files)
+- **1.3.1-1.3.2**: Vitest config — honest coverage with `all: true`, 5% baseline thresholds
+- **1.4.1-1.4.6**: CI safety gates — removed continue-on-error, verified all gates
+- **1.5.1**: Admin permissions default to FALSE (was TRUE — fail-open)
+- **1.5.2**: Rate limiting fails closed in production (was open)
+- **1.5.6**: Viewport allows user scaling (was blocked — WCAG fix)
+- **1.5.7**: Removed fake aggregateRating (Google penalty risk)
+- **1.5.8**: Auth guard audit complete (46 inline auth routes mapped)
+- **1.6.1-1.6.5**: Env validation throws in production, Node version aligned, Google token to env var
+
+**Auth Guard Audit Results (for next session):**
+- 26 routes: `requireAdmin()` ✓
+- 13 routes: `requireUser()` ✓
+- 46 routes: Inline auth (need migration to formal guards)
+- 44 routes: Public/intentional (webhooks, cron, auth flow)
+- 45 routes use SERVICE_ROLE_KEY (30 need review)
 
 **Key Findings:**
-- 95% of tools are stubs returning fake data
+- 95% of tools were stubs — 311 unused files removed, ~16 stub exports remain in index.ts
 - 5.9% test coverage
 - 0 ARIA attributes
 - Security foundation is solid (RLS, Zod, CSRF) but has critical gaps (admin fail-open, rate limit fail-open)
 - Largest component: 2,631 lines; largest route: 5,840 lines
 
 **Next Session Should:**
-1. Start Phase 1.1: Remove stub tools from active registry
-2. Start Phase 1.5: Fix critical security issues (admin permissions, rate limiting)
-3. Start Phase 1.3: Set up test infrastructure with thresholds
+1. **1.1.5**: Remove ~16 stub tool exports from `index.ts` (agriculture, geology, etc.)
+2. **1.1.3**: Create `tools/registry.ts` manifest with status per tool
+3. **1.5.3-1.5.5**: Add CSP headers, Permissions-Policy, encrypt API tokens at rest
+4. **1.5.8**: Migrate 46 inline-auth routes to `requireUser()`/`requireAdmin()`
+5. **1.3.3-1.3.8**: Write tests for real tools, auth, rate limiting
 
 ---
 

@@ -14,14 +14,14 @@
 
 > **Why:** 95% of tools return fake data. Users see capabilities that don't exist. This is the #1 trust issue.
 
-- [ ] **1.1.1** Inventory all tools — create a spreadsheet/list categorizing each as Real, Stub, or Unused
-- [ ] **1.1.2** Remove all stub tools from the tool registry (`lib/ai/tools.ts` and `lib/ai/tools/index.ts`)
+- [x] **1.1.1** Inventory all tools — 393 total: 28 real, 24 library, ~16 stubs (exported), 311 unused *(2026-02-22)*
+- [x] **1.1.2** Removed 311 unused tool files (226,755 lines of dead code). 82 active files remain. *(2026-02-22)*
 - [ ] **1.1.3** Create a `tools/registry.ts` manifest with explicit `status: 'active' | 'beta' | 'planned'`
 - [ ] **1.1.4** Update UI to only show tools with `status: 'active'` or `'beta'` (with beta badge)
-- [ ] **1.1.5** Archive removed stub files to `lib/tools/_archived/` (don't delete — reference for future implementation)
-- [ ] **1.1.6** Verify build passes after tool removal
+- [ ] **1.1.5** Remove ~16 stub tool exports from `index.ts` (educational/math-only tools still exported)
+- [ ] **1.1.6** Verify build passes after stub export removal
 - [ ] **1.1.7** Verify no runtime errors when stubs are gone
-- [ ] **1.1.8** Update `PROJECT_STATUS.md` with new tool count
+- [x] **1.1.8** Update `PROJECT_STATUS.md` with new tool count *(2026-02-22)*
 
 ### 1.2 Implement Lazy Tool Loading
 
@@ -318,12 +318,12 @@
 
 | Phase | Total Tasks | Completed | Percentage |
 |---|---|---|---|
-| Phase 1: Foundation | 45 | 15 | 33% |
+| Phase 1: Foundation | 45 | 18 | 40% |
 | Phase 2: Core Quality | 52 | 0 | 0% |
 | Phase 3: Production Readiness | 30 | 0 | 0% |
 | Phase 4: Differentiation | 19 | 0 | 0% |
 | Doc Cleanup | 4 | 0 | 0% |
-| **Total** | **150** | **15** | **10%** |
+| **Total** | **150** | **18** | **12%** |
 
 > Update this summary table as tasks are completed.
 
