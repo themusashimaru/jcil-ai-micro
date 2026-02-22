@@ -235,4 +235,55 @@ describe('Rate Limiting', () => {
       }
     });
   });
+
+  describe('production fail-closed (Task 1.5.2)', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('should reject requests when Redis is unavailable in production', async () => {
+      // Simulate production without Redis
+      vi.stubEnv('NODE_ENV', 'production');
+
+      // The default test environment has no Redis configured,
+      // so isRedisAvailable() returns false.
+      // In production without Redis, rate limiting must FAIL CLOSED.
+      const config = { limit: 10, windowMs: 60_000 };
+
+      // Clear in-memory state first
+      await clearAllRateLimits();
+
+      // Now test: in production mode without Redis, checkRateLimit should reject
+      const result = await checkRateLimit('production-test-user', config);
+
+      // CRITICAL SECURITY CHECK: In production without Redis, requests must be DENIED
+      // This prevents cost attacks and abuse when the rate limiter is degraded
+      expect(result.allowed).toBe(false);
+      expect(result.remaining).toBe(0);
+    });
+
+    it('should allow requests in development when Redis is unavailable', async () => {
+      vi.stubEnv('NODE_ENV', 'development');
+
+      await clearAllRateLimits();
+      const config = { limit: 10, windowMs: 60_000 };
+      const result = await checkRateLimit('dev-test-user', config);
+
+      // In development, fall back to in-memory rate limiting (allow)
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(9);
+    });
+
+    it('should allow requests in test when Redis is unavailable', async () => {
+      vi.stubEnv('NODE_ENV', 'test');
+
+      await clearAllRateLimits();
+      const config = { limit: 5, windowMs: 60_000 };
+      const result = await checkRateLimit('test-env-user', config);
+
+      // In test, fall back to in-memory rate limiting (allow)
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(4);
+    });
+  });
 });
