@@ -18,7 +18,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
+import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { Attachment, Message, GeneratedImage } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
@@ -69,9 +69,24 @@ interface ChatComposerProps {
   initialText?: string; // Pre-fill the input with text (for quick prompts)
   // Agent props
   isAdmin?: boolean;
-  activeAgent?: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | 'deep-writer' | 'quick-writer' | null;
+  activeAgent?:
+    | 'research'
+    | 'strategy'
+    | 'deep-research'
+    | 'quick-research'
+    | 'quick-strategy'
+    | 'deep-writer'
+    | 'quick-writer'
+    | null;
   onAgentSelect?: (
-    agent: 'research' | 'strategy' | 'deep-research' | 'quick-research' | 'quick-strategy' | 'deep-writer' | 'quick-writer'
+    agent:
+      | 'research'
+      | 'strategy'
+      | 'deep-research'
+      | 'quick-research'
+      | 'quick-strategy'
+      | 'deep-writer'
+      | 'quick-writer'
   ) => Promise<void> | void;
   strategyLoading?: boolean; // Show loading state while strategy starts
   deepResearchLoading?: boolean; // Show loading state while deep research starts
@@ -226,7 +241,7 @@ const PROVIDER_CONFIG: Record<
   },
 };
 
-export function ChatComposer({
+export const ChatComposer = memo(function ChatComposer({
   onSendMessage,
   onStop,
   isStreaming,
@@ -883,8 +898,8 @@ export function ChatComposer({
                     Transcribing...
                   </span>
                 ) : toolMode !== 'none' ||
-                activeAgent === 'strategy' ||
-                activeAgent === 'deep-research' ? (
+                  activeAgent === 'strategy' ||
+                  activeAgent === 'deep-research' ? (
                   // Tool mode or agent placeholder (static, no animation)
                   <span
                     className="font-medium"
@@ -1427,11 +1442,15 @@ export function ChatComposer({
                   onClick={toggleRecording}
                   disabled={isStreaming || disabled || isTranscribing}
                   className="rounded-full p-1.5 transition-all flex items-center justify-center"
-                  title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Voice input'}
+                  title={
+                    isRecording
+                      ? 'Stop recording'
+                      : isTranscribing
+                        ? 'Transcribing...'
+                        : 'Voice input'
+                  }
                   style={{
-                    backgroundColor: isRecording
-                      ? 'var(--error, #ef4444)'
-                      : 'transparent',
+                    backgroundColor: isRecording ? 'var(--error, #ef4444)' : 'transparent',
                     color: isRecording
                       ? 'white'
                       : isTranscribing
@@ -1458,7 +1477,13 @@ export function ChatComposer({
                     </svg>
                   ) : (
                     // Microphone icon
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -1639,4 +1664,4 @@ export function ChatComposer({
       />
     </div>
   );
-}
+});
