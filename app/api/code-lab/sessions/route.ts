@@ -7,10 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 // HIGH-006: Add rate limiting to GET endpoints
 import { rateLimiters } from '@/lib/security/rate-limit';
 
@@ -20,24 +19,17 @@ const log = logger('CodeLabSessions');
 type AnySupabase = any;
 
 // SECURITY FIX: Use cryptographically secure UUID generation
-// Math.random() is NOT secure and session IDs could be predicted
 function generateId(): string {
   return randomUUID();
 }
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     // HIGH-006: Rate limiting for GET
-    const rateLimit = await rateLimiters.codeLabRead(user.id);
+    const rateLimit = await rateLimiters.codeLabRead(auth.user.id);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
@@ -52,9 +44,9 @@ export async function GET() {
     }
 
     // Fetch sessions for user
-    const { data: sessions, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
+    const { data: sessions, error } = await (auth.supabase.from('code_lab_sessions') as AnySupabase)
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -98,19 +90,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const body = await request.json();
     const { title = 'New Session', repo } = body;
@@ -128,10 +110,10 @@ export async function POST(request: NextRequest) {
         }
       : {};
 
-    const { data: session, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
+    const { data: session, error } = await (auth.supabase.from('code_lab_sessions') as AnySupabase)
       .insert({
         id: sessionId,
-        user_id: user.id,
+        user_id: auth.user.id,
         title,
         ...repoFields,
         created_at: now,
