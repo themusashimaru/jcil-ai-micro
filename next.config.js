@@ -71,6 +71,8 @@ const nextConfig = {
               "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.stripe.com https://api.perplexity.ai https://api.replicate.com https://*.sentry.io https://*.ingest.sentry.io",
               "frame-src 'self' https://*.stripe.com https://js.stripe.com",
+              "worker-src 'self' blob:",
+              "media-src 'self' blob: data:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

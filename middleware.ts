@@ -62,7 +62,7 @@ const securityHeaders = {
   'X-Frame-Options': 'SAMEORIGIN',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Permissions-Policy': 'camera=(), microphone=(self), geolocation=(), interest-cohort=()',
 };
 
 export function middleware(request: NextRequest) {
