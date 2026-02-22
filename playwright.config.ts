@@ -45,28 +45,27 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    // Uncomment for additional browsers
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
   ],
 
   // Run your local dev server before starting the tests
   // In CI, use the production build (faster, more reliable)
   webServer: {
     command: process.env.CI ? 'pnpm start' : 'pnpm dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3000/api/health',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: {
+      SKIP_ENV_VALIDATION: 'true',
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY:
+        process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || 'placeholder-api-key',
+    },
   },
 
   // Global timeout for each test (45s to account for slower CI runners)
