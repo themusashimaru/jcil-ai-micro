@@ -212,6 +212,7 @@ import {
   shouldRunQC,
   verifyOutput,
 } from '@/lib/ai/tools';
+import { getToolEntry } from '@/lib/ai/tools/registry';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -3886,6 +3887,18 @@ SECURITY:
     if (isFeatureFlagAvailable()) tools.push(featureFlagTool);
     if (isMigrationGeneratorAvailable()) tools.push(migrationGeneratorTool);
     if (isMlModelServingAvailable()) tools.push(mlModelServingTool);
+
+    // ========================================
+    // REGISTRY FILTER — only active and beta tools
+    // ========================================
+    // Remove any tools marked as 'planned' in the registry.
+    // Tools not in the registry (MCP, Composio) are unaffected.
+    for (let i = tools.length - 1; i >= 0; i--) {
+      const entry = getToolEntry(tools[i].name);
+      if (entry && entry.status === 'planned') {
+        tools.splice(i, 1);
+      }
+    }
 
     // ========================================
     // MCP TOOLS INTEGRATION (ON-DEMAND)
