@@ -33,186 +33,21 @@ import {
 // Research agent removed - now using quick-research mode via strategy engine
 // Native Anthropic web_search_20260209 — server-side search with dynamic filtering on Sonnet 4.6+ / Opus 4.6
 import {
-  // Core API tools
-  webSearchTool,
-  isWebSearchAvailable,
-  fetchUrlTool,
-  executeFetchUrl,
-  isFetchUrlAvailable,
-  runCodeTool,
-  executeRunCode,
-  isRunCodeAvailable,
-  visionAnalyzeTool,
-  executeVisionAnalyze,
-  isVisionAnalyzeAvailable,
-  browserVisitTool,
-  executeBrowserVisitTool,
-  isBrowserVisitAvailable,
-  extractPdfTool,
-  executeExtractPdf,
-  isExtractPdfAvailable,
-  extractTableTool,
-  executeExtractTable,
-  isExtractTableAvailable,
-  miniAgentTool,
-  executeMiniAgent,
-  isMiniAgentAvailable,
-  dynamicToolTool,
-  executeDynamicTool,
-  isDynamicToolAvailable,
-  youtubeTranscriptTool,
-  executeYouTubeTranscript,
-  isYouTubeTranscriptAvailable,
-  isNativeServerTool,
-  screenshotTool,
-  executeScreenshot,
-  isScreenshotAvailable,
-  chartTool,
-  executeChart,
-  isChartAvailable,
-  documentTool,
-  executeDocument,
-  isDocumentAvailable,
-  audioTranscribeTool,
-  executeAudioTranscribe,
-  isAudioTranscribeAvailable,
-  spreadsheetTool,
-  executeSpreadsheet,
-  isSpreadsheetAvailable,
-  httpRequestTool,
-  executeHttpRequest,
-  isHttpRequestAvailable,
-  qrCodeTool,
-  executeQRCode,
-  isQRCodeAvailable,
-  imageTransformTool,
-  executeImageTransform,
-  isImageTransformAvailable,
-  fileConvertTool,
-  executeFileConvert,
-  isFileConvertAvailable,
-  linkShortenTool,
-  executeLinkShorten,
-  isLinkShortenAvailable,
-  // Library-based tools
-  fakerTool,
-  executeFaker,
-  isFakerAvailable,
-  diffTool,
-  executeDiff,
-  isDiffAvailable,
-  nlpTool,
-  executeNLP,
-  isNLPAvailable,
-  barcodeTool,
-  executeBarcode,
-  isBarcodeAvailable,
-  ocrTool,
-  executeOCR,
-  isOCRAvailable,
-  pdfTool,
-  executePDF,
-  isPDFAvailable,
-  mediaTool,
-  executeMedia,
-  isMediaAvailable,
-  sqlTool,
-  executeSQL,
-  isSQLAvailable,
-  excelTool,
-  executeExcel,
-  isExcelAvailable,
-  prettierTool,
-  executePrettier,
-  isPrettierAvailable,
-  cryptoTool,
-  executeCryptoTool,
-  isCryptoToolAvailable,
-  zipTool,
-  executeZip,
-  isZipAvailable,
-  webCaptureTool,
-  executeWebCapture,
-  isWebCaptureAvailable,
-  exifTool,
-  executeExif,
-  isExifAvailable,
-  searchIndexTool,
-  executeSearchIndex,
-  isSearchIndexAvailable,
-  validatorTool,
-  executeValidator,
-  isValidatorAvailable,
-  audioSynthTool,
-  executeAudioSynth,
-  isAudioSynthAvailable,
-  // Scientific & research tools
-  geospatialTool,
-  executeGeospatial,
-  isGeospatialAvailable,
-  phoneTool,
-  executePhone,
-  isPhoneAvailable,
-  dnaBioTool,
-  executeDnaBio,
-  isDnaBioAvailable,
-  signalTool,
-  executeSignal,
-  isSignalAvailable,
-  accessibilityTool,
-  executeAccessibility,
-  isAccessibilityAvailable,
-  parserTool,
-  executeParser,
-  isParserAvailable,
-  constraintTool,
-  executeConstraint,
-  isConstraintAvailable,
-  sequenceAnalyzeTool,
-  executeSequenceAnalyze,
-  isSequenceAnalyzeAvailable,
-  medicalCalcTool,
-  executeMedicalCalc,
-  isMedicalCalcAvailable,
-  graphics3dTool,
-  executeGraphics3D,
-  isGraphics3DAvailable,
-  houghVisionTool,
-  executeHoughVision,
-  isHoughVisionAvailable,
-  rayTracingTool,
-  executeRayTracing,
-  isRayTracingAvailable,
-  // AI-powered code tools
-  errorFixerTool,
-  executeErrorFixer,
-  isErrorFixerAvailable,
-  refactorTool,
-  executeRefactor,
-  isRefactorAvailable,
-  // GitHub, feature flags, migrations, ML serving
-  githubTool,
-  executeGitHub,
-  isGitHubAvailable,
-  featureFlagTool,
-  executeFeatureFlag,
-  isFeatureFlagAvailable,
-  migrationGeneratorTool,
-  executeMigrationGenerator,
-  isMigrationGeneratorAvailable,
-  mlModelServingTool,
-  executeMlModelServing,
-  isMlModelServingAvailable,
   // Safety & cost control (pass-through until real implementation)
   canExecuteTool,
   recordToolCost,
   type UnifiedToolResult,
-  type UnifiedToolCall,
   // Quality control (pass-through until real implementation)
   shouldRunQC,
   verifyOutput,
+  // Native server tool check (web_search)
+  isNativeServerTool,
 } from '@/lib/ai/tools';
-import { getToolEntry } from '@/lib/ai/tools/registry';
+import {
+  loadAvailableToolDefinitions,
+  executeToolByName,
+  hasToolLoader,
+} from '@/lib/ai/tools/tool-loader';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -3822,83 +3657,13 @@ SECURITY:
     // Claude decides when to search - no keyword detection needed
     // This is the proper way to give Claude search autonomy
 
-    // Build tools array with all available tools
-    const tools: UnifiedTool[] = [];
-
-    // Add tools based on availability
-    if (isWebSearchAvailable()) tools.push(webSearchTool as unknown as UnifiedTool);
-    if (isFetchUrlAvailable()) tools.push(fetchUrlTool);
-    if (await isRunCodeAvailable()) tools.push(runCodeTool);
-    if (await isVisionAnalyzeAvailable()) tools.push(visionAnalyzeTool);
-    if (await isBrowserVisitAvailable()) tools.push(browserVisitTool);
-    if (await isExtractPdfAvailable()) tools.push(extractPdfTool);
-    if (await isExtractTableAvailable()) tools.push(extractTableTool);
-    if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
-    if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
-    if (isYouTubeTranscriptAvailable()) tools.push(youtubeTranscriptTool);
-    if (await isScreenshotAvailable()) tools.push(screenshotTool);
-    if (isChartAvailable()) tools.push(chartTool);
-    if (isDocumentAvailable()) tools.push(documentTool);
-    if (isAudioTranscribeAvailable()) tools.push(audioTranscribeTool);
-    if (isSpreadsheetAvailable()) tools.push(spreadsheetTool);
-    if (isHttpRequestAvailable()) tools.push(httpRequestTool);
-    if (isQRCodeAvailable()) tools.push(qrCodeTool);
-    if (await isImageTransformAvailable()) tools.push(imageTransformTool);
-    if (isFileConvertAvailable()) tools.push(fileConvertTool);
-    if (isLinkShortenAvailable()) tools.push(linkShortenTool);
-    if (await isFakerAvailable()) tools.push(fakerTool);
-    if (await isDiffAvailable()) tools.push(diffTool);
-    if (await isNLPAvailable()) tools.push(nlpTool);
-    if (await isBarcodeAvailable()) tools.push(barcodeTool);
-    // New Tier S/A/B tools (19 new)
-    if (isOCRAvailable()) tools.push(ocrTool);
-    if (isPDFAvailable()) tools.push(pdfTool);
-    if (isMediaAvailable()) tools.push(mediaTool);
-    if (isSQLAvailable()) tools.push(sqlTool);
-    if (isExcelAvailable()) tools.push(excelTool);
-    if (isPrettierAvailable()) tools.push(prettierTool);
-    if (isCryptoToolAvailable()) tools.push(cryptoTool);
-    if (isZipAvailable()) tools.push(zipTool);
-    if (isWebCaptureAvailable()) tools.push(webCaptureTool);
-    if (isExifAvailable()) tools.push(exifTool);
-    if (isSearchIndexAvailable()) tools.push(searchIndexTool);
-    if (isValidatorAvailable()) tools.push(validatorTool);
-    if (isAudioSynthAvailable()) tools.push(audioSynthTool);
-    // Scientific & Research tools (12 new)
-    if (isGeospatialAvailable()) tools.push(geospatialTool);
-    if (isPhoneAvailable()) tools.push(phoneTool);
-    if (isDnaBioAvailable()) tools.push(dnaBioTool);
-    if (isSignalAvailable()) tools.push(signalTool);
-    if (isAccessibilityAvailable()) tools.push(accessibilityTool);
-    // Computational & Algorithmic tools (12 new)
-    if (isParserAvailable()) tools.push(parserTool);
-    if (isConstraintAvailable()) tools.push(constraintTool);
-    // Advanced Scientific Computing
-    if (isSequenceAnalyzeAvailable()) tools.push(sequenceAnalyzeTool);
-    // Medical & vision tools
-    if (isMedicalCalcAvailable()) tools.push(medicalCalcTool);
-    if (isGraphics3DAvailable()) tools.push(graphics3dTool);
-    if (isHoughVisionAvailable()) tools.push(houghVisionTool);
-    if (isRayTracingAvailable()) tools.push(rayTracingTool);
-    // AI-powered code tools
-    if (isErrorFixerAvailable()) tools.push(errorFixerTool);
-    if (isRefactorAvailable()) tools.push(refactorTool);
-    if (isGitHubAvailable()) tools.push(githubTool);
-    if (isFeatureFlagAvailable()) tools.push(featureFlagTool);
-    if (isMigrationGeneratorAvailable()) tools.push(migrationGeneratorTool);
-    if (isMlModelServingAvailable()) tools.push(mlModelServingTool);
-
     // ========================================
-    // REGISTRY FILTER — only active and beta tools
+    // LAZY TOOL LOADING — registry-driven
     // ========================================
-    // Remove any tools marked as 'planned' in the registry.
-    // Tools not in the registry (MCP, Composio) are unaffected.
-    for (let i = tools.length - 1; i >= 0; i--) {
-      const entry = getToolEntry(tools[i].name);
-      if (entry && entry.status === 'planned') {
-        tools.splice(i, 1);
-      }
-    }
+    // Load available tool definitions via the lazy tool loader.
+    // Only imports tool files that pass availability checks.
+    // Registry filtering (active/beta only) is built into the loader.
+    const tools: UnifiedTool[] = await loadAvailableToolDefinitions();
 
     // ========================================
     // MCP TOOLS INTEGRATION (ON-DEMAND)
@@ -3925,7 +3690,7 @@ SECURITY:
           required: (mcpTool.inputSchema as { required?: string[] })?.required || [],
         },
       };
-      tools.push(anthropicTool as typeof webSearchTool);
+      tools.push(anthropicTool as UnifiedTool);
     }
 
     // Also add tools from "available" servers (enabled but not yet started)
@@ -3989,7 +3754,7 @@ SECURITY:
                 properties: composioTool.input_schema.properties || {},
                 required: composioTool.input_schema.required || [],
               },
-            } as typeof webSearchTool);
+            } as UnifiedTool);
           }
 
           // Add connected apps context to system prompt
@@ -4273,362 +4038,130 @@ SECURITY:
         isError: true,
       };
       try {
-        switch (toolName) {
-          // web_search is a native server tool — handled by isNativeServerTool guard above
-          case 'fetch_url':
-            result = await executeFetchUrl(toolCallWithSession);
-            break;
-          case 'run_code':
-            result = await executeRunCode(toolCallWithSession);
-            break;
-          case 'analyze_image':
-            result = await executeVisionAnalyze(toolCallWithSession);
-            break;
-          case 'browser_visit':
-            result = await executeBrowserVisitTool(toolCallWithSession);
-            break;
-          case 'extract_pdf':
-            result = await executeExtractPdf(toolCallWithSession);
-            break;
-          case 'extract_table':
-            result = await executeExtractTable(toolCallWithSession);
-            break;
-          case 'parallel_research':
-            result = await executeMiniAgent(toolCallWithSession);
-            break;
-          case 'create_and_run_tool':
-            result = await executeDynamicTool(toolCallWithSession);
-            break;
-          case 'youtube_transcript':
-            result = await executeYouTubeTranscript(toolCallWithSession);
-            break;
-          case 'screenshot':
-            result = await executeScreenshot(toolCallWithSession);
-            break;
-          case 'calculator':
-            break;
-          case 'create_chart':
-            result = await executeChart(toolCallWithSession);
-            break;
-          case 'create_document':
-            result = await executeDocument(toolCallWithSession);
-            break;
-          case 'transcribe_audio':
-            result = await executeAudioTranscribe(toolCallWithSession);
-            break;
-          case 'create_spreadsheet':
-            result = await executeSpreadsheet(toolCallWithSession);
-            break;
-          case 'http_request':
-            result = await executeHttpRequest(toolCallWithSession);
-            break;
-          case 'generate_qr_code':
-            result = await executeQRCode(toolCallWithSession);
-            break;
-          case 'transform_image':
-            result = await executeImageTransform(toolCallWithSession);
-            break;
-          case 'convert_file':
-            result = await executeFileConvert(toolCallWithSession);
-            break;
-          case 'shorten_link':
-            result = await executeLinkShorten(toolCallWithSession);
-            break;
-          case 'generate_fake_data':
-            result = await executeFaker(toolCallWithSession);
-            break;
-          case 'diff_compare':
-            result = await executeDiff(toolCallWithSession);
-            break;
-          case 'analyze_text_nlp':
-            result = await executeNLP(toolCallWithSession);
-            break;
-          case 'generate_barcode':
-            result = await executeBarcode(toolCallWithSession);
-            break;
-          // New Tier S/A/B tools (19 new)
-          case 'ocr_extract_text':
-            result = await executeOCR(toolCallWithSession);
-            break;
-          case 'pdf_manipulate':
-            result = await executePDF(toolCallWithSession);
-            break;
-          case 'media_process':
-            result = await executeMedia(toolCallWithSession);
-            break;
-          case 'query_data_sql':
-            result = await executeSQL(toolCallWithSession);
-            break;
-          case 'excel_advanced':
-            result = await executeExcel(toolCallWithSession);
-            break;
-          case 'format_code':
-            result = await executePrettier(toolCallWithSession);
-            break;
-          case 'crypto_toolkit':
-            result = await executeCryptoTool(toolCallWithSession);
-            break;
-          case 'zip_files':
-            result = await executeZip(toolCallWithSession);
-            break;
-          case 'capture_webpage':
-            result = await executeWebCapture(toolCallWithSession);
-            break;
-          case 'math_compute':
-            break;
-          case 'image_metadata':
-            result = await executeExif(toolCallWithSession);
-            break;
-          case 'search_index':
-            result = await executeSearchIndex(toolCallWithSession);
-            break;
-          case 'ascii_art':
-            break;
-          case 'color_tools':
-            break;
-          case 'validate_data':
-            result = await executeValidator(toolCallWithSession);
-            break;
-          case 'cron_explain':
-            break;
-          case 'convert_units':
-            break;
-          case 'audio_synth':
-            result = await executeAudioSynth(toolCallWithSession);
-            break;
-          // Scientific & Research tools (12 new)
-          case 'analyze_statistics':
-            break;
-          case 'geo_calculate':
-            result = await executeGeospatial(toolCallWithSession);
-            break;
-          case 'phone_validate':
-            result = await executePhone(toolCallWithSession);
-            break;
-          case 'analyze_password':
-            break;
-          case 'analyze_molecule':
-            break;
-          case 'analyze_sequence':
-            result = await executeDnaBio(toolCallWithSession);
-            break;
-          case 'matrix_compute':
-            break;
-          case 'analyze_graph':
-            break;
-          case 'periodic_table':
-            break;
-          case 'physics_constants':
-            break;
-          case 'signal_process':
-            result = await executeSignal(toolCallWithSession);
-            break;
-          case 'check_accessibility':
-            result = await executeAccessibility(toolCallWithSession);
-            break;
-          case 'symbolic_math':
-            break;
-          case 'solve_ode':
-            break;
-          case 'optimize':
-            break;
-          case 'financial_calc':
-            break;
-          case 'music_theory':
-            break;
-          case 'geometry':
-            break;
-          case 'parse_grammar':
-            result = await executeParser(toolCallWithSession);
-            break;
-          case 'recurrence':
-            break;
-          case 'solve_constraints':
-            result = await executeConstraint(toolCallWithSession);
-            break;
-          case 'analyze_timeseries':
-            break;
-          case 'tensor_ops':
-            break;
-          case 'string_distance':
-            break;
-          // Advanced Scientific Computing tools (12 new)
-          case 'numerical_integrate':
-            break;
-          case 'find_roots':
-            break;
-          case 'interpolate':
-            break;
-          case 'special_functions':
-            break;
-          case 'complex_math':
-            break;
-          case 'combinatorics':
-            break;
-          case 'number_theory':
-            break;
-          case 'probability_dist':
-            break;
-          case 'polynomial_ops':
-            break;
-          case 'astronomy_calc':
-            break;
-          case 'coordinate_transform':
-            break;
-          case 'sequence_analyze':
-            result = await executeSequenceAnalyze(toolCallWithSession);
-            break;
-          // AI-powered code tools
-          case 'fix_error':
-            result = await executeErrorFixer(toolCallWithSession);
-            break;
-          case 'refactor_code':
-            result = await executeRefactor(toolCallWithSession);
-            break;
-          case 'medical_calc':
-            result = await executeMedicalCalc(toolCallWithSession);
-            break;
-          case 'graphics_3d':
-            result = await executeGraphics3D(toolCallWithSession);
-            break;
-          case 'hough_vision':
-            result = await executeHoughVision(toolCallWithSession);
-            break;
-          case 'ray_tracing':
-            result = await executeRayTracing(toolCallWithSession);
-            break;
-          case 'github':
-            result = await executeGitHub(toolCallWithSession);
-            break;
-          case 'feature_flag':
-            result = await executeFeatureFlag(toolCallWithSession);
-            break;
-          case 'migration_generator':
-            result = await executeMigrationGenerator(toolCallWithSession);
-            break;
-          case 'ml_model_serving':
-            result = await executeMlModelServing(toolCallWithSession);
-            break;
-          default:
-            // Check if this is an MCP tool (prefixed with 'mcp_')
-            if (toolName.startsWith('mcp_')) {
-              // Parse the tool name: mcp_{serverId}_{actualToolName}
-              const parts = toolName.split('_');
-              if (parts.length >= 3) {
-                const serverId = parts[1];
-                const actualToolName = parts.slice(2).join('_'); // Handle tool names with underscores
+        // ========================================
+        // LAZY TOOL EXECUTION — registry-driven lookup
+        // ========================================
+        // Try built-in tools first via the lazy tool loader.
+        // Falls through to MCP/Composio if not a built-in tool.
+        if (hasToolLoader(toolName)) {
+          const loaderResult = await executeToolByName(toolCallWithSession);
+          if (loaderResult) {
+            result = loaderResult;
+          }
+        } else if (toolName.startsWith('mcp_')) {
+          // MCP tool (prefixed with 'mcp_')
+          const parts = toolName.split('_');
+          if (parts.length >= 3) {
+            const serverId = parts[1];
+            const actualToolName = parts.slice(2).join('_');
 
-                try {
-                  // ON-DEMAND: Ensure server is running before calling tool
-                  // This starts the server if it's "available" but not yet started
-                  if (rateLimitIdentifier) {
-                    const ensureResult = await ensureServerRunning(serverId, rateLimitIdentifier);
-                    if (!ensureResult.success) {
-                      result = {
-                        toolCallId: toolCall.id,
-                        content: `Failed to start MCP server ${serverId}: ${ensureResult.error || 'Unknown error'}`,
-                        isError: true,
-                      };
-                      break;
-                    }
-                    log.info('MCP server ready (on-demand)', {
-                      serverId,
-                      tools: ensureResult.tools.length,
-                    });
-                  }
-
-                  log.info('Executing MCP tool', { serverId, tool: actualToolName });
-                  const mcpResult = await mcpManager.callTool(
-                    serverId,
-                    actualToolName,
-                    typeof toolCall.arguments === 'string'
-                      ? JSON.parse(toolCall.arguments)
-                      : toolCall.arguments
-                  );
-
+            try {
+              if (rateLimitIdentifier) {
+                const ensureResult = await ensureServerRunning(serverId, rateLimitIdentifier);
+                if (!ensureResult.success) {
                   result = {
                     toolCallId: toolCall.id,
-                    content:
-                      typeof mcpResult === 'string'
-                        ? mcpResult
-                        : JSON.stringify(mcpResult, null, 2),
-                    isError: false,
-                  };
-                  log.info('MCP tool executed successfully', { serverId, tool: actualToolName });
-                } catch (mcpError) {
-                  log.error('MCP tool execution failed', {
-                    serverId,
-                    tool: actualToolName,
-                    error: (mcpError as Error).message,
-                  });
-                  result = {
-                    toolCallId: toolCall.id,
-                    content: sanitizeToolError(
-                      `${serverId}:${actualToolName}`,
-                      (mcpError as Error).message
-                    ),
+                    content: `Failed to start MCP server ${serverId}: ${ensureResult.error || 'Unknown error'}`,
                     isError: true,
                   };
+                } else {
+                  log.info('MCP server ready (on-demand)', {
+                    serverId,
+                    tools: ensureResult.tools.length,
+                  });
                 }
-              } else {
-                result = {
-                  toolCallId: toolCall.id,
-                  content: `Invalid MCP tool name format: ${toolName}`,
-                  isError: true,
-                };
               }
-            } else if (isComposioTool(toolName)) {
-              // Handle Composio tool (prefixed with 'composio_')
-              // These are connected app integrations (Twitter, Slack, etc.)
-              try {
-                log.info('Executing Composio tool', {
-                  tool: toolName,
-                  userId: rateLimitIdentifier,
-                });
 
-                const composioResult = await executeComposioTool(
-                  rateLimitIdentifier || 'anonymous',
-                  toolName,
+              if (!result.isError || result.content === `Tool not executed: ${toolName}`) {
+                log.info('Executing MCP tool', { serverId, tool: actualToolName });
+                const mcpResult = await mcpManager.callTool(
+                  serverId,
+                  actualToolName,
                   typeof toolCall.arguments === 'string'
                     ? JSON.parse(toolCall.arguments)
                     : toolCall.arguments
                 );
 
-                if (composioResult.success) {
-                  result = {
-                    toolCallId: toolCall.id,
-                    content:
-                      typeof composioResult.result === 'string'
-                        ? composioResult.result
-                        : JSON.stringify(composioResult.result, null, 2),
-                    isError: false,
-                  };
-                  log.info('Composio tool executed successfully', { tool: toolName });
-                } else {
-                  result = {
-                    toolCallId: toolCall.id,
-                    content: sanitizeToolError(toolName, composioResult.error || 'Unknown error'),
-                    isError: true,
-                  };
-                }
-              } catch (composioError) {
-                log.error('Composio tool execution failed', {
-                  tool: toolName,
-                  error: (composioError as Error).message,
-                });
                 result = {
                   toolCallId: toolCall.id,
-                  content: sanitizeToolError(toolName, (composioError as Error).message),
-                  isError: true,
+                  content:
+                    typeof mcpResult === 'string' ? mcpResult : JSON.stringify(mcpResult, null, 2),
+                  isError: false,
                 };
+                log.info('MCP tool executed successfully', { serverId, tool: actualToolName });
               }
-            } else {
+            } catch (mcpError) {
+              log.error('MCP tool execution failed', {
+                serverId,
+                tool: actualToolName,
+                error: (mcpError as Error).message,
+              });
               result = {
                 toolCallId: toolCall.id,
-                content: `Unknown tool: ${toolName}`,
+                content: sanitizeToolError(
+                  `${serverId}:${actualToolName}`,
+                  (mcpError as Error).message
+                ),
                 isError: true,
               };
             }
+          } else {
+            result = {
+              toolCallId: toolCall.id,
+              content: `Invalid MCP tool name format: ${toolName}`,
+              isError: true,
+            };
+          }
+        } else if (isComposioTool(toolName)) {
+          // Composio tool (connected app integrations)
+          try {
+            log.info('Executing Composio tool', {
+              tool: toolName,
+              userId: rateLimitIdentifier,
+            });
+
+            const composioResult = await executeComposioTool(
+              rateLimitIdentifier || 'anonymous',
+              toolName,
+              typeof toolCall.arguments === 'string'
+                ? JSON.parse(toolCall.arguments)
+                : toolCall.arguments
+            );
+
+            if (composioResult.success) {
+              result = {
+                toolCallId: toolCall.id,
+                content:
+                  typeof composioResult.result === 'string'
+                    ? composioResult.result
+                    : JSON.stringify(composioResult.result, null, 2),
+                isError: false,
+              };
+              log.info('Composio tool executed successfully', { tool: toolName });
+            } else {
+              result = {
+                toolCallId: toolCall.id,
+                content: sanitizeToolError(toolName, composioResult.error || 'Unknown error'),
+                isError: true,
+              };
+            }
+          } catch (composioError) {
+            log.error('Composio tool execution failed', {
+              tool: toolName,
+              error: (composioError as Error).message,
+            });
+            result = {
+              toolCallId: toolCall.id,
+              content: sanitizeToolError(toolName, (composioError as Error).message),
+              isError: true,
+            };
+          }
+        } else {
+          result = {
+            toolCallId: toolCall.id,
+            content: `Unknown tool: ${toolName}`,
+            isError: true,
+          };
         }
       } catch (toolError) {
         // Catch any unhandled tool errors to prevent stream crashes
