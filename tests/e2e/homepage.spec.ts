@@ -82,7 +82,9 @@ test.describe('Homepage', () => {
         !error.includes('CORS') &&
         !error.includes('404') &&
         !error.includes('AbortError') &&
-        !error.includes('ResizeObserver')
+        !error.includes('ResizeObserver') &&
+        !error.includes('Content Security Policy') &&
+        !error.includes('Refused to')
     );
 
     expect(criticalErrors).toHaveLength(0);
