@@ -15,9 +15,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { encrypt, decrypt } from '@/lib/security/crypto';
 import { auditLog, getAuditContext } from '@/lib/audit';
@@ -142,36 +141,8 @@ async function testApiKey(
  * GET - Get list of configured providers (without keys)
  */
 export async function GET() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors in read-only contexts
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
 
   try {
     const adminClient = createClient(
@@ -183,7 +154,7 @@ export async function GET() {
     const { data: prefs } = await adminClient
       .from('user_provider_preferences')
       .select('provider_api_keys')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     // Return which providers have keys configured (not the keys themselves)
@@ -245,36 +216,8 @@ export async function GET() {
  * POST - Save or test an API key
  */
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors in read-only contexts
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
   try {
     const body = await request.json();
@@ -339,7 +282,7 @@ export async function POST(request: NextRequest) {
     const { data: existing } = await adminClient
       .from('user_provider_preferences')
       .select('provider_api_keys')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     const existingKeys = (existing?.provider_api_keys || {}) as Record<
@@ -351,7 +294,7 @@ export async function POST(request: NextRequest) {
     // Upsert the preferences
     const { error: upsertError } = await adminClient.from('user_provider_preferences').upsert(
       {
-        user_id: user.id,
+        user_id: auth.user.id,
         provider_api_keys: updatedKeys,
         updated_at: new Date().toISOString(),
       },
@@ -366,7 +309,7 @@ export async function POST(request: NextRequest) {
     }
 
     log.info('API key saved', {
-      userId: user.id,
+      userId: auth.user.id,
       provider,
       hasCustomModel: !!providerConfig.model,
     });
@@ -374,7 +317,7 @@ export async function POST(request: NextRequest) {
     // CHAT-015: Audit log
     const auditCtx = getAuditContext(request);
     auditLog({
-      userId: user.id,
+      userId: auth.user.id,
       action: 'api.key_created',
       resourceType: 'api_key',
       resourceId: provider,
@@ -400,36 +343,8 @@ export async function POST(request: NextRequest) {
  * DELETE - Remove an API key
  */
 export async function DELETE(request: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors in read-only contexts
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -449,7 +364,7 @@ export async function DELETE(request: NextRequest) {
     const { data: existing } = await adminClient
       .from('user_provider_preferences')
       .select('provider_api_keys')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (!existing) {
@@ -469,19 +384,19 @@ export async function DELETE(request: NextRequest) {
         provider_api_keys: existingKeys,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id);
+      .eq('user_id', auth.user.id);
 
     if (updateError) {
       log.error('Error deleting API key', { error: updateError });
       return NextResponse.json({ error: 'Failed to delete API key' }, { status: 500 });
     }
 
-    log.info('API key deleted', { userId: user.id, provider });
+    log.info('API key deleted', { userId: auth.user.id, provider });
 
     // CHAT-015: Audit log
     const auditCtx = getAuditContext(request);
     auditLog({
-      userId: user.id,
+      userId: auth.user.id,
       action: 'api.key_revoked',
       resourceType: 'api_key',
       resourceId: provider,

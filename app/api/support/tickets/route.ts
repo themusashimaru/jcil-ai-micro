@@ -9,6 +9,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import {
   successResponse,
@@ -258,21 +259,14 @@ export async function POST(request: NextRequest) {
 /**
  * GET - Get user's own support tickets
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
-    const authClient = await getAuthenticatedClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     // Apply rate limiting for authenticated user
     const rateLimitResult = await checkRequestRateLimit(
-      `tickets:get:${user.id}`,
+      `tickets:get:${auth.user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -293,7 +287,7 @@ export async function GET(_request: NextRequest) {
         resolved_at
       `
       )
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

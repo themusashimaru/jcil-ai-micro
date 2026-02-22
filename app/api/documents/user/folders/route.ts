@@ -10,37 +10,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 const log = logger('DocumentsFolders');
-
-// Helper to create authenticated Supabase client (for auth)
-async function createSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component context
-          }
-        },
-      },
-    }
-  );
-}
 
 // Service role client for database operations (bypasses RLS)
 function createDbClient() {
@@ -53,18 +27,14 @@ function createDbClient() {
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     const db = createDbClient();
     const { data: folders, error } = await db
       .from('user_document_folders')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .order('name', { ascending: true });
 
     if (error) {
@@ -81,12 +51,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const body = await request.json();
     const { name, parentFolderId, color, icon } = body;
@@ -101,7 +67,7 @@ export async function POST(request: NextRequest) {
     const { count } = await db
       .from('user_document_folders')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+      .eq('user_id', auth.user.id);
 
     // Default limit - will be adjusted by tier
     const folderLimit = 20;
@@ -114,7 +80,7 @@ export async function POST(request: NextRequest) {
     const { data: folder, error } = await db
       .from('user_document_folders')
       .insert({
-        user_id: user.id,
+        user_id: auth.user.id,
         name: name.trim(),
         parent_folder_id: parentFolderId || null,
         color: color || '#3b82f6',
@@ -140,12 +106,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createSupabaseClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const body = await request.json();
     const { id, name, color, icon, parentFolderId } = body;
@@ -163,7 +125,7 @@ export async function PUT(request: NextRequest) {
       .eq('id', id)
       .single();
 
-    if (!existing || existing.user_id !== user.id) {
+    if (!existing || existing.user_id !== auth.user.id) {
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
     }
 
@@ -197,12 +159,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createSupabaseClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -220,7 +178,7 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id)
       .single();
 
-    if (!existing || existing.user_id !== user.id) {
+    if (!existing || existing.user_id !== auth.user.id) {
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
     }
 
