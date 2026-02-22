@@ -103,13 +103,13 @@ describe('Redis Client', () => {
       expect(checkRateLimit.length).toBe(3);
     });
 
-    it('should return false when Redis is not configured (fail-closed security)', async () => {
-      // When Redis is not configured, checkRateLimit should return false
-      // This is the fail-closed security behavior - deny requests when rate limiting unavailable
+    it('should return true when Redis is not configured (fail-open resilience)', async () => {
+      // When Redis is not configured, checkRateLimit should return true (allow request)
+      // This is the fail-open resilience behavior - allow requests when rate limiting unavailable
       const { checkRateLimit, isRedisAvailable } = await import('./client');
       if (!isRedisAvailable()) {
         const result = await checkRateLimit('test-key', 10, 60);
-        expect(result).toBe(false);
+        expect(result).toBe(true);
       }
     });
   });
