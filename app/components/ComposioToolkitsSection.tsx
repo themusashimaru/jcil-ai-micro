@@ -400,6 +400,7 @@ export default function ComposioToolkitsSection() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search apps... (Twitter, Slack, Gmail, etc.)"
+            aria-label="Search integrations"
             className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             style={{
               backgroundColor: 'var(--background)',
@@ -412,6 +413,7 @@ export default function ComposioToolkitsSection() {
               onClick={() => setSearch('')}
               className="absolute inset-y-0 right-0 pr-4 flex items-center"
               style={{ color: 'var(--text-muted)' }}
+              aria-label="Clear search"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

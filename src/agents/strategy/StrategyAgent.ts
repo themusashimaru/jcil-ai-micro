@@ -966,9 +966,8 @@ You have ${this.allFindings.length} findings to work with.
       response.usage?.output_tokens || 0
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const textContent = (response.content as any[])
-      .filter((block) => block.type === 'text')
+    const textContent = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
       .map((block) => block.text)
       .join('\n');
 
@@ -1105,9 +1104,10 @@ You have ${this.allFindings.length} findings to work with.
       return raw.map((item) => {
         if (typeof item === 'string') return item;
         if (typeof item === 'object' && item !== null) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const obj = item as any;
-          return obj.text || obj.description || obj.tradeoff || obj.title || JSON.stringify(item);
+          const obj = item as Record<string, unknown>;
+          return String(
+            obj.text || obj.description || obj.tradeoff || obj.title || JSON.stringify(item)
+          );
         }
         return String(item);
       });
@@ -1125,8 +1125,7 @@ You have ${this.allFindings.length} findings to work with.
     }> => {
       if (!Array.isArray(raw)) return [];
       return raw.map((item) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const alt = item as any;
+        const alt = item as Record<string, unknown>;
         return {
           title: String(alt?.title || 'Alternative'),
           summary: String(alt?.summary || alt?.description || ''),
@@ -1157,8 +1156,7 @@ You have ${this.allFindings.length} findings to work with.
       },
       actionPlan: Array.isArray(parsed.actionPlan)
         ? parsed.actionPlan.map((item: unknown, index: number) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const ap = item as any;
+            const ap = item as Record<string, unknown>;
             const validPriorities = ['critical', 'high', 'medium', 'low'] as const;
             const rawPriority = String(ap?.priority || 'medium').toLowerCase();
             const priority = validPriorities.includes(

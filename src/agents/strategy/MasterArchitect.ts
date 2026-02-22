@@ -199,9 +199,8 @@ export class MasterArchitect {
 
     const response = await this.client.messages.create(createParams);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const textContent = (response.content as any[])
-      .filter((block) => block.type === 'text')
+    const textContent = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
       .map((block) => block.text)
       .join('\n');
 

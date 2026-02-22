@@ -198,11 +198,19 @@ export function ChatThread({
     <div
       ref={scrollContainerRef}
       className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs"
+      role="region"
+      aria-label="Conversation"
     >
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
 
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10">
+      <div
+        className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10"
+        role="log"
+        aria-label="Chat messages"
+        aria-live="polite"
+        aria-relevant="additions"
+      >
         {messages.map((message, index) => {
           // Check if this is the last user message
           const isLastUserMessage = index === messages.length - 1 && message.role === 'user';
@@ -246,7 +254,12 @@ export function ChatThread({
 
         {/* Intelligent typing indicator — one contextual message until stream starts */}
         {isStreaming && (
-          <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
+          <>
+            <span className="sr-only" role="status">
+              AI is responding
+            </span>
+            <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
+          </>
         )}
 
         <div ref={messagesEndRef} />

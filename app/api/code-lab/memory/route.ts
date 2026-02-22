@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
@@ -44,9 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get session with settings
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session, error } = await (supabase as any)
-      .from('code_lab_sessions')
+    const { data: session, error } = await untypedFrom(supabase, 'code_lab_sessions')
       .select('id, settings, updated_at')
       .eq('id', sessionId)
       .eq('user_id', user.id)
@@ -110,9 +109,7 @@ export async function POST(request: NextRequest) {
     log.info('Saving memory file', { sessionId, userId: user.id, contentLength: content?.length });
 
     // Get current session settings
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session, error: getError } = await (supabase as any)
-      .from('code_lab_sessions')
+    const { data: session, error: getError } = await untypedFrom(supabase, 'code_lab_sessions')
       .select('id, settings')
       .eq('id', sessionId)
       .eq('user_id', user.id)
@@ -131,9 +128,7 @@ export async function POST(request: NextRequest) {
       memory_content: content || '',
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: updateError } = await (supabase as any)
-      .from('code_lab_sessions')
+    const { error: updateError } = await untypedFrom(supabase, 'code_lab_sessions')
       .update({
         settings: newSettings,
         updated_at: new Date().toISOString(),

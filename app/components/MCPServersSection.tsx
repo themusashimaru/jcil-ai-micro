@@ -260,32 +260,36 @@ export default function MCPServersSection() {
               }}
             >
               {/* Server Row */}
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <span className="text-2xl flex-shrink-0" aria-hidden="true">
+              <div className="flex items-start justify-between p-4 gap-3">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <span className="text-2xl flex-shrink-0 mt-0.5" aria-hidden="true">
                     {SERVER_ICONS[server.id] || '🔧'}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>
                         {server.name}
                       </h4>
                       {server.builtIn && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-500/20 text-gray-400">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-500/20 text-gray-400 whitespace-nowrap">
                           Built-in
                         </span>
                       )}
                       {/* Status indicator */}
                       {server.enabled && (
-                        <span className={`flex items-center gap-1 text-xs ${status.color}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+                        <span
+                          className={`flex items-center gap-1 text-xs whitespace-nowrap ${status.color}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${status.dot}`}
+                          />
                           {status.label}
                         </span>
                       )}
                       {/* Health indicator */}
                       {health && (
                         <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${
                             health.healthy
                               ? 'bg-green-500/20 text-green-400'
                               : 'bg-red-500/20 text-red-400'
@@ -297,18 +301,18 @@ export default function MCPServersSection() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--text-muted)' }}>
                       {server.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Tools count button */}
                   {server.tools && server.tools.length > 0 && (
                     <button
                       onClick={() => setExpandedServer(isExpanded ? null : server.id)}
-                      className="px-2 py-1 text-xs rounded-lg transition-colors"
+                      className="px-2 py-1 text-xs rounded-lg transition-colors whitespace-nowrap"
                       style={{
                         backgroundColor: isExpanded ? 'var(--primary)' : 'transparent',
                         color: isExpanded ? 'white' : 'var(--text-muted)',

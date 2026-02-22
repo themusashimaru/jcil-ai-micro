@@ -59,6 +59,7 @@ export default function EmailCapture({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
+          aria-label="Email address"
           className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
           disabled={status === 'loading'}
         />
@@ -86,6 +87,7 @@ export default function EmailCapture({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
+            aria-label="Email address"
             className="flex-1 px-4 py-3.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 text-base"
             disabled={status === 'loading'}
           />
@@ -133,6 +135,7 @@ export default function EmailCapture({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
+          aria-label="Email address"
           className="w-full px-4 py-3 rounded-lg bg-black/30 border border-amber-500/20 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
           disabled={status === 'loading'}
         />
@@ -190,6 +193,7 @@ export function EmailBanner() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter email"
+            aria-label="Email address"
             className="px-3 py-1.5 rounded text-sm text-black placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-white/50"
           />
           <button

@@ -398,7 +398,10 @@ function ChatDemo() {
           <div className="flex-1 bg-slate-900/50 rounded-xl px-4 py-3 text-slate-500 text-sm border border-slate-700/50 focus-within:border-blue-500/50 transition-colors">
             Ask anything...
           </div>
-          <button className="w-11 h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow">
+          <button
+            className="w-11 h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow"
+            aria-label="Send message"
+          >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"

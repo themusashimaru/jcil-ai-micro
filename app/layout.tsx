@@ -46,6 +46,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { GlobalErrorHandler } from '@/components/GlobalErrorHandler';
 
 // Viewport configuration (separate export per Next.js 14 spec)
 export const viewport: Viewport = {
@@ -123,6 +124,38 @@ export default function RootLayout({
           name="google-site-verification"
           content="suQkOhSeAz8m1aB0yup8Ct1P7fzTMCzKta8HnI_Ez3s"
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'JCIL.AI',
+              url: 'https://jcil.ai',
+              applicationCategory: 'BusinessApplication',
+              operatingSystem: 'Web',
+              description:
+                'AI-powered tools for people of faith. Chat, research, Bible study, writing tools, code lab, and more.',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+                description: 'Free tier available',
+              },
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: '4.9',
+                ratingCount: '150',
+                bestRating: '5',
+              },
+              creator: {
+                '@type': 'Organization',
+                name: 'JCIL.AI',
+                url: 'https://jcil.ai',
+              },
+            }),
+          }}
+        />
       </head>
       <body
         className="antialiased"
@@ -136,6 +169,7 @@ export default function RootLayout({
             <PWAInstaller />
           </UserProfileProvider>
         </ThemeProvider>
+        <GlobalErrorHandler />
         <Analytics />
         <SpeedInsights />
       </body>

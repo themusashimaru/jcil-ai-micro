@@ -14,7 +14,7 @@ import { sanitizeHtml } from '@/lib/sanitize';
 
 // Sample conversation demonstrating faith-based response
 const DEMO_CONVERSATION = {
-  question: "Who is Jesus?",
+  question: 'Who is Jesus?',
   answer: `Jesus Christ is the Son of God, the second person of the Trinity, who took on human flesh to save humanity from sin.
 
 **Key truths about Jesus:**
@@ -72,7 +72,10 @@ export default function ChatDemo() {
   const formatText = (text: string) => {
     return text.split('\n').map((line, i) => {
       // Bold text
-      let formatted = line.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+      let formatted = line.replace(
+        /\*\*([^*]+)\*\*/g,
+        '<strong class="text-white font-semibold">$1</strong>'
+      );
       // Italic text
       formatted = formatted.replace(/\*([^*]+)\*/g, '<em class="text-slate-300 italic">$1</em>');
       // Sanitize the HTML to prevent XSS
@@ -89,7 +92,11 @@ export default function ChatDemo() {
       // Scripture reference
       if (formatted.includes('—')) {
         return (
-          <p key={i} className="text-right text-slate-400 mt-2 italic text-sm" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+          <p
+            key={i}
+            className="text-right text-slate-400 mt-2 italic text-sm"
+            dangerouslySetInnerHTML={{ __html: safeHtml }}
+          />
         );
       }
       // Regular paragraph
@@ -109,8 +116,18 @@ export default function ChatDemo() {
         <div className="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              <svg
+                className="w-4 h-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
               </svg>
             </div>
             <div>
@@ -165,9 +182,18 @@ export default function ChatDemo() {
                 </div>
                 <div className="bg-slate-700/50 px-4 py-3 rounded-2xl rounded-tl-md">
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div
+                      className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0ms' }}
+                    />
+                    <div
+                      className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '150ms' }}
+                    />
+                    <div
+                      className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '300ms' }}
+                    />
                   </div>
                 </div>
               </div>
@@ -181,9 +207,17 @@ export default function ChatDemo() {
             <div className="flex-1 bg-slate-700/50 rounded-xl px-4 py-2.5 text-slate-400 text-sm">
               Ask anything about faith, life, or the Bible...
             </div>
-            <button className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-500 transition">
+            <button
+              className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-500 transition"
+              aria-label="Send message"
+            >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
               </svg>
             </button>
           </div>

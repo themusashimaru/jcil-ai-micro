@@ -33,6 +33,7 @@ import {
   createSecureServiceClient,
   extractRequestContext,
 } from '@/lib/supabase/secure-service-role';
+import { untypedFrom } from '@/lib/supabase/workspace-client';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -1570,9 +1571,7 @@ Analyze the attached images carefully and provide helpful feedback.`
 - Explain your reasoning briefly`;
 
     // Inject CLAUDE.md memory into context
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sessionWithSettings } = await (supabase as any)
-      .from('code_lab_sessions')
+    const { data: sessionWithSettings } = await untypedFrom(supabase, 'code_lab_sessions')
       .select('settings')
       .eq('id', sessionId)
       .single();
@@ -1620,7 +1619,9 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
     }
 
     // Fire-and-forget: observe current message for learning signals
-    observeAndLearn(user.id, content).catch(() => {});
+    observeAndLearn(user.id, content).catch((err: unknown) =>
+      log.error('observeAndLearn failed', err instanceof Error ? err : undefined)
+    );
 
     // ========================================
     // RAG - Document Context
@@ -2388,11 +2389,15 @@ Rules:
             cachedInputTokens: cacheReadTokens,
             source: 'code-lab',
             conversationId: sessionId,
-          }).catch(() => {});
+          }).catch((err: unknown) =>
+            log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+          );
 
           // Enforce token budget limits (parity with main chat route)
           const totalTokens = (inputTokens || 0) + (outputTokens || 0);
-          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch(() => {});
+          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch((err: unknown) =>
+            log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+          );
 
           // Save assistant message
           await (supabase.from('code_lab_messages') as AnySupabase).insert({
