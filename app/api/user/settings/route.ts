@@ -6,9 +6,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import {
   successResponse,
@@ -21,43 +19,22 @@ import { userSettingsSchema } from '@/lib/validation/schemas';
 
 const log = logger('UserSettings');
 
-async function getSupabase() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
-}
-
-export async function GET(_request: NextRequest) {
-  const supabase = await getSupabase();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return errors.unauthorized();
-  }
+export async function GET() {
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
 
   // Rate limiting by user
   const rateLimitCheck = await checkRequestRateLimit(
-    `settings:get:${user.id}`,
+    `settings:get:${auth.user.id}`,
     rateLimits.standard
   );
   if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
   // Get user settings
-  const { data: settings, error } = await supabase
+  const { data: settings, error } = await auth.supabase
     .from('user_settings')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', auth.user.id)
     .single();
 
   if (error && error.code !== 'PGRST116') {
@@ -78,22 +55,12 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await getSupabase();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
   // Rate limiting by user
   const rateLimitCheck = await checkRequestRateLimit(
-    `settings:put:${user.id}`,
+    `settings:put:${auth.user.id}`,
     rateLimits.standard
   );
   if (!rateLimitCheck.allowed) return rateLimitCheck.response;
@@ -107,10 +74,10 @@ export async function PUT(request: NextRequest) {
   // Validate theme - light mode is admin only for now
   if (theme === 'light') {
     // Check if user is admin (using admin_users table)
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await auth.supabase
       .from('admin_users')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (!adminUser) {
@@ -121,7 +88,7 @@ export async function PUT(request: NextRequest) {
   // Build upsert payload (only include fields that were provided)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const upsertData: Record<string, any> = {
-    user_id: user.id,
+    user_id: auth.user.id,
     theme: theme || 'dark',
     updated_at: new Date().toISOString(),
   };
@@ -130,7 +97,7 @@ export async function PUT(request: NextRequest) {
   }
 
   // Upsert settings
-  const { data: settings, error } = await supabase
+  const { data: settings, error } = await auth.supabase
     .from('user_settings')
     .upsert(upsertData, {
       onConflict: 'user_id',

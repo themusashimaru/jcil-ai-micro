@@ -13,10 +13,8 @@
  * @version 1.0.0
  */
 
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import {
   successResponse,
@@ -48,78 +46,36 @@ const updatePreferencesSchema = z.object({
   interaction_preferences: z.array(z.string().max(200)).max(10).optional(),
 });
 
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 /**
  * GET /api/memory
  * Retrieve user's memory profile
- *
- * Returns the user's stored memory including:
- * - Summary of past interactions
- * - Key topics discussed
- * - Learned preferences
- * - Recent conversation context
- *
- * Query params:
- * - export=true: Returns full data export for GDPR data portability
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(
-      `memory-get:${user.id}`,
+      `memory-get:${auth.user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Load user memory
-    const memory = await loadUserMemory(user.id);
+    const memory = await loadUserMemory(auth.user.id);
 
     // Check if this is a GDPR data export request
     const isExport = request.nextUrl.searchParams.get('export') === 'true';
 
     if (isExport) {
       // Full data export for GDPR data portability
-      const learnedPreferences = await loadPreferences(user.id, 0); // All preferences, no threshold
+      const learnedPreferences = await loadPreferences(auth.user.id, 0);
 
       return successResponse({
         export: {
           exported_at: new Date().toISOString(),
-          user_id: user.id,
+          user_id: auth.user.id,
           memory: memory
             ? {
                 summary: memory.summary,
@@ -173,30 +129,15 @@ export async function GET(request: NextRequest) {
 /**
  * PUT /api/memory
  * Update user preferences
- *
- * Allows users to directly update their preference settings.
- * This is useful for onboarding or settings pages.
  */
 export async function PUT(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(
-      `memory-update:${user.id}`,
+      `memory-update:${auth.user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -219,7 +160,7 @@ export async function PUT(request: NextRequest) {
       }));
 
     // Update memory with new preferences
-    const result = await updateUserMemory(user.id, {
+    const result = await updateUserMemory(auth.user.id, {
       facts,
       topics: [],
       summary: '',
@@ -231,7 +172,7 @@ export async function PUT(request: NextRequest) {
       return errors.serverError();
     }
 
-    log.info('User preferences updated', { userId: user.id });
+    log.info('User preferences updated', { userId: auth.user.id });
 
     return successResponse({
       success: true,
@@ -246,29 +187,14 @@ export async function PUT(request: NextRequest) {
 /**
  * DELETE /api/memory
  * Clear all user memory (GDPR right to erasure)
- *
- * Completely removes all stored memory for the user.
- * This action is irreversible.
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     // Rate limiting (stricter for destructive operations)
-    const rateLimitResult = await checkRequestRateLimit(`memory-delete:${user.id}`, {
+    const rateLimitResult = await checkRequestRateLimit(`memory-delete:${auth.user.id}`, {
       ...rateLimits.standard,
       limit: 5,
     });
@@ -276,12 +202,12 @@ export async function DELETE(request: NextRequest) {
 
     // Delete all memory and learned preferences
     const [memoryDeleted, learningDeleted] = await Promise.all([
-      deleteUserMemory(user.id),
-      deleteUserLearning(user.id),
+      deleteUserMemory(auth.user.id),
+      deleteUserLearning(auth.user.id),
     ]);
 
     log.info('User data deleted (GDPR erasure)', {
-      userId: user.id,
+      userId: auth.user.id,
       memoryDeleted,
       learningDeleted,
     });
