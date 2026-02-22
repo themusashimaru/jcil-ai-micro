@@ -591,7 +591,7 @@ export function ChatClient() {
     };
   }, []);
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     // Just reset to "new chat" state - don't create in database yet
     // The chat will be created when user sends their first message
     // This prevents blank/empty chats from accumulating
@@ -603,7 +603,7 @@ export function ChatClient() {
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
     }
-  };
+  }, []);
 
   // Handle carousel card selection - pre-fills chat input for natural flow
   const handleCarouselSelect = async (cardId: string) => {
@@ -1172,6 +1172,40 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
     }
     setIsStreaming(false);
   }, []);
+
+  // Keyboard shortcuts for power users
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMeta = e.metaKey || e.ctrlKey;
+      const target = e.target as HTMLElement;
+      const isInput =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // Escape — stop streaming
+      if (e.key === 'Escape' && isStreaming) {
+        e.preventDefault();
+        handleStop();
+        return;
+      }
+
+      // Cmd/Ctrl+K — new chat (works even in input fields)
+      if (isMeta && e.key === 'k') {
+        e.preventDefault();
+        handleNewChat();
+        return;
+      }
+
+      // Cmd/Ctrl+/ — toggle sidebar (skip if typing)
+      if (isMeta && e.key === '/' && !isInput) {
+        e.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isStreaming, handleStop, handleNewChat]);
 
   /**
    * Handle chat continuation - summarize and start a new chat
@@ -2025,6 +2059,15 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
       }
       abortControllerRef.current = new AbortController();
 
+      // Safety timeout: abort after 3 minutes to prevent hanging requests
+      const CHAT_TIMEOUT_MS = 180_000;
+      const chatTimeoutId = setTimeout(() => {
+        if (abortControllerRef.current) {
+          log.warn('Chat request timed out after 3 minutes');
+          abortControllerRef.current.abort();
+        }
+      }, CHAT_TIMEOUT_MS);
+
       // Call API with regular chat (no auto tool selection)
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -2045,6 +2088,8 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
         }),
         signal: abortControllerRef.current.signal,
       });
+
+      clearTimeout(chatTimeoutId);
 
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
