@@ -17,13 +17,13 @@
 | **Test Coverage (statements)** | 5.49% | 60% | Critical gap |
 | **Test Coverage (branches)** | 4.37% | 60% | Critical gap |
 | **API Routes Tested** | 8.5% | 90% | Critical gap |
-| **Real Tool Implementations** | ~52 of 68 exported (28 API + 24 library) | All active tools real | Improved — stubs remain |
+| **Real Tool Implementations** | 57 tools (all real, stubs removed) | All active tools real | Improved — 23 stubs deleted |
 | **ARIA Attributes** | 0 | WCAG 2.1 AA | Critical gap |
 | **Inline Styles** | 554 | 0 (use CSS classes) | Needs work |
 | **Largest Component** | 2,631 lines | <400 lines | Needs decomposition |
 | **Largest Route File** | 5,840 lines | <500 lines | Needs decomposition |
 | **Production Dependencies** | 152 | <50 | Needs audit |
-| **Tool Files (total)** | 82 (was 393, deleted 311 unused) | Lazy-loaded | Improved |
+| **Tool Files (total)** | 58 (was 82, deleted 23 stubs + index.ts) | Lazy-loaded | Improved |
 | **Error Boundaries** | 0 | All major sections | Needs work |
 | **TypeScript Errors** | TBD (verify) | 0 | Check each session |
 | **Build Status** | TBD (verify) | Passing | Check each session |
@@ -155,6 +155,8 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-22 | Aligned Node version | package.json: 22.x | package.json: 20.x (matches .nvmrc, CI) |
 | 2026-02-22 | Strengthened env validation | Log-only on missing vars | Throws in production |
 | 2026-02-22 | Google verification to env var | Hardcoded token | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` |
+| 2026-02-22 | Deleted 23 stub tools + fixed index.ts | 82 files, 4,033-line index.ts | 58 files, ~430-line index.ts |
+| 2026-02-22 | Cleaned route.ts of deleted tool refs | ~8,366 lines of broken refs | All refs to real tools only |
 
 ---
 

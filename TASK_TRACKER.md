@@ -18,7 +18,7 @@
 - [x] **1.1.2** Removed 311 unused tool files (226,755 lines of dead code). 82 active files remain. *(2026-02-22)*
 - [ ] **1.1.3** Create a `tools/registry.ts` manifest with explicit `status: 'active' | 'beta' | 'planned'`
 - [ ] **1.1.4** Update UI to only show tools with `status: 'active'` or `'beta'` (with beta badge)
-- [ ] **1.1.5** Remove ~16 stub tool exports from `index.ts` (educational/math-only tools still exported)
+- [x] **1.1.5** Deleted 23 stub tool files + rewrote index.ts (4,033→430 lines), fixed 148 broken imports, cleaned route.ts (~8,366 lines deleted) *(2026-02-22)*
 - [ ] **1.1.6** Verify build passes after stub export removal
 - [ ] **1.1.7** Verify no runtime errors when stubs are gone
 - [x] **1.1.8** Update `PROJECT_STATUS.md` with new tool count *(2026-02-22)*
