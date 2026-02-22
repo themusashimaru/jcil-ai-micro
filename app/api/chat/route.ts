@@ -190,6 +190,19 @@ import {
   refactorTool,
   executeRefactor,
   isRefactorAvailable,
+  // GitHub, feature flags, migrations, ML serving
+  githubTool,
+  executeGitHub,
+  isGitHubAvailable,
+  featureFlagTool,
+  executeFeatureFlag,
+  isFeatureFlagAvailable,
+  migrationGeneratorTool,
+  executeMigrationGenerator,
+  isMigrationGeneratorAvailable,
+  mlModelServingTool,
+  executeMlModelServing,
+  isMlModelServingAvailable,
   // Safety & cost control (pass-through until real implementation)
   canExecuteTool,
   recordToolCost,
@@ -3822,7 +3835,6 @@ SECURITY:
     if (await isMiniAgentAvailable()) tools.push(miniAgentTool);
     if (await isDynamicToolAvailable()) tools.push(dynamicToolTool);
     if (isYouTubeTranscriptAvailable()) tools.push(youtubeTranscriptTool);
-    // GitHub tool removed - now handled by Composio GitHub connector
     if (await isScreenshotAvailable()) tools.push(screenshotTool);
     if (isChartAvailable()) tools.push(chartTool);
     if (isDocumentAvailable()) tools.push(documentTool);
@@ -3870,6 +3882,10 @@ SECURITY:
     // AI-powered code tools
     if (isErrorFixerAvailable()) tools.push(errorFixerTool);
     if (isRefactorAvailable()) tools.push(refactorTool);
+    if (isGitHubAvailable()) tools.push(githubTool);
+    if (isFeatureFlagAvailable()) tools.push(featureFlagTool);
+    if (isMigrationGeneratorAvailable()) tools.push(migrationGeneratorTool);
+    if (isMlModelServingAvailable()) tools.push(mlModelServingTool);
 
     // ========================================
     // MCP TOOLS INTEGRATION (ON-DEMAND)
@@ -4273,7 +4289,6 @@ SECURITY:
           case 'youtube_transcript':
             result = await executeYouTubeTranscript(toolCallWithSession);
             break;
-          // case 'github' - REMOVED: Now handled by Composio GitHub connector
           case 'screenshot':
             result = await executeScreenshot(toolCallWithSession);
             break;
@@ -4468,6 +4483,18 @@ SECURITY:
             break;
           case 'ray_tracing':
             result = await executeRayTracing(toolCallWithSession);
+            break;
+          case 'github':
+            result = await executeGitHub(toolCallWithSession);
+            break;
+          case 'feature_flag':
+            result = await executeFeatureFlag(toolCallWithSession);
+            break;
+          case 'migration_generator':
+            result = await executeMigrationGenerator(toolCallWithSession);
+            break;
+          case 'ml_model_serving':
+            result = await executeMlModelServing(toolCallWithSession);
             break;
           default:
             // Check if this is an MCP tool (prefixed with 'mcp_')

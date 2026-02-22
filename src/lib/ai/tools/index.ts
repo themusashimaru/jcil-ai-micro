@@ -76,8 +76,30 @@ export {
   isYouTubeTranscriptAvailable,
 } from './youtube-transcript';
 
-// GitHub Tool — backward compatibility export
-export { getRepoSummaryForPrompt } from './github-tool';
+// GitHub Tool
+export {
+  githubTool,
+  executeGitHub,
+  isGitHubAvailable,
+  getRepoSummaryForPrompt,
+} from './github-tool';
+
+// Feature Flag Tool
+export { featureFlagTool, executeFeatureFlag, isFeatureFlagAvailable } from './feature-flag-tool';
+
+// Migration Generator Tool
+export {
+  migrationGeneratorTool,
+  executeMigrationGenerator,
+  isMigrationGeneratorAvailable,
+} from './migration-generator-tool';
+
+// ML Model Serving (beta)
+export {
+  mlModelServingTool,
+  executeMlModelServing,
+  isMlModelServingAvailable,
+} from './ml-model-serving-tool';
 
 // Screenshot Tool (Puppeteer)
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
@@ -389,6 +411,17 @@ async function initializeTools() {
   );
   const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
 
+  // GitHub, feature flags, migrations, ML serving
+  const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
+  const { featureFlagTool, executeFeatureFlag, isFeatureFlagAvailable } = await import(
+    './feature-flag-tool'
+  );
+  const { migrationGeneratorTool, executeMigrationGenerator, isMigrationGeneratorAvailable } =
+    await import('./migration-generator-tool');
+  const { mlModelServingTool, executeMlModelServing, isMlModelServingAvailable } = await import(
+    './ml-model-serving-tool'
+  );
+
   // Register all tools
   CHAT_TOOLS.push(
     // Core API tools
@@ -524,7 +557,25 @@ async function initializeTools() {
 
     // AI-powered code tools
     { tool: errorFixerTool, executor: executeErrorFixer, checkAvailability: isErrorFixerAvailable },
-    { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable }
+    { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
+
+    // GitHub, feature flags, migrations, ML serving
+    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
+    {
+      tool: featureFlagTool,
+      executor: executeFeatureFlag,
+      checkAvailability: isFeatureFlagAvailable,
+    },
+    {
+      tool: migrationGeneratorTool,
+      executor: executeMigrationGenerator,
+      checkAvailability: isMigrationGeneratorAvailable,
+    },
+    {
+      tool: mlModelServingTool,
+      executor: executeMlModelServing,
+      checkAvailability: isMlModelServingAvailable,
+    }
   );
 
   toolsInitialized = true;
