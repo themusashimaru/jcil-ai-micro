@@ -3,64 +3,29 @@
  * PURPOSE: Check if current user is an admin
  */
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('IsAdmin');
 
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 export async function GET() {
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `admin:check:${user.id}`,
+      `admin:check:${auth.user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Check if user is in admin_users table
-    const { data: adminUser, error: adminError } = await supabase
+    const { data: adminUser, error: adminError } = await auth.supabase
       .from('admin_users')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (adminError && adminError.code !== 'PGRST116') {
@@ -73,8 +38,8 @@ export async function GET() {
 
     return successResponse({
       isAdmin: !!adminUser,
-      userId: user.id,
-      email: user.email,
+      userId: auth.user.id,
+      email: auth.user.email,
     });
   } catch (error) {
     log.error('[API] Admin check error:', error instanceof Error ? error : { error });

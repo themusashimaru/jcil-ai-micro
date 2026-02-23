@@ -5,10 +5,8 @@
  * POST - Create or update a conversation
  */
 
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { auditLog } from '@/lib/audit';
 import {
@@ -32,65 +30,24 @@ const conversationBodySchema = createConversationSchema.extend({
   summary: z.string().max(5000).optional().nullable(),
 });
 
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 /**
  * GET /api/conversations
  * List all conversations for authenticated user
  */
 export async function GET() {
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError) {
-      log.error('Auth error getting user', { error: authError.message, code: authError.code });
-      return errors.unauthorized();
-    }
-    if (!user) {
-      log.warn('No user in session - not authenticated');
-      return errors.unauthorized();
-    }
-    log.debug('User authenticated for conversation list', { userId: user.id.slice(0, 8) + '...' });
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(
-      `conv-list:${user.id}`,
+      `conv-list:${auth.user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
-    // User authenticated successfully - logging minimized for privacy
-
     // Fetch conversations with folder info
-    const { data: conversations, error } = await supabase
+    const { data: conversations, error } = await auth.supabase
       .from('conversations')
       .select(
         `
@@ -98,7 +55,7 @@ export async function GET() {
         folder:chat_folders(id, name, color)
       `
       )
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .is('deleted_at', null)
       .order('last_message_at', { ascending: false });
 
@@ -112,8 +69,6 @@ export async function GET() {
       return errors.serverError();
     }
 
-    log.debug('Fetched conversations successfully', { count: conversations?.length || 0 });
-
     return successResponse({ conversations });
   } catch (error) {
     log.error('Unexpected error in GET', error as Error);
@@ -126,25 +81,13 @@ export async function GET() {
  * Create or update a conversation
  */
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(
-      `conv-create:${user.id}`,
+      `conv-create:${auth.user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -155,25 +98,33 @@ export async function POST(request: NextRequest) {
 
     const { id, title, tool_context, summary } = validation.data;
 
-    // User authenticated - processing conversation request
-
     // Calculate retention date (30 days from now by default)
     const retentionDate = new Date();
     retentionDate.setDate(retentionDate.getDate() + 30);
 
     if (id) {
       // Update existing conversation
-      // Updating existing conversation
-      const { data: conversation, error } = await supabase
+      type ToolContext =
+        | 'general'
+        | 'email'
+        | 'study'
+        | 'research'
+        | 'code'
+        | 'image'
+        | 'video'
+        | 'sms'
+        | 'scripture'
+        | null;
+      const { data: conversation, error } = await auth.supabase
         .from('conversations')
         .update({
           title,
-          tool_context,
+          tool_context: (tool_context as ToolContext) ?? undefined,
           summary,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', auth.user.id)
         .select()
         .single();
 
@@ -182,17 +133,25 @@ export async function POST(request: NextRequest) {
         return errors.serverError();
       }
 
-      // Conversation updated successfully
       return successResponse({ conversation });
     } else {
       // Create new conversation
-      // Creating new conversation
-      const { data: conversation, error } = await supabase
+      type ToolCtx =
+        | 'general'
+        | 'email'
+        | 'study'
+        | 'research'
+        | 'code'
+        | 'image'
+        | 'video'
+        | 'sms'
+        | 'scripture';
+      const { data: conversation, error } = await auth.supabase
         .from('conversations')
         .insert({
-          user_id: user.id,
+          user_id: auth.user.id,
           title: title || 'New Chat',
-          tool_context: tool_context || 'general',
+          tool_context: (tool_context as ToolCtx) || 'general',
           summary: summary || null,
           has_memory: true,
           message_count: 0,
@@ -207,10 +166,9 @@ export async function POST(request: NextRequest) {
         return errors.serverError();
       }
 
-      // Conversation created successfully
       // CHAT-015: Audit log
       auditLog({
-        userId: user.id,
+        userId: auth.user.id,
         action: 'conversation.create',
         resourceType: 'conversation',
         resourceId: conversation?.id,

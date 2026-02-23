@@ -4,10 +4,8 @@
  * POST - Create a new folder (max 20 per user)
  */
 
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 const log = logger('FoldersAPI');
@@ -29,47 +27,19 @@ const FOLDER_COLORS = [
   '#6b7280', // gray
 ];
 
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 /**
  * GET /api/folders
  * List all folders for authenticated user
  */
 export async function GET() {
   try {
-    const supabase = await getSupabaseClient();
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: folders, error } = await supabase
+    const { data: folders, error } = await auth.supabase
       .from('chat_folders')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .order('position', { ascending: true });
 
     if (error) {
@@ -93,17 +63,9 @@ export async function GET() {
  * Create a new folder
  */
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const body = await request.json();
     const { name, color } = body;
@@ -119,10 +81,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check folder limit
-    const { count } = await supabase
+    const { count } = await auth.supabase
       .from('chat_folders')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+      .eq('user_id', auth.user.id);
 
     if ((count || 0) >= MAX_FOLDERS_PER_USER) {
       return NextResponse.json(
@@ -132,10 +94,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get next position
-    const { data: lastFolder } = await supabase
+    const { data: lastFolder } = await auth.supabase
       .from('chat_folders')
       .select('position')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .order('position', { ascending: false })
       .limit(1)
       .single();
@@ -143,10 +105,10 @@ export async function POST(request: NextRequest) {
     const nextPosition = (lastFolder?.position ?? -1) + 1;
 
     // Create folder
-    const { data: folder, error: insertError } = await supabase
+    const { data: folder, error: insertError } = await auth.supabase
       .from('chat_folders')
       .insert({
-        user_id: user.id,
+        user_id: auth.user.id,
         name: trimmedName,
         color: color || null,
         position: nextPosition,

@@ -52,8 +52,8 @@ import { GlobalErrorHandler } from '@/components/GlobalErrorHandler';
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#000000',
 };
 
@@ -120,10 +120,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta
-          name="google-site-verification"
-          content="suQkOhSeAz8m1aB0yup8Ct1P7fzTMCzKta8HnI_Ez3s"
-        />
+        {process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && (
+          <meta
+            name="google-site-verification"
+            content={process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION}
+          />
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -141,12 +143,6 @@ export default function RootLayout({
                 price: '0',
                 priceCurrency: 'USD',
                 description: 'Free tier available',
-              },
-              aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: '4.9',
-                ratingCount: '150',
-                bestRating: '5',
               },
               creator: {
                 '@type': 'Organization',

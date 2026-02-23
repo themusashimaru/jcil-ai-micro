@@ -9,10 +9,10 @@
  * Supports both JSON and multipart/form-data for file uploads
  */
 
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
+import type { Json } from '@/lib/supabase/types';
 import {
   successResponse,
   errors,
@@ -21,7 +21,6 @@ import {
   rateLimits,
 } from '@/lib/api/utils';
 import { createMessageSchema } from '@/lib/validation/schemas';
-import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('MessagesAPI');
 
@@ -37,55 +36,22 @@ function errorResponse(status: number, code: string, message: string, extra?: un
   return NextResponse.json({ ok: false, error: { code, message, extra } }, { status });
 }
 
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 /**
  * GET /api/conversations/[id]/messages
  * Load all messages for a conversation
  */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await getSupabaseClient();
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
     const { id } = await params;
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
-
     // Verify conversation belongs to user
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await auth.supabase
       .from('conversations')
       .select('id')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (convError || !conversation) {
@@ -93,7 +59,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     // Fetch messages
-    const { data: messages, error } = await supabase
+    const { data: messages, error } = await auth.supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', id)
@@ -121,31 +87,22 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
  * - FormData: text, role, files[], attachments_json
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
     const { id: conversationId } = await params;
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
-
     // Rate limiting
-    const rateLimitResult = await checkRequestRateLimit(`messages:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `messages:${auth.user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const contentType = request.headers.get('content-type') || '';
 
     // Variables to hold parsed data
-    let role = 'user';
+    let role: 'user' | 'assistant' | 'system' = 'user';
     let content = '';
     let content_type_field = 'text';
     let model_used: string | null = null;
@@ -155,7 +112,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let image_url: string | null = null;
     let prompt: string | null = null;
     let type = 'text';
-    let metadata: Record<string, unknown> | null = null;
+    let metadata: Json | null = null;
 
     // Handle multipart/form-data (file uploads)
     if (contentType.includes('multipart/form-data')) {
@@ -177,7 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Extract role
       const roleValue = (formData.get('role') as string | null) ?? 'user';
-      if (['user', 'system', 'assistant'].includes(roleValue)) {
+      if (roleValue === 'user' || roleValue === 'assistant' || roleValue === 'system') {
         role = roleValue;
       }
 
@@ -255,7 +212,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       prompt = body.prompt || null;
       type = body.type;
       attachment_urls = body.attachment_urls || [];
-      metadata = body.metadata || null;
+      metadata = (body.metadata as Json) || null;
     }
 
     // Normalize content: handle different message types
@@ -274,11 +231,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Verify conversation belongs to user
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await auth.supabase
       .from('conversations')
       .select('id')
       .eq('id', conversationId)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (convError || !conversation) {
@@ -295,7 +252,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     log.info('[API] Attempting to save message:', {
       conversation_id: conversationId,
-      user_id: user.id,
+      user_id: auth.user.id,
       role,
       type,
       content_preview: contentPreview,
@@ -303,14 +260,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     // Save message with normalized content
-    const { data: message, error } = await supabase
+    const { data: message, error } = await auth.supabase
       .from('messages')
       .insert({
         conversation_id: conversationId,
-        user_id: user.id,
+        user_id: auth.user.id,
         role,
         content: normalizedContent,
-        content_type: type === 'image' ? 'image' : content_type_field,
+        content_type: (type === 'image' ? 'image' : content_type_field) as
+          | 'text'
+          | 'image'
+          | 'code'
+          | 'error',
         model_used,
         temperature,
         tokens_used,
@@ -331,7 +292,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Note: message_count is incremented by database trigger (increment_conversation_message_count)
     // We only update last_message_at here to avoid duplicate counting
-    const { error: updateError } = await supabase
+    const { error: updateError } = await auth.supabase
       .from('conversations')
       .update({
         last_message_at: new Date().toISOString(),
@@ -371,26 +332,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
  * and marks the message as edited with a timestamp.
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
     const { id: conversationId } = await params;
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(
-      `messages:edit:${user.id}`,
+      `messages:edit:${auth.user.id}`,
       rateLimits.strict
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -414,11 +363,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Verify conversation belongs to user
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await auth.supabase
       .from('conversations')
       .select('id')
       .eq('id', conversationId)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (convError || !conversation) {
@@ -426,7 +375,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Get the message and verify ownership
-    const { data: existingMessage, error: msgError } = await supabase
+    const { data: existingMessage, error: msgError } = await auth.supabase
       .from('messages')
       .select('id, role, user_id, content')
       .eq('id', messageId)
@@ -439,7 +388,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Only allow editing own messages
-    if (existingMessage.user_id !== user.id) {
+    if (existingMessage.user_id !== auth.user.id) {
       return errors.forbidden('You can only edit your own messages');
     }
 
@@ -452,7 +401,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const originalContent = existingMessage.content;
 
     // Update the message
-    const { data: updatedMessage, error: updateError } = await supabase
+    const { data: updatedMessage, error: updateError } = await auth.supabase
       .from('messages')
       .update({
         content: content.trim(),
@@ -469,7 +418,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return errors.serverError();
     }
 
-    log.info(`Message edited: ${messageId} by user ${user.id}`);
+    log.info(`Message edited: ${messageId} by user ${auth.user.id}`);
 
     return successResponse({
       message: updatedMessage,
@@ -492,26 +441,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
     const { id: conversationId } = await params;
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(
-      `messages:delete:${user.id}`,
+      `messages:delete:${auth.user.id}`,
       rateLimits.strict
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -531,11 +468,11 @@ export async function DELETE(
     }
 
     // Verify conversation belongs to user
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await auth.supabase
       .from('conversations')
       .select('id')
       .eq('id', conversationId)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .single();
 
     if (convError || !conversation) {
@@ -543,7 +480,7 @@ export async function DELETE(
     }
 
     // Get the message and verify ownership
-    const { data: existingMessage, error: msgError } = await supabase
+    const { data: existingMessage, error: msgError } = await auth.supabase
       .from('messages')
       .select('id, user_id')
       .eq('id', messageId)
@@ -556,12 +493,12 @@ export async function DELETE(
     }
 
     // Only allow deleting own messages
-    if (existingMessage.user_id !== user.id) {
+    if (existingMessage.user_id !== auth.user.id) {
       return errors.forbidden('You can only delete your own messages');
     }
 
     // Soft delete the message
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await auth.supabase
       .from('messages')
       .update({
         deleted_at: new Date().toISOString(),
@@ -574,7 +511,7 @@ export async function DELETE(
       return errors.serverError();
     }
 
-    log.info(`Message deleted: ${messageId} by user ${user.id}`);
+    log.info(`Message deleted: ${messageId} by user ${auth.user.id}`);
 
     return successResponse({
       deleted: true,

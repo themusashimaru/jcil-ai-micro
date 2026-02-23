@@ -141,12 +141,12 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
       adminUser: {
         id: admin.id,
         permissions: {
-          can_view_users: admin.can_view_users ?? true,
-          can_edit_users: admin.can_edit_users ?? true,
-          can_view_conversations: admin.can_view_conversations ?? true,
-          can_export_data: admin.can_export_data ?? true,
-          can_manage_subscriptions: admin.can_manage_subscriptions ?? true,
-          can_ban_users: admin.can_ban_users ?? true,
+          can_view_users: admin.can_view_users ?? false,
+          can_edit_users: admin.can_edit_users ?? false,
+          can_view_conversations: admin.can_view_conversations ?? false,
+          can_export_data: admin.can_export_data ?? false,
+          can_manage_subscriptions: admin.can_manage_subscriptions ?? false,
+          can_ban_users: admin.can_ban_users ?? false,
         },
       },
     };

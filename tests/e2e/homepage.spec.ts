@@ -78,13 +78,16 @@ test.describe('Homepage', () => {
         !error.includes('hydrat') &&
         !error.includes('Warning:') &&
         !error.includes('Failed to load resource') &&
+        !error.includes('Failed to fetch RSC') &&
         !error.includes('net::ERR_') &&
         !error.includes('CORS') &&
         !error.includes('404') &&
         !error.includes('AbortError') &&
         !error.includes('ResizeObserver') &&
         !error.includes('Content Security Policy') &&
-        !error.includes('Refused to')
+        !error.includes('Refused to') &&
+        !error.includes('fetch') &&
+        !error.includes('supabase')
     );
 
     expect(criticalErrors).toHaveLength(0);

@@ -13,7 +13,6 @@ import { requireUser } from '@/lib/auth/user-guard';
 import { getDebugManager } from '@/lib/debugger/debug-manager';
 import { DebugConfiguration, Source } from '@/lib/debugger/debug-adapter';
 import { rateLimiters } from '@/lib/security/rate-limit';
-import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 
 const log = logger('DebugAPI');
@@ -24,16 +23,10 @@ const log = logger('DebugAPI');
  * Debug actions: start, stop, setBreakpoints, continue, stepOver, stepInto, stepOut, pause
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    // Auth check
+    // Auth check (includes CSRF protection)
     const auth = await requireUser(request);
-    if (!auth.authorized) {
-      return auth.response;
-    }
+    if (!auth.authorized) return auth.response;
 
     // Rate limiting
     const rateLimitResult = await rateLimiters.codeLabDebug(auth.user.id);

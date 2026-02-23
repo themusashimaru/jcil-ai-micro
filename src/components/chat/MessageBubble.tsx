@@ -21,6 +21,7 @@ import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import type { ActionPreviewData } from './ActionPreviewCard';
+import { getToolEntry } from '@/lib/ai/tools/registry';
 
 // Lazy load MultiPagePreview for better performance
 const MultiPagePreview = lazy(() => import('./MultiPagePreview'));
@@ -476,6 +477,11 @@ export const MessageBubble = memo(
                 >
                   <span>{getToolIcon(tool.name)}</span>
                   <span className="capitalize">{tool.name.replace(/_/g, ' ')}</span>
+                  {getToolEntry(tool.name)?.status === 'beta' && (
+                    <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none text-amber-400">
+                      beta
+                    </span>
+                  )}
                   {tool.status === 'running' && (
                     <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
                       <circle

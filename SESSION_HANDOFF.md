@@ -1,409 +1,231 @@
 # SESSION HANDOFF DOCUMENT
 
-**Purpose:** Ensure seamless context transfer between Claude Code sessions
-**Last Updated:** 2026-01-21
-**Current Score:** 38/100
-**Target:** 100/100
+**Purpose:** Ensure seamless context transfer between Claude Code sessions.
+**Last Updated:** 2026-02-22
+**Current Phase:** Phase 1 — Foundation
 
 ---
 
-## QUICK START FOR NEW SESSIONS
+## Quick Start for New Sessions
 
-### 1. Read These Files (In Order)
+### Step 1: Read Core Documents (In Order)
 
-```bash
-# 1. This file - Current state and context
-cat SESSION_HANDOFF.md
-
-# 2. Comprehensive roadmap - All tasks and phases
-cat ROADMAP_TO_100.md
-
-# 3. Detailed audit - Gap analysis
-cat AUDIT_REPORT_VS_CLAUDE_CODE.md
+```
+1. CLAUDE.md              — Mission, standards, session protocol
+2. TASK_TRACKER.md        — Find where we left off, resume next unchecked task
+3. PROJECT_STATUS.md      — Current ground-truth metrics
 ```
 
-### 2. Check Git State
+### Step 2: Check Git State
 
 ```bash
 git status
-git log --oneline -10
+git log --oneline -5
 git branch -a
 ```
 
-### 3. Find Next Task
+### Step 3: Verify Build Health
 
 ```bash
-# Find first incomplete task
-grep -A 5 "⬜ NOT STARTED" ROADMAP_TO_100.md | head -20
+npx tsc --noEmit        # Zero TypeScript errors
+npm run lint             # Zero lint warnings
+npm run build            # Build succeeds
+npm test                 # Tests pass
 ```
+
+If ANY of these fail, **fix them before doing anything else.**
+
+### Step 4: Find Next Task
+
+Open `TASK_TRACKER.md`. Find the first unchecked `[ ]` item. That's your starting point.
 
 ---
 
-## PROJECT OVERVIEW
+## Project Overview
 
-### What Is Code Lab?
+### What Is JCIL AI Micro?
 
-Code Lab is a web-based AI coding assistant (like Claude Code) built into the JCIL AI Micro platform. It aims to provide Claude Code-like functionality in a browser environment.
+An AI-powered educational platform built on Next.js 14 + Supabase + Anthropic Claude. Features a chat interface, code lab (browser-based coding environment), document generation, and research agents.
 
-### Technology Stack
+### Ground-Truth State (Feb 22, 2026)
 
-| Layer    | Technology                               |
-| -------- | ---------------------------------------- |
-| Frontend | Next.js 14.2, React 18.3, TypeScript 5.4 |
-| UI       | Tailwind CSS, Custom components          |
-| AI       | Claude Opus 4.5 via Anthropic SDK        |
-| Sandbox  | E2B Code Interpreter (containers)        |
-| Database | Supabase (PostgreSQL)                    |
-| Cache    | Upstash Redis                            |
-| Auth     | Supabase Auth + WebAuthn                 |
+| Metric | Value |
+|---|---|
+| Real tool implementations | 57 (all real, stubs removed) |
+| Tool files | 58 (was 393) |
+| Test coverage | 5.9% |
+| ARIA attributes | 0 |
+| Largest component file | 2,631 lines |
+| Largest route file | ~5,400 lines (was 5,840) |
+| Production dependencies | 152 |
 
-### Key Directories
+### What We're Building Toward
 
-```
-/src/agents/code/          # AI agent implementation
-  ├── tools/               # Agent tools (Read, Write, Bash, etc.)
-  ├── brain/               # Reasoning modules
-  └── CodeAgentV2.ts       # Main agent class
-
-/src/lib/workspace/        # Backend services
-  ├── container.ts         # E2B sandbox management
-  ├── mcp.ts              # MCP integration (NEEDS FIXING)
-  ├── surgical-edit.ts    # Line-based editing
-  └── chat-integration.ts # 57K lines - main workspace logic
-
-/src/lib/debugger/         # Debug protocols (UNUSED)
-  ├── cdp-client.ts       # Chrome DevTools Protocol
-  ├── dap-client.ts       # Debug Adapter Protocol
-  └── debug-manager.ts    # Session management
-
-/src/lib/mcp/              # MCP protocol
-  ├── mcp-client.ts       # Real implementation (NOT USED)
-  └── client.ts           # HTTP facade
-
-/src/components/code-lab/  # 37 React components
-  ├── CodeLab.tsx         # Main component (1,320 lines)
-  ├── CodeLabEditor.tsx   # Code editor
-  ├── CodeLabTerminal.tsx # Terminal
-  └── [35 more]
-
-/app/api/code-lab/         # API routes
-  ├── chat/               # Main AI endpoint
-  ├── files/              # File operations
-  ├── edit/               # Surgical editing
-  └── [13 more]
-```
+A production-grade platform where:
+- Every tool that's listed actually works (no stubs)
+- Test coverage is 60%+
+- Components are maintainable (<400 lines)
+- Accessibility meets WCAG 2.1 AA
+- CI gates prevent broken deploys
+- Security is enterprise-grade
 
 ---
 
-## CURRENT STATE
+## Critical Context for All Sessions
 
-### What's Working
+### The Stub Problem (Largely Resolved)
 
-1. **Core Tools** (60/100)
-   - ReadTool - Reads files from E2B containers
-   - WriteTool - Writes files to E2B containers
-   - GlobTool - File pattern matching with minimatch
-   - SearchTool - Code search with ripgrep patterns
-   - BashTool - Command execution (HAS SECURITY ISSUES)
+The original 393 tool files have been reduced to 58 (57 real tools + index.ts). 311 unused files were deleted in Session 1, then 23 more stubs were deleted in Session 2. The index.ts barrel export was rewritten from 4,033 to ~430 lines, and route.ts had ~8,366 lines of dead code removed. All remaining tools have real implementations. Remaining work: create a formal registry manifest and lazy-load architecture.
 
-2. **UI Components** (55/100)
-   - Chat interface with streaming
-   - Code editor with syntax highlighting
-   - Terminal emulator
-   - File browser
-   - Command palette
+### The Documentation Trust Problem
 
-3. **Backend** (45/100)
-   - E2B container management
-   - Session persistence in Supabase
-   - Rate limiting (in-memory only)
-   - CSRF protection (on some endpoints)
+Many `.md` files in the repository contain claims that were not verified. Examples:
+- "1,835 tests passing" → Actual: far fewer (5.9% coverage)
+- "75% coverage threshold" → Actual: not enforced, 5.9% actual
+- "100% Claude Code parity" → Actual: many features are stubs/facades
+- "WCAG 2.1 AA compliance" → Actual: 0 ARIA attributes
 
-### What's Broken
+**Only trust documents dated 2026-02-22 or later.** These have been verified against the actual codebase.
 
-1. **Security** (35/100) - CRITICAL
-   - Command injection in git operations
-   - 8 endpoints missing CSRF
-   - 9+ endpoints missing rate limiting
-   - Session ownership not verified
+### The Build Discipline Rule
 
-2. **Debugging** (10/100)
-   - CDP client: EXCELLENT code, NEVER USED
-   - DAP client: EXCELLENT code, NEVER USED
-   - No API endpoint
-   - No UI component
+**Never push a broken build.** Before every push:
+1. `npx tsc --noEmit` — 0 errors
+2. `npm run lint` — 0 warnings
+3. `npm run build` — passes
+4. `npm test` — passes
 
-3. **MCP** (25/100)
-   - Real protocol in mcp-client.ts
-   - MCPManager bypasses it with hardcoded tools
-   - Can't connect to real MCP servers
-
-4. **Agent System** (15/100)
-   - No subagents/parallel execution
-   - No background tasks
-   - No agent hooks
-
-5. **Configuration** (10/100)
-   - No CLAUDE.md support
-   - No custom skills
-   - No user settings
+If any step fails, fix it before pushing. If it can't be fixed quickly, revert and investigate.
 
 ---
 
-## PHASE STATUS
+## Session Protocol
 
-| Phase            | Status         | Score  | Next Task                       |
-| ---------------- | -------------- | ------ | ------------------------------- |
-| 1. Security      | ⬜ NOT STARTED | 38→48  | Task 1.1: Fix command injection |
-| 2. Debugging     | ⬜ NOT STARTED | 48→56  | -                               |
-| 3. MCP           | ⬜ NOT STARTED | 56→64  | -                               |
-| 4. Subagents     | ⬜ NOT STARTED | 64→76  | -                               |
-| 5. LSP           | ⬜ NOT STARTED | 76→84  | -                               |
-| 6. Memory/Config | ⬜ NOT STARTED | 84→90  | -                               |
-| 7. UI/UX         | ⬜ NOT STARTED | 90→94  | -                               |
-| 8. Plan Mode     | ⬜ NOT STARTED | 94→97  | -                               |
-| 9. Testing       | ⬜ NOT STARTED | 97→100 | -                               |
+### During Work
 
----
+1. Pick the next unchecked task from `TASK_TRACKER.md`
+2. Do the work
+3. Check `[x]` the task with date when done
+4. Commit with descriptive message
+5. Verify build health
+6. Repeat
 
-## CRITICAL CONTEXT
+### Before Ending
 
-### The "Unused Code" Problem
-
-The codebase contains ~5,000 lines of excellent protocol implementations that are NEVER USED:
-
-1. **CDP Client** (`/src/lib/debugger/cdp-client.ts`)
-   - Full Chrome DevTools Protocol
-   - WebSocket connection, breakpoints, variables
-   - **Status:** Sits unused
-
-2. **DAP Client** (`/src/lib/debugger/dap-client.ts`)
-   - Full Debug Adapter Protocol
-   - Python debugging support
-   - **Status:** Sits unused
-
-3. **MCP Client** (`/src/lib/mcp/mcp-client.ts`)
-   - Real JSON-RPC 2.0 implementation
-   - Stdio transport for local servers
-   - **Status:** MCPManager doesn't use it
-
-### The MCP Facade Problem
-
-```typescript
-// mcp-client.ts has REAL implementation:
-class MCPClient {
-  async listTools() {
-    return this.request('tools/list', {});
-  }
-}
-
-// But mcp.ts IGNORES it and hardcodes tools:
-class MCPManager {
-  async startServer(id) {
-    // Does NOT spawn server
-    // Does NOT use MCPClient
-    // Just sets status and hardcodes tools
-  }
-}
-```
-
-**Fix:** MCPManager must USE MCPClient instead of bypassing it.
-
-### Security Vulnerabilities
-
-```typescript
-// VULNERABLE (container.ts:763):
-async gitCommit(message: string) {
-  return this.run(`git commit -m "${message}"`);  // INJECTION!
-}
-
-// Exploit: message = 'test"; rm -rf / #'
-```
-
-**Fix:** Create shell escaping utilities and use them everywhere.
+1. Update `TASK_TRACKER.md` — check off completed tasks, note what's next
+2. Update `PROJECT_STATUS.md` — if any metrics changed
+3. Update this file's "Last Session" section below
+4. Commit and push all changes
 
 ---
 
-## GIT WORKFLOW
+## Last Session Summary
 
-### Branch
+### Session 3: 2026-02-22 — Registry Manifest + Security Hardening (25/150 tasks)
 
-All work is on: `claude/audit-coding-lab-hLMWt`
-
-### Commit Convention
-
-```
-<type>: <description>
-
-Types:
-- feat: New feature
-- fix: Bug fix
-- security: Security fix
-- docs: Documentation
-- refactor: Code refactoring
-- test: Adding tests
-```
-
-### Before Pushing
-
-```bash
-# Run linter
-pnpm lint
-
-# Run tests
-pnpm test
-
-# Check types
-pnpm type-check
-```
-
----
-
-## SESSION LOG
-
-### Session 2026-01-21 (Current)
+**Branch:** `claude/app-assessment-recommendations-vsx0y`
 
 **Completed:**
+- **1.1.3**: Created `tools/registry.ts` manifest — 55 tools (54 active + 1 beta), with status/category/dependencies. Deleted 3 more stubs. Registered 4 missing real tools.
+- **1.3.3 + 1.4.4**: CI now runs `pnpm test -- --coverage`, enforcing vitest thresholds.
+- **1.5.3**: Verified — API tokens already encrypted at rest (AES-256-GCM).
+- **1.5.4-1.5.5**: Synced Permissions-Policy between middleware.ts and next.config.js. Added worker-src, media-src to CSP.
+- **1.5.8**: Migrated 17 inline-auth routes to `requireUser()` guard across 5 commits:
+  - Batch 1: user/is-admin, user/messages, user/settings, memory, memory/forget, folders, conversations (7 routes)
+  - Batch 2: user/delete-account, create/image, stripe/checkout (3 routes)
+  - Batch 3: code-lab/sessions, code-lab/debug (2 routes)
+  - Batch 4: conversations/[id]/messages (1 route, 4 handlers)
+  - Batch 5: user/api-keys, documents/user/files, documents/user/folders, support/tickets (4 routes)
+  - Key fix: api-keys POST/DELETE previously had NO CSRF protection; now protected via requireUser(request).
 
-1. ✅ Fixed multi-provider model routing bug (CRITICAL)
-2. ✅ Added `getProviderForModel()` and `getProviderAndModel()` to registry
-3. ✅ Updated chat route to route requests to correct provider
-4. ✅ Updated CODE_LAB_CRITICAL_BUGS.md with detailed documentation
-
-**Findings:**
-
-- Chat route was sending ALL model requests to Anthropic API
-- Non-Claude models (GPT-5.2, Grok 4, DeepSeek, Gemini) returned 404 errors
-- Key diagnostic: Anthropic request_id format (`req_011CXLt...`) in error responses
-- Fix: Route requests through provider-specific adapters
-
-**Key Files Changed:**
-
-- `app/api/code-lab/chat/route.ts` - Added multi-provider routing logic
-- `src/lib/ai/providers/registry.ts` - Added model-to-provider lookup functions
-
-**Commit:** `2e788a6 fix(code-lab): route chat requests to correct provider based on model ID`
+**Key Numbers:**
+- 17 routes migrated from inline auth to centralized `requireUser()` guard
+- ~500 lines of auth boilerplate deleted across all routes
+- 55 tools in registry (54 active + 1 beta)
 
 **Next Session Should:**
-
-1. Test the multi-provider routing with live API keys
-2. Verify all 5 providers work correctly (Claude, OpenAI, xAI, DeepSeek, Google)
-3. Continue with Phase 1: Security Hardening if no issues found
+1. **1.1.4**: Update UI to only show active/beta tools
+2. **1.1.6-1.1.7**: Verify build + runtime after cleanup
+3. **1.2.1-1.2.6**: Implement lazy tool loading architecture
+4. **1.3.4-1.3.8**: Write tests for real tools, auth, rate limiting
+5. **1.5.9-1.5.10**: Write tests for security fixes
 
 ---
 
-### Session 2026-01-18
+### Session 2: 2026-02-22 — Stub Cleanup + Dead Code Removal (19/150 tasks)
+
+**Branch:** `claude/app-assessment-recommendations-vsx0y`
 
 **Completed:**
+- **1.1.5**: Deleted 23 stub tool files (agriculture, geology, psychology, etc. — all confirmed as returning hardcoded/fake data)
+- **1.1.5**: Rewrote `src/lib/ai/tools/index.ts` from 4,033 → ~430 lines (removed 148 broken imports: 51 static + 97 dynamic)
+- **1.1.5**: Cleaned `app/api/chat/route.ts` — removed ~8,366 lines of dead code (broken imports, deleted tool registrations, empty switch cases)
+- Added pass-through implementations for deleted safety/QC modules (`canExecuteTool`, `recordToolCost`, `shouldRunQC`, `verifyOutput`)
+- Added missing switch cases for `medical_calc`, `graphics_3d`, `hough_vision`, `ray_tracing`
+- Verified all consumer files still compile against the updated exports
 
-1. ✅ Comprehensive audit vs Claude Code
-2. ✅ Created AUDIT_REPORT_VS_CLAUDE_CODE.md
-3. ✅ Created ROADMAP_TO_100.md
-4. ✅ Created SESSION_HANDOFF.md
-
-**Findings:**
-
-- Real score: 38/100 (not 94%)
-- 30 tasks identified to reach 100/100
-- 24 weeks estimated timeline
-- Security is Phase 1 priority
-
-**Next Session Should:**
-
-1. Start Phase 1: Security Hardening
-2. Begin with Task 1.1: Fix command injection
-
-### Previous Sessions (Summary)
-
-**Sessions 1-4 (Before Audit):**
-
-- Implemented agent tools (Read, Write, Glob, Search, Bash)
-- Added CDP/DAP debug clients
-- Added MCP container transport
-- Added shell session manager
-- Added rate limiting (incomplete)
-- Added backup/restore for edits
-- Improved glob patterns with minimatch
-- Fixed pair programming messaging
+**Key Numbers:**
+- 25 files changed, 222 insertions, 8,366 deletions
+- Tool files: 82 → 58 (57 real tools + index.ts)
+- index.ts: 4,033 → ~430 lines
+- route.ts: ~5,840 → ~5,400 lines (import block + dead switch cases removed)
 
 ---
 
-## APPENDIX: COMMON TASKS
+### Session 1: 2026-02-22 — Assessment + Phase 1 Execution (18/150 tasks)
 
-### Add CSRF to an Endpoint
+**Branch:** `claude/app-assessment-recommendations-vsx0y`
 
-```typescript
-import { validateCsrfToken } from '@/lib/security/csrf';
+**Completed — Assessment & Documentation:**
+- 7-dimension codebase audit (tools, tests, UX, build, security, database, competitive)
+- Competitor research (Manus.ai, ChatGPT/Codex, OpenClaw, Cursor, Windsurf, Replit)
+- Created `APP_ASSESSMENT_AND_RECOMMENDATIONS.md`, `CTO_ASSESSMENT_REPORT.md`
+- Created `CLAUDE.md` (session instructions), `TASK_TRACKER.md` (150 tasks)
+- Rewrote `PROJECT_STATUS.md` (ground-truth), `SESSION_HANDOFF.md`, `README.md`
 
-export async function POST(request: NextRequest) {
-  // 1. Validate CSRF
-  const csrfResult = await validateCsrfToken(request);
-  if (!csrfResult.valid) {
-    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
-  }
+**Completed — Phase 1 Execution (18 tasks):**
+- **1.1.1-1.1.2**: Tool inventory + removed 311 unused files (226,755 lines deleted, 393→82 files)
+- **1.3.1-1.3.2**: Vitest config — honest coverage with `all: true`, 5% baseline thresholds
+- **1.4.1-1.4.6**: CI safety gates — removed continue-on-error, verified all gates
+- **1.5.1**: Admin permissions default to FALSE (was TRUE — fail-open)
+- **1.5.2**: Rate limiting fails closed in production (was open)
+- **1.5.6**: Viewport allows user scaling (was blocked — WCAG fix)
+- **1.5.7**: Removed fake aggregateRating (Google penalty risk)
+- **1.5.8**: Auth guard audit complete (46 inline auth routes mapped)
+- **1.6.1-1.6.5**: Env validation throws in production, Node version aligned, Google token to env var
 
-  // 2. Continue with handler...
-}
-```
-
-### Add Rate Limiting to an Endpoint
-
-```typescript
-import { rateLimiters } from '@/lib/security/rate-limit';
-
-export async function POST(request: NextRequest) {
-  // 1. Get user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // 2. Check rate limit
-  const rateLimit = await rateLimiters.codeLabEdit(user.id);
-  if (!rateLimit.allowed) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
-  }
-
-  // 3. Continue with handler...
-}
-```
-
-### Verify Session Ownership
-
-```typescript
-import { verifySessionOwnership } from '@/lib/workspace/session-auth';
-
-export async function POST(request: NextRequest) {
-  const { sessionId } = await request.json();
-
-  const isOwner = await verifySessionOwnership(sessionId, user.id, supabase);
-  if (!isOwner) {
-    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-  }
-
-  // Continue...
-}
-```
+**Auth Guard Audit Results:**
+- 26 routes: `requireAdmin()` ✓
+- 13 routes: `requireUser()` ✓
+- 46 routes: Inline auth (need migration to formal guards)
+- 44 routes: Public/intentional (webhooks, cron, auth flow)
+- 45 routes use SERVICE_ROLE_KEY (30 need review)
 
 ---
 
-## CONTACT & RESOURCES
+## Key File References
 
-### Key References
-
-- [Claude Code CHANGELOG](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)
-- [MCP Specification](https://modelcontextprotocol.io/)
-- [DAP Specification](https://microsoft.github.io/debug-adapter-protocol/)
-- [CDP Reference](https://chromedevtools.github.io/devtools-protocol/)
-
-### User Expectations
-
-From the user:
-
-> "100% operational", "no stubs", "no mocks", "no facades"
-> "comprehensive work valuing accuracy over speed"
-> "Be the methodical software senior software engineer that I need"
-> "let's get this to be 100 out of 100 in comparison to Claude code"
+| File | Purpose | Trust Level |
+|---|---|---|
+| `CLAUDE.md` | Session instructions, mission, standards | Trusted (Feb 22, 2026) |
+| `TASK_TRACKER.md` | Master task list (150 items) | Trusted (Feb 22, 2026) |
+| `PROJECT_STATUS.md` | Ground-truth metrics | Trusted (Feb 22, 2026) |
+| `APP_ASSESSMENT_AND_RECOMMENDATIONS.md` | Full assessment report | Trusted (Feb 22, 2026) |
+| `CTO_ASSESSMENT_REPORT.md` | CTO-level technical review | Trusted (Feb 22, 2026) |
+| `app/api/chat/route.ts` | Main chat route (~5,400 lines) | Needs decomposition |
+| `src/lib/ai/tools/index.ts` | Tool barrel export (~430 lines) | Cleaned — needs registry manifest |
+| `components/code-lab.tsx` | CodeLab component (2,631 lines) | Needs decomposition |
 
 ---
 
-_This document should be updated at the end of every session._
+## User Expectations
+
+> "Comprehensive work valuing accuracy over speed."
+> "Be the methodical senior software engineer that I need."
+> "Triple check TypeScript, lint errors before pushing."
+> "Never push a broken build."
+> "We are going to complete each and every one of them."
+
+---
+
+_Update this document at the end of every session._

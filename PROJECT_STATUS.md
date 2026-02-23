@@ -1,342 +1,173 @@
-# JCIL-AI-MICRO PROJECT STATUS
+# JCIL AI Micro — Project Status (Ground Truth)
 
-**Last Updated:** 2026-01-19
-**Branch:** `claude/audit-coding-lab-hLMWt`
+**Last Updated:** 2026-02-22
+**Updated By:** CTO Assessment Session
+**Branch:** `claude/app-assessment-recommendations-vsx0y`
 
----
-
-## ENGINEERING STATUS SUMMARY
-
-| Metric                 | Status                             |
-| ---------------------- | ---------------------------------- |
-| **TypeScript**         | 0 Errors                           |
-| **Build**              | Passing                            |
-| **Tests**              | 1,835 Passing (59 test files)      |
-| **Coverage Threshold** | 75% (statements, functions, lines) |
-| **Lint**               | 0 Warnings                         |
-| **Security Tests**     | 293 new tests added (Jan 19 Audit) |
+> This document reflects verified, measured values only. No aspirational claims.
+> Previous versions of this file contained inaccurate metrics. This is the corrected baseline.
 
 ---
 
-## CODE LAB - FULLY FUNCTIONAL
+## Current State Summary
 
-The Code Lab is now fully functional with complete Claude Code capabilities.
-
-### Core Infrastructure
-
-| Component                     | Status      | Implementation                     |
-| ----------------------------- | ----------- | ---------------------------------- |
-| **E2B Sandboxed Execution**   | ✅ Complete | `src/lib/workspace/container.ts`   |
-| **MCP Server Integration**    | ✅ Complete | `src/lib/workspace/mcp.ts`         |
-| **Deployment Status Polling** | ✅ Complete | `app/api/code-lab/deploy/route.ts` |
-| **Skills-Enabled Completion** | ✅ Complete | `src/lib/anthropic/client.ts`      |
-| **Session Management**        | ✅ Complete | `app/api/code-lab/sessions/`       |
-| **File Operations**           | ✅ Complete | Via E2B Container                  |
-
-### MCP Servers (Real Implementation - No Stubs)
-
-| Server         | Tools                                           | Implementation          |
-| -------------- | ----------------------------------------------- | ----------------------- |
-| **Filesystem** | read, write, list, search, get_info, move, copy | E2B Container           |
-| **GitHub**     | repo_info, list_issues, create_issue, create_pr | Octokit SDK             |
-| **Memory**     | store, retrieve, list, search                   | In-memory + persistence |
-| **Puppeteer**  | navigate, screenshot, click, type, evaluate     | E2B Script Execution    |
-| **PostgreSQL** | query (SELECT only)                             | Supabase RPC            |
-
-### Deployment Platforms (Full Status Polling)
-
-| Platform       | Deploy | Status Check | API Integration |
-| -------------- | ------ | ------------ | --------------- |
-| **Vercel**     | ✅     | ✅           | v6 API          |
-| **Netlify**    | ✅     | ✅           | REST API        |
-| **Railway**    | ✅     | ✅           | GraphQL API     |
-| **Cloudflare** | ✅     | ✅           | v4 API          |
-
-### Model Configuration
-
-| Use Case      | Model             | Model ID                    |
-| ------------- | ----------------- | --------------------------- |
-| Chat (Fast)   | Claude Haiku 4.5  | `claude-haiku-4-5-20250929` |
-| Documents     | Claude Sonnet 4.6 | `claude-sonnet-4-6`         |
-| Code Lab      | Claude Opus 4.5   | `claude-opus-4-5-20251101`  |
-| Bug Oracle    | Claude Sonnet 4.6 | `claude-sonnet-4-6`         |
-| App Generator | Claude Sonnet 4.6 | `claude-sonnet-4-6`         |
+| Metric                         | Verified Value                           | Target                | Status                      |
+| ------------------------------ | ---------------------------------------- | --------------------- | --------------------------- |
+| **Test Coverage (lines)**      | 15.05% (was 5.9%)                        | 60%                   | Improving — 3x increase     |
+| **Test Coverage (statements)** | 15.05% (was 5.49%)                       | 60%                   | Improving — 3x increase     |
+| **Test Coverage (branches)**   | 62.55% (was 4.37%)                       | 60%                   | Target met                  |
+| **API Routes Tested**          | 8.5%                                     | 90%                   | Critical gap                |
+| **Real Tool Implementations**  | 57 tools (all real, stubs removed)       | All active tools real | Improved — 23 stubs deleted |
+| **ARIA Attributes**            | 0                                        | WCAG 2.1 AA           | Critical gap                |
+| **Inline Styles**              | 554                                      | 0 (use CSS classes)   | Needs work                  |
+| **Largest Component**          | 2,631 lines                              | <400 lines            | Needs decomposition         |
+| **Largest Route File**         | 4,618 lines (was 5,840)                  | <500 lines            | Reduced by lazy loading     |
+| **Production Dependencies**    | 152                                      | <50                   | Needs audit                 |
+| **Tool Files (total)**         | 58 (was 82, deleted 23 stubs + index.ts) | Lazy-loaded           | Lazy loading implemented    |
+| **Error Boundaries**           | 0                                        | All major sections    | Needs work                  |
+| **TypeScript Errors**          | TBD (verify)                             | 0                     | Check each session          |
+| **Build Status**               | TBD (verify)                             | Passing               | Check each session          |
+| **Lint Warnings**              | TBD (verify)                             | 0                     | Check each session          |
 
 ---
 
-## TESTING INFRASTRUCTURE
+## What Actually Works (Verified)
 
-### Test Coverage Configuration
+### Real Tool Implementations (55 tools in registry — see `tools/registry.ts`)
 
-```typescript
-// vitest.config.ts
-thresholds: {
-  statements: 75,
-  branches: 70,
-  functions: 75,
-  lines: 75,
-}
-```
+| Tool           | File                                  | What It Does                                      |
+| -------------- | ------------------------------------- | ------------------------------------------------- |
+| Web Search     | `tools/web-search.ts`                 | Native Anthropic server tool (web search)         |
+| Fetch URL      | `tools/fetch-url.ts`                  | Real HTTP fetch + HTML parsing                    |
+| Code Execution | `tools/run-code.ts`                   | Real E2B sandboxed code execution                 |
+| Web Capture    | `tools/web-capture-tool.ts`           | Puppeteer screenshots and PDFs                    |
+| 51 more tools  | See `tools/registry.ts` for full list | Various categories: code, data, media, scientific |
 
-### Test Files (59 Total)
+### Security (Solid Foundation)
 
-| Category                | Files | Tests |
-| ----------------------- | ----- | ----- |
-| **Security**            | 13    | 493+  |
-| **API Utils**           | 6     | 150+  |
-| **Code Lab**            | 10    | 250+  |
-| **Code Lab API Routes** | 4     | 217   |
-| **Supabase**            | 2     | 50    |
-| **Components**          | 4     | 100+  |
-| **Agents**              | 3     | 60    |
-| **Debugger**            | 4     | 150+  |
-| **Auth**                | 4     | 80+   |
-| **Other Libs**          | 9     | 285+  |
+| Feature         | Status   | Implementation                                                                              |
+| --------------- | -------- | ------------------------------------------------------------------------------------------- |
+| Supabase RLS    | Working  | Proper row-level security policies                                                          |
+| Zod Validation  | Working  | 50+ schemas for input validation                                                            |
+| CSRF Protection | Working  | Origin/Referer validation                                                                   |
+| Rate Limiting   | Working  | Redis-backed sliding window                                                                 |
+| DOMPurify       | Working  | HTML sanitization                                                                           |
+| Auth Guards     | Improved | `requireUser`/`requireAdmin` — 17 API routes migrated, CSRF on all state-changing endpoints |
 
-### Key Test Files
+### Infrastructure
 
-```
-# Security Tests (New - Jan 19 Audit)
-src/lib/security/shell-escape.test.ts     # 95 tests - Shell escape & sanitization
-app/api/code-lab/git/git.test.ts          # 63 tests - Git API security
-app/api/code-lab/chat/chat.test.ts        # 40 tests - Chat API security
-app/api/code-lab/mcp/mcp.test.ts          # 37 tests - MCP API security
-src/lib/auth/auth-security.test.ts        # 58 tests - Auth flow security
-
-# Core Infrastructure
-src/lib/supabase/client.test.ts           # 24 tests - Real Supabase SDK
-src/components/code-lab/CodeLab.test.tsx  # 41 tests - React components
-src/lib/workspace/mcp.test.ts             # 21 tests - MCP integration
-src/lib/workspace/container.test.ts       # 27 tests - E2B containers
-src/lib/code-lab/sessions.test.ts         # 13 tests - Session CRUD
-src/lib/code-lab/deploy.test.ts           # 18 tests - Deployment
-src/agents/code/integration.test.ts       # 18 tests - Agent system
-src/lib/middleware.test.ts                # 35 tests - Middleware
-```
-
-### Testing Philosophy
-
-- **No Mocks for Core Functionality** - Tests use real Supabase SDK, real imports
-- **Environment Stubbing** - Environment variables stubbed per-test as needed
-- **Real Component Testing** - React Testing Library for actual DOM rendering
-- **Integration Focus** - Tests verify actual behavior, not mocked responses
+| Component           | Status  | Notes                             |
+| ------------------- | ------- | --------------------------------- |
+| Next.js 14          | Working | SSR, API routes                   |
+| Supabase PostgreSQL | Working | Database with RLS                 |
+| Upstash Redis       | Working | Rate limiting                     |
+| Vercel Deployment   | Working | Production hosting                |
+| Stripe              | Partial | Integration exists, needs testing |
+| E2B Sandboxing      | Exists  | Code execution environment        |
 
 ---
 
-## COMPLETED FEATURES
+## What Does NOT Work (Verified)
 
-### January 19, 2026 - Claude Code Parity Complete (85% → 100%)
+### Stub Tools (~297 tools)
 
-- [x] **Event-driven hook system** - PreToolUse, PostToolUse, SessionStart, etc. (`src/lib/hooks/`)
-- [x] **Custom slash commands** - `.claude/commands/` support (`src/lib/commands/`)
-- [x] **Tool permission patterns** - Glob-based allow/deny rules (`src/lib/workspace/tool-permissions.ts`)
-- [x] **Subagent architecture** - Spawnable specialized agents (`src/lib/agents/subagent.ts`)
-- [x] **Plugin system foundation** - Loader, registry, manifest (`src/lib/plugins/`)
-- [x] **Session forking** - Parallel workspaces (`src/lib/session/session-fork.ts`)
-- [x] **Rewind/checkpointing** - File change rollback (`src/lib/workspace/checkpoint.ts`)
-- [x] **MCP scopes** - Full 4-tier hierarchy (managed > user > project > local)
-- [x] **Output styles** - concise, verbose, markdown, minimal formatting (`src/lib/workspace/output-styles.ts`)
-- [x] **Vim mode** - Full editor keybindings (`src/lib/workspace/vim-mode.ts`)
-- [x] **Plugin marketplace UI** - Visual discovery and installation (`src/components/code-lab/CodeLabPluginMarketplace.tsx`)
+The vast majority of tools in `lib/ai/tools/` return simulated/fake data:
 
-### January 19, 2026 - Critical Bug Fixes (Code Lab Deep Dive Audit)
+- Hardcoded responses after artificial delays
+- Random number generation pretending to be real analysis
+- Math calculations Claude can already do natively
+- No external API calls, no real integrations
 
-**Phase 3 - Error Handling & Data Integrity:**
+**These tools must be removed from the active registry** until they have real implementations.
 
-- [x] **Fixed workspace upsert issue** - `createContainer()` now uses UPSERT instead of UPDATE to handle files/git API access before first chat message (`src/lib/workspace/container.ts`)
-- [x] **Fixed error message persistence** - All 5 chat error handlers now save assistant messages to maintain conversation history alignment (`app/api/code-lab/chat/route.ts`)
-- [x] **Fixed variable scoping** - Moved `fullContent` declarations outside try blocks to allow error handler access
+### Accessibility
 
-**Phase 2 - Chat Flow Issues:**
+- **0 ARIA attributes** across the entire codebase
+- **0 keyboard navigation** support
+- **554 inline styles** preventing consistent theming
+- **No skip-to-content links**
+- **No focus management** for modals
+- `userScalable: false` in viewport config (WCAG violation)
 
-- [x] **Fixed chat route workspace lookup** - Now queries by `session_id` instead of `user_id` (sessions were sharing workspaces!)
-- [x] **Fixed WorkspaceAgent ID mismatch** - Chat route now passes `sessionId` to WorkspaceAgent correctly
-- [x] **Fixed path traversal vulnerability** - `normalizePath()` now uses `sanitizeFilePath()` to prevent `/../` attacks
+### Testing
 
-**Phase 1 - Infrastructure Issues:**
+- **5.9% overall coverage** (previous claims of 75% were not accurate)
+- **91.5% of API routes** completely untested
+- No integration tests for payment flows
+- No E2E tests running against real environment
+- CI uses placeholder environment variables for E2E
 
-- [x] **Fixed database table mismatch** - ContainerManager now queries `code_lab_workspaces` instead of `workspaces`
-- [x] **Fixed field name mismatch** - Now uses `sandbox_id` consistently instead of `container_id`
-- [x] **Fixed session/workspace ID lookup** - ContainerManager uses `session_id` for lookups
-- [x] **Added git authentication** - Credential helper configured before clone/push/pull operations
-- [x] **Fixed command injection vulnerabilities** - All branch names sanitized with `sanitizeBranchName()` + `escapeShellArg()`
-- [x] **Fixed pull operation security** - Branch names now properly escaped in git pull
+### Build Pipeline Gaps
 
-See [CODE_LAB_CRITICAL_BUGS.md](./CODE_LAB_CRITICAL_BUGS.md) for full audit report.
-
-### January 2026 - Code Lab Engineering Fixes
-
-- [x] **Updated Claude model names** to `claude-sonnet-4-6`
-- [x] **Implemented real MCP tool execution** (removed all stubs)
-- [x] **Added full deployment status polling** for all 4 platforms
-- [x] **Implemented skills-enabled completion** with agentic tool loop
-- [x] **Fixed Anthropic file download** to use Supabase storage
-- [x] **Fixed message count divergence** in frontend state
-- [x] **Raised test coverage thresholds** from 2% to 75%
-- [x] **Added React Testing Library** for component testing
-- [x] **Created comprehensive test suite** (2,128 tests)
-- [x] **Removed broken mocks** from test setup
-- [x] **Multi-language debugger** (32 languages via DAP/CDP)
-- [x] **Cognitive debugging system** with SSE broadcaster
-- [x] **Extended thinking visualization** for Claude reasoning
-
-### Previous Completions
-
-- [x] **Resume Generator** - Conversational building, DOCX/PDF output
-- [x] **Database Schema** - 12 tables in Supabase PostgreSQL
-- [x] **Row Level Security** - Users see only their own data
-- [x] **Data Retention Policy** - 3 month soft delete, 6 month hard delete
-- [x] **Authentication System** - Google OAuth, email/password, WebAuthn
-- [x] **Storage Bucket** - Private user-uploads bucket
-- [x] **Multi-agent Architecture** - Research, Code, Document, Memory agents
-- [x] **Persistent Memory Agent** - Cross-conversation personalization
-- [x] **Enterprise Security** - CSRF, validation, rate limiting, encryption
+- `npm audit` has `continue-on-error: true` (security vulnerabilities don't block deploy)
+- No coverage thresholds enforced in CI
+- No bundle size analysis
+- No staging environment / preview deployments
 
 ---
 
-## FILE STRUCTURE (Key Directories)
+## Known Critical Issues (From CTO Assessment)
 
-```
-/app
-  /api
-    /code-lab
-      /chat           # AI chat with tool calling
-      /deploy         # Multi-platform deployment
-      /files          # File operations via E2B
-      /git            # Git operations
-      /sessions       # Session CRUD
-      /tasks          # Background task management
-    /chat             # Main chat API
-    /documents        # Document generation
-    /memory           # Memory Agent API
-
-/src
-  /lib
-    /anthropic        # Claude client with skills support
-    /workspace
-      container.ts    # E2B sandbox management
-      mcp.ts          # MCP server implementation
-      security.ts     # Execution security
-    /code-lab
-      sessions.ts     # Session management
-      deploy.ts       # Deployment logic
-    /supabase         # Database client
-    /security         # Security utilities
-
-  /agents
-    /research         # Research agent
-    /code             # Code agent
-
-  /components
-    /code-lab         # Code Lab UI components
-
-  /test
-    setup.ts          # Global test configuration
-```
+1. ~~**Admin permissions default to TRUE** when NULL~~ — **FIXED** (now `?? false`, fail-closed) _(2026-02-22)_
+2. ~~**Rate limiting fails open** when Redis is down~~ — **FIXED** (now fail-closed, denies in production) _(2026-02-22)_
+3. **90 API routes** don't use formal auth guards — **17 migrated** to `requireUser()`, ~73 remaining
+4. **In-memory state** (Maps) in serverless functions — unreliable across invocations
+5. ~~**393 tools loaded on every request**~~ — **FIXED** (lazy loading via `tool-loader.ts`, only loaded on demand) _(2026-02-22)_
+6. **4,618-line chat route** (was 5,840) — reduced by lazy loading, still needs decomposition
+7. **4,312-line system prompt** — ~15-20K tokens sent every request (~$0.05/request just for prompt)
+8. ~~**Fake aggregate rating** in Schema.org data~~ — **FIXED** (removed) _(2026-02-22)_
 
 ---
 
-## ENVIRONMENT VARIABLES
+## Technology Stack
 
-### Required for Code Lab
-
-```bash
-# AI Models
-ANTHROPIC_API_KEY=           # Claude API access
-
-# Database
-NEXT_PUBLIC_SUPABASE_URL=    # Supabase project URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY= # Public anon key
-SUPABASE_SERVICE_ROLE_KEY=   # Server-side admin key
-
-# Code Execution
-E2B_API_KEY=                 # E2B sandboxed execution
-
-# Deployment Platforms (optional)
-VERCEL_TOKEN=                # Vercel deployments
-NETLIFY_TOKEN=               # Netlify deployments
-RAILWAY_TOKEN=               # Railway deployments
-CLOUDFLARE_API_TOKEN=        # Cloudflare deployments
-
-# GitHub Integration (optional)
-GITHUB_TOKEN=                # GitHub MCP operations
-```
+| Layer      | Technology               | Version         |
+| ---------- | ------------------------ | --------------- |
+| Frontend   | Next.js                  | 14.2            |
+| Language   | TypeScript               | 5.4             |
+| UI         | React + Tailwind CSS     | 18.3            |
+| Database   | Supabase PostgreSQL      | -               |
+| Cache      | Upstash Redis            | -               |
+| Auth       | NextAuth / Supabase Auth | -               |
+| Payments   | Stripe                   | -               |
+| Sandboxing | E2B                      | -               |
+| AI         | Anthropic Claude         | Multiple models |
+| Hosting    | Vercel                   | -               |
 
 ---
 
-## API ROUTES
+## Tracking
 
-### Code Lab Endpoints
+This document is updated whenever a verified metric changes. Each update includes:
 
-| Endpoint                               | Method                 | Purpose                   |
-| -------------------------------------- | ---------------------- | ------------------------- |
-| `/api/code-lab/chat`                   | POST                   | AI chat with tool calling |
-| `/api/code-lab/sessions`               | GET, POST              | List/create sessions      |
-| `/api/code-lab/sessions/[id]`          | GET, DELETE            | Get/delete session        |
-| `/api/code-lab/sessions/[id]/messages` | GET                    | Get session messages      |
-| `/api/code-lab/files`                  | GET, POST, PUT, DELETE | File operations           |
-| `/api/code-lab/git`                    | POST                   | Git operations            |
-| `/api/code-lab/deploy`                 | POST                   | Deploy to platforms       |
-| `/api/code-lab/tasks`                  | GET, POST              | Background tasks          |
+- The date of change
+- What changed
+- The new verified value
 
----
+### Change Log
 
-## SECURITY FEATURES
-
-### Implemented
-
-| Feature                  | Implementation              | Location                           |
-| ------------------------ | --------------------------- | ---------------------------------- |
-| CSRF Protection          | Origin/Referer validation   | `src/lib/security/csrf.ts`         |
-| Input Validation         | 50+ Zod schemas             | `src/lib/validation/schemas.ts`    |
-| Rate Limiting            | Redis + database-backed     | `src/lib/security/rate-limit.ts`   |
-| Request Size Limits      | Middleware + route-specific | `src/lib/security/request-size.ts` |
-| SQL Injection Prevention | Parameterized queries + RLS | `src/lib/security/postgrest.ts`    |
-| Token Encryption         | AES-256-GCM                 | `src/lib/anthropic/client.ts`      |
-| Sandboxed Execution      | E2B isolated VMs            | `src/lib/workspace/container.ts`   |
-| MCP Security             | SELECT-only for Postgres    | `src/lib/workspace/mcp.ts`         |
-
----
-
-## NEXT STEPS
-
-### ✅ Claude Code Parity: 100% ACHIEVED
-
-**All Claude Code features have been implemented.** See [CLAUDE_CODE_PARITY.md](./CLAUDE_CODE_PARITY.md) for details.
-
-**Recently Completed (Final 4%):**
-
-1. ✅ **Plugin marketplace UI** - `src/components/code-lab/CodeLabPluginMarketplace.tsx`
-2. ✅ **Full MCP scope hierarchy** - managed > user > project > local in `src/lib/workspace/mcp-scopes.ts`
-3. ✅ **Output styles** - concise, verbose, markdown, minimal in `src/lib/workspace/output-styles.ts`
-4. ✅ **Vim mode** - Full keybindings in `src/lib/workspace/vim-mode.ts`
-
-### Priority 1: Production Readiness
-
-5. Add end-to-end tests with Playwright
-6. Configure monitoring and alerting
-7. Set up error tracking (Sentry configured)
-
-### Priority 2: Feature Enhancement
-
-8. Add more MCP servers (Slack, Linear, etc.)
-9. Implement collaborative workspaces
-10. Add real-time file synchronization
-
-### Priority 3: Scale
-
-11. Multi-region deployment
-12. Database read replicas
-13. Edge caching for static assets
+| Date       | Change                                         | Old Value                             | New Value                               |
+| ---------- | ---------------------------------------------- | ------------------------------------- | --------------------------------------- |
+| 2026-02-22 | Initial ground-truth baseline                  | (stale data)                          | All metrics above                       |
+| 2026-02-22 | Removed 311 unused tool files                  | 393 tool files                        | 82 tool files                           |
+| 2026-02-22 | Fixed admin permissions default                | `?? true` (fail-open)                 | `?? false` (fail-closed)                |
+| 2026-02-22 | Fixed rate limiting fail-open                  | `allowed: true` on Redis failure      | `allowed: false` (fail-closed)          |
+| 2026-02-22 | Fixed viewport scaling                         | `userScalable: false`                 | `userScalable: true`                    |
+| 2026-02-22 | Removed fake aggregate rating                  | 4.9/5 (150 reviews)                   | Removed                                 |
+| 2026-02-22 | Fixed vitest coverage config                   | 75% threshold (files-with-tests only) | 5% threshold (all files)                |
+| 2026-02-22 | Removed CI continue-on-error                   | Security audit non-blocking           | Security audit blocks deploy            |
+| 2026-02-22 | Aligned Node version                           | package.json: 22.x                    | package.json: 20.x (matches .nvmrc, CI) |
+| 2026-02-22 | Strengthened env validation                    | Log-only on missing vars              | Throws in production                    |
+| 2026-02-22 | Google verification to env var                 | Hardcoded token                       | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`  |
+| 2026-02-22 | Deleted 23 stub tools + fixed index.ts         | 82 files, 4,033-line index.ts         | 58 files, ~430-line index.ts            |
+| 2026-02-22 | Cleaned route.ts of deleted tool refs          | ~8,366 lines of broken refs           | All refs to real tools only             |
+| 2026-02-22 | Migrated 17 API routes to requireUser()        | Inline auth patterns                  | Centralized auth + CSRF                 |
+| 2026-02-22 | Added security tests (35 new)                  | 2130 tests                            | 2165 tests across 75 files              |
+| 2026-02-22 | Implemented lazy tool loading (tool-loader.ts) | 55 static imports + 90-case switch    | Dynamic import() on demand, cached      |
+| 2026-02-22 | Reduced route.ts via lazy loading              | 5,100 lines                           | 4,618 lines (-484 lines)                |
+| 2026-02-22 | Fixed Supabase types for build                 | Build broken (missing Relationships)  | Build passing (all types fixed)         |
+| 2026-02-22 | Added tool tests (82 new)                      | 2165 tests, 5.9% coverage             | 2247 tests across 78 files, 15.05% cov  |
 
 ---
 
-## LINKS
-
-- **Repository**: https://github.com/themusashimaru/jcil-ai-micro
-- **Supabase Dashboard**: https://supabase.com/dashboard/project/kxsaxrnnhjmhtrzarjgh
-- **Vercel Dashboard**: (configured in environment)
-
----
-
-**Status:** Code Lab fully functional with 100% Claude Code parity. Ready for production deployment.
+_This is a living document. Update it after every meaningful change. Only include verified, measured values._

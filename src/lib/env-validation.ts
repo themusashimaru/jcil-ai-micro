@@ -57,9 +57,19 @@ function anySet(names: string[]): boolean {
 
 /**
  * Validate environment variables and log results.
- * Called once at application startup.
+ * Called once at application startup via instrumentation.ts.
+ *
+ * In production: throws an error if required vars are missing (fail fast).
+ * In development/CI: logs warnings but does not block startup.
+ * Set SKIP_ENV_VALIDATION=true to bypass validation entirely (CI builds).
  */
 export function validateEnvironment(): void {
+  // Allow CI and build environments to skip validation
+  if (process.env.SKIP_ENV_VALIDATION === 'true') {
+    console.log('[ENV] Validation skipped (SKIP_ENV_VALIDATION=true)');
+    return;
+  }
+
   const missing: string[] = [];
   const warnings: string[] = [];
 
@@ -81,10 +91,17 @@ export function validateEnvironment(): void {
 
   // Log results
   if (missing.length > 0) {
-    console.error(
+    const message =
       `[ENV] MISSING REQUIRED environment variables:\n${missing.join('\n')}\n` +
-        `The application may not function correctly.`
-    );
+      `The application cannot function correctly without these.`;
+
+    if (process.env.NODE_ENV === 'production') {
+      // In production: fail fast — don't serve a broken app
+      throw new Error(message);
+    } else {
+      // In development: warn but continue
+      console.error(message);
+    }
   }
 
   if (warnings.length > 0) {

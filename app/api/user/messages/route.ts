@@ -4,9 +4,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 const log = logger('UserMessagesAPI');
@@ -25,42 +24,13 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-async function getAuthenticatedClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 /**
  * GET - Get user's messages
  */
 export async function GET() {
   try {
-    // Verify authentication
-    const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     const supabase = getSupabaseAdmin();
 
@@ -68,7 +38,7 @@ export async function GET() {
     const { data: userData } = await supabase
       .from('users')
       .select('subscription_tier')
-      .eq('id', user.id)
+      .eq('id', auth.user.id)
       .single();
 
     const userTier = userData?.subscription_tier || 'free';
@@ -88,7 +58,7 @@ export async function GET() {
         created_at,
         expires_at
       `)
-      .or(`recipient_user_id.eq.${user.id},and(is_broadcast.eq.true,or(recipient_tier.eq.all,recipient_tier.eq.${userTier}))`)
+      .or(`recipient_user_id.eq.${auth.user.id},and(is_broadcast.eq.true,or(recipient_tier.eq.all,recipient_tier.eq.${userTier}))`)
       .or('expires_at.is.null,expires_at.gt.now()')
       .order('created_at', { ascending: false });
 
@@ -108,7 +78,7 @@ export async function GET() {
       const { data: statuses } = await supabase
         .from('user_message_status')
         .select('message_id, is_read, is_deleted, is_starred')
-        .eq('user_id', user.id)
+        .eq('user_id', auth.user.id)
         .in('message_id', messageIds);
 
       if (statuses) {

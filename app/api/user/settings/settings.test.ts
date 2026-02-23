@@ -157,8 +157,7 @@ describe('GET /api/user/settings', () => {
 
   it('should return user settings', async () => {
     const { GET } = await import('./route');
-    const request = createRequest('GET');
-    const response = await GET(request);
+    const response = await GET();
 
     expect(response.status).toBe(200);
   });
@@ -183,8 +182,7 @@ describe('GET /api/user/settings', () => {
     } as never);
 
     const { GET } = await import('./route');
-    const request = createRequest('GET');
-    const response = await GET(request);
+    const response = await GET();
 
     // Should still return 200 with default settings
     expect(response.status).toBe(200);
@@ -223,8 +221,7 @@ describe('GET /api/user/settings', () => {
     } as never);
 
     const { GET } = await import('./route');
-    const request = createRequest('GET');
-    const response = await GET(request);
+    const response = await GET();
 
     expect(response.status).toBe(401);
 
@@ -258,8 +255,7 @@ describe('GET /api/user/settings', () => {
     });
 
     const { GET } = await import('./route');
-    const request = createRequest('GET');
-    const response = await GET(request);
+    const response = await GET();
 
     expect(response.status).toBe(429);
 

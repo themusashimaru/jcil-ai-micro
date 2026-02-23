@@ -146,7 +146,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Track sandbox execution in token_usage
-    // @ts-expect-error - Supabase types may be out of sync with actual schema
     await supabase.from('token_usage').insert({
       user_id: user.id,
       model: 'vercel-sandbox',

@@ -1,83 +1,103 @@
 /**
- * TEST-002: Web Search Tool Tests
+ * WEB SEARCH TOOL TESTS
+ *
+ * Tests for the native Anthropic web search tool configuration.
+ * The web search tool is server-side (executed by Anthropic, not locally),
+ * so these tests verify:
+ * - Tool definition/configuration integrity
+ * - Sentinel name detection
+ * - Availability check
+ * - Fallback executor behavior
  */
+
 import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('@/lib/logger', () => ({
-  logger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
-
 import {
+  webSearchTool,
+  NATIVE_WEB_SEARCH_SENTINEL,
   isWebSearchAvailable,
   executeWebSearch,
   isNativeServerTool,
-  NATIVE_WEB_SEARCH_SENTINEL,
-  webSearchTool,
 } from './web-search';
 
-describe('Web Search Tool', () => {
-  describe('isWebSearchAvailable', () => {
-    it('should always return true (native capability)', () => {
-      expect(isWebSearchAvailable()).toBe(true);
-    });
-  });
+// Mock logger
+vi.mock('@/lib/logger', () => ({
+  logger: () => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
 
-  describe('NATIVE_WEB_SEARCH_SENTINEL', () => {
-    it('should be a sentinel string for adapter detection', () => {
+describe('Web Search Tool', () => {
+  describe('Tool Definition', () => {
+    it('should export a sentinel name constant', () => {
       expect(NATIVE_WEB_SEARCH_SENTINEL).toBe('__native_web_search__');
     });
-  });
 
-  describe('webSearchTool', () => {
-    it('should have sentinel name', () => {
+    it('should export a valid tool definition', () => {
+      expect(webSearchTool).toBeDefined();
       expect(webSearchTool.name).toBe(NATIVE_WEB_SEARCH_SENTINEL);
+      expect(webSearchTool.description).toBeTruthy();
+    });
+
+    it('should have empty parameters (server-side tool)', () => {
+      expect(webSearchTool.parameters.type).toBe('object');
+      expect(webSearchTool.parameters.properties).toEqual({});
+      expect(webSearchTool.parameters.required).toEqual([]);
     });
 
     it('should have native web search metadata', () => {
       expect(webSearchTool._nativeWebSearch).toBe(true);
-    });
-
-    it('should configure native API with correct type', () => {
-      expect(webSearchTool._nativeConfig).toEqual({
-        type: 'web_search_20260209',
-        name: 'web_search',
-        max_uses: 5,
-      });
-    });
-
-    it('should have empty parameters (server-handled)', () => {
-      expect(webSearchTool.parameters.properties).toEqual({});
-      expect(webSearchTool.parameters.required).toEqual([]);
+      expect(webSearchTool._nativeConfig).toBeDefined();
+      expect(webSearchTool._nativeConfig.type).toBe('web_search_20260209');
+      expect(webSearchTool._nativeConfig.name).toBe('web_search');
+      expect(webSearchTool._nativeConfig.max_uses).toBe(5);
     });
   });
 
-  describe('executeWebSearch', () => {
-    it('should return no-op message (server-side tool)', async () => {
-      const result = await executeWebSearch({ id: 'test-123', name: 'web_search' });
-      expect(result.toolCallId).toBe('test-123');
-      expect(result.isError).toBe(false);
-      expect(result.content).toContain('handled natively');
+  describe('isWebSearchAvailable', () => {
+    it('should always return true (native Anthropic capability)', () => {
+      expect(isWebSearchAvailable()).toBe(true);
     });
   });
 
   describe('isNativeServerTool', () => {
-    it('should detect web_search', () => {
+    it('should return true for "web_search"', () => {
       expect(isNativeServerTool('web_search')).toBe(true);
     });
 
-    it('should detect sentinel name', () => {
+    it('should return true for the sentinel name', () => {
       expect(isNativeServerTool(NATIVE_WEB_SEARCH_SENTINEL)).toBe(true);
     });
 
-    it('should reject other tool names', () => {
-      expect(isNativeServerTool('fetch_url')).toBe(false);
+    it('should return false for other tool names', () => {
       expect(isNativeServerTool('run_code')).toBe(false);
-      expect(isNativeServerTool('browser_visit')).toBe(false);
+      expect(isNativeServerTool('fetch_url')).toBe(false);
+      expect(isNativeServerTool('web_search_old')).toBe(false);
+      expect(isNativeServerTool('')).toBe(false);
+    });
+  });
+
+  describe('executeWebSearch (fallback)', () => {
+    it('should return a non-error result explaining server-side execution', async () => {
+      const result = await executeWebSearch({
+        id: 'tool-call-123',
+        name: 'web_search',
+      });
+
+      expect(result.toolCallId).toBe('tool-call-123');
+      expect(result.isError).toBe(false);
+      expect(result.content).toContain('natively');
+    });
+
+    it('should pass through the tool call ID', async () => {
+      const result = await executeWebSearch({
+        id: 'unique-id-456',
+        name: NATIVE_WEB_SEARCH_SENTINEL,
+      });
+
+      expect(result.toolCallId).toBe('unique-id-456');
     });
   });
 });

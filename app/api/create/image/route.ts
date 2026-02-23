@@ -15,8 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 import {
@@ -69,21 +68,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createClient();
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
   try {
-    // Authenticate user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // Parse request
     const parseResult = await safeParseJSON<GenerationRequest>(request);
@@ -160,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     const { error: insertError } = await untypedFrom(serviceClient, 'generations').insert({
       id: generationId,
-      user_id: user.id,
+      user_id: auth.user.id,
       conversation_id: conversationId || null,
       type: 'image',
       model,
@@ -182,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     log.info('Starting image generation', {
       generationId,
-      userId: user.id,
+      userId: auth.user.id,
       model,
       width,
       height,
@@ -232,7 +220,7 @@ export async function POST(request: NextRequest) {
     // Download and store the image (BFL URLs expire in 10 minutes)
     let storedUrl: string;
     try {
-      storedUrl = await downloadAndStore(result.imageUrl, user.id, generationId, 'png');
+      storedUrl = await downloadAndStore(result.imageUrl, auth.user.id, generationId, 'png');
     } catch (storageError) {
       log.error('Failed to store image', {
         generationId,
@@ -329,29 +317,22 @@ export async function POST(request: NextRequest) {
 // =============================================================================
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
 
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Parse query params
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '20', 10);
     const offset = parseInt(request.nextUrl.searchParams.get('offset') || '0', 10);
     const type = request.nextUrl.searchParams.get('type') || 'image';
 
     // Query generations
-    const { data: generations, error } = await supabase
+    const { data: generations, error } = await auth.supabase
       .from('generations')
       .select(
         'id, type, model, prompt, status, result_url, dimensions, cost_credits, created_at, completed_at'
       )
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user.id)
       .eq('type', type)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);

@@ -178,11 +178,11 @@ export async function checkRateLimit(
     return checkRateLimitMemory(identifier, config);
   }
 
-  // In production without Redis, fail OPEN — allow the request
-  // Blocking all users is worse than temporarily losing rate limiting
-  // In-memory fallback is unreliable in serverless (resets on cold start)
-  log.error('Redis not configured in production — rate limiting fail-open, all requests allowed');
-  return { allowed: true, remaining: 1, resetAt: Date.now() + 60000 };
+  // In production without Redis, fail CLOSED — reject the request
+  // Rate limiting is critical for an AI platform where each request can cost dollars
+  // Allowing unthrottled access risks abuse, cost attacks, and DoS
+  log.error('Redis not configured in production — rate limiting fail-closed, request rejected');
+  return { allowed: false, remaining: 0, resetAt: Date.now() + 60000 };
 }
 
 // ========================================
