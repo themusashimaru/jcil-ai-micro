@@ -26,7 +26,6 @@ import {
   type SuggestedAction,
 } from '@/lib/response-analysis';
 // HIGH-003: Import async state helpers for race condition protection
-import { useMountedRef } from './useAsyncState';
 
 const log = logger('CodeLab');
 
@@ -35,29 +34,25 @@ const log = logger('CodeLab');
 // ========================================
 const AGENT_CLEANUP_INTERVAL_MS = 60000; // 1 minute - how often to check for stale agents
 const AGENT_RETENTION_TIME_MS = 5 * 60 * 1000; // 5 minutes - how long to keep completed agents
-const ERROR_AUTO_CLEAR_DELAY_MS = 100; // Clear error state after toast is shown
 
 import { CodeLabSidebar } from './CodeLabSidebar';
 import { CodeLabThread } from './CodeLabThread';
 import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
 import { CodeLabCommandPalette } from './CodeLabCommandPalette';
 import { CodeLabKeyboardShortcuts } from './CodeLabKeyboardShortcuts';
-import { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
-import { CodeLabDiffViewer } from './CodeLabDiffViewer';
-import { CodeLabVisualToCode } from './CodeLabVisualToCode';
-import { CodeLabDeployFlow } from './CodeLabDeployFlow';
-import { CodeLabDebugPanel } from './CodeLabDebugPanel';
-import { CodeLabPlanView } from './CodeLabPlanView';
 // CodeLabModelSelector is now integrated into CodeLabComposer for cleaner UX
 import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
 // CodeLabThinkingToggle removed - thinking mode now integrated into model selector
 // Users can select "Sonnet (Thinking)" or "Opus (Thinking)" from the dropdown
 // MCP settings removed — AI uses tools seamlessly behind the scenes
-import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
 // Thinking block visualization ready for extended thinking (Claude Code parity)
 // Note: CodeLabThinkingBlock and parseThinkingBlocks are exported for use in CodeLabThread
 export { CodeLabThinkingBlock, parseThinkingBlocks } from './CodeLabThinkingBlock';
 import { CodeLabStatusBar } from './CodeLabStatusBar';
+import { CodeLabWorkspacePanel } from './CodeLabWorkspacePanel';
+import { useKeyboardShortcuts } from './useKeyboardShortcuts';
+import { useSessionManager } from './useSessionManager';
+import { useWorkspaceManager } from './useWorkspaceManager';
 import { CodeLabPermissionDialog, usePermissionManager } from './CodeLabPermissionDialog';
 import {
   CodeLabFileChangeIndicator,
@@ -65,12 +60,8 @@ import {
 } from './CodeLabFileChangeIndicator';
 import { CodeLabSessionHistory } from './CodeLabSessionHistory';
 // HIGH-005: Error boundary for sub-components
-import { CodeLabComponentBoundary } from './CodeLabComponentBoundary';
 import { useToastActions } from '@/components/ui/Toast';
-import type { CodeLabSession, CodeLabMessage } from './types';
-import type { FileNode } from './CodeLabLiveFileTree';
-import type { FileDiff } from './CodeLabDiffViewer';
-import type { Plan } from '@/lib/workspace/plan-mode';
+import type { CodeLabMessage } from './types';
 import type { SessionStats } from '@/lib/workspace/token-tracker';
 import type { ExtendedThinkingConfig } from '@/lib/workspace/extended-thinking';
 
@@ -80,16 +71,29 @@ interface CodeLabProps {
 
 export function CodeLab({ userId: _userId }: CodeLabProps) {
   // ========================================
-  // STATE
+  // STATE — Session management (extracted to hook)
   // ========================================
 
-  const [sessions, setSessions] = useState<CodeLabSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<CodeLabMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    sessions,
+    setSessions,
+    currentSessionId,
+    setCurrentSessionId,
+    currentSession,
+    messages,
+    setMessages,
+    isLoading,
+    setError,
+    createSession,
+    selectSession,
+    deleteSession,
+    renameSession,
+    exportSession,
+    setSessionRepo,
+  } = useSessionManager();
+
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // Start collapsed, focus on chat
-  const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // AUTO-SEARCH TRIGGER: Track pending search suggestions after knowledge cutoff detection
@@ -98,7 +102,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     originalQuestion: string | null;
   } | null>(null);
 
-  // Toast notifications for better UX
   const toast = useToastActions();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -181,25 +184,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     }, AGENT_CLEANUP_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
-  const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
-  const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
-
-  // MCP state removed — AI uses tools seamlessly behind the scenes
-
-  // Memory file state (Claude Code parity - CLAUDE.md)
-  const [memoryFile, setMemoryFile] = useState<
-    | {
-        path: string;
-        content: string;
-        exists: boolean;
-        lastModified?: Date;
-      }
-    | undefined
-  >(undefined);
-  const [memoryLoading, setMemoryLoading] = useState(false);
-
   // Model selection state - default to DeepSeek for cost-effectiveness
   const [currentModelId, setCurrentModelId] = useState('deepseek-reasoner');
 
@@ -233,472 +217,32 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // HIGH-003: Race condition protection refs
-  const mountedRef = useMountedRef();
-  const selectSessionRequestIdRef = useRef(0);
-  const loadWorkspaceFilesRequestIdRef = useRef(0);
-
-  // Current session helper
-  const currentSession = sessions.find((s) => s.id === currentSessionId);
-
-  // ========================================
-  // SESSION MANAGEMENT
-  // ========================================
-
-  // Load sessions on mount
-  useEffect(() => {
-    loadSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Show toast notification when error occurs
-  useEffect(() => {
-    if (error) {
-      toast.error('Error', error);
-      // Auto-clear error state after showing toast
-      const timer = setTimeout(() => setError(null), ERROR_AUTO_CLEAR_DELAY_MS);
-      return () => clearTimeout(timer);
-    }
-  }, [error, toast]);
-
-  const loadSessions = async () => {
-    try {
-      const response = await fetch('/api/code-lab/sessions');
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data.sessions || []);
-
-        // Always start with a fresh new chat session for better UX
-        // Users can access previous sessions from the sidebar
-        createSession();
-      }
-    } catch (err) {
-      log.error('Error loading sessions', err as Error);
-    }
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized for simplicity
-  const createSession = async (title?: string) => {
-    try {
-      const response = await fetch('/api/code-lab/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title || 'New Session' }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSessions((prev) => [data.session, ...prev]);
-        setCurrentSessionId(data.session.id);
-        setMessages([]);
-        return data.session;
-      }
-    } catch (err) {
-      log.error('Error creating session', err as Error);
-      setError('Failed to create session');
-    }
-    return null;
-  };
-
-  const selectSession = async (sessionId: string) => {
-    // HIGH-003: Track request ID to prevent race conditions
-    const requestId = ++selectSessionRequestIdRef.current;
-
-    setCurrentSessionId(sessionId);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
-
-      // HIGH-003: Only update state if this is still the latest request
-      if (!mountedRef.current || selectSessionRequestIdRef.current !== requestId) {
-        log.debug('Ignoring stale selectSession response', { sessionId, requestId });
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(data.messages || []);
-      }
-    } catch (err) {
-      // HIGH-003: Only log error if this is still the relevant request
-      if (mountedRef.current && selectSessionRequestIdRef.current === requestId) {
-        log.error('Error loading messages', err as Error);
-      }
-    } finally {
-      // HIGH-003: Only clear loading if this is still the relevant request
-      if (mountedRef.current && selectSessionRequestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const deleteSession = async (sessionId: string) => {
-    try {
-      const response = await fetch(`/api/code-lab/sessions/${sessionId}`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error(`Failed to delete session: ${response.status}`);
-      }
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-
-      if (currentSessionId === sessionId) {
-        const remaining = sessions.filter((s) => s.id !== sessionId);
-        if (remaining.length > 0) {
-          selectSession(remaining[0].id);
-        } else {
-          setCurrentSessionId(null);
-          setMessages([]);
-        }
-      }
-    } catch (err) {
-      log.error('Error deleting session', err as Error);
-      toast.error('Delete Failed', 'Failed to delete session');
-    }
-  };
-
-  // Export session as markdown
-  const exportSession = async (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-
-    // Get messages for this session
-    let exportMessages = messages;
-    if (sessionId !== currentSessionId) {
-      try {
-        const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
-        if (response.ok) {
-          const data = await response.json();
-          exportMessages = data.messages || [];
-        }
-      } catch (err) {
-        log.error('Error fetching messages for export', err as Error);
-        return;
-      }
-    }
-
-    // Generate markdown
-    const lines: string[] = [
-      `# ${session.title}`,
-      '',
-      `**Created:** ${new Date(session.createdAt).toLocaleString()}`,
-      `**Updated:** ${new Date(session.updatedAt).toLocaleString()}`,
-      `**Messages:** ${session.messageCount}`,
-    ];
-
-    if (session.repo) {
-      lines.push(`**Repository:** ${session.repo.fullName} (${session.repo.branch})`);
-    }
-
-    if (session.codeChanges) {
-      lines.push('');
-      lines.push('## Code Changes');
-      lines.push(`- Lines added: **+${session.codeChanges.linesAdded}**`);
-      lines.push(`- Lines removed: **-${session.codeChanges.linesRemoved}**`);
-      lines.push(`- Files changed: **${session.codeChanges.filesChanged}**`);
-    }
-
-    lines.push('');
-    lines.push('---');
-    lines.push('');
-    lines.push('## Conversation');
-    lines.push('');
-
-    exportMessages.forEach((msg) => {
-      if (msg.role === 'user') {
-        lines.push(`### User`);
-      } else if (msg.role === 'assistant') {
-        lines.push(`### Assistant`);
-      } else {
-        lines.push(`### System`);
-      }
-      lines.push('');
-      lines.push(msg.content);
-      lines.push('');
-    });
-
-    // Download file
-    const markdown = lines.join('\n');
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${session.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.md`;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  const renameSession = async (sessionId: string, title: string) => {
-    try {
-      await fetch(`/api/code-lab/sessions/${sessionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
-      });
-
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, title } : s)));
-    } catch (err) {
-      log.error('Error renaming session', err as Error);
-    }
-  };
-
-  const setSessionRepo = async (sessionId: string, repo: CodeLabSession['repo']) => {
-    try {
-      const response = await fetch(`/api/code-lab/sessions/${sessionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repo }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || 'Failed to save repository';
-        log.error('Error setting repo - API returned error', {
-          status: response.status,
-          error: errorMessage,
-        });
-        toast.error('Repository Error', errorMessage);
-        return;
-      }
-
-      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, repo } : s)));
-
-      // Show success feedback
-      if (repo) {
-        toast.success('Repository Connected', `Connected to ${repo.fullName}`);
-      } else {
-        toast.info('Repository Cleared', 'Repository disconnected from session');
-      }
-    } catch (err) {
-      log.error('Error setting repo', err as Error);
-      toast.error('Connection Error', 'Failed to connect repository. Please try again.');
-    }
-  };
-
-  // ========================================
-  // WORKSPACE MANAGEMENT
-  // ========================================
-
-  const loadWorkspaceFiles = async (sessionId: string) => {
-    // HIGH-003: Track request ID to prevent race conditions
-    const requestId = ++loadWorkspaceFilesRequestIdRef.current;
-
-    try {
-      const response = await fetch(`/api/code-lab/files?sessionId=${sessionId}`);
-
-      // HIGH-003: Only update state if this is still the latest request
-      if (!mountedRef.current || loadWorkspaceFilesRequestIdRef.current !== requestId) {
-        log.debug('Ignoring stale loadWorkspaceFiles response', { sessionId, requestId });
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setWorkspaceFiles(data.files || []);
-      }
-    } catch (err) {
-      // HIGH-003: Only log error if this is still the relevant request
-      if (mountedRef.current && loadWorkspaceFilesRequestIdRef.current === requestId) {
-        log.error('Error loading workspace files', err as Error);
-      }
-    }
-  };
-
-  // Fetch current plan status
-  const fetchPlanStatus = async () => {
-    try {
-      const response = await fetch('/api/code-lab/plan');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentPlan(data.plan || null);
-      }
-    } catch (err) {
-      log.debug('Error fetching plan status', { error: String(err) });
-    }
-  };
-
-  const handleFileSelect = async (path: string) => {
-    setSelectedFile(path);
-    // File content will be loaded by the file tree component
-  };
-
-  const handleFileCreate = async (path: string, content: string = '') => {
-    if (!currentSessionId) return;
-    try {
-      await fetch('/api/code-lab/files', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentSessionId, path, content }),
-      });
-      loadWorkspaceFiles(currentSessionId);
-    } catch (err) {
-      log.error('Error creating file', err as Error);
-    }
-  };
-
-  const handleFileDelete = async (path: string) => {
-    if (!currentSessionId) return;
-
-    // Request permission before deleting (Claude Code parity)
-    const approved = await requestPermission({
-      type: 'file_delete',
-      title: 'Delete File',
-      description: `Are you sure you want to delete this file? This action cannot be undone.`,
-      affectedFiles: [path],
-      riskLevel: 'high',
-      allowAlways: false, // Never auto-allow file deletions
-    });
-
-    if (!approved) {
-      toast.info('Cancelled', 'File deletion cancelled');
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `/api/code-lab/files?sessionId=${currentSessionId}&path=${encodeURIComponent(path)}`,
-        {
-          method: 'DELETE',
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to delete file: ${response.status}`);
-      }
-      loadWorkspaceFiles(currentSessionId);
-      toast.success('Deleted', `${path} has been deleted`);
-    } catch (err) {
-      log.error('Error deleting file', err as Error);
-      toast.error('Delete Failed', 'Failed to delete file');
-    }
-  };
-
-  // Git operations (with permission prompts for Claude Code parity)
-  const handleGitPush = async () => {
-    if (!currentSessionId || !currentSession?.repo) return;
-
-    // Request permission before pushing (Claude Code parity)
-    const approved = await requestPermission({
-      type: 'git_push',
-      title: 'Push to Remote Repository',
-      description: `This will push your local commits to ${currentSession.repo.fullName} on branch ${currentSession.repo.branch}.`,
-      details: [
-        `Repository: ${currentSession.repo.fullName}`,
-        `Branch: ${currentSession.repo.branch}`,
-      ],
-      riskLevel: 'medium',
-      allowAlways: true,
-    });
-
-    if (!approved) {
-      toast.info('Cancelled', 'Push operation cancelled');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/code-lab/git', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: currentSessionId,
-          operation: 'push',
-          repo: currentSession.repo,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.diff) {
-          setDiffFiles(data.diff);
-        }
-        toast.success('Pushed', 'Changes pushed to remote repository');
-      }
-    } catch (err) {
-      log.error('Error pushing to git', err as Error);
-      setError('Failed to push changes');
-    }
-  };
-
-  const handleGitPull = async () => {
-    if (!currentSessionId || !currentSession?.repo) return;
-    try {
-      await fetch('/api/code-lab/git', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: currentSessionId,
-          operation: 'pull',
-          repo: currentSession.repo,
-        }),
-      });
-      loadWorkspaceFiles(currentSessionId);
-    } catch (err) {
-      log.error('Error pulling from git', err as Error);
-      setError('Failed to pull changes');
-    }
-  };
-
-  // Visual to code handler
-  const handleVisualToCode = async (
-    imageBase64: string,
-    framework: string,
-    instructions?: string
-  ) => {
-    const response = await fetch('/api/code-lab/visual-to-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: imageBase64, framework, instructions }),
-    });
-
-    if (!response.ok) throw new Error('Failed to generate code');
-    return response.json();
-  };
-
-  // Deploy handler
-  const handleDeploy = async (config: {
-    platform: 'vercel' | 'netlify' | 'railway' | 'cloudflare';
-    projectName: string;
-    buildCommand: string;
-    outputDir: string;
-    envVars: Record<string, string>;
-    domain?: string;
-  }) => {
-    if (!currentSessionId) {
-      return {
-        id: '',
-        status: 'error' as const,
-        createdAt: new Date(),
-        buildLogs: [],
-        error: 'No session',
-      };
-    }
-
-    const response = await fetch('/api/code-lab/deploy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: currentSessionId,
-        platform: config.platform,
-        config: {
-          projectName: config.projectName,
-          buildCommand: config.buildCommand,
-          outputDir: config.outputDir,
-          envVars: config.envVars,
-          domain: config.domain,
-        },
-      }),
-    });
-
-    const result = await response.json();
-
-    return {
-      id: result.projectId || `deploy-${Date.now()}`,
-      status: result.success ? ('success' as const) : ('error' as const),
-      url: result.url,
-      createdAt: new Date(),
-      buildLogs: [],
-      error: result.error,
-    };
-  };
+  // Workspace management (extracted to hook)
+  const {
+    workspaceFiles,
+    selectedFile,
+    diffFiles,
+    currentPlan,
+    setCurrentPlan,
+    memoryFile,
+    memoryLoading,
+    loadWorkspaceFiles,
+    fetchPlanStatus,
+    handleFileSelect,
+    handleFileCreate,
+    handleFileDelete,
+    handleGitPush,
+    handleGitPull,
+    handleVisualToCode,
+    handleDeploy,
+    loadMemoryFile,
+    saveMemoryFile,
+  } = useWorkspaceManager({
+    currentSessionId,
+    currentSession,
+    setError,
+    requestPermission,
+  });
 
   // ========================================
   // MODEL & THINKING HANDLERS (Claude Code parity)
@@ -777,62 +321,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       // based on the user's message and any attached images
     },
     [toast]
-  );
-
-  // MCP handlers removed — AI uses tools seamlessly behind the scenes
-
-  // Memory file load handler (Claude Code parity)
-  const loadMemoryFile = useCallback(async () => {
-    if (!currentSessionId) return;
-    setMemoryLoading(true);
-    try {
-      const response = await fetch(`/api/code-lab/memory?sessionId=${currentSessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMemoryFile({
-          path: data.path || '/workspace/CLAUDE.md',
-          content: data.content || '',
-          exists: data.exists || false,
-          lastModified: data.lastModified ? new Date(data.lastModified) : undefined,
-        });
-      }
-    } catch (err) {
-      log.error('Failed to load memory file', err as Error);
-    } finally {
-      setMemoryLoading(false);
-    }
-  }, [currentSessionId]);
-
-  // Memory file save handler (Claude Code parity)
-  const saveMemoryFile = useCallback(
-    async (content: string) => {
-      if (!currentSessionId) return;
-      try {
-        const response = await fetch('/api/code-lab/memory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: currentSessionId,
-            content,
-          }),
-        });
-        if (response.ok) {
-          setMemoryFile((prev) => ({
-            path: prev?.path || '/workspace/CLAUDE.md',
-            content,
-            exists: true,
-            lastModified: new Date(),
-          }));
-          toast.success('Memory Saved', 'CLAUDE.md has been updated');
-        } else {
-          toast.error('Save Failed', 'Could not save memory file');
-        }
-      } catch (err) {
-        log.error('Failed to save memory file', err as Error);
-        toast.error('Save Failed', 'Could not save memory file');
-      }
-    },
-    [currentSessionId, toast]
   );
 
   // ========================================
@@ -1261,110 +749,19 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     [currentSessionId, createSession, sendMessage]
   );
 
-  // ========================================
-  // KEYBOARD SHORTCUTS
-  // ========================================
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
-
-      // Cmd/Ctrl+N - New session
-      if (cmdKey && e.key === 'n') {
-        e.preventDefault();
-        createSession();
-      }
-
-      // Escape - Cancel streaming or close sidebar on mobile
-      if (e.key === 'Escape') {
-        if (isStreaming) {
-          cancelStream();
-        } else if (!sidebarCollapsed && window.innerWidth <= 768) {
-          setSidebarCollapsed(true);
-        }
-      }
-
-      // Cmd/Ctrl+B - Open background tasks panel (Claude Code parity)
-      if (cmdKey && e.key === 'b' && !e.shiftKey) {
-        e.preventDefault();
-        setActiveWorkspaceTab('tasks');
-        setWorkspacePanelOpen(true);
-      }
-
-      // Cmd/Ctrl+Shift+B - Toggle sidebar
-      if (cmdKey && e.shiftKey && e.key === 'b') {
-        e.preventDefault();
-        setSidebarCollapsed((prev) => !prev);
-      }
-
-      // Cmd/Ctrl+K - Open command palette
-      if (cmdKey && e.key === 'k') {
-        e.preventDefault();
-        setCommandPaletteOpen(true);
-      }
-
-      // Cmd/Ctrl+/ - Show keyboard shortcuts
-      if (cmdKey && e.key === '/') {
-        e.preventDefault();
-        setShortcutsOpen(true);
-      }
-
-      // Cmd/Ctrl+Shift+P - Open command palette (VSCode style)
-      if (cmdKey && e.shiftKey && e.key === 'p') {
-        e.preventDefault();
-        setCommandPaletteOpen(true);
-      }
-
-      // Cmd/Ctrl+E - Toggle workspace panel
-      if (cmdKey && e.key === 'e') {
-        e.preventDefault();
-        setWorkspacePanelOpen((prev) => !prev);
-      }
-
-      // Cmd/Ctrl+1,2,3,4 - Switch workspace tabs
-      if (cmdKey && e.key === '1') {
-        e.preventDefault();
-        setActiveWorkspaceTab('files');
-        setWorkspacePanelOpen(true);
-      }
-      if (cmdKey && e.key === '2') {
-        e.preventDefault();
-        setActiveWorkspaceTab('diff');
-        setWorkspacePanelOpen(true);
-      }
-      if (cmdKey && e.key === '3') {
-        e.preventDefault();
-        setActiveWorkspaceTab('deploy');
-        setWorkspacePanelOpen(true);
-      }
-      if (cmdKey && e.key === '4') {
-        e.preventDefault();
-        setActiveWorkspaceTab('visual');
-        setWorkspacePanelOpen(true);
-      }
-      if (cmdKey && e.key === '5') {
-        e.preventDefault();
-        setActiveWorkspaceTab('debug');
-        setWorkspacePanelOpen(true);
-      }
-      if (cmdKey && e.key === '6') {
-        e.preventDefault();
-        setActiveWorkspaceTab('plan');
-        setWorkspacePanelOpen(true);
-      }
-
-      // Cmd/Ctrl+H - Open session history search (Claude Code parity)
-      if (cmdKey && e.key === 'h') {
-        e.preventDefault();
-        setHistoryOpen(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
-  }, [isStreaming, cancelStream, sidebarCollapsed, createSession]);
+  // Keyboard shortcuts (extracted to hook)
+  useKeyboardShortcuts({
+    isStreaming,
+    sidebarCollapsed,
+    createSession,
+    cancelStream,
+    setSidebarCollapsed,
+    setCommandPaletteOpen,
+    setShortcutsOpen,
+    setHistoryOpen,
+    setWorkspacePanelOpen,
+    setActiveWorkspaceTab,
+  });
 
   // ========================================
   // RENDER
@@ -1466,279 +863,44 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             </div>
 
             {/* Workspace Panel */}
-            {workspacePanelOpen && (
-              <div className="workspace-panel">
-                <div className="workspace-tabs">
-                  {/* Close/Back button */}
-                  <button
-                    className="workspace-close-btn"
-                    onClick={() => setWorkspacePanelOpen(false)}
-                    title="Close panel (Esc)"
-                    aria-label="Close workspace panel"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'files' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('files')}
-                  >
-                    Files
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'diff' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('diff')}
-                  >
-                    Changes
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'deploy' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('deploy')}
-                  >
-                    Deploy
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'visual' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('visual')}
-                  >
-                    Visual
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'debug' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('debug')}
-                  >
-                    Debug
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'plan' ? 'active' : ''}
-                    onClick={() => {
-                      setActiveWorkspaceTab('plan');
-                      fetchPlanStatus();
-                    }}
-                  >
-                    Plan {currentPlan && currentPlan.status === 'in_progress' && '●'}
-                  </button>
-                  {/* MCP tab removed — AI uses tools seamlessly behind the scenes */}
-                  <button
-                    className={activeWorkspaceTab === 'memory' ? 'active' : ''}
-                    onClick={() => {
-                      setActiveWorkspaceTab('memory');
-                      if (!memoryFile) loadMemoryFile();
-                    }}
-                  >
-                    Memory {memoryFile?.exists && '●'}
-                  </button>
-                  <button
-                    className={activeWorkspaceTab === 'tasks' ? 'active' : ''}
-                    onClick={() => setActiveWorkspaceTab('tasks')}
-                    title="Background Tasks (Ctrl+B)"
-                  >
-                    Tasks{' '}
-                    {backgroundAgents.filter((a) => a.status === 'running').length > 0 &&
-                      `(${backgroundAgents.filter((a) => a.status === 'running').length})`}
-                  </button>
-                </div>
-                <div className="workspace-content">
-                  {/* HIGH-005: Wrap each panel with error boundary */}
-                  {activeWorkspaceTab === 'files' && (
-                    <CodeLabComponentBoundary componentName="File Browser">
-                      <CodeLabLiveFileTree
-                        files={workspaceFiles}
-                        selectedPath={selectedFile ?? undefined}
-                        onFileSelect={handleFileSelect}
-                        onFileCreate={(path) => handleFileCreate(path)}
-                        onFileDelete={handleFileDelete}
-                        onRefresh={() => {
-                          if (currentSessionId) loadWorkspaceFiles(currentSessionId);
-                        }}
-                      />
-                    </CodeLabComponentBoundary>
-                  )}
-                  {activeWorkspaceTab === 'diff' && (
-                    <CodeLabComponentBoundary componentName="Diff Viewer">
-                      <div className="diff-list">
-                        {diffFiles.length === 0 ? (
-                          <div className="diff-empty">
-                            <p>No changes to display</p>
-                            <p className="hint">Push or pull from GitHub to see file changes</p>
-                          </div>
-                        ) : (
-                          diffFiles.map((fileDiff, index) => (
-                            <CodeLabDiffViewer
-                              key={`${fileDiff.oldPath || fileDiff.newPath}-${index}`}
-                              diff={fileDiff}
-                              onAcceptHunk={(hunkIndex) =>
-                                log.debug('Accept hunk', { hunkIndex, file: fileDiff.newPath })
-                              }
-                              onRejectHunk={(hunkIndex) =>
-                                log.debug('Reject hunk', { hunkIndex, file: fileDiff.newPath })
-                              }
-                            />
-                          ))
-                        )}
-                      </div>
-                    </CodeLabComponentBoundary>
-                  )}
-                  {activeWorkspaceTab === 'deploy' && (
-                    <CodeLabComponentBoundary componentName="Deploy">
-                      <CodeLabDeployFlow onDeploy={handleDeploy} />
-                    </CodeLabComponentBoundary>
-                  )}
-                  {activeWorkspaceTab === 'visual' && (
-                    <CodeLabComponentBoundary componentName="Visual to Code">
-                      <CodeLabVisualToCode
-                        onGenerate={handleVisualToCode}
-                        onInsertCode={(code) =>
-                          sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)
-                        }
-                      />
-                    </CodeLabComponentBoundary>
-                  )}
-                  {activeWorkspaceTab === 'debug' && currentSessionId && (
-                    <CodeLabComponentBoundary componentName="Debug Panel">
-                      <CodeLabDebugPanel
-                        sessionId={currentSessionId}
-                        token={currentSessionId}
-                        workspaceId={currentSessionId}
-                        onAIAnalysis={(debugState) => {
-                          const debugContext = JSON.stringify(debugState, null, 2);
-                          sendMessage(
-                            `/analyze this debug state and help me understand what's happening:\n\`\`\`json\n${debugContext}\n\`\`\``
-                          );
-                        }}
-                      />
-                    </CodeLabComponentBoundary>
-                  )}
-                  {activeWorkspaceTab === 'plan' &&
-                    (currentPlan ? (
-                      <CodeLabPlanView
-                        plan={currentPlan}
-                        onApprove={async () => {
-                          const res = await fetch('/api/code-lab/plan', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              action: 'approve',
-                              sessionId: currentSessionId,
-                            }),
-                          });
-                          if (res.ok) {
-                            const data = await res.json();
-                            setCurrentPlan(data.plan);
-                          }
-                        }}
-                        onSkipStep={async (reason) => {
-                          const res = await fetch('/api/code-lab/plan', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              action: 'skip',
-                              reason,
-                              sessionId: currentSessionId,
-                            }),
-                          });
-                          if (res.ok) {
-                            const data = await res.json();
-                            setCurrentPlan(data.plan);
-                          }
-                        }}
-                        onCancelPlan={async () => {
-                          const res = await fetch('/api/code-lab/plan', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'cancel', sessionId: currentSessionId }),
-                          });
-                          if (res.ok) {
-                            setCurrentPlan(null);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="plan-empty">
-                        <div className="plan-empty-icon">📋</div>
-                        <h3>No Active Plan</h3>
-                        <p>Claude will create a plan when tackling complex tasks.</p>
-                        <p className="hint">Plans break down work into trackable steps.</p>
-                      </div>
-                    ))}
-                  {/* MCP settings panel removed — AI uses tools seamlessly */}
-                  {activeWorkspaceTab === 'memory' && (
-                    <CodeLabComponentBoundary componentName="Memory Editor">
-                      <CodeLabMemoryEditor
-                        memoryFile={memoryFile}
-                        onSave={saveMemoryFile}
-                        onLoad={loadMemoryFile}
-                        isLoading={memoryLoading}
-                      />
-                    </CodeLabComponentBoundary>
-                  )}
-                  {activeWorkspaceTab === 'tasks' && (
-                    <div className="tasks-panel">
-                      <div className="tasks-header">
-                        <h3>Background Tasks</h3>
-                        <span className="tasks-hint">
-                          Ctrl+B to spawn • Like Claude Code parallel execution
-                        </span>
-                      </div>
-                      {backgroundAgents.length === 0 ? (
-                        <div className="tasks-empty">
-                          <p>No background tasks running</p>
-                          <p className="hint">
-                            Background agents allow parallel task execution.
-                            <br />
-                            Claude will automatically spawn agents for complex tasks.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="tasks-list">
-                          {backgroundAgents.map((agent) => (
-                            <div key={agent.id} className={`task-item ${agent.status}`}>
-                              <div className="task-header">
-                                <span className="task-name">{agent.name}</span>
-                                <span className={`task-status ${agent.status}`}>
-                                  {agent.status === 'running' && '⏳'}
-                                  {agent.status === 'completed' && '✓'}
-                                  {agent.status === 'failed' && '✗'}
-                                  {agent.status}
-                                </span>
-                              </div>
-                              <div className="task-time">
-                                Started {agent.startedAt.toLocaleTimeString()}
-                              </div>
-                              {agent.output && <pre className="task-output">{agent.output}</pre>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {currentSession?.repo && (
-                  <div className="workspace-git-actions">
-                    <button onClick={handleGitPull} className="git-btn pull">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                        />
-                      </svg>
-                      Pull
-                    </button>
-                    <button onClick={handleGitPush} className="git-btn push">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                        />
-                      </svg>
-                      Push
-                    </button>
-                  </div>
-                )}
-              </div>
+            {workspacePanelOpen && currentSessionId && (
+              <CodeLabWorkspacePanel
+                activeTab={activeWorkspaceTab}
+                setActiveTab={setActiveWorkspaceTab}
+                onClose={() => setWorkspacePanelOpen(false)}
+                currentSessionId={currentSessionId}
+                currentSession={currentSession}
+                workspaceFiles={workspaceFiles}
+                selectedFile={selectedFile}
+                onFileSelect={handleFileSelect}
+                onFileCreate={handleFileCreate}
+                onFileDelete={handleFileDelete}
+                onRefreshFiles={() => {
+                  if (currentSessionId) loadWorkspaceFiles(currentSessionId);
+                }}
+                diffFiles={diffFiles}
+                onDeploy={handleDeploy}
+                onVisualToCode={handleVisualToCode}
+                onInsertCode={(code) =>
+                  sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)
+                }
+                onAIAnalysis={(debugState) => {
+                  const debugContext = JSON.stringify(debugState, null, 2);
+                  sendMessage(
+                    `/analyze this debug state and help me understand what's happening:\n\`\`\`json\n${debugContext}\n\`\`\``
+                  );
+                }}
+                currentPlan={currentPlan}
+                setCurrentPlan={setCurrentPlan}
+                fetchPlanStatus={fetchPlanStatus}
+                memoryFile={memoryFile}
+                onSaveMemory={saveMemoryFile}
+                onLoadMemory={loadMemoryFile}
+                memoryLoading={memoryLoading}
+                backgroundAgents={backgroundAgents}
+                onGitPull={handleGitPull}
+                onGitPush={handleGitPush}
+              />
             )}
           </div>
         ) : (
