@@ -9,6 +9,7 @@ import { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 import { routeChat, completeChat } from '@/lib/ai/chat-router';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
+import { uploadDocument } from '@/lib/documents/storage';
 import {
   generateResumeDocuments,
   getResumeSystemPrompt,
@@ -136,8 +137,12 @@ export async function handleExplicitDocumentGeneration(
     }
 
     const fileResult = await generateDocument(documentData);
-    const base64 = fileResult.buffer.toString('base64');
-    const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
+    const upload = await uploadDocument(
+      ctx.userId,
+      fileResult.buffer,
+      fileResult.filename,
+      fileResult.mimeType
+    );
 
     const responseText =
       `I've created your ${getDocumentTypeName(explicitDocType)} document: **${fileResult.filename}**\n\n` +
@@ -145,7 +150,7 @@ export async function handleExplicitDocumentGeneration(
       `[DOCUMENT_DOWNLOAD:${JSON.stringify({
         filename: fileResult.filename,
         mimeType: fileResult.mimeType,
-        dataUrl: dataUrl,
+        downloadUrl: upload.url,
         type: explicitDocType,
       })}]`;
 
@@ -336,11 +341,19 @@ If information is missing, make reasonable professional assumptions or leave opt
   log.info('Generating resume documents', { name: resumeData.contact.fullName });
 
   const documents = await generateResumeDocuments(resumeData);
-  const docxBase64 = documents.docx.toString('base64');
-  const pdfBase64 = documents.pdf.toString('base64');
 
-  const docxDataUrl = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBase64}`;
-  const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+  const docxUpload = await uploadDocument(
+    ctx.userId,
+    documents.docx,
+    documents.docxFilename,
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  );
+  const pdfUpload = await uploadDocument(
+    ctx.userId,
+    documents.pdf,
+    documents.pdfFilename,
+    'application/pdf'
+  );
 
   const responseText =
     `I've created your professional resume! Here are your documents:\n\n` +
@@ -348,15 +361,16 @@ If information is missing, make reasonable professional assumptions or leave opt
     `[DOCUMENT_DOWNLOAD:${JSON.stringify({
       filename: documents.docxFilename,
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      dataUrl: docxDataUrl,
+      downloadUrl: docxUpload.url,
       type: 'docx',
     })}]\n\n` +
     `**PDF Version** (ready to submit):\n` +
     `[DOCUMENT_DOWNLOAD:${JSON.stringify({
       filename: documents.pdfFilename,
       mimeType: 'application/pdf',
-      dataUrl: pdfDataUrl,
+      downloadUrl: pdfUpload.url,
       type: 'pdf',
+      canPreview: true,
     })}]\n\n` +
     `Your resume includes:\n` +
     `- ${resumeData.experience.length} work experience${resumeData.experience.length !== 1 ? 's' : ''}\n` +
@@ -605,8 +619,12 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
     }
 
     const fileResult = await generateDocument(documentData);
-    const base64 = fileResult.buffer.toString('base64');
-    const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
+    const upload = await uploadDocument(
+      ctx.userId,
+      fileResult.buffer,
+      fileResult.filename,
+      fileResult.mimeType
+    );
 
     const responseMessage = generateDocumentResponseMessage(
       detectedDocType,
@@ -619,7 +637,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
       `[DOCUMENT_DOWNLOAD:${JSON.stringify({
         filename: fileResult.filename,
         mimeType: fileResult.mimeType,
-        dataUrl: dataUrl,
+        downloadUrl: upload.url,
         type: detectedDocType,
         canPreview: detectedDocType === 'pdf',
       })}]`;

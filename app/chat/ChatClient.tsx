@@ -2909,7 +2909,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
         }
       }
 
-      // Check for [DOCUMENT_DOWNLOAD: ...] marker in the response
+      // Check for [DOCUMENT_DOWNLOAD: ...] marker(s) in the response
       // This handles native document generation (Excel, Word, PDF) from the chat route
       let documentDownloadMeta: Record<string, unknown> | null = null;
       const docDownloadMatch = finalContent.match(/\[DOCUMENT_DOWNLOAD:(.+?)\]/s);
@@ -2918,15 +2918,16 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
           const docData = JSON.parse(docDownloadMatch[1]);
           log.debug('Detected DOCUMENT_DOWNLOAD marker:', docData.filename);
 
-          // Remove the marker from the displayed text
-          const cleanedContent = finalContent.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/s, '').trim();
+          // Remove ALL markers from the displayed text
+          const cleanedContent = finalContent.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/gs, '').trim();
 
-          // Store document data in message for preview/download buttons (no auto-download)
-          if (docData.dataUrl) {
+          // Support both downloadUrl (Supabase storage) and dataUrl (base64 fallback)
+          const docUrl = docData.downloadUrl || docData.dataUrl;
+          if (docUrl) {
             const docDownload = {
               filename: docData.filename || 'document',
               mimeType: docData.mimeType || 'application/octet-stream',
-              dataUrl: docData.dataUrl,
+              dataUrl: docUrl,
               canPreview: docData.canPreview || false,
             };
             setMessages((prev) =>

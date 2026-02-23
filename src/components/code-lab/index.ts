@@ -52,14 +52,10 @@ export { CodeLabPermissionDialog } from './CodeLabPermissionDialog';
 export { CodeLabToolHistory } from './CodeLabToolHistory';
 export { CodeLabSplitPane } from './CodeLabSplitPane';
 export { CodeLabStatusBar, useStatusBar } from './CodeLabStatusBar';
-export { CodeLabPairProgramming, usePairProgramming, GhostText } from './CodeLabPairProgramming';
-export { CodeLabDebugger, useDebugger } from './CodeLabDebugger';
-export {
-  CodeLabCollaboration,
-  useCollaboration,
-  CursorIndicator,
-  SelectionHighlight,
-} from './CodeLabCollaboration';
+export { CodeLabPairProgramming, GhostText } from './CodeLabPairProgramming';
+export { usePairProgramming } from './usePairProgramming';
+export { CodeLabDebugger } from './CodeLabDebugger';
+export { CodeLabCollaboration, CursorIndicator, SelectionHighlight } from './CodeLabCollaboration';
 
 // Types
 export type {
