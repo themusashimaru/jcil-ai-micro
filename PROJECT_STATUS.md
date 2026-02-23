@@ -1,7 +1,7 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
 **Last Updated:** 2026-02-23
-**Updated By:** Phase 2.3 Component Decomposition Session
+**Updated By:** Phase 2.3.4 Component Decomposition Session (6 more components)
 **Branch:** `claude/app-assessment-recommendations-vsx0y`
 
 > This document reflects verified, measured values only. No aspirational claims.
@@ -175,6 +175,12 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-23 | Decomposed MessageBubble.tsx                   | 1,689 lines                                 | 301 lines + 9 sub-components              |
 | 2026-02-23 | Decomposed ChatComposer.tsx                    | 1,667 lines                                 | 512 lines + 6 extracted modules           |
 | 2026-02-23 | Decomposed CodeLabComposer.tsx                 | 1,633 lines                                 | 328 lines + 3 sub-components + CSS file   |
+| 2026-02-23 | Decomposed CodeLabPairProgramming.tsx          | 1,499 lines                                 | 561 lines + CSS + usePairProgramming hook |
+| 2026-02-23 | Decomposed CodeLabCollaboration.tsx            | 1,486 lines                                 | 296 lines + CSS + 5 sub-components        |
+| 2026-02-23 | Decomposed CodeLabTerminal.tsx                 | 1,343 lines                                 | 599 lines + CSS + 4 sub-modules           |
+| 2026-02-23 | Decomposed CodeLabDebugger.tsx                 | 1,301 lines                                 | 647 lines + CSS file                      |
+| 2026-02-23 | Decomposed CodeLabSidebar.tsx                  | 1,296 lines                                 | 608 lines + CSS file                      |
+| 2026-02-23 | Decomposed ChatSidebar.tsx                     | 1,228 lines                                 | 613 lines + 5 sub-components              |
 
 ---
 

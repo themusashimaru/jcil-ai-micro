@@ -134,7 +134,14 @@
 - [x] **2.3.1** Decompose `MessageBubble.tsx` (1,689 → 301 lines, 82% reduction) — extracted CodePreviewBlock, MessageFooter, MessageCitations, MessageDocumentDownload, MessageGeneratedFiles, MessageVideoJob, GeneratedImageBlock, ShoppingProducts, MessageAttachments _(2026-02-23)_
 - [x] **2.3.2** Decompose `ChatComposer.tsx` (1,667 → 512 lines, 69% reduction) — extracted ComposerAgentsMenu, ComposerProviderMenu, ComposerAttachmentPreview, ComposerAttachmentMenu, useFileUpload hook, readFileContent utility _(2026-02-23)_
 - [x] **2.3.3** Decompose `CodeLabComposer.tsx` (1,633 → 328 lines, 80% reduction) — extracted CodeLabComposerModelDropdown, CodeLabComposerAgents, CodeLabComposerCreative, moved 694 lines of style jsx to code-lab-composer.css _(2026-02-23)_
-- [ ] **2.3.4** Decompose remaining 1,000+ line components (PairProgramming, Collaboration, Terminal, Debugger, Sidebar × 2)
+- [x] **2.3.4** Decompose remaining 1,000+ line components _(2026-02-23)_
+  - CodeLabPairProgramming (1,499 → 561, 63% reduction) — extracted CSS to `code-lab-pair-programming.css`, hook to `usePairProgramming.ts`
+  - CodeLabCollaboration (1,486 → 296, 80% reduction) — extracted CSS to `code-lab-collaboration.css`, 5 sub-components (UserAvatar, UserList, ActivityFeed, InvitePanel, AnnotationsPanel)
+  - CodeLabTerminal (1,343 → 599, 55% reduction) — extracted CSS to `code-lab-terminal.css`, ANSI parser to `terminalAnsiParser.ts`, 3 sub-components (LineRenderer, TabBar, SearchBar)
+  - CodeLabDebugger (1,301 → 647, 50% reduction) — extracted CSS to `code-lab-debugger.css`, removed useDebugger hook
+  - CodeLabSidebar (1,296 → 608, 53% reduction) — extracted 688 lines of `<style jsx>` to `code-lab-sidebar.css`
+  - ChatSidebar (1,228 → 613, 50% reduction) — extracted ChatItem, FolderModal, FolderSection, AgentSessions, Footer
+  - Total: 21 new files, 8,153 lines reorganized
 - [ ] **2.3.5** Write tests for decomposed components
 - [x] **2.3.6** Verify build passes after all decomposition — all 2,513 tests pass, build succeeds _(2026-02-23)_
 
