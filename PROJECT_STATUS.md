@@ -1,7 +1,7 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
 **Last Updated:** 2026-02-23
-**Updated By:** Phase 2.2 Hook Tests Session
+**Updated By:** Phase 2.3 Component Decomposition Session
 **Branch:** `claude/app-assessment-recommendations-vsx0y`
 
 > This document reflects verified, measured values only. No aspirational claims.
@@ -171,6 +171,10 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-23 | Migrated rate limiting to Redis                | 3 in-memory Maps (unreliable on serverless) | Redis-backed via checkRateLimit()         |
 | 2026-02-23 | Migrated admin cache to Redis                  | In-memory Map (lost across invocations)     | Redis cacheGet/cacheSet (5-min TTL)       |
 | 2026-02-23 | Added chat module tests (101 new)              | 2247 tests across 78 files                  | 2348 tests across 80 files                |
+| 2026-02-23 | Added hook tests (165 new)                     | 2348 tests across 80 files                  | 2513 tests across 85 files                |
+| 2026-02-23 | Decomposed MessageBubble.tsx                   | 1,689 lines                                 | 301 lines + 9 sub-components              |
+| 2026-02-23 | Decomposed ChatComposer.tsx                    | 1,667 lines                                 | 512 lines + 6 extracted modules           |
+| 2026-02-23 | Decomposed CodeLabComposer.tsx                 | 1,633 lines                                 | 328 lines + 3 sub-components + CSS file   |
 
 ---
 

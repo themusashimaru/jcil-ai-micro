@@ -125,14 +125,18 @@
 
 ### 2.3 Decompose Other Large Components
 
-> **Why:** ToolResult (1,300+ lines), Canvas (900+ lines), Document (600+ lines), SidebarHistory (500+ lines).
+> **Why:** 24 component files exceed the 400-line limit. Top 9 are over 1,000 lines each.
+> Original task referenced files that don't exist (tool-result.tsx, canvas.tsx, document.tsx, sidebar-history.tsx).
+> Actual largest: MessageBubble (1,689), ChatComposer (1,667), CodeLabComposer (1,633),
+> CodeLabPairProgramming (1,499), CodeLabCollaboration (1,486), CodeLabTerminal (1,343),
+> CodeLabDebugger (1,301), CodeLabSidebar (1,296), ChatSidebar (1,228).
 
-- [ ] **2.3.1** Decompose `tool-result.tsx` into container + per-tool-type renderers
-- [ ] **2.3.2** Decompose `canvas.tsx` into focused sub-components (<400 lines each)
-- [ ] **2.3.3** Decompose `document.tsx` into focused sub-components
-- [ ] **2.3.4** Decompose `sidebar-history.tsx` into focused sub-components
+- [x] **2.3.1** Decompose `MessageBubble.tsx` (1,689 → 301 lines, 82% reduction) — extracted CodePreviewBlock, MessageFooter, MessageCitations, MessageDocumentDownload, MessageGeneratedFiles, MessageVideoJob, GeneratedImageBlock, ShoppingProducts, MessageAttachments _(2026-02-23)_
+- [x] **2.3.2** Decompose `ChatComposer.tsx` (1,667 → 512 lines, 69% reduction) — extracted ComposerAgentsMenu, ComposerProviderMenu, ComposerAttachmentPreview, ComposerAttachmentMenu, useFileUpload hook, readFileContent utility _(2026-02-23)_
+- [x] **2.3.3** Decompose `CodeLabComposer.tsx` (1,633 → 328 lines, 80% reduction) — extracted CodeLabComposerModelDropdown, CodeLabComposerAgents, CodeLabComposerCreative, moved 694 lines of style jsx to code-lab-composer.css _(2026-02-23)_
+- [ ] **2.3.4** Decompose remaining 1,000+ line components (PairProgramming, Collaboration, Terminal, Debugger, Sidebar × 2)
 - [ ] **2.3.5** Write tests for decomposed components
-- [ ] **2.3.6** Verify build passes after all decomposition
+- [x] **2.3.6** Verify build passes after all decomposition — all 2,513 tests pass, build succeeds _(2026-02-23)_
 
 ### 2.4 Accessibility (WCAG 2.1 AA)
 
