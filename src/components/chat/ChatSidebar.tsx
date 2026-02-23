@@ -17,11 +17,16 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, memo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Chat, ChatFolder } from '@/app/chat/types';
 import InboxButton from '@/components/inbox/InboxButton';
 import MyFilesPanel from '@/components/documents/MyFilesPanel';
 import { CodeLabLazyList } from '@/components/code-lab/CodeLabVirtualizedList';
+import { ChatItem } from './ChatSidebarItem';
+import { ChatSidebarFolderModal } from './ChatSidebarFolderModal';
+import { ChatSidebarFolderSection } from './ChatSidebarFolderSection';
+import { ChatSidebarAgentSessions } from './ChatSidebarAgentSessions';
+import { ChatSidebarFooter } from './ChatSidebarFooter';
 
 // Strategy session type
 interface StrategySession {
@@ -54,268 +59,6 @@ interface ChatSidebarProps {
   ) => void;
   onSelectStrategySession?: (sessionId: string) => void;
 }
-
-// --- Extracted & memoized ChatItem ---
-interface ChatItemProps {
-  chat: Chat;
-  isActive: boolean;
-  isEditing: boolean;
-  editTitle: string;
-  menuOpen: boolean;
-  moveMenuOpen: boolean;
-  folders: ChatFolder[];
-  onSelect: (chatId: string) => void;
-  onToggleMenu: (chatId: string) => void;
-  onToggleMoveMenu: (chatId: string) => void;
-  onCloseMenus: () => void;
-  onStartEdit: (chat: Chat) => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
-  onEditTitleChange: (title: string) => void;
-  onPin: (chatId: string) => void;
-  onDelete: (chatId: string) => void;
-  onMoveToFolder: (
-    chatId: string,
-    folderId: string | null,
-    folderData?: { id: string; name: string; color: string | null }
-  ) => void;
-}
-
-const ChatItem = memo(
-  function ChatItem({
-    chat,
-    isActive,
-    isEditing,
-    editTitle,
-    menuOpen,
-    moveMenuOpen,
-    folders,
-    onSelect,
-    onToggleMenu,
-    onToggleMoveMenu,
-    onCloseMenus,
-    onStartEdit,
-    onSaveEdit,
-    onCancelEdit,
-    onEditTitleChange,
-    onPin,
-    onDelete,
-    onMoveToFolder,
-  }: ChatItemProps) {
-    return (
-      <div
-        role="listitem"
-        aria-current={isActive ? 'page' : undefined}
-        className="group relative rounded-lg"
-        style={{ backgroundColor: isActive ? 'var(--glass-bg)' : 'transparent' }}
-      >
-        {isEditing ? (
-          <div className="p-2">
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => onEditTitleChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onSaveEdit();
-                if (e.key === 'Escape') onCancelEdit();
-              }}
-              onBlur={onSaveEdit}
-              className="w-full rounded px-2 py-1 text-sm focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-              autoFocus
-            />
-          </div>
-        ) : (
-          <>
-            <button onClick={() => onSelect(chat.id)} className="w-full p-3 text-left">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-1 overflow-hidden">
-                  {chat.isPinned && (
-                    <svg
-                      className="h-3 w-3 flex-shrink-0 text-yellow-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M10 3l2.5 6.5L19 10l-6.5 .5L10 17l-2.5-6.5L1 10l6.5-.5L10 3z" />
-                    </svg>
-                  )}
-                  <span
-                    className="truncate text-sm font-medium"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {chat.title}
-                  </span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleMenu(chat.id);
-                  }}
-                  className="rounded p-1 opacity-0 group-hover:opacity-100 flex-shrink-0"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                    />
-                  </svg>
-                </button>
-              </div>
-              {chat.summary && (
-                <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {chat.summary}
-                </p>
-              )}
-            </button>
-
-            {/* Context Menu */}
-            {menuOpen && (
-              <div
-                className="absolute right-2 top-12 z-20 w-48 rounded-lg py-1 shadow-xl"
-                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
-              >
-                <button
-                  onClick={() => onStartEdit(chat)}
-                  className="w-full px-4 py-2 text-left text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  Rename
-                </button>
-                <button
-                  onClick={() => {
-                    onPin(chat.id);
-                    onCloseMenus();
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {chat.isPinned ? 'Unpin' : 'Pin'}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleMoveMenu(chat.id);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm flex items-center justify-between"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  <span>Move to folder</span>
-                  <svg
-                    className={`h-4 w-4 transition-transform ${moveMenuOpen ? 'rotate-90' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-                {/* Move to folder - inline expanded */}
-                {moveMenuOpen && (
-                  <div
-                    className="py-1"
-                    style={{ borderTop: '1px solid var(--border)', marginTop: '4px' }}
-                  >
-                    {chat.folder && (
-                      <button
-                        onClick={() => {
-                          onMoveToFolder(chat.id, null);
-                          onCloseMenus();
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm pl-6"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        Remove from folder
-                      </button>
-                    )}
-                    {folders.map((folder) => (
-                      <button
-                        key={folder.id}
-                        onClick={() => {
-                          onMoveToFolder(chat.id, folder.id, {
-                            id: folder.id,
-                            name: folder.name,
-                            color: folder.color,
-                          });
-                          onCloseMenus();
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 pl-6"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {folder.color && (
-                          <span
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: folder.color }}
-                          />
-                        )}
-                        <span className="truncate">{folder.name}</span>
-                      </button>
-                    ))}
-                    {folders.length === 0 && (
-                      <div
-                        className="px-4 py-2 text-sm pl-6"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        No folders yet
-                      </div>
-                    )}
-                  </div>
-                )}
-                <hr style={{ borderColor: 'var(--border)', margin: '4px 0' }} />
-                <button
-                  onClick={() => {
-                    if (confirm('Delete this chat?')) {
-                      onDelete(chat.id);
-                    }
-                    onCloseMenus();
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-500"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    );
-  },
-  (prev, next) =>
-    prev.chat.id === next.chat.id &&
-    prev.chat.title === next.chat.title &&
-    prev.chat.isPinned === next.chat.isPinned &&
-    prev.chat.summary === next.chat.summary &&
-    prev.chat.folder?.id === next.chat.folder?.id &&
-    prev.isActive === next.isActive &&
-    prev.isEditing === next.isEditing &&
-    prev.editTitle === next.editTitle &&
-    prev.menuOpen === next.menuOpen &&
-    prev.moveMenuOpen === next.moveMenuOpen &&
-    prev.folders === next.folders
-);
-
-const FOLDER_COLORS = [
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#22c55e',
-  '#14b8a6',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-  '#6b7280',
-];
 
 export function ChatSidebar({
   chats,
@@ -624,95 +367,6 @@ export function ChatSidebar({
     ]
   );
 
-  const FolderSection = ({ folder, folderChats }: { folder: ChatFolder; folderChats: Chat[] }) => {
-    const isCollapsed = collapsedFolders.has(folder.id);
-    const menuOpen = folderMenuId === folder.id;
-
-    return (
-      <div className="mb-2">
-        <div
-          className="flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group"
-          style={{ backgroundColor: 'var(--glass-bg)' }}
-        >
-          <button
-            onClick={() => toggleFolderCollapse(folder.id)}
-            className="flex items-center gap-2 flex-1 text-left"
-          >
-            <svg
-              className={`h-3 w-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-              style={{ color: 'var(--text-muted)' }}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            {folder.color && (
-              <span
-                className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{ backgroundColor: folder.color }}
-              />
-            )}
-            <span
-              className="text-xs font-semibold uppercase truncate"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {folder.name}
-            </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              ({folderChats.length})
-            </span>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setFolderMenuId(menuOpen ? null : folder.id);
-            }}
-            className="p-1 opacity-0 group-hover:opacity-100 rounded"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 5v.01M12 12v.01M12 19v.01"
-              />
-            </svg>
-          </button>
-
-          {/* Folder context menu */}
-          {menuOpen && (
-            <div
-              className="absolute right-4 top-8 z-20 w-36 rounded-lg py-1 shadow-xl"
-              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
-            >
-              <button
-                onClick={() => openEditFolder(folder)}
-                className="w-full px-3 py-1.5 text-left text-sm"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDeleteFolder(folder.id)}
-                className="w-full px-3 py-1.5 text-left text-sm text-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
-
-        {!isCollapsed && (
-          <div className="mt-1 space-y-1 pl-2" role="list">
-            {folderChats.map((chat) => renderChatItem(chat))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <>
       {/* Mobile backdrop */}
@@ -853,140 +507,30 @@ export function ChatSidebar({
             {folderGroups.length > 0 && (
               <div className="mb-4">
                 {folderGroups.map(({ folder, chats: folderChats }) => (
-                  <FolderSection key={folder.id} folder={folder} folderChats={folderChats} />
+                  <ChatSidebarFolderSection
+                    key={folder.id}
+                    folder={folder}
+                    folderChats={folderChats}
+                    collapsedFolders={collapsedFolders}
+                    folderMenuId={folderMenuId}
+                    toggleFolderCollapse={toggleFolderCollapse}
+                    setFolderMenuId={setFolderMenuId}
+                    openEditFolder={openEditFolder}
+                    handleDeleteFolder={handleDeleteFolder}
+                    renderChatItem={renderChatItem}
+                  />
                 ))}
               </div>
             )}
 
             {/* Agent Sessions (Admin Only) */}
-            {isAdmin && strategySessions.length > 0 && (
-              <div className="mb-4">
-                <button
-                  onClick={() => setStrategyCollapsed(!strategyCollapsed)}
-                  className="flex items-center gap-2 px-2 py-1.5 w-full text-left rounded-lg"
-                  style={{ backgroundColor: 'var(--glass-bg)' }}
-                >
-                  <svg
-                    className={`h-3 w-3 transition-transform ${strategyCollapsed ? '' : 'rotate-90'}`}
-                    style={{ color: 'var(--text-muted)' }}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                  <svg
-                    className="w-3.5 h-3.5 text-purple-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                    />
-                  </svg>
-                  <span
-                    className="text-xs font-semibold uppercase"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Agent Sessions
-                  </span>
-                  <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
-                    ({strategySessions.length})
-                  </span>
-                </button>
-                {!strategyCollapsed && (
-                  <div className="mt-1 space-y-1">
-                    {strategySessions.map((session) => (
-                      <button
-                        key={session.session_id}
-                        onClick={() => onSelectStrategySession?.(session.session_id)}
-                        className="w-full p-2 text-left rounded-lg hover:bg-gray-800/50 transition-colors group"
-                      >
-                        <div className="flex items-center gap-2">
-                          {session.phase === 'complete' ? (
-                            <svg
-                              className="w-4 h-4 text-green-400 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          ) : session.phase === 'executing' || session.isActive ? (
-                            <svg
-                              className="w-4 h-4 text-purple-400 animate-spin flex-shrink-0"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              />
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                              />
-                            </svg>
-                          ) : session.phase === 'error' ? (
-                            <svg
-                              className="w-4 h-4 text-red-400 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              className="w-4 h-4 text-gray-400 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="text-sm font-medium truncate"
-                              style={{ color: 'var(--text-primary)' }}
-                            >
-                              {session.problem_summary || 'Agent Session'}
-                            </p>
-                            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                              {session.total_searches} searches
-                              {session.total_cost > 0 && ` • $${session.total_cost.toFixed(2)}`}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {isAdmin && (
+              <ChatSidebarAgentSessions
+                strategySessions={strategySessions}
+                strategyCollapsed={strategyCollapsed}
+                setStrategyCollapsed={setStrategyCollapsed}
+                onSelectStrategySession={onSelectStrategySession}
+              />
             )}
 
             {unorganizedChats.length > 0 && (
@@ -1046,182 +590,23 @@ export function ChatSidebar({
           </div>
 
           {/* Bottom Actions */}
-          <div className="p-3 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
-            {/* Code Lab (Admin only) */}
-            {isAdmin && (
-              <button
-                onClick={() => (window.location.href = '/code-lab')}
-                className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <span>Code Lab</span>
-              </button>
-            )}
-
-            {isAdmin && (
-              <button
-                onClick={() => (window.location.href = '/admin')}
-                className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-                <span>Admin Panel</span>
-              </button>
-            )}
-            <button
-              onClick={() => (window.location.href = '/settings')}
-              className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <span>Settings</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-red-500 disabled:opacity-50"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
-            </button>
-          </div>
+          <ChatSidebarFooter
+            isAdmin={isAdmin}
+            isLoggingOut={isLoggingOut}
+            handleLogout={handleLogout}
+          />
         </div>
       </aside>
 
       {/* Folder Modal */}
       {showFolderModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-            onClick={() => setShowFolderModal(false)}
-          />
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={editingFolder ? 'Edit Folder' : 'New Folder'}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setShowFolderModal(false);
-            }}
-            className="relative w-full max-w-sm rounded-2xl p-6"
-            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-          >
-            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-              {editingFolder ? 'Edit Folder' : 'New Folder'}
-            </h3>
-            <input
-              type="text"
-              placeholder="Folder name"
-              value={folderForm.name}
-              onChange={(e) => setFolderForm({ ...folderForm, name: e.target.value })}
-              maxLength={50}
-              className="w-full rounded-lg px-4 py-3 mb-4 text-sm focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
-              autoFocus
-            />
-            <div className="mb-4">
-              <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Color (optional)
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFolderForm({ ...folderForm, color: '' })}
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${!folderForm.color ? 'border-white ring-2 ring-white/50' : 'border-transparent hover:border-gray-400'}`}
-                  style={{ backgroundColor: 'var(--glass-bg)' }}
-                >
-                  {!folderForm.color && (
-                    <svg
-                      className="w-4 h-4"
-                      style={{ color: 'var(--text-muted)' }}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  )}
-                </button>
-                {FOLDER_COLORS.map((color) => (
-                  <button
-                    type="button"
-                    key={color}
-                    onClick={() => setFolderForm({ ...folderForm, color })}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${folderForm.color === color ? 'border-white ring-2 ring-white/50 scale-110' : 'border-transparent hover:border-gray-400 hover:scale-105'}`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowFolderModal(false)}
-                className="flex-1 rounded-lg px-4 py-2.5 text-sm"
-                style={{
-                  backgroundColor: 'var(--glass-bg)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={editingFolder ? handleUpdateFolder : handleCreateFolder}
-                className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold"
-                style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
-              >
-                {editingFolder ? 'Save' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ChatSidebarFolderModal
+          editingFolder={editingFolder}
+          folderForm={folderForm}
+          onFormChange={setFolderForm}
+          onClose={() => setShowFolderModal(false)}
+          onSave={editingFolder ? handleUpdateFolder : handleCreateFolder}
+        />
       )}
     </>
   );
