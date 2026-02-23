@@ -120,8 +120,8 @@
 - [x] **2.2.7** Extract `useMessenger` hook (552 lines) — sendMessage, model/agent handlers, token tracking, auto-search trigger, cancelStream, slash commands _(2026-02-23)_
 - [x] **2.2.8** Extract `useBackgroundAgents` hook (78 lines) — agent spawning, updating, cleanup, window API _(2026-02-23)_
 - [x] **2.2.9** CodeLab.tsx now 374 lines (target was <400) — down from 2,631 lines (86% reduction) _(2026-02-23)_
-- [ ] **2.2.10** Write component tests for extracted hooks
-- [x] **2.2.11** Build, TypeScript, lint, and all 2,348 tests pass _(2026-02-23)_
+- [x] **2.2.10** Write tests for extracted hooks — 165 new tests: useKeyboardShortcuts (48), useBackgroundAgents (27), useMessenger (18), useSessionManager (26), useWorkspaceManager (46). Total: 2,513 tests, all passing. _(2026-02-23)_
+- [x] **2.2.11** Build, TypeScript, lint, and all 2,513 tests pass _(2026-02-23)_
 
 ### 2.3 Decompose Other Large Components
 
