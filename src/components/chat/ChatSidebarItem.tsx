@@ -55,8 +55,7 @@ export const ChatItem = memo(
       <div
         role="listitem"
         aria-current={isActive ? 'page' : undefined}
-        className="group relative rounded-lg"
-        style={{ backgroundColor: isActive ? 'var(--glass-bg)' : 'transparent' }}
+        className={`group relative rounded-lg ${isActive ? 'bg-glass' : 'bg-transparent'}`}
       >
         {isEditing ? (
           <div className="p-2">
@@ -69,12 +68,7 @@ export const ChatItem = memo(
                 if (e.key === 'Escape') onCancelEdit();
               }}
               onBlur={onSaveEdit}
-              className="w-full rounded px-2 py-1 text-sm focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
+              className="w-full rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 bg-glass text-text-primary border border-theme"
               autoFocus
             />
           </div>
@@ -93,8 +87,7 @@ export const ChatItem = memo(
                     </svg>
                   )}
                   <span
-                    className="truncate text-sm font-medium"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="truncate text-sm font-medium text-text-primary"
                   >
                     {chat.title}
                   </span>
@@ -104,8 +97,7 @@ export const ChatItem = memo(
                     e.stopPropagation();
                     onToggleMenu(chat.id);
                   }}
-                  className="rounded p-1 opacity-0 group-hover:opacity-100 flex-shrink-0"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="rounded p-1 opacity-0 group-hover:opacity-100 flex-shrink-0 text-text-muted"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -118,7 +110,7 @@ export const ChatItem = memo(
                 </button>
               </div>
               {chat.summary && (
-                <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="mt-1 truncate text-xs text-text-muted">
                   {chat.summary}
                 </p>
               )}
@@ -127,13 +119,11 @@ export const ChatItem = memo(
             {/* Context Menu */}
             {menuOpen && (
               <div
-                className="absolute right-2 top-12 z-20 w-48 rounded-lg py-1 shadow-xl"
-                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
+                className="absolute right-2 top-12 z-20 w-48 rounded-lg py-1 shadow-xl bg-background border border-theme"
               >
                 <button
                   onClick={() => onStartEdit(chat)}
-                  className="w-full px-4 py-2 text-left text-sm"
-                  style={{ color: 'var(--text-primary)' }}
+                  className="w-full px-4 py-2 text-left text-sm text-text-primary"
                 >
                   Rename
                 </button>
@@ -142,8 +132,7 @@ export const ChatItem = memo(
                     onPin(chat.id);
                     onCloseMenus();
                   }}
-                  className="w-full px-4 py-2 text-left text-sm"
-                  style={{ color: 'var(--text-primary)' }}
+                  className="w-full px-4 py-2 text-left text-sm text-text-primary"
                 >
                   {chat.isPinned ? 'Unpin' : 'Pin'}
                 </button>
@@ -152,8 +141,7 @@ export const ChatItem = memo(
                     e.stopPropagation();
                     onToggleMoveMenu(chat.id);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm flex items-center justify-between"
-                  style={{ color: 'var(--text-primary)' }}
+                  className="w-full px-4 py-2 text-left text-sm flex items-center justify-between text-text-primary"
                 >
                   <span>Move to folder</span>
                   <svg
@@ -173,8 +161,7 @@ export const ChatItem = memo(
                 {/* Move to folder - inline expanded */}
                 {moveMenuOpen && (
                   <div
-                    className="py-1"
-                    style={{ borderTop: '1px solid var(--border)', marginTop: '4px' }}
+                    className="py-1 border-t border-theme mt-1"
                   >
                     {chat.folder && (
                       <button
@@ -182,8 +169,7 @@ export const ChatItem = memo(
                           onMoveToFolder(chat.id, null);
                           onCloseMenus();
                         }}
-                        className="w-full px-4 py-2 text-left text-sm pl-6"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="w-full px-4 py-2 text-left text-sm pl-6 text-text-muted"
                       >
                         Remove from folder
                       </button>
@@ -199,8 +185,7 @@ export const ChatItem = memo(
                           });
                           onCloseMenus();
                         }}
-                        className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 pl-6"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 pl-6 text-text-primary"
                       >
                         {folder.color && (
                           <span
@@ -213,15 +198,14 @@ export const ChatItem = memo(
                     ))}
                     {folders.length === 0 && (
                       <div
-                        className="px-4 py-2 text-sm pl-6"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="px-4 py-2 text-sm pl-6 text-text-muted"
                       >
                         No folders yet
                       </div>
                     )}
                   </div>
                 )}
-                <hr style={{ borderColor: 'var(--border)', margin: '4px 0' }} />
+                <hr className="border-theme my-1" />
                 <button
                   onClick={() => {
                     if (confirm('Delete this chat?')) {
