@@ -436,7 +436,7 @@ describe('getImageAttachments', () => {
         role: 'user' as const,
         content: [{ type: 'file', data: 'fileBase64Data', mimeType: 'image/png' }],
       },
-    ] as CoreMessage[];
+    ] as unknown as CoreMessage[];
     expect(getImageAttachments(messages)).toEqual(['fileBase64Data']);
   });
 
@@ -446,7 +446,7 @@ describe('getImageAttachments', () => {
         role: 'user' as const,
         content: [{ type: 'file', data: 'pdfData', mimeType: 'application/pdf' }],
       },
-    ] as CoreMessage[];
+    ] as unknown as CoreMessage[];
     expect(getImageAttachments(messages)).toEqual([]);
   });
 
@@ -457,7 +457,7 @@ describe('getImageAttachments', () => {
         role: 'user' as const,
         content: [{ type: 'image_url', image_url: { url: dataUrl } }],
       },
-    ] as CoreMessage[];
+    ] as unknown as CoreMessage[];
     expect(getImageAttachments(messages)).toEqual(['iVBORw0KGgoAAAANSUhEUg==']);
   });
 
@@ -468,7 +468,7 @@ describe('getImageAttachments', () => {
         role: 'user' as const,
         content: [{ type: 'image_url', image_url: { url } }],
       },
-    ] as CoreMessage[];
+    ] as unknown as CoreMessage[];
     expect(getImageAttachments(messages)).toEqual([url]);
   });
 
@@ -517,7 +517,7 @@ describe('getImageAttachments', () => {
         role: 'user' as const,
         content: [{ type: 'image_url', image_url: { url: dataUrl } }],
       },
-    ] as CoreMessage[];
+    ] as unknown as CoreMessage[];
     // split(',')[1] is '' which is falsy, so nothing is pushed
     expect(getImageAttachments(messages)).toEqual([]);
   });

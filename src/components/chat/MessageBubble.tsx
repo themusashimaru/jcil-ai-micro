@@ -1325,12 +1325,21 @@ export const MessageBubble = memo(
                           }`}
                           title={`Download ${doc.filename}`}
                           onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = doc.dataUrl;
-                            link.download = doc.filename;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
+                            if (
+                              doc.dataUrl.startsWith('http://') ||
+                              doc.dataUrl.startsWith('https://')
+                            ) {
+                              // Supabase download URL — open in new tab (triggers download)
+                              window.open(doc.dataUrl, '_blank');
+                            } else {
+                              // Base64 data URL fallback — use link click
+                              const link = document.createElement('a');
+                              link.href = doc.dataUrl;
+                              link.download = doc.filename;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }
                           }}
                         >
                           <span className="text-lg">{icon}</span>
