@@ -60,7 +60,7 @@ const footerLinks: Record<string, FooterSection> = {
 
 export default function LandingFooter() {
   return (
-    <footer className="bg-black border-t border-white/5">
+    <footer className="bg-black border-t border-white/5" role="contentinfo">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="py-12 lg:py-16">
