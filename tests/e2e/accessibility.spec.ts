@@ -46,8 +46,7 @@ test.describe('Accessibility', () => {
       const ariaLabel = await button.getAttribute('aria-label');
       const ariaLabelledBy = await button.getAttribute('aria-labelledby');
 
-      const hasAccessibleName =
-        (text && text.trim().length > 0) || ariaLabel || ariaLabelledBy;
+      const hasAccessibleName = (text && text.trim().length > 0) || ariaLabel || ariaLabelledBy;
 
       expect(hasAccessibleName).toBeTruthy();
     }
@@ -67,8 +66,7 @@ test.describe('Accessibility', () => {
       const ariaLabel = await link.getAttribute('aria-label');
       const hasImage = (await link.locator('img[alt]').count()) > 0;
 
-      const hasAccessibleName =
-        (text && text.trim().length > 0) || ariaLabel || hasImage;
+      const hasAccessibleName = (text && text.trim().length > 0) || ariaLabel || hasImage;
 
       expect(hasAccessibleName).toBeTruthy();
     }
@@ -98,14 +96,11 @@ test.describe('Accessibility', () => {
         hasLabel = (await label.count()) > 0;
       }
 
-      const hasAccessibleLabel =
-        hasLabel || ariaLabel || ariaLabelledBy || placeholder;
+      const hasAccessibleLabel = hasLabel || ariaLabel || ariaLabelledBy || placeholder;
 
       // Log warning but don't fail for placeholder-only
       if (!hasLabel && !ariaLabel && !ariaLabelledBy && placeholder) {
-        console.warn(
-          `Input uses placeholder only for labeling (not ideal): ${placeholder}`
-        );
+        console.warn(`Input uses placeholder only for labeling (not ideal): ${placeholder}`);
       }
 
       expect(hasAccessibleLabel).toBeTruthy();
@@ -114,6 +109,7 @@ test.describe('Accessibility', () => {
 
   test('color contrast is sufficient', async ({ page }) => {
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
     // Check that text is visible (basic check)
     const body = await page.textContent('body');
@@ -129,9 +125,14 @@ test.describe('Accessibility', () => {
 
   test('focus is visible', async ({ page }) => {
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
     // Tab to first focusable element
     await page.keyboard.press('Tab');
+    await page.waitForTimeout(100);
+
+    // Wait for any client-side navigation to settle
+    await page.waitForLoadState('domcontentloaded');
 
     // Check that something is focused
     const focusedTag = await page.evaluate(() => {
@@ -146,9 +147,7 @@ test.describe('Accessibility', () => {
     await page.goto('/');
 
     // Check for skip link
-    const skipLink = page.locator(
-      'a[href="#main"], a[href="#content"], a:has-text("Skip to")'
-    );
+    const skipLink = page.locator('a[href="#main"], a[href="#content"], a:has-text("Skip to")');
     const hasSkipLink = (await skipLink.count()) > 0;
 
     // Check for heading structure
