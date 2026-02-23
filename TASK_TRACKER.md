@@ -142,8 +142,8 @@
   - CodeLabSidebar (1,296 → 608, 53% reduction) — extracted 688 lines of `<style jsx>` to `code-lab-sidebar.css`
   - ChatSidebar (1,228 → 613, 50% reduction) — extracted ChatItem, FolderModal, FolderSection, AgentSessions, Footer
   - Total: 21 new files, 8,153 lines reorganized
-- [ ] **2.3.5** Write tests for decomposed components
-- [x] **2.3.6** Verify build passes after all decomposition — all 2,513 tests pass, build succeeds _(2026-02-23)_
+- [x] **2.3.5** Write tests for decomposed components — 122 new tests: terminalAnsiParser (34), usePairProgramming (44), useTerminalState (28), useFileUpload (16). Total: 2,635 tests across 89 files _(2026-02-23)_
+- [x] **2.3.6** Verify build passes after all decomposition — all 2,635 tests pass, build succeeds _(2026-02-23)_
 
 ### 2.4 Accessibility (WCAG 2.1 AA)
 

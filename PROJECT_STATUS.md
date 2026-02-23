@@ -181,6 +181,7 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-23 | Decomposed CodeLabDebugger.tsx                 | 1,301 lines                                 | 647 lines + CSS file                      |
 | 2026-02-23 | Decomposed CodeLabSidebar.tsx                  | 1,296 lines                                 | 608 lines + CSS file                      |
 | 2026-02-23 | Decomposed ChatSidebar.tsx                     | 1,228 lines                                 | 613 lines + 5 sub-components              |
+| 2026-02-23 | Added decomposed component tests (122 new)     | 2513 tests across 85 files                  | 2635 tests across 89 files                |
 
 ---
 
