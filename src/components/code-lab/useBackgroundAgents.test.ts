@@ -35,12 +35,12 @@ describe('useBackgroundAgents', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     // Clean up the window API before each test
-    delete (window as Record<string, unknown>).__codeLabAgentAPI;
+    delete (window as unknown as Record<string, unknown>).__codeLabAgentAPI;
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    delete (window as Record<string, unknown>).__codeLabAgentAPI;
+    delete (window as unknown as Record<string, unknown>).__codeLabAgentAPI;
   });
 
   describe('Initial state', () => {
