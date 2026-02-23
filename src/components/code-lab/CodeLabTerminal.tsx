@@ -459,7 +459,7 @@ export const CodeLabTerminal = forwardRef<CodeLabTerminalRef, CodeLabTerminalPro
           </div>
           <div className="terminal-actions">
             {activeTab.isRunning && onKill && (
-              <button className="terminal-btn kill" onClick={onKill} title="Kill process (Ctrl+C)">
+              <button className="terminal-btn kill" onClick={onKill} title="Kill process (Ctrl+C)" aria-label="Kill running process">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="4" y="4" width="16" height="16" rx="2" />
                 </svg>
@@ -470,6 +470,8 @@ export const CodeLabTerminal = forwardRef<CodeLabTerminalRef, CodeLabTerminalPro
               className={`terminal-btn ${isSearchOpen ? 'active' : ''}`}
               onClick={() => setIsSearchOpen((p) => !p)}
               title="Search (Ctrl+F)"
+              aria-label={isSearchOpen ? 'Close search' : 'Search terminal output'}
+              aria-pressed={isSearchOpen}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
@@ -480,13 +482,15 @@ export const CodeLabTerminal = forwardRef<CodeLabTerminalRef, CodeLabTerminalPro
               className={`terminal-btn ${showTimestamps ? 'active' : ''}`}
               onClick={() => setShowTimestamps((p) => !p)}
               title="Toggle timestamps"
+              aria-label={showTimestamps ? 'Hide timestamps' : 'Show timestamps'}
+              aria-pressed={showTimestamps}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
               </svg>
             </button>
-            <button className="terminal-btn" onClick={handleCopy} title="Copy output">
+            <button className="terminal-btn" onClick={handleCopy} title="Copy output" aria-label={copied ? 'Output copied' : 'Copy terminal output'}>
               {copied ? (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 6L9 17l-5-5" />
@@ -498,7 +502,7 @@ export const CodeLabTerminal = forwardRef<CodeLabTerminalRef, CodeLabTerminalPro
                 </svg>
               )}
             </button>
-            <button className="terminal-btn" onClick={clear} title="Clear (Ctrl+L)">
+            <button className="terminal-btn" onClick={clear} title="Clear (Ctrl+L)" aria-label="Clear terminal output">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
               </svg>

@@ -157,6 +157,12 @@ export default function RootLayout({
         className="antialiased"
         style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
       >
+        <a
+          href="#main-content"
+          className="skip-to-content"
+        >
+          Skip to main content
+        </a>
         <ThemeProvider>
           <UserProfileProvider>
             <FaviconUpdater />

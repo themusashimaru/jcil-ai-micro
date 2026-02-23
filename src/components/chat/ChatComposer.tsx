@@ -339,6 +339,7 @@ export const ChatComposer = memo(function ChatComposer({
               onClick={onClearReply}
               className="p-1.5 rounded-full transition-colors flex-shrink-0"
               style={{ color: 'var(--text-muted)' }}
+              aria-label="Cancel reply"
               title="Cancel reply"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -451,6 +452,7 @@ export const ChatComposer = memo(function ChatComposer({
                 disabled={isStreaming || disabled}
                 className="rounded-full p-2 disabled:opacity-50 flex items-center justify-center transition-colors hover:bg-white/10"
                 style={{ color: 'var(--text-muted)' }}
+                aria-label="Attach files"
                 title="Attach files"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -487,6 +489,7 @@ export const ChatComposer = memo(function ChatComposer({
                   <button
                     onClick={() => setToolMode('none')}
                     className="ml-1 hover:opacity-70"
+                    aria-label="Clear tool mode"
                     title="Clear"
                   >
                     <svg
@@ -553,6 +556,13 @@ export const ChatComposer = memo(function ChatComposer({
                   onClick={toggleRecording}
                   disabled={isStreaming || disabled || isTranscribing}
                   className="rounded-full p-1.5 transition-all flex items-center justify-center"
+                  aria-label={
+                    isRecording
+                      ? 'Stop recording'
+                      : isTranscribing
+                        ? 'Transcribing audio'
+                        : 'Start voice input'
+                  }
                   title={
                     isRecording
                       ? 'Stop recording'
@@ -607,6 +617,7 @@ export const ChatComposer = memo(function ChatComposer({
                 <button
                   onClick={onStop}
                   className="rounded-full p-2 transition-all flex items-center justify-center"
+                  aria-label="Stop generating response"
                   title="Stop generating"
                   style={{ backgroundColor: 'var(--primary)', color: 'white' }}
                 >
@@ -619,6 +630,7 @@ export const ChatComposer = memo(function ChatComposer({
                   onClick={handleSend}
                   disabled={!canSend}
                   className={`rounded-full p-2 transition-all flex items-center justify-center send-btn ${!canSend ? 'send-btn-disabled' : 'send-btn-enabled'}`}
+                  aria-label="Send message"
                   title="Send message"
                   style={{
                     backgroundColor: !canSend ? 'var(--button-disabled-bg)' : 'var(--primary)',

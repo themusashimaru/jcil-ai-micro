@@ -136,6 +136,7 @@ export function CodeBlockWithActions({
           <button
             onClick={handleCopy}
             className="p-1.5 rounded hover:bg-white/10 transition-colors"
+            aria-label={copied ? 'Code copied' : 'Copy code to clipboard'}
             title="Copy code"
           >
             {copied ? (
@@ -154,6 +155,7 @@ export function CodeBlockWithActions({
               }}
               disabled={testing}
               className="p-1.5 rounded hover:bg-white/10 transition-colors disabled:opacity-50"
+              aria-label={testing ? 'Running test in sandbox' : 'Test code in sandbox'}
               title="Test in Sandbox"
             >
               {testing ? (
@@ -169,6 +171,7 @@ export function CodeBlockWithActions({
             <button
               onClick={handlePush}
               className="p-1.5 rounded hover:bg-white/10 transition-colors"
+              aria-label="Push code to GitHub"
               title="Push to GitHub"
             >
               <GitHubIcon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />

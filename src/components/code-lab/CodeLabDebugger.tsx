@@ -547,8 +547,8 @@ interface AIAnalysisProps {
 const AIAnalysis = React.memo(function AIAnalysis({ onAnalyze, isAnalyzing }: AIAnalysisProps) {
   return (
     <div className="ai-analysis">
-      <button className="ai-analyze-btn" onClick={onAnalyze} disabled={isAnalyzing}>
-        <span className="ai-icon">🤖</span>
+      <button className="ai-analyze-btn" onClick={onAnalyze} disabled={isAnalyzing} aria-label={isAnalyzing ? 'AI analysis in progress' : 'Ask Claude to analyze debug state'}>
+        <span className="ai-icon" aria-hidden="true">🤖</span>
         {isAnalyzing ? 'Analyzing...' : 'Ask Claude to analyze'}
       </button>
       <span className="ai-hint">Claude can explain variables, suggest fixes, and trace bugs</span>
@@ -604,22 +604,28 @@ export function CodeLabDebugger({
         </div>
 
         <div className="debugger-main">
-          <div className="tab-bar">
+          <div className="tab-bar" role="tablist" aria-label="Debug panels">
             <button
               className={`tab-btn ${activeTab === 'variables' ? 'active' : ''}`}
               onClick={() => setActiveTab('variables')}
+              aria-selected={activeTab === 'variables'}
+              role="tab"
             >
               Variables
             </button>
             <button
               className={`tab-btn ${activeTab === 'watch' ? 'active' : ''}`}
               onClick={() => setActiveTab('watch')}
+              aria-selected={activeTab === 'watch'}
+              role="tab"
             >
               Watch
             </button>
             <button
               className={`tab-btn ${activeTab === 'breakpoints' ? 'active' : ''}`}
               onClick={() => setActiveTab('breakpoints')}
+              aria-selected={activeTab === 'breakpoints'}
+              role="tab"
             >
               Breakpoints
             </button>

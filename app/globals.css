@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   ACCESSIBILITY — Skip link, focus-visible, reduced motion
+   ============================================================ */
+
+/* Skip-to-content link — visually hidden until focused */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 99999;
+  padding: 1rem 1.5rem;
+  background: var(--primary, #38bdf8);
+  color: #000;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0;
+}
+
+.skip-to-content:focus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  overflow: visible;
+}
+
+/* Global focus-visible outline for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--primary, #38bdf8);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse/touch — only show for keyboard */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Dark theme (default) */
 :root {
   --background: #000000;
