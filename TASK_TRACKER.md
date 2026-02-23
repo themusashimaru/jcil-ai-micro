@@ -111,17 +111,17 @@
 
 > **Why:** 2,631 lines in one file. Impossible to maintain, test, or review.
 
-- [ ] **2.2.1** Read and map CodeLab.tsx — identify distinct UI sections
-- [ ] **2.2.2** Extract editor into `components/code-lab/CodeLabEditor.tsx`
-- [ ] **2.2.3** Extract terminal into `components/code-lab/CodeLabTerminal.tsx`
-- [ ] **2.2.4** Extract toolbar into `components/code-lab/CodeLabToolbar.tsx`
-- [ ] **2.2.5** Extract file tree into `components/code-lab/CodeLabFileTree.tsx`
-- [ ] **2.2.6** Extract preview panel into `components/code-lab/CodeLabPreview.tsx`
-- [ ] **2.2.7** Extract state management into `components/code-lab/useCodeLab.ts` hook
-- [ ] **2.2.8** Create shared types in `components/code-lab/codelab.types.ts`
-- [ ] **2.2.9** Ensure no component exceeds 400 lines
-- [ ] **2.2.10** Write component tests for each extracted piece
-- [ ] **2.2.11** Verify build passes, CodeLab renders correctly
+- [x] **2.2.1** Read and map CodeLab.tsx — identified 6 extractable concerns: CSS, session management, workspace management, messaging, keyboard shortcuts, background agents, workspace panel UI _(2026-02-23)_
+- [x] **2.2.2** Extract 778 lines of `<style jsx>` into `code-lab.css` — CodeLab.tsx 2,631→1,850 lines. Prefixed bare `button` selectors with `.code-lab` for proper scoping. _(2026-02-23)_
+- [x] **2.2.3** Extract `useKeyboardShortcuts` hook (128 lines) — all Cmd/Ctrl keyboard shortcuts _(2026-02-23)_
+- [x] **2.2.4** Extract `CodeLabWorkspacePanel` component (386 lines) — workspace panel UI with tabs for Files, Changes, Deploy, Visual, Debug, Plan, Memory, Tasks _(2026-02-23)_
+- [x] **2.2.5** Extract `useSessionManager` hook (270 lines) — session CRUD, load/create/select/delete/rename/export/setRepo _(2026-02-23)_
+- [x] **2.2.6** Extract `useWorkspaceManager` hook (295 lines) — file tree, git ops, visual-to-code, deploy, plan, memory _(2026-02-23)_
+- [x] **2.2.7** Extract `useMessenger` hook (552 lines) — sendMessage, model/agent handlers, token tracking, auto-search trigger, cancelStream, slash commands _(2026-02-23)_
+- [x] **2.2.8** Extract `useBackgroundAgents` hook (78 lines) — agent spawning, updating, cleanup, window API _(2026-02-23)_
+- [x] **2.2.9** CodeLab.tsx now 374 lines (target was <400) — down from 2,631 lines (86% reduction) _(2026-02-23)_
+- [ ] **2.2.10** Write component tests for extracted hooks
+- [x] **2.2.11** Build, TypeScript, lint, and all 2,348 tests pass _(2026-02-23)_
 
 ### 2.3 Decompose Other Large Components
 
