@@ -22,7 +22,7 @@ import {
 } from '@/lib/ai/tools/tool-loader';
 import type { UnifiedTool } from '@/lib/ai/providers/types';
 import type { ToolExecutor } from '@/lib/ai/chat-router';
-import { getMCPManager } from '@/lib/mcp/mcp-client';
+import { getMCPManager, MCPClientManager } from '@/lib/mcp/mcp-client';
 import {
   getComposioToolsForUser,
   executeComposioTool,
@@ -463,11 +463,10 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeMCPTool(
-  mcpManager: any,
+  mcpManager: MCPClientManager,
   toolName: string,
-  toolCall: any,
+  toolCall: { id: string; arguments: string | Record<string, unknown> },
   userId: string
 ): Promise<UnifiedToolResult> {
   const parts = toolName.split('_');
@@ -524,10 +523,9 @@ async function executeMCPTool(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeComposioToolCall(
   toolName: string,
-  toolCall: any,
+  toolCall: { id: string; arguments: string | Record<string, unknown> },
   userId: string
 ): Promise<UnifiedToolResult> {
   try {
