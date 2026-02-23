@@ -212,8 +212,15 @@ Example response:
                   <button
                     onClick={() => setIsOpen(false)}
                     className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
+                    aria-label="Close shopping modal"
                   >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"

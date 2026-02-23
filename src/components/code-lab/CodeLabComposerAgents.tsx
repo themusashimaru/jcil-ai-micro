@@ -44,6 +44,8 @@ export function CodeLabComposerAgents({
         onClick={onToggle}
         disabled={disabled || isStreaming}
         title="AI Agents"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4z" />

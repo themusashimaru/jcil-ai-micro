@@ -210,8 +210,9 @@ export function EditImageModal({
             onClick={handleClose}
             disabled={isProcessing}
             className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+            aria-label="Close image editing modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -296,8 +297,9 @@ export function EditImageModal({
                       <button
                         onClick={() => removeImage(img.id)}
                         className="absolute top-1 right-1 p-1 rounded-full bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Remove image ${img.name}`}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-3 h-3" aria-hidden="true" />
                       </button>
                     </div>
                   ))}

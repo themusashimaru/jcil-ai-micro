@@ -38,6 +38,8 @@ export function CodeLabComposerCreative({
         onClick={onToggle}
         disabled={disabled || isStreaming}
         title="Creative Tools"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="3" width="18" height="18" rx="2" />

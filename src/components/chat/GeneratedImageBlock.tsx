@@ -45,8 +45,15 @@ export function GeneratedImageBlock({ image, onRegenerate }: GeneratedImageBlock
           download={`${image.type}-${image.id}.png`}
           className="absolute top-2 right-2 rounded-full bg-black/70 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-black/90"
           title="Download image"
+          aria-label="Download image"
         >
-          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="h-5 w-5 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

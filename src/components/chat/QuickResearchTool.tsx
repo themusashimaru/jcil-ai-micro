@@ -39,7 +39,8 @@ export function QuickResearchTool({ onResearchComplete }: QuickResearchToolProps
       const depthInstructions = {
         overview: '3-4 concise paragraphs covering main points (300-400 words)',
         detailed: '5-7 comprehensive sections with in-depth analysis (600-800 words)',
-        comprehensive: '8-10 thorough sections with extensive detail and examples (1000-1200 words)',
+        comprehensive:
+          '8-10 thorough sections with extensive detail and examples (1000-1200 words)',
       };
 
       const researchPrompt = `You are an expert researcher with access to current information. Conduct ${depth} research on this topic:
@@ -173,8 +174,15 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
               <button
                 onClick={handleClose}
                 className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white transition"
+                aria-label="Close research tool"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -251,7 +259,9 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                           }`}
                         >
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-xs">{d.charAt(0).toUpperCase() + d.slice(1)}</span>
+                            <span className="text-xs">
+                              {d.charAt(0).toUpperCase() + d.slice(1)}
+                            </span>
                             <span className="text-[10px] opacity-75">
                               {d === 'overview' && '~400 words'}
                               {d === 'detailed' && '~700 words'}
@@ -280,7 +290,8 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                         />
                       </svg>
                       <p className="text-xs text-blue-200">
-                        This tool uses web search to provide current, accurate information. Research reports include sources, analysis, and actionable insights.
+                        This tool uses web search to provide current, accurate information. Research
+                        reports include sources, analysis, and actionable insights.
                       </p>
                     </div>
                   </div>
@@ -321,7 +332,12 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                         onClick={handleCopy}
                         className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition flex items-center justify-center gap-2"
                       >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -343,9 +359,18 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                     <button
                       onClick={handleSendEmail}
                       className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
-                      title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
+                      title={
+                        !recipientEmail
+                          ? 'Enter recipient email to enable'
+                          : 'Open in your default email client'
+                      }
                     >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"

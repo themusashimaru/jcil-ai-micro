@@ -390,16 +390,20 @@ export function CodeLabPluginMarketplace({
       </div>
 
       <div className="marketplace-toolbar">
-        <div className="tabs">
+        <div className="tabs" role="tablist" aria-label="Plugin views">
           <button
             className={`tab ${activeTab === 'browse' ? 'active' : ''}`}
             onClick={() => setActiveTab('browse')}
+            role="tab"
+            aria-selected={activeTab === 'browse'}
           >
             Browse
           </button>
           <button
             className={`tab ${activeTab === 'installed' ? 'active' : ''}`}
             onClick={() => setActiveTab('installed')}
+            role="tab"
+            aria-selected={activeTab === 'installed'}
           >
             Installed ({installedPlugins.length})
           </button>

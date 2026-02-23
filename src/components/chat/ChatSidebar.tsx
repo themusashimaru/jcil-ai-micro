@@ -396,19 +396,13 @@ export function ChatSidebar({
           <MyFilesPanel />
 
           {/* Header */}
-          <div
-            className="p-3 flex items-center justify-between"
-            style={{ borderBottom: '1px solid var(--border)' }}
-          >
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Chats
-            </h2>
+          <div className="p-3 flex items-center justify-between border-b border-theme">
+            <h2 className="text-sm font-semibold text-text-primary">Chats</h2>
             <div className="flex items-center gap-2">
               <InboxButton />
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
-                className="rounded-lg p-1.5 transition-colors md:hidden"
-                style={{ color: 'var(--text-primary)' }}
+                className="rounded-lg p-1.5 transition-colors md:hidden text-text-primary"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -423,11 +417,10 @@ export function ChatSidebar({
           </div>
 
           {/* New Chat & New Folder */}
-          <div className="p-3 flex gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="p-3 flex gap-2 border-b border-theme">
             <button
               onClick={onNewChat}
-              className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition new-chat-btn"
-              style={{ backgroundColor: 'var(--primary)' }}
+              className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition new-chat-btn bg-primary"
             >
               + New Chat
             </button>
@@ -437,12 +430,7 @@ export function ChatSidebar({
                 setFolderForm({ name: '', color: '' });
                 setShowFolderModal(true);
               }}
-              className="rounded-lg px-3 py-2.5 text-sm transition"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
+              className="rounded-lg px-3 py-2.5 text-sm transition bg-glass text-text-primary border border-theme"
               title="New Folder"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -457,11 +445,10 @@ export function ChatSidebar({
           </div>
 
           {/* Search */}
-          <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="p-3 border-b border-theme">
             <div className="relative">
               <svg
-                className="absolute left-3 top-2.5 h-4 w-4"
-                style={{ color: 'var(--text-muted)' }}
+                className="absolute left-3 top-2.5 h-4 w-4 text-text-muted"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -478,11 +465,9 @@ export function ChatSidebar({
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2"
+                className="w-full rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 bg-glass text-text-primary"
                 style={{
-                  backgroundColor: 'var(--glass-bg)',
                   border: '1px solid var(--primary)',
-                  color: 'var(--text-primary)',
                 }}
               />
             </div>
@@ -492,10 +477,7 @@ export function ChatSidebar({
           <div className="flex-1 overflow-y-auto p-2">
             {pinnedChats.length > 0 && (
               <div className="mb-4">
-                <h3
-                  className="mb-2 px-2 text-xs font-semibold uppercase"
-                  style={{ color: 'var(--text-muted)' }}
-                >
+                <h3 className="mb-2 px-2 text-xs font-semibold uppercase text-text-muted">
                   Pinned
                 </h3>
                 <div className="space-y-1" role="list" aria-label="Pinned chats">
@@ -535,10 +517,7 @@ export function ChatSidebar({
 
             {unorganizedChats.length > 0 && (
               <div>
-                <h3
-                  className="mb-2 px-2 text-xs font-semibold uppercase"
-                  style={{ color: 'var(--text-muted)' }}
-                >
+                <h3 className="mb-2 px-2 text-xs font-semibold uppercase text-text-muted">
                   Recent
                 </h3>
                 {/* PERF-001: Virtualize large chat lists for 1000+ conversations */}
@@ -556,8 +535,7 @@ export function ChatSidebar({
                 {loadError ? (
                   <div className="text-center">
                     <svg
-                      className="w-8 h-8 mx-auto mb-2"
-                      style={{ color: 'var(--text-muted)' }}
+                      className="w-8 h-8 mx-auto mb-2 text-text-muted"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -569,19 +547,16 @@ export function ChatSidebar({
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                       />
                     </svg>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      {loadError}
-                    </p>
+                    <p className="text-sm text-text-secondary">{loadError}</p>
                     <button
                       onClick={() => window.location.reload()}
-                      className="mt-2 text-xs underline hover:opacity-80"
-                      style={{ color: 'var(--primary)' }}
+                      className="mt-2 text-xs underline hover:opacity-80 text-primary"
                     >
                       Refresh page
                     </button>
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <p className="text-sm text-text-secondary">
                     {searchQuery ? 'No chats found' : 'No chats yet'}
                   </p>
                 )}

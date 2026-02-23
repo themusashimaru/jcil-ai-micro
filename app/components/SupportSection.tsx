@@ -378,6 +378,7 @@ export default function SupportSection() {
                 <button
                   onClick={() => setSelectedTicket(null)}
                   className="text-gray-400 hover:text-white text-xl"
+                  aria-label="Close ticket detail"
                 >
                   X
                 </button>

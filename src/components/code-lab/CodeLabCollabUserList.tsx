@@ -65,6 +65,12 @@ export const UserList = React.memo(function UserList({
                   onFollow(user.id);
                 }}
                 title={followingUserId === user.id ? 'Stop following' : 'Follow'}
+                aria-label={
+                  followingUserId === user.id
+                    ? `Stop following ${user.name}`
+                    : `Follow ${user.name}`
+                }
+                aria-pressed={followingUserId === user.id}
               >
                 {followingUserId === user.id ? '\uD83D\uDC41\uFE0F' : '\uD83D\uDC40'}
               </button>
@@ -78,6 +84,7 @@ export const UserList = React.memo(function UserList({
                   value={user.role}
                   onChange={(e) => onChangeRole(user.id, e.target.value as UserRole)}
                   className="role-select"
+                  aria-label={`Role for ${user.name}`}
                 >
                   <option value="editor">Editor</option>
                   <option value="viewer">Viewer</option>

@@ -103,10 +103,8 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
         });
 
         // Update local state
-        setMessages(prev =>
-          prev.map(m => (m.id === message.id ? { ...m, is_read: true } : m))
-        );
-        setCounts(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }));
+        setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, is_read: true } : m)));
+        setCounts((prev) => ({ ...prev, unread: Math.max(0, prev.unread - 1) }));
       } catch (error) {
         console.error('Error marking message as read:', error);
       }
@@ -121,16 +119,16 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
         body: JSON.stringify({ is_starred: !currentStarred }),
       });
 
-      setMessages(prev =>
-        prev.map(m => (m.id === messageId ? { ...m, is_starred: !currentStarred } : m))
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, is_starred: !currentStarred } : m))
       );
-      setCounts(prev => ({
+      setCounts((prev) => ({
         ...prev,
         starred: currentStarred ? prev.starred - 1 : prev.starred + 1,
       }));
 
       if (selectedMessage?.id === messageId) {
-        setSelectedMessage(prev => prev ? { ...prev, is_starred: !currentStarred } : null);
+        setSelectedMessage((prev) => (prev ? { ...prev, is_starred: !currentStarred } : null));
       }
     } catch (error) {
       console.error('Error toggling star:', error);
@@ -144,9 +142,9 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
         throw new Error(`Failed to delete message: ${response.status}`);
       }
 
-      const deletedMessage = messages.find(m => m.id === messageId);
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-      setCounts(prev => ({
+      const deletedMessage = messages.find((m) => m.id === messageId);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setCounts((prev) => ({
         total: prev.total - 1,
         unread: deletedMessage?.is_read === false ? prev.unread - 1 : prev.unread,
         starred: deletedMessage?.is_starred ? prev.starred - 1 : prev.starred,
@@ -166,7 +164,7 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
     setViewMode('list');
   };
 
-  const filteredMessages = messages.filter(m => {
+  const filteredMessages = messages.filter((m) => {
     if (filter === 'unread') return !m.is_read;
     if (filter === 'starred') return m.is_starred;
     return true;
@@ -200,38 +198,44 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
 
       {/* Modal - Full screen on mobile, constrained on desktop */}
       <div
-        className="relative w-full h-full md:max-w-3xl md:h-[80vh] md:max-h-[700px] md:rounded-2xl overflow-hidden flex flex-col"
+        className="relative w-full h-full md:max-w-3xl md:h-[80vh] md:max-h-[700px] md:rounded-2xl overflow-hidden flex flex-col bg-surface border border-theme"
         style={{
-          backgroundColor: 'var(--surface)',
-          border: '1px solid var(--border)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         }}
       >
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-4 sm:px-6 py-4"
-          style={{ borderBottom: '1px solid var(--border)' }}
-        >
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-theme">
           <div className="flex items-center gap-3">
             {viewMode !== 'list' && (
               <button
                 onClick={handleBack}
-                className="p-2 rounded-lg transition hover:opacity-80"
-                style={{ backgroundColor: 'var(--primary-hover)' }}
+                className="p-2 rounded-lg transition hover:opacity-80 bg-primary-hover"
               >
-                <svg className="w-5 h-5" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg
+                  className="w-5 h-5 text-text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </button>
             )}
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {viewMode === 'list' ? 'Inbox' : viewMode === 'compose' ? 'Contact Support' : 'Message'}
+              <h2 className="text-lg font-semibold text-text-primary">
+                {viewMode === 'list'
+                  ? 'Inbox'
+                  : viewMode === 'compose'
+                    ? 'Contact Support'
+                    : 'Message'}
               </h2>
               {viewMode === 'list' && counts.unread > 0 && (
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  {counts.unread} unread
-                </p>
+                <p className="text-sm text-text-muted">{counts.unread} unread</p>
               )}
             </div>
           </div>
@@ -240,19 +244,22 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
             {viewMode === 'list' && (
               <button
                 onClick={() => setViewMode('compose')}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition"
-                style={{ backgroundColor: 'var(--primary)', color: 'var(--surface)' }}
+                className="px-3 py-2 rounded-lg text-sm font-medium transition bg-primary text-surface"
               >
                 Contact Support
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-lg transition hover:opacity-80"
-              style={{ color: 'var(--text-muted)' }}
+              className="p-2 rounded-lg transition hover:opacity-80 text-text-muted"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -283,9 +290,7 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
             />
           )}
 
-          {viewMode === 'compose' && (
-            <ContactSupportForm onSuccess={() => setViewMode('list')} />
-          )}
+          {viewMode === 'compose' && <ContactSupportForm onSuccess={() => setViewMode('list')} />}
         </div>
       </div>
     </div>,
@@ -320,15 +325,12 @@ function MessageList({
   return (
     <div className="h-full flex flex-col">
       {/* Filter Tabs */}
-      <div
-        className="flex gap-1 px-4 py-2"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
+      <div className="flex gap-1 px-4 py-2 border-b border-theme">
         {[
           { key: 'all', label: 'All', count: counts.total },
           { key: 'unread', label: 'Unread', count: counts.unread },
           { key: 'starred', label: 'Starred', count: counts.starred },
-        ].map(tab => (
+        ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key as FilterMode)}
@@ -339,9 +341,7 @@ function MessageList({
             }}
           >
             {tab.label}
-            {tab.count > 0 && (
-              <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>
-            )}
+            {tab.count > 0 && <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>}
           </button>
         ))}
       </div>
@@ -349,21 +349,47 @@ function MessageList({
       {/* Message List */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>
+          <div className="flex items-center justify-center h-full text-text-muted">
             <svg className="animate-spin h-6 w-6 mr-2" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
             Loading...
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>
-            <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <div className="flex flex-col items-center justify-center h-full text-text-muted">
+            <svg
+              className="w-16 h-16 mb-4 opacity-50"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
             <p className="text-lg font-medium">No messages</p>
             <p className="text-sm mt-1">
-              {filter === 'unread' ? 'All caught up!' : filter === 'starred' ? 'No starred messages' : 'Your inbox is empty'}
+              {filter === 'unread'
+                ? 'All caught up!'
+                : filter === 'starred'
+                  ? 'No starred messages'
+                  : 'Your inbox is empty'}
             </p>
           </div>
         ) : (
@@ -400,20 +426,19 @@ function MessageList({
                     >
                       {MESSAGE_TYPE_LABELS[message.message_type] || message.message_type}
                     </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-xs text-text-muted">
                       {formatDate(message.created_at)}
                     </span>
                   </div>
                   <h3
                     className="font-medium truncate"
-                    style={{ color: !message.is_read ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                    style={{
+                      color: !message.is_read ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    }}
                   >
                     {message.subject}
                   </h3>
-                  <p
-                    className="text-sm truncate mt-0.5"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
+                  <p className="text-sm truncate mt-0.5 text-text-muted">
                     {message.message.substring(0, 100)}...
                   </p>
                 </div>
@@ -428,8 +453,18 @@ function MessageList({
                     className="p-1.5 rounded transition hover:opacity-80"
                     style={{ color: message.is_starred ? '#eab308' : 'var(--text-muted)' }}
                   >
-                    <svg className="w-4 h-4" fill={message.is_starred ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill={message.is_starred ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                      />
                     </svg>
                   </button>
                   <button
@@ -437,11 +472,15 @@ function MessageList({
                       e.stopPropagation();
                       onDelete(message.id);
                     }}
-                    className="p-1.5 rounded transition hover:opacity-80"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="p-1.5 rounded transition hover:opacity-80 text-text-muted"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -466,7 +505,7 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
   return (
     <div className="h-full flex flex-col">
       {/* Message Header */}
-      <div className="px-4 sm:px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="px-4 sm:px-6 py-4 border-b border-theme">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
@@ -485,10 +524,8 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
                 </span>
               )}
             </div>
-            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {message.subject}
-            </h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+            <h2 className="text-xl font-semibold text-text-primary">{message.subject}</h2>
+            <p className="text-sm mt-1 text-text-muted">
               {formatDate(message.created_at)} • From JCIL.AI Team
             </p>
           </div>
@@ -498,17 +535,31 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
               className="p-2 rounded-lg transition hover:opacity-80"
               style={{ color: message.is_starred ? '#eab308' : 'var(--text-muted)' }}
             >
-              <svg className="w-5 h-5" fill={message.is_starred ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              <svg
+                className="w-5 h-5"
+                fill={message.is_starred ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                />
               </svg>
             </button>
             <button
               onClick={() => onDelete(message.id)}
-              className="p-2 rounded-lg transition hover:opacity-80"
-              style={{ color: 'var(--text-muted)' }}
+              className="p-2 rounded-lg transition hover:opacity-80 text-text-muted"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
               </svg>
             </button>
           </div>
@@ -517,10 +568,7 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
 
       {/* Message Body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
-        <div
-          className="prose max-w-none"
-          style={{ color: 'var(--text-primary)' }}
-        >
+        <div className="prose max-w-none text-text-primary">
           <p className="whitespace-pre-wrap leading-relaxed">{message.message}</p>
         </div>
       </div>
@@ -577,12 +625,6 @@ function ContactSupportForm({ onSuccess }: ContactSupportFormProps) {
     }
   };
 
-  const inputStyle = {
-    backgroundColor: 'var(--glass-bg)',
-    border: '1px solid var(--border)',
-    color: 'var(--text-primary)',
-  };
-
   return (
     <div className="h-full overflow-y-auto px-4 sm:px-6 py-6">
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -593,17 +635,15 @@ function ContactSupportForm({ onSuccess }: ContactSupportFormProps) {
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Category
-          </label>
+          <label className="block text-sm font-medium mb-2 text-text-secondary">Category</label>
           <select
             value={formData.category}
-            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition appearance-none"
-            style={{ ...inputStyle, outlineColor: 'var(--primary)' }}
+            onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition appearance-none bg-glass border border-theme text-text-primary"
+            style={{ outlineColor: 'var(--primary)' }}
           >
-            {categories.map(cat => (
-              <option key={cat.value} value={cat.value} style={{ backgroundColor: 'var(--surface)' }}>
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value} className="bg-surface">
                 {cat.label}
               </option>
             ))}
@@ -611,45 +651,38 @@ function ContactSupportForm({ onSuccess }: ContactSupportFormProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Subject
-          </label>
+          <label className="block text-sm font-medium mb-2 text-text-secondary">Subject</label>
           <input
             type="text"
             value={formData.subject}
-            onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
             required
             placeholder="Brief description of your inquiry"
-            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
-            style={inputStyle}
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition bg-glass border border-theme text-text-primary"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Message
-          </label>
+          <label className="block text-sm font-medium mb-2 text-text-secondary">Message</label>
           <textarea
             value={formData.message}
-            onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
             required
             rows={6}
             placeholder="How can we help you?"
-            className="w-full px-4 py-3 rounded-lg resize-none focus:outline-none focus:ring-2 transition"
-            style={inputStyle}
+            className="w-full px-4 py-3 rounded-lg resize-none focus:outline-none focus:ring-2 transition bg-glass border border-theme text-text-primary"
           />
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 rounded-lg font-semibold transition disabled:opacity-50"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--surface)' }}
+          className="w-full py-3 rounded-lg font-semibold transition disabled:opacity-50 bg-primary text-surface"
         >
           {isSubmitting ? 'Sending...' : 'Send Message'}
         </button>
 
-        <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs text-center text-text-muted">
           We typically respond within 24-48 hours
         </p>
       </form>

@@ -178,8 +178,9 @@ export function CreateImageModal({
             onClick={handleClose}
             disabled={isGenerating}
             className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+            aria-label="Close image creation modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
