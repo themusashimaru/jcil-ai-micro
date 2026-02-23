@@ -2,35 +2,33 @@
  * Chat Route Authentication
  *
  * Handles user authentication, admin status caching, and user data loading.
- * Uses Supabase cookie-based auth with an in-memory admin cache (5-minute TTL).
+ * Uses Supabase cookie-based auth with Redis-backed admin cache (5-minute TTL).
+ *
+ * Migrated from in-memory adminCache (Task 2.1.8) — serverless-safe.
  */
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { cacheGet, cacheSet } from '@/lib/redis/client';
 import { logger } from '@/lib/logger';
 
 const log = logger('ChatAuth');
 
 // AUTH-002: Cache admin check results to avoid DB hit every request (5-minute TTL)
-const adminCache = new Map<string, { isAdmin: boolean; tier: string; expiresAt: number }>();
-const ADMIN_CACHE_TTL_MS = 5 * 60 * 1000;
+const ADMIN_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes
+const ADMIN_CACHE_PREFIX = 'chat:admin:';
 
-function getCachedUserData(userId: string): { isAdmin: boolean; tier: string } | null {
-  const entry = adminCache.get(userId);
-  if (!entry || entry.expiresAt < Date.now()) {
-    if (entry) adminCache.delete(userId);
-    return null;
-  }
-  return { isAdmin: entry.isAdmin, tier: entry.tier };
+interface CachedUserData {
+  isAdmin: boolean;
+  tier: string;
 }
 
-function setCachedUserData(userId: string, isAdmin: boolean, tier: string): void {
-  adminCache.set(userId, { isAdmin, tier, expiresAt: Date.now() + ADMIN_CACHE_TTL_MS });
-  // Periodic size check — evict oldest if over 10k entries
-  if (adminCache.size > 10000) {
-    const firstKey = adminCache.keys().next().value;
-    if (firstKey) adminCache.delete(firstKey);
-  }
+async function getCachedUserData(userId: string): Promise<CachedUserData | null> {
+  return cacheGet<CachedUserData>(`${ADMIN_CACHE_PREFIX}${userId}`);
+}
+
+async function setCachedUserData(userId: string, isAdmin: boolean, tier: string): Promise<void> {
+  await cacheSet(`${ADMIN_CACHE_PREFIX}${userId}`, { isAdmin, tier }, ADMIN_CACHE_TTL_SECONDS);
 }
 
 export interface AuthResult {
@@ -93,11 +91,11 @@ export async function authenticateRequest(): Promise<AuthResult | AuthError> {
       };
     }
 
-    // AUTH-002: Check admin cache first to avoid DB hit every request
+    // AUTH-002: Check Redis cache first to avoid DB hit every request
     let isAdmin = false;
     let userPlanKey = 'free';
 
-    const cached = getCachedUserData(user.id);
+    const cached = await getCachedUserData(user.id);
     if (cached) {
       isAdmin = cached.isAdmin;
       userPlanKey = cached.tier;
@@ -109,7 +107,7 @@ export async function authenticateRequest(): Promise<AuthResult | AuthError> {
         .single();
       isAdmin = userData?.is_admin === true;
       userPlanKey = userData?.subscription_tier || 'free';
-      setCachedUserData(user.id, isAdmin, userPlanKey);
+      await setCachedUserData(user.id, isAdmin, userPlanKey);
     }
 
     // CHAT-009: Load custom instructions from user settings

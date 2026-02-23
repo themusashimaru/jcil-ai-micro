@@ -347,7 +347,7 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
 
     // Check research rate limit for search tools
     if (['web_search', 'browser_visit', 'fetch_url'].includes(toolName)) {
-      const rateCheck = checkResearchRateLimit(userId);
+      const rateCheck = await checkResearchRateLimit(userId);
       if (!rateCheck.allowed) {
         log.warn('Search rate limit exceeded', {
           identifier: userId,
@@ -362,7 +362,7 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
     }
 
     // CHAT-016: Per-tool rate limiting for expensive operations
-    const toolRateCheck = checkToolRateLimit(userId, toolName);
+    const toolRateCheck = await checkToolRateLimit(userId, toolName);
     if (!toolRateCheck.allowed) {
       log.warn('Tool rate limit exceeded', {
         identifier: userId,
