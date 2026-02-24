@@ -32,80 +32,93 @@ import {
 describe('Synthesizer type exports', () => {
   it('should export SynthesizedInsight interface', () => {
     const si: SynthesizedInsight = {
-      title: 'Market is growing',
-      content: 'Evidence suggests growth',
-      confidence: 0.8,
-      sources: [],
+      insight: 'Market is growing',
+      confidence: 'high',
+      supportingEvidence: ['Data source A'],
+      sourceCount: 3,
+      sources: ['Source 1', 'Source 2', 'Source 3'],
     };
-    expect(si.confidence).toBe(0.8);
+    expect(si.confidence).toBe('high');
   });
 
   it('should export SynthesizedDataPoint interface', () => {
     const dp: SynthesizedDataPoint = {
       metric: 'price',
       value: '$500k',
-      source: 'Zillow',
-      confidence: 0.9,
+      confidence: 'high',
+      sources: ['Zillow'],
     };
     expect(dp.metric).toBe('price');
   });
 
   it('should export DomainFindings interface', () => {
     const df: DomainFindings = {
-      domain: 'housing',
-      insights: [],
+      keyInsights: [],
       dataPoints: [],
-      confidence: 0.7,
+      warnings: [],
+      opportunities: [],
     };
-    expect(df.domain).toBe('housing');
+    expect(df.keyInsights).toEqual([]);
   });
 
   it('should export ConflictResolution interface', () => {
     const cr: ConflictResolution = {
-      conflict: 'Two sources disagree on price trend',
+      topic: 'Price trend direction',
+      position1: { claim: 'Prices rising', source: 'Source A', confidence: 'high' },
+      position2: { claim: 'Prices falling', source: 'Source B', confidence: 'medium' },
       resolution: 'Weighted by recency',
-      confidence: 0.6,
     };
-    expect(cr.conflict).toBe('Two sources disagree on price trend');
+    expect(cr.topic).toBe('Price trend direction');
   });
 
   it('should export ResearchGap interface', () => {
     const rg: ResearchGap = {
-      topic: 'Long-term projections',
-      importance: 'high',
-      suggestion: 'Consult historical data',
+      question: 'What are long-term projections?',
+      importance: 'critical',
+      suggestedAction: 'Consult historical data',
     };
-    expect(rg.importance).toBe('high');
+    expect(rg.importance).toBe('critical');
   });
 
   it('should export TopFinding interface', () => {
     const tf: TopFinding = {
-      title: 'Key insight',
-      content: 'Very important finding',
-      confidence: 0.95,
-      domain: 'jobs',
+      rank: 1,
+      finding: 'Very important finding',
+      impact: 'Major market shift expected',
+      confidence: 'high',
     };
-    expect(tf.title).toBe('Key insight');
+    expect(tf.rank).toBe(1);
   });
 
   it('should export OverallAssessment interface', () => {
     const oa: OverallAssessment = {
-      summary: 'Research is comprehensive',
-      confidence: 0.85,
-      recommendations: ['Proceed with caution'],
+      researchQuality: 'good',
+      coverageCompleteness: 0.85,
+      confidenceLevel: 'high',
+      readyForQC: true,
+      notes: 'Research is comprehensive',
     };
-    expect(oa.recommendations).toHaveLength(1);
+    expect(oa.readyForQC).toBe(true);
   });
 
   it('should export SynthesizerResult interface', () => {
     const sr: SynthesizerResult = {
-      domains: [],
-      topFindings: [],
+      synthesisComplete: true,
+      totalFindingsProcessed: 10,
+      uniqueFindingsAfterDedup: 8,
+      organizedFindings: {},
       conflicts: [],
       gaps: [],
-      overallAssessment: { summary: '', confidence: 0, recommendations: [] },
+      topFindings: [],
+      overallAssessment: {
+        researchQuality: 'good',
+        coverageCompleteness: 0.8,
+        confidenceLevel: 'medium',
+        readyForQC: true,
+        notes: '',
+      },
     };
-    expect(sr.domains).toEqual([]);
+    expect(sr.synthesisComplete).toBe(true);
   });
 });
 

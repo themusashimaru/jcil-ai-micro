@@ -39,10 +39,10 @@ describe('ExecutionQueue', () => {
   describe('enqueue', () => {
     it('should add a task and return an id', () => {
       const id = queue.enqueue({
-        type: 'search',
+        type: 'brave_search',
+        agentId: 'agent-1',
         priority: 5,
-        execute: vi.fn(),
-        description: 'test task',
+        payload: { query: 'test' },
         maxAttempts: 3,
       });
 
@@ -51,17 +51,17 @@ describe('ExecutionQueue', () => {
 
     it('should add multiple tasks in priority order', () => {
       queue.enqueue({
-        type: 'search',
+        type: 'brave_search',
+        agentId: 'agent-1',
         priority: 1,
-        execute: vi.fn(),
-        description: 'low priority',
+        payload: null,
         maxAttempts: 3,
       });
       const highId = queue.enqueue({
-        type: 'search',
+        type: 'brave_search',
+        agentId: 'agent-2',
         priority: 10,
-        execute: vi.fn(),
-        description: 'high priority',
+        payload: null,
         maxAttempts: 3,
       });
 
@@ -75,10 +75,10 @@ describe('ExecutionQueue', () => {
 
       expect(() =>
         queue.enqueue({
-          type: 'search',
+          type: 'brave_search',
+          agentId: 'agent-1',
           priority: 1,
-          execute: vi.fn(),
-          description: 'test',
+          payload: null,
           maxAttempts: 3,
         })
       ).toThrow('Queue has been killed');
@@ -88,9 +88,9 @@ describe('ExecutionQueue', () => {
   describe('enqueueBatch', () => {
     it('should add multiple tasks at once', () => {
       const ids = queue.enqueueBatch([
-        { type: 'search', priority: 1, execute: vi.fn(), description: 'task1', maxAttempts: 3 },
-        { type: 'search', priority: 2, execute: vi.fn(), description: 'task2', maxAttempts: 3 },
-        { type: 'search', priority: 3, execute: vi.fn(), description: 'task3', maxAttempts: 3 },
+        { type: 'brave_search', agentId: 'a1', priority: 1, payload: null, maxAttempts: 3 },
+        { type: 'synthesis', agentId: 'a2', priority: 2, payload: null, maxAttempts: 3 },
+        { type: 'quality_check', agentId: 'a3', priority: 3, payload: null, maxAttempts: 3 },
       ]);
 
       expect(ids).toHaveLength(3);
@@ -101,16 +101,16 @@ describe('ExecutionQueue', () => {
   describe('getTask', () => {
     it('should return task by id', () => {
       const id = queue.enqueue({
-        type: 'search',
+        type: 'agent_execution',
+        agentId: 'agent-findable',
         priority: 5,
-        execute: vi.fn(),
-        description: 'findable',
+        payload: { data: 'findable' },
         maxAttempts: 3,
       });
 
       const task = queue.getTask(id);
       expect(task).toBeDefined();
-      expect(task?.description).toBe('findable');
+      expect(task?.agentId).toBe('agent-findable');
     });
 
     it('should return undefined for non-existent id', () => {
@@ -139,10 +139,10 @@ describe('ExecutionQueue', () => {
       queue.kill('done');
       expect(() =>
         queue.enqueue({
-          type: 'search',
+          type: 'brave_search',
+          agentId: 'agent-1',
           priority: 1,
-          execute: vi.fn(),
-          description: 'test',
+          payload: null,
           maxAttempts: 3,
         })
       ).toThrow();

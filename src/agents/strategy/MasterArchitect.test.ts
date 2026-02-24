@@ -35,11 +35,14 @@ describe('MasterArchitect', () => {
     it('should accept custom limits', () => {
       const limits = {
         maxBudget: 5,
-        maxTime: 30000,
-        maxAgents: 3,
-        maxSearchesPerScout: 2,
-        maxTotalSearches: 10,
-        minConfidenceThreshold: 0.6,
+        maxScouts: 3,
+        maxSearches: 10,
+        maxTimeMinutes: 5,
+        maxDepth: 10,
+        maxConcurrentCalls: 5,
+        batchDelayMs: 250,
+        minConfidenceScore: 0.6,
+        maxErrorRate: 0.15,
       };
       const a = new MasterArchitect(mockClient, limits);
       expect(a).toBeInstanceOf(MasterArchitect);

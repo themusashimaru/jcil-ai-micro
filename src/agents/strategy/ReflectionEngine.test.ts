@@ -27,6 +27,7 @@ import {
   type MetaObservation,
   type ReflectionContext,
 } from './ReflectionEngine';
+import type { SynthesizedProblem } from './types';
 
 describe('ReflectionEngine type exports', () => {
   it('should export ReflectionResult interface', () => {
@@ -38,6 +39,8 @@ describe('ReflectionEngine type exports', () => {
       calibratedConfidence: 0.8,
       qualityScore: 0.9,
       recommendations: ['test'],
+      summary: 'Reflection complete',
+      timestamp: Date.now(),
     };
     expect(result.calibratedConfidence).toBe(0.8);
     expect(result.qualityScore).toBe(0.9);
@@ -45,23 +48,27 @@ describe('ReflectionEngine type exports', () => {
 
   it('should export Assumption interface', () => {
     const assumption: Assumption = {
+      id: 'a-1',
       content: 'Users prefer simple UI',
-      severity: 'medium',
-      evidence: 'Based on survey data',
-      alternative: 'Users may prefer complex UI',
+      type: 'implicit',
+      validityScore: 0.7,
+      impact: 'medium',
+      reasoning: 'Based on survey data',
     };
     expect(assumption.content).toBe('Users prefer simple UI');
-    expect(assumption.severity).toBe('medium');
+    expect(assumption.impact).toBe('medium');
   });
 
   it('should export BiasDetection interface', () => {
     const bias: BiasDetection = {
-      type: 'confirmation_bias',
+      id: 'b-1',
+      biasType: 'confirmation_bias',
       description: 'Only looking at supporting data',
-      impact: 'high',
-      mitigation: 'Seek disconfirming evidence',
+      severity: 'high',
+      affectedAreas: ['data gathering'],
+      mitigationSuggestion: 'Seek disconfirming evidence',
     };
-    expect(bias.type).toBe('confirmation_bias');
+    expect(bias.biasType).toBe('confirmation_bias');
   });
 
   it('should export BiasType type', () => {
@@ -73,18 +80,22 @@ describe('ReflectionEngine type exports', () => {
 
   it('should export LogicGap interface', () => {
     const gap: LogicGap = {
+      id: 'lg-1',
       description: 'Missing step in analysis',
       severity: 'high',
       location: 'data gathering phase',
-      suggestedFix: 'Add validation step',
+      type: 'missing_evidence',
+      suggestedRemedy: 'Add validation step',
     };
     expect(gap.description).toBe('Missing step in analysis');
   });
 
   it('should export MetaObservation interface', () => {
     const obs: MetaObservation = {
-      insight: 'Research is narrowing too quickly',
+      id: 'mo-1',
+      observation: 'Research is narrowing too quickly',
       category: 'process',
+      insight: 'Broader exploration needed',
       actionable: true,
     };
     expect(obs.actionable).toBe(true);
@@ -92,13 +103,23 @@ describe('ReflectionEngine type exports', () => {
 
   it('should export ReflectionContext interface', () => {
     const ctx: ReflectionContext = {
-      phase: 'research',
+      problem: {
+        summary: 'Test problem',
+        coreQuestion: 'What?',
+        constraints: [],
+        priorities: [],
+        stakeholders: [],
+        timeframe: '',
+        riskTolerance: 'medium',
+        complexity: 'moderate',
+        domains: [],
+        hiddenFactors: [],
+        successCriteria: [],
+      } as SynthesizedProblem,
       findings: [],
-      currentConfidence: 0.7,
-      timeElapsed: 5000,
+      phase: 'post_research',
     };
-    expect(ctx.phase).toBe('research');
-    expect(ctx.currentConfidence).toBe(0.7);
+    expect(ctx.phase).toBe('post_research');
   });
 });
 

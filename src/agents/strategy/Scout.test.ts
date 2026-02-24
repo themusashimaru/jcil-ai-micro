@@ -60,7 +60,7 @@ const mockBlueprint: AgentBlueprint = {
   dataSources: ['web'],
   searchQueries: ['test query'],
   deliverable: 'research findings',
-  outputFormat: 'structured_report',
+  outputFormat: 'summary',
   modelTier: 'sonnet',
   priority: 1,
   estimatedSearches: 3,

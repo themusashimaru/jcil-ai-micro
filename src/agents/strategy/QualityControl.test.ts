@@ -35,11 +35,14 @@ describe('QualityControl', () => {
     it('should accept custom limits', () => {
       const limits = {
         maxBudget: 10,
-        maxTime: 60000,
-        maxAgents: 5,
-        maxSearchesPerScout: 3,
-        maxTotalSearches: 20,
-        minConfidenceThreshold: 0.7,
+        maxScouts: 5,
+        maxSearches: 20,
+        maxTimeMinutes: 10,
+        maxDepth: 20,
+        maxConcurrentCalls: 10,
+        batchDelayMs: 250,
+        minConfidenceScore: 0.7,
+        maxErrorRate: 0.15,
       };
       const q = new QualityControl(mockClient, limits);
       expect(q).toBeInstanceOf(QualityControl);

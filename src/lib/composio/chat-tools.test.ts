@@ -27,7 +27,9 @@ const {
   mockIsComposioConfigured: vi.fn(() => false),
   mockGetConnectedAccounts: vi.fn(async () => [] as unknown[]),
   mockGetAvailableTools: vi.fn(async () => [] as unknown[]),
-  mockExecuteTool: vi.fn(async () => ({ success: true, data: { ok: true } })),
+  mockExecuteTool: vi.fn(
+    async () => ({ success: true, data: { ok: true } }) as Record<string, unknown>
+  ),
   mockGetToolkitById: vi.fn((_id: string) => undefined as { displayName: string } | undefined),
 }));
 
@@ -45,14 +47,14 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 vi.mock('./client', () => ({
-  isComposioConfigured: (...args: unknown[]) => mockIsComposioConfigured(...args),
-  getConnectedAccounts: (...args: unknown[]) => mockGetConnectedAccounts(...args),
-  getAvailableTools: (...args: unknown[]) => mockGetAvailableTools(...args),
-  executeTool: (...args: unknown[]) => mockExecuteTool(...args),
+  isComposioConfigured: mockIsComposioConfigured,
+  getConnectedAccounts: mockGetConnectedAccounts,
+  getAvailableTools: mockGetAvailableTools,
+  executeTool: mockExecuteTool,
 }));
 
 vi.mock('./toolkits', () => ({
-  getToolkitById: (...args: unknown[]) => mockGetToolkitById(...args),
+  getToolkitById: mockGetToolkitById,
 }));
 
 // Generic toolkit mock factory — returns passthrough sort + stub prompts

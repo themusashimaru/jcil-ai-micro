@@ -4,173 +4,169 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // HOISTED MOCKS — declared with vi.hoisted so vi.mock factories can reference them
 // ============================================================================
 
-const {
-  mockCDPClient,
-  mockDAPClient,
-  mockGetContainerManager,
-  _mockContainerManager,
-  mockLANGUAGE_CONFIGS,
-} = vi.hoisted(() => {
-  const mockCDPClient = {
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    on: vi.fn(),
-    removeAllListeners: vi.fn(),
-    resume: vi.fn(),
-    stepOver: vi.fn(),
-    stepInto: vi.fn(),
-    stepOut: vi.fn(),
-    pause: vi.fn(),
-    setBreakpointByUrl: vi.fn(),
-    removeBreakpoint: vi.fn(),
-    getProperties: vi.fn(),
-    getScript: vi.fn(),
-    evaluate: vi.fn(),
-    evaluateOnCallFrame: vi.fn(),
-    emit: vi.fn(),
-  };
+const { mockCDPClient, mockDAPClient, mockGetContainerManager, mockLANGUAGE_CONFIGS } = vi.hoisted(
+  () => {
+    const mockCDPClient = {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      on: vi.fn(),
+      removeAllListeners: vi.fn(),
+      resume: vi.fn(),
+      stepOver: vi.fn(),
+      stepInto: vi.fn(),
+      stepOut: vi.fn(),
+      pause: vi.fn(),
+      setBreakpointByUrl: vi.fn(),
+      removeBreakpoint: vi.fn(),
+      getProperties: vi.fn(),
+      getScript: vi.fn(),
+      evaluate: vi.fn(),
+      evaluateOnCallFrame: vi.fn(),
+      emit: vi.fn(),
+    };
 
-  const mockDAPClient = {
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    on: vi.fn(),
-    removeAllListeners: vi.fn(),
-    launch: vi.fn(),
-    attach: vi.fn(),
-    resume: vi.fn(),
-    continue: vi.fn(),
-    next: vi.fn(),
-    stepIn: vi.fn(),
-    stepOut: vi.fn(),
-    pause: vi.fn(),
-    setBreakpoints: vi.fn(),
-    threads: vi.fn(),
-    stackTrace: vi.fn(),
-    scopes: vi.fn(),
-    variables: vi.fn(),
-    evaluate: vi.fn(),
-    emit: vi.fn(),
-  };
+    const mockDAPClient = {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      on: vi.fn(),
+      removeAllListeners: vi.fn(),
+      launch: vi.fn(),
+      attach: vi.fn(),
+      resume: vi.fn(),
+      continue: vi.fn(),
+      next: vi.fn(),
+      stepIn: vi.fn(),
+      stepOut: vi.fn(),
+      pause: vi.fn(),
+      setBreakpoints: vi.fn(),
+      threads: vi.fn(),
+      stackTrace: vi.fn(),
+      scopes: vi.fn(),
+      variables: vi.fn(),
+      evaluate: vi.fn(),
+      emit: vi.fn(),
+    };
 
-  const mockContainerManager = {
-    getSandbox: vi.fn(),
-  };
+    const mockContainerManager = {
+      getSandbox: vi.fn(),
+    };
 
-  const mockGetContainerManager = vi.fn(() => mockContainerManager);
+    const mockGetContainerManager = vi.fn(() => mockContainerManager);
 
-  const mockLANGUAGE_CONFIGS: Record<
-    string,
-    {
-      language: string;
-      name: string;
-      protocol: string;
-      defaultPort: number;
-      fileExtensions: string[];
-      installCommand?: string;
-      debugCommand: (c: Record<string, unknown>) => string;
-      requiresCompilation?: boolean;
-      compileCommand?: (c: Record<string, unknown>) => string;
-      supportsBreakpoints: boolean;
-      supportsConditionalBreakpoints: boolean;
-      supportsLogPoints: boolean;
-      supportsHitCount: boolean;
-      supportsDataBreakpoints: boolean;
-      supportsExceptionBreakpoints: boolean;
-      supportsStepBack: boolean;
-      supportsRestartFrame: boolean;
-      supportsGotoTargets: boolean;
-      supportsCompletionsRequest: boolean;
-      supportsModulesRequest: boolean;
-      supportsLoadedSourcesRequest: boolean;
-      supportsTerminateRequest: boolean;
-      supportsSuspendDebuggee: boolean;
-      supportsValueFormattingOptions: boolean;
-      supportsFunctionBreakpoints: boolean;
-    }
-  > = {
-    node: {
-      language: 'node',
-      name: 'Node.js',
-      protocol: 'cdp',
-      defaultPort: 9229,
-      fileExtensions: ['.js', '.ts'],
-      debugCommand: (c) => `node --inspect-brk=0.0.0.0:${c.port || 9229} ${c.program}`,
-      supportsBreakpoints: true,
-      supportsConditionalBreakpoints: true,
-      supportsLogPoints: true,
-      supportsHitCount: true,
-      supportsDataBreakpoints: false,
-      supportsExceptionBreakpoints: true,
-      supportsStepBack: false,
-      supportsRestartFrame: true,
-      supportsGotoTargets: false,
-      supportsCompletionsRequest: true,
-      supportsModulesRequest: true,
-      supportsLoadedSourcesRequest: true,
-      supportsTerminateRequest: true,
-      supportsSuspendDebuggee: true,
-      supportsValueFormattingOptions: true,
-      supportsFunctionBreakpoints: true,
-    },
-    python: {
-      language: 'python',
-      name: 'Python',
-      protocol: 'dap',
-      defaultPort: 5678,
-      fileExtensions: ['.py'],
-      installCommand: 'pip install debugpy',
-      debugCommand: (c) => `python3 -m debugpy --listen 0.0.0.0:${c.port || 5678} ${c.program}`,
-      supportsBreakpoints: true,
-      supportsConditionalBreakpoints: true,
-      supportsLogPoints: true,
-      supportsHitCount: true,
-      supportsDataBreakpoints: false,
-      supportsExceptionBreakpoints: true,
-      supportsStepBack: false,
-      supportsRestartFrame: false,
-      supportsGotoTargets: false,
-      supportsCompletionsRequest: true,
-      supportsModulesRequest: true,
-      supportsLoadedSourcesRequest: true,
-      supportsTerminateRequest: true,
-      supportsSuspendDebuggee: true,
-      supportsValueFormattingOptions: true,
-      supportsFunctionBreakpoints: true,
-    },
-    go: {
-      language: 'go',
-      name: 'Go',
-      protocol: 'dap',
-      defaultPort: 2345,
-      fileExtensions: ['.go'],
-      debugCommand: (c) => `dlv dap --listen=:${c.port || 2345}`,
-      supportsBreakpoints: true,
-      supportsConditionalBreakpoints: true,
-      supportsLogPoints: false,
-      supportsHitCount: true,
-      supportsDataBreakpoints: false,
-      supportsExceptionBreakpoints: false,
-      supportsStepBack: false,
-      supportsRestartFrame: false,
-      supportsGotoTargets: false,
-      supportsCompletionsRequest: false,
-      supportsModulesRequest: false,
-      supportsLoadedSourcesRequest: false,
-      supportsTerminateRequest: true,
-      supportsSuspendDebuggee: false,
-      supportsValueFormattingOptions: false,
-      supportsFunctionBreakpoints: false,
-    },
-  };
+    const mockLANGUAGE_CONFIGS: Record<
+      string,
+      {
+        language: string;
+        name: string;
+        protocol: string;
+        defaultPort: number;
+        fileExtensions: string[];
+        installCommand?: string;
+        debugCommand: (c: Record<string, unknown>) => string;
+        requiresCompilation?: boolean;
+        compileCommand?: (c: Record<string, unknown>) => string;
+        supportsBreakpoints: boolean;
+        supportsConditionalBreakpoints: boolean;
+        supportsLogPoints: boolean;
+        supportsHitCount: boolean;
+        supportsDataBreakpoints: boolean;
+        supportsExceptionBreakpoints: boolean;
+        supportsStepBack: boolean;
+        supportsRestartFrame: boolean;
+        supportsGotoTargets: boolean;
+        supportsCompletionsRequest: boolean;
+        supportsModulesRequest: boolean;
+        supportsLoadedSourcesRequest: boolean;
+        supportsTerminateRequest: boolean;
+        supportsSuspendDebuggee: boolean;
+        supportsValueFormattingOptions: boolean;
+        supportsFunctionBreakpoints: boolean;
+      }
+    > = {
+      node: {
+        language: 'node',
+        name: 'Node.js',
+        protocol: 'cdp',
+        defaultPort: 9229,
+        fileExtensions: ['.js', '.ts'],
+        debugCommand: (c) => `node --inspect-brk=0.0.0.0:${c.port || 9229} ${c.program}`,
+        supportsBreakpoints: true,
+        supportsConditionalBreakpoints: true,
+        supportsLogPoints: true,
+        supportsHitCount: true,
+        supportsDataBreakpoints: false,
+        supportsExceptionBreakpoints: true,
+        supportsStepBack: false,
+        supportsRestartFrame: true,
+        supportsGotoTargets: false,
+        supportsCompletionsRequest: true,
+        supportsModulesRequest: true,
+        supportsLoadedSourcesRequest: true,
+        supportsTerminateRequest: true,
+        supportsSuspendDebuggee: true,
+        supportsValueFormattingOptions: true,
+        supportsFunctionBreakpoints: true,
+      },
+      python: {
+        language: 'python',
+        name: 'Python',
+        protocol: 'dap',
+        defaultPort: 5678,
+        fileExtensions: ['.py'],
+        installCommand: 'pip install debugpy',
+        debugCommand: (c) => `python3 -m debugpy --listen 0.0.0.0:${c.port || 5678} ${c.program}`,
+        supportsBreakpoints: true,
+        supportsConditionalBreakpoints: true,
+        supportsLogPoints: true,
+        supportsHitCount: true,
+        supportsDataBreakpoints: false,
+        supportsExceptionBreakpoints: true,
+        supportsStepBack: false,
+        supportsRestartFrame: false,
+        supportsGotoTargets: false,
+        supportsCompletionsRequest: true,
+        supportsModulesRequest: true,
+        supportsLoadedSourcesRequest: true,
+        supportsTerminateRequest: true,
+        supportsSuspendDebuggee: true,
+        supportsValueFormattingOptions: true,
+        supportsFunctionBreakpoints: true,
+      },
+      go: {
+        language: 'go',
+        name: 'Go',
+        protocol: 'dap',
+        defaultPort: 2345,
+        fileExtensions: ['.go'],
+        debugCommand: (c) => `dlv dap --listen=:${c.port || 2345}`,
+        supportsBreakpoints: true,
+        supportsConditionalBreakpoints: true,
+        supportsLogPoints: false,
+        supportsHitCount: true,
+        supportsDataBreakpoints: false,
+        supportsExceptionBreakpoints: false,
+        supportsStepBack: false,
+        supportsRestartFrame: false,
+        supportsGotoTargets: false,
+        supportsCompletionsRequest: false,
+        supportsModulesRequest: false,
+        supportsLoadedSourcesRequest: false,
+        supportsTerminateRequest: true,
+        supportsSuspendDebuggee: false,
+        supportsValueFormattingOptions: false,
+        supportsFunctionBreakpoints: false,
+      },
+    };
 
-  return {
-    mockCDPClient,
-    mockDAPClient,
-    mockGetContainerManager,
-    mockContainerManager,
-    mockLANGUAGE_CONFIGS,
-  };
-});
+    return {
+      mockCDPClient,
+      mockDAPClient,
+      mockGetContainerManager,
+      mockContainerManager,
+      mockLANGUAGE_CONFIGS,
+    };
+  }
+);
 
 // ============================================================================
 // MODULE MOCKS

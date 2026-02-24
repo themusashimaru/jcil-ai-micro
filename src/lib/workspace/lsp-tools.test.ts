@@ -40,7 +40,7 @@ describe('getLSPTools', () => {
     const tools = getLSPTools();
     tools.forEach((t) => {
       expect(t.description).toBeTruthy();
-      expect(t.description.length).toBeGreaterThan(10);
+      expect(t.description!.length).toBeGreaterThan(10);
     });
   });
 });

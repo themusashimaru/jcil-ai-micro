@@ -25,6 +25,7 @@ describe('buildKnowledgePromptContext', () => {
   it('should return empty string when no findings', () => {
     const context: KnowledgeContext = {
       entries: [],
+      summary: '',
       domains: [],
       totalFindings: 0,
     };
@@ -49,9 +50,11 @@ describe('buildKnowledgePromptContext', () => {
           domain: 'housing',
           topicTags: ['housing', 'prices'],
           searchQueries: [],
-          createdAt: new Date().toISOString(),
+          scoutToolsUsed: [],
+          createdAt: Date.now(),
         },
       ],
+      summary: 'Housing research findings',
       domains: ['housing'],
       totalFindings: 1,
     };
@@ -80,7 +83,8 @@ describe('buildKnowledgePromptContext', () => {
           domain: 'housing',
           topicTags: [],
           searchQueries: [],
-          createdAt: '',
+          scoutToolsUsed: [],
+          createdAt: 0,
         },
         {
           id: '2',
@@ -97,9 +101,11 @@ describe('buildKnowledgePromptContext', () => {
           domain: 'jobs',
           topicTags: [],
           searchQueries: [],
-          createdAt: '',
+          scoutToolsUsed: [],
+          createdAt: 0,
         },
       ],
+      summary: 'Multi-domain research',
       domains: ['housing', 'jobs'],
       totalFindings: 2,
     };
@@ -127,9 +133,11 @@ describe('buildKnowledgePromptContext', () => {
           domain: 'test',
           topicTags: [],
           searchQueries: [],
-          createdAt: '',
+          scoutToolsUsed: [],
+          createdAt: 0,
         },
       ],
+      summary: 'Test findings',
       domains: ['test'],
       totalFindings: 1,
     };
@@ -157,9 +165,11 @@ describe('buildKnowledgePromptContext', () => {
           domain: 'test',
           topicTags: [],
           searchQueries: [],
-          createdAt: '',
+          scoutToolsUsed: [],
+          createdAt: 0,
         },
       ],
+      summary: 'Test findings',
       domains: ['test'],
       totalFindings: 1,
     };
@@ -184,10 +194,12 @@ describe('buildKnowledgePromptContext', () => {
       domain: 'housing',
       topicTags: [] as string[],
       searchQueries: [] as string[],
-      createdAt: '',
+      scoutToolsUsed: [] as string[],
+      createdAt: 0,
     }));
     const context: KnowledgeContext = {
       entries,
+      summary: 'Many housing findings',
       domains: ['housing'],
       totalFindings: 15,
     };

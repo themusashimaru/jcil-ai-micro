@@ -35,13 +35,17 @@ import {
 describe('PredictiveSimulator type exports', () => {
   it('should export Scenario interface', () => {
     const s: Scenario = {
+      id: 'sc-1',
       name: 'Best case',
       description: 'Everything goes right',
-      probability: 0.3,
+      type: 'optimistic',
+      assumptions: ['Growth continues'],
       variables: [],
+      probability: 0.3,
       timeline: [],
-      outcome: { description: 'Success', impact: 'positive', confidence: 0.9, metrics: {} },
+      outcomes: [],
       risks: [],
+      opportunities: ['Market expansion'],
     };
     expect(s.probability).toBe(0.3);
   });
@@ -49,29 +53,33 @@ describe('PredictiveSimulator type exports', () => {
   it('should export ScenarioVariable interface', () => {
     const v: ScenarioVariable = {
       name: 'Interest Rate',
-      currentValue: '5%',
-      projectedValue: '4%',
-      impact: 'Positive for borrowers',
+      baseValue: '5%',
+      scenarioValue: '4%',
+      sensitivity: 'high',
+      confidence: 0.8,
     };
     expect(v.name).toBe('Interest Rate');
   });
 
   it('should export TimelineEvent interface', () => {
     const e: TimelineEvent = {
-      time: '3 months',
+      date: '3 months',
       event: 'Rate drop',
       probability: 0.6,
-      impact: 'Increased demand',
+      dependencies: [],
+      impact: 'positive',
     };
     expect(e.probability).toBe(0.6);
   });
 
   it('should export Outcome interface', () => {
     const o: Outcome = {
-      description: 'Market correction',
+      id: 'out-1',
+      name: 'Market correction',
+      description: 'A market correction occurs',
+      probability: 0.5,
       impact: 'negative',
-      confidence: 0.5,
-      metrics: { priceChange: '-10%' },
+      qualitativeDescription: 'Moderate price decline expected',
     };
     expect(o.impact).toBe('negative');
   });
@@ -79,28 +87,33 @@ describe('PredictiveSimulator type exports', () => {
   it('should export ScenarioRisk interface', () => {
     const r: ScenarioRisk = {
       risk: 'Market crash',
-      likelihood: 'low',
-      impact: 'severe',
+      probability: 0.1,
+      impact: 'critical',
       mitigation: 'Diversify investments',
     };
-    expect(r.likelihood).toBe('low');
+    expect(r.impact).toBe('critical');
   });
 
   it('should export WhatIfQuery interface', () => {
     const q: WhatIfQuery = {
       question: 'What if rates rise?',
-      variables: [{ name: 'Rate', currentValue: '5%', projectedValue: '7%', impact: '' }],
-      timeframe: '6 months',
+      variables: [{ name: 'Rate', currentValue: '5%', hypotheticalValue: '7%' }],
+      context: 'US housing market',
     };
     expect(q.question).toBe('What if rates rise?');
   });
 
   it('should export WhatIfResult interface', () => {
     const r: WhatIfResult = {
-      query: { question: 'test', variables: [], timeframe: '1yr' },
-      scenarios: [],
-      recommendation: 'Wait',
+      query: { question: 'test', variables: [] },
+      analysis: 'Rates rising would cool demand',
+      primaryEffect: 'Reduced demand',
+      secondaryEffects: ['Lower prices'],
+      probability: 0.6,
       confidence: 0.7,
+      assumptions: ['Fed acts as expected'],
+      caveats: ['Subject to policy changes'],
+      recommendations: ['Wait for clarity'],
     };
     expect(r.confidence).toBe(0.7);
   });
@@ -108,17 +121,21 @@ describe('PredictiveSimulator type exports', () => {
   it('should export SensitivityAnalysis interface', () => {
     const sa: SensitivityAnalysis = {
       variable: 'Interest rates',
-      impactOnOutcome: 'high',
-      elasticity: 0.8,
-      breakpoints: ['2%', '5%', '8%'],
+      baseValue: 5.0,
+      testRange: { min: 3.0, max: 8.0 },
+      sensitivityScore: 0.8,
+      breakpoints: [{ value: 7.0, event: 'Market slowdown', significance: 'critical' }],
+      recommendations: ['Monitor rate changes closely'],
     };
-    expect(sa.elasticity).toBe(0.8);
+    expect(sa.sensitivityScore).toBe(0.8);
   });
 
   it('should export DecisionTree interface', () => {
     const dt: DecisionTree = {
-      rootNode: { type: 'decision', label: 'Buy or rent?', children: [] },
-      optimalPath: ['Buy'],
+      id: 'dt-1',
+      rootNode: { id: 'dn-1', type: 'decision', label: 'Buy or rent?', children: [] },
+      bestPath: ['Buy'],
+      worstPath: ['Rent in declining market'],
       expectedValue: 50000,
     };
     expect(dt.expectedValue).toBe(50000);
@@ -126,6 +143,7 @@ describe('PredictiveSimulator type exports', () => {
 
   it('should export DecisionNode interface', () => {
     const dn: DecisionNode = {
+      id: 'dn-1',
       type: 'decision',
       label: 'Invest now?',
       children: [],
@@ -136,16 +154,13 @@ describe('PredictiveSimulator type exports', () => {
   it('should export SimulationResult interface', () => {
     const sr: SimulationResult = {
       scenarios: [],
-      sensitivityAnalysis: [],
-      decisionTree: {
-        rootNode: { type: 'decision', label: 'Root', children: [] },
-        optimalPath: [],
-        expectedValue: 0,
-      },
-      recommendation: 'Proceed',
-      confidence: 0.8,
+      whatIfResults: [],
+      sensitivityAnalyses: [],
+      keyInsights: ['Key insight'],
+      recommendations: ['Proceed'],
+      timestamp: Date.now(),
     };
-    expect(sr.recommendation).toBe('Proceed');
+    expect(sr.recommendations).toContain('Proceed');
   });
 });
 

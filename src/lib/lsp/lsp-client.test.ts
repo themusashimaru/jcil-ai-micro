@@ -8,11 +8,15 @@ vi.mock('child_process', async (importOriginal) => {
     ...actual,
     spawn: vi.fn(() => {
       const proc = new EventEmitter();
-      (proc as Record<string, unknown>).stdin = { writable: true, write: vi.fn(), end: vi.fn() };
-      (proc as Record<string, unknown>).stdout = new EventEmitter();
-      (proc as Record<string, unknown>).stderr = new EventEmitter();
-      (proc as Record<string, unknown>).kill = vi.fn();
-      (proc as Record<string, unknown>).pid = 99999;
+      (proc as unknown as Record<string, unknown>).stdin = {
+        writable: true,
+        write: vi.fn(),
+        end: vi.fn(),
+      };
+      (proc as unknown as Record<string, unknown>).stdout = new EventEmitter();
+      (proc as unknown as Record<string, unknown>).stderr = new EventEmitter();
+      (proc as unknown as Record<string, unknown>).kill = vi.fn();
+      (proc as unknown as Record<string, unknown>).pid = 99999;
       return proc;
     }),
   };

@@ -36,7 +36,9 @@ describe('CausalReasoningEngine type exports', () => {
       nodes: [],
       edges: [],
       rootCauses: [],
+      finalEffects: [],
       confounders: [],
+      interventionPoints: [],
     };
     expect(graph.nodes).toEqual([]);
     expect(graph.rootCauses).toEqual([]);
@@ -48,6 +50,7 @@ describe('CausalReasoningEngine type exports', () => {
       name: 'Housing Prices',
       type: 'cause',
       description: 'Rising housing prices',
+      sourceIds: ['src-1'],
       confidence: 0.9,
     };
     expect(node.type).toBe('cause');
@@ -55,25 +58,29 @@ describe('CausalReasoningEngine type exports', () => {
 
   it('should export CausalEdge interface', () => {
     const edge: CausalEdge = {
+      id: 'e1',
       fromNodeId: 'n1',
       toNodeId: 'n2',
-      relationship: 'causes',
-      strength: 0.8,
-      evidence: 'Statistical correlation',
       mechanism: 'Supply and demand',
+      strength: 'strong',
+      temporalOrder: 'short_term',
+      confidence: 0.8,
+      evidence: ['Statistical correlation'],
+      isDirectCause: true,
     };
-    expect(edge.strength).toBe(0.8);
+    expect(edge.strength).toBe('strong');
   });
 
   it('should export Confounder interface', () => {
     const conf: Confounder = {
       id: 'c1',
       name: 'Interest rates',
-      affectedNodes: ['n1', 'n2'],
-      description: 'Rates affect both',
+      affectedRelationships: [
+        { causeId: 'n1', effectId: 'n2', confoundingMechanism: 'Rate changes affect both' },
+      ],
       severity: 'high',
     };
-    expect(conf.affectedNodes).toHaveLength(2);
+    expect(conf.affectedRelationships).toHaveLength(1);
   });
 
   it('should export InterventionPoint interface', () => {
@@ -93,44 +100,62 @@ describe('CausalReasoningEngine type exports', () => {
 
   it('should export CausalChain interface', () => {
     const chain: CausalChain = {
-      nodes: ['n1', 'n2', 'n3'],
-      totalStrength: 0.7,
+      id: 'ch-1',
+      nodes: [],
+      edges: [],
       description: 'Prices -> Demand -> Supply',
+      totalStrength: 0.7,
+      confidence: 0.8,
     };
-    expect(chain.nodes).toHaveLength(3);
+    expect(chain.totalStrength).toBe(0.7);
   });
 
   it('should export CounterfactualAnalysis interface', () => {
     const cf: CounterfactualAnalysis = {
       scenario: 'What if rates stayed low?',
-      outcome: 'Prices would be higher',
+      intervention: 'Keep rates at 2%',
+      predictedOutcome: 'Prices would be higher',
       confidence: 0.6,
-      reasoning: 'Historical patterns',
+      assumptions: ['No external shocks'],
+      limitations: ['Historical data limited'],
     };
     expect(cf.confidence).toBe(0.6);
   });
 
   it('should export RootCauseAnalysis interface', () => {
     const rca: RootCauseAnalysis = {
-      rootCause: 'Supply shortage',
-      confidence: 0.85,
-      evidenceChain: ['Low inventory', 'High demand'],
-      alternativeExplanations: ['Speculation'],
+      problem: 'Housing affordability crisis',
+      rootCauses: [
+        {
+          cause: 'Supply shortage',
+          mechanism: 'Low inventory',
+          confidence: 0.85,
+          evidence: ['Census data'],
+          priority: 'critical',
+        },
+      ],
+      contributingFactors: ['Low interest rates'],
       recommendations: ['Build more housing'],
     };
-    expect(rca.evidenceChain).toHaveLength(2);
+    expect(rca.rootCauses).toHaveLength(1);
   });
 
   it('should export CausalAnalysisResult interface', () => {
     const result: CausalAnalysisResult = {
-      graph: { nodes: [], edges: [], rootCauses: [], confounders: [] },
-      rootCauseAnalysis: [],
-      interventionPoints: [],
+      graph: {
+        nodes: [],
+        edges: [],
+        rootCauses: [],
+        finalEffects: [],
+        confounders: [],
+        interventionPoints: [],
+      },
+      chains: [],
       counterfactuals: [],
-      causalChains: [],
-      confidence: 0.7,
+      keyInsights: ['Key insight'],
+      timestamp: Date.now(),
     };
-    expect(result.confidence).toBe(0.7);
+    expect(result.keyInsights).toHaveLength(1);
   });
 });
 
@@ -184,7 +209,9 @@ describe('CausalReasoningEngine', () => {
         nodes: [],
         edges: [],
         rootCauses: [],
+        finalEffects: [],
         confounders: [],
+        interventionPoints: [],
       };
       expect(engine.identifyInterventionPoints(graph)).toEqual([]);
     });
@@ -192,12 +219,20 @@ describe('CausalReasoningEngine', () => {
     it('should identify mediator nodes with multiple outgoing edges', () => {
       const graph: CausalGraph = {
         nodes: [
-          { id: 'n1', name: 'Root', type: 'cause', description: 'A root cause', confidence: 0.9 },
+          {
+            id: 'n1',
+            name: 'Root',
+            type: 'cause',
+            description: 'A root cause',
+            sourceIds: [],
+            confidence: 0.9,
+          },
           {
             id: 'n2',
             name: 'Mediator',
             type: 'mediator',
             description: 'A mediating factor',
+            sourceIds: [],
             confidence: 0.8,
           },
           {
@@ -205,6 +240,7 @@ describe('CausalReasoningEngine', () => {
             name: 'Effect1',
             type: 'effect',
             description: 'First effect',
+            sourceIds: [],
             confidence: 0.7,
           },
           {
@@ -212,37 +248,49 @@ describe('CausalReasoningEngine', () => {
             name: 'Effect2',
             type: 'effect',
             description: 'Second effect',
+            sourceIds: [],
             confidence: 0.7,
           },
         ],
         edges: [
           {
+            id: 'e1',
             fromNodeId: 'n1',
             toNodeId: 'n2',
-            relationship: 'causes',
-            strength: 0.9,
-            evidence: 'Data',
-            mechanism: '',
+            mechanism: 'causes',
+            strength: 'strong',
+            temporalOrder: 'short_term',
+            confidence: 0.9,
+            evidence: ['Data'],
+            isDirectCause: true,
           },
           {
+            id: 'e2',
             fromNodeId: 'n2',
             toNodeId: 'n3',
-            relationship: 'causes',
-            strength: 0.8,
-            evidence: 'Data',
-            mechanism: '',
+            mechanism: 'causes',
+            strength: 'moderate',
+            temporalOrder: 'short_term',
+            confidence: 0.8,
+            evidence: ['Data'],
+            isDirectCause: true,
           },
           {
+            id: 'e3',
             fromNodeId: 'n2',
             toNodeId: 'n4',
-            relationship: 'causes',
-            strength: 0.7,
-            evidence: 'Data',
-            mechanism: '',
+            mechanism: 'causes',
+            strength: 'weak',
+            temporalOrder: 'long_term',
+            confidence: 0.7,
+            evidence: ['Data'],
+            isDirectCause: true,
           },
         ],
         rootCauses: [],
+        finalEffects: [],
         confounders: [],
+        interventionPoints: [],
       };
       const points = engine.identifyInterventionPoints(graph);
       expect(points.length).toBeGreaterThan(0);
@@ -253,21 +301,40 @@ describe('CausalReasoningEngine', () => {
     it('should identify root cause nodes', () => {
       const graph: CausalGraph = {
         nodes: [
-          { id: 'n1', name: 'Root', type: 'cause', description: 'Root cause', confidence: 0.9 },
-          { id: 'n2', name: 'Effect', type: 'effect', description: 'Effect', confidence: 0.7 },
+          {
+            id: 'n1',
+            name: 'Root',
+            type: 'cause',
+            description: 'Root cause',
+            sourceIds: [],
+            confidence: 0.9,
+          },
+          {
+            id: 'n2',
+            name: 'Effect',
+            type: 'effect',
+            description: 'Effect',
+            sourceIds: [],
+            confidence: 0.7,
+          },
         ],
         edges: [
           {
+            id: 'e1',
             fromNodeId: 'n1',
             toNodeId: 'n2',
-            relationship: 'causes',
-            strength: 0.9,
-            evidence: 'Data',
-            mechanism: '',
+            mechanism: 'causes',
+            strength: 'strong',
+            temporalOrder: 'immediate',
+            confidence: 0.9,
+            evidence: ['Data'],
+            isDirectCause: true,
           },
         ],
         rootCauses: ['n1'],
+        finalEffects: [],
         confounders: [],
+        interventionPoints: [],
       };
       const points = engine.identifyInterventionPoints(graph);
       expect(points.some((p) => p.interventionType === 'remove')).toBe(true);
@@ -278,12 +345,14 @@ describe('CausalReasoningEngine', () => {
     it('should return zero effect for disconnected nodes', () => {
       const graph: CausalGraph = {
         nodes: [
-          { id: 'n1', name: 'A', type: 'cause', description: 'A', confidence: 0.9 },
-          { id: 'n2', name: 'B', type: 'effect', description: 'B', confidence: 0.9 },
+          { id: 'n1', name: 'A', type: 'cause', description: 'A', sourceIds: [], confidence: 0.9 },
+          { id: 'n2', name: 'B', type: 'effect', description: 'B', sourceIds: [], confidence: 0.9 },
         ],
         edges: [],
         rootCauses: [],
+        finalEffects: [],
         confounders: [],
+        interventionPoints: [],
       };
       const result = engine.calculateCausalEffect(graph, 'n1', 'n2');
       expect(result.totalEffect).toBe(0);
@@ -293,21 +362,26 @@ describe('CausalReasoningEngine', () => {
     it('should find direct causal effect', () => {
       const graph: CausalGraph = {
         nodes: [
-          { id: 'n1', name: 'A', type: 'cause', description: 'A', confidence: 0.9 },
-          { id: 'n2', name: 'B', type: 'effect', description: 'B', confidence: 0.9 },
+          { id: 'n1', name: 'A', type: 'cause', description: 'A', sourceIds: [], confidence: 0.9 },
+          { id: 'n2', name: 'B', type: 'effect', description: 'B', sourceIds: [], confidence: 0.9 },
         ],
         edges: [
           {
+            id: 'e1',
             fromNodeId: 'n1',
             toNodeId: 'n2',
-            relationship: 'causes',
-            strength: 0.8,
-            evidence: 'Data',
-            mechanism: '',
+            mechanism: 'causes',
+            strength: 'strong',
+            temporalOrder: 'immediate',
+            confidence: 0.8,
+            evidence: ['Data'],
+            isDirectCause: true,
           },
         ],
         rootCauses: [],
+        finalEffects: [],
         confounders: [],
+        interventionPoints: [],
       };
       const result = engine.calculateCausalEffect(graph, 'n1', 'n2');
       expect(result.totalEffect).toBeGreaterThan(0);

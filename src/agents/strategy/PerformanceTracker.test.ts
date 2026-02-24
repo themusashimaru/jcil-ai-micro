@@ -34,6 +34,7 @@ describe('buildPerformancePromptContext', () => {
         avgConfidenceScore: 0.8,
         avgRelevanceScore: 0.75,
         successRate: 0.9,
+        avgExecutionTimeMs: 2500,
         sampleSize: 10,
       },
     ];
@@ -52,6 +53,7 @@ describe('buildPerformancePromptContext', () => {
         avgConfidenceScore: 0.8,
         avgRelevanceScore: 0.7,
         successRate: 0.9,
+        avgExecutionTimeMs: 1500,
         sampleSize: 5,
       },
     ];
@@ -66,6 +68,7 @@ describe('buildPerformancePromptContext', () => {
       avgConfidenceScore: 0.7,
       avgRelevanceScore: 0.6,
       successRate: 0.8,
+      avgExecutionTimeMs: 1000,
       sampleSize: i + 1,
     }));
     const result = buildPerformancePromptContext(insights);
@@ -83,6 +86,7 @@ describe('buildPerformancePromptContext', () => {
         avgConfidenceScore: 0.8,
         avgRelevanceScore: 0.7,
         successRate: 0.9,
+        avgExecutionTimeMs: 1200,
         sampleSize: 5,
       },
     ];

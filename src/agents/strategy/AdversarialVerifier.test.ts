@@ -28,85 +28,126 @@ import {
   type VerificationVerdict,
   type AdversarialContext,
 } from './AdversarialVerifier';
+import type { SynthesizedProblem } from './types';
 
 describe('AdversarialVerifier type exports', () => {
   it('should export AdversarialResult interface', () => {
     const result: AdversarialResult = {
+      status: 'verified',
+      robustnessScore: 0.9,
       counterArguments: [],
       contradictions: [],
       stressTests: [],
-      alternativePerspectives: [],
-      devilsAdvocate: { assessment: '', rating: 'strong', confidence: 0.9 },
-      verdict: { isSound: true, confidence: 0.95, summary: 'All good' },
-      overallScore: 0.9,
+      underweightedPerspectives: [],
+      devilsAdvocate: {
+        mainThesis: 'Thesis',
+        opposingPosition: 'Counter',
+        strongestCounterpoints: [],
+        weaknesses: [],
+        whatCouldGoWrong: [],
+        hiddenRisks: [],
+      },
+      verdict: {
+        confidence: 0.95,
+        recommendation: 'proceed',
+        summary: 'All good',
+        requiredActions: [],
+        remainingRisks: [],
+      },
+      timestamp: Date.now(),
     };
-    expect(result.overallScore).toBe(0.9);
+    expect(result.robustnessScore).toBe(0.9);
   });
 
   it('should export CounterArgument interface', () => {
     const ca: CounterArgument = {
-      claim: 'Housing prices will rise',
-      counterPoint: 'Interest rates are increasing',
-      strength: 'high',
-      evidence: 'Fed policy signals',
+      id: 'ca-1',
+      argument: 'Housing prices will rise',
+      strength: 'strong',
+      evidence: ['Fed policy signals'],
+      rebuttalSuggestion: 'Check macro trends',
     };
-    expect(ca.strength).toBe('high');
+    expect(ca.strength).toBe('strong');
   });
 
   it('should export Contradiction interface', () => {
     const c: Contradiction = {
-      statement1: 'Demand is high',
-      statement2: 'Prices are falling',
-      severity: 'major',
+      id: 'ctr-1',
+      findingA: { id: 'f1', title: 'Demand is high', content: 'High demand observed' },
+      findingB: { id: 'f2', title: 'Prices are falling', content: 'Price decline noted' },
+      contradictionType: 'direct',
+      severity: 'high',
       resolution: 'Check data sources',
     };
-    expect(c.severity).toBe('major');
+    expect(c.severity).toBe('high');
   });
 
   it('should export StressTestResult interface', () => {
     const st: StressTestResult = {
+      id: 'st-1',
       scenario: 'Market crash',
-      impact: 'Conclusions invalid',
-      likelihood: 'low',
-      resilience: 'weak',
+      testedElement: 'Main recommendation',
+      passed: false,
+      failureMode: 'Conclusions invalid under crash',
+      implications: 'Need contingency plan',
     };
-    expect(st.resilience).toBe('weak');
+    expect(st.passed).toBe(false);
   });
 
   it('should export Perspective interface', () => {
     const p: Perspective = {
-      viewpoint: 'Economic conservative',
-      assessment: 'Too optimistic',
-      blindSpots: ['Ignores debt'],
+      id: 'p-1',
+      perspective: 'Economic conservative viewpoint',
+      stakeholder: 'Conservative investors',
+      importance: 0.8,
+      currentWeight: 0.2,
+      suggestedWeight: 0.5,
+      reasoning: 'Risk-averse viewpoint underrepresented',
     };
-    expect(p.blindSpots).toHaveLength(1);
+    expect(p.importance).toBe(0.8);
   });
 
   it('should export DevilsAdvocateAssessment interface', () => {
     const da: DevilsAdvocateAssessment = {
-      assessment: 'Analysis is too narrow',
-      rating: 'moderate',
-      confidence: 0.7,
+      mainThesis: 'Analysis is too narrow',
+      opposingPosition: 'Broader factors exist',
+      strongestCounterpoints: ['Market cycles ignored'],
+      weaknesses: ['Limited data sources'],
+      whatCouldGoWrong: ['Recession hits'],
+      hiddenRisks: ['Regulatory changes'],
     };
-    expect(da.rating).toBe('moderate');
+    expect(da.strongestCounterpoints).toHaveLength(1);
   });
 
   it('should export VerificationVerdict interface', () => {
     const v: VerificationVerdict = {
-      isSound: true,
       confidence: 0.85,
-      summary: 'Research is solid',
+      recommendation: 'proceed_with_caution',
+      summary: 'Research is solid but has gaps',
+      requiredActions: ['Verify pricing data'],
+      remainingRisks: ['Market volatility'],
     };
-    expect(v.isSound).toBe(true);
+    expect(v.confidence).toBe(0.85);
   });
 
   it('should export AdversarialContext interface', () => {
     const ctx: AdversarialContext = {
+      problem: {
+        summary: 'Housing analysis',
+        coreQuestion: 'Should I buy?',
+        constraints: [],
+        priorities: [],
+        stakeholders: [],
+        timeframe: '6 months',
+        riskTolerance: 'medium',
+        complexity: 'moderate',
+        domains: ['housing'],
+        hiddenFactors: [],
+        successCriteria: [],
+      } as SynthesizedProblem,
       findings: [],
-      conclusions: [],
-      confidence: 0.8,
     };
-    expect(ctx.confidence).toBe(0.8);
+    expect(ctx.findings).toEqual([]);
   });
 });
 
