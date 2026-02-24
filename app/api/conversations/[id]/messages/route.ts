@@ -242,9 +242,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return errors.notFound('Conversation');
     }
 
-    // Calculate retention date (30 days from now by default)
+    // Calculate retention date (1 year from now — extends on activity)
     const retentionDate = new Date();
-    retentionDate.setDate(retentionDate.getDate() + 30);
+    retentionDate.setFullYear(retentionDate.getFullYear() + 1);
 
     // Safe preview for logging
     const contentPreview =
@@ -291,12 +291,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     log.info(`Message saved: ${message.id}`);
 
     // Note: message_count is incremented by database trigger (increment_conversation_message_count)
-    // We only update last_message_at here to avoid duplicate counting
+    // Update timestamps AND extend retention on every message to prevent expiry
+    const conversationRetention = new Date();
+    conversationRetention.setFullYear(conversationRetention.getFullYear() + 1);
     const { error: updateError } = await auth.supabase
       .from('conversations')
       .update({
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        retention_until: conversationRetention.toISOString(),
       })
       .eq('id', conversationId);
 
