@@ -106,19 +106,21 @@ describe('convertToUnifiedMessages', () => {
   });
 
   it('should convert tool-call parts', () => {
-    const messages: CoreMessage[] = [
+    // The converter reads `args` (legacy SDK format) via dynamic property access.
+    // We cast to satisfy TS while keeping the property the function actually reads.
+    const messages = [
       {
-        role: 'assistant',
+        role: 'assistant' as const,
         content: [
           {
-            type: 'tool-call',
+            type: 'tool-call' as const,
             toolCallId: 'call-1',
             toolName: 'web_search',
             args: { query: 'test' },
           },
         ],
       },
-    ];
+    ] as unknown as CoreMessage[];
     const result = convertToUnifiedMessages(messages);
     const content = result[0].content as Array<{
       type: string;
@@ -133,18 +135,20 @@ describe('convertToUnifiedMessages', () => {
   });
 
   it('should convert tool-result parts', () => {
-    const messages: CoreMessage[] = [
+    // The converter reads `result` (legacy SDK format) via dynamic property access.
+    // We cast to satisfy TS while keeping the property the function actually reads.
+    const messages = [
       {
-        role: 'tool',
+        role: 'tool' as const,
         content: [
           {
-            type: 'tool-result',
+            type: 'tool-result' as const,
             toolCallId: 'call-1',
             result: 'Search results here',
           },
         ],
       },
-    ];
+    ] as unknown as CoreMessage[];
     const result = convertToUnifiedMessages(messages);
     const content = result[0].content as Array<{
       type: string;

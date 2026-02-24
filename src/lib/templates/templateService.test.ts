@@ -13,6 +13,7 @@ import {
   extractBusinessInfo,
   applyBusinessInfo,
   type TemplateCategory,
+  type WebsiteTemplate,
 } from './templateService';
 
 // -------------------------------------------------------------------
@@ -119,17 +120,42 @@ describe('extractBusinessInfo', () => {
 // applyBusinessInfo
 // -------------------------------------------------------------------
 describe('applyBusinessInfo', () => {
-  const mockTemplate = {
+  const mockTemplate: WebsiteTemplate = {
     id: 'test',
     name: 'Test Template',
+    slug: 'test-template',
     description: 'Test',
     category: 'landing-page' as TemplateCategory,
+    subcategories: [],
+    tags: [],
+    style: 'modern',
+    layout: 'single-page',
+    color_scheme: {
+      primary: '#000',
+      secondary: '#fff',
+      accent: '#f00',
+      background: '#fff',
+      text: '#000',
+    },
+    fonts: { heading: 'Arial', body: 'Arial' },
     html_template:
       '<h1>{{business_name}}</h1><p>{{tagline}}</p><a>{{cta_text}}</a><span>{{phone}}</span><span>{{email}}</span>',
+    css_template: '',
+    js_template: '',
+    has_mobile: true,
+    has_tablet: true,
+    has_desktop: true,
+    features: [],
+    sections: [],
+    placeholder_mappings: {},
+    image_slots: {},
+    customization_hints: '',
     thumbnail_url: '',
-    is_active: true,
+    preview_url: '',
+    times_used: 0,
     rating: 5,
-    usage_count: 0,
+    is_active: true,
+    is_premium: false,
   };
 
   const businessInfo = {
