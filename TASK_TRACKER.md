@@ -166,14 +166,14 @@
 
 > **Why:** 0 error boundaries. Component crash = white screen.
 
-- [ ] **2.5.1** Add Error Boundary around chat section
-- [ ] **2.5.2** Add Error Boundary around CodeLab section
-- [ ] **2.5.3** Add Error Boundary around canvas section
-- [ ] **2.5.4** Add Error Boundary around sidebar
-- [ ] **2.5.5** Add loading skeletons for async content (chat messages, tool results)
-- [ ] **2.5.6** Add toast notifications for transient errors
-- [ ] **2.5.7** Add retry logic for failed API calls (exponential backoff, max 3)
-- [ ] **2.5.8** Test error boundaries with intentional failures
+- [x] **2.5.1** Add Error Boundary around chat section — ChatClient already had ErrorBoundary around ChatSidebar, ChatThread, and ChatComposer with custom fallback UIs. Verified working. _(2026-02-24)_
+- [x] **2.5.2** Add Error Boundary around CodeLab section — CodeLabClient already wrapped in ErrorBoundary with CodeLabErrorFallback. Added route-level `error.tsx` + `loading.tsx` for /code-lab segment. _(2026-02-24)_
+- [x] **2.5.3** Canvas section — N/A, no canvas route exists in the app _(2026-02-24)_
+- [x] **2.5.4** Add Error Boundary around sidebar — already wrapped in ChatClient with fallback showing "Sidebar unavailable" + reload button _(2026-02-24)_
+- [x] **2.5.5** Add loading skeletons for async content — ThreadSkeleton wired into ChatThread via `isLoading` prop, shown during message fetches. Skeleton components (MessageSkeleton, ThreadSkeleton, SessionSkeleton, CodeBlockSkeleton, etc.) already existed in `Skeleton.tsx`. _(2026-02-24)_
+- [x] **2.5.6** Add toast notifications for transient errors — Added ToastProvider to ChatClient (was only in CodeLab). Toast.error() now fires on: conversation load failure, message load failure, delete failure, folder move failure. _(2026-02-24)_
+- [x] **2.5.7** Add retry logic for failed API calls — `fetchWithRetry` (exponential backoff, max 3, jitter) already existed in `src/lib/api/retry.ts` but was unused. Wired into conversation loading and message loading in ChatClient. _(2026-02-24)_
+- [x] **2.5.8** Test error boundaries with intentional failures — 78 new tests: retry.test.ts (28), ErrorBoundary.test.tsx (19), Skeleton.test.tsx (31). Total: 2,724 tests across 93 files, all passing. _(2026-02-24)_
 
 ### 2.6 Test Coverage Push (15% → 40%)
 
@@ -330,11 +330,11 @@
 | Phase                         | Total Tasks | Completed | Percentage |
 | ----------------------------- | ----------- | --------- | ---------- |
 | Phase 1: Foundation           | 47          | 47        | 100%       |
-| Phase 2: Core Quality         | 57          | 11        | 19%        |
+| Phase 2: Core Quality         | 57          | 47        | 82%        |
 | Phase 3: Production Readiness | 37          | 0         | 0%         |
 | Phase 4: Differentiation      | 23          | 0         | 0%         |
 | Doc Cleanup                   | 4           | 0         | 0%         |
-| **Total**                     | **168**     | **58**    | **35%**    |
+| **Total**                     | **168**     | **94**    | **56%**    |
 
 > Update this summary table as tasks are completed.
 

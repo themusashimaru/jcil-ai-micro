@@ -11,19 +11,21 @@ import '@testing-library/jest-dom/vitest';
 import { vi, beforeAll, afterAll, afterEach } from 'vitest';
 
 // Mock window.matchMedia (required for some components)
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 // Mock ResizeObserver (required for some components)
 class MockResizeObserver {
@@ -47,18 +49,20 @@ global.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 // Mock fetch globally
 global.fetch = vi.fn();
 
-// Mock crypto for UUID generation
-Object.defineProperty(global, 'crypto', {
-  value: {
-    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(7),
-    getRandomValues: (arr: Uint8Array) => {
-      for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
-      }
-      return arr;
+// Mock crypto for UUID generation — preserve crypto.subtle for tools that need it
+if (typeof globalThis.crypto === 'undefined') {
+  Object.defineProperty(global, 'crypto', {
+    value: {
+      randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(7),
+      getRandomValues: (arr: Uint8Array) => {
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = Math.floor(Math.random() * 256);
+        }
+        return arr;
+      },
     },
-  },
-});
+  });
+}
 
 // Mock console.error to catch React warnings during tests
 const originalError = console.error;
