@@ -273,7 +273,12 @@ export function CodeLabDeployFlow({
                     <div key={key} className="env-var">
                       <span className="env-key">{key}</span>
                       <span className="env-value">••••••••</span>
-                      <button onClick={() => removeEnvVar(key)}>×</button>
+                      <button
+                        onClick={() => removeEnvVar(key)}
+                        aria-label={`Remove environment variable ${key}`}
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                   <div className="add-env">
@@ -289,7 +294,9 @@ export function CodeLabDeployFlow({
                       onChange={(e) => setNewEnvValue(e.target.value)}
                       placeholder="value"
                     />
-                    <button onClick={addEnvVar}>+</button>
+                    <button onClick={addEnvVar} aria-label="Add environment variable">
+                      +
+                    </button>
                   </div>
                 </div>
               </div>
@@ -337,7 +344,11 @@ export function CodeLabDeployFlow({
 
             {deployment.buildLogs.length > 0 && (
               <div className="build-logs">
-                <button className="logs-toggle" onClick={() => setShowLogs(!showLogs)}>
+                <button
+                  className="logs-toggle"
+                  onClick={() => setShowLogs(!showLogs)}
+                  aria-expanded={showLogs}
+                >
                   {showLogs ? '▼' : '▶'} Build Logs
                 </button>
                 {showLogs && <pre className="logs-content">{deployment.buildLogs.join('\n')}</pre>}

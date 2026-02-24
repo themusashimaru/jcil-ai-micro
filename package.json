@@ -55,6 +55,7 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.43.0",
+    "@testing-library/dom": "^10.4.1",
     "@turf/turf": "^7.3.3",
     "@upstash/qstash": "^2.8.4",
     "@upstash/redis": "^1.28.0",

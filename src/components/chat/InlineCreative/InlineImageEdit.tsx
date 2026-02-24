@@ -111,8 +111,9 @@ export function InlineImageEdit({
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Close image editing form"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -137,8 +138,9 @@ export function InlineImageEdit({
               <button
                 onClick={() => setUploadedImage(null)}
                 className="absolute top-2 right-2 p-1 rounded-full bg-gray-900/80 text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Remove uploaded image"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3" aria-hidden="true" />
               </button>
             </div>
           ) : (

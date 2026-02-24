@@ -124,7 +124,7 @@ const components: Components = {
     // SAFETY: If href is empty or invalid, render as plain text (prevents navigation crash)
     if (!href || href === '' || href === '#') {
       log.warn('Empty or invalid href detected, rendering as text');
-      return <span style={{ color: 'var(--primary)' }}>{children}</span>;
+      return <span className="text-primary">{children}</span>;
     }
 
     const isDocumentLink =
@@ -278,8 +278,7 @@ const components: Components = {
       return (
         <button
           onClick={handleDownload}
-          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md underline cursor-pointer hover:opacity-80 active:scale-95 transition-transform"
-          style={{ color: 'var(--primary)' }}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md underline cursor-pointer hover:opacity-80 active:scale-95 transition-transform text-primary"
         >
           <svg
             className="h-4 w-4 flex-shrink-0"
@@ -305,8 +304,8 @@ const components: Components = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline break-all cursor-pointer hover:opacity-80"
-        style={{ color: 'var(--primary)', pointerEvents: 'auto' }}
+        className="underline break-all cursor-pointer hover:opacity-80 text-primary"
+        style={{ pointerEvents: 'auto' }}
       >
         {children}
       </a>
@@ -323,10 +322,7 @@ const components: Components = {
 
     if (isInline) {
       return (
-        <code
-          className="px-1.5 py-0.5 rounded text-sm font-mono"
-          style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--primary)' }}
-        >
+        <code className="px-1.5 py-0.5 rounded text-sm font-mono bg-glass text-primary">
           {children}
         </code>
       );
@@ -335,16 +331,11 @@ const components: Components = {
     // Block code with language header for Python
     if (isPython) {
       return (
-        <div
-          className="rounded-lg overflow-hidden my-2"
-          style={{ backgroundColor: 'var(--glass-bg)' }}
-        >
+        <div className="rounded-lg overflow-hidden my-2 bg-glass">
           <div
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b border-theme text-text-muted"
             style={{
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              borderColor: 'var(--border)',
-              color: 'var(--text-muted)',
             }}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -353,10 +344,7 @@ const components: Components = {
             </svg>
             <span>Python</span>
           </div>
-          <code
-            className="block p-3 text-sm font-mono overflow-x-auto"
-            style={{ color: 'var(--text-primary)' }}
-          >
+          <code className="block p-3 text-sm font-mono overflow-x-auto text-text-primary">
             {children}
           </code>
         </div>
@@ -365,10 +353,7 @@ const components: Components = {
 
     // Regular block code
     return (
-      <code
-        className="block p-3 rounded-lg text-sm font-mono overflow-x-auto my-2"
-        style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
-      >
+      <code className="block p-3 rounded-lg text-sm font-mono overflow-x-auto my-2 bg-glass text-text-primary">
         {children}
       </code>
     );
@@ -381,24 +366,15 @@ const components: Components = {
       // Let the code component handle its own styling
       return <>{children}</>;
     }
-    return (
-      <pre
-        className="rounded-lg overflow-x-auto my-2"
-        style={{ backgroundColor: 'var(--glass-bg)' }}
-      >
-        {children}
-      </pre>
-    );
+    return <pre className="rounded-lg overflow-x-auto my-2 bg-glass">{children}</pre>;
   },
 
   // Blockquotes - inherit text color
   blockquote: ({ children }) => (
     <blockquote
-      className="border-l-4 pl-4 py-1 my-2 italic rounded-r"
+      className="border-l-4 pl-4 py-1 my-2 italic rounded-r bg-glass text-inherit"
       style={{
         borderColor: 'var(--primary)',
-        backgroundColor: 'var(--glass-bg)',
-        color: 'inherit',
       }}
     >
       {children}
@@ -406,7 +382,7 @@ const components: Components = {
   ),
 
   // Horizontal rule
-  hr: () => <hr className="my-4" style={{ borderColor: 'var(--border)' }} />,
+  hr: () => <hr className="my-4 border-theme" />,
 
   // Tables - theme-aware
   table: ({ children }) => (
@@ -414,9 +390,9 @@ const components: Components = {
       <table className="min-w-full border-collapse">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</thead>,
+  thead: ({ children }) => <thead className="bg-glass">{children}</thead>,
   tbody: ({ children }) => <tbody style={{ color: 'inherit' }}>{children}</tbody>,
-  tr: ({ children }) => <tr style={{ borderBottom: '1px solid var(--border)' }}>{children}</tr>,
+  tr: ({ children }) => <tr className="border-b border-theme">{children}</tr>,
   th: ({ children }) => (
     <th className="px-3 py-2 text-left text-sm font-semibold" style={{ color: 'inherit' }}>
       {children}
@@ -479,10 +455,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       // Inline code - simple styling
       if (isInline) {
         return (
-          <code
-            className="px-1.5 py-0.5 rounded text-sm font-mono"
-            style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--primary)' }}
-          >
+          <code className="px-1.5 py-0.5 rounded text-sm font-mono bg-glass text-primary">
             {children}
           </code>
         );
@@ -617,26 +590,18 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 
       // Default block code rendering (no actions)
       return (
-        <div
-          className="rounded-lg overflow-hidden my-2"
-          style={{ backgroundColor: 'var(--glass-bg)' }}
-        >
+        <div className="rounded-lg overflow-hidden my-2 bg-glass">
           {language && (
             <div
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b border-theme text-text-muted"
               style={{
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderColor: 'var(--border)',
-                color: 'var(--text-muted)',
               }}
             >
               <span>{getDisplayLanguage(language)}</span>
             </div>
           )}
-          <code
-            className="block p-3 text-sm font-mono overflow-x-auto"
-            style={{ color: 'var(--text-primary)' }}
-          >
+          <code className="block p-3 text-sm font-mono overflow-x-auto text-text-primary">
             {children}
           </code>
         </div>

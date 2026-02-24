@@ -3330,9 +3330,9 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
 
   return (
     <CodeExecutionProvider>
-      <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
+      <div id="main-content" className="flex h-screen flex-col" role="main" style={{ backgroundColor: 'var(--background)' }}>
         {/* Header */}
-        <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
+        <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3" role="banner">
           <div className="flex items-center justify-between relative">
             <div className="flex items-center gap-1">
               <button
@@ -3454,6 +3454,8 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
               <aside
                 className="w-72 md:w-80 p-4 flex items-center justify-center"
                 style={{ borderRight: '1px solid var(--border)' }}
+                role="complementary"
+                aria-label="Chat sidebar (error state)"
               >
                 <div className="text-center">
                   <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -3463,6 +3465,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
                     onClick={() => window.location.reload()}
                     className="text-xs underline"
                     style={{ color: 'var(--primary)' }}
+                    aria-label="Reload page to restore sidebar"
                   >
                     Reload
                   </button>

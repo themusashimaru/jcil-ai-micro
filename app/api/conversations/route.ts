@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
 
     const { id, title, tool_context, summary } = validation.data;
 
-    // Calculate retention date (30 days from now by default)
+    // Calculate retention date (1 year from now — extends on activity)
     const retentionDate = new Date();
-    retentionDate.setDate(retentionDate.getDate() + 30);
+    retentionDate.setFullYear(retentionDate.getFullYear() + 1);
 
     if (id) {
       // Update existing conversation
@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
           tool_context: (tool_context as ToolContext) ?? undefined,
           summary,
           updated_at: new Date().toISOString(),
+          retention_until: retentionDate.toISOString(),
         })
         .eq('id', id)
         .eq('user_id', auth.user.id)

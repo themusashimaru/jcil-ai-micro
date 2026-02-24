@@ -142,9 +142,12 @@ const ModelIndicator = React.memo(function ModelIndicator({ model, onClick }: Mo
       className="status-item model-indicator"
       onClick={onClick}
       title={`Current model: Claude ${info.name}`}
+      aria-label={`Current model: Claude ${info.name}`}
       style={{ '--model-color': info.color } as React.CSSProperties}
     >
-      <span className="model-icon">{info.icon}</span>
+      <span className="model-icon" aria-hidden="true">
+        {info.icon}
+      </span>
       <span className="model-name">{info.name}</span>
     </button>
   );
@@ -171,8 +174,11 @@ const TokenIndicator = React.memo(function TokenIndicator({ usage, onClick }: To
       className={`status-item token-indicator status-${status}`}
       onClick={onClick}
       title={`Tokens: ${usage.used.toLocaleString()} / ${usage.limit.toLocaleString()}${usage.costUSD ? ` ($${usage.costUSD.toFixed(4)})` : ''}`}
+      aria-label={`Token usage: ${formattedUsed} of ${formattedLimit}${usage.costUSD ? `, cost $${usage.costUSD.toFixed(4)}` : ''}`}
     >
-      <span className="token-icon">⬡</span>
+      <span className="token-icon" aria-hidden="true">
+        ⬡
+      </span>
       <span className="token-text">
         {formattedUsed}/{formattedLimit}
       </span>
@@ -282,8 +288,9 @@ const GitIndicator = React.memo(function GitIndicator({ git, onClick }: GitIndic
       className={`status-item git-indicator ${git.isDirty ? 'dirty' : ''}`}
       onClick={onClick}
       title={`Branch: ${git.branch}${git.isDirty ? ' (modified)' : ''}${syncInfo.length ? ` ${syncInfo.join(' ')}` : ''}`}
+      aria-label={`Git branch: ${git.branch}${git.isDirty ? ', modified' : ''}${syncInfo.length ? `, ${syncInfo.join(' ')}` : ''}`}
     >
-      <span className="git-icon">
+      <span className="git-icon" aria-hidden="true">
         <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
           <path d="M15.698 7.287L8.712.302a1.03 1.03 0 00-1.457 0L5.632 1.924l1.84 1.84a1.223 1.223 0 011.55 1.56l1.773 1.774a1.224 1.224 0 11-.733.69l-1.654-1.654v4.353a1.224 1.224 0 11-1.007-.019V6.054a1.224 1.224 0 01-.665-1.604L4.922 2.636.302 7.256a1.03 1.03 0 000 1.457l6.986 6.985a1.03 1.03 0 001.457 0l6.953-6.953a1.03 1.03 0 000-1.458z" />
         </svg>

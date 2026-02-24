@@ -243,10 +243,12 @@ export function CodeLabCollaboration({
       {isInviteOpen && isOwner && <InvitePanel onInvite={onInvite} sessionId={session.id} />}
 
       {/* Tabs */}
-      <div className="collab-tabs">
+      <div className="collab-tabs" role="tablist" aria-label="Collaboration views">
         <button
           className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
+          role="tab"
+          aria-selected={activeTab === 'users'}
         >
           Users
           <span className="tab-badge">{session.users.length}</span>
@@ -254,12 +256,16 @@ export function CodeLabCollaboration({
         <button
           className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
           onClick={() => setActiveTab('activity')}
+          role="tab"
+          aria-selected={activeTab === 'activity'}
         >
           Activity
         </button>
         <button
           className={`tab-btn ${activeTab === 'annotations' ? 'active' : ''}`}
           onClick={() => setActiveTab('annotations')}
+          role="tab"
+          aria-selected={activeTab === 'annotations'}
         >
           Annotations
           <span className="tab-badge">{session.annotations.filter((a) => !a.resolved).length}</span>

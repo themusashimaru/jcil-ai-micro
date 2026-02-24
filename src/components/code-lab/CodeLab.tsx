@@ -170,8 +170,18 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       <main className="code-lab-main">
         {/* Mobile header with menu button */}
         <div className="mobile-header">
-          <button className="mobile-menu-btn" onClick={() => setSidebarCollapsed(false)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setSidebarCollapsed(false)}
+            aria-label="Open sidebar"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -189,7 +199,13 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
               aria-label="Toggle Workspace Panel"
               aria-pressed={workspacePanelOpen}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

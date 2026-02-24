@@ -128,7 +128,7 @@ export function CodeLabWorkspacePanel({
 }: CodeLabWorkspacePanelProps) {
   return (
     <div className="workspace-panel">
-      <div className="workspace-tabs">
+      <div className="workspace-tabs" role="tablist" aria-label="Workspace panels">
         {/* Close/Back button */}
         <button
           className="workspace-close-btn"
@@ -136,37 +136,52 @@ export function CodeLabWorkspacePanel({
           title="Close panel (Esc)"
           aria-label="Close workspace panel"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <button
           className={activeTab === 'files' ? 'active' : ''}
           onClick={() => setActiveTab('files')}
+          role="tab"
+          aria-selected={activeTab === 'files'}
+          aria-label="Files panel"
         >
           Files
         </button>
         <button
           className={activeTab === 'diff' ? 'active' : ''}
           onClick={() => setActiveTab('diff')}
+          role="tab"
+          aria-selected={activeTab === 'diff'}
+          aria-label="Changes panel"
         >
           Changes
         </button>
         <button
           className={activeTab === 'deploy' ? 'active' : ''}
           onClick={() => setActiveTab('deploy')}
+          role="tab"
+          aria-selected={activeTab === 'deploy'}
+          aria-label="Deploy panel"
         >
           Deploy
         </button>
         <button
           className={activeTab === 'visual' ? 'active' : ''}
           onClick={() => setActiveTab('visual')}
+          role="tab"
+          aria-selected={activeTab === 'visual'}
+          aria-label="Visual to code panel"
         >
           Visual
         </button>
         <button
           className={activeTab === 'debug' ? 'active' : ''}
           onClick={() => setActiveTab('debug')}
+          role="tab"
+          aria-selected={activeTab === 'debug'}
+          aria-label="Debug panel"
         >
           Debug
         </button>
@@ -176,8 +191,11 @@ export function CodeLabWorkspacePanel({
             setActiveTab('plan');
             fetchPlanStatus();
           }}
+          role="tab"
+          aria-selected={activeTab === 'plan'}
+          aria-label={`Plan panel${currentPlan && currentPlan.status === 'in_progress' ? ' (in progress)' : ''}`}
         >
-          Plan {currentPlan && currentPlan.status === 'in_progress' && '●'}
+          Plan {currentPlan && currentPlan.status === 'in_progress' && <span aria-hidden="true">●</span>}
         </button>
         <button
           className={activeTab === 'memory' ? 'active' : ''}
@@ -185,13 +203,19 @@ export function CodeLabWorkspacePanel({
             setActiveTab('memory');
             if (!memoryFile) onLoadMemory();
           }}
+          role="tab"
+          aria-selected={activeTab === 'memory'}
+          aria-label={`Memory panel${memoryFile?.exists ? ' (file exists)' : ''}`}
         >
-          Memory {memoryFile?.exists && '●'}
+          Memory {memoryFile?.exists && <span aria-hidden="true">●</span>}
         </button>
         <button
           className={activeTab === 'tasks' ? 'active' : ''}
           onClick={() => setActiveTab('tasks')}
           title="Background Tasks (Ctrl+B)"
+          role="tab"
+          aria-selected={activeTab === 'tasks'}
+          aria-label={`Background tasks${backgroundAgents.filter((a) => a.status === 'running').length > 0 ? ` (${backgroundAgents.filter((a) => a.status === 'running').length} running)` : ''}`}
         >
           Tasks{' '}
           {backgroundAgents.filter((a) => a.status === 'running').length > 0 &&
@@ -362,8 +386,8 @@ export function CodeLabWorkspacePanel({
       </div>
       {currentSession?.repo && (
         <div className="workspace-git-actions">
-          <button onClick={onGitPull} className="git-btn pull">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button onClick={onGitPull} className="git-btn pull" aria-label="Git pull from remote">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -372,8 +396,8 @@ export function CodeLabWorkspacePanel({
             </svg>
             Pull
           </button>
-          <button onClick={onGitPush} className="git-btn push">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button onClick={onGitPush} className="git-btn push" aria-label="Git push to remote">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

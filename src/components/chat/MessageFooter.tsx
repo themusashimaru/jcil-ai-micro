@@ -50,6 +50,7 @@ export function MessageFooter({ message, isUser, isAdmin, onReply }: MessageFoot
           onClick={handleCopy}
           className="p-1 rounded hover:bg-white/10 transition-colors"
           title={copied ? 'Copied!' : 'Copy message'}
+          aria-label={copied ? 'Copied to clipboard' : 'Copy message'}
         >
           {copied ? (
             <svg
@@ -88,6 +89,7 @@ export function MessageFooter({ message, isUser, isAdmin, onReply }: MessageFoot
           onClick={() => onReply(message)}
           className="p-1 rounded hover:bg-white/10 transition-colors"
           title="Reply to this message"
+          aria-label="Reply to this message"
         >
           <svg
             className="h-3.5 w-3.5"

@@ -69,7 +69,7 @@ export default function LandingHeader({
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg}`}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="flex h-16 items-center justify-between lg:h-20">
+          <nav className="flex h-16 items-center justify-between lg:h-20" aria-label="Main navigation">
             {/* Logo */}
             <Link href="/" className="flex items-center">
               <LandingLogo />
@@ -137,7 +137,7 @@ export default function LandingHeader({
           />
 
           {/* Drawer */}
-          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl">
+          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl" role="dialog" aria-label="Mobile navigation menu">
             {/* Subtle gradient overlay for depth */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
 

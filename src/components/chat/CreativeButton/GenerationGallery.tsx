@@ -215,8 +215,9 @@ export function GenerationGallery({ isOpen, onClose, onReusePrompt }: Generation
             onClick={() => navigatePreview('prev')}
             disabled={generations.findIndex((g) => g.id === selectedGeneration.id) === 0}
             className="absolute left-4 z-20 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Previous image"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-6 h-6" aria-hidden="true" />
           </button>
 
           <button
@@ -226,8 +227,9 @@ export function GenerationGallery({ isOpen, onClose, onReusePrompt }: Generation
               generations.length - 1
             }
             className="absolute right-4 z-20 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Next image"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-6 h-6" aria-hidden="true" />
           </button>
 
           {/* Preview content */}
@@ -300,14 +302,16 @@ export function GenerationGallery({ isOpen, onClose, onReusePrompt }: Generation
                 <button
                   onClick={() => handleDownload(selectedGeneration)}
                   className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                  aria-label="Download image"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setSelectedGeneration(null)}
                   className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                  aria-label="Close image preview"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -333,8 +337,9 @@ export function GenerationGallery({ isOpen, onClose, onReusePrompt }: Generation
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Close gallery"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 

@@ -68,7 +68,12 @@ export function CodeLabThinkingBlock({
     <div
       className={`thinking-block ${expanded ? 'expanded' : ''} ${isStreaming ? 'streaming' : ''}`}
     >
-      <button className="thinking-header" onClick={() => setExpanded(!expanded)}>
+      <button
+        className="thinking-header"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse thinking' : 'Expand thinking'}
+      >
         <div className="thinking-title">
           <ChevronIcon expanded={expanded} />
           <BrainIcon />

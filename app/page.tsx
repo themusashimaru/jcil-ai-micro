@@ -38,7 +38,7 @@ import {
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main id="main-content" className="min-h-screen bg-black text-white">
       <LandingHeader transparent />
 
       {/* Hero Section */}

@@ -301,7 +301,9 @@ export function CodeLabDeploy({
             />
           </svg>
           <span>{error}</span>
-          <button onClick={() => setError(null)}>×</button>
+          <button onClick={() => setError(null)} aria-label="Dismiss error">
+            ×
+          </button>
         </div>
       )}
 

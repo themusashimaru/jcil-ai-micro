@@ -308,12 +308,11 @@ export const ChatComposer = memo(function ChatComposer({
         {/* Reply Preview */}
         {replyingTo && (
           <div
-            className="mb-2 flex items-start gap-2 p-3 rounded-lg border"
-            style={{ backgroundColor: 'var(--primary-hover)', borderColor: 'var(--primary)' }}
+            className="mb-2 flex items-start gap-2 p-3 rounded-lg border bg-primary-hover"
+            style={{ borderColor: 'var(--primary)' }}
           >
             <svg
-              className="h-4 w-4 mt-0.5 flex-shrink-0"
-              style={{ color: 'var(--primary)' }}
+              className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -326,10 +325,8 @@ export const ChatComposer = memo(function ChatComposer({
               />
             </svg>
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>
-                Replying to:
-              </span>
-              <p className="text-sm mt-1 line-clamp-2" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-xs font-semibold text-primary">Replying to:</span>
+              <p className="text-sm mt-1 line-clamp-2 text-text-primary">
                 {replyingTo.content.length > 150
                   ? replyingTo.content.slice(0, 150) + '...'
                   : replyingTo.content}
@@ -337,8 +334,8 @@ export const ChatComposer = memo(function ChatComposer({
             </div>
             <button
               onClick={onClearReply}
-              className="p-1.5 rounded-full transition-colors flex-shrink-0"
-              style={{ color: 'var(--text-muted)' }}
+              className="p-1.5 rounded-full transition-colors flex-shrink-0 text-text-muted"
+              aria-label="Cancel reply"
               title="Cancel reply"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -371,13 +368,9 @@ export const ChatComposer = memo(function ChatComposer({
                 style={{ fontSize: '16px' }}
               >
                 {isRecording ? (
-                  <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
-                    Recording...
-                  </span>
+                  <span className="font-medium text-text-muted">Recording...</span>
                 ) : isTranscribing ? (
-                  <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
-                    Transcribing...
-                  </span>
+                  <span className="font-medium text-text-muted">Transcribing...</span>
                 ) : placeholderText ? (
                   <span
                     className="font-medium"
@@ -394,7 +387,7 @@ export const ChatComposer = memo(function ChatComposer({
                     {placeholderText}
                   </span>
                 ) : (
-                  <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
+                  <span className="font-medium text-text-muted">
                     {displayedText}
                     <span className="animate-pulse">|</span>
                   </span>
@@ -409,10 +402,10 @@ export const ChatComposer = memo(function ChatComposer({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={isDragging ? 'Drop files here...' : ''}
-              className="w-full resize-none bg-transparent px-4 py-3 text-base focus:outline-none min-h-[48px]"
+              className="w-full resize-none bg-transparent px-4 py-3 text-base focus:outline-none min-h-[48px] text-text-primary"
               rows={1}
               disabled={isStreaming || disabled}
-              style={{ fontSize: '16px', color: 'var(--text-primary)' }}
+              style={{ fontSize: '16px' }}
             />
           </div>
 
@@ -449,8 +442,8 @@ export const ChatComposer = memo(function ChatComposer({
               <button
                 onClick={() => setShowAttachMenu(!showAttachMenu)}
                 disabled={isStreaming || disabled}
-                className="rounded-full p-2 disabled:opacity-50 flex items-center justify-center transition-colors hover:bg-white/10"
-                style={{ color: 'var(--text-muted)' }}
+                className="rounded-full p-2 disabled:opacity-50 flex items-center justify-center transition-colors hover:bg-white/10 text-text-muted"
+                aria-label="Attach files"
                 title="Attach files"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -487,6 +480,7 @@ export const ChatComposer = memo(function ChatComposer({
                   <button
                     onClick={() => setToolMode('none')}
                     className="ml-1 hover:opacity-70"
+                    aria-label="Clear tool mode"
                     title="Clear"
                   >
                     <svg
@@ -553,6 +547,13 @@ export const ChatComposer = memo(function ChatComposer({
                   onClick={toggleRecording}
                   disabled={isStreaming || disabled || isTranscribing}
                   className="rounded-full p-1.5 transition-all flex items-center justify-center"
+                  aria-label={
+                    isRecording
+                      ? 'Stop recording'
+                      : isTranscribing
+                        ? 'Transcribing audio'
+                        : 'Start voice input'
+                  }
                   title={
                     isRecording
                       ? 'Stop recording'
@@ -606,9 +607,9 @@ export const ChatComposer = memo(function ChatComposer({
               {isStreaming && onStop ? (
                 <button
                   onClick={onStop}
-                  className="rounded-full p-2 transition-all flex items-center justify-center"
+                  className="rounded-full p-2 transition-all flex items-center justify-center bg-primary text-white"
+                  aria-label="Stop generating response"
                   title="Stop generating"
-                  style={{ backgroundColor: 'var(--primary)', color: 'white' }}
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                     <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -619,6 +620,7 @@ export const ChatComposer = memo(function ChatComposer({
                   onClick={handleSend}
                   disabled={!canSend}
                   className={`rounded-full p-2 transition-all flex items-center justify-center send-btn ${!canSend ? 'send-btn-disabled' : 'send-btn-enabled'}`}
+                  aria-label="Send message"
                   title="Send message"
                   style={{
                     backgroundColor: !canSend ? 'var(--button-disabled-bg)' : 'var(--primary)',

@@ -150,7 +150,11 @@ const SuggestionCard = React.memo(function SuggestionCard({
             </span>
             {confidencePercent}%
           </span>
-          <button className="suggestion-dismiss" onClick={onDismiss} aria-label="Dismiss">
+          <button
+            className="suggestion-dismiss"
+            onClick={onDismiss}
+            aria-label="Dismiss suggestion"
+          >
             ×
           </button>
         </div>

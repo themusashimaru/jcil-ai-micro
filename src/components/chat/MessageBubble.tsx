@@ -343,8 +343,15 @@ function DownloadLink({
       download={filename}
       className={`rounded-full bg-black/70 p-2 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity hover:bg-black/90 ${className}`}
       title="Download"
+      aria-label={`Download ${filename}`}
     >
-      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg
+        className="h-5 w-5 text-white"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        aria-hidden="true"
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -374,6 +381,7 @@ function ThinkingBlock({
         onClick={onToggle}
         className="w-full flex items-center gap-2 px-3 py-2 text-left"
         style={{ color: 'var(--text-secondary)' }}
+        aria-expanded={expanded}
       >
         <span
           style={{

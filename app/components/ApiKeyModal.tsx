@@ -122,6 +122,7 @@ export default function ApiKeyModal({
           onClose();
         }
       }}
+      role="presentation"
     >
       <div
         className="w-full max-w-md rounded-2xl border shadow-2xl"
@@ -130,6 +131,9 @@ export default function ApiKeyModal({
           borderColor: 'var(--border)',
         }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="api-key-modal-title"
       >
         {/* Header */}
         <div
@@ -139,7 +143,7 @@ export default function ApiKeyModal({
           <div className="flex items-center gap-3">
             <span className="text-2xl">{toolkit.icon}</span>
             <div>
-              <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <h2 id="api-key-modal-title" className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                 Connect {toolkit.displayName}
               </h2>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -152,8 +156,9 @@ export default function ApiKeyModal({
             disabled={isSubmitting}
             className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
             style={{ color: 'var(--text-muted)' }}
+            aria-label="Close dialog"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -168,7 +173,7 @@ export default function ApiKeyModal({
         <form onSubmit={handleSubmit} className="p-4">
           {/* Error message */}
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">
               {error}
             </div>
           )}

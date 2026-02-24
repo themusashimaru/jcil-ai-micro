@@ -271,7 +271,7 @@ export default function MultiPagePreview({
           onClick={() => setIsFullscreen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-500 text-white text-sm font-medium hover:from-violet-600 hover:to-cyan-600 transition-all shadow-lg shadow-violet-500/25"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
@@ -284,12 +284,12 @@ export default function MultiPagePreview({
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-all disabled:opacity-50"
         >
           {downloading ? (
-            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
           ) : (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           )}
@@ -300,7 +300,7 @@ export default function MultiPagePreview({
           onClick={handleCopyAll}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-all"
         >
-          {copied ? '✅ Copied!' : '📋 Copy All'}
+          {copied ? (<><span aria-hidden="true">✅</span> Copied!</>) : (<><span aria-hidden="true">📋</span> Copy All</>)}
         </button>
 
         {onPushToGitHub && (
@@ -320,7 +320,7 @@ export default function MultiPagePreview({
             onClick={onDeploy}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-black to-gray-800 text-white text-sm font-medium hover:from-gray-800 hover:to-gray-700 transition-all border border-white/20"
           >
-            <span>▲</span>
+            <span aria-hidden="true">▲</span>
             Deploy to Vercel
           </button>
         )}
@@ -336,7 +336,7 @@ export default function MultiPagePreview({
         {/* Left: Traffic lights + title */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <button onClick={() => setIsFullscreen(false)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition" />
+            <button onClick={() => setIsFullscreen(false)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition" aria-label="Close preview" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />
           </div>
@@ -357,8 +357,10 @@ export default function MultiPagePreview({
                   ? 'bg-gradient-to-r from-violet-500 to-cyan-500 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-white/10'
               }`}
+              aria-label={`Navigate to ${page.name} page`}
+              aria-current={currentPage === i ? 'page' : undefined}
             >
-              {page.icon || '📄'} {page.name}
+              <span aria-hidden="true">{page.icon || '📄'}</span> {page.name}
             </button>
           ))}
         </div>
@@ -376,9 +378,11 @@ export default function MultiPagePreview({
                     ? 'bg-white/20 text-white'
                     : 'text-gray-400 hover:text-white'
                 }`}
+                aria-label={`Switch to ${VIEWPORT_SIZES[size].label} viewport`}
+                aria-pressed={viewport === size}
                 title={VIEWPORT_SIZES[size].label}
               >
-                {VIEWPORT_SIZES[size].icon}
+                <span aria-hidden="true">{VIEWPORT_SIZES[size].icon}</span>
               </button>
             ))}
           </div>
@@ -391,8 +395,10 @@ export default function MultiPagePreview({
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
                 : 'bg-white/10 text-gray-400 hover:text-white'
             }`}
+            aria-label={editMode ? 'Disable edit mode' : 'Enable edit mode'}
+            aria-pressed={editMode}
           >
-            ✏️ {editMode ? 'Editing' : 'Edit Mode'}
+            <span aria-hidden="true">✏️</span> {editMode ? 'Editing' : 'Edit Mode'}
           </button>
 
           {/* Code toggle */}
@@ -403,6 +409,8 @@ export default function MultiPagePreview({
                 ? 'bg-white/20 text-white'
                 : 'bg-white/10 text-gray-400 hover:text-white'
             }`}
+            aria-label={showCode ? 'Hide source code' : 'Show source code'}
+            aria-pressed={showCode}
           >
             {'</>'} Code
           </button>
@@ -411,14 +419,16 @@ export default function MultiPagePreview({
           <button
             onClick={handleDownloadZip}
             className="px-3 py-1.5 rounded-lg bg-white/10 text-gray-300 text-sm font-medium hover:bg-white/20 transition-all"
+            aria-label="Download website as ZIP"
           >
-            📦 ZIP
+            <span aria-hidden="true">📦</span> ZIP
           </button>
 
           {onPushToGitHub && (
             <button
               onClick={onPushToGitHub}
               className="px-3 py-1.5 rounded-lg bg-white/10 text-gray-300 text-sm font-medium hover:bg-white/20 transition-all"
+              aria-label="Push website to GitHub"
             >
               Push
             </button>
@@ -428,8 +438,9 @@ export default function MultiPagePreview({
             <button
               onClick={onDeploy}
               className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-black to-gray-800 text-white text-sm font-medium hover:from-gray-800 hover:to-gray-700 transition-all border border-white/20"
+              aria-label="Deploy website to Vercel"
             >
-              ▲ Deploy
+              <span aria-hidden="true">▲</span> Deploy
             </button>
           )}
 
@@ -437,8 +448,9 @@ export default function MultiPagePreview({
           <button
             onClick={() => setIsFullscreen(false)}
             className="p-1.5 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
+            aria-label="Close fullscreen preview"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -453,8 +465,9 @@ export default function MultiPagePreview({
             <button
               onClick={() => { setSelectedElement(null); setEditingText(''); }}
               className="text-gray-400 hover:text-white"
+              aria-label="Close edit panel"
             >
-              ✕
+              <span aria-hidden="true">✕</span>
             </button>
           </div>
           <textarea
@@ -513,6 +526,7 @@ export default function MultiPagePreview({
                   setTimeout(() => setCopied(false), 2000);
                 }}
                 className="text-xs px-2 py-1 rounded bg-white/10 text-gray-300 hover:bg-white/20"
+                aria-label={copied ? 'Code copied to clipboard' : 'Copy page code to clipboard'}
               >
                 {copied ? '✅ Copied' : '📋 Copy'}
               </button>
