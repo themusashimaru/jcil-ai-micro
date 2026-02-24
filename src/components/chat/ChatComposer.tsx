@@ -308,8 +308,8 @@ export const ChatComposer = memo(function ChatComposer({
         {/* Reply Preview */}
         {replyingTo && (
           <div
-            className="mb-2 flex items-start gap-2 p-3 rounded-lg border"
-            style={{ backgroundColor: 'var(--primary-hover)', borderColor: 'var(--primary)' }}
+            className="mb-2 flex items-start gap-2 p-3 rounded-lg border bg-primary-hover"
+            style={{ borderColor: 'var(--primary)' }}
           >
             <svg
               className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary"

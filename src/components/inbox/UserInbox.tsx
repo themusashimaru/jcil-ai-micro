@@ -418,9 +418,8 @@ function MessageList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded ${PRIORITY_STYLES[message.priority]}`}
+                      className={`text-xs px-2 py-0.5 rounded bg-glass ${PRIORITY_STYLES[message.priority]}`}
                       style={{
-                        backgroundColor: 'var(--glass-bg)',
                         color: message.priority === 'normal' ? 'var(--text-secondary)' : undefined,
                       }}
                     >
@@ -510,9 +509,8 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span
-                className={`text-xs px-2 py-0.5 rounded ${PRIORITY_STYLES[message.priority]}`}
+                className={`text-xs px-2 py-0.5 rounded bg-glass ${PRIORITY_STYLES[message.priority]}`}
                 style={{
-                  backgroundColor: 'var(--glass-bg)',
                   color: message.priority === 'normal' ? 'var(--text-secondary)' : undefined,
                 }}
               >

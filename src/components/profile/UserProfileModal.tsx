@@ -306,7 +306,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           </div>
 
           {/* Divider */}
-          <div style={{ borderTop: '1px solid var(--border)' }} />
+          <div className="border-t border-theme" />
 
           {/* Passkey / Biometric Login Settings */}
           <div className="space-y-3">
@@ -318,9 +318,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
 
           {/* Info Box */}
           <div
-            className="rounded-xl p-4"
+            className="rounded-xl p-4 bg-primary-hover"
             style={{
-              backgroundColor: 'var(--primary-hover)',
               border: '1px solid var(--primary)',
             }}
           >
@@ -339,31 +338,21 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 />
               </svg>
               <div className="text-text-secondary text-xs">
-                <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                  Why we need this information:
-                </p>
+                <p className="font-medium mb-1 text-text-primary">Why we need this information:</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Personalize AI responses to your background and goals</li>
                   <li>Adjust complexity and terminology to your level</li>
                   <li>Provide relevant examples from your field</li>
                   <li>Better understand your use cases and preferences</li>
                 </ul>
-                <p className="mt-2" style={{ color: 'var(--primary)' }}>
-                  Your data is stored locally and never shared.
-                </p>
+                <p className="mt-2 text-primary">Your data is stored locally and never shared.</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{
-            borderTop: '1px solid var(--border)',
-            backgroundColor: 'var(--glass-bg)',
-          }}
-        >
+        <div className="flex items-center justify-between px-6 py-4 border-t border-theme bg-glass">
           {/* Logout button on the left */}
           <button
             onClick={handleLogout}
@@ -384,8 +373,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
             <button
               onClick={handleSave}
               disabled={!formData.name.trim() || isSaving}
-              className="rounded-xl px-6 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition btn-primary"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+              className="rounded-xl px-6 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition btn-primary bg-primary text-background"
             >
               {isSaving ? 'Saving...' : 'Save Profile'}
             </button>
