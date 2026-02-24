@@ -22,6 +22,7 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { MessageErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ThreadSkeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GetStartedCarousel } from './GetStartedCarousel';
 import { SuggestedFollowups } from './SuggestedFollowups';
@@ -47,6 +48,8 @@ interface ChatThreadProps {
   onActionCancel?: (preview: ActionPreviewData) => void;
   /** Callback when a suggested follow-up is clicked */
   onFollowupSelect?: (suggestion: string) => void;
+  /** Whether messages are being loaded */
+  isLoading?: boolean;
 }
 
 /**
@@ -74,6 +77,7 @@ export function ChatThread({
   onActionEdit,
   onActionCancel,
   onFollowupSelect,
+  isLoading,
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -128,6 +132,17 @@ export function ChatThread({
       clearTimeout(secondaryTimeout);
     };
   }, [messages, messages.length]);
+
+  // Show loading skeleton while messages are being fetched
+  if (isLoading) {
+    return (
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-4">
+        <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl pt-16">
+          <ThreadSkeleton messageCount={4} />
+        </div>
+      </div>
+    );
+  }
 
   // Clean welcome screen - logo centered, carousel at bottom
   // Only show if no messages (strategy mode adds messages before chat is created)

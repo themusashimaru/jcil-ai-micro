@@ -25,6 +25,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAgentMode } from '@/hooks/useAgentMode';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
+import { ToastProvider, useToastActions } from '@/components/ui/Toast';
+import { fetchWithRetry } from '@/lib/api/retry';
 
 const log = logger('ChatClient');
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
@@ -81,6 +83,15 @@ import {
 export type { Chat, Message, ToolCall, Attachment } from './types';
 
 export function ChatClient() {
+  return (
+    <ToastProvider>
+      <ChatClientInner />
+    </ToastProvider>
+  );
+}
+
+function ChatClientInner() {
+  const toast = useToastActions();
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -135,6 +146,7 @@ export function ChatClient() {
   const [openEditImage, setOpenEditImage] = useState(false);
   // Conversation loading error state
   const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   // AI Provider selection - allows users to choose between Claude, xAI, DeepSeek, etc.
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>('claude');
   const [configuredProviders, setConfiguredProviders] = useState<ProviderId[]>(['claude']);
@@ -323,7 +335,9 @@ export function ChatClient() {
   // Helper function to fetch and format messages
   const fetchMessages = async (chatId: string): Promise<Message[] | null> => {
     try {
-      const response = await fetch(`/api/conversations/${chatId}/messages`);
+      const response = await fetchWithRetry(`/api/conversations/${chatId}/messages`, {
+        maxRetries: 2,
+      });
       if (response.ok) {
         const responseData = await response.json();
         // API returns { ok: true, data: { messages: [...] } }
@@ -515,7 +529,7 @@ export function ChatClient() {
       try {
         log.debug('Loading conversations from API...', { isRefresh });
         setConversationLoadError(null);
-        const response = await fetch('/api/conversations');
+        const response = await fetchWithRetry('/api/conversations', { maxRetries: 2 });
         log.debug('API response status:', { status: response.status });
 
         if (response.ok) {
@@ -572,6 +586,10 @@ export function ChatClient() {
       } catch (error) {
         log.error('Error loading conversations:', error as Error);
         setConversationLoadError('Unable to load conversations. Please check your connection.');
+        toast.error(
+          'Connection Error',
+          'Unable to load conversations. Please check your connection.'
+        );
       }
     };
 
@@ -839,6 +857,7 @@ export function ChatClient() {
 
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
+    setMessagesLoading(true);
     setContinuationDismissed(false); // Reset continuation banner for new chat
     setPendingToolSuggestion(null); // Clear any pending tool suggestion
     // Auto-close sidebar on mobile after selecting chat
@@ -848,7 +867,9 @@ export function ChatClient() {
 
     // Load messages from API
     try {
-      const response = await fetch(`/api/conversations/${chatId}/messages`);
+      const response = await fetchWithRetry(`/api/conversations/${chatId}/messages`, {
+        maxRetries: 2,
+      });
       if (response.ok) {
         const responseData = await response.json();
         // API returns { ok: true, data: { messages: [...] } }
@@ -882,6 +903,9 @@ export function ChatClient() {
     } catch (error) {
       log.error('Error loading messages:', error as Error);
       setMessages([]);
+      toast.error('Load Failed', 'Could not load messages for this conversation.');
+    } finally {
+      setMessagesLoading(false);
     }
   };
 
@@ -911,7 +935,7 @@ export function ChatClient() {
         // Revert on failure
         log.error('Failed to delete conversation from database');
         setChats(previousChats);
-        // Could show error toast here
+        toast.error('Delete Failed', 'Could not delete the conversation. Please try again.');
       } else {
         log.debug('Conversation deleted from database', { chatId });
       }
@@ -919,6 +943,7 @@ export function ChatClient() {
       log.error('Error deleting conversation:', error as Error);
       // Revert on error
       setChats(previousChats);
+      toast.error('Delete Failed', 'Could not delete the conversation. Please try again.');
     }
   };
 
@@ -957,12 +982,13 @@ export function ChatClient() {
 
       if (!response.ok) {
         log.error('Failed to move chat to folder');
-        // Revert on error
         setChats(chats);
+        toast.error('Move Failed', 'Could not move the conversation to that folder.');
       }
     } catch (error) {
       log.error('Error moving chat to folder:', error as Error);
       setChats(chats);
+      toast.error('Move Failed', 'Could not move the conversation. Please try again.');
     }
   };
 
@@ -3330,9 +3356,17 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
 
   return (
     <CodeExecutionProvider>
-      <div id="main-content" className="flex h-screen flex-col" role="main" style={{ backgroundColor: 'var(--background)' }}>
+      <div
+        id="main-content"
+        className="flex h-screen flex-col"
+        role="main"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         {/* Header */}
-        <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3" role="banner">
+        <header
+          className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3"
+          role="banner"
+        >
           <div className="flex items-center justify-between relative">
             <div className="flex items-center gap-1">
               <button
@@ -3511,6 +3545,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
               <ChatThread
                 messages={messages}
                 isStreaming={isStreaming}
+                isLoading={messagesLoading}
                 currentChatId={currentChatId}
                 isAdmin={isAdmin}
                 documentType={pendingDocumentType}
