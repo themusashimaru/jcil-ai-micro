@@ -3356,12 +3356,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
 
   return (
     <CodeExecutionProvider>
-      <div
-        id="main-content"
-        className="flex h-screen flex-col"
-        role="main"
-        style={{ backgroundColor: 'var(--background)' }}
-      >
+      <div id="main-content" className="flex h-screen flex-col bg-background" role="main">
         {/* Header */}
         <header
           className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3"
@@ -3419,8 +3414,8 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
                 (theme === 'light' ? (
                   // Light mode: Use text instead of logo
                   <h1 className="text-base md:text-xl font-normal hidden sm:block">
-                    <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
-                    <span style={{ color: 'var(--primary)' }}>ai</span>
+                    <span className="text-text-primary">jcil.</span>
+                    <span className="text-primary">ai</span>
                   </h1>
                 ) : headerLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -3486,19 +3481,15 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
           <ErrorBoundary
             fallback={
               <aside
-                className="w-72 md:w-80 p-4 flex items-center justify-center"
-                style={{ borderRight: '1px solid var(--border)' }}
+                className="w-72 md:w-80 p-4 flex items-center justify-center border-r border-theme"
                 role="complementary"
                 aria-label="Chat sidebar (error state)"
               >
                 <div className="text-center">
-                  <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                    Sidebar unavailable
-                  </p>
+                  <p className="text-sm mb-2 text-text-secondary">Sidebar unavailable</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-xs underline"
-                    style={{ color: 'var(--primary)' }}
+                    className="text-xs underline text-primary"
                     aria-label="Reload page to restore sidebar"
                   >
                     Reload
@@ -3528,13 +3519,10 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
               fallback={
                 <div className="flex-1 flex items-center justify-center p-8">
                   <div className="text-center">
-                    <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                      Failed to load messages
-                    </p>
+                    <p className="text-sm mb-2 text-text-secondary">Failed to load messages</p>
                     <button
                       onClick={() => window.location.reload()}
-                      className="text-xs underline"
-                      style={{ color: 'var(--primary)' }}
+                      className="text-xs underline text-primary"
                     >
                       Reload chat
                     </button>
@@ -3594,14 +3582,11 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
 
             <ErrorBoundary
               fallback={
-                <div className="p-4 text-center" style={{ borderTop: '1px solid var(--border)' }}>
-                  <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                    Composer failed to load
-                  </p>
+                <div className="p-4 text-center border-t border-theme">
+                  <p className="text-sm mb-2 text-text-secondary">Composer failed to load</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-xs underline"
-                    style={{ color: 'var(--primary)' }}
+                    className="text-xs underline text-primary"
                   >
                     Reload
                   </button>

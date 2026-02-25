@@ -307,10 +307,7 @@ export const ChatComposer = memo(function ChatComposer({
       <div className="mx-auto max-w-3xl">
         {/* Reply Preview */}
         {replyingTo && (
-          <div
-            className="mb-2 flex items-start gap-2 p-3 rounded-lg border bg-primary-hover"
-            style={{ borderColor: 'var(--primary)' }}
-          >
+          <div className="mb-2 flex items-start gap-2 p-3 rounded-lg border border-primary bg-primary-hover">
             <svg
               className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary"
               fill="none"
@@ -363,10 +360,7 @@ export const ChatComposer = memo(function ChatComposer({
           <div className="relative">
             {/* Typewriter placeholder overlay */}
             {!isFocused && !message && !isDragging && (
-              <div
-                className="absolute inset-0 flex items-center pointer-events-none px-4 py-3"
-                style={{ fontSize: '16px' }}
-              >
+              <div className="absolute inset-0 flex items-center pointer-events-none px-4 py-3 text-base">
                 {isRecording ? (
                   <span className="font-medium text-text-muted">Recording...</span>
                 ) : isTranscribing ? (
@@ -405,7 +399,6 @@ export const ChatComposer = memo(function ChatComposer({
               className="w-full resize-none bg-transparent px-4 py-3 text-base focus:outline-none min-h-[48px] text-text-primary"
               rows={1}
               disabled={isStreaming || disabled}
-              style={{ fontSize: '16px' }}
             />
           </div>
 
@@ -619,13 +612,10 @@ export const ChatComposer = memo(function ChatComposer({
                 <button
                   onClick={handleSend}
                   disabled={!canSend}
-                  className={`rounded-full p-2 transition-all flex items-center justify-center send-btn ${!canSend ? 'send-btn-disabled' : 'send-btn-enabled'}`}
+                  className={`rounded-full p-2 transition-all flex items-center justify-center send-btn ${!canSend ? 'send-btn-disabled bg-btn-disabled text-text-muted' : 'send-btn-enabled bg-primary'}`}
                   aria-label="Send message"
                   title="Send message"
-                  style={{
-                    backgroundColor: !canSend ? 'var(--button-disabled-bg)' : 'var(--primary)',
-                    color: !canSend ? 'var(--text-muted)' : theme === 'light' ? 'white' : 'black',
-                  }}
+                  style={canSend ? { color: theme === 'light' ? 'white' : 'black' } : undefined}
                 >
                   <svg
                     className="h-5 w-5"

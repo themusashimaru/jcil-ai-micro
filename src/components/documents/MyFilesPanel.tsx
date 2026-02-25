@@ -978,8 +978,7 @@ export default function MyFilesPanel() {
             <>
               <button
                 onClick={() => handleEditFolder(contextMenu.item as Folder)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2"
-                style={{ color: 'var(--text-primary)' }}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -1010,17 +1009,13 @@ export default function MyFilesPanel() {
           {contextMenu.type === 'file' && (
             <>
               {/* Move to folder options */}
-              <div className="px-3 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                Move to:
-              </div>
+              <div className="px-3 py-1 text-xs text-text-muted">Move to:</div>
               <button
                 onClick={() => handleMoveFile((contextMenu.item as Document).id, null)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2"
-                style={{ color: 'var(--text-primary)' }}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
               >
                 <svg
-                  className="w-4 h-4"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="w-4 h-4 text-text-muted"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1038,8 +1033,7 @@ export default function MyFilesPanel() {
                 <button
                   key={folder.id}
                   onClick={() => handleMoveFile((contextMenu.item as Document).id, folder.id)}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2"
-                  style={{ color: 'var(--text-primary)' }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
                 >
                   <svg
                     className="w-4 h-4"
@@ -1052,7 +1046,7 @@ export default function MyFilesPanel() {
                   {folder.name}
                 </button>
               ))}
-              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+              <div className="border-t border-theme my-1" />
               <button
                 onClick={() => handleDeleteFile((contextMenu.item as Document).id)}
                 className="w-full px-3 py-2 text-left text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2 text-red-500"
@@ -1075,40 +1069,28 @@ export default function MyFilesPanel() {
       {/* Folder Modal */}
       {showFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div
-            className="w-80 p-4 rounded-lg shadow-xl"
-            style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
-          >
-            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+          <div className="w-80 p-4 rounded-lg shadow-xl bg-background border border-theme">
+            <h3 className="text-sm font-semibold mb-4 text-text-primary">
               {editingFolder ? 'Edit Folder' : 'New Folder'}
             </h3>
 
             <div className="space-y-4">
               {/* Folder Name */}
               <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Folder Name
-                </label>
+                <label className="block text-xs mb-1 text-text-muted">Folder Name</label>
                 <input
                   type="text"
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
                   placeholder="My Documents"
-                  className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: 'var(--glass-bg)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 bg-glass border border-theme text-text-primary"
                   autoFocus
                 />
               </div>
 
               {/* Color Picker */}
               <div>
-                <label className="block text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Color
-                </label>
+                <label className="block text-xs mb-2 text-text-muted">Color</label>
                 <div className="flex gap-2 flex-wrap">
                   {FOLDER_COLORS.map((color) => (
                     <button
@@ -1128,16 +1110,14 @@ export default function MyFilesPanel() {
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setShowFolderModal(false)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors"
-                  style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors bg-glass text-text-primary"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveFolder}
                   disabled={!folderName.trim() || isSavingFolder}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 bg-primary text-white"
                 >
                   {isSavingFolder ? 'Saving...' : editingFolder ? 'Save' : 'Create'}
                 </button>
