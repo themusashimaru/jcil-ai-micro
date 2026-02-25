@@ -176,10 +176,8 @@ export default function BYOKSection() {
 
   return (
     <section className="glass-morphism rounded-2xl p-4 sm:p-6">
-      <h2 className="mb-2 text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-        BYOK API Keys (Code Lab)
-      </h2>
-      <p className="mb-6 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>
+      <h2 className="mb-2 text-xl font-semibold text-text-primary">BYOK API Keys (Code Lab)</h2>
+      <p className="mb-6 text-sm sm:text-base text-text-secondary">
         Bring your own API keys to use with Code Lab. Your keys are encrypted and never shown after
         saving.
       </p>
@@ -203,37 +201,26 @@ export default function BYOKSection() {
       )}
 
       {loadingKeys ? (
-        <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Loading API keys...
-        </div>
+        <div className="text-sm text-text-muted">Loading API keys...</div>
       ) : (
         <div className="space-y-3">
           {providerKeys.map((provider) => (
-            <div
-              key={provider.provider}
-              className="border rounded-lg p-4"
-              style={{ borderColor: 'var(--border)' }}
-            >
+            <div key={provider.provider} className="border border-theme rounded-lg p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: 'var(--background-secondary)' }}
-                  >
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-background">
                     {PROVIDER_ICONS[provider.provider]}
                   </div>
                   <div>
-                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {provider.name}
-                    </div>
+                    <div className="font-medium text-text-primary">{provider.name}</div>
                     {provider.configured && (
                       <div className="space-y-0.5">
                         {provider.lastChars && (
-                          <div className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                          <div className="text-xs font-mono text-text-muted">
                             ••••••••{provider.lastChars}
                           </div>
                         )}
-                        <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-xs text-text-secondary">
                           Model:{' '}
                           <span className="font-mono">
                             {provider.model || provider.defaultModel}
@@ -265,8 +252,7 @@ export default function BYOKSection() {
                         setNewModel('');
                         setError(null);
                       }}
-                      className="px-3 py-1.5 text-sm font-medium rounded-lg text-white transition-colors"
-                      style={{ backgroundColor: 'var(--primary)' }}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg text-white transition-colors bg-primary"
                     >
                       Add Key
                     </button>
@@ -276,11 +262,8 @@ export default function BYOKSection() {
 
               {/* Key Input Form */}
               {showKeyInput === provider.provider && (
-                <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <label
-                    className="block text-sm font-medium mb-1.5"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
+                <div className="mt-4 pt-4 border-t border-theme">
+                  <label className="block text-sm font-medium mb-1.5 text-text-primary">
                     API Key
                   </label>
                   <input
@@ -288,35 +271,20 @@ export default function BYOKSection() {
                     value={newApiKey}
                     onChange={(e) => setNewApiKey(e.target.value)}
                     placeholder={`Enter your ${provider.name} API key`}
-                    className="w-full px-3 py-2 rounded-lg border text-sm font-mono mb-3"
-                    style={{
-                      backgroundColor: 'var(--background)',
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)',
-                      fontSize: '16px',
-                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-theme text-sm font-mono mb-3 bg-background text-text-primary text-base"
                   />
 
-                  <label
-                    className="block text-sm font-medium mb-1.5"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    Model Name <span style={{ color: 'var(--text-muted)' }}>(optional)</span>
+                  <label className="block text-sm font-medium mb-1.5 text-text-primary">
+                    Model Name <span className="text-text-muted">(optional)</span>
                   </label>
                   <input
                     type="text"
                     value={newModel}
                     onChange={(e) => setNewModel(e.target.value)}
                     placeholder={provider.defaultModel}
-                    className="w-full px-3 py-2 rounded-lg border text-sm font-mono mb-1"
-                    style={{
-                      backgroundColor: 'var(--background)',
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)',
-                      fontSize: '16px',
-                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-theme text-sm font-mono mb-1 bg-background text-text-primary text-base"
                   />
-                  <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-xs mb-3 text-text-muted">
                     Leave blank to use default:{' '}
                     <code className="px-1 py-0.5 bg-gray-100 rounded">{provider.defaultModel}</code>
                   </p>
@@ -325,16 +293,14 @@ export default function BYOKSection() {
                     <button
                       onClick={() => handleTestKey(provider.provider)}
                       disabled={testingKey || !newApiKey.trim()}
-                      className="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50"
-                      style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg border border-theme text-text-secondary transition-colors disabled:opacity-50"
                     >
                       {testingKey ? 'Testing...' : 'Test Key'}
                     </button>
                     <button
                       onClick={() => handleSaveKey(provider.provider)}
                       disabled={savingKey || !newApiKey.trim()}
-                      className="px-3 py-1.5 text-sm font-semibold rounded-lg text-white transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: 'var(--primary)' }}
+                      className="px-3 py-1.5 text-sm font-semibold rounded-lg text-white transition-colors disabled:opacity-50 bg-primary"
                     >
                       {savingKey ? 'Saving...' : 'Save Key'}
                     </button>
@@ -345,13 +311,12 @@ export default function BYOKSection() {
                         setNewModel('');
                         setError(null);
                       }}
-                      className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-                      style={{ color: 'var(--text-muted)' }}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-text-muted"
                     >
                       Cancel
                     </button>
                   </div>
-                  <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-xs mt-2 text-text-muted">
                     Your API key will be encrypted. You won&apos;t be able to view it after saving.
                   </p>
                 </div>
@@ -362,14 +327,9 @@ export default function BYOKSection() {
       )}
 
       {/* Info Section */}
-      <div
-        className="mt-6 p-4 rounded-lg border"
-        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--background-secondary)' }}
-      >
-        <h4 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-          Why use your own API keys?
-        </h4>
-        <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
+      <div className="mt-6 p-4 rounded-lg border border-theme bg-background">
+        <h4 className="font-medium mb-2 text-text-primary">Why use your own API keys?</h4>
+        <ul className="text-sm space-y-1 text-text-secondary">
           <li>
             - <strong>No usage limits</strong> - Use your own quota
           </li>

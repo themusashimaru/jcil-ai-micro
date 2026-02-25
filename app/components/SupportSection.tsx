@@ -164,18 +164,15 @@ export default function SupportSection() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-          Support
-        </h2>
-        <p style={{ color: 'var(--text-secondary)' }}>Contact us or view your support requests.</p>
+        <h2 className="text-2xl font-bold mb-2 text-text-primary">Support</h2>
+        <p className="text-text-secondary">Contact us or view your support requests.</p>
       </div>
 
       {/* New Ticket Button */}
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-6 px-6 py-3 rounded-lg font-semibold text-white hover:opacity-90 transition"
-          style={{ backgroundColor: 'var(--primary)' }}
+          className="mb-6 px-6 py-3 rounded-lg font-semibold text-white hover:opacity-90 transition bg-primary"
         >
           Contact Support
         </button>
@@ -185,14 +182,8 @@ export default function SupportSection() {
       {showForm && (
         <section className="glass-morphism rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              New Support Request
-            </h3>
-            <button
-              onClick={() => setShowForm(false)}
-              style={{ color: 'var(--text-muted)' }}
-              className="hover:opacity-70"
-            >
+            <h3 className="text-xl font-semibold text-text-primary">New Support Request</h3>
+            <button onClick={() => setShowForm(false)} className="hover:opacity-70 text-text-muted">
               Cancel
             </button>
           </div>
@@ -200,20 +191,15 @@ export default function SupportSection() {
           {submitStatus === 'success' ? (
             <div className="text-center py-6">
               <div className="text-4xl mb-3">done</div>
-              <h4 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Message Sent
-              </h4>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                We typically respond within 24-48 hours.
-              </p>
+              <h4 className="text-lg font-semibold mb-2 text-text-primary">Message Sent</h4>
+              <p className="text-text-secondary">We typically respond within 24-48 hours.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label
                   htmlFor="category"
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="block text-sm font-medium mb-2 text-text-secondary"
                 >
                   Category
                 </label>
@@ -221,19 +207,10 @@ export default function SupportSection() {
                   id="category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--glass-bg)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-glass border border-theme text-text-primary"
                 >
                   {CATEGORIES.map((cat) => (
-                    <option
-                      key={cat.value}
-                      value={cat.value}
-                      style={{ backgroundColor: 'var(--surface-elevated)' }}
-                    >
+                    <option key={cat.value} value={cat.value} className="bg-surface-elevated">
                       {cat.label}
                     </option>
                   ))}
@@ -243,8 +220,7 @@ export default function SupportSection() {
               <div>
                 <label
                   htmlFor="subject"
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="block text-sm font-medium mb-2 text-text-secondary"
                 >
                   Subject
                 </label>
@@ -254,12 +230,7 @@ export default function SupportSection() {
                   required
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: 'var(--glass-bg)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-glass border border-theme text-text-primary"
                   placeholder="Brief description of your issue"
                 />
               </div>
@@ -267,8 +238,7 @@ export default function SupportSection() {
               <div>
                 <label
                   htmlFor="message"
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="block text-sm font-medium mb-2 text-text-secondary"
                 >
                   Message
                 </label>
@@ -278,12 +248,7 @@ export default function SupportSection() {
                   rows={5}
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  style={{
-                    backgroundColor: 'var(--glass-bg)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-glass border border-theme text-text-primary"
                   placeholder="Please describe your issue or question in detail"
                 />
               </div>
@@ -297,8 +262,7 @@ export default function SupportSection() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg py-3 font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
-                style={{ backgroundColor: 'var(--primary)' }}
+                className="w-full rounded-lg py-3 font-semibold text-white hover:opacity-90 transition disabled:opacity-50 bg-primary"
               >
                 {submitting ? 'Sending...' : 'Send Message'}
               </button>
@@ -309,44 +273,29 @@ export default function SupportSection() {
 
       {/* Ticket History */}
       <section className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Your Requests
-        </h3>
+        <h3 className="text-xl font-semibold mb-4 text-text-primary">Your Requests</h3>
 
         {loading ? (
-          <div className="text-center py-8" style={{ color: 'var(--text-secondary)' }}>
-            Loading...
-          </div>
+          <div className="text-center py-8 text-text-secondary">Loading...</div>
         ) : tickets.length === 0 ? (
-          <div className="text-center py-8" style={{ color: 'var(--text-secondary)' }}>
-            No support requests yet
-          </div>
+          <div className="text-center py-8 text-text-secondary">No support requests yet</div>
         ) : (
           <div className="space-y-3">
             {tickets.map((ticket) => (
               <button
                 key={ticket.id}
                 onClick={() => fetchTicketDetail(ticket.id)}
-                className="w-full text-left p-4 rounded-lg transition"
-                style={{
-                  backgroundColor: 'var(--glass-bg)',
-                  boxShadow: selectedTicket?.id === ticket.id ? '0 0 0 2px var(--primary)' : 'none',
-                }}
+                className={`w-full text-left p-4 rounded-lg transition bg-glass ${selectedTicket?.id === ticket.id ? 'ring-2 ring-primary' : ''}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <span className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                    {ticket.subject}
-                  </span>
+                  <span className="font-medium truncate text-text-primary">{ticket.subject}</span>
                   <span
                     className={`text-xs px-2 py-1 rounded ${STATUS_LABELS[ticket.status]?.color || 'bg-gray-500/20 text-gray-400'}`}
                   >
                     {STATUS_LABELS[ticket.status]?.label || ticket.status}
                   </span>
                 </div>
-                <div
-                  className="flex items-center gap-3 text-sm"
-                  style={{ color: 'var(--text-muted)' }}
-                >
+                <div className="flex items-center gap-3 text-sm text-text-muted">
                   <span>{formatDate(ticket.created_at)}</span>
                   {ticket.reply_count > 0 && (
                     <span className="text-green-500">
@@ -391,13 +340,7 @@ export default function SupportSection() {
               ) : (
                 <>
                   {/* Original Message */}
-                  <div
-                    className="rounded-lg p-4"
-                    style={{
-                      backgroundColor: 'var(--primary-hover)',
-                      border: '1px solid var(--primary)',
-                    }}
-                  >
+                  <div className="rounded-lg p-4 bg-primary-hover border border-primary">
                     <div className="text-xs text-gray-400 mb-2">You wrote:</div>
                     <div className="whitespace-pre-wrap">{selectedTicket.message}</div>
                   </div>

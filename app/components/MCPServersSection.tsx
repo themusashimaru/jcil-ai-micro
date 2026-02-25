@@ -152,19 +152,12 @@ export default function MCPServersSection() {
   if (loading) {
     return (
       <div className="mt-8">
-        <h3
-          className="text-lg font-semibold mb-4 flex items-center gap-2"
-          style={{ color: 'var(--text-primary)' }}
-        >
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-text-primary">
           <span>MCP Servers</span>
         </h3>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-20 rounded-xl animate-pulse"
-              style={{ backgroundColor: 'var(--glass-bg)' }}
-            />
+            <div key={i} className="h-20 rounded-xl animate-pulse bg-glass" />
           ))}
         </div>
       </div>
@@ -178,13 +171,10 @@ export default function MCPServersSection() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3
-            className="text-lg font-semibold flex items-center gap-2"
-            style={{ color: 'var(--text-primary)' }}
-          >
+          <h3 className="text-lg font-semibold flex items-center gap-2 text-text-primary">
             MCP Servers
           </h3>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm mt-1 text-text-secondary">
             Extend AI capabilities with Model Context Protocol servers.
             {enabledCount > 0 && (
               <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
@@ -196,12 +186,7 @@ export default function MCPServersSection() {
         <button
           onClick={runHealthCheck}
           disabled={checkingHealth || enabledCount === 0}
-          className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40"
-          style={{
-            backgroundColor: 'var(--glass-bg)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
-          }}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40 bg-glass border border-theme text-text-primary"
           aria-label="Run health check on active servers"
         >
           {checkingHealth ? (
@@ -230,14 +215,7 @@ export default function MCPServersSection() {
       </div>
 
       {/* On-Demand Architecture Note */}
-      <div
-        className="mb-4 px-4 py-3 rounded-lg text-xs"
-        style={{
-          backgroundColor: 'var(--glass-bg)',
-          border: '1px solid var(--border)',
-          color: 'var(--text-secondary)',
-        }}
-      >
+      <div className="mb-4 px-4 py-3 rounded-lg text-xs bg-glass border border-theme text-text-secondary">
         Servers use on-demand architecture — they start automatically when needed and stop after 1
         minute of inactivity to save resources.
       </div>
@@ -253,11 +231,7 @@ export default function MCPServersSection() {
           return (
             <div
               key={server.id}
-              className="rounded-xl border transition-colors"
-              style={{
-                borderColor: server.enabled ? 'var(--primary)' : 'var(--border)',
-                backgroundColor: 'var(--glass-bg)',
-              }}
+              className={`rounded-xl border transition-colors bg-glass ${server.enabled ? 'border-primary' : 'border-theme'}`}
             >
               {/* Server Row */}
               <div className="flex items-start justify-between p-4 gap-3">
@@ -267,15 +241,12 @@ export default function MCPServersSection() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {server.name}
-                      </h4>
+                      <h4 className="font-medium text-text-primary">{server.name}</h4>
                       {server.builtIn && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-500/20 text-gray-400 whitespace-nowrap">
                           Built-in
                         </span>
                       )}
-                      {/* Status indicator */}
                       {server.enabled && (
                         <span
                           className={`flex items-center gap-1 text-xs whitespace-nowrap ${status.color}`}
@@ -286,7 +257,6 @@ export default function MCPServersSection() {
                           {status.label}
                         </span>
                       )}
-                      {/* Health indicator */}
                       {health && (
                         <span
                           className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${
@@ -301,23 +271,17 @@ export default function MCPServersSection() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs mt-1 line-clamp-2 text-text-muted">
                       {server.description}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Tools count button */}
                   {server.tools && server.tools.length > 0 && (
                     <button
                       onClick={() => setExpandedServer(isExpanded ? null : server.id)}
-                      className="px-2 py-1 text-xs rounded-lg transition-colors whitespace-nowrap"
-                      style={{
-                        backgroundColor: isExpanded ? 'var(--primary)' : 'transparent',
-                        color: isExpanded ? 'white' : 'var(--text-muted)',
-                        border: isExpanded ? 'none' : '1px solid var(--border)',
-                      }}
+                      className={`px-2 py-1 text-xs rounded-lg transition-colors whitespace-nowrap ${isExpanded ? 'bg-primary text-white' : 'bg-transparent text-text-muted border border-theme'}`}
                       aria-expanded={isExpanded}
                       aria-label={`${server.tools.length} tools available for ${server.name}`}
                     >
@@ -329,11 +293,7 @@ export default function MCPServersSection() {
                   <button
                     onClick={() => toggleServer(server.id, server.enabled)}
                     disabled={isToggling}
-                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                    style={{
-                      backgroundColor: server.enabled ? 'var(--primary)' : 'var(--glass-bg)',
-                      border: server.enabled ? 'none' : '1px solid var(--border)',
-                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${server.enabled ? 'bg-primary' : 'bg-glass border border-theme'}`}
                     role="switch"
                     aria-checked={server.enabled}
                     aria-label={`${server.enabled ? 'Disable' : 'Enable'} ${server.name} server`}
@@ -347,7 +307,6 @@ export default function MCPServersSection() {
                 </div>
               </div>
 
-              {/* Error message */}
               {server.error && (
                 <div className="px-4 pb-3">
                   <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
@@ -356,31 +315,17 @@ export default function MCPServersSection() {
                 </div>
               )}
 
-              {/* Expanded tools list */}
               {isExpanded && server.tools.length > 0 && (
-                <div className="border-t px-4 py-3" style={{ borderColor: 'var(--border)' }}>
-                  <p
-                    className="text-xs font-medium mb-2"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Available Tools
-                  </p>
+                <div className="border-t border-theme px-4 py-3">
+                  <p className="text-xs font-medium mb-2 text-text-secondary">Available Tools</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {server.tools.map((tool) => (
                       <div
                         key={tool.name}
-                        className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg text-xs"
-                        style={{ backgroundColor: 'var(--background)' }}
+                        className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg text-xs bg-background"
                       >
-                        <code
-                          className="font-mono flex-shrink-0"
-                          style={{ color: 'var(--primary)' }}
-                        >
-                          {tool.name}
-                        </code>
-                        <span className="truncate" style={{ color: 'var(--text-muted)' }}>
-                          {tool.description}
-                        </span>
+                        <code className="font-mono flex-shrink-0 text-primary">{tool.name}</code>
+                        <span className="truncate text-text-muted">{tool.description}</span>
                       </div>
                     ))}
                   </div>

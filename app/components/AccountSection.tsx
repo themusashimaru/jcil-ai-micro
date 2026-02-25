@@ -128,10 +128,7 @@ export default function AccountSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div
-          className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
-          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
-        ></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
       </div>
     );
   }
@@ -140,24 +137,12 @@ export default function AccountSection() {
     <div className="space-y-6">
       {/* Current Email Display */}
       <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Account Information
-        </h3>
+        <h3 className="text-xl font-semibold mb-4 text-text-primary">Account Information</h3>
         <div>
-          <label
-            className="block text-sm font-medium mb-2"
-            style={{ color: 'var(--text-secondary)' }}
-          >
+          <label className="block text-sm font-medium mb-2 text-text-secondary">
             Current Email
           </label>
-          <div
-            className="px-4 py-3 rounded-lg"
-            style={{
-              backgroundColor: 'var(--glass-bg)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-            }}
-          >
+          <div className="px-4 py-3 rounded-lg bg-glass border border-theme text-text-primary">
             {currentEmail}
           </div>
         </div>
@@ -165,10 +150,8 @@ export default function AccountSection() {
 
       {/* Change Email Section */}
       <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-          Change Email
-        </h3>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+        <h3 className="text-xl font-semibold mb-2 text-text-primary">Change Email</h3>
+        <p className="text-sm mb-4 text-text-secondary">
           You&apos;ll receive confirmation emails at both your current and new email addresses.
         </p>
 
@@ -209,8 +192,7 @@ export default function AccountSection() {
           <div>
             <label
               htmlFor="newEmail"
-              className="block text-sm font-medium mb-2"
-              style={{ color: 'var(--text-secondary)' }}
+              className="block text-sm font-medium mb-2 text-text-secondary"
             >
               New Email Address
             </label>
@@ -220,12 +202,7 @@ export default function AccountSection() {
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-glass border border-theme text-text-primary"
               disabled={emailLoading}
               required
             />
@@ -234,8 +211,7 @@ export default function AccountSection() {
           <button
             type="submit"
             disabled={emailLoading}
-            className="w-full rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed btn-primary"
-            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+            className="w-full rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed btn-primary bg-primary text-background"
           >
             {emailLoading ? 'Sending Confirmation...' : 'Change Email'}
           </button>
@@ -244,10 +220,8 @@ export default function AccountSection() {
 
       {/* Change Password Section */}
       <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-          Change Password
-        </h3>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+        <h3 className="text-xl font-semibold mb-2 text-text-primary">Change Password</h3>
+        <p className="text-sm mb-4 text-text-secondary">
           Enter a new password to update your account security.
         </p>
 
@@ -287,8 +261,7 @@ export default function AccountSection() {
           <div>
             <label
               htmlFor="newPassword"
-              className="block text-sm font-medium mb-2"
-              style={{ color: 'var(--text-secondary)' }}
+              className="block text-sm font-medium mb-2 text-text-secondary"
             >
               New Password
             </label>
@@ -298,12 +271,7 @@ export default function AccountSection() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
-              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-glass border border-theme text-text-primary"
               disabled={passwordLoading}
               required
               minLength={8}
@@ -313,8 +281,7 @@ export default function AccountSection() {
           <div>
             <label
               htmlFor="confirmPassword"
-              className="block text-sm font-medium mb-2"
-              style={{ color: 'var(--text-secondary)' }}
+              className="block text-sm font-medium mb-2 text-text-secondary"
             >
               Confirm New Password
             </label>
@@ -324,12 +291,7 @@ export default function AccountSection() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
-              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-glass border border-theme text-text-primary"
               disabled={passwordLoading}
               required
               minLength={8}
@@ -350,8 +312,7 @@ export default function AccountSection() {
           <button
             type="submit"
             disabled={passwordLoading}
-            className="w-full rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed btn-primary"
-            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+            className="w-full rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed btn-primary bg-primary text-background"
           >
             {passwordLoading ? 'Updating...' : 'Change Password'}
           </button>
