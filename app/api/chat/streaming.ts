@@ -173,8 +173,15 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
               content: m.content,
             };
           }
+          // Guard against null/undefined/non-array content
+          if (!Array.isArray(m.content)) {
+            return {
+              role: m.role as 'user' | 'assistant' | 'system',
+              content: m.content != null ? String(m.content) : '',
+            };
+          }
           const blocks: UnifiedContentBlock[] = [];
-          for (const part of m.content as unknown[]) {
+          for (const part of m.content) {
             const p = part as Record<string, unknown>;
             if (p.type === 'text' && p.text) {
               blocks.push({ type: 'text', text: String(p.text) });

@@ -55,6 +55,7 @@ export function truncateMessages(
   messages: CoreMessage[],
   maxMessages: number = MAX_CONTEXT_MESSAGES
 ): CoreMessage[] {
+  if (!messages || messages.length === 0) return [];
   if (messages.length <= maxMessages) return messages;
 
   // Keep the first message (usually system context) and last (maxMessages - 2) messages
@@ -89,11 +90,13 @@ export function clampMaxTokens(requestedTokens?: number): number {
 }
 
 export function getLastUserContent(messages: CoreMessage[]): string {
+  if (!messages || messages.length === 0) return '';
   const lastUserMessage = messages[messages.length - 1];
-  if (typeof lastUserMessage?.content === 'string') {
+  if (!lastUserMessage) return '';
+  if (typeof lastUserMessage.content === 'string') {
     return lastUserMessage.content;
   }
-  if (Array.isArray(lastUserMessage?.content)) {
+  if (Array.isArray(lastUserMessage.content)) {
     return lastUserMessage.content
       .filter((part: { type: string }) => part.type === 'text')
       .map((part: { type: string; text?: string }) => part.text || '')
@@ -107,7 +110,9 @@ export function getLastUserContent(messages: CoreMessage[]): string {
  * Returns base64 encoded images ready for FLUX edit API
  */
 export function getImageAttachments(messages: CoreMessage[]): string[] {
+  if (!messages || messages.length === 0) return [];
   const lastUserMessage = messages[messages.length - 1];
+  if (!lastUserMessage) return [];
   const images: string[] = [];
 
   if (Array.isArray(lastUserMessage?.content)) {

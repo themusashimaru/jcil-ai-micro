@@ -129,7 +129,12 @@ export async function handleExplicitDocumentGeneration(
     trackDocTokens(result, ctx.userId, ctx.userPlanKey, 'chat-document', ctx.conversationId);
 
     const jsonText = stripCodeFences(result.text);
-    const documentData = JSON.parse(jsonText) as DocumentData;
+    let documentData: DocumentData;
+    try {
+      documentData = JSON.parse(jsonText) as DocumentData;
+    } catch {
+      throw new Error('Failed to parse document generation response as JSON');
+    }
 
     const validation = validateDocumentJSON(documentData);
     if (!validation.valid) {
@@ -320,7 +325,12 @@ If information is missing, make reasonable professional assumptions or leave opt
   trackDocTokens(extractionResult, ctx.userId, ctx.userPlanKey, 'chat-resume', ctx.conversationId);
 
   const jsonText = stripCodeFences(extractionResult.text);
-  const extractedData = JSON.parse(jsonText);
+  let extractedData: Record<string, unknown>;
+  try {
+    extractedData = JSON.parse(jsonText) as Record<string, unknown>;
+  } catch {
+    throw new Error('Failed to parse resume extraction response as JSON');
+  }
 
   const resumeData: ResumeData = {
     contact: {

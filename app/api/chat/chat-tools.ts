@@ -419,13 +419,14 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
         };
       }
     } catch (toolError) {
+      const errorMsg = toolError instanceof Error ? toolError.message : String(toolError);
       log.error('Tool execution failed with unhandled error', {
         tool: toolName,
-        error: (toolError as Error).message,
+        error: errorMsg,
       });
       result = {
         toolCallId: toolCall.id,
-        content: sanitizeToolError(toolName, (toolError as Error).message),
+        content: sanitizeToolError(toolName, errorMsg),
         isError: true,
       };
     }
@@ -496,12 +497,22 @@ async function executeMCPTool(
       tools: ensureResult.tools.length,
     });
 
+    let parsedArgs: Record<string, unknown>;
+    try {
+      parsedArgs =
+        typeof toolCall.arguments === 'string'
+          ? JSON.parse(toolCall.arguments)
+          : toolCall.arguments;
+    } catch {
+      return {
+        toolCallId: toolCall.id,
+        content: `Invalid JSON arguments for MCP tool ${actualToolName}`,
+        isError: true,
+      };
+    }
+
     log.info('Executing MCP tool', { serverId, tool: actualToolName });
-    const mcpResult = await mcpManager.callTool(
-      serverId,
-      actualToolName,
-      typeof toolCall.arguments === 'string' ? JSON.parse(toolCall.arguments) : toolCall.arguments
-    );
+    const mcpResult = await mcpManager.callTool(serverId, actualToolName, parsedArgs);
 
     log.info('MCP tool executed successfully', { serverId, tool: actualToolName });
     return {
@@ -510,14 +521,15 @@ async function executeMCPTool(
       isError: false,
     };
   } catch (mcpError) {
+    const errorMsg = mcpError instanceof Error ? mcpError.message : String(mcpError);
     log.error('MCP tool execution failed', {
       serverId,
       tool: actualToolName,
-      error: (mcpError as Error).message,
+      error: errorMsg,
     });
     return {
       toolCallId: toolCall.id,
-      content: sanitizeToolError(`${serverId}:${actualToolName}`, (mcpError as Error).message),
+      content: sanitizeToolError(`${serverId}:${actualToolName}`, errorMsg),
       isError: true,
     };
   }
@@ -534,10 +546,24 @@ async function executeComposioToolCall(
       userId,
     });
 
+    let parsedArgs: Record<string, unknown>;
+    try {
+      parsedArgs =
+        typeof toolCall.arguments === 'string'
+          ? JSON.parse(toolCall.arguments)
+          : toolCall.arguments;
+    } catch {
+      return {
+        toolCallId: toolCall.id,
+        content: `Invalid JSON arguments for Composio tool ${toolName}`,
+        isError: true,
+      };
+    }
+
     const composioResult = await executeComposioTool(
       userId || 'anonymous',
       toolName,
-      typeof toolCall.arguments === 'string' ? JSON.parse(toolCall.arguments) : toolCall.arguments
+      parsedArgs
     );
 
     if (composioResult.success) {
@@ -558,13 +584,14 @@ async function executeComposioToolCall(
       };
     }
   } catch (composioError) {
+    const errorMsg = composioError instanceof Error ? composioError.message : String(composioError);
     log.error('Composio tool execution failed', {
       tool: toolName,
-      error: (composioError as Error).message,
+      error: errorMsg,
     });
     return {
       toolCallId: toolCall.id,
-      content: sanitizeToolError(toolName, (composioError as Error).message),
+      content: sanitizeToolError(toolName, errorMsg),
       isError: true,
     };
   }
