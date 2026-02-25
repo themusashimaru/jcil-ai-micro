@@ -42,12 +42,10 @@ export function ChatSidebarAgentSessions({
     <div className="mb-4">
       <button
         onClick={() => setStrategyCollapsed(!strategyCollapsed)}
-        className="flex items-center gap-2 px-2 py-1.5 w-full text-left rounded-lg"
-        style={{ backgroundColor: 'var(--glass-bg)' }}
+        className="flex items-center gap-2 px-2 py-1.5 w-full text-left rounded-lg bg-glass"
       >
         <svg
-          className={`h-3 w-3 transition-transform ${strategyCollapsed ? '' : 'rotate-90'}`}
-          style={{ color: 'var(--text-muted)' }}
+          className={`h-3 w-3 transition-transform text-text-muted ${strategyCollapsed ? '' : 'rotate-90'}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -67,12 +65,8 @@ export function ChatSidebarAgentSessions({
             d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
           />
         </svg>
-        <span className="text-xs font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>
-          Agent Sessions
-        </span>
-        <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
-          ({strategySessions.length})
-        </span>
+        <span className="text-xs font-semibold uppercase text-text-muted">Agent Sessions</span>
+        <span className="text-xs ml-auto text-text-muted">({strategySessions.length})</span>
       </button>
       {!strategyCollapsed && (
         <div className="mt-1 space-y-1">
@@ -141,13 +135,10 @@ export function ChatSidebarAgentSessions({
                   </svg>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="text-sm font-medium truncate"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
+                  <p className="text-sm font-medium truncate text-text-primary">
                     {session.problem_summary || 'Agent Session'}
                   </p>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-xs truncate text-text-muted">
                     {session.total_searches} searches
                     {session.total_cost > 0 && ` • $${session.total_cost.toFixed(2)}`}
                   </p>

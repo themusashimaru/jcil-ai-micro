@@ -90,9 +90,8 @@ export function CodePreviewBlock({ code, language, title, description }: CodePre
           </button>
           {inlineExpanded && (
             <div
-              className="relative cursor-pointer group overflow-hidden"
+              className="relative cursor-pointer group overflow-hidden min-h-[300px]"
               onClick={openPreview}
-              style={{ minHeight: '300px' }}
             >
               {!previewLoaded && (
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center z-0">
@@ -104,10 +103,9 @@ export function CodePreviewBlock({ code, language, title, description }: CodePre
               )}
               <iframe
                 srcDoc={code}
-                className="relative w-full h-[300px] pointer-events-none z-10"
+                className="relative w-full h-[300px] pointer-events-none z-10 bg-white"
                 title={`${title || 'Preview'} - Inline`}
                 sandbox="allow-scripts allow-same-origin"
-                style={{ backgroundColor: 'white' }}
                 onLoad={() => setPreviewLoaded(true)}
               />
               <div className="absolute inset-0 z-20 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">

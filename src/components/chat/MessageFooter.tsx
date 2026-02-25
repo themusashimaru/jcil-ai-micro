@@ -68,11 +68,10 @@ export function MessageFooter({ message, isUser, isAdmin, onReply }: MessageFoot
             </svg>
           ) : (
             <svg
-              className="h-3.5 w-3.5"
+              className="h-3.5 w-3.5 text-text-muted"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              style={{ color: 'var(--text-muted)' }}
             >
               <path
                 strokeLinecap="round"
@@ -92,11 +91,10 @@ export function MessageFooter({ message, isUser, isAdmin, onReply }: MessageFoot
           aria-label="Reply to this message"
         >
           <svg
-            className="h-3.5 w-3.5"
+            className="h-3.5 w-3.5 text-text-muted"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            style={{ color: 'var(--text-muted)' }}
           >
             <path
               strokeLinecap="round"

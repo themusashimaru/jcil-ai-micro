@@ -268,17 +268,17 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
   };
 
   return (
-    <div
-      className="my-3 rounded-lg overflow-hidden border"
-      style={{ backgroundColor: '#0d1117', borderColor: '#30363d' }}
-    >
+    <div className="my-3 rounded-lg overflow-hidden border bg-[#0d1117] border-[#30363d]">
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2 border-b"
-        style={{ backgroundColor: 'rgba(56, 139, 253, 0.1)', borderColor: '#30363d' }}
-      >
+      <div className="flex items-center justify-between px-3 py-2 border-b bg-[rgba(56,139,253,0.1)] border-[#30363d]">
         <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            className="w-5 h-5 text-blue-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M3 3h7l2 2h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
           </svg>
           <span className="font-medium text-gray-200">{projectName}</span>
@@ -303,7 +303,13 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
               onClick={onDownload}
               className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-white/10"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7,10 12,15 17,10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -315,12 +321,9 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
       </div>
 
       {/* Content */}
-      <div className="flex" style={{ minHeight: '300px', maxHeight: '500px' }}>
+      <div className="flex min-h-[300px] max-h-[500px]">
         {/* File Tree */}
-        <div
-          className="w-56 border-r overflow-y-auto"
-          style={{ borderColor: '#30363d', backgroundColor: '#161b22' }}
-        >
+        <div className="w-56 border-r overflow-y-auto border-[#30363d] bg-[#161b22]">
           <div className="py-2">
             <TreeNodeView
               node={tree}
@@ -338,10 +341,7 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
           {selectedFile ? (
             <>
               {/* File header */}
-              <div
-                className="flex items-center justify-between px-3 py-2 border-b"
-                style={{ borderColor: '#30363d', backgroundColor: '#161b22' }}
-              >
+              <div className="flex items-center justify-between px-3 py-2 border-b border-[#30363d] bg-[#161b22]">
                 <span className="text-sm text-gray-300">{selectedFile.path}</span>
                 <button
                   onClick={handleCopyFile}
@@ -349,11 +349,23 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
                   title="Copy file"
                 >
                   {copied ? (
-                    <svg className="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      className="w-4 h-4 text-green-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <path d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
@@ -363,10 +375,7 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
 
               {/* Code content */}
               <div className="flex-1 overflow-auto">
-                <pre
-                  className="text-sm font-mono p-3 leading-relaxed"
-                  style={{ color: '#c9d1d9', margin: 0 }}
-                >
+                <pre className="text-sm font-mono p-3 leading-relaxed text-[#c9d1d9] m-0">
                   <code>{selectedFile.content}</code>
                 </pre>
               </div>
@@ -374,7 +383,13 @@ export function ProjectView({ projectName, files, onDownload }: ProjectViewProps
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500">
               <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                <svg
+                  className="w-12 h-12 mx-auto mb-2 opacity-50"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                >
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14,2 14,8 20,8" />
                 </svg>

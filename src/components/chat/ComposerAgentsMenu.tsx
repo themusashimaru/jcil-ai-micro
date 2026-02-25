@@ -32,12 +32,7 @@ interface ComposerAgentsMenuProps {
 }
 
 const CheckIcon = () => (
-  <svg
-    className="w-4 h-4 ml-auto"
-    style={{ color: 'var(--text-muted)' }}
-    fill="currentColor"
-    viewBox="0 0 24 24"
-  >
+  <svg className="w-4 h-4 ml-auto text-text-muted" fill="currentColor" viewBox="0 0 24 24">
     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
   </svg>
 );
@@ -115,8 +110,7 @@ export function ComposerAgentsMenu({
         ref={buttonRef}
         onClick={onToggle}
         disabled={isStreaming || disabled}
-        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
-        style={{ color: isAgentActive ? '#c4b5fd' : 'var(--text-primary)' }}
+        className={`disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80 ${isAgentActive ? 'text-violet-300' : 'text-text-primary'}`}
         title="Select an AI Agent"
       >
         <span>{buttonLabel}</span>
@@ -139,13 +133,10 @@ export function ComposerAgentsMenu({
       {isOpen && (
         <div
           ref={menuRef}
-          className="absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl overflow-hidden z-50"
-          style={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border)' }}
+          className="absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl overflow-hidden z-50 bg-surface-elevated border border-theme"
         >
-          <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
-            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-              Select an Agent
-            </p>
+          <div className="p-2 border-b border-theme">
+            <p className="text-xs font-medium text-text-muted">Select an Agent</p>
           </div>
           <div className="p-1">
             {/* Exit agent mode */}
@@ -158,8 +149,7 @@ export function ComposerAgentsMenu({
                   onClearToolMode();
                   onClose();
                 }}
-                className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors mb-1"
-                style={{ color: 'var(--text-secondary)' }}
+                className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors mb-1 text-text-secondary"
               >
                 <p className="text-sm font-medium">Exit Agent Mode</p>
               </button>
@@ -174,11 +164,7 @@ export function ComposerAgentsMenu({
                   await onAgentSelect(agent.id);
                 }}
                 disabled={agent.loading}
-                className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
-                style={{
-                  backgroundColor: activeAgent === agent.id ? 'var(--glass-bg)' : 'transparent',
-                  color: activeAgent === agent.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                }}
+                className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${activeAgent === agent.id ? 'bg-glass text-text-primary' : 'bg-transparent text-text-secondary'}`}
               >
                 <p className="text-sm font-medium">
                   {agent.loading ? agent.loadingLabel : agent.label}

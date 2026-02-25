@@ -25,10 +25,8 @@ export function MessageDocumentDownload({ documentDownload: doc }: MessageDocume
   const { icon, label, color } = getDocInfo(doc.mimeType, doc.filename);
 
   return (
-    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-      <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
-        📎 Your document is ready:
-      </div>
+    <div className="mt-3 pt-3 border-t border-theme">
+      <div className="text-xs font-medium mb-2 text-text-muted">📎 Your document is ready:</div>
       <div className="flex flex-col gap-2">
         {/* Preview Button — PDFs only */}
         {doc.canPreview && (

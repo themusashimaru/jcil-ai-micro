@@ -54,8 +54,7 @@ export function ComposerProviderMenu({
         ref={buttonRef}
         onClick={onToggle}
         disabled={isStreaming || disabled}
-        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80"
-        style={{ color: 'var(--text-primary)' }}
+        className="disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:opacity-80 text-text-primary"
         title="Select AI Provider"
       >
         <span>LLM</span>
@@ -72,13 +71,10 @@ export function ComposerProviderMenu({
       {isOpen && (
         <div
           ref={menuRef}
-          className="absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl overflow-hidden z-50"
-          style={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border)' }}
+          className="absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl overflow-hidden z-50 bg-surface-elevated border border-theme"
         >
-          <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
-            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-              Select AI Provider
-            </p>
+          <div className="p-2 border-b border-theme">
+            <p className="text-xs font-medium text-text-muted">Select AI Provider</p>
           </div>
           <div className="p-1">
             {(Object.keys(PROVIDER_CONFIG) as ProviderId[]).map((providerId) => {
@@ -96,31 +92,25 @@ export function ComposerProviderMenu({
                     }
                   }}
                   disabled={!isConfigured}
-                  className="w-full flex items-center gap-2 p-2 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: isSelected ? 'var(--glass-bg)' : 'transparent',
-                    color: isSelected
-                      ? 'var(--text-primary)'
+                  className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                    isSelected ? 'bg-glass' : 'bg-transparent'
+                  } ${
+                    isSelected
+                      ? 'text-text-primary'
                       : isConfigured
-                        ? 'var(--text-secondary)'
-                        : 'var(--text-muted)',
-                    opacity: isConfigured ? 1 : 0.5,
-                    cursor: isConfigured ? 'pointer' : 'not-allowed',
-                  }}
+                        ? 'text-text-secondary'
+                        : 'text-text-muted'
+                  } ${isConfigured ? 'opacity-100 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                 >
                   <p className="text-sm font-medium">{provider.name}</p>
                   {!isConfigured && (
-                    <span
-                      className="text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-muted)' }}
-                    >
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-glass text-text-muted">
                       Not configured
                     </span>
                   )}
                   {isSelected && isConfigured && (
                     <svg
-                      className="w-4 h-4 ml-auto"
-                      style={{ color: 'var(--text-muted)' }}
+                      className="w-4 h-4 ml-auto text-text-muted"
                       fill="currentColor"
                       viewBox="0 0 24 24"
                     >

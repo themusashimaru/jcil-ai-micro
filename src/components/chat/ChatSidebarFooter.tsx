@@ -18,13 +18,12 @@ export interface ChatSidebarFooterProps {
 
 export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatSidebarFooterProps) {
   return (
-    <div className="p-3 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
+    <div className="p-3 space-y-2 border-t border-theme">
       {/* Code Lab (Admin only) */}
       {isAdmin && (
         <button
           onClick={() => (window.location.href = '/code-lab')}
-          className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
-          style={{ color: 'var(--text-primary)' }}
+          className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-text-primary"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -41,8 +40,7 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
       {isAdmin && (
         <button
           onClick={() => (window.location.href = '/admin')}
-          className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
-          style={{ color: 'var(--text-primary)' }}
+          className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-text-primary"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path

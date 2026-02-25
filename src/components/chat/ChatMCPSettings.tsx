@@ -262,31 +262,14 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
       />
 
       {/* Modal */}
-      <div
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[80vh] rounded-xl border flex flex-col overflow-hidden z-[9999]"
-        style={{
-          width: 'min(500px, 90vw)',
-          backgroundColor: 'var(--bg-secondary, #1a1a1a)',
-          borderColor: 'var(--border-color, #333)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-        }}
-      >
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[80vh] rounded-xl border flex flex-col overflow-hidden z-[9999] w-[min(500px,90vw)] bg-surface-elevated border-theme shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-4 border-b"
-          style={{ borderColor: 'var(--border-color, #333)' }}
-        >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-theme">
           <div className="flex items-center gap-2.5">
             <ServerIcon />
             <h2 className="m-0 text-base font-semibold">MCP Servers</h2>
             {runningCount > 0 && (
-              <span
-                className="text-xs px-2 py-0.5 rounded-[10px]"
-                style={{
-                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                  color: '#22c55e',
-                }}
-              >
+              <span className="text-xs px-2 py-0.5 rounded-[10px] bg-green-500/20 text-green-500">
                 {runningCount} running
               </span>
             )}
@@ -306,19 +289,13 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
           </p>
 
           {isLoading ? (
-            <div className="text-center p-10" style={{ color: '#888' }}>
-              Loading...
-            </div>
+            <div className="text-center p-10 text-gray-500">Loading...</div>
           ) : (
             <div className="flex flex-col gap-3">
               {servers.map((server) => (
                 <div
                   key={server.id}
-                  className="rounded-lg border overflow-hidden"
-                  style={{
-                    backgroundColor: 'var(--bg-tertiary, #252525)',
-                    borderColor: 'var(--border-color, #333)',
-                  }}
+                  className="rounded-lg border overflow-hidden bg-surface border-theme"
                 >
                   {/* Server Header */}
                   <div className="flex items-center justify-between px-4 py-3">
@@ -390,10 +367,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
 
                   {/* Tools List (expanded) */}
                   {expandedServers.has(server.id) && server.tools.length > 0 && (
-                    <div
-                      className="px-4 pb-3 border-t -mt-px"
-                      style={{ borderColor: 'var(--border-color, #333)' }}
-                    >
+                    <div className="px-4 pb-3 border-t -mt-px border-theme">
                       <p className="text-[11px] text-text-secondary mt-3 mb-2 uppercase tracking-[0.5px]">
                         Available Tools ({server.tools.length})
                       </p>
@@ -401,8 +375,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
                         {server.tools.map((tool) => (
                           <div
                             key={tool.name}
-                            className="flex items-start gap-2 px-2 py-1.5 rounded"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                            className="flex items-start gap-2 px-2 py-1.5 rounded bg-white/[0.03]"
                           >
                             <ToolIcon />
                             <div>
@@ -421,13 +394,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
 
                   {/* Error */}
                   {server.error && (
-                    <div
-                      className="px-4 py-2 text-xs"
-                      style={{
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        color: '#ef4444',
-                      }}
-                    >
+                    <div className="px-4 py-2 text-xs bg-red-500/10 text-red-500">
                       {server.error}
                     </div>
                   )}
@@ -438,10 +405,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         </div>
 
         {/* Footer */}
-        <div
-          className="px-5 py-3 border-t flex items-center justify-between"
-          style={{ borderColor: 'var(--border-color, #333)' }}
-        >
+        <div className="px-5 py-3 border-t flex items-center justify-between border-theme">
           <span className="text-xs text-text-secondary">{servers.length} servers available</span>
           <button
             onClick={() => setShowModal(false)}
@@ -471,9 +435,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         }}
       >
         <span>MCP</span>
-        {runningCount > 0 && (
-          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
-        )}
+        {runningCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
