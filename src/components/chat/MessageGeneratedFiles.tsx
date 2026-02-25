@@ -96,10 +96,8 @@ export function MessageGeneratedFiles({ files }: MessageGeneratedFilesProps) {
   );
 
   return (
-    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-      <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
-        📎 Your document is ready:
-      </div>
+    <div className="mt-3 pt-3 border-t border-theme">
+      <div className="text-xs font-medium mb-2 text-text-muted">📎 Your document is ready:</div>
       <div className="flex flex-col gap-2">
         {files.map((file, index) => {
           const { icon, label } = getFileInfo(file.mime_type, file.filename);
@@ -111,8 +109,7 @@ export function MessageGeneratedFiles({ files }: MessageGeneratedFilesProps) {
             >
               {/* Download to Device */}
               <button
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full text-left"
-                style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full text-left bg-primary text-white"
                 title={`Download ${file.filename}`}
                 onClick={async () => {
                   try {
@@ -142,12 +139,7 @@ export function MessageGeneratedFiles({ files }: MessageGeneratedFilesProps) {
 
               {/* Save to My Files */}
               <button
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.01] cursor-pointer w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: 'var(--glass-bg)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.01] cursor-pointer w-full text-left disabled:opacity-50 disabled:cursor-not-allowed bg-glass border border-theme text-text-primary"
                 title="Save to My Files for AI recall"
                 disabled={savingFiles[index] === 'saving'}
                 onClick={() => handleSaveToMyFiles(index, file.download_url, file.filename)}

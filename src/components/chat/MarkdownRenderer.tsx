@@ -66,57 +66,33 @@ function autoLinkifyUrls(text: string): string {
 const components: Components = {
   // Headers - inherit color from parent
   h1: ({ children }) => (
-    <h1 className="text-xl font-bold mt-4 mb-2 first:mt-0" style={{ color: 'inherit' }}>
-      {children}
-    </h1>
+    <h1 className="text-xl font-bold mt-4 mb-2 first:mt-0 text-inherit">{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-lg font-bold mt-3 mb-2 first:mt-0" style={{ color: 'inherit' }}>
-      {children}
-    </h2>
+    <h2 className="text-lg font-bold mt-3 mb-2 first:mt-0 text-inherit">{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-base font-semibold mt-3 mb-1 first:mt-0" style={{ color: 'inherit' }}>
-      {children}
-    </h3>
+    <h3 className="text-base font-semibold mt-3 mb-1 first:mt-0 text-inherit">{children}</h3>
   ),
   h4: ({ children }) => (
-    <h4 className="text-sm font-semibold mt-2 mb-1 first:mt-0" style={{ color: 'inherit' }}>
-      {children}
-    </h4>
+    <h4 className="text-sm font-semibold mt-2 mb-1 first:mt-0 text-inherit">{children}</h4>
   ),
 
   // Paragraphs
-  p: ({ children }) => (
-    <p className="mb-2 last:mb-0 leading-relaxed" style={{ color: 'inherit' }}>
-      {children}
-    </p>
-  ),
+  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed text-inherit">{children}</p>,
 
   // Bold and italic - inherit color
-  strong: ({ children }) => (
-    <strong className="font-semibold" style={{ color: 'inherit' }}>
-      {children}
-    </strong>
-  ),
-  em: ({ children }) => (
-    <em className="italic" style={{ color: 'inherit' }}>
-      {children}
-    </em>
-  ),
+  strong: ({ children }) => <strong className="font-semibold text-inherit">{children}</strong>,
+  em: ({ children }) => <em className="italic text-inherit">{children}</em>,
 
   // Lists - inherit color
   ul: ({ children }) => (
-    <ul className="list-disc list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>
-      {children}
-    </ul>
+    <ul className="list-disc list-inside mb-2 space-y-1 ml-2 text-inherit">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>
-      {children}
-    </ol>
+    <ol className="list-decimal list-inside mb-2 space-y-1 ml-2 text-inherit">{children}</ol>
   ),
-  li: ({ children }) => <li style={{ color: 'inherit' }}>{children}</li>,
+  li: ({ children }) => <li className="text-inherit">{children}</li>,
 
   // Links - use primary color
   // For document downloads (PDF, DOCX, XLSX), force download instead of opening
@@ -304,8 +280,7 @@ const components: Components = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline break-all cursor-pointer hover:opacity-80 text-primary"
-        style={{ pointerEvents: 'auto' }}
+        className="underline break-all cursor-pointer hover:opacity-80 text-primary pointer-events-auto"
       >
         {children}
       </a>
@@ -332,12 +307,7 @@ const components: Components = {
     if (isPython) {
       return (
         <div className="rounded-lg overflow-hidden my-2 bg-glass">
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b border-theme text-text-muted"
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            }}
-          >
+          <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b border-theme text-text-muted bg-blue-500/10">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.372 0 5.372 2.664 5.372 5.328v2.332h6.75v.778H3.84C1.72 8.438 0 10.5 0 13.5s1.72 5.062 3.84 5.062h2.16v-2.5c0-2.328 2.016-4.406 4.5-4.406h6.75c2.016 0 3.75-1.664 3.75-3.656V5.328C21 2.664 18.984 0 12 0zm-3.375 3.094a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z" />
               <path d="M18.628 8.438v2.5c0 2.328-2.016 4.406-4.5 4.406H7.378c-2.016 0-3.75 1.664-3.75 3.656v2.672c0 2.664 2.016 5.328 8.372 5.328 6.628 0 6.628-2.664 6.628-5.328v-2.332h-6.75v-.778h9.282c2.12 0 3.84-2.062 3.84-5.062s-1.72-5.062-3.84-5.062h-2.532zm-3.253 10.468a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z" />
@@ -371,12 +341,7 @@ const components: Components = {
 
   // Blockquotes - inherit text color
   blockquote: ({ children }) => (
-    <blockquote
-      className="border-l-4 pl-4 py-1 my-2 italic rounded-r bg-glass text-inherit"
-      style={{
-        borderColor: 'var(--primary)',
-      }}
-    >
+    <blockquote className="border-l-4 pl-4 py-1 my-2 italic rounded-r bg-glass text-inherit border-primary">
       {children}
     </blockquote>
   ),
@@ -391,18 +356,12 @@ const components: Components = {
     </div>
   ),
   thead: ({ children }) => <thead className="bg-glass">{children}</thead>,
-  tbody: ({ children }) => <tbody style={{ color: 'inherit' }}>{children}</tbody>,
+  tbody: ({ children }) => <tbody className="text-inherit">{children}</tbody>,
   tr: ({ children }) => <tr className="border-b border-theme">{children}</tr>,
   th: ({ children }) => (
-    <th className="px-3 py-2 text-left text-sm font-semibold" style={{ color: 'inherit' }}>
-      {children}
-    </th>
+    <th className="px-3 py-2 text-left text-sm font-semibold text-inherit">{children}</th>
   ),
-  td: ({ children }) => (
-    <td className="px-3 py-2 text-sm" style={{ color: 'inherit' }}>
-      {children}
-    </td>
-  ),
+  td: ({ children }) => <td className="px-3 py-2 text-sm text-inherit">{children}</td>,
 };
 
 /**
@@ -592,12 +551,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       return (
         <div className="rounded-lg overflow-hidden my-2 bg-glass">
           {language && (
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b border-theme text-text-muted"
-              style={{
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              }}
-            >
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b border-theme text-text-muted bg-blue-500/10">
               <span>{getDisplayLanguage(language)}</span>
             </div>
           )}
@@ -610,7 +564,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   };
 
   return (
-    <div className="markdown-content" style={{ color: 'inherit' }}>
+    <div className="markdown-content text-inherit">
       <ReactMarkdown components={componentsWithActions}>{processedContent}</ReactMarkdown>
     </div>
   );

@@ -119,8 +119,7 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
       <button
         onClick={() => setShowModal(true)}
         disabled={disabled}
-        className="rounded-lg p-1 md:p-2 disabled:opacity-50 shrink-0 flex items-center justify-center transition-colors relative"
-        style={{ color: 'var(--primary)' }}
+        className="rounded-lg p-1 md:p-2 disabled:opacity-50 shrink-0 flex items-center justify-center transition-colors relative text-primary"
         title="Connect GitHub & More"
       >
         {/* Link/plug icon - represents connections */}

@@ -89,10 +89,7 @@ export const MessageBubble = memo(
       <div className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}>
         {/* User Avatar */}
         {isUser && (
-          <div
-            className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full order-first"
-            style={{ backgroundColor: 'var(--avatar-bg)', color: 'var(--primary)' }}
-          >
+          <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full order-first bg-avatar-bg text-primary">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
@@ -250,12 +247,7 @@ export const MessageBubble = memo(
 
           {/* Message Bubble */}
           <div
-            className={`${isUser ? 'chat-bubble chat-bubble-tail right user-bubble' : 'ai-message-clean'}`}
-            style={{
-              userSelect: 'text',
-              WebkitUserSelect: 'text',
-              color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-primary)',
-            }}
+            className={`select-text ${isUser ? 'chat-bubble chat-bubble-tail right user-bubble text-[var(--chat-user-bubble-text)]' : 'ai-message-clean text-text-primary'}`}
           >
             <div className="break-words select-text">
               {isUser ? (
@@ -277,15 +269,7 @@ export const MessageBubble = memo(
                     onActionCancel={onActionCancel}
                   />
                   {message.isStreaming && (
-                    <span
-                      className="inline-block ml-0.5"
-                      style={{
-                        color: 'var(--primary)',
-                        animation: 'blink 1s step-end infinite',
-                        fontSize: '1rem',
-                        lineHeight: 1,
-                      }}
-                    >
+                    <span className="inline-block ml-0.5 text-primary animate-[blink_1s_step-end_infinite] text-base leading-none">
                       ▋
                     </span>
                   )}
@@ -374,19 +358,18 @@ function ThinkingBlock({
 }) {
   return (
     <div
-      className="mb-3 rounded-lg text-xs"
-      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}
+      className="mb-3 rounded-lg text-xs border border-theme"
+      style={{ background: 'var(--bg-tertiary)' }}
     >
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left"
-        style={{ color: 'var(--text-secondary)' }}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left text-text-secondary"
         aria-expanded={expanded}
       >
         <span
+          className="inline-block transition-transform duration-150"
           style={{
             transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 0.15s',
           }}
         >
           ▶
@@ -395,8 +378,8 @@ function ThinkingBlock({
       </button>
       {expanded && (
         <div
-          className="px-3 pb-3 whitespace-pre-wrap"
-          style={{ color: 'var(--text-tertiary)', borderTop: '1px solid var(--border)' }}
+          className="px-3 pb-3 whitespace-pre-wrap border-t border-theme"
+          style={{ color: 'var(--text-tertiary)' }}
         >
           {content}
         </div>

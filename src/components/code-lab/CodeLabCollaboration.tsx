@@ -222,7 +222,7 @@ export function CodeLabCollaboration({
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="flex items-center gap-3">
           <div className="user-avatars">
             {session.users.slice(0, 5).map((user) => (
               <UserAvatar key={user.id} user={user} size="sm" />

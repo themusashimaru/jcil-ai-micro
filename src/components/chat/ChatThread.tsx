@@ -164,8 +164,8 @@ export function ChatThread({
                 <img src={lightModeLogo} alt="JCIL.ai" className="h-16 md:h-20 w-auto mx-auto" />
               ) : (
                 <h1 className="text-4xl md:text-5xl font-normal">
-                  <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
-                  <span style={{ color: 'var(--primary)' }}>ai</span>
+                  <span className="text-text-primary">jcil.</span>
+                  <span className="text-primary">ai</span>
                 </h1>
               )
             ) : mainLogo ? (
@@ -185,13 +185,13 @@ export function ChatThread({
             ) : (
               <h1 className="text-4xl md:text-5xl font-normal">
                 <span className="text-white">jcil.</span>
-                <span style={{ color: 'var(--primary)' }}>ai</span>
+                <span className="text-primary">ai</span>
               </h1>
             )}
           </div>
 
           {/* Simple time-based greeting */}
-          <p className="text-base md:text-lg" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-base md:text-lg text-text-secondary">
             How can we help you {getTimeGreeting()}?
           </p>
         </div>

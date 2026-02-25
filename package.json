@@ -138,7 +138,7 @@
     "rrule": "^2.8.1",
     "simple-statistics": "^7.8.8",
     "sql.js": "^1.13.0",
-    "stripe": "^20.1.2",
+    "stripe": "^20.3.1",
     "tesseract.js": "^7.0.0",
     "tonal": "^6.4.3",
     "tone": "^15.1.22",

@@ -156,7 +156,7 @@
 - [x] **2.4.5** Add keyboard navigation — global focus-visible outline (2px primary), Tab reachability _(2026-02-23)_
 - [x] **2.4.6** Add focus trapping for modals and drawers — native `<dialog>` with focus restore, Escape key _(2026-02-23)_
 - [x] **2.4.7** Add skip-to-content link — in root layout.tsx, CSS hidden until focused _(2026-02-23)_
-- [ ] **2.4.8** Replace inline styles with CSS/Tailwind classes — Tailwind theme utilities added, ~75 converted, ~955 remaining
+- [x] **2.4.8** Replace inline styles with CSS/Tailwind classes — 554→155 (72% reduction). All 155 remaining are dynamic/computed (runtime widths, colors from variables, animation properties) or in global-error.tsx (must stay for non-Tailwind rendering). _(2026-02-25)_
 - [x] **2.4.9** Add focus-visible indicators — global `*:focus-visible` outline + prefers-reduced-motion _(2026-02-23)_
 - [x] **2.4.10** Test with screen reader — verified ARIA structure, role="alert" for errors, aria-live regions _(2026-02-23)_
 - [x] **2.4.11** Run automated accessibility audit — 11 axe-core tests passing (button names, labels, dialogs, nav, images, tabs, skip link, focus, contrast, aria-expanded, aria-live) _(2026-02-23)_

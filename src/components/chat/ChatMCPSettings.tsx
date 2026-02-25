@@ -121,10 +121,7 @@ const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
     strokeWidth="2"
     width="14"
     height="14"
-    style={{
-      transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-      transition: 'transform 0.15s ease',
-    }}
+    className={`transition-transform duration-150 ease-in-out ${expanded ? 'rotate-90' : 'rotate-0'}`}
   >
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
@@ -257,144 +254,61 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
     <>
       {/* Backdrop */}
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 9998,
-        }}
+        className="fixed inset-0 bg-glass-dark backdrop-blur-sm z-[9998]"
         onClick={() => setShowModal(false)}
       />
 
       {/* Modal */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'min(500px, 90vw)',
-          maxHeight: '80vh',
-          backgroundColor: 'var(--bg-secondary, #1a1a1a)',
-          borderRadius: '12px',
-          border: '1px solid var(--border-color, #333)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[80vh] rounded-xl border flex flex-col overflow-hidden z-[9999] w-[min(500px,90vw)] bg-surface-elevated border-theme shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--border-color, #333)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-theme">
+          <div className="flex items-center gap-2.5">
             <ServerIcon />
-            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>MCP Servers</h2>
+            <h2 className="m-0 text-base font-semibold">MCP Servers</h2>
             {runningCount > 0 && (
-              <span
-                style={{
-                  fontSize: '12px',
-                  padding: '2px 8px',
-                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                  color: '#22c55e',
-                  borderRadius: '10px',
-                }}
-              >
+              <span className="text-xs px-2 py-0.5 rounded-[10px] bg-green-500/20 text-green-500">
                 {runningCount} running
               </span>
             )}
           </div>
           <button
             onClick={() => setShowModal(false)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-secondary, #888)',
-              padding: '4px',
-            }}
+            className="bg-transparent border-none cursor-pointer text-text-secondary p-1"
           >
             <CloseIcon />
           </button>
         </div>
 
         {/* Content */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '16px 20px',
-          }}
-        >
-          <p
-            style={{
-              margin: '0 0 16px',
-              fontSize: '13px',
-              color: 'var(--text-secondary, #888)',
-            }}
-          >
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <p className="mt-0 mb-4 text-[13px] text-text-secondary">
             MCP servers extend AI capabilities with external tools and services.
           </p>
 
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading...</div>
+            <div className="text-center p-10 text-gray-500">Loading...</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="flex flex-col gap-3">
               {servers.map((server) => (
                 <div
                   key={server.id}
-                  style={{
-                    backgroundColor: 'var(--bg-tertiary, #252525)',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color, #333)',
-                    overflow: 'hidden',
-                  }}
+                  className="rounded-lg border overflow-hidden bg-surface border-theme"
                 >
                   {/* Server Header */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                    }}
-                  >
+                  <div className="flex items-center justify-between px-4 py-3">
                     <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        flex: 1,
-                        cursor: server.tools.length > 0 ? 'pointer' : 'default',
-                      }}
+                      className={`flex items-center gap-3 flex-1 ${server.tools.length > 0 ? 'cursor-pointer' : 'cursor-default'}`}
                       onClick={() => server.tools.length > 0 && toggleServerExpanded(server.id)}
                     >
                       {server.tools.length > 0 && (
                         <ChevronIcon expanded={expandedServers.has(server.id)} />
                       )}
                       <div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <span style={{ fontWeight: 500 }}>{server.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{server.name}</span>
                           <span
+                            className="text-[10px] px-1.5 py-0.5 rounded"
                             style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
                               backgroundColor:
                                 server.status === 'running'
                                   ? 'rgba(34, 197, 94, 0.2)'
@@ -417,13 +331,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
                           </span>
                         </div>
                         {server.description && (
-                          <p
-                            style={{
-                              margin: '4px 0 0',
-                              fontSize: '12px',
-                              color: 'var(--text-secondary, #888)',
-                            }}
-                          >
+                          <p className="mt-1 mb-0 text-xs text-text-secondary">
                             {server.description}
                           </p>
                         )}
@@ -431,41 +339,23 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
                     </div>
 
                     {/* Toggle */}
-                    <label
-                      style={{
-                        position: 'relative',
-                        display: 'inline-block',
-                        width: '52px',
-                        height: '28px',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                      }}
-                    >
+                    <label className="relative inline-block w-[52px] h-7 cursor-pointer shrink-0">
                       <input
                         type="checkbox"
                         checked={server.enabled}
                         onChange={(e) => handleServerToggle(server.id, e.target.checked)}
-                        style={{ opacity: 0, width: 0, height: 0 }}
+                        className="opacity-0 w-0 h-0"
                       />
                       <span
+                        className="absolute inset-0 rounded-[14px] transition-colors duration-200"
                         style={{
-                          position: 'absolute',
-                          inset: 0,
                           backgroundColor: server.enabled ? '#22c55e' : '#444',
-                          borderRadius: '14px',
-                          transition: 'background-color 0.2s',
                         }}
                       >
                         <span
+                          className="absolute top-0.5 w-6 h-6 bg-white rounded-full transition-[left] duration-200"
                           style={{
-                            position: 'absolute',
                             left: server.enabled ? '26px' : '2px',
-                            top: '2px',
-                            width: '24px',
-                            height: '24px',
-                            backgroundColor: 'white',
-                            borderRadius: '50%',
-                            transition: 'left 0.2s',
                           }}
                         />
                       </span>
@@ -474,54 +364,21 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
 
                   {/* Tools List (expanded) */}
                   {expandedServers.has(server.id) && server.tools.length > 0 && (
-                    <div
-                      style={{
-                        padding: '0 16px 12px',
-                        borderTop: '1px solid var(--border-color, #333)',
-                        marginTop: '-1px',
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: '11px',
-                          color: 'var(--text-secondary, #888)',
-                          margin: '12px 0 8px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                        }}
-                      >
+                    <div className="px-4 pb-3 border-t -mt-px border-theme">
+                      <p className="text-[11px] text-text-secondary mt-3 mb-2 uppercase tracking-[0.5px]">
                         Available Tools ({server.tools.length})
                       </p>
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                        }}
-                      >
+                      <div className="flex flex-col gap-1.5">
                         {server.tools.map((tool) => (
                           <div
                             key={tool.name}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '8px',
-                              padding: '6px 8px',
-                              backgroundColor: 'rgba(255,255,255,0.03)',
-                              borderRadius: '4px',
-                            }}
+                            className="flex items-start gap-2 px-2 py-1.5 rounded bg-white/[0.03]"
                           >
                             <ToolIcon />
                             <div>
-                              <span style={{ fontSize: '12px', fontWeight: 500 }}>{tool.name}</span>
+                              <span className="text-xs font-medium">{tool.name}</span>
                               {tool.description && (
-                                <p
-                                  style={{
-                                    margin: '2px 0 0',
-                                    fontSize: '11px',
-                                    color: 'var(--text-secondary, #888)',
-                                  }}
-                                >
+                                <p className="mt-0.5 mb-0 text-[11px] text-text-secondary">
                                   {tool.description}
                                 </p>
                               )}
@@ -534,14 +391,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
 
                   {/* Error */}
                   {server.error && (
-                    <div
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        color: '#ef4444',
-                        fontSize: '12px',
-                      }}
-                    >
+                    <div className="px-4 py-2 text-xs bg-red-500/10 text-red-500">
                       {server.error}
                     </div>
                   )}
@@ -552,30 +402,11 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: '12px 20px',
-            borderTop: '1px solid var(--border-color, #333)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary, #888)' }}>
-            {servers.length} servers available
-          </span>
+        <div className="px-5 py-3 border-t flex items-center justify-between border-theme">
+          <span className="text-xs text-text-secondary">{servers.length} servers available</span>
           <button
             onClick={() => setShowModal(false)}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'var(--primary-color, #3b82f6)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: 500,
-            }}
+            className="px-4 py-2 bg-primary text-white border-none rounded-md cursor-pointer text-[13px] font-medium"
           >
             Done
           </button>
@@ -601,16 +432,7 @@ export function ChatMCPButton({ disabled }: ChatMCPButtonProps) {
         }}
       >
         <span>MCP</span>
-        {runningCount > 0 && (
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: '#22c55e',
-            }}
-          />
-        )}
+        {runningCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>

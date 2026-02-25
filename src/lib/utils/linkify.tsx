@@ -111,7 +111,7 @@ function getSourceNameFromUrl(url: string): string {
     // Capitalize each word
     return hostname
       .split(/[-.]/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   } catch {
     // If URL parsing fails, try basic cleanup
@@ -168,8 +168,7 @@ export function linkifyToReact(text: string): (string | JSX.Element)[] {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
-        style={{ pointerEvents: 'auto' }}
+        className="text-blue-400 hover:text-blue-300 underline cursor-pointer pointer-events-auto"
       >
         {displayName}
       </a>

@@ -102,7 +102,7 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
 
   // Prevent flash of wrong theme
   if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>;
+    return <div className="invisible">{children}</div>;
   }
 
   return (

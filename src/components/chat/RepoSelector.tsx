@@ -77,10 +77,7 @@ export function RepoSelector({ isOpen, onClose, onSelect }: RepoSelectorProps) {
               placeholder="Search repositories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none text-text-primary border border-theme"
-              style={{
-                backgroundColor: 'var(--input-bg)',
-              }}
+              className="w-full pl-10 pr-4 py-2 rounded-lg text-sm outline-none text-text-primary border border-theme bg-[var(--input-bg)]"
             />
           </div>
         </div>
@@ -121,13 +118,7 @@ export function RepoSelector({ isOpen, onClose, onSelect }: RepoSelectorProps) {
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate text-text-primary">{repo.name}</span>
                       {repo.private && (
-                        <span
-                          className="text-xs px-1.5 py-0.5 rounded"
-                          style={{
-                            backgroundColor: 'rgba(255, 193, 7, 0.2)',
-                            color: '#ffc107',
-                          }}
-                        >
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500">
                           Private
                         </span>
                       )}

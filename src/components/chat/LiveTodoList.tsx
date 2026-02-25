@@ -180,13 +180,7 @@ export function LiveTodoList({ messages, conversationId, onTodoToggle }: LiveTod
 
   return (
     <div className="mx-4 mb-4">
-      <div
-        className="rounded-xl border backdrop-blur-md overflow-hidden"
-        style={{
-          backgroundColor: 'var(--glass-bg)',
-          borderColor: 'var(--border)',
-        }}
-      >
+      <div className="rounded-xl border border-theme backdrop-blur-md overflow-hidden bg-glass">
         {/* Header */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -210,9 +204,7 @@ export function LiveTodoList({ messages, conversationId, onTodoToggle }: LiveTod
               </svg>
             </div>
             <div className="text-left">
-              <span className="font-medium text-sm" style={{ color: 'var(--foreground)' }}>
-                To-Do List
-              </span>
+              <span className="font-medium text-sm text-text-primary">To-Do List</span>
               <span className="ml-2 text-xs text-gray-500">
                 {completedCount}/{totalCount} completed
               </span>
@@ -261,9 +253,8 @@ export function LiveTodoList({ messages, conversationId, onTodoToggle }: LiveTod
                 />
                 <span
                   className={`text-sm leading-relaxed transition-all ${
-                    todo.completed ? 'line-through text-gray-500' : ''
+                    todo.completed ? 'line-through text-gray-500' : 'text-text-primary'
                   }`}
-                  style={{ color: todo.completed ? undefined : 'var(--foreground)' }}
                 >
                   {todo.text}
                 </span>

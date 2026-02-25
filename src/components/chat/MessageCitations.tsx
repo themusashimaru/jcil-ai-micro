@@ -8,8 +8,8 @@ interface MessageCitationsProps {
 
 export function MessageCitations({ citations }: MessageCitationsProps) {
   return (
-    <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-1 text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+    <div className="mt-3 pt-3 border-t border-theme">
+      <div className="flex items-center gap-1 text-xs mb-2 text-text-muted">
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
@@ -49,12 +49,7 @@ export function MessageCitations({ citations }: MessageCitationsProps) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105 cursor-pointer"
-              style={{
-                backgroundColor: 'var(--primary-hover)',
-                color: 'var(--primary)',
-                border: '1px solid var(--primary)',
-              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105 cursor-pointer bg-primary-hover text-primary border border-primary"
               title={url}
               onClick={(e) => {
                 e.stopPropagation();
@@ -79,9 +74,7 @@ export function MessageCitations({ citations }: MessageCitationsProps) {
           );
         })}
         {citations.length > 5 && (
-          <span className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-            +{citations.length - 5} more
-          </span>
+          <span className="px-2 py-1 text-xs text-text-muted">+{citations.length - 5} more</span>
         )}
       </div>
     </div>

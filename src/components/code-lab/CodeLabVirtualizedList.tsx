@@ -210,11 +210,10 @@ export function CodeLabVirtualizedList<T>({
   return (
     <div
       ref={containerRef}
-      className={`code-lab-virtualized-list ${className}`}
-      style={{ overflowY: 'auto', position: 'relative' }}
+      className={`code-lab-virtualized-list overflow-y-auto relative ${className}`}
     >
       {/* Spacer for total scroll height */}
-      <div style={{ height: totalHeight, position: 'relative' }}>
+      <div className="relative" style={{ height: totalHeight }}>
         {/* Render visible items */}
         {visibleItems.map((item, localIndex) => {
           const globalIndex = visibleRange.start + localIndex;
@@ -225,12 +224,8 @@ export function CodeLabVirtualizedList<T>({
             <div
               key={key}
               ref={(el) => measureItem(key, el)}
-              style={{
-                position: 'absolute',
-                top: offset,
-                left: 0,
-                right: 0,
-              }}
+              className="absolute left-0 right-0"
+              style={{ top: offset }}
             >
               {renderItem(item, globalIndex)}
             </div>

@@ -68,29 +68,16 @@ export default function ActionPreviewCard({
   };
 
   return (
-    <div
-      className="my-4 rounded-xl overflow-hidden"
-      style={{
-        backgroundColor: '#1a1a1a',
-        border: '1px solid #333',
-        maxWidth: '500px',
-      }}
-    >
+    <div className="my-4 rounded-xl overflow-hidden bg-zinc-900 border border-zinc-700 max-w-[500px]">
       {/* Header */}
-      <div
-        className="px-4 py-3 flex items-center gap-3"
-        style={{ backgroundColor: '#252525', borderBottom: '1px solid #333' }}
-      >
+      <div className="px-4 py-3 flex items-center gap-3 bg-zinc-800 border-b border-zinc-700">
         <span className="text-2xl">{config.icon}</span>
         <div>
           <div className="font-semibold text-white">{preview.platform}</div>
           <div className="text-xs text-gray-400">{preview.action}</div>
         </div>
         <div className="ml-auto">
-          <span
-            className="text-xs px-2 py-1 rounded-full font-medium"
-            style={{ backgroundColor: '#333', color: '#fff' }}
-          >
+          <span className="text-xs px-2 py-1 rounded-full font-medium bg-zinc-700 text-white">
             Draft
           </span>
         </div>
@@ -115,14 +102,7 @@ export default function ActionPreviewCard({
         )}
 
         {/* Main content */}
-        <div
-          className="p-3 rounded-lg text-sm whitespace-pre-wrap"
-          style={{
-            backgroundColor: '#2a2a2a',
-            border: '1px solid #404040',
-            color: '#ffffff',
-          }}
-        >
+        <div className="p-3 rounded-lg text-sm whitespace-pre-wrap bg-neutral-800 border border-neutral-700 text-white">
           {preview.content}
         </div>
 
@@ -130,11 +110,7 @@ export default function ActionPreviewCard({
         {preview.metadata && Object.keys(preview.metadata).length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(preview.metadata).map(([key, value]) => (
-              <span
-                key={key}
-                className="text-xs px-2 py-1 rounded"
-                style={{ backgroundColor: '#333', color: '#999' }}
-              >
+              <span key={key} className="text-xs px-2 py-1 rounded bg-zinc-700 text-zinc-400">
                 {key}: {value}
               </span>
             ))}
@@ -149,12 +125,7 @@ export default function ActionPreviewCard({
               value={editInstruction}
               onChange={(e) => setEditInstruction(e.target.value)}
               placeholder="What would you like to change?"
-              className="w-full px-3 py-2 rounded-lg text-sm"
-              style={{
-                backgroundColor: '#2a2a2a',
-                border: '1px solid #404040',
-                color: '#ffffff',
-              }}
+              className="w-full px-3 py-2 rounded-lg text-sm bg-neutral-800 border border-neutral-700 text-white"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleEdit();
                 if (e.key === 'Escape') setEditMode(false);
@@ -165,8 +136,7 @@ export default function ActionPreviewCard({
               <button
                 onClick={handleEdit}
                 disabled={!editInstruction.trim()}
-                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-50"
-                style={{ backgroundColor: '#3b82f6' }}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-50 bg-blue-500"
               >
                 Apply Edit
               </button>
@@ -183,15 +153,11 @@ export default function ActionPreviewCard({
 
       {/* Actions */}
       {!editMode && (
-        <div
-          className="px-4 py-3 flex items-center gap-2"
-          style={{ backgroundColor: '#1f1f1f', borderTop: '1px solid #333' }}
-        >
+        <div className="px-4 py-3 flex items-center gap-2 bg-neutral-900 border-t border-zinc-700">
           <button
             onClick={onSend}
             disabled={sending}
-            className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-            style={{ backgroundColor: '#22c55e' }}
+            className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 bg-green-500"
           >
             {sending ? (
               <>
@@ -208,8 +174,7 @@ export default function ActionPreviewCard({
           <button
             onClick={() => setEditMode(true)}
             disabled={sending}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-            style={{ backgroundColor: '#333', color: '#fff' }}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 bg-zinc-700 text-white"
           >
             ✏️ Edit
           </button>

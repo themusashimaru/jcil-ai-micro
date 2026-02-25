@@ -318,21 +318,18 @@ export default function ComposioToolkitsSection() {
   // Don't block rendering if not configured - still show the apps
 
   return (
-    <div className="mt-8 pt-8 border-t" style={{ borderColor: 'var(--border)' }}>
+    <div className="mt-8 pt-8 border-t border-theme">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h3 className="text-lg font-semibold text-text-primary">
             App Integrations{' '}
             {connectedCount > 0 && (
-              <span
-                className="text-sm font-normal px-2 py-0.5 rounded-full ml-2"
-                style={{ backgroundColor: '#22c55e', color: 'white' }}
-              >
+              <span className="text-sm font-normal px-2 py-0.5 rounded-full ml-2 bg-green-500 text-white">
                 {connectedCount} Connected
               </span>
             )}
           </h3>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm text-text-secondary">
             Connect your favorite apps to enable AI-powered automation
           </p>
         </div>
@@ -340,18 +337,17 @@ export default function ComposioToolkitsSection() {
 
       {/* Tip Banner */}
       <div
-        className="mb-6 p-4 rounded-xl border-2 border-dashed flex items-center gap-3"
+        className="mb-6 p-4 rounded-xl border-2 border-dashed border-primary flex items-center gap-3"
         style={{
-          borderColor: 'var(--primary)',
           background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
         }}
       >
         <span className="text-2xl">💡</span>
         <div>
-          <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+          <p className="font-medium text-sm text-text-primary">
             Connect your apps to supercharge your AI!
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs text-text-secondary">
             Try connecting Twitter, Instagram, or Slack to let AI help manage your accounts, post
             updates, and automate workflows.
           </p>
@@ -381,8 +377,7 @@ export default function ComposioToolkitsSection() {
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <svg
-              className="w-5 h-5"
-              style={{ color: 'var(--text-muted)' }}
+              className="w-5 h-5 text-text-muted"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -401,18 +396,12 @@ export default function ComposioToolkitsSection() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search apps... (Twitter, Slack, Gmail, etc.)"
             aria-label="Search integrations"
-            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            style={{
-              backgroundColor: 'var(--background)',
-              borderColor: 'var(--border)',
-              color: 'var(--text-primary)',
-            }}
+            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-background border-theme text-text-primary"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center"
-              style={{ color: 'var(--text-muted)' }}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted"
               aria-label="Clear search"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -431,10 +420,7 @@ export default function ComposioToolkitsSection() {
       {/* Featured Apps - Mobile-friendly grid */}
       {showFeatured && featuredToolkits.length > 0 && (
         <div className="mb-6">
-          <h4
-            className="text-xs font-semibold mb-3 flex items-center gap-2"
-            style={{ color: 'var(--text-secondary)' }}
-          >
+          <h4 className="text-xs font-semibold mb-3 flex items-center gap-2 text-text-secondary">
             Featured Apps
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-purple-500 to-pink-500 text-white">
               HOT
@@ -456,13 +442,7 @@ export default function ComposioToolkitsSection() {
                   }
                 }}
                 disabled={connecting === toolkit.id || disconnecting === toolkit.id}
-                className={`p-3 rounded-xl border-2 transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center min-h-[88px] disabled:opacity-50 ${toolkit.connected ? 'ring-1 ring-green-500/30' : ''}`}
-                style={{
-                  borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
-                  backgroundColor: toolkit.connected
-                    ? 'rgba(34, 197, 94, 0.1)'
-                    : 'var(--background)',
-                }}
+                className={`p-3 rounded-xl border-2 transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center min-h-[88px] disabled:opacity-50 ${toolkit.connected ? 'ring-1 ring-green-500/30 border-green-500 bg-green-500/10' : 'border-theme bg-background'}`}
               >
                 <div className="w-10 h-10 flex items-center justify-center relative mb-2">
                   <BrandLogo toolkitId={toolkit.id} displayName={toolkit.displayName} size="md" />
@@ -484,15 +464,11 @@ export default function ComposioToolkitsSection() {
                     </div>
                   )}
                 </div>
-                <p
-                  className="text-[11px] font-medium truncate w-full text-center leading-tight"
-                  style={{ color: 'var(--text-primary)' }}
-                >
+                <p className="text-[11px] font-medium truncate w-full text-center leading-tight text-text-primary">
                   {toolkit.displayName}
                 </p>
                 <p
-                  className="text-[10px] font-medium mt-0.5"
-                  style={{ color: toolkit.connected ? '#16a34a' : 'var(--text-muted)' }}
+                  className={`text-[10px] font-medium mt-0.5 ${toolkit.connected ? 'text-green-600' : 'text-text-muted'}`}
                 >
                   {connecting === toolkit.id || disconnecting === toolkit.id
                     ? '...'
@@ -510,13 +486,11 @@ export default function ComposioToolkitsSection() {
       <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setSelectedCategory(null)}
-          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-            !selectedCategory ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors border-theme ${
+            !selectedCategory
+              ? 'ring-2 ring-blue-500 ring-offset-1 text-primary'
+              : 'text-text-secondary'
           }`}
-          style={{
-            borderColor: 'var(--border)',
-            color: !selectedCategory ? 'var(--primary)' : 'var(--text-secondary)',
-          }}
         >
           All
         </button>
@@ -524,13 +498,11 @@ export default function ComposioToolkitsSection() {
           <button
             key={key}
             onClick={() => setSelectedCategory(key)}
-            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-              selectedCategory === key ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors border-theme ${
+              selectedCategory === key
+                ? 'ring-2 ring-blue-500 ring-offset-1 text-primary'
+                : 'text-text-secondary'
             }`}
-            style={{
-              borderColor: 'var(--border)',
-              color: selectedCategory === key ? 'var(--primary)' : 'var(--text-secondary)',
-            }}
           >
             {label}
           </button>
@@ -539,20 +511,14 @@ export default function ComposioToolkitsSection() {
 
       {/* Section Header */}
       {showFeatured && displayToolkits.length > 0 && (
-        <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-          All Apps
-        </h4>
+        <h4 className="text-sm font-semibold mb-3 text-text-primary">All Apps</h4>
       )}
 
       {/* Toolkits Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="p-4 rounded-xl border animate-pulse"
-              style={{ borderColor: 'var(--border)' }}
-            >
+            <div key={i} className="p-4 rounded-xl border animate-pulse border-theme">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gray-200" />
                 <div className="flex-1">
@@ -564,11 +530,8 @@ export default function ComposioToolkitsSection() {
           ))}
         </div>
       ) : displayToolkits.length === 0 ? (
-        <div
-          className="text-center py-12 border rounded-xl"
-          style={{ borderColor: 'var(--border)' }}
-        >
-          <p style={{ color: 'var(--text-muted)' }}>
+        <div className="text-center py-12 border rounded-xl border-theme">
+          <p className="text-text-muted">
             {search ? `No integrations found for "${search}"` : 'No integrations available'}
           </p>
         </div>
@@ -577,13 +540,7 @@ export default function ComposioToolkitsSection() {
           {displayToolkits.map((toolkit) => (
             <div
               key={toolkit.id}
-              className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${toolkit.connected ? 'ring-1 ring-green-500/30' : ''}`}
-              style={{
-                borderColor: toolkit.connected ? '#22c55e' : 'var(--border)',
-                backgroundColor: toolkit.connected
-                  ? 'rgba(34, 197, 94, 0.08)'
-                  : 'var(--background)',
-              }}
+              className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${toolkit.connected ? 'ring-1 ring-green-500/30 border-green-500 bg-green-500/[0.08]' : 'border-theme bg-background'}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -608,13 +565,10 @@ export default function ComposioToolkitsSection() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h4
-                      className="font-medium text-sm truncate"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
+                    <h4 className="font-medium text-sm truncate text-text-primary">
                       {toolkit.displayName}
                     </h4>
-                    <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs line-clamp-2 text-text-secondary">
                       {toolkit.description}
                     </p>
                   </div>
@@ -624,23 +578,13 @@ export default function ComposioToolkitsSection() {
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: toolkit.connected
-                        ? 'rgba(34, 197, 94, 0.15)'
-                        : 'var(--background-secondary)',
-                      color: toolkit.connected ? '#16a34a' : 'var(--text-muted)',
-                    }}
+                    className={`text-xs px-2 py-0.5 rounded-full ${toolkit.connected ? 'bg-green-500/[0.15] text-green-600' : 'bg-[var(--background-secondary)] text-text-muted'}`}
                   >
                     {toolkit.connected ? 'Connected' : toolkit.category}
                   </span>
                   {toolkit.authType === 'api_key' && !toolkit.connected && (
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-                      style={{
-                        backgroundColor: 'rgba(251, 146, 60, 0.15)',
-                        color: '#ea580c',
-                      }}
+                      className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 bg-orange-400/[0.15] text-orange-600"
                       title="Requires API key"
                     >
                       <svg
@@ -679,8 +623,7 @@ export default function ComposioToolkitsSection() {
                       handleConnect(toolkit);
                     }}
                     disabled={connecting === toolkit.id}
-                    className="px-3 py-1 text-xs font-semibold rounded-lg text-white transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: configured ? 'var(--primary)' : '#9ca3af' }}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg text-white transition-colors disabled:opacity-50 ${configured ? 'bg-primary' : 'bg-gray-400'}`}
                   >
                     {connecting === toolkit.id ? 'Connecting...' : 'Connect'}
                   </button>
@@ -694,7 +637,7 @@ export default function ComposioToolkitsSection() {
       {/* Stats */}
       {!loading && toolkits.length > 0 && (
         <div className="mt-6 text-center">
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-sm text-text-muted">
             {connectedCount} of {toolkits.length} apps connected
           </p>
         </div>

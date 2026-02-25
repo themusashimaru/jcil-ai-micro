@@ -115,8 +115,7 @@ export default function ApiKeyModal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isSubmitting) {
           onClose();
@@ -125,40 +124,36 @@ export default function ApiKeyModal({
       role="presentation"
     >
       <div
-        className="w-full max-w-md rounded-2xl border shadow-2xl"
-        style={{
-          backgroundColor: 'var(--background)',
-          borderColor: 'var(--border)',
-        }}
+        className="w-full max-w-md rounded-2xl border shadow-2xl bg-background border-theme"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="api-key-modal-title"
       >
         {/* Header */}
-        <div
-          className="flex items-center justify-between p-4 border-b"
-          style={{ borderColor: 'var(--border)' }}
-        >
+        <div className="flex items-center justify-between p-4 border-b border-theme">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{toolkit.icon}</span>
             <div>
-              <h2 id="api-key-modal-title" className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <h2 id="api-key-modal-title" className="font-semibold text-text-primary">
                 Connect {toolkit.displayName}
               </h2>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                Enter your API key to connect
-              </p>
+              <p className="text-xs text-text-secondary">Enter your API key to connect</p>
             </div>
           </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-            style={{ color: 'var(--text-muted)' }}
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 text-text-muted"
             aria-label="Close dialog"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -173,29 +168,23 @@ export default function ApiKeyModal({
         <form onSubmit={handleSubmit} className="p-4">
           {/* Error message */}
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">
+            <div
+              className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+              role="alert"
+            >
               {error}
             </div>
           )}
 
           {/* Help info */}
           {helpInfo && (
-            <div
-              className="mb-4 p-3 rounded-lg border"
-              style={{
-                backgroundColor: 'var(--background-secondary)',
-                borderColor: 'var(--border)',
-              }}
-            >
-              <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                {helpInfo.instructions}
-              </p>
+            <div className="mb-4 p-3 rounded-lg border bg-background border-theme">
+              <p className="text-sm mb-2 text-text-secondary">{helpInfo.instructions}</p>
               <a
                 href={helpInfo.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
-                style={{ color: 'var(--primary)' }}
+                className="inline-flex items-center gap-1 text-sm font-medium hover:underline text-primary"
               >
                 Get your API key
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,11 +201,7 @@ export default function ApiKeyModal({
 
           {/* API Key input */}
           <div className="mb-4">
-            <label
-              htmlFor="api-key"
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: 'var(--text-primary)' }}
-            >
+            <label htmlFor="api-key" className="block text-sm font-medium mb-1.5 text-text-primary">
               API Key
             </label>
             <div className="relative">
@@ -227,12 +212,7 @@ export default function ApiKeyModal({
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder={`Enter your ${toolkit.displayName} API key`}
-                className="w-full px-3 py-2.5 pr-10 rounded-lg border text-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                style={{
-                  backgroundColor: 'var(--background)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                className="w-full px-3 py-2.5 pr-10 rounded-lg border text-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-background border-theme text-text-primary"
                 disabled={isSubmitting}
                 autoComplete="off"
                 spellCheck={false}
@@ -240,8 +220,7 @@ export default function ApiKeyModal({
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                style={{ color: 'var(--text-muted)' }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-text-muted"
                 aria-label={showKey ? 'Hide API key' : 'Show API key'}
               >
                 {showKey ? (
@@ -271,7 +250,7 @@ export default function ApiKeyModal({
                 )}
               </button>
             </div>
-            <p className="mt-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <p className="mt-1.5 text-xs text-text-muted">
               Your API key is stored securely and used only to connect to {toolkit.displayName}
             </p>
           </div>
@@ -282,19 +261,14 @@ export default function ApiKeyModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-              style={{
-                borderColor: 'var(--border)',
-                color: 'var(--text-primary)',
-              }}
+              className="flex-1 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 border-theme text-text-primary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!apiKey.trim() || isSubmitting}
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--primary)' }}
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 bg-primary"
             >
               {isSubmitting ? (
                 <>

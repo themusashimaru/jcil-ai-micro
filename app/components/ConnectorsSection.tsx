@@ -110,10 +110,8 @@ export default function ConnectorsSection() {
 
   return (
     <section className="glass-morphism rounded-2xl p-4 sm:p-6">
-      <h2 className="mb-2 text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-        Connectors
-      </h2>
-      <p className="mb-6 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>
+      <h2 className="mb-2 text-xl font-semibold text-text-primary">Connectors</h2>
+      <p className="mb-6 text-sm sm:text-base text-text-secondary">
         Connect external services to supercharge your AI workflows.
       </p>
 
@@ -130,7 +128,7 @@ export default function ConnectorsSection() {
       )}
 
       {/* GitHub Connector */}
-      <div className="border rounded-xl p-4 sm:p-5" style={{ borderColor: 'var(--border)' }}>
+      <div className="border rounded-xl p-4 sm:p-5 border-theme">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-900 flex items-center justify-center flex-shrink-0">
@@ -143,13 +141,8 @@ export default function ConnectorsSection() {
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <h3
-                className="font-semibold text-base sm:text-lg"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                GitHub
-              </h3>
-              <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <h3 className="font-semibold text-base sm:text-lg text-text-primary">GitHub</h3>
+              <p className="text-xs sm:text-sm text-text-secondary">
                 Push code to repositories, create PRs, and review code
               </p>
             </div>
@@ -157,9 +150,7 @@ export default function ConnectorsSection() {
 
           <div className="flex items-center gap-3 sm:flex-shrink-0">
             {loading ? (
-              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Loading...
-              </div>
+              <div className="text-sm text-text-muted">Loading...</div>
             ) : githubStatus?.connected ? (
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-2">
@@ -195,12 +186,9 @@ export default function ConnectorsSection() {
 
         {/* Token Input */}
         {showTokenInput && !githubStatus?.connected && (
-          <div className="mt-5 pt-5 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="mt-5 pt-5 border-t border-theme">
             <div className="mb-3">
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: 'var(--text-primary)' }}
-              >
+              <label className="block text-sm font-medium mb-1.5 text-text-primary">
                 Personal Access Token
               </label>
               <input
@@ -208,23 +196,16 @@ export default function ConnectorsSection() {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
-                style={{
-                  backgroundColor: 'var(--background)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-primary)',
-                  fontSize: '16px',
-                }}
+                className="w-full px-3 py-2 rounded-lg border text-sm font-mono bg-background border-theme text-text-primary text-base"
               />
             </div>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-text-muted">
               Create a token at{' '}
               <a
                 href="https://github.com/settings/tokens/new?scopes=repo&description=JCIL%20AI%20Code%20Lab"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline"
-                style={{ color: 'var(--primary)' }}
+                className="hover:underline text-primary"
               >
                 GitHub Settings
               </a>{' '}
@@ -234,8 +215,7 @@ export default function ConnectorsSection() {
               <button
                 onClick={handleSaveToken}
                 disabled={saving || !token.trim()}
-                className="px-4 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: 'var(--primary)' }}
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-primary"
               >
                 {saving ? 'Connecting...' : 'Save Token'}
               </button>
@@ -245,8 +225,7 @@ export default function ConnectorsSection() {
                   setToken('');
                   setError(null);
                 }}
-                className="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                className="px-4 py-2 text-sm font-medium rounded-lg border transition-colors border-theme text-text-secondary"
               >
                 Cancel
               </button>

@@ -92,11 +92,7 @@ export const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputPro
     return (
       <div className={fullWidth ? 'w-full' : ''}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: 'var(--text-secondary)' }}
-          >
+          <label htmlFor={inputId} className="block text-sm font-medium mb-1.5 text-text-secondary">
             {label}
           </label>
         )}

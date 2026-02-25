@@ -58,27 +58,34 @@ export function StreamingCodeOutput({
   }, [files]);
 
   const totalLinesWritten = files.reduce((sum, f) => sum + f.linesWritten, 0);
-  const progressPercent = Math.min(100, Math.round((totalLinesWritten / totalEstimatedLines) * 100));
+  const progressPercent = Math.min(
+    100,
+    Math.round((totalLinesWritten / totalEstimatedLines) * 100)
+  );
 
   const activeFile = files[activeFileIndex];
 
   return (
-    <div
-      className="my-3 rounded-lg overflow-hidden border"
-      style={{ backgroundColor: '#0d1117', borderColor: '#30363d' }}
-    >
+    <div className="my-3 rounded-lg overflow-hidden border bg-[#0d1117] border-[#30363d]">
       {/* Header with progress */}
-      <div
-        className="flex items-center justify-between px-3 py-2 border-b"
-        style={{ backgroundColor: 'rgba(136, 87, 255, 0.1)', borderColor: '#30363d' }}
-      >
+      <div className="flex items-center justify-between px-3 py-2 border-b bg-purple-500/10 border-[#30363d]">
         <div className="flex items-center gap-2">
           {isStreaming ? (
-            <svg className="w-4 h-4 text-purple-400 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+            <svg
+              className="w-4 h-4 text-purple-400 animate-pulse"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
               <circle cx="12" cy="12" r="4" />
             </svg>
           ) : (
-            <svg className="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="w-4 h-4 text-green-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M5 13l4 4L19 7" />
             </svg>
           )}
@@ -116,10 +123,7 @@ export function StreamingCodeOutput({
 
       {/* File tabs */}
       {files.length > 1 && (
-        <div
-          className="flex overflow-x-auto border-b"
-          style={{ backgroundColor: '#161b22', borderColor: '#30363d' }}
-        >
+        <div className="flex overflow-x-auto border-b bg-[#161b22] border-[#30363d]">
           {files.map((file, index) => (
             <button
               key={file.filename}
@@ -143,13 +147,10 @@ export function StreamingCodeOutput({
 
       {/* Active file content */}
       {activeFile && (
-        <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: '400px' }}>
+        <div ref={scrollRef} className="overflow-auto max-h-[400px]">
           <div className="flex">
             {/* Line numbers */}
-            <div
-              className="select-none text-right pr-3 py-2 text-xs"
-              style={{ backgroundColor: '#161b22', color: '#484f58', minWidth: '3rem' }}
-            >
+            <div className="select-none text-right pr-3 py-2 text-xs bg-[#161b22] text-[#484f58] min-w-[3rem]">
               {activeFile.content.split('\n').map((_, i) => (
                 <div key={i} className="leading-6">
                   {i + 1}
@@ -159,10 +160,7 @@ export function StreamingCodeOutput({
 
             {/* Code content */}
             <div className="flex-1 py-2 overflow-x-auto">
-              <pre
-                className="text-sm font-mono leading-6"
-                style={{ color: '#c9d1d9', margin: 0 }}
-              >
+              <pre className="text-sm font-mono leading-6 text-[#c9d1d9] m-0">
                 <code>{activeFile.content}</code>
                 {isStreaming && !activeFile.isComplete && (
                   <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5" />
@@ -174,17 +172,13 @@ export function StreamingCodeOutput({
       )}
 
       {/* Status footer */}
-      <div
-        className="px-3 py-1.5 text-xs border-t"
-        style={{ backgroundColor: '#161b22', borderColor: '#30363d' }}
-      >
+      <div className="px-3 py-1.5 text-xs border-t bg-[#161b22] border-[#30363d]">
         {isStreaming ? (
-          <span className="text-purple-400">
-            Writing {activeFile?.filename || 'file'}...
-          </span>
+          <span className="text-purple-400">Writing {activeFile?.filename || 'file'}...</span>
         ) : (
           <span className="text-gray-500">
-            Generation complete. {files.filter(f => f.isComplete).length}/{files.length} files ready.
+            Generation complete. {files.filter((f) => f.isComplete).length}/{files.length} files
+            ready.
           </span>
         )}
       </div>
@@ -228,9 +222,7 @@ export function useStreamingCode() {
   };
 
   const completeFile = (filename: string) => {
-    setFiles((prev) =>
-      prev.map((f) => (f.filename === filename ? { ...f, isComplete: true } : f))
-    );
+    setFiles((prev) => prev.map((f) => (f.filename === filename ? { ...f, isComplete: true } : f)));
   };
 
   const startStreaming = () => {

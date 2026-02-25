@@ -317,12 +317,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           </div>
 
           {/* Info Box */}
-          <div
-            className="rounded-xl p-4 bg-primary-hover"
-            style={{
-              border: '1px solid var(--primary)',
-            }}
-          >
+          <div className="rounded-xl p-4 bg-primary-hover border border-primary">
             <div className="flex gap-3">
               <svg
                 className="text-primary h-5 w-5 flex-shrink-0 mt-0.5"

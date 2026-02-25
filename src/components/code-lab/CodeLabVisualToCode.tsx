@@ -183,7 +183,7 @@ export function CodeLabVisualToCode({
                 type="file"
                 accept="image/*"
                 onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                style={{ display: 'none' }}
+                className="hidden"
               />
               <div className="drop-icon">📸</div>
               <p className="drop-text">Drop an image here</p>

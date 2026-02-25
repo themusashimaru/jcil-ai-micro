@@ -384,14 +384,10 @@ export function ChatSidebar({
         className={`
           glass-morphism fixed md:relative inset-y-0 left-0 z-50
           transform transition-all duration-300 ease-in-out
-          ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-0' : 'translate-x-0 w-72 md:w-80'}
+          ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-0' : 'translate-x-0 w-72 md:w-80 border-r border-theme'}
         `}
-        style={{ borderRight: collapsed ? 'none' : '1px solid var(--border)' }}
       >
-        <div
-          className={`flex h-full flex-col ${collapsed ? 'md:hidden' : ''}`}
-          style={{ minWidth: '288px' }}
-        >
+        <div className={`flex h-full flex-col min-w-72 ${collapsed ? 'md:hidden' : ''}`}>
           {/* My Files - Available to all users */}
           <MyFilesPanel />
 
@@ -465,10 +461,7 @@ export function ChatSidebar({
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 bg-glass text-text-primary"
-                style={{
-                  border: '1px solid var(--primary)',
-                }}
+                className="w-full rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 bg-glass text-text-primary border border-primary"
               />
             </div>
           </div>

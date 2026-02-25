@@ -159,35 +159,23 @@ export default function AdminMessagesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          User Messages
-        </h1>
-        <p style={{ color: 'var(--text-secondary)' }}>
+        <h1 className="text-2xl font-bold text-text-primary">User Messages</h1>
+        <p className="text-text-secondary">
           Send messages directly to users or broadcast to subscription tiers
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="flex gap-2 border-b border-theme">
         <button
           onClick={() => setActiveTab('compose')}
-          className="px-4 py-2 text-sm font-medium transition"
-          style={{
-            color: activeTab === 'compose' ? 'var(--primary)' : 'var(--text-secondary)',
-            borderBottom:
-              activeTab === 'compose' ? '2px solid var(--primary)' : '2px solid transparent',
-          }}
+          className={`px-4 py-2 text-sm font-medium transition border-b-2 ${activeTab === 'compose' ? 'text-primary border-b-primary' : 'text-text-secondary border-b-transparent'}`}
         >
           Compose Message
         </button>
         <button
           onClick={() => setActiveTab('sent')}
-          className="px-4 py-2 text-sm font-medium transition"
-          style={{
-            color: activeTab === 'sent' ? 'var(--primary)' : 'var(--text-secondary)',
-            borderBottom:
-              activeTab === 'sent' ? '2px solid var(--primary)' : '2px solid transparent',
-          }}
+          className={`px-4 py-2 text-sm font-medium transition border-b-2 ${activeTab === 'sent' ? 'text-primary border-b-primary' : 'text-text-secondary border-b-transparent'}`}
         >
           Sent Messages
         </button>
@@ -195,10 +183,7 @@ export default function AdminMessagesPage() {
 
       {/* Compose Tab */}
       {activeTab === 'compose' && (
-        <div
-          className="rounded-xl p-6"
-          style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
-        >
+        <div className="rounded-xl p-6 bg-glass border border-theme">
           <form onSubmit={handleSend} className="space-y-6">
             {error && (
               <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
@@ -214,12 +199,7 @@ export default function AdminMessagesPage() {
 
             {/* Recipient Type Selection */}
             <div>
-              <label
-                className="block text-sm font-medium mb-3"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Send To
-              </label>
+              <label className="block text-sm font-medium mb-3 text-text-secondary">Send To</label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -228,10 +208,9 @@ export default function AdminMessagesPage() {
                     value="individual"
                     checked={recipientType === 'individual'}
                     onChange={() => setRecipientType('individual')}
-                    className="w-4 h-4"
-                    style={{ accentColor: 'var(--primary)' }}
+                    className="w-4 h-4 accent-primary"
                   />
-                  <span style={{ color: 'var(--text-primary)' }}>Individual User</span>
+                  <span className="text-text-primary">Individual User</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -240,10 +219,9 @@ export default function AdminMessagesPage() {
                     value="broadcast"
                     checked={recipientType === 'broadcast'}
                     onChange={() => setRecipientType('broadcast')}
-                    className="w-4 h-4"
-                    style={{ accentColor: 'var(--primary)' }}
+                    className="w-4 h-4 accent-primary"
                   />
-                  <span style={{ color: 'var(--text-primary)' }}>Broadcast to Tier</span>
+                  <span className="text-text-primary">Broadcast to Tier</span>
                 </label>
               </div>
             </div>
@@ -251,10 +229,7 @@ export default function AdminMessagesPage() {
             {/* Individual Recipient */}
             {recipientType === 'individual' && (
               <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
+                <label className="block text-sm font-medium mb-2 text-text-secondary">
                   User Email
                 </label>
                 <input
@@ -263,12 +238,7 @@ export default function AdminMessagesPage() {
                   onChange={(e) => setRecipientEmail(e.target.value)}
                   required
                   placeholder="user@example.com"
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
-                  style={{
-                    backgroundColor: 'var(--surface-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition bg-surface-elevated border border-theme text-text-primary"
                 />
               </div>
             )}
@@ -276,28 +246,16 @@ export default function AdminMessagesPage() {
             {/* Broadcast Tier Selection */}
             {recipientType === 'broadcast' && (
               <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
+                <label className="block text-sm font-medium mb-2 text-text-secondary">
                   Target Tier
                 </label>
                 <select
                   value={recipientTier}
                   onChange={(e) => setRecipientTier(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
-                  style={{
-                    backgroundColor: 'var(--surface-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition bg-surface-elevated border border-theme text-text-primary"
                 >
                   {TIERS.map((tier) => (
-                    <option
-                      key={tier.value}
-                      value={tier.value}
-                      style={{ backgroundColor: 'var(--surface)' }}
-                    >
+                    <option key={tier.value} value={tier.value} className="bg-surface">
                       {tier.label}
                     </option>
                   ))}
@@ -308,28 +266,16 @@ export default function AdminMessagesPage() {
             {/* Message Type & Priority */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
+                <label className="block text-sm font-medium mb-2 text-text-secondary">
                   Message Type
                 </label>
                 <select
                   value={messageType}
                   onChange={(e) => setMessageType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
-                  style={{
-                    backgroundColor: 'var(--surface-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition bg-surface-elevated border border-theme text-text-primary"
                 >
                   {MESSAGE_TYPES.map((type) => (
-                    <option
-                      key={type.value}
-                      value={type.value}
-                      style={{ backgroundColor: 'var(--surface)' }}
-                    >
+                    <option key={type.value} value={type.value} className="bg-surface">
                       {type.label}
                     </option>
                   ))}
@@ -337,28 +283,16 @@ export default function AdminMessagesPage() {
               </div>
 
               <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
+                <label className="block text-sm font-medium mb-2 text-text-secondary">
                   Priority
                 </label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
-                  style={{
-                    backgroundColor: 'var(--surface-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition bg-surface-elevated border border-theme text-text-primary"
                 >
                   {PRIORITIES.map((p) => (
-                    <option
-                      key={p.value}
-                      value={p.value}
-                      style={{ backgroundColor: 'var(--surface)' }}
-                    >
+                    <option key={p.value} value={p.value} className="bg-surface">
                       {p.label}
                     </option>
                   ))}
@@ -368,47 +302,27 @@ export default function AdminMessagesPage() {
 
             {/* Subject */}
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Subject
-              </label>
+              <label className="block text-sm font-medium mb-2 text-text-secondary">Subject</label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
                 placeholder="Message subject"
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
-                style={{
-                  backgroundColor: 'var(--surface-elevated)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition bg-surface-elevated border border-theme text-text-primary"
               />
             </div>
 
             {/* Message */}
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Message
-              </label>
+              <label className="block text-sm font-medium mb-2 text-text-secondary">Message</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
                 rows={8}
                 placeholder="Write your message here..."
-                className="w-full px-4 py-3 rounded-lg resize-none focus:outline-none focus:ring-2 transition"
-                style={{
-                  backgroundColor: 'var(--surface-elevated)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                className="w-full px-4 py-3 rounded-lg resize-none focus:outline-none focus:ring-2 transition bg-surface-elevated border border-theme text-text-primary"
               />
             </div>
 
@@ -417,8 +331,7 @@ export default function AdminMessagesPage() {
               <button
                 type="submit"
                 disabled={sending}
-                className="px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50"
-                style={{ backgroundColor: 'var(--primary)', color: 'var(--surface)' }}
+                className="px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 bg-primary text-surface"
               >
                 {sending
                   ? 'Sending...'
@@ -433,41 +346,22 @@ export default function AdminMessagesPage() {
 
       {/* Sent Messages Tab */}
       {activeTab === 'sent' && (
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
-        >
+        <div className="rounded-xl overflow-hidden bg-glass border border-theme">
           {loading ? (
-            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
-              Loading sent messages...
-            </div>
+            <div className="p-8 text-center text-text-muted">Loading sent messages...</div>
           ) : sentMessages.length === 0 ? (
-            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
-              No messages sent yet
-            </div>
+            <div className="p-8 text-center text-text-muted">No messages sent yet</div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            <div className="divide-y divide-theme">
               {sentMessages.map((msg) => (
                 <div key={msg.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="text-xs px-2 py-0.5 rounded"
-                          style={{
-                            backgroundColor: 'var(--primary-hover)',
-                            color: 'var(--primary)',
-                          }}
-                        >
+                        <span className="text-xs px-2 py-0.5 rounded bg-primary-hover text-primary">
                           {msg.is_broadcast ? `Broadcast: ${msg.recipient_tier}` : 'Individual'}
                         </span>
-                        <span
-                          className="text-xs px-2 py-0.5 rounded"
-                          style={{
-                            backgroundColor: 'var(--glass-bg)',
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
+                        <span className="text-xs px-2 py-0.5 rounded bg-glass text-text-secondary">
                           {MESSAGE_TYPES.find((t) => t.value === msg.message_type)?.label ||
                             msg.message_type}
                         </span>
@@ -485,16 +379,9 @@ export default function AdminMessagesPage() {
                           </span>
                         )}
                       </div>
-                      <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {msg.subject}
-                      </h3>
-                      <p
-                        className="text-sm mt-1 line-clamp-2"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {msg.message}
-                      </p>
-                      <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                      <h3 className="font-medium text-text-primary">{msg.subject}</h3>
+                      <p className="text-sm mt-1 line-clamp-2 text-text-muted">{msg.message}</p>
+                      <p className="text-xs mt-2 text-text-muted">
                         {msg.is_broadcast
                           ? `Sent to ${msg.broadcast_sent_count} users`
                           : `Sent to ${msg.recipient?.email || 'Unknown'}`}

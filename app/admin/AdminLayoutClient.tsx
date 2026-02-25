@@ -9,11 +9,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
 
-export default function AdminLayoutClient({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -39,9 +35,14 @@ export default function AdminLayoutClient({
   ];
 
   // Find current page name
-  const currentPage = pages.find(
-    (page) => pathname === page.href || (page.href !== '/admin' && pathname?.startsWith(page.href))
-  ) || pages[0];
+  const currentPage =
+    pages.find(
+      (page) =>
+        pathname === page.href || (page.href !== '/admin' && pathname?.startsWith(page.href))
+    ) || pages[0];
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/admin' && pathname?.startsWith(href));
 
   const handlePageChange = (href: string, disabled: boolean) => {
     if (!disabled) {
@@ -51,22 +52,21 @@ export default function AdminLayoutClient({
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)' }}>
+    <div className="min-h-screen bg-background text-text-primary">
       {/* Admin Header */}
-      <header style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--glass-bg)' }}>
+      <header className="border-b border-theme bg-glass">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 md:gap-4">
               <h1 className="text-xl md:text-2xl font-bold">
-                JCIL<span style={{ color: 'var(--primary)' }}>.ai</span> Admin
+                JCIL<span className="text-primary">.ai</span> Admin
               </h1>
 
               {/* Dropdown Navigation */}
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition"
-                  style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition bg-glass border border-theme"
                 >
                   <span>{currentPage.icon}</span>
                   <span>{currentPage.name}</span>
@@ -76,39 +76,41 @@ export default function AdminLayoutClient({
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div
-                    className="absolute top-full left-0 mt-2 w-48 rounded-lg shadow-xl z-50"
-                    style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
-                  >
-                    {pages.map((page) => (
-                      <button
-                        key={page.href}
-                        onClick={() => handlePageChange(page.href, page.disabled || false)}
-                        disabled={page.disabled}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm transition first:rounded-t-lg last:rounded-b-lg"
-                        style={{
-                          backgroundColor: pathname === page.href || (page.href !== '/admin' && pathname?.startsWith(page.href))
-                            ? 'var(--primary)'
-                            : 'transparent',
-                          color: pathname === page.href || (page.href !== '/admin' && pathname?.startsWith(page.href))
-                            ? 'white'
-                            : page.disabled
-                            ? 'var(--text-muted)'
-                            : 'var(--text-primary)',
-                          cursor: page.disabled ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        <span>{page.icon}</span>
-                        <span>{page.name}</span>
-                        {page.disabled && <span className="text-xs ml-auto opacity-70">(Soon)</span>}
-                      </button>
-                    ))}
+                  <div className="absolute top-full left-0 mt-2 w-48 rounded-lg shadow-xl z-50 bg-background border border-theme">
+                    {pages.map((page) => {
+                      const active = isActive(page.href);
+                      return (
+                        <button
+                          key={page.href}
+                          onClick={() => handlePageChange(page.href, page.disabled || false)}
+                          disabled={page.disabled}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition first:rounded-t-lg last:rounded-b-lg ${
+                            active
+                              ? 'bg-primary text-white'
+                              : page.disabled
+                                ? 'bg-transparent text-text-muted cursor-not-allowed'
+                                : 'bg-transparent text-text-primary cursor-pointer'
+                          }`}
+                        >
+                          <span>{page.icon}</span>
+                          <span>{page.name}</span>
+                          {page.disabled && (
+                            <span className="text-xs ml-auto opacity-70">(Soon)</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -116,8 +118,7 @@ export default function AdminLayoutClient({
 
             <Link
               href="/chat"
-              className="rounded-lg px-4 py-2 text-sm transition"
-              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              className="rounded-lg px-4 py-2 text-sm transition bg-glass border border-theme text-text-primary"
             >
               ← Back to App
             </Link>
@@ -126,9 +127,7 @@ export default function AdminLayoutClient({
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
+      <main className="container mx-auto px-4 py-8">{children}</main>
     </div>
   );
 }
