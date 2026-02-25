@@ -175,16 +175,10 @@ export default function MemoryFeedbackSection() {
   if (loading) {
     return (
       <section className="glass-morphism rounded-2xl p-4 sm:p-6">
-        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          AI Memory
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-text-primary">AI Memory</h2>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-12 rounded-lg animate-pulse"
-              style={{ backgroundColor: 'var(--glass-bg)' }}
-            />
+            <div key={i} className="h-12 rounded-lg animate-pulse bg-glass" />
           ))}
         </div>
       </section>
@@ -197,28 +191,20 @@ export default function MemoryFeedbackSection() {
   return (
     <section className="glass-morphism rounded-2xl p-4 sm:p-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-          AI Memory
-        </h2>
+        <h2 className="text-xl font-semibold text-text-primary">AI Memory</h2>
         <div className="flex gap-2">
           {memory && (
             <>
               <button
                 onClick={exportMemory}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-                style={{
-                  backgroundColor: 'var(--glass-bg)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors bg-glass border border-theme text-text-primary"
               >
                 Export
               </button>
               <button
                 onClick={clearAllMemory}
                 disabled={clearing}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-                style={{ border: '1px solid rgba(239,68,68,0.3)' }}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors text-red-400 hover:bg-red-500/10 disabled:opacity-50 border border-red-500/30"
               >
                 {clearing ? 'Clearing...' : 'Clear All'}
               </button>
@@ -226,7 +212,7 @@ export default function MemoryFeedbackSection() {
           )}
         </div>
       </div>
-      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+      <p className="text-sm mb-4 text-text-secondary">
         What the AI has learned about you from conversations. Remove anything incorrect.
       </p>
 
@@ -244,10 +230,7 @@ export default function MemoryFeedbackSection() {
       )}
 
       {!memory ? (
-        <div
-          className="text-center py-8 rounded-xl"
-          style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-muted)' }}
-        >
+        <div className="text-center py-8 rounded-xl bg-glass text-text-muted">
           <p className="text-sm">No memory yet. The AI will learn about you as you chat.</p>
         </div>
       ) : (
@@ -255,9 +238,7 @@ export default function MemoryFeedbackSection() {
           {/* Profile Facts */}
           {hasProfile && (
             <div>
-              <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Profile
-              </h3>
+              <h3 className="text-sm font-medium mb-2 text-text-secondary">Profile</h3>
               <div className="space-y-1.5">
                 {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
                   const value = (prefs as Record<string, unknown>)?.[key];
@@ -266,20 +247,12 @@ export default function MemoryFeedbackSection() {
                   return (
                     <div
                       key={key}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg group"
-                      style={{ backgroundColor: 'var(--glass-bg)' }}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg group bg-glass"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span aria-hidden="true">{config.icon}</span>
-                        <span
-                          className="text-xs font-medium"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          {config.label}:
-                        </span>
-                        <span className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                          {String(value)}
-                        </span>
+                        <span className="text-xs font-medium text-text-muted">{config.label}:</span>
+                        <span className="text-sm truncate text-text-primary">{String(value)}</span>
                       </div>
                       <button
                         onClick={() => deletePreferenceKey(key)}
@@ -307,26 +280,16 @@ export default function MemoryFeedbackSection() {
 
                 {/* Interests */}
                 {prefs?.interests && prefs.interests.length > 0 && (
-                  <div
-                    className="px-3 py-2 rounded-lg"
-                    style={{ backgroundColor: 'var(--glass-bg)' }}
-                  >
+                  <div className="px-3 py-2 rounded-lg bg-glass">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span aria-hidden="true">🎯</span>
-                      <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                        Interests
-                      </span>
+                      <span className="text-xs font-medium text-text-muted">Interests</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {prefs.interests.map((interest) => (
                         <span
                           key={interest}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                          style={{
-                            backgroundColor: 'var(--primary)',
-                            color: 'white',
-                            opacity: 0.8,
-                          }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white opacity-80"
                         >
                           {interest}
                         </span>
@@ -337,26 +300,15 @@ export default function MemoryFeedbackSection() {
 
                 {/* Goals */}
                 {prefs?.goals && prefs.goals.length > 0 && (
-                  <div
-                    className="px-3 py-2 rounded-lg"
-                    style={{ backgroundColor: 'var(--glass-bg)' }}
-                  >
+                  <div className="px-3 py-2 rounded-lg bg-glass">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span aria-hidden="true">🎯</span>
-                      <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                        Goals
-                      </span>
+                      <span className="text-xs font-medium text-text-muted">Goals</span>
                     </div>
                     <ul className="space-y-1">
                       {prefs.goals.map((goal, i) => (
-                        <li
-                          key={i}
-                          className="text-sm flex items-start gap-2"
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          <span className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                            •
-                          </span>
+                        <li key={i} className="text-sm flex items-start gap-2 text-text-primary">
+                          <span className="text-xs mt-1 text-text-muted">•</span>
                           {goal}
                         </li>
                       ))}
@@ -366,23 +318,16 @@ export default function MemoryFeedbackSection() {
 
                 {/* Family Members */}
                 {prefs?.family_members && prefs.family_members.length > 0 && (
-                  <div
-                    className="px-3 py-2 rounded-lg"
-                    style={{ backgroundColor: 'var(--glass-bg)' }}
-                  >
+                  <div className="px-3 py-2 rounded-lg bg-glass">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span aria-hidden="true">👨‍👩‍👧‍👦</span>
-                      <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                        Family
-                      </span>
+                      <span className="text-xs font-medium text-text-muted">Family</span>
                     </div>
                     <div className="space-y-1">
                       {prefs.family_members.map((member, i) => (
-                        <div key={i} className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                        <div key={i} className="text-sm text-text-primary">
                           <span className="capitalize">{member.relation}</span>
-                          {member.name && (
-                            <span style={{ color: 'var(--text-muted)' }}> — {member.name}</span>
-                          )}
+                          {member.name && <span className="text-text-muted"> — {member.name}</span>}
                         </div>
                       ))}
                     </div>
@@ -395,19 +340,14 @@ export default function MemoryFeedbackSection() {
           {/* Topics */}
           {memory.key_topics && memory.key_topics.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              <h3 className="text-sm font-medium mb-2 text-text-secondary">
                 Topics Discussed ({memory.key_topics.length})
               </h3>
               <div className="flex flex-wrap gap-1.5">
                 {memory.key_topics.map((topic) => (
                   <span
                     key={topic}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs group cursor-default"
-                    style={{
-                      backgroundColor: 'var(--glass-bg)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--text-primary)',
-                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs group cursor-default bg-glass border border-theme text-text-primary"
                   >
                     {topic}
                     <button
@@ -437,7 +377,7 @@ export default function MemoryFeedbackSection() {
           )}
 
           {/* Last Updated */}
-          <div className="text-xs pt-2" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-xs pt-2 text-text-muted">
             Last updated:{' '}
             {new Date(memory.updated_at).toLocaleDateString('en-US', {
               month: 'short',
