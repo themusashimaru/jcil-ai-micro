@@ -33,11 +33,7 @@ export function ChatSidebarFolderModal({
 }: ChatSidebarFolderModalProps) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         role="dialog"
@@ -46,10 +42,9 @@ export function ChatSidebarFolderModal({
         onKeyDown={(e) => {
           if (e.key === 'Escape') onClose();
         }}
-        className="relative w-full max-w-sm rounded-2xl p-6"
-        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+        className="relative w-full max-w-sm rounded-2xl p-6 bg-surface border border-theme"
       >
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="text-lg font-semibold mb-4 text-text-primary">
           {editingFolder ? 'Edit Folder' : 'New Folder'}
         </h3>
         <input
@@ -58,29 +53,20 @@ export function ChatSidebarFolderModal({
           value={folderForm.name}
           onChange={(e) => onFormChange({ ...folderForm, name: e.target.value })}
           maxLength={50}
-          className="w-full rounded-lg px-4 py-3 mb-4 text-sm focus:outline-none focus:ring-2"
-          style={{
-            backgroundColor: 'var(--glass-bg)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
-          }}
+          className="w-full rounded-lg px-4 py-3 mb-4 text-sm focus:outline-none focus:ring-2 bg-glass border border-theme text-text-primary"
           autoFocus
         />
         <div className="mb-4">
-          <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Color (optional)
-          </label>
+          <label className="block text-sm mb-2 text-text-secondary">Color (optional)</label>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => onFormChange({ ...folderForm, color: '' })}
-              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${!folderForm.color ? 'border-white ring-2 ring-white/50' : 'border-transparent hover:border-gray-400'}`}
-              style={{ backgroundColor: 'var(--glass-bg)' }}
+              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-glass ${!folderForm.color ? 'border-white ring-2 ring-white/50' : 'border-transparent hover:border-gray-400'}`}
             >
               {!folderForm.color && (
                 <svg
-                  className="w-4 h-4"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="w-4 h-4 text-text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -109,20 +95,14 @@ export function ChatSidebarFolderModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm"
-            style={{
-              backgroundColor: 'var(--glass-bg)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border)',
-            }}
+            className="flex-1 rounded-lg px-4 py-2.5 text-sm bg-glass text-text-primary border border-theme"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onSave}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold"
-            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold bg-primary text-background"
           >
             {editingFolder ? 'Save' : 'Create'}
           </button>

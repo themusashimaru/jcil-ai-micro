@@ -190,11 +190,7 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center md:p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }}
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal - Full screen on mobile, constrained on desktop */}
       <div
@@ -334,11 +330,7 @@ function MessageList({
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key as FilterMode)}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium transition"
-            style={{
-              backgroundColor: filter === tab.key ? 'var(--primary-hover)' : 'transparent',
-              color: filter === tab.key ? 'var(--primary)' : 'var(--text-secondary)',
-            }}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === tab.key ? 'bg-primary-hover text-primary' : 'bg-transparent text-text-secondary'}`}
           >
             {tab.label}
             {tab.count > 0 && <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>}
@@ -397,20 +389,13 @@ function MessageList({
             {messages.map((message, index) => (
               <div
                 key={message.id}
-                className="flex items-start gap-3 px-4 py-3 cursor-pointer transition"
-                style={{
-                  borderBottom: index < messages.length - 1 ? '1px solid var(--border)' : undefined,
-                  backgroundColor: !message.is_read ? 'var(--primary-hover)' : 'transparent',
-                }}
+                className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition ${index < messages.length - 1 ? 'border-b border-theme' : ''} ${!message.is_read ? 'bg-primary-hover' : 'bg-transparent'}`}
                 onClick={() => onSelect(message)}
               >
                 {/* Unread indicator */}
                 <div className="pt-1.5">
                   <div
-                    className="w-2 h-2 rounded-full"
-                    style={{
-                      backgroundColor: !message.is_read ? 'var(--primary)' : 'transparent',
-                    }}
+                    className={`w-2 h-2 rounded-full ${!message.is_read ? 'bg-primary' : 'bg-transparent'}`}
                   />
                 </div>
 
@@ -418,10 +403,7 @@ function MessageList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded bg-glass ${PRIORITY_STYLES[message.priority]}`}
-                      style={{
-                        color: message.priority === 'normal' ? 'var(--text-secondary)' : undefined,
-                      }}
+                      className={`text-xs px-2 py-0.5 rounded bg-glass ${PRIORITY_STYLES[message.priority]} ${message.priority === 'normal' ? 'text-text-secondary' : ''}`}
                     >
                       {MESSAGE_TYPE_LABELS[message.message_type] || message.message_type}
                     </span>
@@ -430,10 +412,7 @@ function MessageList({
                     </span>
                   </div>
                   <h3
-                    className="font-medium truncate"
-                    style={{
-                      color: !message.is_read ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    }}
+                    className={`font-medium truncate ${!message.is_read ? 'text-text-primary' : 'text-text-secondary'}`}
                   >
                     {message.subject}
                   </h3>
@@ -449,8 +428,7 @@ function MessageList({
                       e.stopPropagation();
                       onToggleStar(message.id, message.is_starred);
                     }}
-                    className="p-1.5 rounded transition hover:opacity-80"
-                    style={{ color: message.is_starred ? '#eab308' : 'var(--text-muted)' }}
+                    className={`p-1.5 rounded transition hover:opacity-80 ${message.is_starred ? 'text-yellow-500' : 'text-text-muted'}`}
                   >
                     <svg
                       className="w-4 h-4"
@@ -509,10 +487,7 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span
-                className={`text-xs px-2 py-0.5 rounded bg-glass ${PRIORITY_STYLES[message.priority]}`}
-                style={{
-                  color: message.priority === 'normal' ? 'var(--text-secondary)' : undefined,
-                }}
+                className={`text-xs px-2 py-0.5 rounded bg-glass ${PRIORITY_STYLES[message.priority]} ${message.priority === 'normal' ? 'text-text-secondary' : ''}`}
               >
                 {MESSAGE_TYPE_LABELS[message.message_type] || message.message_type}
               </span>
@@ -530,8 +505,7 @@ function MessageDetail({ message, onToggleStar, onDelete, formatDate }: MessageD
           <div className="flex items-center gap-1">
             <button
               onClick={() => onToggleStar(message.id, message.is_starred)}
-              className="p-2 rounded-lg transition hover:opacity-80"
-              style={{ color: message.is_starred ? '#eab308' : 'var(--text-muted)' }}
+              className={`p-2 rounded-lg transition hover:opacity-80 ${message.is_starred ? 'text-yellow-500' : 'text-text-muted'}`}
             >
               <svg
                 className="w-5 h-5"
@@ -637,8 +611,7 @@ function ContactSupportForm({ onSuccess }: ContactSupportFormProps) {
           <select
             value={formData.category}
             onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition appearance-none bg-glass border border-theme text-text-primary"
-            style={{ outlineColor: 'var(--primary)' }}
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition appearance-none bg-glass border border-theme text-text-primary"
           >
             {categories.map((cat) => (
               <option key={cat.value} value={cat.value} className="bg-surface">

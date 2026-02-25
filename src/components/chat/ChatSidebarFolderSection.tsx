@@ -41,17 +41,13 @@ export function ChatSidebarFolderSection({
 
   return (
     <div className="mb-2">
-      <div
-        className="flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group"
-        style={{ backgroundColor: 'var(--glass-bg)' }}
-      >
+      <div className="flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group bg-glass">
         <button
           onClick={() => toggleFolderCollapse(folder.id)}
           className="flex items-center gap-2 flex-1 text-left"
         >
           <svg
-            className={`h-3 w-3 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-            style={{ color: 'var(--text-muted)' }}
+            className={`h-3 w-3 transition-transform text-text-muted ${isCollapsed ? '' : 'rotate-90'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -64,23 +60,17 @@ export function ChatSidebarFolderSection({
               style={{ backgroundColor: folder.color }}
             />
           )}
-          <span
-            className="text-xs font-semibold uppercase truncate"
-            style={{ color: 'var(--text-muted)' }}
-          >
+          <span className="text-xs font-semibold uppercase truncate text-text-muted">
             {folder.name}
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            ({folderChats.length})
-          </span>
+          <span className="text-xs text-text-muted">({folderChats.length})</span>
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             setFolderMenuId(menuOpen ? null : folder.id);
           }}
-          className="p-1 opacity-0 group-hover:opacity-100 rounded"
-          style={{ color: 'var(--text-muted)' }}
+          className="p-1 opacity-0 group-hover:opacity-100 rounded text-text-muted"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -94,14 +84,10 @@ export function ChatSidebarFolderSection({
 
         {/* Folder context menu */}
         {menuOpen && (
-          <div
-            className="absolute right-4 top-8 z-20 w-36 rounded-lg py-1 shadow-xl"
-            style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
-          >
+          <div className="absolute right-4 top-8 z-20 w-36 rounded-lg py-1 shadow-xl bg-background border border-theme">
             <button
               onClick={() => openEditFolder(folder)}
-              className="w-full px-3 py-1.5 text-left text-sm"
-              style={{ color: 'var(--text-primary)' }}
+              className="w-full px-3 py-1.5 text-left text-sm text-text-primary"
             >
               Edit
             </button>

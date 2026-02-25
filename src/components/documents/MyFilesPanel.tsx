@@ -71,7 +71,12 @@ export default function MyFilesPanel() {
   const [isSavingFolder, setIsSavingFolder] = useState(false);
 
   // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'folder' | 'file'; item: Folder | Document } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    type: 'folder' | 'file';
+    item: Folder | Document;
+  } | null>(null);
 
   // Move menu state (for mobile-friendly file moving)
   const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
@@ -128,7 +133,10 @@ export default function MyFilesPanel() {
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, targetFolderId?: string) => {
+  const handleFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    targetFolderId?: string
+  ) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -172,7 +180,6 @@ export default function MyFilesPanel() {
         if (!processRes.ok) {
           log.error('Processing failed');
         }
-
       } catch (err) {
         log.error('Upload error', { error: err instanceof Error ? err : { error: err } });
         setError(err instanceof Error ? err.message : 'Upload failed');
@@ -316,7 +323,7 @@ export default function MyFilesPanel() {
   };
 
   const toggleFolder = (folderId: string) => {
-    setExpandedFolders(prev => {
+    setExpandedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(folderId)) {
         next.delete(folderId);
@@ -327,7 +334,11 @@ export default function MyFilesPanel() {
     });
   };
 
-  const handleContextMenu = (e: React.MouseEvent, type: 'folder' | 'file', item: Folder | Document) => {
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    type: 'folder' | 'file',
+    item: Folder | Document
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, type, item });
@@ -344,27 +355,43 @@ export default function MyFilesPanel() {
       case 'pdf':
         return (
           <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+              clipRule="evenodd"
+            />
           </svg>
         );
       case 'docx':
       case 'doc':
         return (
           <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+              clipRule="evenodd"
+            />
           </svg>
         );
       case 'xlsx':
       case 'xls':
         return (
           <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+              clipRule="evenodd"
+            />
           </svg>
         );
       default:
         return (
-          <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+          <svg className="w-4 h-4 text-text-muted" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+              clipRule="evenodd"
+            />
           </svg>
         );
     }
@@ -386,26 +413,33 @@ export default function MyFilesPanel() {
   };
 
   // Group documents by folder
-  const rootDocs = documents.filter(d => !d.folder_id);
-  const folderDocs = (folderId: string) => documents.filter(d => d.folder_id === folderId);
+  const rootDocs = documents.filter((d) => !d.folder_id);
+  const folderDocs = (folderId: string) => documents.filter((d) => d.folder_id === folderId);
 
   return (
-    <div className="relative" style={{ borderBottom: '1px solid var(--border)' }}>
+    <div className="relative border-b border-theme">
       {/* Header Button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-3 flex items-center justify-between hover:bg-opacity-50 transition-colors"
-        style={{ backgroundColor: isExpanded ? 'var(--glass-bg)' : 'transparent' }}
+        className={`w-full p-3 flex items-center justify-between hover:bg-opacity-50 transition-colors ${isExpanded ? 'bg-glass' : 'bg-transparent'}`}
       >
         <div className="flex items-center gap-2">
-          <svg className="w-5 h-5" style={{ color: 'var(--primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+          <svg
+            className="w-5 h-5 text-primary"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
+            />
           </svg>
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-            My Files
-          </span>
+          <span className="text-sm font-medium text-text-primary">My Files</span>
           {stats && stats.total_documents > 0 && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--primary)', color: 'white' }}>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary text-white">
               {stats.total_documents}
             </span>
           )}
@@ -413,21 +447,29 @@ export default function MyFilesPanel() {
         <div className="flex items-center gap-2">
           {/* Info icon */}
           <div
-            className="p-1 rounded-full hover:bg-opacity-20"
-            style={{ backgroundColor: 'var(--glass-bg)' }}
+            className="p-1 rounded-full hover:bg-opacity-20 bg-glass"
             onClick={(e) => {
               e.stopPropagation();
               setShowInfoTooltip(!showInfoTooltip);
             }}
           >
-            <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4 text-text-muted"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
           {/* Chevron */}
           <svg
-            className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            style={{ color: 'var(--text-muted)' }}
+            className={`w-4 h-4 transition-transform text-text-muted ${isExpanded ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -440,30 +482,37 @@ export default function MyFilesPanel() {
       {/* Info Tooltip */}
       {showInfoTooltip && (
         <div
-          className="absolute left-3 right-3 z-50 p-3 rounded-lg shadow-lg text-sm"
+          className="absolute left-3 right-3 z-50 p-3 rounded-lg shadow-lg text-sm bg-background border border-theme text-text-primary"
           style={{
             top: '100%',
-            backgroundColor: 'var(--background)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)'
           }}
         >
           <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: 'var(--primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <svg
+              className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
             </svg>
             <div>
               <p className="font-medium mb-1">Your Personal Knowledge Base</p>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Upload PDFs, Word docs, or Excel files. The AI can then search and reference your documents when answering questions!
+              <p className="text-text-secondary">
+                Upload PDFs, Word docs, or Excel files. The AI can then search and reference your
+                documents when answering questions!
               </p>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowInfoTooltip(false);
                 }}
-                className="mt-2 text-xs underline"
-                style={{ color: 'var(--primary)' }}
+                className="mt-2 text-xs underline text-primary"
               >
                 Got it
               </button>
@@ -489,27 +538,44 @@ export default function MyFilesPanel() {
             />
             <label
               htmlFor="file-upload"
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg cursor-pointer transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg cursor-pointer transition-colors bg-glass text-text-primary border border-dashed border-theme ${
                 isUploading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                border: '1px dashed var(--border)',
-                color: 'var(--text-primary)'
-              }}
             >
               {isUploading ? (
                 <>
-                  <svg className="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg
+                    className="w-4 h-4 animate-spin flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
-                  <span className="text-xs truncate max-w-[120px]">{uploadProgress || 'Uploading...'}</span>
+                  <span className="text-xs truncate max-w-[120px]">
+                    {uploadProgress || 'Uploading...'}
+                  </span>
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                    />
                   </svg>
                   <span className="text-xs">Upload</span>
                 </>
@@ -519,34 +585,50 @@ export default function MyFilesPanel() {
             {/* New Folder Button */}
             <button
               onClick={handleCreateFolder}
-              className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)'
-              }}
+              className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg transition-colors bg-glass border border-theme text-text-primary"
               title="New Folder"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                />
               </svg>
             </button>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-3 p-2 rounded-lg text-xs text-red-500" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+            <div
+              className="mb-3 p-2 rounded-lg text-xs text-red-500"
+              style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+            >
               {error}
-              <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+              <button onClick={() => setError(null)} className="ml-2 underline">
+                Dismiss
+              </button>
             </div>
           )}
 
           {/* Loading State */}
           {isLoading && (
             <div className="flex items-center justify-center py-4">
-              <svg className="w-5 h-5 animate-spin" style={{ color: 'var(--primary)' }} fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <svg className="w-5 h-5 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
             </div>
           )}
@@ -554,83 +636,105 @@ export default function MyFilesPanel() {
           {/* Empty State */}
           {!isLoading && documents.length === 0 && folders.length === 0 && (
             <div className="text-center py-4">
-              <svg className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-8 h-8 mx-auto mb-2 text-text-muted"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                No files yet
-              </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                Upload PDFs, Word, or Excel
-              </p>
+              <p className="text-sm text-text-muted">No files yet</p>
+              <p className="text-xs mt-1 text-text-muted">Upload PDFs, Word, or Excel</p>
             </div>
           )}
 
           {/* Files & Folders List */}
           {!isLoading && (documents.length > 0 || folders.length > 0) && (
-            <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
+            <div
+              className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin"
+              style={{ scrollbarWidth: 'thin' }}
+            >
               {/* Folders */}
-              {folders.map(folder => (
+              {folders.map((folder) => (
                 <div key={folder.id}>
                   <div
-                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-opacity-50 transition-colors cursor-pointer group"
-                    style={{ backgroundColor: expandedFolders.has(folder.id) ? 'var(--glass-bg)' : 'transparent' }}
+                    className={`flex items-center gap-2 p-2 rounded-lg hover:bg-opacity-50 transition-colors cursor-pointer group ${expandedFolders.has(folder.id) ? 'bg-glass' : 'bg-transparent'}`}
                     onClick={() => toggleFolder(folder.id)}
                     onContextMenu={(e) => handleContextMenu(e, 'folder', folder)}
                   >
                     <svg
-                      className={`w-3 h-3 transition-transform flex-shrink-0 ${expandedFolders.has(folder.id) ? 'rotate-90' : ''}`}
-                      style={{ color: 'var(--text-muted)' }}
+                      className={`w-3 h-3 transition-transform flex-shrink-0 text-text-muted ${expandedFolders.has(folder.id) ? 'rotate-90' : ''}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
-                    <svg className="w-4 h-4 flex-shrink-0" style={{ color: folder.color }} fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-4 h-4 flex-shrink-0"
+                      style={{ color: folder.color }}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                     </svg>
-                    <span className="text-sm flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
-                      {folder.name}
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {folderDocs(folder.id).length}
-                    </span>
+                    <span className="text-sm flex-1 truncate text-text-primary">{folder.name}</span>
+                    <span className="text-xs text-text-muted">{folderDocs(folder.id).length}</span>
                     {/* Folder actions */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditFolder(folder);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all"
-                      style={{ backgroundColor: 'var(--glass-bg)' }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all bg-glass"
                     >
-                      <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      <svg
+                        className="w-3 h-3 text-text-muted"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                        />
                       </svg>
                     </button>
                   </div>
 
                   {/* Folder Contents */}
                   {expandedFolders.has(folder.id) && (
-                    <div className="ml-5 pl-2 space-y-1" style={{ borderLeft: `2px solid ${folder.color}` }}>
+                    <div
+                      className="ml-5 pl-2 space-y-1"
+                      style={{ borderLeft: `2px solid ${folder.color}` }}
+                    >
                       {folderDocs(folder.id).length === 0 ? (
-                        <p className="text-xs py-2 px-2" style={{ color: 'var(--text-muted)' }}>Empty folder</p>
+                        <p className="text-xs py-2 px-2 text-text-muted">Empty folder</p>
                       ) : (
-                        folderDocs(folder.id).map(doc => (
+                        folderDocs(folder.id).map((doc) => (
                           <div
                             key={doc.id}
-                            className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative"
-                            style={{ backgroundColor: 'var(--glass-bg)' }}
+                            className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative bg-glass"
                             onContextMenu={(e) => handleContextMenu(e, 'file', doc)}
                           >
                             {getFileIcon(doc.file_type)}
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs truncate" style={{ color: 'var(--text-primary)' }}>
-                                {doc.name}
-                              </p>
+                              <p className="text-xs truncate text-text-primary">{doc.name}</p>
                               <div className="flex items-center gap-2">
-                                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                <span className="text-xs text-text-muted">
                                   {formatFileSize(doc.file_size)}
                                 </span>
                                 {getStatusBadge(doc.status)}
@@ -643,56 +747,76 @@ export default function MyFilesPanel() {
                                   e.stopPropagation();
                                   setShowMoveMenu(showMoveMenu === doc.id ? null : doc.id);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all"
-                                style={{ backgroundColor: 'var(--glass-bg)' }}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all bg-glass"
                                 title="Move file"
                               >
-                                <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                <svg
+                                  className="w-3 h-3 text-text-muted"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                                  />
                                 </svg>
                               </button>
                               {/* Move dropdown */}
                               {showMoveMenu === doc.id && (
                                 <div
-                                  className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32"
-                                  style={{
-                                    backgroundColor: 'var(--background)',
-                                    border: '1px solid var(--border)',
-                                  }}
+                                  className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32 bg-background border border-theme"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <div className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>Move to:</div>
+                                  <div className="px-2 py-1 text-xs text-text-muted">Move to:</div>
                                   {/* Move to root */}
                                   <button
                                     onClick={() => {
                                       handleMoveFile(doc.id, null);
                                       setShowMoveMenu(null);
                                     }}
-                                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2"
-                                    style={{ color: 'var(--text-primary)' }}
+                                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
                                   >
-                                    <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    <svg
+                                      className="w-3 h-3 text-text-muted"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                                      />
                                     </svg>
                                     Unfiled
                                   </button>
                                   {/* Other folders */}
-                                  {folders.filter(f => f.id !== folder.id).map(otherFolder => (
-                                    <button
-                                      key={otherFolder.id}
-                                      onClick={() => {
-                                        handleMoveFile(doc.id, otherFolder.id);
-                                        setShowMoveMenu(null);
-                                      }}
-                                      className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2"
-                                      style={{ color: 'var(--text-primary)' }}
-                                    >
-                                      <svg className="w-3 h-3" style={{ color: otherFolder.color }} fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                      </svg>
-                                      {otherFolder.name}
-                                    </button>
-                                  ))}
+                                  {folders
+                                    .filter((f) => f.id !== folder.id)
+                                    .map((otherFolder) => (
+                                      <button
+                                        key={otherFolder.id}
+                                        onClick={() => {
+                                          handleMoveFile(doc.id, otherFolder.id);
+                                          setShowMoveMenu(null);
+                                        }}
+                                        className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
+                                      >
+                                        <svg
+                                          className="w-3 h-3"
+                                          style={{ color: otherFolder.color }}
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                        </svg>
+                                        {otherFolder.name}
+                                      </button>
+                                    ))}
                                 </div>
                               )}
                             </div>
@@ -704,8 +828,18 @@ export default function MyFilesPanel() {
                               className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
                               title="Delete file"
                             >
-                              <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              <svg
+                                className="w-3 h-3 text-red-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
                               </svg>
                             </button>
                           </div>
@@ -718,24 +852,21 @@ export default function MyFilesPanel() {
 
               {/* Root Documents (no folder) */}
               {rootDocs.length > 0 && folders.length > 0 && (
-                <div className="pt-2 mt-2" style={{ borderTop: '1px solid var(--border)' }}>
-                  <p className="text-xs px-2 mb-1" style={{ color: 'var(--text-muted)' }}>Unfiled</p>
+                <div className="pt-2 mt-2 border-t border-theme">
+                  <p className="text-xs px-2 mb-1 text-text-muted">Unfiled</p>
                 </div>
               )}
-              {rootDocs.map(doc => (
+              {rootDocs.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative"
-                  style={{ backgroundColor: 'var(--glass-bg)' }}
+                  className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative bg-glass"
                   onContextMenu={(e) => handleContextMenu(e, 'file', doc)}
                 >
                   {getFileIcon(doc.file_type)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs truncate" style={{ color: 'var(--text-primary)' }}>
-                      {doc.name}
-                    </p>
+                    <p className="text-xs truncate text-text-primary">{doc.name}</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <span className="text-xs text-text-muted">
                         {formatFileSize(doc.file_size)}
                       </span>
                       {getStatusBadge(doc.status)}
@@ -749,36 +880,45 @@ export default function MyFilesPanel() {
                           e.stopPropagation();
                           setShowMoveMenu(showMoveMenu === doc.id ? null : doc.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all"
-                        style={{ backgroundColor: 'var(--glass-bg)' }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all bg-glass"
                         title="Move to folder"
                       >
-                        <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        <svg
+                          className="w-3 h-3 text-text-muted"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                          />
                         </svg>
                       </button>
                       {/* Move dropdown */}
                       {showMoveMenu === doc.id && (
                         <div
-                          className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32"
-                          style={{
-                            backgroundColor: 'var(--background)',
-                            border: '1px solid var(--border)',
-                          }}
+                          className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32 bg-background border border-theme"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>Move to folder:</div>
-                          {folders.map(folder => (
+                          <div className="px-2 py-1 text-xs text-text-muted">Move to folder:</div>
+                          {folders.map((folder) => (
                             <button
                               key={folder.id}
                               onClick={() => {
                                 handleMoveFile(doc.id, folder.id);
                                 setShowMoveMenu(null);
                               }}
-                              className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2"
-                              style={{ color: 'var(--text-primary)' }}
+                              className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
                             >
-                              <svg className="w-3 h-3" style={{ color: folder.color }} fill="currentColor" viewBox="0 0 20 20">
+                              <svg
+                                className="w-3 h-3"
+                                style={{ color: folder.color }}
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
                                 <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                               </svg>
                               {folder.name}
@@ -796,8 +936,18 @@ export default function MyFilesPanel() {
                     className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
                     title="Delete file"
                   >
-                    <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <svg
+                      className="w-3 h-3 text-red-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -807,8 +957,9 @@ export default function MyFilesPanel() {
 
           {/* Stats */}
           {stats && stats.total_documents > 0 && (
-            <div className="mt-3 pt-2 text-xs" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-              {stats.total_documents} file{stats.total_documents !== 1 ? 's' : ''} · {formatFileSize(stats.total_size_bytes)}
+            <div className="mt-3 pt-2 text-xs border-t border-theme text-text-muted">
+              {stats.total_documents} file{stats.total_documents !== 1 ? 's' : ''} ·{' '}
+              {formatFileSize(stats.total_size_bytes)}
             </div>
           )}
         </div>
@@ -817,12 +968,10 @@ export default function MyFilesPanel() {
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed z-50 py-1 rounded-lg shadow-lg min-w-32"
+          className="fixed z-50 py-1 rounded-lg shadow-lg min-w-32 bg-background border border-theme"
           style={{
             left: contextMenu.x,
             top: contextMenu.y,
-            backgroundColor: 'var(--background)',
-            border: '1px solid var(--border)',
           }}
         >
           {contextMenu.type === 'folder' && (
@@ -833,7 +982,12 @@ export default function MyFilesPanel() {
                 style={{ color: 'var(--text-primary)' }}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
                 Rename
               </button>
@@ -842,7 +996,12 @@ export default function MyFilesPanel() {
                 className="w-full px-3 py-2 text-left text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2 text-red-500"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
                 Delete
               </button>
@@ -851,25 +1010,43 @@ export default function MyFilesPanel() {
           {contextMenu.type === 'file' && (
             <>
               {/* Move to folder options */}
-              <div className="px-3 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>Move to:</div>
+              <div className="px-3 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                Move to:
+              </div>
               <button
                 onClick={() => handleMoveFile((contextMenu.item as Document).id, null)}
                 className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2"
                 style={{ color: 'var(--text-primary)' }}
               >
-                <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                <svg
+                  className="w-4 h-4"
+                  style={{ color: 'var(--text-muted)' }}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
                 </svg>
                 Root
               </button>
-              {folders.map(folder => (
+              {folders.map((folder) => (
                 <button
                   key={folder.id}
                   onClick={() => handleMoveFile((contextMenu.item as Document).id, folder.id)}
                   className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  <svg className="w-4 h-4" style={{ color: folder.color }} fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    className="w-4 h-4"
+                    style={{ color: folder.color }}
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                   </svg>
                   {folder.name}
@@ -881,7 +1058,12 @@ export default function MyFilesPanel() {
                 className="w-full px-3 py-2 text-left text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2 text-red-500"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
                 Delete
               </button>
@@ -928,12 +1110,15 @@ export default function MyFilesPanel() {
                   Color
                 </label>
                 <div className="flex gap-2 flex-wrap">
-                  {FOLDER_COLORS.map(color => (
+                  {FOLDER_COLORS.map((color) => (
                     <button
                       key={color}
                       onClick={() => setFolderColor(color)}
                       className={`w-7 h-7 rounded-full transition-transform ${folderColor === color ? 'ring-2 ring-offset-2 scale-110' : ''}`}
-                      style={{ backgroundColor: color, outlineColor: folderColor === color ? color : undefined }}
+                      style={{
+                        backgroundColor: color,
+                        outlineColor: folderColor === color ? color : undefined,
+                      }}
                     />
                   ))}
                 </div>
@@ -954,7 +1139,7 @@ export default function MyFilesPanel() {
                   className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
                   style={{ backgroundColor: 'var(--primary)', color: 'white' }}
                 >
-                  {isSavingFolder ? 'Saving...' : (editingFolder ? 'Save' : 'Create')}
+                  {isSavingFolder ? 'Saving...' : editingFolder ? 'Save' : 'Create'}
                 </button>
               </div>
             </div>
