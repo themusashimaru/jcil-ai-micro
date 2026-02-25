@@ -153,14 +153,8 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className="antialiased"
-        style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-      >
-        <a
-          href="#main-content"
-          className="skip-to-content"
-        >
+      <body className="antialiased bg-background text-text-primary">
+        <a href="#main-content" className="skip-to-content">
           Skip to main content
         </a>
         <ThemeProvider>

@@ -137,10 +137,7 @@ const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
     strokeWidth="2"
     width="14"
     height="14"
-    style={{
-      transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-      transition: 'transform 0.15s ease',
-    }}
+    className={`transition-transform duration-150 ease-in-out ${expanded ? 'rotate-90' : 'rotate-0'}`}
   >
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
@@ -160,22 +157,15 @@ function StatusBadge({ status }: { status: MCPServer['status'] }) {
 
   return (
     <span
-      className="status-badge"
+      className="status-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold"
       style={{
         color: config.color,
         backgroundColor: config.bgColor,
-        padding: '0.125rem 0.5rem',
-        borderRadius: '9999px',
-        fontSize: '0.6875rem',
-        fontWeight: 600,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.25rem',
       }}
     >
       {status === 'starting' && <span className="spinner" />}
       {status === 'running' && (
-        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: config.color }} />
+        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: config.color }} />
       )}
       {config.label}
     </span>
@@ -201,31 +191,11 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
-      style={{
-        width: 52,
-        height: 28,
-        borderRadius: 14,
-        border: 'none',
-        background: checked ? '#1e3a5f' : '#d1d5db',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        position: 'relative',
-        transition: 'background 0.2s ease',
-        opacity: disabled ? 0.5 : 1,
-        flexShrink: 0,
-      }}
+      className={`w-[52px] h-7 rounded-[14px] border-none relative transition-[background] duration-200 ease-in-out shrink-0 ${checked ? 'bg-[#1e3a5f]' : 'bg-[#d1d5db]'} ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
     >
       <span
-        style={{
-          position: 'absolute',
-          top: 2,
-          left: checked ? 26 : 2,
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          background: 'white',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-          transition: 'left 0.2s ease',
-        }}
+        className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-[left] duration-200 ease-in-out"
+        style={{ left: checked ? 26 : 2 }}
       />
     </button>
   );

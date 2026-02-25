@@ -47,7 +47,6 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
         ${card.comingSoon ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
       `}
       style={{
-        // Light mode: navy blue, Dark mode: charcoal gray
         backgroundColor: card.comingSoon
           ? 'var(--carousel-card-disabled-bg)'
           : 'var(--carousel-card-bg)',
@@ -56,16 +55,10 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
     >
       {/* Icon + Title row - compact horizontal layout */}
       <div className="flex items-center gap-1.5 mb-1">
-        <div
-          className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: 'var(--carousel-icon-bg)' }}
-        >
-          <IconComponent className="w-3 h-3" style={{ color: 'var(--carousel-icon-color)' }} />
+        <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 bg-[var(--carousel-icon-bg)]">
+          <IconComponent className="w-3 h-3 text-[var(--carousel-icon-color)]" />
         </div>
-        <h4
-          className="text-[10px] font-medium leading-tight whitespace-nowrap"
-          style={{ color: 'var(--carousel-text)' }}
-        >
+        <h4 className="text-[10px] font-medium leading-tight whitespace-nowrap text-[var(--carousel-text)]">
           {card.title}
         </h4>
         {card.comingSoon && (
@@ -76,19 +69,13 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
       </div>
 
       {/* Description - single line */}
-      <p
-        className="text-[8px] leading-tight line-clamp-1"
-        style={{ color: 'var(--carousel-text-muted)' }}
-      >
+      <p className="text-[8px] leading-tight line-clamp-1 text-[var(--carousel-text-muted)]">
         {card.description}
       </p>
 
       {/* Badge for admin features */}
       {card.badge && (
-        <p
-          className="text-[6px] mt-0.5 font-medium truncate"
-          style={{ color: 'var(--carousel-text-muted)' }}
-        >
+        <p className="text-[6px] mt-0.5 font-medium truncate text-[var(--carousel-text-muted)]">
           {card.badge}
         </p>
       )}

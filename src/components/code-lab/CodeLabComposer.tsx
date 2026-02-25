@@ -290,7 +290,7 @@ export function CodeLabComposer({
           multiple
           accept={ACCEPTED_TYPES.join(',')}
           onChange={(e) => handleFileSelect(e.target.files)}
-          style={{ display: 'none' }}
+          className="hidden"
           aria-label="Upload files"
         />
 

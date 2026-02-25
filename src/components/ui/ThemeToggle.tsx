@@ -37,8 +37,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
     <button
       onClick={toggleTheme}
       disabled={isLoading}
-      className={`rounded-lg p-1.5 transition-opacity hover:opacity-70 ${className}`}
-      style={{ color: 'var(--text-primary)' }}
+      className={`rounded-lg p-1.5 transition-opacity hover:opacity-70 text-text-primary ${className}`}
       aria-label={`Switch to ${nextTheme} mode`}
       title={`Switch to ${nextTheme} mode`}
     >

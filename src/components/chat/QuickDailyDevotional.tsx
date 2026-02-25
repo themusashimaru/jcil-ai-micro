@@ -83,10 +83,7 @@ export function QuickDailyDevotional() {
       {/* Devotional Button - Compact header style */}
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs font-medium transition hover:bg-white/10"
-        style={{
-          color: 'var(--primary)',
-        }}
+        className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs font-medium transition hover:bg-white/10 text-primary"
         title="Daily Devotional"
       >
         <span className="flex items-center gap-1">
@@ -220,9 +217,18 @@ export function QuickDailyDevotional() {
                       <button
                         onClick={handleSendEmail}
                         className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
-                        title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
+                        title={
+                          !recipientEmail
+                            ? 'Enter recipient email to enable'
+                            : 'Open in your default email client'
+                        }
                       >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"

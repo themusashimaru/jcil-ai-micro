@@ -103,9 +103,12 @@ export function QuickBibleStudy({ onSubmitPrompt }: QuickBibleStudyProps) {
 
   const getStudyPrompt = () => {
     const depthInstructions = {
-      basic: 'Write at a high school reading level. Focus on clear, practical explanations that any believer can understand. Avoid technical jargon.',
-      intermediate: 'Write at a college reading level. Include historical context, cross-references, and moderate theological depth. Balance accessibility with substance.',
-      seminary: 'Write at a graduate/seminary level. Include detailed Hebrew/Greek analysis, engagement with scholarly perspectives, systematic theology connections, and advanced hermeneutical principles.',
+      basic:
+        'Write at a high school reading level. Focus on clear, practical explanations that any believer can understand. Avoid technical jargon.',
+      intermediate:
+        'Write at a college reading level. Include historical context, cross-references, and moderate theological depth. Balance accessibility with substance.',
+      seminary:
+        'Write at a graduate/seminary level. Include detailed Hebrew/Greek analysis, engagement with scholarly perspectives, systematic theology connections, and advanced hermeneutical principles.',
     };
 
     const typePrompts: Record<StudyType, string> = {
@@ -234,17 +237,17 @@ ${depthInstructions[depthLevel]}`,
       {/* Bible Study Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-lg px-3 py-2 text-xs font-medium transition"
-        style={{
-          backgroundColor: 'var(--surface)',
-          color: 'var(--primary)',
-          border: '1px solid var(--primary)',
-        }}
+        className="rounded-lg px-3 py-2 text-xs font-medium transition bg-surface text-primary border border-primary"
         title="Comprehensive Bible study tools"
       >
         <span className="flex items-center gap-1.5">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m-8-8h16" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M12 4v16m-8-8h16"
+            />
           </svg>
           <span>Bible Study</span>
         </span>
@@ -260,7 +263,9 @@ ${depthInstructions[depthLevel]}`,
                 <div className="flex items-center justify-between border-b border-white/10 px-6 pt-5 pb-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold sm:text-xl">📖 Bible Study</h2>
-                    <span className="text-xs text-gray-400 hidden sm:inline">Powered by Slingshot AI</span>
+                    <span className="text-xs text-gray-400 hidden sm:inline">
+                      Powered by Slingshot AI
+                    </span>
                   </div>
                   <button
                     onClick={handleClose}
@@ -297,7 +302,9 @@ ${depthInstructions[depthLevel]}`,
                             <span className="text-xl">{type.icon}</span>
                             <div>
                               <div className="text-sm font-medium">{type.label}</div>
-                              <div className="text-xs text-gray-500 hidden sm:block">{type.description}</div>
+                              <div className="text-xs text-gray-500 hidden sm:block">
+                                {type.description}
+                              </div>
                             </div>
                           </button>
                         ))}
@@ -356,7 +363,8 @@ ${depthInstructions[depthLevel]}`,
                     {/* Additional Context - Optional */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-300">
-                        Additional Focus or Context <span className="text-gray-500">(Optional)</span>
+                        Additional Focus or Context{' '}
+                        <span className="text-gray-500">(Optional)</span>
                       </label>
                       <textarea
                         value={additionalContext}
@@ -366,7 +374,8 @@ ${depthInstructions[depthLevel]}`,
                         rows={2}
                       />
                       <p className="text-xs text-gray-500">
-                        Share your specific situation, audience, or questions to personalize the study.
+                        Share your specific situation, audience, or questions to personalize the
+                        study.
                       </p>
                     </div>
 

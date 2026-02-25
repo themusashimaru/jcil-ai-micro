@@ -120,16 +120,12 @@ export function Modal({
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
             <div>
               {title && (
-                <h2
-                  id={titleId}
-                  className="text-lg font-semibold"
-                  style={{ color: 'var(--text-primary)' }}
-                >
+                <h2 id={titleId} className="text-lg font-semibold text-text-primary">
                   {title}
                 </h2>
               )}
               {description && (
-                <p id={descId} className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+                <p id={descId} className="mt-1 text-sm text-text-muted">
                   {description}
                 </p>
               )}
@@ -137,8 +133,7 @@ export function Modal({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-[var(--glass-bg)] transition-colors"
-                style={{ color: 'var(--text-muted)' }}
+                className="p-1.5 rounded-lg hover:bg-[var(--glass-bg)] transition-colors text-text-muted"
                 aria-label="Close dialog"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
