@@ -351,8 +351,7 @@ export const ChatComposer = memo(function ChatComposer({
 
         {/* Input Area */}
         <div
-          className={`chat-input-glass relative rounded-3xl transition-all ${isDragging ? 'opacity-80' : ''}`}
-          style={{ backgroundColor: 'var(--chat-input-bg)' }}
+          className={`chat-input-glass relative rounded-3xl transition-all bg-[var(--chat-input-bg)] ${isDragging ? 'opacity-80' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}

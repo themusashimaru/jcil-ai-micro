@@ -121,10 +121,7 @@ const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
     strokeWidth="2"
     width="14"
     height="14"
-    className="transition-transform duration-150 ease-in-out"
-    style={{
-      transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-    }}
+    className={`transition-transform duration-150 ease-in-out ${expanded ? 'rotate-90' : 'rotate-0'}`}
   >
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
