@@ -182,7 +182,8 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
           }
           const blocks: UnifiedContentBlock[] = [];
           for (const part of m.content) {
-            const p = part as Record<string, unknown>;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const p = part as any;
             if (p.type === 'text' && p.text) {
               blocks.push({ type: 'text', text: String(p.text) });
             } else if (p.type === 'image' && p.image) {
