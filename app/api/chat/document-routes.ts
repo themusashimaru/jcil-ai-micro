@@ -325,9 +325,10 @@ If information is missing, make reasonable professional assumptions or leave opt
   trackDocTokens(extractionResult, ctx.userId, ctx.userPlanKey, 'chat-resume', ctx.conversationId);
 
   const jsonText = stripCodeFences(extractionResult.text);
-  let extractedData: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let extractedData: any;
   try {
-    extractedData = JSON.parse(jsonText) as Record<string, unknown>;
+    extractedData = JSON.parse(jsonText);
   } catch {
     throw new Error('Failed to parse resume extraction response as JSON');
   }
