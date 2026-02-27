@@ -2,6 +2,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import type { Message } from '@/app/chat/types';
 
 interface GeneratedImageBlockProps {
@@ -13,8 +14,13 @@ export function GeneratedImageBlock({ image, onRegenerate }: GeneratedImageBlock
   return (
     <div className="mb-2 overflow-hidden rounded-xl border border-white/10 max-w-md relative group">
       <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image.imageUrl} alt={image.prompt} className="w-full h-auto" />
+        <Image
+          src={image.imageUrl}
+          alt={image.prompt}
+          width={image.dimensions.width}
+          height={image.dimensions.height}
+          className="w-full h-auto"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
           <p className="text-xs text-white/90 line-clamp-2">{image.prompt}</p>
           <div className="flex items-center justify-between mt-2">

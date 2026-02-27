@@ -22,6 +22,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { useAgentMode } from '@/hooks/useAgentMode';
 import { logger } from '@/lib/logger';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
@@ -3418,8 +3419,13 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
                     <span className="text-primary">ai</span>
                   </h1>
                 ) : headerLogo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={headerLogo} alt="JCIL.ai" className="h-8 hidden sm:block" />
+                  <Image
+                    src={headerLogo}
+                    alt="JCIL.ai"
+                    width={120}
+                    height={32}
+                    className="h-8 w-auto hidden sm:block"
+                  />
                 ) : (
                   <h1 className="text-base md:text-xl font-semibold hidden sm:block">
                     <span className="text-white">JCIL</span>
