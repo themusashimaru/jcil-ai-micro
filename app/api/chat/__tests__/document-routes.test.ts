@@ -45,7 +45,7 @@ vi.mock('@/lib/supabase/service-role', () => ({
 // Mock document generation
 vi.mock('@/app/api/chat/documents', () => ({
   detectDocumentType: vi.fn().mockReturnValue(null),
-  detectDocumentIntent: vi.fn().mockReturnValue(false),
+  detectDocumentIntent: vi.fn().mockReturnValue(null),
   generateDocumentSchemaPrompt: vi.fn().mockReturnValue(''),
   stripCodeFences: vi.fn().mockImplementation((s: string) => s),
   validateDocumentJSON: vi.fn().mockReturnValue({ valid: true }),
@@ -100,6 +100,8 @@ function createMockContext(overrides: Partial<DocRouteContext> = {}): DocRouteCo
     conversationId: 'conv-456',
     requestId: 'req-789',
     isAuthenticated: true,
+    memoryContext: '',
+    slotAcquired: false,
     ...overrides,
   };
 }
@@ -150,7 +152,7 @@ describe('handleAutoDetectedDocument', () => {
 
   it('returns null when no document intent is detected', async () => {
     const { detectDocumentIntent } = await import('@/app/api/chat/documents');
-    vi.mocked(detectDocumentIntent).mockReturnValue(false);
+    vi.mocked(detectDocumentIntent).mockReturnValue(null);
 
     const ctx = createMockContext();
     const result = await handleAutoDetectedDocument(ctx);
