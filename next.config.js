@@ -1,5 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { withSentryConfig } = require('@sentry/nextjs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 /**
  * @type {import('next').NextConfig}
@@ -140,7 +144,9 @@ const sentryWebpackPluginOptions = {
   disableLogger: true,
 };
 
-// Export config wrapped with Sentry (only if Sentry is configured)
-module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
+// Export config wrapped with Sentry (only if Sentry is configured) and bundle analyzer
+const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
   ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
   : nextConfig;
+
+module.exports = withBundleAnalyzer(finalConfig);
