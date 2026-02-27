@@ -7,9 +7,18 @@
  * Uses server-side auth like the main chat page for seamless authentication.
  */
 
+import dynamic from 'next/dynamic';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import { redirect } from 'next/navigation';
-import { CodeLabClient } from './CodeLabClient';
+import CodeLabLoading from './loading';
+
+const CodeLabClient = dynamic(
+  () => import('./CodeLabClient').then((m) => ({ default: m.CodeLabClient })),
+  {
+    loading: () => <CodeLabLoading />,
+    ssr: false,
+  }
+);
 
 export default async function CodeLabPage() {
   // Check authentication - redirect to login if not authenticated

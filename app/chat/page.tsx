@@ -50,9 +50,15 @@
  * - Verify tool calls display correctly
  */
 
-import { ChatClient } from './ChatClient';
+import dynamic from 'next/dynamic';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import { redirect } from 'next/navigation';
+import ChatLoading from './loading';
+
+const ChatClient = dynamic(() => import('./ChatClient').then((m) => ({ default: m.ChatClient })), {
+  loading: () => <ChatLoading />,
+  ssr: false,
+});
 
 export default async function ChatPage() {
   // Check authentication - redirect to login if not authenticated
