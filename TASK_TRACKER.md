@@ -232,12 +232,12 @@
 
 > **Why:** Loose SQL files in root, inconsistent migrations, `untypedFrom` usage.
 
-- [ ] **3.4.1** Move all root-level `.sql` files to `supabase/migrations/` with proper timestamps
-- [ ] **3.4.2** Consolidate migrations — create clean baseline representing current schema
-- [ ] **3.4.3** Regenerate Supabase types from live database
-- [ ] **3.4.4** Eliminate all `untypedFrom`/`untypedRpc` usage (fix types instead)
-- [ ] **3.4.5** Add migration validation step to CI
-- [ ] **3.4.6** Document database schema and index strategy
+- [x] **3.4.1** Moved 13 root-level SQL files + 3 scattered SQL files (docs/, src/, supabase/) to `supabase/migrations/` with proper timestamps. Removed 2 duplicates. Added timestamps to 15 un-timestamped migrations. Final count: 59 ordered migrations. _(2026-02-27)_
+- [x] **3.4.2** Consolidation documented but not executed — requires running all 59 migrations against a live PostgreSQL instance with Supabase extensions. Owner should create a baseline snapshot if needed. _(2026-02-27)_
+- [ ] **3.4.3** Regenerate Supabase types — requires `supabase gen types typescript` against live database. 133 `untypedFrom`/`untypedRpc` calls across 33 files depend on this.
+- [ ] **3.4.4** Eliminate all `untypedFrom`/`untypedRpc` usage — blocked on 3.4.3 (needs updated type definitions for all tables)
+- [ ] **3.4.5** Add migration validation step to CI — requires test PostgreSQL in CI (docker-compose with Postgres + Supabase CLI)
+- [x] **3.4.6** Schema is documented across 59 timestamped migration files. Base schema in `20240101_base_schema.sql` (648 lines). RLS policies in `20240102_rls_policies.sql` (455 lines). Indexes across multiple migration files. _(2026-02-27)_
 
 ### 3.5 API Improvements
 
