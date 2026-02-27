@@ -1,8 +1,8 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
-**Last Updated:** 2026-02-25
-**Updated By:** Phase 2.4.8 — Inline Styles → Tailwind Conversion (554→155, 72% reduction)
-**Branch:** `claude/resume-checklist-2-4-g5wjf`
+**Last Updated:** 2026-02-27
+**Updated By:** Phase 2.6 — Test Coverage Push (15% → 41%, 12,107 tests)
+**Branch:** `claude/fix-chat-crashes-L9aK6`
 
 > This document reflects verified, measured values only. No aspirational claims.
 > Previous versions of this file contained inaccurate metrics. This is the corrected baseline.
@@ -13,10 +13,10 @@
 
 | Metric                         | Verified Value                                                                    | Target                 | Status                      |
 | ------------------------------ | --------------------------------------------------------------------------------- | ---------------------- | --------------------------- |
-| **Test Coverage (lines)**      | 15.05% (was 5.9%)                                                                 | 60%                    | Improving — 3x increase     |
-| **Test Coverage (statements)** | 15.05% (was 5.49%)                                                                | 60%                    | Improving — 3x increase     |
-| **Test Coverage (branches)**   | 62.55% (was 4.37%)                                                                | 60%                    | Target met                  |
-| **API Routes Tested**          | 8.5%                                                                              | 90%                    | Critical gap                |
+| **Test Coverage (lines)**      | 41.25% (was 15.05%)                                                               | 60%                    | Major progress — Phase 2.6  |
+| **Test Coverage (statements)** | 41.25% (was 15.05%)                                                               | 60%                    | Major progress — Phase 2.6  |
+| **Test Coverage (branches)**   | 80.71% (was 62.55%)                                                               | 60%                    | Target exceeded             |
+| **API Routes Tested**          | ~40% (was 8.5%)                                                                   | 90%                    | Improving                   |
 | **Real Tool Implementations**  | 57 tools (all real, stubs removed)                                                | All active tools real  | Improved — 23 stubs deleted |
 | **ARIA Attributes**            | 409+ (was 0)                                                                      | WCAG 2.1 AA            | Major progress — Phase 2.4  |
 | **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.  | 0 static inline styles | Complete — Phase 2.4.8      |
@@ -91,9 +91,9 @@ The vast majority of tools in `lib/ai/tools/` return simulated/fake data:
 
 ### Testing
 
-- **15.05% overall coverage** (was 5.9%, 3x improvement)
-- 2,724 tests across 93 files, all passing
-- **91.5% of API routes** still untested — Phase 2.6 target
+- **41.25% overall coverage** (was 15.05%, was 5.9%)
+- 12,107 tests across 410 files, all passing
+- ~40% of API routes now tested (was 8.5%)
 - No integration tests for payment flows
 - No E2E tests running against real environment
 
@@ -188,6 +188,13 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-24 | Added loading skeleton to ChatThread             | No loading state during msg fetch           | ThreadSkeleton shown while loading        |
 | 2026-02-24 | Added code-lab/error.tsx + loading.tsx           | No route-level error handling for code-lab  | Segment-level error boundary + skeleton   |
 | 2026-02-24 | Added error handling tests (78 new)              | 2635 tests across 89 files                  | 2724 tests across 93 files                |
+| 2026-02-27 | Fixed chat crashes (null guards)                 | Unprotected JSON.parse, null array access   | try/catch + null guards in 4 modules      |
+| 2026-02-27 | Fixed basic-ftp CVE (path traversal)             | basic-ftp 5.1.0 (vulnerable)                | basic-ftp 5.2.0 via pnpm override         |
+| 2026-02-27 | Added chat route tests (75 new)                  | 0 tests for auth/tools/image/doc/title      | 75 tests across 6 new test files          |
+| 2026-02-27 | Added code-lab route tests (24 new)              | 0 tests for lsp/memory/plan routes          | 24 tests across 3 new test files          |
+| 2026-02-27 | Added Stripe webhook tests (6 new)               | 0 tests for webhook handler                 | 6 tests covering all event types          |
+| 2026-02-27 | Coverage push: 15% → 41.25%                      | 2,724 tests, 15.05% lines                   | 12,107 tests, 41.25% lines, 410 files     |
+| 2026-02-27 | Updated vitest thresholds                        | 5% lines/statements                         | 35% lines/stmts, 60% branches/functions   |
 
 ---
 
