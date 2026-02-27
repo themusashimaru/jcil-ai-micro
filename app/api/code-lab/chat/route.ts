@@ -12,7 +12,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
-import { createClient } from '@supabase/supabase-js';
+import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { chatErrorResponse } from '@/lib/api/utils';
 import { ERROR_CODES, HTTP_STATUS } from '@/lib/constants';
 import {
@@ -612,23 +612,20 @@ export async function POST(request: NextRequest) {
     let userGitHubToken: string | undefined;
     let userPlanKey = 'free';
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (supabaseUrl && serviceKey) {
-        const adminClient = createClient(supabaseUrl, serviceKey);
-        const { data: userData } = await adminClient
-          .from('users')
-          .select('github_token, subscription_tier, is_admin')
-          .eq('id', user.id)
-          .single();
-        if (userData?.github_token) {
-          const decrypted = decryptToken(userData.github_token);
-          if (decrypted) {
-            userGitHubToken = decrypted;
-          }
+      const adminClient = createServiceRoleClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: userData } = await (adminClient as any)
+        .from('users')
+        .select('github_token, subscription_tier, is_admin')
+        .eq('id', user.id)
+        .single();
+      if (userData?.github_token) {
+        const decrypted = decryptToken(userData.github_token);
+        if (decrypted) {
+          userGitHubToken = decrypted;
         }
-        userPlanKey = userData?.subscription_tier || 'free';
       }
+      userPlanKey = userData?.subscription_tier || 'free';
     } catch {
       // User data loading should never block chat
     }

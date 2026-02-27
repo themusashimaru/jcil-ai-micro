@@ -7,7 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { completeChat } from '@/lib/ai/chat-router';
 import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
@@ -15,16 +14,19 @@ import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const log = logger('ProcessPendingAPI');
 
 export const maxDuration = 120; // Allow up to 2 minutes for processing
 
 function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) return null;
-  return createClient(url, serviceKey);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return createServiceRoleClient() as any;
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
