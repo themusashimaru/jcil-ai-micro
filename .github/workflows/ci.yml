@@ -48,12 +48,31 @@ jobs:
         run: pnpm run lint
 
       - name: Build
-        run: pnpm run build
+        run: pnpm run build | tee build-output.txt
         env:
           SKIP_ENV_VALIDATION: true
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
+      - name: Check bundle size budgets
+        run: |
+          # Extract First Load JS shared size (in kB)
+          SHARED_SIZE=$(grep 'First Load JS shared' build-output.txt | grep -oP '[\d.]+\s*kB' | head -1 | grep -oP '[\d.]+')
+          echo "First Load JS shared: ${SHARED_SIZE} kB"
+
+          # Budget: First Load JS shared must be under 120 kB
+          BUDGET=120
+          if [ -n "$SHARED_SIZE" ]; then
+            OVER=$(echo "$SHARED_SIZE > $BUDGET" | bc -l 2>/dev/null || echo 0)
+            if [ "$OVER" = "1" ]; then
+              echo "::error::First Load JS shared (${SHARED_SIZE} kB) exceeds budget (${BUDGET} kB)"
+              exit 1
+            fi
+            echo "::notice::Bundle size OK: ${SHARED_SIZE} kB / ${BUDGET} kB budget"
+          else
+            echo "::warning::Could not parse bundle size from build output"
+          fi
 
   # ============================================
   # JOB 2: Unit Tests
