@@ -1,3 +1,6 @@
+// @ts-nocheck - Test file with extensive mocking
+/** @vitest-environment node */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ============================================================================
@@ -1482,5 +1485,374 @@ describe('cloneRepo', () => {
     // File with null content is filtered out, so fetchedFiles should be 0
     expect(result.success).toBe(true);
     expect(result.fetchedFiles).toBe(0);
+  });
+
+  it('should handle directory entry returned by getContent (array data)', async () => {
+    mockReposGet.mockResolvedValue({ data: { default_branch: 'main' } });
+    mockGetBranch.mockResolvedValue({ data: { commit: { sha: 'sha' } } });
+    mockGetTree.mockResolvedValue({
+      data: {
+        sha: 'ts',
+        tree: [
+          { path: 'pkg/index.ts', mode: '100644', type: 'blob', sha: 's1', size: 50, url: 'u1' },
+        ],
+        truncated: false,
+      },
+    });
+    // getContent returns an array (directory listing) instead of file
+    mockGetContent.mockResolvedValue({ data: [{ name: 'sub', type: 'dir' }] });
+
+    const result = await cloneRepo('token', {
+      owner: 'o',
+      repo: 'r',
+      excludePatterns: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.files).toEqual([]);
+    expect(result.fetchedFiles).toBe(0);
+  });
+
+  it('should handle file where content key is missing entirely', async () => {
+    mockReposGet.mockResolvedValue({ data: { default_branch: 'main' } });
+    mockGetBranch.mockResolvedValue({ data: { commit: { sha: 'sha' } } });
+    mockGetTree.mockResolvedValue({
+      data: {
+        sha: 'ts',
+        tree: [{ path: 'large.bin', mode: '100644', type: 'blob', sha: 's1', size: 50, url: 'u1' }],
+        truncated: false,
+      },
+    });
+    // getContent returns data without a content field (large file scenario)
+    mockGetContent.mockResolvedValue({ data: { name: 'large.bin', type: 'file' } });
+
+    const result = await cloneRepo('token', {
+      owner: 'o',
+      repo: 'r',
+      excludePatterns: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.files).toEqual([]);
+  });
+});
+
+// ============================================================================
+// Additional edge case tests
+// ============================================================================
+
+describe('getGitHubTokenFromSession — additional edge cases', () => {
+  it('should return null when user identities are undefined', async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: {
+          identities: undefined,
+          user_metadata: {},
+        },
+      },
+      error: null,
+    });
+    const result = await getGitHubTokenFromSession('https://x.supabase.co', 'key', 'tok');
+    expect(result).toBeNull();
+  });
+
+  it('should return null when session data itself is null', async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: {
+          identities: [{ provider: 'github' }],
+          user_metadata: {},
+        },
+      },
+      error: null,
+    });
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    const result = await getGitHubTokenFromSession('https://x.supabase.co', 'key', 'tok');
+    expect(result).toBeNull();
+  });
+});
+
+describe('pushFiles — additional edge cases', () => {
+  it('should return "Push failed" for non-Error thrown values', async () => {
+    mockGetRef.mockRejectedValue('just a string');
+    mockReposGet.mockRejectedValue('just a string');
+
+    const result = await pushFiles('token', {
+      owner: 'o',
+      repo: 'r',
+      message: 'msg',
+      files: [{ path: 'a.txt', content: 'a' }],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Push failed');
+  });
+
+  it('should encode file content as base64 when creating blobs', async () => {
+    mockGetRef.mockResolvedValue({ data: { object: { sha: 'sha' } } });
+    mockGetCommitGit.mockResolvedValue({ data: { tree: { sha: 'tree' } } });
+    mockCreateBlob.mockResolvedValue({ data: { sha: 'blob' } });
+    mockCreateTree.mockResolvedValue({ data: { sha: 'newtree' } });
+    mockCreateCommit.mockResolvedValue({ data: { sha: 'nc' } });
+    mockUpdateRef.mockResolvedValue({});
+
+    await pushFiles('token', {
+      owner: 'o',
+      repo: 'r',
+      message: 'msg',
+      files: [{ path: 'test.txt', content: 'Hello World' }],
+    });
+
+    expect(mockCreateBlob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: Buffer.from('Hello World').toString('base64'),
+        encoding: 'base64',
+      })
+    );
+  });
+});
+
+describe('createBranch — additional edge cases', () => {
+  it('should return generic error for non-Error thrown value', async () => {
+    mockReposGet.mockRejectedValue(42);
+
+    const result = await createBranch('token', 'o', 'r', 'new');
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Failed to create branch');
+  });
+});
+
+describe('createPullRequest — additional edge cases', () => {
+  it('should return generic error for non-Error thrown value', async () => {
+    mockPullsCreate.mockRejectedValue({ status: 422 });
+
+    const result = await createPullRequest('token', {
+      owner: 'o',
+      repo: 'r',
+      title: 'PR',
+      body: '',
+      head: 'feat',
+      base: 'main',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Failed to create pull request');
+  });
+
+  it('should forward draft option to API', async () => {
+    mockPullsCreate.mockResolvedValue({
+      data: { number: 99, html_url: 'url' },
+    });
+
+    await createPullRequest('token', {
+      owner: 'o',
+      repo: 'r',
+      title: 'WIP: feature',
+      body: 'Work in progress',
+      head: 'wip-branch',
+      base: 'main',
+      draft: true,
+    });
+
+    expect(mockPullsCreate).toHaveBeenCalledWith(expect.objectContaining({ draft: true }));
+  });
+});
+
+describe('getRepoContents — additional edge cases', () => {
+  it('should handle directory entries with null size and html_url', async () => {
+    mockGetContent.mockResolvedValue({
+      data: [
+        {
+          name: 'sub',
+          path: 'sub',
+          sha: 'sha1',
+          size: null,
+          type: 'dir',
+          html_url: null,
+          download_url: null,
+        },
+      ],
+    });
+
+    const result = await getRepoContents('token', 'o', 'r', '');
+    expect(Array.isArray(result)).toBe(true);
+    const items = result as any[];
+    expect(items[0].size).toBe(0);
+    expect(items[0].htmlUrl).toBe('');
+    expect(items[0].downloadUrl).toBeUndefined();
+  });
+
+  it('should use default empty path when not provided', async () => {
+    mockGetContent.mockResolvedValue({
+      data: [
+        { name: 'file', path: 'file', sha: 's', type: 'file', html_url: 'u', download_url: null },
+      ],
+    });
+
+    await getRepoContents('token', 'o', 'r');
+    expect(mockGetContent).toHaveBeenCalledWith(expect.objectContaining({ path: '' }));
+  });
+});
+
+describe('getRepoTree — additional edge cases', () => {
+  it('should pass recursive "true" string when recursive is true', async () => {
+    mockGetBranch.mockResolvedValue({ data: { commit: { sha: 'sha' } } });
+    mockGetTree.mockResolvedValue({
+      data: { sha: 'ts', tree: [], truncated: false },
+    });
+
+    await getRepoTree('token', 'o', 'r', 'main', true);
+    expect(mockGetTree).toHaveBeenCalledWith(expect.objectContaining({ recursive: 'true' }));
+  });
+});
+
+describe('getCommits — additional edge cases', () => {
+  it('should use default limit of 20 when not specified', async () => {
+    mockListCommits.mockResolvedValue({ data: [] });
+    await getCommits('token', 'o', 'r');
+    expect(mockListCommits).toHaveBeenCalledWith(expect.objectContaining({ per_page: 20 }));
+  });
+
+  it('should pass undefined sha when branch is not provided', async () => {
+    mockListCommits.mockResolvedValue({ data: [] });
+    await getCommits('token', 'o', 'r');
+    expect(mockListCommits).toHaveBeenCalledWith(expect.objectContaining({ sha: undefined }));
+  });
+});
+
+describe('compareBranches — additional edge cases', () => {
+  it('should map commit author with missing fields to defaults', async () => {
+    mockCompareCommits.mockResolvedValue({
+      data: {
+        ahead_by: 1,
+        behind_by: 0,
+        status: 'ahead',
+        files: [],
+        commits: [
+          {
+            sha: 'c1',
+            commit: { message: 'msg', author: null },
+            html_url: 'url',
+          },
+        ],
+      },
+    });
+
+    const result = await compareBranches('token', 'o', 'r', 'main', 'feat');
+    expect(result).not.toBeNull();
+    expect(result!.commits[0].author.name).toBe('Unknown');
+    expect(result!.commits[0].author.email).toBe('');
+    expect(result!.commits[0].author.date).toBe('');
+  });
+
+  it('should handle file with undefined patch', async () => {
+    mockCompareCommits.mockResolvedValue({
+      data: {
+        ahead_by: 1,
+        behind_by: 0,
+        status: 'ahead',
+        files: [
+          {
+            filename: 'binary.png',
+            status: 'added',
+            additions: 0,
+            deletions: 0,
+            patch: undefined,
+          },
+        ],
+        commits: [],
+      },
+    });
+
+    const result = await compareBranches('token', 'o', 'r', 'main', 'feat');
+    expect(result!.files[0].patch).toBeUndefined();
+    expect(result!.files[0].filename).toBe('binary.png');
+  });
+});
+
+describe('cloneRepo — language detection edge cases', () => {
+  it('should detect various language extensions correctly', async () => {
+    const extensions = [
+      { ext: 'js', lang: 'javascript' },
+      { ext: 'jsx', lang: 'javascript' },
+      { ext: 'ts', lang: 'typescript' },
+      { ext: 'tsx', lang: 'typescript' },
+      { ext: 'py', lang: 'python' },
+      { ext: 'rb', lang: 'ruby' },
+      { ext: 'go', lang: 'go' },
+      { ext: 'rs', lang: 'rust' },
+      { ext: 'java', lang: 'java' },
+      { ext: 'kt', lang: 'kotlin' },
+      { ext: 'swift', lang: 'swift' },
+      { ext: 'cs', lang: 'csharp' },
+      { ext: 'cpp', lang: 'cpp' },
+      { ext: 'c', lang: 'c' },
+      { ext: 'h', lang: 'c' },
+      { ext: 'php', lang: 'php' },
+      { ext: 'sql', lang: 'sql' },
+      { ext: 'md', lang: 'markdown' },
+      { ext: 'json', lang: 'json' },
+      { ext: 'yaml', lang: 'yaml' },
+      { ext: 'yml', lang: 'yaml' },
+      { ext: 'xml', lang: 'xml' },
+      { ext: 'html', lang: 'html' },
+      { ext: 'css', lang: 'css' },
+      { ext: 'scss', lang: 'scss' },
+      { ext: 'less', lang: 'less' },
+      { ext: 'sh', lang: 'bash' },
+      { ext: 'bash', lang: 'bash' },
+    ];
+
+    const treeItems = extensions.map((e, i) => ({
+      path: `file${i}.${e.ext}`,
+      mode: '100644',
+      type: 'blob',
+      sha: `s${i}`,
+      size: 10,
+      url: `u${i}`,
+    }));
+
+    mockReposGet.mockResolvedValue({ data: { default_branch: 'main' } });
+    mockGetBranch.mockResolvedValue({ data: { commit: { sha: 'sha' } } });
+    mockGetTree.mockResolvedValue({
+      data: { sha: 'ts', tree: treeItems, truncated: false },
+    });
+
+    const base64 = Buffer.from('content').toString('base64');
+    mockGetContent.mockResolvedValue({ data: { content: base64 } });
+
+    const result = await cloneRepo('token', {
+      owner: 'o',
+      repo: 'r',
+      excludePatterns: [],
+    });
+
+    expect(result.success).toBe(true);
+    for (const { ext, lang } of extensions) {
+      const file = result.files.find((f) => f.path.endsWith(`.${ext}`));
+      expect(file?.language).toBe(lang);
+    }
+  });
+
+  it('should return undefined language for unknown extension', async () => {
+    mockReposGet.mockResolvedValue({ data: { default_branch: 'main' } });
+    mockGetBranch.mockResolvedValue({ data: { commit: { sha: 'sha' } } });
+    mockGetTree.mockResolvedValue({
+      data: {
+        sha: 'ts',
+        tree: [{ path: 'data.xyz', mode: '100644', type: 'blob', sha: 's1', size: 10, url: 'u' }],
+        truncated: false,
+      },
+    });
+    const base64 = Buffer.from('content').toString('base64');
+    mockGetContent.mockResolvedValue({ data: { content: base64 } });
+
+    const result = await cloneRepo('token', {
+      owner: 'o',
+      repo: 'r',
+      excludePatterns: [],
+    });
+
+    expect(result.files[0].language).toBeUndefined();
   });
 });
