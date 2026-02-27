@@ -5,7 +5,17 @@
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+import dynamic from 'next/dynamic';
+import type { ToolConfig } from '@/components/tools/ToolLauncher';
+
+const ToolLauncher = dynamic(
+  () => import('@/components/tools/ToolLauncher').then((m) => m.ToolLauncher),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Loading tool...</div>
+    ),
+  }
+);
 
 const DATA_CONFIG: ToolConfig = {
   id: 'data',
@@ -47,15 +57,12 @@ const DATA_CONFIG: ToolConfig = {
       name: 'questions',
       label: 'Specific Questions',
       type: 'textarea',
-      placeholder: 'Any specific questions about your data? (optional)\ne.g., What are the top performing categories? Is there a seasonal pattern?',
+      placeholder:
+        'Any specific questions about your data? (optional)\ne.g., What are the top performing categories? Is there a seasonal pattern?',
       rows: 4,
     },
   ],
-  examples: [
-    'Sales data analysis',
-    'Customer behavior patterns',
-    'Financial trend analysis',
-  ],
+  examples: ['Sales data analysis', 'Customer behavior patterns', 'Financial trend analysis'],
 };
 
 export default function DataAnalysisPage() {

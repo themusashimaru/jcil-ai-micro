@@ -5,7 +5,17 @@
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+import dynamic from 'next/dynamic';
+import type { ToolConfig } from '@/components/tools/ToolLauncher';
+
+const ToolLauncher = dynamic(
+  () => import('@/components/tools/ToolLauncher').then((m) => m.ToolLauncher),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Loading tool...</div>
+    ),
+  }
+);
 
 const SCRIPTURE_CONFIG: ToolConfig = {
   id: 'scripture',
@@ -53,11 +63,7 @@ const SCRIPTURE_CONFIG: ToolConfig = {
       rows: 3,
     },
   ],
-  examples: [
-    'Overcoming fear',
-    'God\'s love',
-    'Finding purpose',
-  ],
+  examples: ['Overcoming fear', "God's love", 'Finding purpose'],
 };
 
 export default function ScriptureStudyPage() {

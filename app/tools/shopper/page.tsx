@@ -5,7 +5,17 @@
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+import dynamic from 'next/dynamic';
+import type { ToolConfig } from '@/components/tools/ToolLauncher';
+
+const ToolLauncher = dynamic(
+  () => import('@/components/tools/ToolLauncher').then((m) => m.ToolLauncher),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Loading tool...</div>
+    ),
+  }
+);
 
 const SHOPPER_CONFIG: ToolConfig = {
   id: 'shopper',
@@ -17,7 +27,8 @@ const SHOPPER_CONFIG: ToolConfig = {
       name: 'product',
       label: 'What are you looking for?',
       type: 'textarea',
-      placeholder: 'Describe what you want to buy...\ne.g., Wireless headphones with noise cancellation for working from home...',
+      placeholder:
+        'Describe what you want to buy...\ne.g., Wireless headphones with noise cancellation for working from home...',
       required: true,
       rows: 3,
     },
@@ -53,7 +64,8 @@ const SHOPPER_CONFIG: ToolConfig = {
       name: 'preferences',
       label: 'Additional Preferences',
       type: 'textarea',
-      placeholder: 'Any specific features, brands, or requirements? (optional)\ne.g., Must be wireless, prefer Sony or Bose, need long battery life...',
+      placeholder:
+        'Any specific features, brands, or requirements? (optional)\ne.g., Must be wireless, prefer Sony or Bose, need long battery life...',
       rows: 3,
     },
   ],

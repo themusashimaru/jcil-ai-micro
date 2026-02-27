@@ -5,7 +5,17 @@
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+import dynamic from 'next/dynamic';
+import type { ToolConfig } from '@/components/tools/ToolLauncher';
+
+const ToolLauncher = dynamic(
+  () => import('@/components/tools/ToolLauncher').then((m) => m.ToolLauncher),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Loading tool...</div>
+    ),
+  }
+);
 
 const CODE_CONFIG: ToolConfig = {
   id: 'code',
@@ -61,7 +71,8 @@ const CODE_CONFIG: ToolConfig = {
       name: 'description',
       label: 'Description',
       type: 'textarea',
-      placeholder: 'Describe what you want to build or the problem you\'re facing...\ne.g., Create a React component for a responsive navbar with dropdown menus...',
+      placeholder:
+        "Describe what you want to build or the problem you're facing...\ne.g., Create a React component for a responsive navbar with dropdown menus...",
       required: true,
       rows: 6,
     },
@@ -94,15 +105,12 @@ const CODE_CONFIG: ToolConfig = {
       name: 'requirements',
       label: 'Additional Requirements',
       type: 'textarea',
-      placeholder: 'Any specific requirements, constraints, or context? (optional)\ne.g., Must use TypeScript strict mode, needs to work with existing API, follow company style guide...',
+      placeholder:
+        'Any specific requirements, constraints, or context? (optional)\ne.g., Must use TypeScript strict mode, needs to work with existing API, follow company style guide...',
       rows: 3,
     },
   ],
-  examples: [
-    'React authentication form',
-    'Python data processing script',
-    'REST API with Express',
-  ],
+  examples: ['React authentication form', 'Python data processing script', 'REST API with Express'],
 };
 
 export default function CodingAssistantPage() {

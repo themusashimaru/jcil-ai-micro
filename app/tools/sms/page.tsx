@@ -5,7 +5,17 @@
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+import dynamic from 'next/dynamic';
+import type { ToolConfig } from '@/components/tools/ToolLauncher';
+
+const ToolLauncher = dynamic(
+  () => import('@/components/tools/ToolLauncher').then((m) => m.ToolLauncher),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Loading tool...</div>
+    ),
+  }
+);
 
 const SMS_CONFIG: ToolConfig = {
   id: 'sms',
@@ -24,7 +34,8 @@ const SMS_CONFIG: ToolConfig = {
       name: 'purpose',
       label: 'Purpose',
       type: 'textarea',
-      placeholder: 'What do you need to communicate?\ne.g., Confirming dinner plans, asking for time off, checking in...',
+      placeholder:
+        'What do you need to communicate?\ne.g., Confirming dinner plans, asking for time off, checking in...',
       required: true,
       rows: 3,
     },
@@ -53,11 +64,7 @@ const SMS_CONFIG: ToolConfig = {
       ],
     },
   ],
-  examples: [
-    'Running late to meeting',
-    'Thank you for dinner',
-    'Confirm appointment',
-  ],
+  examples: ['Running late to meeting', 'Thank you for dinner', 'Confirm appointment'],
 };
 
 export default function SMSWriterPage() {

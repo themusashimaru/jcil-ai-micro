@@ -5,7 +5,17 @@
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+import dynamic from 'next/dynamic';
+import type { ToolConfig } from '@/components/tools/ToolLauncher';
+
+const ToolLauncher = dynamic(
+  () => import('@/components/tools/ToolLauncher').then((m) => m.ToolLauncher),
+  {
+    loading: () => (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Loading tool...</div>
+    ),
+  }
+);
 
 const VIDEO_CONFIG: ToolConfig = {
   id: 'video',
@@ -17,7 +27,8 @@ const VIDEO_CONFIG: ToolConfig = {
       name: 'prompt',
       label: 'Video Description',
       type: 'textarea',
-      placeholder: 'Describe the video you want to create...\ne.g., A time-lapse of clouds moving over a mountain range...',
+      placeholder:
+        'Describe the video you want to create...\ne.g., A time-lapse of clouds moving over a mountain range...',
       required: true,
       rows: 4,
     },
