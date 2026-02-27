@@ -211,13 +211,13 @@
 
 > **Why:** No health checks, no structured logging, no metrics.
 
-- [ ] **3.2.1** Create health check endpoint (`/api/health`) — DB, Redis, AI provider connectivity
-- [ ] **3.2.2** Add structured logging (replace console.log with Pino or similar)
-- [ ] **3.2.3** Add request ID tracking through the full request lifecycle
-- [ ] **3.2.4** Make Sentry mandatory in production (not optional behind env var)
-- [ ] **3.2.5** Add uptime monitoring (Better Stack, Checkly, or similar)
-- [ ] **3.2.6** Add Anthropic API usage/cost monitoring
-- [ ] **3.2.7** Add Redis health monitoring (tied to rate limiting availability)
+- [x] **3.2.1** Health check endpoint already exists at `/api/health` — DB, Redis, AI provider connectivity checks, basic+detailed modes, HEAD support, tests. _(2026-02-27)_
+- [x] **3.2.2** Structured logging already exists (`src/lib/logger.ts`) — module prefixes, PII redaction (25+ fields), JSON output in production, audit logging (28 event types). No Pino needed; custom logger is production-grade. _(2026-02-27)_
+- [x] **3.2.3** Request ID tracking already exists in `middleware.ts` — UUID generation via `crypto.randomUUID()`, checks `x-request-id`/`x-correlation-id` headers, forwards to all downstream handlers. _(2026-02-27)_
+- [x] **3.2.4** Made Sentry mandatory in production: added `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` and `NEXT_PUBLIC_APP_URL` to new `PRODUCTION_REQUIRED_VARS` list in env-validation.ts. Throws on startup in production if missing. Dev/CI still works without. Added 2 tests. _(2026-02-27)_
+- [ ] **3.2.5** Uptime monitoring requires external service (Better Stack, Checkly). Health endpoint ready at `/api/health` for integration. Owner must configure.
+- [x] **3.2.6** Anthropic API usage/cost monitoring already exists: `src/lib/usage/track.ts` (per-model pricing, DB storage), `src/lib/limits.ts` (Redis-backed monthly limits), `streaming.ts` onUsage callback, admin earnings dashboard at `/api/admin/earnings`. _(2026-02-27)_
+- [x] **3.2.7** Redis health monitoring already exists in `/api/health` (Redis ping check) and `src/lib/collaboration/redis-persistence.ts` (`checkRedisHealth()` with latency). _(2026-02-27)_
 
 ### 3.3 Containerization
 

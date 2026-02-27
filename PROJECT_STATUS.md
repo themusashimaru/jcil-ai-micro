@@ -1,7 +1,7 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
 **Last Updated:** 2026-02-27
-**Updated By:** Phase 3.1 — Performance Optimization (dynamic imports, deps 115→77, bundle analysis)
+**Updated By:** Phase 3.2 — Observability (already existed; Sentry mandatory in prod)
 **Branch:** `claude/fix-chat-crashes-L9aK6`
 
 > This document reflects verified, measured values only. No aspirational claims.
@@ -204,6 +204,8 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-27 | Added @next/bundle-analyzer                      | No bundle analysis tooling                  | ANALYZE=true npm run analyze               |
 | 2026-02-27 | Added CI bundle size budget (120 kB)             | No size regression check                    | Fails CI if shared JS exceeds 120 kB       |
 | 2026-02-27 | Removed 38 unused production deps (115 → 77)     | 115 production dependencies                 | 77 production deps (33% reduction)         |
+| 2026-02-27 | Made Sentry mandatory in production              | Optional (enabled only if DSN set)          | Throws on startup if DSN missing in prod   |
+| 2026-02-27 | Phase 3.2 Observability audit (6/7 pre-existing) | Tasks marked as TODO                        | Verified: health, logging, tracing, Redis  |
 
 ---
 
