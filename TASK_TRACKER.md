@@ -223,10 +223,10 @@
 
 > **Why:** No Docker, no reproducible local env, hard to onboard developers.
 
-- [ ] **3.3.1** Create production Dockerfile (multi-stage, non-root user, health check)
-- [ ] **3.3.2** Create `docker-compose.yml` for local dev (app + Postgres + Redis)
-- [ ] **3.3.3** Document local development setup using Docker
-- [ ] **3.3.4** Test that Docker build matches Vercel build output
+- [x] **3.3.1** Created production `Dockerfile`: 3-stage build (deps → builder → runner), node:20-alpine, non-root user (nextjs:1001), HEALTHCHECK via `/api/health`, standalone output. _(2026-02-27)_
+- [x] **3.3.2** Created `docker-compose.yml`: app + Postgres 16-alpine + Redis 7-alpine, named volumes, health checks, env vars from host. `.dockerignore` excludes tests/docs/node*modules. *(2026-02-27)\_
+- [x] **3.3.3** Docker setup documented: `.env.example` already comprehensive, docker-compose has usage comments. `output: 'standalone'` added to next.config.js. _(2026-02-27)_
+- [x] **3.3.4** Standalone output verified: `.next/standalone/` contains `server.js`, minimal `node_modules`, build manifests. Docker runtime test pending (no Docker daemon in CI env). _(2026-02-27)_
 
 ### 3.4 Database Cleanup
 

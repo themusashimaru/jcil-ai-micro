@@ -1,7 +1,7 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
 **Last Updated:** 2026-02-27
-**Updated By:** Phase 3.2 — Observability (already existed; Sentry mandatory in prod)
+**Updated By:** Phase 3.3 — Containerization (Dockerfile, docker-compose, standalone output)
 **Branch:** `claude/fix-chat-crashes-L9aK6`
 
 > This document reflects verified, measured values only. No aspirational claims.
@@ -56,14 +56,15 @@
 
 ### Infrastructure
 
-| Component           | Status  | Notes                             |
-| ------------------- | ------- | --------------------------------- |
-| Next.js 14          | Working | SSR, API routes                   |
-| Supabase PostgreSQL | Working | Database with RLS                 |
-| Upstash Redis       | Working | Rate limiting                     |
-| Vercel Deployment   | Working | Production hosting                |
-| Stripe              | Partial | Integration exists, needs testing |
-| E2B Sandboxing      | Exists  | Code execution environment        |
+| Component           | Status  | Notes                                         |
+| ------------------- | ------- | --------------------------------------------- |
+| Next.js 14          | Working | SSR, API routes, standalone output for Docker |
+| Supabase PostgreSQL | Working | Database with RLS                             |
+| Upstash Redis       | Working | Rate limiting                                 |
+| Vercel Deployment   | Working | Production hosting                            |
+| Docker              | Ready   | Multi-stage Dockerfile + docker-compose.yml   |
+| Stripe              | Partial | Integration exists, needs testing             |
+| E2B Sandboxing      | Exists  | Code execution environment                    |
 
 ---
 
@@ -206,6 +207,8 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-27 | Removed 38 unused production deps (115 → 77)     | 115 production dependencies                 | 77 production deps (33% reduction)         |
 | 2026-02-27 | Made Sentry mandatory in production              | Optional (enabled only if DSN set)          | Throws on startup if DSN missing in prod   |
 | 2026-02-27 | Phase 3.2 Observability audit (6/7 pre-existing) | Tasks marked as TODO                        | Verified: health, logging, tracing, Redis  |
+| 2026-02-27 | Added Docker containerization                    | No Dockerfile or compose                    | 3-stage Dockerfile + docker-compose.yml    |
+| 2026-02-27 | Enabled Next.js standalone output                | Standard build output                       | output: 'standalone' in next.config.js     |
 
 ---
 

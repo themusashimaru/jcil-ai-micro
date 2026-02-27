@@ -10,7 +10,9 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
  */
 const nextConfig = {
   reactStrictMode: true,
-  // Note: swcMinify removed - deprecated in Next.js 16
+
+  // Standalone output for Docker deployments
+  output: 'standalone',
 
   // Server-side native packages (for @napi-rs/canvas)
   serverExternalPackages: ['@napi-rs/canvas'],
