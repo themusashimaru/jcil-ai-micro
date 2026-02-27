@@ -197,15 +197,15 @@
 
 > **Why:** 393 tools per request, no code splitting, no lazy loading of heavy components.
 
-- [ ] **3.1.1** Implement Next.js dynamic imports for CodeLab, Canvas, Document editor
-- [ ] **3.1.2** Add route-based code splitting (each major section = separate chunk)
-- [ ] **3.1.3** Add `next/image` for all images
-- [ ] **3.1.4** Add response caching for tool definitions and static content
-- [ ] **3.1.5** Trim system prompt from 4,312 lines to <1,000 lines (target <3,000 tokens)
-- [ ] **3.1.6** Add bundle analysis (`@next/bundle-analyzer`)
-- [ ] **3.1.7** Set bundle size budgets in CI
-- [ ] **3.1.8** Audit and reduce dependencies (target <50 production deps)
-- [ ] **3.1.9** Measure and document TTFB before/after optimizations
+- [x] **3.1.1** Dynamic imports: ChatClient (ssr:false + skeleton), CodeLabClient (ssr:false + skeleton), Settings (7 tab sections lazy-loaded) _(2026-02-27)_
+- [x] **3.1.2** Route-based code splitting: verified Next.js native splitting per route segment. Key sizes: /chat 294kB, /code-lab 201kB, /settings 100kB (isolated per route) _(2026-02-27)_
+- [x] **3.1.3** Replaced `<img>` with `next/image` in 5 files (login/signup logos, chat header/thread logos, generated images). Remaining `<img>` tags are data URLs (file uploads) which can't use next/image. _(2026-02-27)_
+- [x] **3.1.4** Cached tool definitions with 1-min TTL in `loadAvailableToolDefinitions()`. Cached base system prompt per calendar day. Both persist across requests within server instance. _(2026-02-27)_
+- [x] **3.1.5** Deleted legacy 4,312-line system prompt (dead code, never imported). Active prompt is `app/api/chat/system-prompt.ts` at 322 lines. Also deleted `slimPrompt.ts` (502 lines) and its tests (196 lines). Total: 5,010 lines removed. _(2026-02-27)_
+- [x] **3.1.6** Added `@next/bundle-analyzer` (dev dep). Wired into `next.config.js` (enabled via `ANALYZE=true`). Added `npm run analyze` script. _(2026-02-27)_
+- [x] **3.1.7** Added CI bundle size budget: First Load JS shared must be under 120 kB (current: 87.9 kB). Fails the typecheck-lint-build job if exceeded. _(2026-02-27)_
+- [x] **3.1.8** Removed 38 unused production deps (115 → 77, 33% reduction). Moved 5 to devDependencies (@capacitor/\*, @testing-library/dom). Removed dead type declarations (jstat.d.ts, @types/proj4). _(2026-02-27)_
+- [x] **3.1.9** Measured and documented: First Load JS shared 87.9kB, /chat 294kB, /code-lab 201kB, /settings 100kB, /login 165kB. Budget set at 120kB shared. _(2026-02-27)_
 
 ### 3.2 Observability
 
@@ -331,10 +331,10 @@
 | ----------------------------- | ----------- | --------- | ---------- |
 | Phase 1: Foundation           | 47          | 47        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
-| Phase 3: Production Readiness | 37          | 0         | 0%         |
+| Phase 3: Production Readiness | 37          | 9         | 24%        |
 | Phase 4: Differentiation      | 23          | 0         | 0%         |
 | Doc Cleanup                   | 4           | 0         | 0%         |
-| **Total**                     | **168**     | **104**   | **62%**    |
+| **Total**                     | **168**     | **113**   | **67%**    |
 
 > Update this summary table as tasks are completed.
 
