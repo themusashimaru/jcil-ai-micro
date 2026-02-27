@@ -243,11 +243,11 @@
 
 > **Why:** No versioning, inconsistent responses, no OpenAPI docs.
 
-- [ ] **3.5.1** Define standard API response format (`{ ok, data, error, requestId }`)
-- [ ] **3.5.2** Apply standard format to all API routes
-- [ ] **3.5.3** Add API versioning prefix (`/api/v1/`)
-- [ ] **3.5.4** Generate OpenAPI spec from Zod schemas
-- [ ] **3.5.5** Centralize service role client creation (audit all inline usages)
+- [x] **3.5.1** Standard API response format already exists in `src/lib/api/utils.ts`: `APIResponse<T>` with `successResponse()`, `errorResponse()`, 15+ error helpers (`errors.unauthorized()`, `.forbidden()`, `.notFound()`, etc.), Zod body/query/param validation, rate limiting. _(2026-02-27)_
+- [ ] **3.5.2** Apply standard format to all API routes — 45/129 routes use standard helpers, 87 still use raw `NextResponse.json()`. Large migration, deferred to dedicated session.
+- [ ] **3.5.3** Add API versioning prefix (`/api/v1/`) — requires URL restructuring, deferred
+- [ ] **3.5.4** Generate OpenAPI spec from Zod schemas — deferred
+- [x] **3.5.5** Centralized service role client: `createServiceRoleClient()` (singleton, audit-logged) + `SecureServiceRoleClient` (per-request, scoped ops). Eliminated 2 inline `createClient(url, serviceKey)` calls in code-lab/chat and process-pending routes. 6 files use legacy client, 2 use secure client. _(2026-02-27)_
 
 ### 3.6 Test Coverage Push (40% → 60%)
 
@@ -331,10 +331,10 @@
 | ----------------------------- | ----------- | --------- | ---------- |
 | Phase 1: Foundation           | 47          | 47        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
-| Phase 3: Production Readiness | 37          | 9         | 24%        |
+| Phase 3: Production Readiness | 37          | 24        | 65%        |
 | Phase 4: Differentiation      | 23          | 0         | 0%         |
 | Doc Cleanup                   | 4           | 0         | 0%         |
-| **Total**                     | **168**     | **113**   | **67%**    |
+| **Total**                     | **168**     | **128**   | **76%**    |
 
 > Update this summary table as tasks are completed.
 
