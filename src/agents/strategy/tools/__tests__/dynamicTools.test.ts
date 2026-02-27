@@ -393,7 +393,6 @@ describe('validateToolCode', () => {
   it('should not apply Python-specific checks to JavaScript code', () => {
     // __import__ is only checked in Python context at the language-specific level,
     // but it is also caught by the general DANGEROUS_CODE_PATTERNS if it matches eval/exec
-    const code = 'const x = "builtins"';
     // 'builtins' is a Python-specific check — should not trigger for JS
     // But the general patterns also match it. Let's use a clearly-JS-only-safe pattern
     const safeJs = 'function main(input) { return input.length; }';

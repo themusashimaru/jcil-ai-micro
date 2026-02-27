@@ -1045,8 +1045,6 @@ describe('parseClaudeToolCall', () => {
 
 describe('getAnthropicClient (lazy singleton via vision tools)', () => {
   it('should reuse the same Anthropic client across multiple calls', async () => {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-
     mockAnalyzeScreenshot.mockResolvedValue({ success: true, analysis: 'ok' });
     mockExtractTableFromScreenshot.mockResolvedValue({ success: true, headers: [], rows: [] });
 

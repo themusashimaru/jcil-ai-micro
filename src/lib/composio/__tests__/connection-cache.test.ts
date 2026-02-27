@@ -1,4 +1,5 @@
 // @ts-nocheck - Test file with extensive mocking
+/** @vitest-environment node */
 /**
  * COMPOSIO CONNECTION CACHE — Tests
  * ==================================
@@ -161,6 +162,14 @@ describe('CACHE_TTL_MS', () => {
   it('should be 5 minutes in milliseconds', () => {
     expect(CACHE_TTL_MS).toBe(5 * 60 * 1000);
   });
+
+  it('should equal exactly 300000', () => {
+    expect(CACHE_TTL_MS).toBe(300000);
+  });
+
+  it('should be a positive number', () => {
+    expect(CACHE_TTL_MS).toBeGreaterThan(0);
+  });
 });
 
 // ===========================================================================
@@ -229,6 +238,40 @@ describe('getCachedConnections', () => {
     const result = await getCachedConnections(TEST_USER_ID);
     expect(result).toBeNull();
   });
+
+  it('should query the composio_connection_cache table', async () => {
+    mockResult = { data: [], error: null };
+    await getCachedConnections(TEST_USER_ID);
+    expect(mockFrom).toHaveBeenCalledWith('composio_connection_cache');
+  });
+
+  it('should pass the user_id to eq filter', async () => {
+    mockResult = { data: [], error: null };
+    await getCachedConnections(TEST_USER_ID);
+    expect(mockBuilder.eq).toHaveBeenCalledWith('user_id', TEST_USER_ID);
+  });
+
+  it('should correctly map metadata from cached row', async () => {
+    const meta = { email: 'user@test.com', name: 'Test User', avatarUrl: 'http://img.png' };
+    mockResult = { data: [makeCachedRow({ metadata: meta })], error: null };
+    const result = await getCachedConnections(TEST_USER_ID);
+    expect(result![0].metadata).toEqual(meta);
+  });
+
+  it('should correctly map status from cached row', async () => {
+    mockResult = { data: [makeCachedRow({ status: 'pending' })], error: null };
+    const result = await getCachedConnections(TEST_USER_ID);
+    expect(result![0].status).toBe('pending');
+  });
+
+  it('should handle a single cached row correctly', async () => {
+    const row = makeCachedRow({ toolkit: 'GITHUB', connection_id: 'conn-gh' });
+    mockResult = { data: [row], error: null };
+    const result = await getCachedConnections(TEST_USER_ID);
+    expect(result).toHaveLength(1);
+    expect(result![0].id).toBe('conn-gh');
+    expect(result![0].toolkit).toBe('GITHUB');
+  });
 });
 
 // ===========================================================================
@@ -283,6 +326,42 @@ describe('isCacheFresh', () => {
     });
     const result = await isCacheFresh(TEST_USER_ID);
     expect(result).toBe(false);
+  });
+
+  it('should query the composio_connection_cache table', async () => {
+    mockResult = { data: [], error: null };
+    await isCacheFresh(TEST_USER_ID);
+    expect(mockFrom).toHaveBeenCalledWith('composio_connection_cache');
+  });
+
+  it('should select last_verified_at column', async () => {
+    mockResult = { data: [], error: null };
+    await isCacheFresh(TEST_USER_ID);
+    expect(mockBuilder.select).toHaveBeenCalledWith('last_verified_at');
+  });
+
+  it('should limit results to 1', async () => {
+    mockResult = { data: [], error: null };
+    await isCacheFresh(TEST_USER_ID);
+    expect(mockBuilder.limit).toHaveBeenCalledWith(1);
+  });
+
+  it('should return falsy when data is null', async () => {
+    mockResult = { data: null, error: null };
+    const result = await isCacheFresh(TEST_USER_ID);
+    expect(result).toBeFalsy();
+  });
+
+  it('should return true when multiple fresh records exist', async () => {
+    mockResult = {
+      data: [
+        { last_verified_at: new Date().toISOString() },
+        { last_verified_at: new Date().toISOString() },
+      ],
+      error: null,
+    };
+    const result = await isCacheFresh(TEST_USER_ID);
+    expect(result).toBe(true);
   });
 });
 
@@ -465,6 +544,169 @@ describe('saveConnectionsToCache', () => {
     const upsertArg = mockBuilder.upsert.mock.calls[0][0];
     expect(upsertArg[0].metadata).toEqual({});
   });
+
+  it('should set connected_at to null when connectedAt is not provided', async () => {
+    const conn = makeConnection({ connectedAt: undefined });
+    mockResult = { data: null, error: null };
+
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg[0].connected_at).toBeNull();
+  });
+
+  it('should include user_id in each upserted record', async () => {
+    const conn = makeConnection();
+    mockResult = { data: null, error: null };
+
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg[0].user_id).toBe(TEST_USER_ID);
+  });
+
+  it('should set last_verified_at to current time on upsert', async () => {
+    const conn = makeConnection();
+    mockResult = { data: null, error: null };
+
+    const before = new Date().toISOString();
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+    const after = new Date().toISOString();
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg[0].last_verified_at >= before).toBe(true);
+    expect(upsertArg[0].last_verified_at <= after).toBe(true);
+  });
+
+  it('should upsert with onConflict user_id,toolkit', async () => {
+    const conn = makeConnection();
+    mockResult = { data: null, error: null };
+
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+
+    const upsertOptions = mockBuilder.upsert.mock.calls[0][1];
+    expect(upsertOptions.onConflict).toBe('user_id,toolkit');
+    expect(upsertOptions.ignoreDuplicates).toBe(false);
+  });
+
+  it('should upsert multiple connections in a single call', async () => {
+    const conns = [
+      makeConnection({ toolkit: 'GMAIL', id: 'c1' }),
+      makeConnection({ toolkit: 'SLACK', id: 'c2' }),
+      makeConnection({ toolkit: 'GITHUB', id: 'c3' }),
+    ];
+    mockResult = { data: null, error: null };
+
+    await saveConnectionsToCache(TEST_USER_ID, conns);
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg).toHaveLength(3);
+    expect(upsertArg[0].toolkit).toBe('GMAIL');
+    expect(upsertArg[1].toolkit).toBe('SLACK');
+    expect(upsertArg[2].toolkit).toBe('GITHUB');
+  });
+
+  it('should handle update error when marking stale connections', async () => {
+    const conn = makeConnection({ toolkit: 'GMAIL' });
+
+    let callCount = 0;
+    const originalSelect = mockBuilder.select;
+    mockBuilder.select = vi.fn((...args) => {
+      callCount++;
+      if (callCount === 1) {
+        mockResult = {
+          data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }],
+          error: null,
+        };
+      }
+      return originalSelect(...args);
+    });
+
+    // Make the update call return an error
+    mockBuilder.update = vi.fn(() => {
+      return new Proxy(mockBuilder, {
+        get(_, prop) {
+          if (prop === 'then') {
+            return (onFulfilled: (v: unknown) => unknown) =>
+              Promise.resolve({ data: null, error: { message: 'update failed' } }).then(
+                onFulfilled
+              );
+          }
+          return (mockBuilder as Record<string | symbol, unknown>)[prop];
+        },
+      });
+    });
+
+    // Should not throw despite update error
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+  });
+
+  it('should handle error when marking all as disconnected', async () => {
+    let callCount = 0;
+    const originalSelect = mockBuilder.select;
+    mockBuilder.select = vi.fn((...args) => {
+      callCount++;
+      if (callCount === 1) {
+        mockResult = {
+          data: [{ toolkit: 'GMAIL' }],
+          error: null,
+        };
+      }
+      return originalSelect(...args);
+    });
+
+    mockBuilder.update = vi.fn(() => {
+      return new Proxy(mockBuilder, {
+        get(_, prop) {
+          if (prop === 'then') {
+            return (onFulfilled: (v: unknown) => unknown) =>
+              Promise.resolve({ data: null, error: { message: 'update all failed' } }).then(
+                onFulfilled
+              );
+          }
+          return (mockBuilder as Record<string | symbol, unknown>)[prop];
+        },
+      });
+    });
+
+    // Should not throw despite update error
+    await saveConnectionsToCache(TEST_USER_ID, []);
+  });
+
+  it('should preserve connection status in upserted record', async () => {
+    const conn = makeConnection({ status: 'pending' });
+    mockResult = { data: null, error: null };
+
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg[0].status).toBe('pending');
+  });
+
+  it('should not detect partial response when previous count is less than 3', async () => {
+    // 2 previous, 1 new => ratio is 0.5 but previousCount < 3 so not partial
+    const conn = makeConnection({ toolkit: 'GMAIL' });
+
+    let callCount = 0;
+    const originalSelect = mockBuilder.select;
+    mockBuilder.select = vi.fn((...args) => {
+      callCount++;
+      if (callCount === 1) {
+        mockResult = {
+          data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }],
+          error: null,
+        };
+      }
+      return originalSelect(...args);
+    });
+
+    mockResult = { data: null, error: null };
+
+    await saveConnectionsToCache(TEST_USER_ID, [conn]);
+
+    // update SHOULD have been called since previousCount (2) < 3
+    expect(mockBuilder.update).toHaveBeenCalled();
+  });
 });
 
 // ===========================================================================
@@ -542,6 +784,43 @@ describe('saveSingleConnectionToCache', () => {
     expect(upsertOptions.onConflict).toBe('user_id,toolkit');
     expect(upsertOptions.ignoreDuplicates).toBe(false);
   });
+
+  it('should preserve provided connectedAt timestamp', async () => {
+    mockResult = { data: null, error: null };
+    const conn = makeConnection({ connectedAt: '2025-01-15T12:00:00.000Z' });
+
+    await saveSingleConnectionToCache(TEST_USER_ID, conn);
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg.connected_at).toBe('2025-01-15T12:00:00.000Z');
+  });
+
+  it('should set metadata to empty object when not provided', async () => {
+    mockResult = { data: null, error: null };
+    const conn = makeConnection({ metadata: undefined });
+
+    await saveSingleConnectionToCache(TEST_USER_ID, conn);
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg.metadata).toEqual({});
+  });
+
+  it('should set last_verified_at to current time', async () => {
+    mockResult = { data: null, error: null };
+    const before = new Date().toISOString();
+    await saveSingleConnectionToCache(TEST_USER_ID, makeConnection());
+    const after = new Date().toISOString();
+
+    const upsertArg = mockBuilder.upsert.mock.calls[0][0];
+    expect(upsertArg.last_verified_at >= before).toBe(true);
+    expect(upsertArg.last_verified_at <= after).toBe(true);
+  });
+
+  it('should return early with warning when SUPABASE_SERVICE_ROLE_KEY is missing', async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    await saveSingleConnectionToCache(TEST_USER_ID, makeConnection());
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
 });
 
 // ===========================================================================
@@ -604,6 +883,36 @@ describe('removeConnectionFromCache', () => {
     await removeConnectionFromCache(TEST_USER_ID, 'GMAIL');
     // Should not throw
   });
+
+  it('should filter by user_id', async () => {
+    mockResult = { data: null, error: null };
+    await removeConnectionFromCache(TEST_USER_ID, 'GMAIL');
+
+    const eqCalls = mockBuilder.eq.mock.calls;
+    const userIdCall = eqCalls.find((call: unknown[]) => call[0] === 'user_id');
+    expect(userIdCall).toBeDefined();
+    expect(userIdCall![1]).toBe(TEST_USER_ID);
+  });
+
+  it('should set last_verified_at to a valid ISO string', async () => {
+    mockResult = { data: null, error: null };
+    const before = new Date().toISOString();
+    await removeConnectionFromCache(TEST_USER_ID, 'GMAIL');
+    const after = new Date().toISOString();
+
+    const updateArg = mockBuilder.update.mock.calls[0][0];
+    expect(updateArg.last_verified_at >= before).toBe(true);
+    expect(updateArg.last_verified_at <= after).toBe(true);
+  });
+
+  it('should handle already-uppercase toolkit names', async () => {
+    mockResult = { data: null, error: null };
+    await removeConnectionFromCache(TEST_USER_ID, 'JIRA');
+
+    const eqCalls = mockBuilder.eq.mock.calls;
+    const toolkitCall = eqCalls.find((call: unknown[]) => call[0] === 'toolkit');
+    expect(toolkitCall![1]).toBe('JIRA');
+  });
 });
 
 // ===========================================================================
@@ -652,6 +961,12 @@ describe('clearUserCache', () => {
 
     await clearUserCache(TEST_USER_ID);
     // Should not throw
+  });
+
+  it('should return early when SUPABASE_SERVICE_ROLE_KEY is missing', async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    await clearUserCache(TEST_USER_ID);
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 });
 
@@ -737,6 +1052,67 @@ describe('withRetry', () => {
       withRetry(fn, { maxRetries: 1, baseDelay: 1, operationName: 'string-err' })
     ).rejects.toBe('string-error');
   });
+
+  it('should succeed on the last possible attempt', async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('fail-1'))
+      .mockRejectedValueOnce(new Error('fail-2'))
+      .mockResolvedValue('last-chance');
+
+    const result = await withRetry(fn, {
+      maxRetries: 3,
+      baseDelay: 1,
+      operationName: 'last-chance-op',
+    });
+
+    expect(result).toBe('last-chance');
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('should propagate the last error when all retries fail', async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('error-1'))
+      .mockRejectedValueOnce(new Error('error-2'))
+      .mockRejectedValueOnce(new Error('error-3'));
+
+    await expect(
+      withRetry(fn, { maxRetries: 3, baseDelay: 1, operationName: 'multi-error' })
+    ).rejects.toThrow('error-3');
+  });
+
+  it('should handle null rejection value', async () => {
+    const fn = vi.fn().mockRejectedValue(null);
+
+    await expect(
+      withRetry(fn, { maxRetries: 1, baseDelay: 1, operationName: 'null-err' })
+    ).rejects.toBeNull();
+  });
+
+  it('should handle undefined rejection value', async () => {
+    const fn = vi.fn().mockRejectedValue(undefined);
+
+    await expect(
+      withRetry(fn, { maxRetries: 1, baseDelay: 1, operationName: 'undef-err' })
+    ).rejects.toBeUndefined();
+  });
+
+  it('should return complex objects from the function', async () => {
+    const complexResult = { items: [1, 2, 3], nested: { key: 'value' } };
+    const fn = vi.fn().mockResolvedValue(complexResult);
+
+    const result = await withRetry(fn, { operationName: 'complex-return' });
+    expect(result).toEqual(complexResult);
+  });
+
+  it('should use default operationName when not specified', async () => {
+    const fn = vi.fn().mockResolvedValue('done');
+
+    // This just verifies it doesn't crash with default operationName
+    const result = await withRetry(fn, { maxRetries: 1 });
+    expect(result).toBe('done');
+  });
 });
 
 // ===========================================================================
@@ -768,5 +1144,42 @@ describe('getSupabaseAdmin (via public functions)', () => {
 
     expect(cached).toBeNull();
     expect(fresh).toBe(false);
+  });
+
+  it('should return null/false when both env vars are missing', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const [cached, fresh] = await Promise.all([
+      getCachedConnections(TEST_USER_ID),
+      isCacheFresh(TEST_USER_ID),
+    ]);
+
+    expect(cached).toBeNull();
+    expect(fresh).toBe(false);
+  });
+
+  it('should handle saveConnectionsToCache when both env vars are missing', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    await saveConnectionsToCache(TEST_USER_ID, [makeConnection()]);
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('should handle removeConnectionFromCache when both env vars are missing', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    await removeConnectionFromCache(TEST_USER_ID, 'GMAIL');
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('should handle clearUserCache when both env vars are missing', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    await clearUserCache(TEST_USER_ID);
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 });
