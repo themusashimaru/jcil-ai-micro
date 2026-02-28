@@ -96,9 +96,10 @@ describe('GET /api/code-lab/plan', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.plan).toEqual({ id: 'plan-1', steps: [] });
-    expect(data.progress).toEqual({ completed: 2, total: 5 });
-    expect(data.needsApproval).toBe(false);
+    expect(data.ok).toBe(true);
+    expect(data.data.plan).toEqual({ id: 'plan-1', steps: [] });
+    expect(data.data.progress).toEqual({ completed: 2, total: 5 });
+    expect(data.data.needsApproval).toBe(false);
   });
 });
 
@@ -149,7 +150,7 @@ describe('POST /api/code-lab/plan', () => {
     const res = await POST(req);
     const data = await res.json();
 
-    expect(data.success).toBe(true);
+    expect(data.data.success).toBe(true);
     expect(mockStartPlan).toHaveBeenCalled();
   });
 
@@ -166,8 +167,8 @@ describe('POST /api/code-lab/plan', () => {
     const res = await POST(req);
     const data = await res.json();
 
-    expect(data.success).toBe(true);
-    expect(data.skippedStep).toBeDefined();
+    expect(data.data.success).toBe(true);
+    expect(data.data.skippedStep).toBeDefined();
   });
 
   it('cancels plan', async () => {
@@ -183,7 +184,7 @@ describe('POST /api/code-lab/plan', () => {
     const res = await POST(req);
     const data = await res.json();
 
-    expect(data.success).toBe(true);
+    expect(data.data.success).toBe(true);
   });
 
   it('returns 400 for unknown action', async () => {

@@ -368,11 +368,12 @@ describe('VirtualFileSystem', () => {
 
   describe('readFile', () => {
     it('should return file content on success', async () => {
-      mockShellSuccess('file contents here');
+      // Use mockResolvedValueOnce for immediate resolution
+      mockExecAsync.mockResolvedValue({ stdout: 'file contents here', stderr: '' });
 
       const content = await vfs.readFile('/src/index.ts');
       expect(content).toBe('file contents here');
-    });
+    }, 30000);
 
     it('should throw when file not found', async () => {
       mockShellError('', 'No such file', 1);

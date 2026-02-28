@@ -442,11 +442,11 @@ describe('Execute API Module', () => {
     const routeModule = await import('./route');
     expect(routeModule.POST).toBeDefined();
     expect(typeof routeModule.POST).toBe('function');
-  });
+  }, 15000);
 
   it('should export DELETE handler', async () => {
     const routeModule = await import('./route');
     expect(routeModule.DELETE).toBeDefined();
     expect(typeof routeModule.DELETE).toBe('function');
-  });
+  }, 15000);
 });

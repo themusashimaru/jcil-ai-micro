@@ -96,7 +96,7 @@ describe('POST /api/code-lab/lsp', () => {
 
     expect(res.status).toBe(429);
     const data = await res.json();
-    expect(data.error).toBe('Rate limit exceeded');
+    expect(data.error).toBe('Too many requests. Please try again later.');
   });
 
   it('rejects requests without operation', async () => {

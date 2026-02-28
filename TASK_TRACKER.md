@@ -244,7 +244,7 @@
 > **Why:** No versioning, inconsistent responses, no OpenAPI docs.
 
 - [x] **3.5.1** Standard API response format already exists in `src/lib/api/utils.ts`: `APIResponse<T>` with `successResponse()`, `errorResponse()`, 15+ error helpers (`errors.unauthorized()`, `.forbidden()`, `.notFound()`, etc.), Zod body/query/param validation, rate limiting. _(2026-02-27)_
-- [ ] **3.5.2** Apply standard format to all API routes — 45/129 routes use standard helpers, 87 still use raw `NextResponse.json()`. Large migration, deferred to dedicated session.
+- [x] **3.5.2** Apply standard format to all API routes — migrated 68 routes to `successResponse()`/`errors.*` helpers. 16 routes legitimately retain `NextResponse.json()` (streaming, webhooks, binary, CORS, dynamic status codes). Net -618 lines. _(2026-02-28)_
 - [ ] **3.5.3** Add API versioning prefix (`/api/v1/`) — requires URL restructuring, deferred
 - [ ] **3.5.4** Generate OpenAPI spec from Zod schemas — deferred
 - [x] **3.5.5** Centralized service role client: `createServiceRoleClient()` (singleton, audit-logged) + `SecureServiceRoleClient` (per-request, scoped ops). Eliminated 2 inline `createClient(url, serviceKey)` calls in code-lab/chat and process-pending routes. 6 files use legacy client, 2 use secure client. _(2026-02-27)_

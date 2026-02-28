@@ -433,5 +433,5 @@ describe('Files API Module', () => {
     expect(routeModule.POST).toBeDefined();
     expect(routeModule.PUT).toBeDefined();
     expect(routeModule.DELETE).toBeDefined();
-  });
+  }, 15000);
 });

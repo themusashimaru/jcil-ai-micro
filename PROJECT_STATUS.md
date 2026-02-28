@@ -1,8 +1,8 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
-**Last Updated:** 2026-02-27
-**Updated By:** Phase 3.3 — Containerization (Dockerfile, docker-compose, standalone output)
-**Branch:** `claude/fix-chat-crashes-L9aK6`
+**Last Updated:** 2026-02-28
+**Updated By:** Phase 3.5.2 — Standard API response format migration (68 routes), doc cleanup (27 files archived)
+**Branch:** `claude/review-app-progress-Nce5N`
 
 > This document reflects verified, measured values only. No aspirational claims.
 > Previous versions of this file contained inaccurate metrics. This is the corrected baseline.
@@ -25,9 +25,11 @@
 | **Production Dependencies**    | 77 (was 115, was 152)                                                             | <50                    | 33% reduction — Phase 3.1.8 |
 | **Tool Files (total)**         | 58 (was 82, deleted 23 stubs + index.ts)                                          | Lazy-loaded            | Lazy loading implemented    |
 | **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx) | All major sections     | Complete — Phase 2.5        |
-| **TypeScript Errors**          | TBD (verify)                                                                      | 0                      | Check each session          |
-| **Build Status**               | TBD (verify)                                                                      | Passing                | Check each session          |
-| **Lint Warnings**              | TBD (verify)                                                                      | 0                      | Check each session          |
+| **API Routes Standardized**    | 113/129 use standard helpers (was 45/129)                                         | 100%                   | 68 routes migrated — 3.5.2  |
+| **Documentation Files**        | 24 active (was 51). 27 stale files archived to docs/archive/                      | Clean                  | Complete — DC.1-DC.4        |
+| **TypeScript Errors**          | 0 (verified 2026-02-28)                                                           | 0                      | Passing                     |
+| **Build Status**               | Passing (verified 2026-02-28)                                                     | Passing                | Passing                     |
+| **Lint Warnings**              | 5 pre-existing no-console warnings only                                           | 0                      | Near-clean                  |
 
 ---
 

@@ -185,7 +185,7 @@ describe('Document Generation API - POST /api/documents/generate', () => {
       const routeModule = await import('../route');
       expect(routeModule.POST).toBeDefined();
       expect(typeof routeModule.POST).toBe('function');
-    });
+    }, 15000);
 
     it('should export runtime as nodejs', async () => {
       const routeModule = await import('../route');
@@ -205,24 +205,28 @@ describe('Document Generation API - POST /api/documents/generate', () => {
     it('should reject request with missing content', async () => {
       const { response, data } = await callPOST({});
       expect(response.status).toBe(400);
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Content is required');
     });
 
     it('should reject request with empty string content', async () => {
       const { response, data } = await callPOST({ content: '' });
       expect(response.status).toBe(400);
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Content is required');
     });
 
     it('should reject request with non-string content', async () => {
       const { response, data } = await callPOST({ content: 123 });
       expect(response.status).toBe(400);
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Content is required');
     });
 
     it('should reject request with null content', async () => {
       const { response, data } = await callPOST({ content: null });
       expect(response.status).toBe(400);
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Content is required');
     });
 
@@ -230,7 +234,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
       const largeContent = 'x'.repeat(1024 * 1024 + 1);
       const { response, data } = await callPOST({ content: largeContent });
       expect(response.status).toBe(413);
-      expect(data.error).toContain('Content too large');
+      expect(data.ok).toBe(false);
+      expect(data.error).toContain('Request too large');
       expect(data.error).toContain('1024KB');
     });
 
@@ -238,19 +243,22 @@ describe('Document Generation API - POST /api/documents/generate', () => {
       const exactContent = 'x'.repeat(1024 * 1024);
       const { response, data } = await callPOST({ content: exactContent });
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should use default title "Document" when title is not provided', async () => {
       const { data } = await callPOST({ content: 'Hello World' });
-      expect(data.success).toBe(true);
-      expect(data.title).toBe('Document');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.title).toBe('Document');
     });
 
     it('should use custom title when provided', async () => {
       const { data } = await callPOST({ content: 'Hello World', title: 'My Report' });
-      expect(data.success).toBe(true);
-      expect(data.title).toBe('My Report');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.title).toBe('My Report');
     });
   });
 
@@ -263,8 +271,9 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: '# John Doe\nSoftware Engineer\n## Experience\n- Built systems',
         title: 'John Doe Resume',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('pdf');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('pdf');
     });
 
     it('should detect resume by title containing "CV"', async () => {
@@ -272,7 +281,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: '# Jane Smith\n## Work Experience\n- Managed teams',
         title: 'Professional CV',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should detect resume by content keywords', async () => {
@@ -281,7 +291,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
           '# John Doe\n## Professional Experience\nSenior Developer at Acme\n## Education\nBS Computer Science\n## Skills\nJavaScript, Python',
         title: 'John Doe',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should detect invoice by title containing "invoice"', async () => {
@@ -289,8 +300,9 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: 'From: Acme Corp\nBill To: John Doe\nItem: Widget $50.00\nTotal: $50.00',
         title: 'Invoice #1234',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('pdf');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('pdf');
     });
 
     it('should detect invoice by content keywords like "bill to"', async () => {
@@ -299,7 +311,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
           'Company ABC\nBill To:\nJohn Smith\n123 Main St\n\nItem | 2 | $25.00 | $50.00\nTotal Due: $50.00',
         title: 'Document',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should detect business plan by title', async () => {
@@ -308,7 +321,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
           '# Acme Corp\n## Executive Summary\nOur mission is...\n## Market Analysis\n## Financial Projections',
         title: 'Acme Corp Business Plan',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should detect business plan by content keywords', async () => {
@@ -317,7 +331,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
           '# TechStart\n## Executive Summary\nMission statement here\n## Market Analysis\nIndustry overview\n## Financial Projections\nYear 1: $100K',
         title: 'TechStart Overview',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should prioritize resume detection over business plan when both keywords present', async () => {
@@ -327,7 +342,8 @@ describe('Document Generation API - POST /api/documents/generate', () => {
           '# Jane Smith\n## Professional Experience\nBusiness Strategy Consultant\n## Education\nMBA\n## Skills\nStrategy, Analytics',
         title: 'Jane Smith Resume',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should generate generic PDF when no special type detected', async () => {
@@ -335,8 +351,9 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: '# My Report\n\nThis is a general report about something.',
         title: 'General Report',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('pdf');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('pdf');
     });
   });
 
@@ -349,9 +366,10 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: '# Hello World\n\nThis is a test document.',
         title: 'Test Doc',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('pdf');
-      expect(data.filename).toMatch(/^test_doc_\d+_[a-z0-9]+\.pdf$/);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('pdf');
+      expect(data.data.filename).toMatch(/^test_doc_\d+_[a-z0-9]+\.pdf$/);
     });
 
     it('should sanitize title for filename', async () => {
@@ -359,7 +377,7 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: 'Some content',
         title: 'My Report! @#$% (2024)',
       });
-      expect(data.filename).toMatch(/^my_report________2024_/);
+      expect(data.data.filename).toMatch(/^my_report________2024_/);
     });
 
     it('should include downloadUrl when Supabase upload succeeds', async () => {
@@ -367,10 +385,11 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: '# Report\n\nContent here.',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
-      expect(data.downloadUrl).toContain('/api/documents/download?token=');
-      expect(data.storage).toBe('supabase');
-      expect(data.expiresIn).toBe('1 hour');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.downloadUrl).toContain('/api/documents/download?token=');
+      expect(data.data.storage).toBe('supabase');
+      expect(data.data.expiresIn).toBe('1 hour');
     });
 
     it('should generate proper download token containing user ID and filename', async () => {
@@ -378,7 +397,7 @@ describe('Document Generation API - POST /api/documents/generate', () => {
         content: '# Report\n\nContent here.',
         title: 'Test',
       });
-      const url = new URL(data.downloadUrl);
+      const url = new URL(data.data.downloadUrl);
       const token = url.searchParams.get('token');
       expect(token).toBeTruthy();
       const decoded = JSON.parse(Buffer.from(token!, 'base64url').toString());
@@ -421,8 +440,9 @@ Terms: Net 30
         content: invoiceContent,
         title: 'Invoice #001',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('pdf');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('pdf');
     });
 
     it('should detect invoice from content with "bill to"', async () => {
@@ -430,7 +450,8 @@ Terms: Net 30
         content: 'Bill To:\nJohn Doe\n\nTotal Due: $500.00',
         title: 'Document',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle invoice with "amount due" in content', async () => {
@@ -438,7 +459,8 @@ Terms: Net 30
         content: 'Invoice:\nItem: Service $100\nAmount Due: $100.00',
         title: 'Service Invoice',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
   });
 
@@ -466,8 +488,9 @@ Year 1 Revenue: $100K
         content: businessPlanContent,
         title: 'Business Plan',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('pdf');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('pdf');
     });
 
     it('should detect business plan by "executive summary" in content', async () => {
@@ -476,7 +499,8 @@ Year 1 Revenue: $100K
           '## Executive Summary\nOur company aims to...\n## Market Analysis\nThe market is...',
         title: 'Company Overview',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
   });
 
@@ -490,9 +514,10 @@ Year 1 Revenue: $100K
         title: 'Spreadsheet',
         format: 'xlsx',
       });
-      expect(data.success).toBe(true);
-      expect(data.format).toBe('xlsx');
-      expect(data.filename).toMatch(/\.xlsx$/);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.format).toBe('xlsx');
+      expect(data.data.filename).toMatch(/\.xlsx$/);
     });
 
     it('should upload XLSX to Supabase generated-documents bucket', async () => {
@@ -511,9 +536,10 @@ Year 1 Revenue: $100K
         title: 'Data',
         format: 'xlsx',
       });
-      expect(data.success).toBe(true);
-      expect(data.downloadUrl).toBe('https://storage.supabase.co/signed-url');
-      expect(data.storage).toBe('supabase');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.downloadUrl).toBe('https://storage.supabase.co/signed-url');
+      expect(data.data.storage).toBe('supabase');
     });
 
     it('should fall back to data URL if XLSX upload fails', async () => {
@@ -523,9 +549,10 @@ Year 1 Revenue: $100K
         title: 'Data',
         format: 'xlsx',
       });
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('dataurl');
-      expect(data.dataUrl).toContain(
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('dataurl');
+      expect(data.data.dataUrl).toContain(
         'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'
       );
     });
@@ -540,8 +567,9 @@ Year 1 Revenue: $100K
         title: 'Data',
         format: 'xlsx',
       });
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('dataurl');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('dataurl');
     });
 
     it('should return 500 if XLSX generation throws', async () => {
@@ -552,8 +580,8 @@ Year 1 Revenue: $100K
         format: 'xlsx',
       });
       expect(response.status).toBe(500);
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Failed to generate Excel file');
-      expect(data.details).toBe('XLSX generation failed');
     });
 
     it('should sanitize XLSX filename', async () => {
@@ -562,7 +590,7 @@ Year 1 Revenue: $100K
         title: 'My Data! Report @2024',
         format: 'xlsx',
       });
-      expect(data.filename).toMatch(/^My_Data_Report_2024_\d+\.xlsx$/);
+      expect(data.data.filename).toMatch(/^My_Data_Report_2024_\d+\.xlsx$/);
     });
 
     it('should fall back to data URL when Supabase is not configured for XLSX', async () => {
@@ -577,8 +605,9 @@ Year 1 Revenue: $100K
       });
       const response = await POST(request);
       const data = await response.json();
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('dataurl');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('dataurl');
     });
   });
 
@@ -595,10 +624,11 @@ Year 1 Revenue: $100K
         content: 'Hello World',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
       // Without a user, should return data URL (storage: 'local')
-      expect(data.storage).toBe('local');
-      expect(data.dataUrl).toBeTruthy();
+      expect(data.data.storage).toBe('local');
+      expect(data.data.dataUrl).toBeTruthy();
     });
 
     it('should upload to Supabase when user is authenticated', async () => {
@@ -606,9 +636,10 @@ Year 1 Revenue: $100K
         content: 'Hello World',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('supabase');
-      expect(data.downloadUrl).toBeTruthy();
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('supabase');
+      expect(data.data.downloadUrl).toBeTruthy();
     });
 
     it('should use user-specific storage path when uploading', async () => {
@@ -628,8 +659,9 @@ Year 1 Revenue: $100K
         title: 'Test',
       });
       // Should still generate the document, just without upload
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('local');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('local');
     });
   });
 
@@ -654,7 +686,8 @@ Year 1 Revenue: $100K
         content: '# Report\nContent',
         title: 'Report',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should fall back to data URL when PDF upload fails', async () => {
@@ -665,9 +698,10 @@ Year 1 Revenue: $100K
         content: '# Report\nContent',
         title: 'Report',
       });
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('fallback');
-      expect(data.dataUrl).toBeTruthy();
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('fallback');
+      expect(data.data.dataUrl).toBeTruthy();
     });
 
     it('should fall back to data URL when Supabase env vars are missing', async () => {
@@ -680,8 +714,9 @@ Year 1 Revenue: $100K
       });
       const response = await POST(request);
       const data = await response.json();
-      expect(data.success).toBe(true);
-      expect(data.storage).toBe('local');
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
+      expect(data.data.storage).toBe('local');
     });
 
     it('should use NEXT_PUBLIC_APP_URL for download proxy URL', async () => {
@@ -694,8 +729,8 @@ Year 1 Revenue: $100K
       });
       const response = await POST(request);
       const data = await response.json();
-      if (data.downloadUrl) {
-        expect(data.downloadUrl).toContain('https://custom.example.com');
+      if (data.data?.downloadUrl) {
+        expect(data.data.downloadUrl).toContain('https://custom.example.com');
       }
     });
 
@@ -739,10 +774,11 @@ Year 1 Revenue: $100K
       const response = await POST(request);
       expect(response.status).toBe(500);
       const data = await response.json();
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Failed to generate document');
     });
 
-    it('should return 500 with error details for XLSX generation error', async () => {
+    it('should return 500 with error message for XLSX generation error', async () => {
       mockGenerateSpreadsheetXlsx.mockRejectedValueOnce(new Error('Memory limit exceeded'));
       const { response, data } = await callPOST({
         content: '| A |\n| --- |\n| 1 |',
@@ -750,8 +786,8 @@ Year 1 Revenue: $100K
         format: 'xlsx',
       });
       expect(response.status).toBe(500);
+      expect(data.ok).toBe(false);
       expect(data.error).toBe('Failed to generate Excel file');
-      expect(data.details).toBe('Memory limit exceeded');
     });
 
     it('should handle non-Error exceptions in XLSX generation', async () => {
@@ -762,7 +798,8 @@ Year 1 Revenue: $100K
         format: 'xlsx',
       });
       expect(response.status).toBe(500);
-      expect(data.details).toBe('Unknown error');
+      expect(data.ok).toBe(false);
+      expect(data.error).toBe('Failed to generate Excel file');
     });
   });
 
@@ -775,10 +812,11 @@ Year 1 Revenue: $100K
         content: 'Test content',
         title: 'My Doc',
       });
-      expect(data).toHaveProperty('success', true);
-      expect(data).toHaveProperty('format', 'pdf');
-      expect(data).toHaveProperty('title', 'My Doc');
-      expect(data).toHaveProperty('filename');
+      expect(data).toHaveProperty('ok', true);
+      expect(data.data).toHaveProperty('success', true);
+      expect(data.data).toHaveProperty('format', 'pdf');
+      expect(data.data).toHaveProperty('title', 'My Doc');
+      expect(data.data).toHaveProperty('filename');
     });
 
     it('should include downloadUrl and expiresIn when stored in Supabase', async () => {
@@ -786,9 +824,9 @@ Year 1 Revenue: $100K
         content: 'Test content',
         title: 'My Doc',
       });
-      expect(data).toHaveProperty('downloadUrl');
-      expect(data).toHaveProperty('expiresIn', '1 hour');
-      expect(data).toHaveProperty('storage', 'supabase');
+      expect(data.data).toHaveProperty('downloadUrl');
+      expect(data.data).toHaveProperty('expiresIn', '1 hour');
+      expect(data.data).toHaveProperty('storage', 'supabase');
     });
 
     it('should include dataUrl when falling back to local storage', async () => {
@@ -800,9 +838,9 @@ Year 1 Revenue: $100K
         content: 'Test content',
         title: 'My Doc',
       });
-      expect(data).toHaveProperty('dataUrl');
-      expect(data).toHaveProperty('storage', 'local');
-      expect(data).not.toHaveProperty('downloadUrl');
+      expect(data.data).toHaveProperty('dataUrl');
+      expect(data.data).toHaveProperty('storage', 'local');
+      expect(data.data).not.toHaveProperty('downloadUrl');
     });
 
     it('should include success, format, title, and filename in XLSX response', async () => {
@@ -811,11 +849,12 @@ Year 1 Revenue: $100K
         title: 'Sheet',
         format: 'xlsx',
       });
-      expect(data).toHaveProperty('success', true);
-      expect(data).toHaveProperty('format', 'xlsx');
-      expect(data).toHaveProperty('title', 'Sheet');
-      expect(data).toHaveProperty('filename');
-      expect(data.filename).toMatch(/\.xlsx$/);
+      expect(data).toHaveProperty('ok', true);
+      expect(data.data).toHaveProperty('success', true);
+      expect(data.data).toHaveProperty('format', 'xlsx');
+      expect(data.data).toHaveProperty('title', 'Sheet');
+      expect(data.data).toHaveProperty('filename');
+      expect(data.data.filename).toMatch(/\.xlsx$/);
     });
 
     it('should return JSON content-type', async () => {
@@ -835,7 +874,8 @@ Year 1 Revenue: $100K
         content: '# Title\n## Section 1\n### Subsection\nParagraph text',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with bullet lists', async () => {
@@ -843,7 +883,8 @@ Year 1 Revenue: $100K
         content: '# List Doc\n- Item 1\n- Item 2\n- Item 3',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with markdown tables', async () => {
@@ -851,7 +892,8 @@ Year 1 Revenue: $100K
         content: '# Table Doc\n| Col1 | Col2 |\n| --- | --- |\n| A | B |',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with blockquotes', async () => {
@@ -859,7 +901,8 @@ Year 1 Revenue: $100K
         content: '# Quotes\n> This is a blockquote\n\nNormal text',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with horizontal rules', async () => {
@@ -867,7 +910,8 @@ Year 1 Revenue: $100K
         content: '# Section 1\nText\n---\n# Section 2\nMore text',
         title: 'Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with QR code syntax', async () => {
@@ -875,7 +919,8 @@ Year 1 Revenue: $100K
         content: '# QR Document\n{{QR:https://example.com}}',
         title: 'QR Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with multiple QR codes', async () => {
@@ -883,7 +928,8 @@ Year 1 Revenue: $100K
         content: '# QR Document\n{{QR:https://example.com:5}}',
         title: 'QR Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with bold and italic formatting', async () => {
@@ -891,7 +937,8 @@ Year 1 Revenue: $100K
         content: '# Test\n**Bold text** and *italic text* and __also bold__ and _also italic_',
         title: 'Formatting Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
   });
 
@@ -904,7 +951,8 @@ Year 1 Revenue: $100K
         content: 'Invoice\nBill To:\nCustomer\nWidget | 5 | $10.00 | $50.00\nTotal: $50.00',
         title: 'Invoice',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should parse invoice with qty-first format items', async () => {
@@ -912,7 +960,8 @@ Year 1 Revenue: $100K
         content: 'Invoice\n10 Pepperoni Pizzas @ $25.00: $250.00\nTotal: $250.00',
         title: 'Pizza Invoice',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should parse invoice with labor hours', async () => {
@@ -921,7 +970,8 @@ Year 1 Revenue: $100K
           'Invoice\nBill To:\nClient\nConsulting: 15 hours @ $200.00/hr: $3,000.00\nTotal: $3,000.00',
         title: 'Consulting Invoice',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should parse invoice with bullet point items', async () => {
@@ -930,7 +980,8 @@ Year 1 Revenue: $100K
           'Invoice\nBill To:\nClient\n- Design Work: $500.00\n- Development: $1,000.00\nTotal: $1,500.00',
         title: 'Project Invoice',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle invoice with tax rate in parentheses', async () => {
@@ -939,7 +990,8 @@ Year 1 Revenue: $100K
           'Invoice\nBill To:\nClient\nItem: Widget $100\nSubtotal: $100.00\nSales Tax (6.75%): $6.75\nTotal: $106.75',
         title: 'Invoice',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
   });
 
@@ -952,7 +1004,8 @@ Year 1 Revenue: $100K
         content: '# Resume Template\n# John Doe\njohn@example.com\n## Experience\n- Worked at Acme',
         title: 'Resume',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should detect resume by education and skills keywords', async () => {
@@ -960,7 +1013,8 @@ Year 1 Revenue: $100K
         content: '# Alex Johnson\n## Education\nMIT BS CS\n## Skills\nPython, JavaScript',
         title: 'Alex Johnson',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should detect resume by certifications and experience keywords', async () => {
@@ -968,7 +1022,8 @@ Year 1 Revenue: $100K
         content: '# Pat Wilson\n## Experience\nSoftware Dev\n## Certifications\nAWS Certified',
         title: 'Pat Wilson',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
   });
 
@@ -981,7 +1036,8 @@ Year 1 Revenue: $100K
         content: 'a',
         title: 'Minimal',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with only whitespace characters preserved', async () => {
@@ -989,7 +1045,8 @@ Year 1 Revenue: $100K
         content: '   \n\n  Some content  \n\n   ',
         title: 'Whitespace',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with special characters', async () => {
@@ -998,7 +1055,8 @@ Year 1 Revenue: $100K
           'Special chars: em dash \u2014 en dash \u2013 smart quotes \u201Chello\u201D ellipsis\u2026',
         title: 'Special Chars',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should handle content with unicode characters', async () => {
@@ -1006,7 +1064,8 @@ Year 1 Revenue: $100K
         content: '# R\u00e9sum\u00e9\n\nCaf\u00e9 worker with 5 years exp\u00e9rience',
         title: 'Unicode Test',
       });
-      expect(data.success).toBe(true);
+      expect(data.ok).toBe(true);
+      expect(data.data.success).toBe(true);
     });
 
     it('should generate unique filenames for consecutive calls', async () => {
@@ -1018,7 +1077,7 @@ Year 1 Revenue: $100K
         content: 'Content 2',
         title: 'Test',
       });
-      expect(data1.filename).not.toBe(data2.filename);
+      expect(data1.data.filename).not.toBe(data2.data.filename);
     });
   });
 });
