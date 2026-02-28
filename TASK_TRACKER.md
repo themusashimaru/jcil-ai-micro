@@ -318,10 +318,10 @@
 
 > **Why:** 50+ stale markdown files with contradictory claims. Clean house.
 
-- [ ] **DC.1** Archive stale root-level `.md` files to `docs/archive/` (keep README, CONTRIBUTING, CLAUDE.md, PROJECT_STATUS.md, TASK_TRACKER.md, SESSION_HANDOFF.md, APP_ASSESSMENT_AND_RECOMMENDATIONS.md, CTO_ASSESSMENT_REPORT.md)
-- [ ] **DC.2** Archive stale `docs/*.md` files that contain outdated claims
-- [ ] **DC.3** Ensure all remaining docs are dated and accurate
-- [ ] **DC.4** Remove duplicate audit reports (keep only the Feb 22 versions)
+- [x] **DC.1** Archive stale root-level `.md` files to `docs/archive/` (keep README, CONTRIBUTING, CLAUDE.md, PROJECT*STATUS.md, TASK_TRACKER.md, SESSION_HANDOFF.md, APP_ASSESSMENT_AND_RECOMMENDATIONS.md, CTO_ASSESSMENT_REPORT.md) *(2026-02-28)\_
+- [x] **DC.2** Archive stale `docs/*.md` files that contain outdated claims — 27 files archived total _(2026-02-28)_
+- [x] **DC.3** Ensure all remaining docs are dated and accurate — 11 root + 13 docs/ files retained, all current _(2026-02-28)_
+- [x] **DC.4** Remove duplicate audit reports (keep only the Feb 22 versions) — COMPREHENSIVE*AUDIT_REPORT duplicate archived with \_docs suffix *(2026-02-28)\_
 
 ---
 
