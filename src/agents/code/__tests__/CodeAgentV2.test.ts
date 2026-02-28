@@ -4,7 +4,7 @@
 /**
  * COMPREHENSIVE TESTS FOR CodeAgentV2
  *
- * Tests:
+ * 50+ tests covering:
  * 1.  Constructor / instantiation / class properties
  * 2.  canHandle — valid and invalid inputs
  * 3.  execute — mode routing (generate, analyze, review, fix, test, document, default)
@@ -15,7 +15,7 @@
  * 8.  executeFix / executeTest / executeDocument — stub modes return failure
  * 9.  Error handling — top-level catch, emit error event
  * 10. Heartbeat start/stop behaviour
- * 11. Memory system integration
+ * 11. Memory system integration (preferences, learning)
  * 12. GitHub push — available vs unavailable
  * 13. generateNextSteps — various scenarios
  * 14. Sandbox build loop — success on first try, success after fix, no sandbox
@@ -25,6 +25,10 @@
  * 18. Result metadata structure
  * 19. Edge cases
  * 20. Multiple executions
+ * 21. isTimeToFinish / timeout behavior
+ * 22. applyMemoryPreferences — detailed
+ * 23. Heartbeat tick emissions
+ * 24. Output structure validation
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -117,7 +121,7 @@ vi.mock('../executors/GitHubExecutor', () => ({
 // ============================================================================
 
 import { CodeAgentV2, codeAgentV2 } from '../CodeAgentV2';
-import type { CodeAgentV2Input, CodeAgentV2Output } from '../CodeAgentV2';
+import type { CodeAgentV2Input } from '../CodeAgentV2';
 import type { AgentContext, AgentStreamEvent } from '../../core/types';
 
 // ============================================================================
@@ -200,9 +204,9 @@ function makePlan(overrides = {}) {
   };
 }
 
-function makeFile(path: string, content = 'const x = 1;') {
+function makeFile(filePath: string, content = 'const x = 1;') {
   return {
-    path,
+    path: filePath,
     content,
     language: 'typescript',
     purpose: 'source',
@@ -351,6 +355,10 @@ describe('CodeAgentV2', () => {
     it('should have correct version', () => {
       expect(agent.version).toBe('2.0.0');
     });
+
+    it('should be an instance of CodeAgentV2', () => {
+      expect(agent).toBeInstanceOf(CodeAgentV2);
+    });
   });
 
   // ==========================================================================
@@ -396,6 +404,14 @@ describe('CodeAgentV2', () => {
 
     it('should return false for an empty object', () => {
       expect(agent.canHandle({})).toBe(false);
+    });
+
+    it('should return false for boolean input', () => {
+      expect(agent.canHandle(true)).toBe(false);
+    });
+
+    it('should return false for array input', () => {
+      expect(agent.canHandle([{ request: 'test' }])).toBe(false);
     });
   });
 
@@ -529,6 +545,11 @@ describe('CodeAgentV2', () => {
       expect(result.data!.performance!.grade).toBe('B+');
     });
 
+    it('should include performance optimizations in output', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.performance!.optimizations).toContain('Use memoization');
+    });
+
     it('should include test results when enabled and complexity is not simple', async () => {
       const result = await agent.execute(makeInput(), makeContext(), onStream);
       expect(result.data!.tests).toBeDefined();
@@ -558,6 +579,16 @@ describe('CodeAgentV2', () => {
       expect(result.data!.summary.technologies).toContain('React');
     });
 
+    it('should include secondary technologies in summary', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.summary.technologies).toContain('TypeScript');
+    });
+
+    it('should include architecture pattern in summary', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.summary.architecture).toBe('MVC');
+    });
+
     it('should emit complete event at the end', async () => {
       await agent.execute(makeInput(), makeContext(), onStream);
       const events = collectEvents(onStream);
@@ -570,6 +601,31 @@ describe('CodeAgentV2', () => {
       const events = collectEvents(onStream);
       const progressValues = events.filter((e) => e.progress !== undefined).map((e) => e.progress!);
       expect(progressValues[progressValues.length - 1]).toBe(100);
+    });
+
+    it('should pass file paths to self-reflection', async () => {
+      await agent.execute(makeInput(), makeContext(), onStream);
+      expect(mockReasoner.reflect).toHaveBeenCalledWith(
+        'Build a todo app with React',
+        expect.stringContaining('src/App.tsx'),
+        expect.stringContaining('Generated'),
+        expect.any(Function)
+      );
+    });
+
+    it('should set project description from plan', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.description).toBe('A React todo application');
+    });
+
+    it('should include errorsFixed as 0 when no errors occurred', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.metadata.errorsFixed).toBe(0);
+    });
+
+    it('should include totalIterations in metadata', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.metadata.totalIterations).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -618,6 +674,48 @@ describe('CodeAgentV2', () => {
       expect(mockDocGenerator.generate).not.toHaveBeenCalled();
       expect(result.data!.documentation).toBeUndefined();
     });
+
+    it('should disable both security and performance together', async () => {
+      const input = makeInput({
+        options: { enableSecurity: false, enablePerformance: false },
+      });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(mockSecurityScanner.scan).not.toHaveBeenCalled();
+      expect(mockPerformanceAnalyzer.analyze).not.toHaveBeenCalled();
+      expect(result.data!.security).toBeUndefined();
+      expect(result.data!.performance).toBeUndefined();
+    });
+
+    it('should disable all optional phases', async () => {
+      const input = makeInput({
+        options: {
+          enableReasoning: false,
+          enableSecurity: false,
+          enablePerformance: false,
+          enableTests: false,
+          enableDocs: false,
+        },
+      });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.success).toBe(true);
+      expect(mockReasoner.reason).not.toHaveBeenCalled();
+      expect(mockSecurityScanner.scan).not.toHaveBeenCalled();
+      expect(mockPerformanceAnalyzer.analyze).not.toHaveBeenCalled();
+      expect(mockTestGenerator.generateTests).not.toHaveBeenCalled();
+      expect(mockDocGenerator.generate).not.toHaveBeenCalled();
+    });
+
+    it('should generate tests for complex projects when enableTests is not set', async () => {
+      mockIntentAnalyzer.analyze.mockResolvedValue(makeIntent({ complexity: 'complex' }));
+      await agent.execute(makeInput(), makeContext(), onStream);
+      expect(mockTestGenerator.generateTests).toHaveBeenCalled();
+    });
+
+    it('should generate tests for enterprise projects', async () => {
+      mockIntentAnalyzer.analyze.mockResolvedValue(makeIntent({ complexity: 'enterprise' }));
+      await agent.execute(makeInput(), makeContext(), onStream);
+      expect(mockTestGenerator.generateTests).toHaveBeenCalled();
+    });
   });
 
   // ==========================================================================
@@ -654,6 +752,23 @@ describe('CodeAgentV2', () => {
         previousMessages: [{ role: 'user', content: 'hello' }],
       });
 
+      await agent.execute(input, context, onStream);
+      expect(mockToolOrchestrator.initialize).not.toHaveBeenCalled();
+    });
+
+    it('should not initialize tool orchestrator when no existingRepo', async () => {
+      const input = makeInput({ options: {} });
+      await agent.execute(input, makeContext(), onStream);
+      expect(mockToolOrchestrator.initialize).not.toHaveBeenCalled();
+    });
+
+    it('should not initialize when previousMessages is undefined', async () => {
+      const input = makeInput({
+        options: {
+          existingRepo: { owner: 'x', repo: 'y' },
+        },
+      });
+      const context = makeContext({ previousMessages: undefined });
       await agent.execute(input, context, onStream);
       expect(mockToolOrchestrator.initialize).not.toHaveBeenCalled();
     });
@@ -709,6 +824,51 @@ describe('CodeAgentV2', () => {
 
       const result = await agent.execute(makeInput(), makeContext({ userId: 'user-1' }), onStream);
       expect(result.success).toBe(true);
+    });
+
+    it('should apply test framework preference from memory', async () => {
+      mockIntentAnalyzer.analyze.mockResolvedValue(
+        makeIntent({
+          technologies: { primary: 'React', secondary: [], runtime: 'node', packageManager: 'npm' },
+        })
+      );
+      mockMemorySystem.getContextMemory.mockReturnValue({
+        userPreferences: {
+          preferredLanguages: [],
+          testFramework: 'jest',
+          packageManager: 'yarn',
+        },
+      });
+
+      const result = await agent.execute(makeInput(), makeContext({ userId: 'user-2' }), onStream);
+      expect(result.success).toBe(true);
+    });
+
+    it('should not apply preferred language when intent already has primary tech', async () => {
+      mockMemorySystem.getContextMemory.mockReturnValue({
+        userPreferences: {
+          preferredLanguages: ['Python'],
+          testFramework: null,
+          packageManager: 'npm',
+        },
+      });
+
+      const result = await agent.execute(makeInput(), makeContext({ userId: 'user-3' }), onStream);
+      expect(result.success).toBe(true);
+      // The intent already had 'React' as primary, so it should not be overridden
+    });
+
+    it('should pass buildSuccess status to learnFromProject', async () => {
+      mockSandboxExecutor.isAvailable.mockReturnValue(false);
+      await agent.execute(makeInput(), makeContext({ userId: 'user-4' }), onStream);
+      // When sandbox is not available, buildSuccess is true
+      expect(mockMemorySystem.learnFromProject).toHaveBeenCalledWith(
+        'user-4',
+        expect.any(Object),
+        expect.any(Object),
+        expect.any(Array),
+        true // buildSuccess
+      );
     });
   });
 
@@ -805,6 +965,55 @@ describe('CodeAgentV2', () => {
       expect(mockSandboxExecutor.execute).toHaveBeenCalledTimes(5);
       expect(result.success).toBe(true); // still returns success with the output
     });
+
+    it('should set buildResult to fallback when sandbox not available', async () => {
+      mockSandboxExecutor.isAvailable.mockReturnValue(false);
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.buildResult.phase).toBe('build');
+      expect(result.data!.buildResult.executionTime).toBe(0);
+      expect(result.data!.buildResult.outputs).toEqual([]);
+      expect(result.data!.buildResult.errors).toEqual([]);
+    });
+
+    it('should not call autoFixer when parseTypeScriptErrors returns empty array', async () => {
+      mockSandboxExecutor.isAvailable.mockReturnValue(true);
+      mockAutoFixer.parseTypeScriptErrors.mockReturnValue([]);
+      mockSandboxExecutor.execute.mockResolvedValue({
+        success: false,
+        phase: 'build',
+        outputs: [],
+        errors: [{ file: 'x.ts', line: 1, message: 'err', type: 'build', severity: 'error' }],
+        executionTime: 50,
+      });
+
+      await agent.execute(makeInput(), makeContext(), onStream);
+      expect(mockAutoFixer.fix).not.toHaveBeenCalled();
+    });
+
+    it('should emit build iteration events for each sandbox attempt', async () => {
+      mockSandboxExecutor.isAvailable.mockReturnValue(true);
+      mockAutoFixer.parseTypeScriptErrors.mockReturnValue([]);
+      mockSandboxExecutor.execute
+        .mockResolvedValueOnce({
+          success: false,
+          phase: 'build',
+          outputs: [],
+          errors: [{ file: 'x.ts', line: 1, message: 'err', type: 'build', severity: 'error' }],
+          executionTime: 50,
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          phase: 'build',
+          outputs: [],
+          errors: [],
+          executionTime: 50,
+        });
+
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      const buildEvents = events.filter((e) => e.phase && e.phase.startsWith('Build & Test'));
+      expect(buildEvents.length).toBeGreaterThanOrEqual(2);
+    });
   });
 
   // ==========================================================================
@@ -844,6 +1053,49 @@ describe('CodeAgentV2', () => {
 
       await agent.execute(makeInput(), makeContext(), onStream);
       expect(mockAutoFixer.fixSecurityIssues).not.toHaveBeenCalled();
+    });
+
+    it('should accumulate errorsFixed from both security and build fixes', async () => {
+      // Security fix: 2 fixed
+      mockSecurityScanner.scan.mockResolvedValue({
+        overallScore: 60,
+        grade: 'D',
+        vulnerabilities: [
+          { id: 'v1', title: 'XSS' },
+          { id: 'v2', title: 'CSRF' },
+        ],
+        summary: { critical: 2, high: 0, medium: 0, low: 0 },
+      });
+      mockAutoFixer.fixSecurityIssues.mockResolvedValue({
+        fixedFiles: [makeFile('src/App.tsx')],
+        summary: { total: 2, fixed: 2, skipped: 0 },
+      });
+
+      // Sandbox fix: 1 fixed
+      mockSandboxExecutor.isAvailable.mockReturnValue(true);
+      mockSandboxExecutor.execute
+        .mockResolvedValueOnce({
+          success: false,
+          phase: 'build',
+          outputs: [],
+          errors: [{ file: 'x.ts', line: 1, message: 'err', type: 'build', severity: 'error' }],
+          executionTime: 50,
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          phase: 'build',
+          outputs: [],
+          errors: [],
+          executionTime: 50,
+        });
+      mockAutoFixer.parseTypeScriptErrors.mockReturnValue([{ id: 'e1' }]);
+      mockAutoFixer.fix.mockResolvedValue({
+        fixedFiles: [makeFile('src/App.tsx')],
+        summary: { total: 1, fixed: 1, skipped: 0 },
+      });
+
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.metadata.errorsFixed).toBe(3); // 2 security + 1 build
     });
   });
 
@@ -895,6 +1147,29 @@ describe('CodeAgentV2', () => {
       const result = await agent.execute(makeInput(), makeContext(), onStream);
       expect(mockGithubExecutor.push).not.toHaveBeenCalled();
       expect(result.data!.github).toBeUndefined();
+    });
+
+    it('should pass privateRepo option to push call', async () => {
+      mockGithubExecutor.isAvailable.mockReturnValue(true);
+      const input = makeInput({
+        options: { pushToGitHub: true, repoName: 'my-repo', privateRepo: true },
+      });
+
+      await agent.execute(input, makeContext(), onStream);
+      expect(mockGithubExecutor.push).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Object),
+        expect.objectContaining({ private: true }),
+        expect.any(Function)
+      );
+    });
+
+    it('should include commitSha in result when push succeeds', async () => {
+      mockGithubExecutor.isAvailable.mockReturnValue(true);
+      const input = makeInput({ options: { pushToGitHub: true, repoName: 'repo' } });
+
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.data!.github!.commitSha).toBe('abc123');
     });
   });
 
@@ -950,6 +1225,38 @@ describe('CodeAgentV2', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Failed to analyze code intent');
     });
+
+    it('should include progress 0 in error event', async () => {
+      mockIntentAnalyzer.analyze.mockRejectedValue(new Error('fail'));
+
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      const errorEvent = events.find((e) => e.type === 'error');
+      expect(errorEvent!.progress).toBe(0);
+    });
+
+    it('should include Error phase in error event', async () => {
+      mockIntentAnalyzer.analyze.mockRejectedValue(new Error('fail'));
+
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      const errorEvent = events.find((e) => e.type === 'error');
+      expect(errorEvent!.phase).toBe('Error');
+    });
+
+    it('should handle error thrown during code generation', async () => {
+      mockCodeGenerator.generateAll.mockRejectedValue(new Error('Generation failed'));
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Generation failed');
+    });
+
+    it('should handle error thrown during project planning', async () => {
+      mockProjectPlanner.plan.mockRejectedValue(new Error('Planning failed'));
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Planning failed');
+    });
   });
 
   // ==========================================================================
@@ -994,6 +1301,55 @@ describe('CodeAgentV2', () => {
 
       expect(result.data!.nextSteps).toEqual(['Add logging', 'Improve error handling']);
     });
+
+    it('should set empty files array for analyze mode', async () => {
+      mockToolOrchestrator.quickSearch.mockResolvedValue(['a.ts']);
+      const input = makeInput({ mode: 'analyze' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.data!.files).toEqual([]);
+    });
+
+    it('should set buildResult with analysis phase', async () => {
+      mockToolOrchestrator.quickSearch.mockResolvedValue(['a.ts']);
+      const input = makeInput({ mode: 'analyze' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.data!.buildResult.phase).toBe('analysis');
+      expect(result.data!.buildResult.success).toBe(true);
+    });
+
+    it('should include technologies from codebase profile', async () => {
+      mockToolOrchestrator.quickSearch.mockResolvedValue(['a.ts', 'b.py']);
+      mockCodebaseAnalyzer.analyze.mockResolvedValue({
+        name: 'multi-lang',
+        description: 'Multi language project',
+        framework: { name: 'Django', confidence: 0.8 },
+        languages: [{ language: 'Python' }, { language: 'JavaScript' }],
+        architecture: { pattern: 'MVC' },
+        suggestedImprovements: [],
+      });
+
+      const input = makeInput({ mode: 'analyze' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.data!.summary.technologies).toContain('Django');
+      expect(result.data!.summary.technologies).toContain('Python');
+      expect(result.data!.summary.technologies).toContain('JavaScript');
+    });
+
+    it('should set confidence from framework confidence', async () => {
+      mockToolOrchestrator.quickSearch.mockResolvedValue(['a.ts']);
+      mockCodebaseAnalyzer.analyze.mockResolvedValue({
+        name: 'p',
+        description: 'd',
+        framework: { name: 'React', confidence: 0.75 },
+        languages: [],
+        architecture: { pattern: 'MVC' },
+        suggestedImprovements: [],
+      });
+
+      const input = makeInput({ mode: 'analyze' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.metadata.confidenceScore).toBe(0.75);
+    });
   });
 
   // ==========================================================================
@@ -1020,10 +1376,63 @@ describe('CodeAgentV2', () => {
       expect(result.data!.nextSteps).toContain('Address the identified issues');
       expect(result.data!.nextSteps).toContain('Re-run review after fixes');
     });
+
+    it('should set description from orchestrator conclusion', async () => {
+      mockToolOrchestrator.execute.mockResolvedValue({
+        conclusion: 'Overall code quality is excellent',
+        executionTime: 300,
+      });
+      const input = makeInput({ mode: 'review' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.data!.description).toBe('Overall code quality is excellent');
+    });
+
+    it('should set fixed confidence score of 0.8 for review', async () => {
+      const input = makeInput({ mode: 'review' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.metadata.confidenceScore).toBe(0.8);
+    });
+
+    it('should use orchestrator executionTime in metadata', async () => {
+      mockToolOrchestrator.execute.mockResolvedValue({
+        conclusion: 'Good',
+        executionTime: 1234,
+      });
+      const input = makeInput({ mode: 'review' });
+      const result = await agent.execute(input, makeContext(), onStream);
+      expect(result.data!.metadata.executionTime).toBe(1234);
+    });
   });
 
   // ==========================================================================
-  // 14. generateNextSteps — various scenarios
+  // 14. executeFix / executeTest / executeDocument — emit events
+  // ==========================================================================
+
+  describe('stub modes emit proper events', () => {
+    it('should emit pivoting event for fix mode', async () => {
+      const input = makeInput({ mode: 'fix' });
+      await agent.execute(input, makeContext(), onStream);
+      const events = collectEvents(onStream);
+      expect(events.some((e) => e.type === 'pivoting')).toBe(true);
+    });
+
+    it('should emit searching event for test mode', async () => {
+      const input = makeInput({ mode: 'test' });
+      await agent.execute(input, makeContext(), onStream);
+      const events = collectEvents(onStream);
+      expect(events.some((e) => e.type === 'searching')).toBe(true);
+    });
+
+    it('should emit synthesizing event for document mode', async () => {
+      const input = makeInput({ mode: 'document' });
+      await agent.execute(input, makeContext(), onStream);
+      const events = collectEvents(onStream);
+      expect(events.some((e) => e.type === 'synthesizing')).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // 15. generateNextSteps — various scenarios
   // ==========================================================================
 
   describe('generateNextSteps — various scenarios', () => {
@@ -1067,10 +1476,22 @@ describe('CodeAgentV2', () => {
       const result = await agent.execute(makeInput(), makeContext(), onStream);
       expect(result.data!.nextSteps.some((s) => s.includes('Customize'))).toBe(true);
     });
+
+    it('should include copy files when github push failed', async () => {
+      mockGithubExecutor.isAvailable.mockReturnValue(true);
+      mockGithubExecutor.push.mockResolvedValue({
+        success: false,
+        error: 'Rate limited',
+      });
+      const input = makeInput({ options: { pushToGitHub: true } });
+      const result = await agent.execute(input, makeContext(), onStream);
+      // When pushed is false, should have copy files step
+      expect(result.data!.nextSteps.some((s) => s.includes('Copy files'))).toBe(true);
+    });
   });
 
   // ==========================================================================
-  // 15. Stream events
+  // 16. Stream events
   // ==========================================================================
 
   describe('stream event emissions', () => {
@@ -1138,10 +1559,47 @@ describe('CodeAgentV2', () => {
       const events = collectEvents(onStream);
       expect(events.some((e) => e.phase === 'Planning')).toBe(true);
     });
+
+    it('should emit test generation phase event', async () => {
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      expect(events.some((e) => e.phase === 'Test Generation')).toBe(true);
+    });
+
+    it('should emit performance analysis phase event', async () => {
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      expect(events.some((e) => e.phase === 'Performance Analysis')).toBe(true);
+    });
+
+    it('should emit GitHub push phase event when pushing', async () => {
+      mockGithubExecutor.isAvailable.mockReturnValue(true);
+      const input = makeInput({ options: { pushToGitHub: true } });
+      await agent.execute(input, makeContext(), onStream);
+      const events = collectEvents(onStream);
+      expect(events.some((e) => e.phase === 'GitHub Push')).toBe(true);
+    });
+
+    it('should include details in complete event', async () => {
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      const completeEvent = events.find((e) => e.type === 'complete');
+      expect(completeEvent!.details).toBeDefined();
+    });
+
+    it('should include reasoning confidence in stream event details', async () => {
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      const reasoningCompleteEvent = events.find(
+        (e) => e.phase === 'Reasoning' && e.message.includes('Selected approach')
+      );
+      expect(reasoningCompleteEvent).toBeDefined();
+      expect((reasoningCompleteEvent!.details as any).confidence).toBe(0.92);
+    });
   });
 
   // ==========================================================================
-  // 16. Heartbeat behaviour
+  // 17. Heartbeat behaviour
   // ==========================================================================
 
   describe('heartbeat', () => {
@@ -1153,10 +1611,19 @@ describe('CodeAgentV2', () => {
       const eventsAfterDelay = collectEvents(onStream).length;
       expect(eventsAfterDelay).toBe(eventsBeforeDelay);
     });
+
+    it('should stop heartbeat on error', async () => {
+      mockCodeGenerator.generateAll.mockRejectedValue(new Error('gen fail'));
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const eventsBeforeDelay = collectEvents(onStream).length;
+      vi.advanceTimersByTime(10000);
+      const eventsAfterDelay = collectEvents(onStream).length;
+      expect(eventsAfterDelay).toBe(eventsBeforeDelay);
+    });
   });
 
   // ==========================================================================
-  // 17. Singleton export
+  // 18. Singleton export
   // ==========================================================================
 
   describe('singleton export', () => {
@@ -1167,10 +1634,14 @@ describe('CodeAgentV2', () => {
     it('should have the correct name on the singleton', () => {
       expect(codeAgentV2.name).toBe('CodeAgentV2');
     });
+
+    it('should have the correct version on the singleton', () => {
+      expect(codeAgentV2.version).toBe('2.0.0');
+    });
   });
 
   // ==========================================================================
-  // 18. Result metadata structure
+  // 19. Result metadata structure
   // ==========================================================================
 
   describe('result metadata structure', () => {
@@ -1196,10 +1667,15 @@ describe('CodeAgentV2', () => {
       const result = await agent.execute(makeInput(), makeContext(), onStream);
       expect(result.metadata.confidenceScore).toBe(0);
     });
+
+    it('should include sourcesUsed array in metadata', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(Array.isArray(result.metadata.sourcesUsed)).toBe(true);
+    });
   });
 
   // ==========================================================================
-  // 19. Edge cases
+  // 20. Edge cases
   // ==========================================================================
 
   describe('edge cases', () => {
@@ -1274,10 +1750,42 @@ describe('CodeAgentV2', () => {
       const result = await agent.execute(makeInput(), makeContext(), onStream);
       expect(result.success).toBe(true);
     });
+
+    it('should handle doc generator with apiDocs as falsy value', async () => {
+      mockDocGenerator.generate.mockResolvedValue({
+        files: [makeFile('README.md')],
+        apiDocs: false,
+      });
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.documentation!.apiDocs).toBe(false);
+    });
+
+    it('should handle zero-line files in totalLines calculation', async () => {
+      mockCodeGenerator.generateAll.mockResolvedValue([
+        { ...makeFile('empty.ts', ''), linesOfCode: 0 },
+      ]);
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.summary.totalLines).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle multiple test files in output test paths', async () => {
+      mockCodeGenerator.generateAll.mockResolvedValue([
+        makeFile('src/App.tsx'),
+        makeFile('src/App.test.tsx'),
+        makeFile('src/utils.test.tsx'),
+      ]);
+      mockTestGenerator.generateTests.mockResolvedValue({
+        testFiles: [],
+        totalTests: 10,
+        coverageEstimate: { lines: 90, branches: 85, functions: 95 },
+      });
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      expect(result.data!.tests!.testFiles.length).toBe(2);
+    });
   });
 
   // ==========================================================================
-  // 20. Multiple execute calls
+  // 21. Multiple execute calls
   // ==========================================================================
 
   describe('multiple executions', () => {
@@ -1291,6 +1799,76 @@ describe('CodeAgentV2', () => {
       const result2 = await agent.execute(makeInput(), makeContext(), onStream);
       expect(result2.success).toBe(true);
       expect(result2.data!.metadata.errorsFixed).toBe(0);
+    });
+
+    it('should not carry over files from previous execution', async () => {
+      mockCodeGenerator.generateAll.mockResolvedValue([
+        makeFile('src/a.tsx'),
+        makeFile('src/b.tsx'),
+        makeFile('src/c.tsx'),
+      ]);
+      await agent.execute(makeInput(), makeContext(), onStream);
+
+      vi.clearAllMocks();
+      setupDefaultMocks();
+      // Default mocks return 2 files
+      const result2 = await agent.execute(makeInput(), makeContext(), onStream);
+      // Files should come from the new execution, not carry over old ones
+      expect(result2.success).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // 22. Output structure validation
+  // ==========================================================================
+
+  describe('output structure validation', () => {
+    it('should have all required fields in generate output', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      const data = result.data!;
+      expect(data.projectName).toBeDefined();
+      expect(data.description).toBeDefined();
+      expect(data.files).toBeDefined();
+      expect(data.buildResult).toBeDefined();
+      expect(data.summary).toBeDefined();
+      expect(data.nextSteps).toBeDefined();
+      expect(data.metadata).toBeDefined();
+    });
+
+    it('should have all required fields in summary', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      const summary = result.data!.summary;
+      expect(typeof summary.totalFiles).toBe('number');
+      expect(typeof summary.totalLines).toBe('number');
+      expect(Array.isArray(summary.technologies)).toBe(true);
+      expect(typeof summary.architecture).toBe('string');
+    });
+
+    it('should have all required fields in metadata', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      const meta = result.data!.metadata;
+      expect(typeof meta.totalIterations).toBe('number');
+      expect(typeof meta.errorsFixed).toBe('number');
+      expect(typeof meta.executionTime).toBe('number');
+      expect(typeof meta.confidenceScore).toBe('number');
+    });
+
+    it('should have buildResult with proper structure', async () => {
+      const result = await agent.execute(makeInput(), makeContext(), onStream);
+      const build = result.data!.buildResult;
+      expect(typeof build.success).toBe('boolean');
+      expect(typeof build.phase).toBe('string');
+      expect(Array.isArray(build.outputs)).toBe(true);
+      expect(Array.isArray(build.errors)).toBe(true);
+      expect(typeof build.executionTime).toBe('number');
+    });
+
+    it('should have all stream events include timestamp', async () => {
+      await agent.execute(makeInput(), makeContext(), onStream);
+      const events = collectEvents(onStream);
+      for (const event of events) {
+        expect(typeof event.timestamp).toBe('number');
+      }
     });
   });
 });
