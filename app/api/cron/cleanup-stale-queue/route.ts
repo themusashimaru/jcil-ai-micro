@@ -8,9 +8,9 @@
  * SECURITY: Requires CRON_SECRET in Authorization header
  */
 
-import { NextResponse } from 'next/server';
 import { cleanupStaleRequests, getQueueStatus } from '@/lib/queue';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CronCleanupQueue');
 
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   // Security check
   if (!verifyCronSecret(request)) {
     log.warn('Unauthorized cron access attempt');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   try {
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
       durationMs: duration,
     });
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       cleaned: cleanedCount,
       queue: {
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     log.error('Queue cleanup cron error', error as Error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }
 

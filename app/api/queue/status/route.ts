@@ -5,7 +5,7 @@
  * Used by health checks and admin dashboards.
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { getQueueStatus } from '@/lib/queue';
 import { getChatQueueStats, isBullMQAvailable } from '@/lib/queue/bull-queue';
 import { getWorkerStats } from '@/lib/queue/workers';
@@ -81,8 +81,8 @@ export async function GET(_request: Request) {
       }),
     };
 
-    return NextResponse.json(status);
+    return successResponse(status);
   } catch (_error) {
-    return NextResponse.json({ error: 'Failed to get queue status' }, { status: 500 });
+    return errors.serverError('Failed to get queue status');
   }
 }

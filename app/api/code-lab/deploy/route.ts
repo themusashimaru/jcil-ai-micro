@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { errors } from '@/lib/api/utils';
 
 const log = logger('DeployAPI');
 
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   const { platform } = (await request.json()) as { platform?: string };
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   const { searchParams } = new URL(request.url);

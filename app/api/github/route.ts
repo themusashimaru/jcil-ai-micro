@@ -23,6 +23,7 @@ import {
 } from '@/lib/github/client';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('GitHubAPI');
 
@@ -65,7 +66,7 @@ async function requireAdmin(
   if (authError || !user) {
     return {
       isAdmin: false,
-      error: NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+      error: errors.unauthorized(),
     };
   }
 
@@ -78,7 +79,7 @@ async function requireAdmin(
   if (!adminUser) {
     return {
       isAdmin: false,
-      error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }),
+      error: errors.forbidden('Admin access required'),
     };
   }
 
@@ -93,10 +94,7 @@ export async function GET(request: NextRequest) {
   if (!auth.isAdmin) return auth.error;
 
   if (!isGitHubConfigured()) {
-    return NextResponse.json(
-      { error: 'GitHub not configured. Set GITHUB_PAT in environment.' },
-      { status: 503 }
-    );
+    return errors.serviceUnavailable('GitHub not configured. Set GITHUB_PAT in environment.');
   }
 
   const { searchParams } = new URL(request.url);
@@ -106,7 +104,7 @@ export async function GET(request: NextRequest) {
     switch (action) {
       case 'status': {
         const user = await getAuthenticatedUser();
-        return NextResponse.json({
+        return successResponse({
           configured: true,
           user: user?.login,
           name: user?.name,
@@ -115,7 +113,7 @@ export async function GET(request: NextRequest) {
 
       case 'repos': {
         const repos = await listRepositories();
-        return NextResponse.json({ repos });
+        return successResponse({ repos });
       }
 
       case 'contents': {
@@ -125,11 +123,11 @@ export async function GET(request: NextRequest) {
         const ref = searchParams.get('ref') || undefined;
 
         if (!owner || !repo) {
-          return NextResponse.json({ error: 'owner and repo required' }, { status: 400 });
+          return errors.badRequest('owner and repo required');
         }
 
         const contents = await listContents(owner, repo, path, ref);
-        return NextResponse.json({ contents });
+        return successResponse({ contents });
       }
 
       case 'file': {
@@ -139,15 +137,15 @@ export async function GET(request: NextRequest) {
         const ref = searchParams.get('ref') || undefined;
 
         if (!owner || !repo || !path) {
-          return NextResponse.json({ error: 'owner, repo, and path required' }, { status: 400 });
+          return errors.badRequest('owner, repo, and path required');
         }
 
         const file = await getFileContent(owner, repo, path, ref);
         if (!file) {
-          return NextResponse.json({ error: 'File not found' }, { status: 404 });
+          return errors.notFound('File');
         }
 
-        return NextResponse.json({ file });
+        return successResponse({ file });
       }
 
       case 'branches': {
@@ -155,11 +153,11 @@ export async function GET(request: NextRequest) {
         const repo = searchParams.get('repo');
 
         if (!owner || !repo) {
-          return NextResponse.json({ error: 'owner and repo required' }, { status: 400 });
+          return errors.badRequest('owner and repo required');
         }
 
         const branches = await listBranches(owner, repo);
-        return NextResponse.json({ branches });
+        return successResponse({ branches });
       }
 
       case 'search': {
@@ -168,19 +166,19 @@ export async function GET(request: NextRequest) {
         const repo = searchParams.get('repo') || undefined;
 
         if (!query) {
-          return NextResponse.json({ error: 'query (q) required' }, { status: 400 });
+          return errors.badRequest('query (q) required');
         }
 
         const results = await searchCode(query, owner, repo);
-        return NextResponse.json({ results });
+        return successResponse({ results });
       }
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return errors.badRequest('Invalid action');
     }
   } catch (error) {
     log.error('[GitHub API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'GitHub API error' }, { status: 500 });
+    return errors.serverError('GitHub API error');
   }
 }
 
@@ -196,10 +194,7 @@ export async function POST(request: NextRequest) {
   if (!auth.isAdmin) return auth.error;
 
   if (!isGitHubConfigured()) {
-    return NextResponse.json(
-      { error: 'GitHub not configured. Set GITHUB_PAT in environment.' },
-      { status: 503 }
-    );
+    return errors.serviceUnavailable('GitHub not configured. Set GITHUB_PAT in environment.');
   }
 
   try {
@@ -211,71 +206,59 @@ export async function POST(request: NextRequest) {
         const { owner, repo, path, content, message, sha, branch } = body;
 
         if (!owner || !repo || !path || content === undefined || !message) {
-          return NextResponse.json(
-            { error: 'owner, repo, path, content, and message required' },
-            { status: 400 }
-          );
+          return errors.badRequest('owner, repo, path, content, and message required');
         }
 
         const result = await createOrUpdateFile(owner, repo, path, content, message, sha, branch);
         if (!result) {
-          return NextResponse.json({ error: 'Failed to create/update file' }, { status: 500 });
+          return errors.serverError('Failed to create/update file');
         }
 
-        return NextResponse.json({ success: true, ...result });
+        return successResponse({ success: true, ...result });
       }
 
       case 'delete': {
         const { owner, repo, path, sha, message, branch } = body;
 
         if (!owner || !repo || !path || !sha || !message) {
-          return NextResponse.json(
-            { error: 'owner, repo, path, sha, and message required' },
-            { status: 400 }
-          );
+          return errors.badRequest('owner, repo, path, sha, and message required');
         }
 
         const success = await deleteFile(owner, repo, path, sha, message, branch);
-        return NextResponse.json({ success });
+        return successResponse({ success });
       }
 
       case 'createBranch': {
         const { owner, repo, branchName, fromSha } = body;
 
         if (!owner || !repo || !branchName || !fromSha) {
-          return NextResponse.json(
-            { error: 'owner, repo, branchName, and fromSha required' },
-            { status: 400 }
-          );
+          return errors.badRequest('owner, repo, branchName, and fromSha required');
         }
 
         const success = await createBranch(owner, repo, branchName, fromSha);
-        return NextResponse.json({ success });
+        return successResponse({ success });
       }
 
       case 'createPR': {
         const { owner, repo, title, body: prBody, head, base } = body;
 
         if (!owner || !repo || !title || !head || !base) {
-          return NextResponse.json(
-            { error: 'owner, repo, title, head, and base required' },
-            { status: 400 }
-          );
+          return errors.badRequest('owner, repo, title, head, and base required');
         }
 
         const pr = await createPullRequest(owner, repo, title, prBody || '', head, base);
         if (!pr) {
-          return NextResponse.json({ error: 'Failed to create pull request' }, { status: 500 });
+          return errors.serverError('Failed to create pull request');
         }
 
-        return NextResponse.json({ success: true, ...pr });
+        return successResponse({ success: true, ...pr });
       }
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return errors.badRequest('Invalid action');
     }
   } catch (error) {
     log.error('[GitHub API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'GitHub API error' }, { status: 500 });
+    return errors.serverError('GitHub API error');
   }
 }

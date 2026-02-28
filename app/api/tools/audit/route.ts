@@ -8,7 +8,7 @@
  * Total Tools: 371
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
 import { logger } from '@/lib/logger';
 import { requireAdmin } from '@/lib/auth/admin-guard';
@@ -206,17 +206,10 @@ export async function GET() {
       allTools: toolDetails.sort((a, b) => a.name.localeCompare(b.name)),
     };
 
-    return NextResponse.json(audit, { status: 200 });
+    return successResponse(audit);
   } catch (error) {
     log.error('Tool audit error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        error: 'Failed to audit tools',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to audit tools');
   }
 }
 
@@ -235,17 +228,14 @@ export async function POST(request: Request) {
     const { toolName, testArgs } = body;
 
     if (!toolName) {
-      return NextResponse.json({ error: 'toolName is required' }, { status: 400 });
+      return errors.badRequest('toolName is required');
     }
 
     const tools = await getAvailableChatTools();
     const tool = tools.find((t) => t.name === toolName);
 
     if (!tool) {
-      return NextResponse.json(
-        { error: `Tool '${toolName}' not found`, availableTools: tools.map((t) => t.name) },
-        { status: 404 }
-      );
+      return errors.notFound(`Tool '${toolName}'`);
     }
 
     // Execute the tool with test arguments
@@ -255,26 +245,17 @@ export async function POST(request: Request) {
       arguments: testArgs || {},
     });
 
-    return NextResponse.json(
-      {
-        tool: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.parameters,
-        },
-        testResult: result,
-        timestamp: new Date().toISOString(),
+    return successResponse({
+      tool: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
       },
-      { status: 200 }
-    );
+      testResult: result,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     log.error('Tool test error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        error: 'Failed to test tool',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to test tool');
   }
 }

@@ -10,7 +10,7 @@
  * Uses ContainerManager (E2B) for file operations - same backend as Files API.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import {
   surgicalEdit,
@@ -18,6 +18,7 @@ import {
   formatDiffForDisplay,
   generateUnifiedDiff,
 } from '@/lib/workspace/surgical-edit';
+import { successResponse, errors } from '@/lib/api/utils';
 import { getBackup, listBackups, restoreFromBackup } from '@/lib/workspace/backup-service';
 import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
@@ -89,16 +90,7 @@ export async function POST(request: NextRequest) {
     if (!dryRun) {
       const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
       if (!rateLimitResult.allowed) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': String(rateLimitResult.retryAfter),
-              'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            },
-          }
-        );
+        return errors.rateLimited(rateLimitResult.retryAfter);
       }
     }
 
@@ -117,20 +109,20 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!sessionId) {
-      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+      return errors.badRequest('Missing sessionId');
     }
     if (!filePath) {
-      return NextResponse.json({ error: 'Missing filePath' }, { status: 400 });
+      return errors.badRequest('Missing filePath');
     }
     if (!edits || !Array.isArray(edits) || edits.length === 0) {
-      return NextResponse.json({ error: 'Missing or empty edits array' }, { status: 400 });
+      return errors.badRequest('Missing or empty edits array');
     }
 
     // Verify session ownership
     const supabase = await createClient();
     const hasAccess = await verifySessionOwnership(supabase, sessionId, auth.user.id);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+      return errors.sessionAccessDenied();
     }
 
     // Use sessionId as the workspace identifier (matches Files API)
@@ -161,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     // Format response based on requested format
     if (format === 'diff' && result.success) {
-      return NextResponse.json({
+      return successResponse({
         success: true,
         diff: formatDiffForDisplay(result.diffs),
         stats: {
@@ -173,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (format === 'unified' && result.success && result.originalContent && result.newContent) {
-      return NextResponse.json({
+      return successResponse({
         success: true,
         unifiedDiff: generateUnifiedDiff(filePath, result.originalContent, result.newContent),
         stats: {
@@ -185,13 +177,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Default JSON response
-    return NextResponse.json(result);
+    return successResponse(result);
   } catch (error) {
     log.error('Surgical edit API error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -217,11 +206,11 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const hasAccess = await verifySessionOwnership(supabase, sessionId, auth.user.id);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+      return errors.sessionAccessDenied();
     }
 
     const backups = await listBackups(sessionId, filePath || undefined, 20);
-    return NextResponse.json({ success: true, backups });
+    return successResponse({ success: true, backups });
   }
 
   // Get a specific backup
@@ -233,21 +222,21 @@ export async function GET(request: NextRequest) {
 
     const backup = await getBackup(backupId);
     if (!backup) {
-      return NextResponse.json({ error: 'Backup not found' }, { status: 404 });
+      return errors.notFound('Backup');
     }
 
     // Verify user has access to this backup's workspace
     const supabase = await createClient();
     const hasAccess = await verifySessionOwnership(supabase, backup.workspaceId, auth.user.id);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return errors.forbidden('Access denied');
     }
 
-    return NextResponse.json({ success: true, backup });
+    return successResponse({ success: true, backup });
   }
 
   // Default: Return API info
-  return NextResponse.json({
+  return successResponse({
     status: 'active',
     version: '1.1.0',
     capabilities: {
@@ -299,36 +288,27 @@ export async function PUT(request: NextRequest) {
     // Rate limiting
     const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
     const { backupId } = body as { backupId: string };
 
     if (!backupId) {
-      return NextResponse.json({ error: 'Missing backupId' }, { status: 400 });
+      return errors.badRequest('Missing backupId');
     }
 
     // Get the backup to verify access
     const backup = await getBackup(backupId);
     if (!backup) {
-      return NextResponse.json({ error: 'Backup not found' }, { status: 404 });
+      return errors.notFound('Backup');
     }
 
     // Verify user has access to this backup's workspace
     const supabase = await createClient();
     const hasAccess = await verifySessionOwnership(supabase, backup.workspaceId, auth.user.id);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return errors.forbidden('Access denied');
     }
 
     log.info('Restoring from backup', {
@@ -344,10 +324,10 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!result.success) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 500 });
+      return errors.serverError(result.error);
     }
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: `File ${backup.filePath} restored from backup`,
       backup: {
@@ -358,9 +338,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     log.error('Restore API error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Internal server error');
   }
 }

@@ -7,9 +7,10 @@
  * - DELETE: Cancel a task
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { createClient } from '@supabase/supabase-js';
+import { successResponse, errors } from '@/lib/api/utils';
 import {
   createTask,
   executeTask,
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -52,18 +53,18 @@ export async function GET(request: NextRequest) {
       // Get specific task
       const task = await getTaskStatus(taskId);
       if (!task || task.userId !== user.id) {
-        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+        return errors.notFound('Task');
       }
-      return NextResponse.json({ task });
+      return successResponse({ task });
     } else {
       // List user's tasks
       const limit = parseInt(searchParams.get('limit') || '10');
       const tasks = await getUserTasks(user.id, limit);
-      return NextResponse.json({ tasks });
+      return successResponse({ tasks });
     }
   } catch (error) {
     log.error('[Tasks API] GET error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }
 
@@ -82,23 +83,20 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Rate limiting
     const rateLimit = await rateLimiters.codeLabEdit(user.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     const body = await request.json();
     const { request: taskRequest, sessionId, repo, conversationHistory, autoStart = true } = body;
 
     if (!taskRequest || !sessionId) {
-      return NextResponse.json({ error: 'Missing request or sessionId' }, { status: 400 });
+      return errors.badRequest('Missing request or sessionId');
     }
 
     // Verify session ownership
@@ -110,7 +108,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (sessionError || !sessionData) {
-      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+      return errors.sessionAccessDenied();
     }
 
     // Get GitHub token if needed
@@ -153,7 +151,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return successResponse({
       task: {
         id: task.id,
         title: task.title,
@@ -167,7 +165,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Tasks API] POST error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }
 
@@ -182,27 +180,27 @@ export async function DELETE(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get('id');
 
     if (!taskId) {
-      return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
+      return errors.badRequest('Missing task ID');
     }
 
     // Verify ownership
     const task = await getTaskStatus(taskId);
     if (!task || task.userId !== user.id) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      return errors.notFound('Task');
     }
 
     const success = await cancelTask(taskId);
 
-    return NextResponse.json({ success });
+    return successResponse({ success });
   } catch (error) {
     log.error('[Tasks API] DELETE error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }

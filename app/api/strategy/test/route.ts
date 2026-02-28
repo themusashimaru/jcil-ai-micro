@@ -5,7 +5,8 @@
  * PROTECTED: Requires admin authentication
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse } from '@/lib/api/utils';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export async function GET() {
@@ -13,7 +14,7 @@ export async function GET() {
   const auth = await requireAdmin();
   if (!auth.authorized) return auth.response;
 
-  return NextResponse.json({
+  return successResponse({
     ok: true,
     message: 'Strategy API is accessible',
     timestamp: new Date().toISOString(),
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (!auth.authorized) return auth.response;
 
-  return NextResponse.json({
+  return successResponse({
     ok: true,
     message: 'Strategy API POST is working',
     testSessionId: crypto.randomUUID(),

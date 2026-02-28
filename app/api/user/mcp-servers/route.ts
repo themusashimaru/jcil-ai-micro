@@ -5,10 +5,11 @@
  * PUT  /api/user/mcp-servers — Upsert a server config (enable/disable, update settings)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('user-mcp-servers');
 
@@ -39,7 +40,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const { data, error } = await supabase
@@ -50,13 +51,13 @@ export async function GET() {
 
     if (error) {
       log.error('Failed to fetch user MCP servers', { error: error.message });
-      return NextResponse.json({ error: 'Failed to fetch servers' }, { status: 500 });
+      return errors.serverError('Failed to fetch servers');
     }
 
-    return NextResponse.json({ servers: data || [] });
+    return successResponse({ servers: data || [] });
   } catch (error) {
     log.error('MCP servers GET error', { error: (error as Error).message });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError();
   }
 }
 
@@ -69,17 +70,14 @@ export async function PUT(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const body = await request.json();
     const { server_id, name, description, command, args, env, enabled, timeout_ms } = body;
 
     if (!server_id || !name || !command) {
-      return NextResponse.json(
-        { error: 'server_id, name, and command are required' },
-        { status: 400 }
-      );
+      return errors.badRequest('server_id, name, and command are required');
     }
 
     const { data, error } = await supabase
@@ -103,13 +101,13 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       log.error('Failed to upsert MCP server', { error: error.message });
-      return NextResponse.json({ error: 'Failed to save server config' }, { status: 500 });
+      return errors.serverError('Failed to save server config');
     }
 
     log.info('MCP server config saved', { userId: user.id, serverId: server_id, enabled });
-    return NextResponse.json({ server: data });
+    return successResponse({ server: data });
   } catch (error) {
     log.error('MCP servers PUT error', { error: (error as Error).message });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError();
   }
 }

@@ -10,7 +10,8 @@
  * - Only the document owner can access their files
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { jsPDF } from 'jspdf';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
@@ -71,7 +72,14 @@ interface BusinessPlanData {
     missionStatement: string;
     companyOverview: string;
     leadershipTeam: string;
-    financialHighlights: Array<{ metric: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
+    financialHighlights: Array<{
+      metric: string;
+      year1: string;
+      year2: string;
+      year3: string;
+      year4: string;
+      year5: string;
+    }>;
     objectives: string[];
   };
   companyDescription: {
@@ -82,7 +90,13 @@ interface BusinessPlanData {
   marketAnalysis: {
     industryAnalysis: string;
     targetMarket: string;
-    competitiveAnalysis: Array<{ factor: string; yourBusiness: string; competitorA: string; competitorB: string; competitorC: string }>;
+    competitiveAnalysis: Array<{
+      factor: string;
+      yourBusiness: string;
+      competitorA: string;
+      competitorB: string;
+      competitorC: string;
+    }>;
   };
   organizationManagement: {
     orgStructure: string;
@@ -101,9 +115,30 @@ interface BusinessPlanData {
   };
   financialProjections: {
     assumptions: string[];
-    incomeStatement: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
-    cashFlow: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
-    balanceSheet: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
+    incomeStatement: Array<{
+      category: string;
+      year1: string;
+      year2: string;
+      year3: string;
+      year4: string;
+      year5: string;
+    }>;
+    cashFlow: Array<{
+      category: string;
+      year1: string;
+      year2: string;
+      year3: string;
+      year4: string;
+      year5: string;
+    }>;
+    balanceSheet: Array<{
+      category: string;
+      year1: string;
+      year2: string;
+      year3: string;
+      year4: string;
+      year5: string;
+    }>;
     breakEvenAnalysis: string;
   };
   fundingRequest: {
@@ -120,12 +155,15 @@ interface BusinessPlanData {
 function parseInvoiceContent(content: string): InvoiceData {
   // Strip markdown formatting before parsing
   const cleanContent = content
-    .replace(/\*\*(.+?)\*\*/g, '$1')  // Remove bold
-    .replace(/\*(.+?)\*/g, '$1')       // Remove italic
-    .replace(/^#+\s*/gm, '')           // Remove headers
-    .replace(/`(.+?)`/g, '$1');        // Remove code formatting
+    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.+?)\*/g, '$1') // Remove italic
+    .replace(/^#+\s*/gm, '') // Remove headers
+    .replace(/`(.+?)`/g, '$1'); // Remove code formatting
 
-  const lines = cleanContent.split('\n').map(l => l.trim()).filter(l => l);
+  const lines = cleanContent
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l);
 
   // Debug: Log first 20 lines to see what we're parsing
   log.info('Invoice Parser: Parsing content', { firstLines: lines.slice(0, 20) });
@@ -152,7 +190,7 @@ function parseInvoiceContent(content: string): InvoiceData {
     other: 0,
     total: 0,
     notes: [],
-    payableTo: ''
+    payableTo: '',
   };
 
   let currentSection = '';
@@ -161,9 +199,14 @@ function parseInvoiceContent(content: string): InvoiceData {
     const lowerLine = line.toLowerCase();
 
     // Skip common header lines
-    if (lowerLine === 'invoice draft:' || lowerLine === 'invoice:' ||
-        lowerLine === 'invoice draft' || lowerLine === 'invoice' ||
-        lowerLine === 'here is your invoice:' || lowerLine === 'here is your invoice') {
+    if (
+      lowerLine === 'invoice draft:' ||
+      lowerLine === 'invoice:' ||
+      lowerLine === 'invoice draft' ||
+      lowerLine === 'invoice' ||
+      lowerLine === 'here is your invoice:' ||
+      lowerLine === 'here is your invoice'
+    ) {
       continue;
     }
 
@@ -180,13 +223,19 @@ function parseInvoiceContent(content: string): InvoiceData {
     const businessMatch = line.match(/^(?:business|from|company)[:\s]+(.+)/i);
     if (businessMatch && data.companyName.includes('[')) {
       data.companyName = businessMatch[1].trim();
-      log.info('Invoice Parser: Found company name (business/from)', { companyName: data.companyName });
+      log.info('Invoice Parser: Found company name (business/from)', {
+        companyName: data.companyName,
+      });
       continue;
     }
 
     // Pattern 3: "Invoice: CompanyName" (AI sometimes outputs company after "Invoice:")
     const invoiceCompanyMatch = line.match(/^invoice[:\s]+([A-Za-z].+)/i);
-    if (invoiceCompanyMatch && data.companyName.includes('[') && !/\d/.test(invoiceCompanyMatch[1])) {
+    if (
+      invoiceCompanyMatch &&
+      data.companyName.includes('[') &&
+      !/\d/.test(invoiceCompanyMatch[1])
+    ) {
       data.companyName = invoiceCompanyMatch[1].trim();
       log.info('Invoice Parser: Found company name (invoice:)', { companyName: data.companyName });
       continue;
@@ -196,19 +245,20 @@ function parseInvoiceContent(content: string): InvoiceData {
     // This handles cases like "Kaylan's Bridal" as the first line
     if (data.companyName.includes('[') && data.items.length === 0) {
       // Must start with capital letter, can contain apostrophes, not be a common keyword
-      const isCompanyName = /^[A-Z][A-Za-z']+/.test(line) &&
-                            !lowerLine.includes('invoice') &&
-                            !lowerLine.includes('bill') &&
-                            !lowerLine.includes('date') &&
-                            !lowerLine.includes('due') &&
-                            !lowerLine.includes('total') &&
-                            !lowerLine.includes('item') &&
-                            !lowerLine.includes('description') &&
-                            !lowerLine.includes('subtotal') &&
-                            !lowerLine.includes('tax') &&
-                            !lowerLine.includes('payment') &&
-                            !lowerLine.includes('ship') &&
-                            !lowerLine.includes('note');
+      const isCompanyName =
+        /^[A-Z][A-Za-z']+/.test(line) &&
+        !lowerLine.includes('invoice') &&
+        !lowerLine.includes('bill') &&
+        !lowerLine.includes('date') &&
+        !lowerLine.includes('due') &&
+        !lowerLine.includes('total') &&
+        !lowerLine.includes('item') &&
+        !lowerLine.includes('description') &&
+        !lowerLine.includes('subtotal') &&
+        !lowerLine.includes('tax') &&
+        !lowerLine.includes('payment') &&
+        !lowerLine.includes('ship') &&
+        !lowerLine.includes('note');
 
       // Either no colon, or colon is part of time/money
       const hasNoMeaningfulColon = !line.includes(':') || /^[^:]+:\s*\$/.test(line);
@@ -221,13 +271,19 @@ function parseInvoiceContent(content: string): InvoiceData {
         if (parts[1]) {
           data.companyAddress = [parts[1].trim()];
         }
-        log.info('Invoice Parser: Found company name (first line)', { companyName: data.companyName });
+        log.info('Invoice Parser: Found company name (first line)', {
+          companyName: data.companyName,
+        });
         continue;
       }
     }
 
     // Pattern 5: Address line (city, state) on second line - set as address
-    if (data.companyName && !data.companyName.includes('[') && data.companyAddress[0]?.includes('[')) {
+    if (
+      data.companyName &&
+      !data.companyName.includes('[') &&
+      data.companyAddress[0]?.includes('[')
+    ) {
       const cityStateMatch = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s*([A-Z]{2})?$/);
       if (cityStateMatch && !lowerLine.includes(':')) {
         data.companyAddress = [line];
@@ -272,7 +328,11 @@ function parseInvoiceContent(content: string): InvoiceData {
     }
 
     // Bill To section
-    if (lowerLine.includes('bill to') || lowerLine.includes('billed to') || lowerLine.startsWith('to:')) {
+    if (
+      lowerLine.includes('bill to') ||
+      lowerLine.includes('billed to') ||
+      lowerLine.startsWith('to:')
+    ) {
       currentSection = 'billTo';
       data.billTo = [];
       // If "To: Name" is on the same line, extract the name
@@ -299,19 +359,22 @@ function parseInvoiceContent(content: string): InvoiceData {
     }
 
     // Items/Products/Line Items/Description section - catch many variations
-    if (lowerLine.includes('line item') ||
-        lowerLine.includes('description of work') ||
-        lowerLine === 'description:' ||
-        lowerLine.startsWith('description:') ||
-        lowerLine === 'description' ||
-        (lowerLine.includes('item') && lowerLine.includes('description')) ||
-        lowerLine === 'items:' || lowerLine === 'services:' ||
-        lowerLine.includes('services/items') ||
-        lowerLine.includes('items/services') ||
-        lowerLine.includes('breakdown:') ||
-        lowerLine === 'breakdown' ||
-        lowerLine.includes('charges:') ||
-        lowerLine === 'charges') {
+    if (
+      lowerLine.includes('line item') ||
+      lowerLine.includes('description of work') ||
+      lowerLine === 'description:' ||
+      lowerLine.startsWith('description:') ||
+      lowerLine === 'description' ||
+      (lowerLine.includes('item') && lowerLine.includes('description')) ||
+      lowerLine === 'items:' ||
+      lowerLine === 'services:' ||
+      lowerLine.includes('services/items') ||
+      lowerLine.includes('items/services') ||
+      lowerLine.includes('breakdown:') ||
+      lowerLine === 'breakdown' ||
+      lowerLine.includes('charges:') ||
+      lowerLine === 'charges'
+    ) {
       currentSection = 'items';
       log.info('Invoice Parser: Entering items section', { line });
       continue;
@@ -330,7 +393,11 @@ function parseInvoiceContent(content: string): InvoiceData {
     }
 
     // Notes section
-    if (lowerLine.includes('note') || lowerLine.includes('comment') || lowerLine.includes('instruction')) {
+    if (
+      lowerLine.includes('note') ||
+      lowerLine.includes('comment') ||
+      lowerLine.includes('instruction')
+    ) {
       currentSection = 'notes';
       continue;
     }
@@ -363,7 +430,9 @@ function parseInvoiceContent(content: string): InvoiceData {
     }
 
     // Total (various formats: "Total:", "Total Due:", "Grand Total:", "Total Amount Due:")
-    const totalMatch = line.match(/(?:grand\s*)?total(?:\s*amount)?(?:\s*due)?[:\s]*\$?([\d,]+\.?\d*)/i);
+    const totalMatch = line.match(
+      /(?:grand\s*)?total(?:\s*amount)?(?:\s*due)?[:\s]*\$?([\d,]+\.?\d*)/i
+    );
     if (totalMatch && !lowerLine.includes('subtotal')) {
       data.total = parseFloat(totalMatch[1].replace(/,/g, ''));
     }
@@ -377,16 +446,17 @@ function parseInvoiceContent(content: string): InvoiceData {
     // Add to current section (with guards to prevent incorrect data)
     if (currentSection === 'billTo' && line) {
       // Don't add lines that look like invoice metadata, headers, or items
-      const isBillToContent = !line.includes(':') &&
-                              !lowerLine.includes('invoice') &&
-                              !lowerLine.includes('description') &&
-                              !lowerLine.includes('quantity') &&
-                              !lowerLine.includes('unit price') &&
-                              !lowerLine.includes('total') &&
-                              !lowerLine.includes('items') &&
-                              !line.includes('|') &&
-                              !line.includes('@') &&
-                              !/\$[\d,]+/.test(line);
+      const isBillToContent =
+        !line.includes(':') &&
+        !lowerLine.includes('invoice') &&
+        !lowerLine.includes('description') &&
+        !lowerLine.includes('quantity') &&
+        !lowerLine.includes('unit price') &&
+        !lowerLine.includes('total') &&
+        !lowerLine.includes('items') &&
+        !line.includes('|') &&
+        !line.includes('@') &&
+        !/\$[\d,]+/.test(line);
       if (isBillToContent) {
         data.billTo.push(line.replace(/^[-*•]\s*/, ''));
       }
@@ -401,7 +471,12 @@ function parseInvoiceContent(content: string): InvoiceData {
     // Handle items in ITEMS/DESCRIPTION section: "Fabric Costs: $500.00"
     if (currentSection === 'items') {
       const itemLineMatch = line.match(/^(.+?):\s*\$?([\d,]+\.?\d*)$/);
-      if (itemLineMatch && !lowerLine.includes('total') && !lowerLine.includes('subtotal') && !lowerLine.includes('tax')) {
+      if (
+        itemLineMatch &&
+        !lowerLine.includes('total') &&
+        !lowerLine.includes('subtotal') &&
+        !lowerLine.includes('tax')
+      ) {
         const total = parseFloat(itemLineMatch[2].replace(/,/g, ''));
         if (total > 0) {
           data.items.push({
@@ -409,7 +484,7 @@ function parseInvoiceContent(content: string): InvoiceData {
             description: itemLineMatch[1].trim(),
             qty: 1,
             unitPrice: total,
-            total: total
+            total: total,
           });
           continue;
         }
@@ -427,7 +502,7 @@ function parseInvoiceContent(content: string): InvoiceData {
             description: `Materials - ${matItemMatch[1].trim()}`,
             qty: 1,
             unitPrice: total,
-            total: total
+            total: total,
           });
           continue;
         }
@@ -437,7 +512,9 @@ function parseInvoiceContent(content: string): InvoiceData {
     // Handle items in LABOR section: "Description: N hours @ $rate/hr: $total"
     if (currentSection === 'labor') {
       // Pattern: "Service Name: 25 hours @ $300.00/hr: $7,500.00"
-      const labItemMatch = line.match(/^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*[@x]\s*\$?([\d,]+\.?\d*)(?:\/(?:hour|hr))?[:\s=]*\$?([\d,]+\.?\d*)?/i);
+      const labItemMatch = line.match(
+        /^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*[@x]\s*\$?([\d,]+\.?\d*)(?:\/(?:hour|hr))?[:\s=]*\$?([\d,]+\.?\d*)?/i
+      );
       if (labItemMatch) {
         const qty = parseInt(labItemMatch[2]);
         const price = parseFloat(labItemMatch[3].replace(/,/g, ''));
@@ -447,7 +524,7 @@ function parseInvoiceContent(content: string): InvoiceData {
           description: `Labor - ${labItemMatch[1].trim()} (${qty} hrs @ $${price.toFixed(2)}/hr)`,
           qty: qty,
           unitPrice: price,
-          total: total
+          total: total,
         });
         continue;
       }
@@ -461,7 +538,7 @@ function parseInvoiceContent(content: string): InvoiceData {
             description: `Labor - ${simpleLabMatch[1].trim()}`,
             qty: 1,
             unitPrice: total,
-            total: total
+            total: total,
           });
           continue;
         }
@@ -470,38 +547,46 @@ function parseInvoiceContent(content: string): InvoiceData {
 
     // PATTERN: "10 Pepperoni Pizzas @ $25.00: $250.00" (QTY DESC @ PRICE: TOTAL)
     // This common AI format has quantity at the START of the line
-    const qtyFirstMatch = line.match(/^(\d+)\s+(.+?)\s*@\s*\$?([\d,]+\.?\d*)[:\s]*\$?([\d,]+\.?\d*)$/);
+    const qtyFirstMatch = line.match(
+      /^(\d+)\s+(.+?)\s*@\s*\$?([\d,]+\.?\d*)[:\s]*\$?([\d,]+\.?\d*)$/
+    );
     if (qtyFirstMatch) {
       const qty = parseInt(qtyFirstMatch[1]);
       const desc = qtyFirstMatch[2].trim();
       const unitPrice = parseFloat(qtyFirstMatch[3].replace(/,/g, ''));
-      const total = qtyFirstMatch[4] ? parseFloat(qtyFirstMatch[4].replace(/,/g, '')) : qty * unitPrice;
+      const total = qtyFirstMatch[4]
+        ? parseFloat(qtyFirstMatch[4].replace(/,/g, ''))
+        : qty * unitPrice;
       log.info('Invoice Parser: Matched qty-first format', { desc, qty, unitPrice, total });
       data.items.push({
         itemNumber: '',
         description: desc,
         qty: qty,
         unitPrice: unitPrice,
-        total: total
+        total: total,
       });
       continue;
     }
 
     // Parse item lines (look for patterns like "Product Name | 5 | $100 | $500")
-    const itemMatch = line.match(/^(.+?)\s*[|]\s*(\d+)\s*[|]\s*\$?([\d,]+\.?\d*)\s*[|]\s*\$?([\d,]+\.?\d*)/);
+    const itemMatch = line.match(
+      /^(.+?)\s*[|]\s*(\d+)\s*[|]\s*\$?([\d,]+\.?\d*)\s*[|]\s*\$?([\d,]+\.?\d*)/
+    );
     if (itemMatch) {
       data.items.push({
         itemNumber: '',
         description: itemMatch[1].trim(),
         qty: parseInt(itemMatch[2]),
         unitPrice: parseFloat(itemMatch[3].replace(/,/g, '')),
-        total: parseFloat(itemMatch[4].replace(/,/g, ''))
+        total: parseFloat(itemMatch[4].replace(/,/g, '')),
       });
       continue;
     }
 
     // PATTERN 2: "Description - Qty: 5 @ $100 = $500"
-    const altItemMatch = line.match(/^(.+?)\s*[-–]\s*(?:qty:?\s*)?(\d+)\s*[@x]\s*\$?([\d,]+\.?\d*)/i);
+    const altItemMatch = line.match(
+      /^(.+?)\s*[-–]\s*(?:qty:?\s*)?(\d+)\s*[@x]\s*\$?([\d,]+\.?\d*)/i
+    );
     if (altItemMatch && !itemMatch) {
       const qty = parseInt(altItemMatch[2]);
       const price = parseFloat(altItemMatch[3].replace(/,/g, ''));
@@ -510,13 +595,15 @@ function parseInvoiceContent(content: string): InvoiceData {
         description: altItemMatch[1].trim(),
         qty: qty,
         unitPrice: price,
-        total: qty * price
+        total: qty * price,
       });
       continue;
     }
 
     // PATTERN 3: "Labor: 15 Hours @ $300.00/hr: $4,500.00" (common AI format)
-    const laborMatch = line.match(/^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*[@x]\s*\$?([\d,]+\.?\d*)(?:\/(?:hour|hr))?[:\s=]*\$?([\d,]+\.?\d*)?/i);
+    const laborMatch = line.match(
+      /^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*[@x]\s*\$?([\d,]+\.?\d*)(?:\/(?:hour|hr))?[:\s=]*\$?([\d,]+\.?\d*)?/i
+    );
     if (laborMatch) {
       const qty = parseInt(laborMatch[2]);
       const price = parseFloat(laborMatch[3].replace(/,/g, ''));
@@ -526,13 +613,15 @@ function parseInvoiceContent(content: string): InvoiceData {
         description: `${laborMatch[1].trim()} (${qty} hours @ $${price.toFixed(2)}/hr)`,
         qty: qty,
         unitPrice: price,
-        total: total
+        total: total,
       });
       continue;
     }
 
     // PATTERN 4: "Materials: Description: $1,200.00" or "Materials (Circuit Breaker): $1200"
-    const materialsMatch = line.match(/^(materials?|parts?|supplies?|equipment)[:\s]*(.+?)?\s*[:\s]\s*\$?([\d,]+\.?\d*)$/i);
+    const materialsMatch = line.match(
+      /^(materials?|parts?|supplies?|equipment)[:\s]*(.+?)?\s*[:\s]\s*\$?([\d,]+\.?\d*)$/i
+    );
     if (materialsMatch) {
       const desc = materialsMatch[2]?.trim().replace(/[:\s]+$/, '') || materialsMatch[1];
       const total = parseFloat(materialsMatch[3].replace(/,/g, ''));
@@ -541,21 +630,26 @@ function parseInvoiceContent(content: string): InvoiceData {
         description: desc,
         qty: 1,
         unitPrice: total,
-        total: total
+        total: total,
       });
       continue;
     }
 
     // PATTERN 5: Bullet point items "- Labor: $4,500.00"
     const bulletItemMatch = line.match(/^[-*•]\s*(.+?):\s*\$?([\d,]+\.?\d*)$/);
-    if (bulletItemMatch && !lowerLine.includes('total') && !lowerLine.includes('subtotal') && !lowerLine.includes('tax')) {
+    if (
+      bulletItemMatch &&
+      !lowerLine.includes('total') &&
+      !lowerLine.includes('subtotal') &&
+      !lowerLine.includes('tax')
+    ) {
       const total = parseFloat(bulletItemMatch[2].replace(/,/g, ''));
       data.items.push({
         itemNumber: '',
         description: bulletItemMatch[1].trim(),
         qty: 1,
         unitPrice: total,
-        total: total
+        total: total,
       });
       continue;
     }
@@ -563,24 +657,27 @@ function parseInvoiceContent(content: string): InvoiceData {
     // CATCH-ALL PATTERN: Any line with description followed by dollar amount
     // "Fabric Costs: $500.00" or "Design Work $450.00" or "- Wedding gown alterations: $800"
     const catchAllItemMatch = line.match(/^[-*•]?\s*(.+?)[\s:]+\$(\d[\d,]*\.?\d*)$/);
-    if (catchAllItemMatch && data.items.length < 50) {  // Limit to prevent over-matching
+    if (catchAllItemMatch && data.items.length < 50) {
+      // Limit to prevent over-matching
       const desc = catchAllItemMatch[1].trim();
       const amount = parseFloat(catchAllItemMatch[2].replace(/,/g, ''));
       // Skip if it looks like a total/subtotal/tax line
-      if (amount > 0 &&
-          !lowerLine.includes('total') &&
-          !lowerLine.includes('subtotal') &&
-          !lowerLine.includes('tax') &&
-          !lowerLine.includes('shipping') &&
-          !lowerLine.includes('amount due') &&
-          desc.length > 2) {
+      if (
+        amount > 0 &&
+        !lowerLine.includes('total') &&
+        !lowerLine.includes('subtotal') &&
+        !lowerLine.includes('tax') &&
+        !lowerLine.includes('shipping') &&
+        !lowerLine.includes('amount due') &&
+        desc.length > 2
+      ) {
         log.info('Invoice Parser: Catch-all item', { desc, amount });
         data.items.push({
           itemNumber: '',
           description: desc,
           qty: 1,
           unitPrice: amount,
-          total: amount
+          total: amount,
         });
         continue;
       }
@@ -606,7 +703,7 @@ function parseInvoiceContent(content: string): InvoiceData {
     companyName: data.companyName,
     invoiceNumber: data.invoiceNumber,
     itemCount: data.items.length,
-    items: data.items.slice(0, 5),  // First 5 items
+    items: data.items.slice(0, 5), // First 5 items
     subtotal: data.subtotal,
     tax: data.tax,
     total: data.total,
@@ -713,7 +810,7 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
 
   // Ship To content
   if (invoiceData.shipTo.length > 0) {
-    let shipY = y - (invoiceData.billTo.slice(0, 5).length * 4);
+    let shipY = y - invoiceData.billTo.slice(0, 5).length * 4;
     for (const line of invoiceData.shipTo.slice(0, 5)) {
       doc.text(line, shipToX + 3, shipY);
       shipY += 4;
@@ -752,7 +849,7 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
       invoiceData.shipDate || '',
       invoiceData.shipVia || '',
       invoiceData.fob || '',
-      invoiceData.terms || ''
+      invoiceData.terms || '',
     ];
     for (let i = 0; i < values.length; i++) {
       doc.text(values[i], margin + i * colWidth + 2, y + 4);
@@ -775,7 +872,7 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
     { label: 'DESCRIPTION', width: contentWidth - 95, align: 'left' as const },
     { label: 'QTY', width: 20, align: 'center' as const },
     { label: 'UNIT PRICE', width: 25, align: 'right' as const },
-    { label: 'TOTAL', width: 25, align: 'right' as const }
+    { label: 'TOTAL', width: 25, align: 'right' as const },
   ];
 
   let colX = margin;
@@ -802,9 +899,13 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
 
   // Add sample items if none provided
   if (itemsToShow.length === 0) {
-    itemsToShow.push(
-      { itemNumber: '[Item #]', description: '[Product/Service Description]', qty: 1, unitPrice: 0, total: 0 }
-    );
+    itemsToShow.push({
+      itemNumber: '[Item #]',
+      description: '[Product/Service Description]',
+      qty: 1,
+      unitPrice: 0,
+      total: 0,
+    });
   }
 
   for (let i = 0; i < maxRows; i++) {
@@ -839,7 +940,9 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
       colX += 20;
 
       // Unit price
-      doc.text(item.unitPrice > 0 ? item.unitPrice.toFixed(2) : '-', colX + 23, y + 5, { align: 'right' });
+      doc.text(item.unitPrice > 0 ? item.unitPrice.toFixed(2) : '-', colX + 23, y + 5, {
+        align: 'right',
+      });
       colX += 25;
 
       // Total
@@ -890,7 +993,9 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
   doc.setTextColor(...gray);
   doc.text('TAX RATE', totalsX, y);
   doc.setTextColor(...black);
-  doc.text(invoiceData.taxRate > 0 ? invoiceData.taxRate.toFixed(2) + '%' : '-', totalsValueX, y, { align: 'right' });
+  doc.text(invoiceData.taxRate > 0 ? invoiceData.taxRate.toFixed(2) + '%' : '-', totalsValueX, y, {
+    align: 'right',
+  });
 
   y += 6;
 
@@ -898,7 +1003,9 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
   doc.setTextColor(...gray);
   doc.text('TAX', totalsX, y);
   doc.setTextColor(...black);
-  doc.text(invoiceData.tax > 0 ? invoiceData.tax.toFixed(2) : '-', totalsValueX, y, { align: 'right' });
+  doc.text(invoiceData.tax > 0 ? invoiceData.tax.toFixed(2) : '-', totalsValueX, y, {
+    align: 'right',
+  });
 
   y += 6;
 
@@ -906,7 +1013,9 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
   doc.setTextColor(...gray);
   doc.text('S & H', totalsX, y);
   doc.setTextColor(...black);
-  doc.text(invoiceData.shipping > 0 ? invoiceData.shipping.toFixed(2) : '-', totalsValueX, y, { align: 'right' });
+  doc.text(invoiceData.shipping > 0 ? invoiceData.shipping.toFixed(2) : '-', totalsValueX, y, {
+    align: 'right',
+  });
 
   y += 6;
 
@@ -914,7 +1023,9 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
   doc.setTextColor(...gray);
   doc.text('OTHER', totalsX, y);
   doc.setTextColor(...black);
-  doc.text(invoiceData.other > 0 ? invoiceData.other.toFixed(2) : '-', totalsValueX, y, { align: 'right' });
+  doc.text(invoiceData.other > 0 ? invoiceData.other.toFixed(2) : '-', totalsValueX, y, {
+    align: 'right',
+  });
 
   y += 8;
 
@@ -1026,21 +1137,23 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
  * Strip markdown formatting from text for clean PDF output
  */
 function stripMarkdown(text: string): string {
-  return text
-    // Remove bold/italic markers
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    .replace(/_([^_]+)_/g, '$1')
-    // Remove inline code
-    .replace(/`([^`]+)`/g, '$1')
-    // Remove links but keep text
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    // Remove headers markers
-    .replace(/^#{1,6}\s+/gm, '')
-    // Clean up extra whitespace
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    text
+      // Remove bold/italic markers
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      // Remove inline code
+      .replace(/`([^`]+)`/g, '$1')
+      // Remove links but keep text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // Remove headers markers
+      .replace(/^#{1,6}\s+/gm, '')
+      // Clean up extra whitespace
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 /**
@@ -1057,46 +1170,46 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
       companyOverview: '',
       leadershipTeam: '',
       financialHighlights: [],
-      objectives: []
+      objectives: [],
     },
     companyDescription: {
       overview: '',
       competitiveAdvantages: '',
-      legalStructure: ''
+      legalStructure: '',
     },
     marketAnalysis: {
       industryAnalysis: '',
       targetMarket: '',
-      competitiveAnalysis: []
+      competitiveAnalysis: [],
     },
     organizationManagement: {
       orgStructure: '',
       managementTeam: '',
-      advisoryBoard: ''
+      advisoryBoard: '',
     },
     productsServices: {
       description: '',
       intellectualProperty: '',
-      researchDevelopment: ''
+      researchDevelopment: '',
     },
     marketingSales: {
       marketingStrategy: '',
       salesStrategy: '',
-      distributionChannels: ''
+      distributionChannels: '',
     },
     financialProjections: {
       assumptions: [],
       incomeStatement: [],
       cashFlow: [],
       balanceSheet: [],
-      breakEvenAnalysis: ''
+      breakEvenAnalysis: '',
     },
     fundingRequest: {
       currentFunding: '',
       requirements: '',
-      futureFunding: ''
+      futureFunding: '',
     },
-    appendix: []
+    appendix: [],
   };
 
   let currentSection = '';
@@ -1105,44 +1218,60 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
 
   const saveCurrentContent = () => {
     // Join content and ensure all markdown is stripped
-    const text = currentContent.map(line => stripMarkdown(line)).join('\n').trim();
+    const text = currentContent
+      .map((line) => stripMarkdown(line))
+      .join('\n')
+      .trim();
     if (!text) return;
 
     switch (currentSection) {
       case 'executive':
         if (currentSubsection.includes('mission')) data.executiveSummary.missionStatement = text;
-        else if (currentSubsection.includes('overview') || currentSubsection.includes('company')) data.executiveSummary.companyOverview = text;
-        else if (currentSubsection.includes('leadership') || currentSubsection.includes('team')) data.executiveSummary.leadershipTeam = text;
-        else if (currentSubsection.includes('objective')) data.executiveSummary.objectives = text.split('\n').filter(l => l.trim());
+        else if (currentSubsection.includes('overview') || currentSubsection.includes('company'))
+          data.executiveSummary.companyOverview = text;
+        else if (currentSubsection.includes('leadership') || currentSubsection.includes('team'))
+          data.executiveSummary.leadershipTeam = text;
+        else if (currentSubsection.includes('objective'))
+          data.executiveSummary.objectives = text.split('\n').filter((l) => l.trim());
         break;
       case 'company':
-        if (currentSubsection.includes('competitive') || currentSubsection.includes('advantage')) data.companyDescription.competitiveAdvantages = text;
-        else if (currentSubsection.includes('legal') || currentSubsection.includes('structure')) data.companyDescription.legalStructure = text;
+        if (currentSubsection.includes('competitive') || currentSubsection.includes('advantage'))
+          data.companyDescription.competitiveAdvantages = text;
+        else if (currentSubsection.includes('legal') || currentSubsection.includes('structure'))
+          data.companyDescription.legalStructure = text;
         else data.companyDescription.overview = text;
         break;
       case 'market':
         if (currentSubsection.includes('industry')) data.marketAnalysis.industryAnalysis = text;
         else if (currentSubsection.includes('target')) data.marketAnalysis.targetMarket = text;
-        else if (currentSubsection.includes('competitive')) data.marketAnalysis.industryAnalysis += '\n\n' + text;
+        else if (currentSubsection.includes('competitive'))
+          data.marketAnalysis.industryAnalysis += '\n\n' + text;
         break;
       case 'organization':
-        if (currentSubsection.includes('management')) data.organizationManagement.managementTeam = text;
-        else if (currentSubsection.includes('advisory')) data.organizationManagement.advisoryBoard = text;
+        if (currentSubsection.includes('management'))
+          data.organizationManagement.managementTeam = text;
+        else if (currentSubsection.includes('advisory'))
+          data.organizationManagement.advisoryBoard = text;
         else data.organizationManagement.orgStructure = text;
         break;
       case 'product':
-        if (currentSubsection.includes('intellectual') || currentSubsection.includes('ip')) data.productsServices.intellectualProperty = text;
-        else if (currentSubsection.includes('r&d') || currentSubsection.includes('research')) data.productsServices.researchDevelopment = text;
+        if (currentSubsection.includes('intellectual') || currentSubsection.includes('ip'))
+          data.productsServices.intellectualProperty = text;
+        else if (currentSubsection.includes('r&d') || currentSubsection.includes('research'))
+          data.productsServices.researchDevelopment = text;
         else data.productsServices.description = text;
         break;
       case 'marketing':
         if (currentSubsection.includes('sales')) data.marketingSales.salesStrategy = text;
-        else if (currentSubsection.includes('distribution')) data.marketingSales.distributionChannels = text;
+        else if (currentSubsection.includes('distribution'))
+          data.marketingSales.distributionChannels = text;
         else data.marketingSales.marketingStrategy = text;
         break;
       case 'financial':
-        if (currentSubsection.includes('assumption')) data.financialProjections.assumptions = text.split('\n').filter(l => l.trim());
-        else if (currentSubsection.includes('break')) data.financialProjections.breakEvenAnalysis = text;
+        if (currentSubsection.includes('assumption'))
+          data.financialProjections.assumptions = text.split('\n').filter((l) => l.trim());
+        else if (currentSubsection.includes('break'))
+          data.financialProjections.breakEvenAnalysis = text;
         break;
       case 'funding':
         if (currentSubsection.includes('current')) data.fundingRequest.currentFunding = text;
@@ -1150,7 +1279,7 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
         else if (currentSubsection.includes('future')) data.fundingRequest.futureFunding = text;
         break;
       case 'appendix':
-        data.appendix = text.split('\n').filter(l => l.trim());
+        data.appendix = text.split('\n').filter((l) => l.trim());
         break;
     }
     currentContent = [];
@@ -1181,7 +1310,11 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
       }
       // Pattern 3: "Company Name: XYZ" or "Name: XYZ"
       const companyNameMatch = trimmedLine.match(/(?:company\s+)?name[:\s]+(.+)/i);
-      if (companyNameMatch && companyNameMatch[1] && !trimmedLine.toLowerCase().includes('founder')) {
+      if (
+        companyNameMatch &&
+        companyNameMatch[1] &&
+        !trimmedLine.toLowerCase().includes('founder')
+      ) {
         const name = stripMarkdown(companyNameMatch[1]);
         if (name && name.length > 2 && !name.toLowerCase().includes('business plan')) {
           data.companyName = name;
@@ -1189,8 +1322,9 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
         }
       }
       // Pattern 4: "Business Plan for Company Name" or "Company Name Business Plan"
-      const bpMatch = trimmedLine.match(/business\s+plan\s+(?:for\s+)?(.+)/i) ||
-                      trimmedLine.match(/(.+?)\s+business\s+plan/i);
+      const bpMatch =
+        trimmedLine.match(/business\s+plan\s+(?:for\s+)?(.+)/i) ||
+        trimmedLine.match(/(.+?)\s+business\s+plan/i);
       if (bpMatch && bpMatch[1]) {
         const name = stripMarkdown(bpMatch[1]);
         if (name && name.length > 2 && !name.toLowerCase().includes('summary')) {
@@ -1222,8 +1356,11 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
       continue;
     }
     // Organization/Management
-    if ((lowerLine.includes('organization') && lowerLine.includes('management')) ||
-        lowerLine.match(/^\d+\.\s*organization/i) || lowerLine.match(/^#+\s*4\.\s/)) {
+    if (
+      (lowerLine.includes('organization') && lowerLine.includes('management')) ||
+      lowerLine.match(/^\d+\.\s*organization/i) ||
+      lowerLine.match(/^#+\s*4\.\s/)
+    ) {
       saveCurrentContent();
       currentSection = 'organization';
       currentSubsection = '';
@@ -1237,16 +1374,20 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
       continue;
     }
     // Products/Services
-    if ((lowerLine.includes('product') || lowerLine.includes('service')) &&
-        (lowerLine.match(/^\d+\./) || lowerLine.match(/^#+/))) {
+    if (
+      (lowerLine.includes('product') || lowerLine.includes('service')) &&
+      (lowerLine.match(/^\d+\./) || lowerLine.match(/^#+/))
+    ) {
       saveCurrentContent();
       currentSection = 'product';
       currentSubsection = '';
       continue;
     }
     // Marketing/Sales
-    if ((lowerLine.includes('marketing') || lowerLine.includes('sales')) &&
-        (lowerLine.match(/^\d+\./) || lowerLine.match(/^#+/))) {
+    if (
+      (lowerLine.includes('marketing') || lowerLine.includes('sales')) &&
+      (lowerLine.match(/^\d+\./) || lowerLine.match(/^#+/))
+    ) {
       saveCurrentContent();
       currentSection = 'marketing';
       currentSubsection = '';
@@ -1304,14 +1445,23 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
         } else if (label.includes('objective') || label.includes('goal')) {
           if (value) data.executiveSummary.objectives.push(value);
           continue;
-        } else if (label.includes('location') || label.includes('launch') || label.includes('date')) {
+        } else if (
+          label.includes('location') ||
+          label.includes('launch') ||
+          label.includes('date')
+        ) {
           // Store as part of overview
           const cleanedLine = stripMarkdown(trimmedLine);
-          data.executiveSummary.companyOverview += (data.executiveSummary.companyOverview ? '\n' : '') + cleanedLine;
+          data.executiveSummary.companyOverview +=
+            (data.executiveSummary.companyOverview ? '\n' : '') + cleanedLine;
           continue;
         }
       } else if (currentSection === 'market') {
-        if (label.includes('competitive') || label.includes('edge') || label.includes('advantage')) {
+        if (
+          label.includes('competitive') ||
+          label.includes('edge') ||
+          label.includes('advantage')
+        ) {
           currentSubsection = 'competitive';
           if (value) currentContent.push(value);
           continue;
@@ -1354,8 +1504,11 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
   // Fallback: If still no company name, try to extract from content
   if (data.companyName === '[Company Name]') {
     // Look for patterns like "The [Name] Cafe" or "[Name] Coffee"
-    const allText = Object.values(data.executiveSummary).join(' ') + ' ' + data.companyDescription.overview;
-    const cafeMatch = allText.match(/(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Cafe|Coffee|Restaurant|Bistro|Shop)/i);
+    const allText =
+      Object.values(data.executiveSummary).join(' ') + ' ' + data.companyDescription.overview;
+    const cafeMatch = allText.match(
+      /(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Cafe|Coffee|Restaurant|Bistro|Shop)/i
+    );
     if (cafeMatch) {
       data.companyName = cafeMatch[0].trim();
     }
@@ -1455,7 +1608,7 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
     if (!items || !Array.isArray(items) || items.length === 0) return;
 
     // Limit to reasonable number of items
-    const safeItems = items.filter(i => i && typeof i === 'string').slice(0, 50);
+    const safeItems = items.filter((i) => i && typeof i === 'string').slice(0, 50);
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -1475,11 +1628,21 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
   };
 
   // Helper to add financial table
-  const addFinancialTable = (title: string, rows: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>) => {
+  const addFinancialTable = (
+    title: string,
+    rows: Array<{
+      category: string;
+      year1: string;
+      year2: string;
+      year3: string;
+      year4: string;
+      year5: string;
+    }>
+  ) => {
     if (!rows || !Array.isArray(rows) || rows.length === 0) return;
 
     // Filter out invalid rows and limit to reasonable size
-    const validRows = rows.filter(r => r && typeof r === 'object').slice(0, 20);
+    const validRows = rows.filter((r) => r && typeof r === 'object').slice(0, 20);
     if (validRows.length === 0) return;
 
     checkPageBreak(validRows.length * 7 + 20);
@@ -1492,7 +1655,14 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
     y += 6;
 
     // Header row
-    const colWidths = [contentWidth * 0.3, contentWidth * 0.14, contentWidth * 0.14, contentWidth * 0.14, contentWidth * 0.14, contentWidth * 0.14];
+    const colWidths = [
+      contentWidth * 0.3,
+      contentWidth * 0.14,
+      contentWidth * 0.14,
+      contentWidth * 0.14,
+      contentWidth * 0.14,
+      contentWidth * 0.14,
+    ];
     const headers = ['Category', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
 
     doc.setFillColor(...primaryColor);
@@ -1567,7 +1737,12 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...lightGray);
-  doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }), pageWidth / 2, y, { align: 'center' });
+  doc.text(
+    new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+    pageWidth / 2,
+    y,
+    { align: 'center' }
+  );
 
   // Confidentiality notice at bottom
   y = pageHeight - 40;
@@ -1597,7 +1772,7 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
     { num: '6', title: 'Marketing and Sales Strategy', page: '8' },
     { num: '7', title: 'Financial Projections', page: '9' },
     { num: '8', title: 'Funding Request', page: '11' },
-    { num: '9', title: 'Appendix', page: '12' }
+    { num: '9', title: 'Appendix', page: '12' },
   ];
 
   doc.setFontSize(11);
@@ -1647,14 +1822,17 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
 
   if (data.executiveSummary.financialHighlights.length > 0) {
     addSubsectionHeader('1.4 Financial Highlights');
-    addFinancialTable('5-Year Financial Summary', data.executiveSummary.financialHighlights.map(h => ({
-      category: h.metric,
-      year1: h.year1,
-      year2: h.year2,
-      year3: h.year3,
-      year4: h.year4,
-      year5: h.year5
-    })));
+    addFinancialTable(
+      '5-Year Financial Summary',
+      data.executiveSummary.financialHighlights.map((h) => ({
+        category: h.metric,
+        year1: h.year1,
+        year2: h.year2,
+        year3: h.year3,
+        year4: h.year4,
+        year5: h.year5,
+      }))
+    );
   }
 
   if (data.executiveSummary.objectives.length > 0) {
@@ -1830,7 +2008,10 @@ async function getAuthenticatedUserId(): Promise<string | null> {
       }
     );
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
     if (error || !user) return null;
     return user.id;
   } catch {
@@ -1910,51 +2091,139 @@ function parseMarkdown(markdown: string): Array<{
     // Detect resume section headers (all-caps or bold section names without ## prefix)
     // These commonly appear when AI doesn't use markdown headers
     const resumeSectionHeaders = [
-      'PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE', 'OBJECTIVE',
-      'EXPERIENCE', 'PROFESSIONAL EXPERIENCE', 'WORK EXPERIENCE', 'EMPLOYMENT HISTORY', 'WORK HISTORY',
-      'EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC HISTORY',
-      'SKILLS', 'TECHNICAL SKILLS', 'CORE COMPETENCIES', 'KEY SKILLS', 'AREAS OF EXPERTISE',
-      'CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'CREDENTIALS', 'LICENSES & CERTIFICATIONS',
-      'AWARDS', 'HONORS', 'ACHIEVEMENTS', 'ACCOMPLISHMENTS', 'AWARDS & HONORS',
-      'PUBLICATIONS', 'RESEARCH', 'PROJECTS', 'PORTFOLIO',
-      'LANGUAGES', 'VOLUNTEER', 'VOLUNTEER EXPERIENCE', 'COMMUNITY SERVICE',
-      'REFERENCES', 'PROFESSIONAL AFFILIATIONS', 'MEMBERSHIPS', 'ASSOCIATIONS',
-      'INTERESTS', 'ACTIVITIES', 'ADDITIONAL INFORMATION',
+      'PROFESSIONAL SUMMARY',
+      'SUMMARY',
+      'PROFILE',
+      'OBJECTIVE',
+      'EXPERIENCE',
+      'PROFESSIONAL EXPERIENCE',
+      'WORK EXPERIENCE',
+      'EMPLOYMENT HISTORY',
+      'WORK HISTORY',
+      'EDUCATION',
+      'ACADEMIC BACKGROUND',
+      'ACADEMIC HISTORY',
+      'SKILLS',
+      'TECHNICAL SKILLS',
+      'CORE COMPETENCIES',
+      'KEY SKILLS',
+      'AREAS OF EXPERTISE',
+      'CERTIFICATIONS',
+      'CERTIFICATES',
+      'LICENSES',
+      'CREDENTIALS',
+      'LICENSES & CERTIFICATIONS',
+      'AWARDS',
+      'HONORS',
+      'ACHIEVEMENTS',
+      'ACCOMPLISHMENTS',
+      'AWARDS & HONORS',
+      'PUBLICATIONS',
+      'RESEARCH',
+      'PROJECTS',
+      'PORTFOLIO',
+      'LANGUAGES',
+      'VOLUNTEER',
+      'VOLUNTEER EXPERIENCE',
+      'COMMUNITY SERVICE',
+      'REFERENCES',
+      'PROFESSIONAL AFFILIATIONS',
+      'MEMBERSHIPS',
+      'ASSOCIATIONS',
+      'INTERESTS',
+      'ACTIVITIES',
+      'ADDITIONAL INFORMATION',
     ];
 
     // Business plan and general business document section headers
     const businessSectionHeaders = [
-      'EXECUTIVE SUMMARY', 'COMPANY DESCRIPTION', 'COMPANY OVERVIEW', 'BUSINESS OVERVIEW',
-      'MARKET ANALYSIS', 'MARKET RESEARCH', 'INDUSTRY ANALYSIS', 'COMPETITIVE ANALYSIS',
-      'ORGANIZATION AND MANAGEMENT', 'MANAGEMENT TEAM', 'ORGANIZATIONAL STRUCTURE',
-      'PRODUCTS AND SERVICES', 'PRODUCTS OR SERVICES', 'SERVICE OFFERING', 'PRODUCT LINE',
-      'MARKETING AND SALES', 'MARKETING STRATEGY', 'SALES STRATEGY', 'GO-TO-MARKET STRATEGY',
-      'FINANCIAL PROJECTIONS', 'FINANCIAL PLAN', 'FINANCIAL SUMMARY', 'REVENUE MODEL',
-      'FUNDING REQUEST', 'FUNDING REQUIREMENTS', 'INVESTMENT OPPORTUNITY',
-      'APPENDIX', 'SUPPORTING DOCUMENTS', 'ATTACHMENTS',
-      'MISSION STATEMENT', 'VISION STATEMENT', 'COMPANY MISSION', 'OUR MISSION',
-      'TARGET MARKET', 'CUSTOMER SEGMENTS', 'IDEAL CUSTOMER',
-      'VALUE PROPOSITION', 'UNIQUE SELLING PROPOSITION', 'COMPETITIVE ADVANTAGE',
-      'OPERATIONS PLAN', 'OPERATIONAL PLAN', 'BUSINESS OPERATIONS',
-      'MILESTONES', 'TIMELINE', 'ROADMAP', 'KEY MILESTONES',
-      'RISK ANALYSIS', 'RISK ASSESSMENT', 'SWOT ANALYSIS',
-      'CONCLUSION', 'NEXT STEPS', 'CALL TO ACTION',
-      'INTRODUCTION', 'BACKGROUND', 'OVERVIEW', 'ABOUT US', 'WHO WE ARE',
-      'PROBLEM', 'THE PROBLEM', 'PROBLEM STATEMENT',
-      'SOLUTION', 'THE SOLUTION', 'OUR SOLUTION', 'PROPOSED SOLUTION',
-      'BUSINESS MODEL', 'REVENUE STREAMS', 'MONETIZATION',
-      'TEAM', 'THE TEAM', 'OUR TEAM', 'LEADERSHIP', 'KEY PERSONNEL',
-      'TRACTION', 'ACHIEVEMENTS TO DATE', 'PROGRESS',
-      'TERMS AND CONDITIONS', 'LEGAL CONSIDERATIONS',
+      'EXECUTIVE SUMMARY',
+      'COMPANY DESCRIPTION',
+      'COMPANY OVERVIEW',
+      'BUSINESS OVERVIEW',
+      'MARKET ANALYSIS',
+      'MARKET RESEARCH',
+      'INDUSTRY ANALYSIS',
+      'COMPETITIVE ANALYSIS',
+      'ORGANIZATION AND MANAGEMENT',
+      'MANAGEMENT TEAM',
+      'ORGANIZATIONAL STRUCTURE',
+      'PRODUCTS AND SERVICES',
+      'PRODUCTS OR SERVICES',
+      'SERVICE OFFERING',
+      'PRODUCT LINE',
+      'MARKETING AND SALES',
+      'MARKETING STRATEGY',
+      'SALES STRATEGY',
+      'GO-TO-MARKET STRATEGY',
+      'FINANCIAL PROJECTIONS',
+      'FINANCIAL PLAN',
+      'FINANCIAL SUMMARY',
+      'REVENUE MODEL',
+      'FUNDING REQUEST',
+      'FUNDING REQUIREMENTS',
+      'INVESTMENT OPPORTUNITY',
+      'APPENDIX',
+      'SUPPORTING DOCUMENTS',
+      'ATTACHMENTS',
+      'MISSION STATEMENT',
+      'VISION STATEMENT',
+      'COMPANY MISSION',
+      'OUR MISSION',
+      'TARGET MARKET',
+      'CUSTOMER SEGMENTS',
+      'IDEAL CUSTOMER',
+      'VALUE PROPOSITION',
+      'UNIQUE SELLING PROPOSITION',
+      'COMPETITIVE ADVANTAGE',
+      'OPERATIONS PLAN',
+      'OPERATIONAL PLAN',
+      'BUSINESS OPERATIONS',
+      'MILESTONES',
+      'TIMELINE',
+      'ROADMAP',
+      'KEY MILESTONES',
+      'RISK ANALYSIS',
+      'RISK ASSESSMENT',
+      'SWOT ANALYSIS',
+      'CONCLUSION',
+      'NEXT STEPS',
+      'CALL TO ACTION',
+      'INTRODUCTION',
+      'BACKGROUND',
+      'OVERVIEW',
+      'ABOUT US',
+      'WHO WE ARE',
+      'PROBLEM',
+      'THE PROBLEM',
+      'PROBLEM STATEMENT',
+      'SOLUTION',
+      'THE SOLUTION',
+      'OUR SOLUTION',
+      'PROPOSED SOLUTION',
+      'BUSINESS MODEL',
+      'REVENUE STREAMS',
+      'MONETIZATION',
+      'TEAM',
+      'THE TEAM',
+      'OUR TEAM',
+      'LEADERSHIP',
+      'KEY PERSONNEL',
+      'TRACTION',
+      'ACHIEVEMENTS TO DATE',
+      'PROGRESS',
+      'TERMS AND CONDITIONS',
+      'LEGAL CONSIDERATIONS',
     ];
 
     // Check if line is a resume section header (exact match or with ** markers)
     const cleanedLine = line.replace(/^\*\*/, '').replace(/\*\*$/, '').trim();
-    const isResumeSectionHeader = resumeSectionHeaders.some(header =>
-      cleanedLine.toUpperCase() === header ||
-      cleanedLine.toUpperCase() === header + ':' ||
-      line.toUpperCase() === header ||
-      line.toUpperCase() === header + ':'
+    const isResumeSectionHeader = resumeSectionHeaders.some(
+      (header) =>
+        cleanedLine.toUpperCase() === header ||
+        cleanedLine.toUpperCase() === header + ':' ||
+        line.toUpperCase() === header ||
+        line.toUpperCase() === header + ':'
     );
 
     if (isResumeSectionHeader) {
@@ -1963,11 +2232,12 @@ function parseMarkdown(markdown: string): Array<{
     }
 
     // Check if line is a business document section header
-    const isBusinessSectionHeader = businessSectionHeaders.some(header =>
-      cleanedLine.toUpperCase() === header ||
-      cleanedLine.toUpperCase() === header + ':' ||
-      line.toUpperCase() === header ||
-      line.toUpperCase() === header + ':'
+    const isBusinessSectionHeader = businessSectionHeaders.some(
+      (header) =>
+        cleanedLine.toUpperCase() === header ||
+        cleanedLine.toUpperCase() === header + ':' ||
+        line.toUpperCase() === header ||
+        line.toUpperCase() === header + ':'
     );
 
     if (isBusinessSectionHeader) {
@@ -1994,7 +2264,7 @@ function parseMarkdown(markdown: string): Array<{
         type: 'qr',
         text: '',
         qrData: qrMatch[1].trim(),
-        qrCount: qrMatch[2] ? parseInt(qrMatch[2], 10) : 1
+        qrCount: qrMatch[2] ? parseInt(qrMatch[2], 10) : 1,
       });
       continue;
     }
@@ -2012,7 +2282,10 @@ function parseMarkdown(markdown: string): Array<{
       if (line.match(/^\|[\s-:|]+\|$/)) {
         continue;
       }
-      const cells = line.slice(1, -1).split('|').map(c => c.trim());
+      const cells = line
+        .slice(1, -1)
+        .split('|')
+        .map((c) => c.trim());
       currentTable.push(cells);
       inTable = true;
       continue;
@@ -2044,21 +2317,23 @@ function parseMarkdown(markdown: string): Array<{
  * Fixes em dashes, smart quotes, and other problematic characters
  */
 function normalizeText(text: string): string {
-  return text
-    // Em dashes and en dashes to regular dashes
-    .replace(/—/g, '-')
-    .replace(/–/g, '-')
-    // Smart quotes to regular quotes
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'")
-    // Ellipsis
-    .replace(/…/g, '...')
-    // Non-breaking spaces
-    .replace(/\u00A0/g, ' ')
-    // Other common problematic characters
-    .replace(/•/g, '-')
-    .replace(/·/g, '-')
-    .trim();
+  return (
+    text
+      // Em dashes and en dashes to regular dashes
+      .replace(/—/g, '-')
+      .replace(/–/g, '-')
+      // Smart quotes to regular quotes
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
+      // Ellipsis
+      .replace(/…/g, '...')
+      // Non-breaking spaces
+      .replace(/\u00A0/g, ' ')
+      // Other common problematic characters
+      .replace(/•/g, '-')
+      .replace(/·/g, '-')
+      .trim()
+  );
 }
 
 /**
@@ -2145,7 +2420,7 @@ function parseMarkdownToSpreadsheet(content: string, title: string): Spreadsheet
       const cells = trimmedLine
         .slice(1, -1) // Remove leading and trailing |
         .split('|')
-        .map(cell => {
+        .map((cell) => {
           const value = cell.trim();
           // Detect if it looks like a number
           const numValue = parseFloat(value.replace(/[$,]/g, ''));
@@ -2153,10 +2428,10 @@ function parseMarkdownToSpreadsheet(content: string, title: string): Spreadsheet
           const isPercent = /^\d+(\.\d+)?%$/.test(value);
 
           return {
-            value: isNaN(numValue) ? value : (isCurrency || isPercent ? value : numValue),
+            value: isNaN(numValue) ? value : isCurrency || isPercent ? value : numValue,
             currency: isCurrency,
             percent: isPercent,
-            alignment: isNaN(numValue) ? 'left' as const : 'right' as const,
+            alignment: isNaN(numValue) ? ('left' as const) : ('right' as const),
           };
         });
 
@@ -2208,19 +2483,13 @@ export async function POST(request: NextRequest) {
     const { content, title = 'Document' } = body;
 
     if (!content || typeof content !== 'string') {
-      return NextResponse.json(
-        { error: 'Content is required' },
-        { status: 400 }
-      );
+      return errors.badRequest('Content is required');
     }
 
     // Limit content size to prevent memory exhaustion attacks (max 1MB)
     const MAX_CONTENT_SIZE = 1024 * 1024; // 1MB
     if (content.length > MAX_CONTENT_SIZE) {
-      return NextResponse.json(
-        { error: `Content too large. Maximum size is ${MAX_CONTENT_SIZE / 1024}KB` },
-        { status: 413 }
-      );
+      return errors.payloadTooLarge(`${MAX_CONTENT_SIZE / 1024}KB`);
     }
 
     // Get authenticated user ID from session (secure - not from request body)
@@ -2240,14 +2509,17 @@ export async function POST(request: NextRequest) {
 
         // Generate unique filename
         const timestamp = Date.now();
-        const sanitizedTitle = title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_').slice(0, 50);
+        const sanitizedTitle = title
+          .replace(/[^a-zA-Z0-9\s-]/g, '')
+          .replace(/\s+/g, '_')
+          .slice(0, 50);
         const filename = `${sanitizedTitle}_${timestamp}.xlsx`;
 
         // If supabase not available, return data URL directly
         if (!supabase) {
           const base64 = xlsxBuffer.toString('base64');
           const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
-          return NextResponse.json({
+          return successResponse({
             success: true,
             dataUrl,
             filename,
@@ -2258,7 +2530,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Upload to Supabase Storage
-        const storagePath = userId ? `documents/${userId}/${filename}` : `documents/anonymous/${filename}`;
+        const storagePath = userId
+          ? `documents/${userId}/${filename}`
+          : `documents/anonymous/${filename}`;
 
         const { error: uploadError } = await supabase.storage
           .from('generated-documents')
@@ -2272,7 +2546,7 @@ export async function POST(request: NextRequest) {
           // Fallback to data URL
           const base64 = xlsxBuffer.toString('base64');
           const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
-          return NextResponse.json({
+          return successResponse({
             success: true,
             dataUrl,
             filename,
@@ -2291,7 +2565,7 @@ export async function POST(request: NextRequest) {
           log.error('Excel signed URL error', { error: signedError ?? 'Unknown error' });
           const base64 = xlsxBuffer.toString('base64');
           const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
-          return NextResponse.json({
+          return successResponse({
             success: true,
             dataUrl,
             filename,
@@ -2302,7 +2576,7 @@ export async function POST(request: NextRequest) {
         }
 
         log.info('Excel generated and uploaded successfully');
-        return NextResponse.json({
+        return successResponse({
           success: true,
           downloadUrl: signedData.signedUrl,
           filename,
@@ -2312,10 +2586,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (xlsxError) {
         log.error('Excel generation error', xlsxError instanceof Error ? xlsxError : { xlsxError });
-        return NextResponse.json(
-          { error: 'Failed to generate Excel file', details: xlsxError instanceof Error ? xlsxError.message : 'Unknown error' },
-          { status: 500 }
-        );
+        return errors.serverError('Failed to generate Excel file');
       }
     }
 
@@ -2323,33 +2594,36 @@ export async function POST(request: NextRequest) {
     const lowerTitle = title.toLowerCase();
     const lowerContent = content.toLowerCase();
 
-    const isResume = lowerTitle.includes('resume') ||
-                     lowerTitle.includes('résumé') ||
-                     lowerTitle.includes('cv') ||
-                     lowerTitle.includes('curriculum vitae') ||
-                     lowerContent.includes('work experience') ||
-                     lowerContent.includes('professional experience') ||
-                     lowerContent.includes('employment history') ||
-                     lowerContent.includes('career summary') ||
-                     lowerContent.includes('professional summary') ||
-                     (lowerContent.includes('education') && lowerContent.includes('skills')) ||
-                     (lowerContent.includes('certifications') && lowerContent.includes('experience'));
+    const isResume =
+      lowerTitle.includes('resume') ||
+      lowerTitle.includes('résumé') ||
+      lowerTitle.includes('cv') ||
+      lowerTitle.includes('curriculum vitae') ||
+      lowerContent.includes('work experience') ||
+      lowerContent.includes('professional experience') ||
+      lowerContent.includes('employment history') ||
+      lowerContent.includes('career summary') ||
+      lowerContent.includes('professional summary') ||
+      (lowerContent.includes('education') && lowerContent.includes('skills')) ||
+      (lowerContent.includes('certifications') && lowerContent.includes('experience'));
 
-    const isInvoice = lowerTitle.includes('invoice') ||
-                      lowerTitle.includes('receipt') ||
-                      lowerTitle.includes('bill') ||
-                      lowerContent.includes('invoice #') ||
-                      lowerContent.includes('invoice:') ||
-                      lowerContent.includes('bill to') ||
-                      lowerContent.includes('total due') ||
-                      lowerContent.includes('amount due');
+    const isInvoice =
+      lowerTitle.includes('invoice') ||
+      lowerTitle.includes('receipt') ||
+      lowerTitle.includes('bill') ||
+      lowerContent.includes('invoice #') ||
+      lowerContent.includes('invoice:') ||
+      lowerContent.includes('bill to') ||
+      lowerContent.includes('total due') ||
+      lowerContent.includes('amount due');
 
-    const isBusinessPlan = lowerTitle.includes('business plan') ||
-                           lowerTitle.includes('business proposal') ||
-                           lowerContent.includes('executive summary') ||
-                           lowerContent.includes('market analysis') ||
-                           lowerContent.includes('financial projections') ||
-                           (lowerContent.includes('business') && lowerContent.includes('strategy'));
+    const isBusinessPlan =
+      lowerTitle.includes('business plan') ||
+      lowerTitle.includes('business proposal') ||
+      lowerContent.includes('executive summary') ||
+      lowerContent.includes('market analysis') ||
+      lowerContent.includes('financial projections') ||
+      (lowerContent.includes('business') && lowerContent.includes('strategy'));
 
     // Log detected document type for debugging
     log.info('Document type detection', {
@@ -2357,7 +2631,13 @@ export async function POST(request: NextRequest) {
       isResume,
       isInvoice,
       isBusinessPlan,
-      effectiveType: isInvoice ? 'invoice' : (isResume ? 'resume' : (isBusinessPlan ? 'business_plan' : 'generic'))
+      effectiveType: isInvoice
+        ? 'invoice'
+        : isResume
+          ? 'resume'
+          : isBusinessPlan
+            ? 'business_plan'
+            : 'generic',
     });
 
     // Create PDF
@@ -2377,25 +2657,22 @@ export async function POST(request: NextRequest) {
         log.info('Invoice parsed', {
           companyName: invoiceData.companyName,
           invoiceNumber: invoiceData.invoiceNumber,
-          itemCount: invoiceData.items.length
+          itemCount: invoiceData.items.length,
         });
       } catch (parseError) {
         log.error('Invoice parse error', parseError instanceof Error ? parseError : { parseError });
-        return NextResponse.json(
-          { error: 'Failed to parse invoice content', details: parseError instanceof Error ? parseError.message : 'Unknown parse error' },
-          { status: 500 }
-        );
+        return errors.serverError('Failed to parse invoice content');
       }
 
       try {
         generateInvoicePDF(doc, invoiceData);
         log.info('Invoice PDF generated successfully');
       } catch (pdfError) {
-        log.error('Invoice PDF generation error', pdfError instanceof Error ? pdfError : { pdfError });
-        return NextResponse.json(
-          { error: 'Failed to generate invoice PDF', details: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error' },
-          { status: 500 }
+        log.error(
+          'Invoice PDF generation error',
+          pdfError instanceof Error ? pdfError : { pdfError }
         );
+        return errors.serverError('Failed to generate invoice PDF');
       }
 
       // Skip to file upload (bypass markdown rendering)
@@ -2431,7 +2708,7 @@ export async function POST(request: NextRequest) {
         if (pdfUploadError) {
           log.error('Invoice PDF upload error', { error: pdfUploadError ?? 'Unknown error' });
           const pdfBase64 = doc.output('datauristring');
-          return NextResponse.json({
+          return successResponse({
             success: true,
             format: 'pdf',
             title,
@@ -2443,14 +2720,15 @@ export async function POST(request: NextRequest) {
 
         log.info('Invoice PDF uploaded', { pdfPath });
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                        request.headers.get('origin') ||
-                        'https://jcil.ai';
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-        const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
+        const pdfToken = Buffer.from(
+          JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })
+        ).toString('base64url');
         const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           format: 'pdf',
           title,
@@ -2463,7 +2741,7 @@ export async function POST(request: NextRequest) {
 
       // Fallback: Return data URL
       const pdfBase64 = doc.output('datauristring');
-      return NextResponse.json({
+      return successResponse({
         success: true,
         format: 'pdf',
         title,
@@ -2484,25 +2762,25 @@ export async function POST(request: NextRequest) {
         log.info('Business plan parsed', {
           companyName: businessPlanData.companyName,
           hasSummary: !!businessPlanData.executiveSummary.missionStatement,
-          hasDescription: !!businessPlanData.companyDescription.overview
+          hasDescription: !!businessPlanData.companyDescription.overview,
         });
       } catch (parseError) {
-        log.error('Business plan parse error', parseError instanceof Error ? parseError : { parseError });
-        return NextResponse.json(
-          { error: 'Failed to parse business plan content', details: parseError instanceof Error ? parseError.message : 'Unknown parse error' },
-          { status: 500 }
+        log.error(
+          'Business plan parse error',
+          parseError instanceof Error ? parseError : { parseError }
         );
+        return errors.serverError('Failed to parse business plan content');
       }
 
       try {
         generateBusinessPlanPDF(doc, businessPlanData);
         log.info('Business plan PDF generated successfully');
       } catch (pdfError) {
-        log.error('Business plan PDF generation error', pdfError instanceof Error ? pdfError : { pdfError });
-        return NextResponse.json(
-          { error: 'Failed to generate business plan PDF', details: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error' },
-          { status: 500 }
+        log.error(
+          'Business plan PDF generation error',
+          pdfError instanceof Error ? pdfError : { pdfError }
         );
+        return errors.serverError('Failed to generate business plan PDF');
       }
 
       // Generate filename
@@ -2537,7 +2815,7 @@ export async function POST(request: NextRequest) {
         if (pdfUploadError) {
           log.error('Business plan PDF upload error', { error: pdfUploadError ?? 'Unknown error' });
           const pdfBase64 = doc.output('datauristring');
-          return NextResponse.json({
+          return successResponse({
             success: true,
             format: 'pdf',
             title,
@@ -2549,14 +2827,15 @@ export async function POST(request: NextRequest) {
 
         log.info('Business plan PDF uploaded', { pdfPath });
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                        request.headers.get('origin') ||
-                        'https://jcil.ai';
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-        const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
+        const pdfToken = Buffer.from(
+          JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })
+        ).toString('base64url');
         const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           format: 'pdf',
           title,
@@ -2569,7 +2848,7 @@ export async function POST(request: NextRequest) {
 
       // Fallback: Return data URL
       const pdfBase64 = doc.output('datauristring');
-      return NextResponse.json({
+      return successResponse({
         success: true,
         format: 'pdf',
         title,
@@ -2582,8 +2861,8 @@ export async function POST(request: NextRequest) {
     // Page settings - tighter margins for resumes, professional for business docs
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = isResume ? 15 : (isBusinessPlan ? 20 : 20);
-    const contentWidth = pageWidth - (margin * 2);
+    const margin = isResume ? 15 : isBusinessPlan ? 20 : 20;
+    const contentWidth = pageWidth - margin * 2;
     let y = margin;
     let isFirstElement = true;
     let resumeHeaderDone = false;
@@ -2616,7 +2895,7 @@ export async function POST(request: NextRequest) {
       // Check if first element is a generic title (H1 with generic text)
       while (elements.length > 0 && elements[0].type === 'h1') {
         const firstText = elements[0].text.toLowerCase().trim();
-        const isGenericTitle = genericTitlePatterns.some(p => p.test(firstText));
+        const isGenericTitle = genericTitlePatterns.some((p) => p.test(firstText));
 
         if (isGenericTitle) {
           log.info('Filtering out generic resume title', { title: elements[0].text });
@@ -2629,7 +2908,12 @@ export async function POST(request: NextRequest) {
       // Also filter if the first H1 doesn't look like a name (too long or has keywords)
       if (elements.length > 0 && elements[0].type === 'h1') {
         const firstH1 = elements[0].text.toLowerCase();
-        if (firstH1.includes('template') || firstH1.includes('ats') || firstH1.includes('friendly') || firstH1.length > 50) {
+        if (
+          firstH1.includes('template') ||
+          firstH1.includes('ats') ||
+          firstH1.includes('friendly') ||
+          firstH1.length > 50
+        ) {
           log.info('Filtering out likely template title', { title: elements[0].text });
           elements = elements.slice(1);
         }
@@ -2656,7 +2940,9 @@ export async function POST(request: NextRequest) {
             doc.setFontSize(28);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 64, 175);
-            doc.text(cleanMarkdown(element.text).text.toUpperCase(), pageWidth - margin, y, { align: 'right' });
+            doc.text(cleanMarkdown(element.text).text.toUpperCase(), pageWidth - margin, y, {
+              align: 'right',
+            });
             y += 12;
             doc.setDrawColor(30, 64, 175);
             doc.setLineWidth(0.8);
@@ -2813,7 +3099,8 @@ export async function POST(request: NextRequest) {
             // RESUME: Contact info - centered, smaller
             // BUT: if the text is long (>100 chars), it's likely a summary, not contact info
             // Force left-align for long paragraphs even if we haven't seen a header yet
-            const isLikelyContactInfo = cleaned.text.length < 100 &&
+            const isLikelyContactInfo =
+              cleaned.text.length < 100 &&
               !cleaned.text.toLowerCase().includes('experience') &&
               !cleaned.text.toLowerCase().includes('professional') &&
               !cleaned.text.toLowerCase().includes('proven track record') &&
@@ -2844,7 +3131,12 @@ export async function POST(request: NextRequest) {
               doc.text(splitText, margin, y);
               y += textHeight + 1.5;
             }
-          } else if (isInvoice && (lowerText.includes('total due') || lowerText.includes('amount due') || lowerText.includes('balance due'))) {
+          } else if (
+            isInvoice &&
+            (lowerText.includes('total due') ||
+              lowerText.includes('amount due') ||
+              lowerText.includes('balance due'))
+          ) {
             // INVOICE: Total Due - Large, bold, right-aligned, with background
             checkPageBreak(15);
             doc.setFillColor(30, 64, 175);
@@ -2862,31 +3154,33 @@ export async function POST(request: NextRequest) {
             doc.setTextColor(51, 51, 51);
             doc.text(cleaned.text, pageWidth - margin, y, { align: 'right' });
             y += 7;
-          } else if (isInvoice && (
-            lowerText.startsWith('from:') ||
-            lowerText.startsWith('bill to:') ||
-            lowerText.includes('invoice #') ||
-            lowerText.includes('invoice:') ||
-            lowerText.startsWith('date:') ||
-            lowerText.startsWith('due date:') ||
-            lowerText.startsWith('payment terms:') ||
-            lowerText.startsWith('accepted payment') ||
-            lowerText.includes('thank you')
-          )) {
+          } else if (
+            isInvoice &&
+            (lowerText.startsWith('from:') ||
+              lowerText.startsWith('bill to:') ||
+              lowerText.includes('invoice #') ||
+              lowerText.includes('invoice:') ||
+              lowerText.startsWith('date:') ||
+              lowerText.startsWith('due date:') ||
+              lowerText.startsWith('payment terms:') ||
+              lowerText.startsWith('accepted payment') ||
+              lowerText.includes('thank you'))
+          ) {
             // INVOICE: Header labels (From:, Bill To:, Invoice #, etc.) - Bold, tight spacing
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 64, 175);
             doc.text(cleaned.text, margin, y);
             y += 5; // Tight spacing for labels
-          } else if (isInvoice && (
+          } else if (
+            isInvoice &&
             // Detect address/contact lines: contains phone, email, city/state patterns, or is short text after From:/Bill To:
-            lowerText.includes('phone:') ||
-            lowerText.includes('email:') ||
-            lowerText.match(/[a-z]+,\s*[a-z]{2}\s*\d{5}/i) || // City, ST ZIP pattern
-            lowerText.match(/^\d+\s+\w+/) || // Street address pattern (123 Main St)
-            (cleaned.text.length < 50 && !lowerText.includes(':') && y < 120) // Short lines in header area
-          )) {
+            (lowerText.includes('phone:') ||
+              lowerText.includes('email:') ||
+              lowerText.match(/[a-z]+,\s*[a-z]{2}\s*\d{5}/i) || // City, ST ZIP pattern
+              lowerText.match(/^\d+\s+\w+/) || // Street address pattern (123 Main St)
+              (cleaned.text.length < 50 && !lowerText.includes(':') && y < 120)) // Short lines in header area
+          ) {
             // INVOICE: Address/contact lines - Normal weight, single-spaced
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
@@ -2896,14 +3190,19 @@ export async function POST(request: NextRequest) {
           } else if (isResume) {
             // RESUME PARAGRAPH - Force left-align everything
             // Detect if this looks like a job title
-            const jobTitlePatterns = /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief|fellow|resident|attending|surgeon|physician|professor|technician|nurse|therapist)/i;
+            const jobTitlePatterns =
+              /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief|fellow|resident|attending|surgeon|physician|professor|technician|nurse|therapist)/i;
             const skillsPattern = /^(\*\*)?[A-Za-z]+(\s+[A-Za-z]+)?:(\*\*)?\s/; // Pattern like "Technical: " or "**Surgical Specialties:**"
 
             // Date pattern to extract dates from company lines
             // Matches: "June 2019 - Present", "2019 - 2023", "January 2020 - December 2022", "2019", etc.
-            const dateExtractPattern = /\s+((?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4}\s*[-–]\s*(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?(?:\d{4}|Present|Current)|(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4})$/i;
+            const dateExtractPattern =
+              /\s+((?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4}\s*[-–]\s*(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?(?:\d{4}|Present|Current)|(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4})$/i;
 
-            const isLikelyJobTitle = jobTitlePatterns.test(cleaned.text) && cleaned.text.length < 80 && !dateExtractPattern.test(cleaned.text);
+            const isLikelyJobTitle =
+              jobTitlePatterns.test(cleaned.text) &&
+              cleaned.text.length < 80 &&
+              !dateExtractPattern.test(cleaned.text);
             const dateMatch = cleaned.text.match(dateExtractPattern);
             const isLikelyCompanyLine = dateMatch !== null;
             const isLikelySkillLine = skillsPattern.test(cleaned.text);
@@ -2971,9 +3270,9 @@ export async function POST(request: NextRequest) {
             }
           } else {
             // Non-resume standard paragraph - consistent line height and spacing
-            const fontSize = isBusinessPlan ? 11 : (isInvoice ? 10 : 11);
-            const paragraphLineHeight = isBusinessPlan ? 5.5 : (isInvoice ? 4 : 5);
-            const paragraphSpacing = isBusinessPlan ? 4 : (isInvoice ? 1 : 3);
+            const fontSize = isBusinessPlan ? 11 : isInvoice ? 10 : 11;
+            const paragraphLineHeight = isBusinessPlan ? 5.5 : isInvoice ? 4 : 5;
+            const paragraphSpacing = isBusinessPlan ? 4 : isInvoice ? 1 : 3;
 
             doc.setFontSize(fontSize);
             let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
@@ -3015,7 +3314,10 @@ export async function POST(request: NextRequest) {
 
               // Item text - tighter line height for resumes
               const bulletIndent = isResume ? 7 : 8;
-              const itemText = doc.splitTextToSize(itemCleaned.text, contentWidth - bulletIndent - 2);
+              const itemText = doc.splitTextToSize(
+                itemCleaned.text,
+                contentWidth - bulletIndent - 2
+              );
               doc.text(itemText, margin + bulletIndent, y);
               y += itemText.length * (isResume ? 3.8 : 5) + (isResume ? 0.5 : 2);
             }
@@ -3032,7 +3334,12 @@ export async function POST(request: NextRequest) {
             let colWidths: number[];
             if (isInvoice && colCount === 4) {
               // Invoice table: Description | Qty | Rate | Amount
-              colWidths = [contentWidth * 0.45, contentWidth * 0.15, contentWidth * 0.2, contentWidth * 0.2];
+              colWidths = [
+                contentWidth * 0.45,
+                contentWidth * 0.15,
+                contentWidth * 0.2,
+                contentWidth * 0.2,
+              ];
             } else {
               // Equal widths for other tables
               const colWidth = contentWidth / colCount;
@@ -3080,7 +3387,11 @@ export async function POST(request: NextRequest) {
 
                 if (isHeader) {
                   doc.setFont('helvetica', 'bold');
-                  doc.setTextColor(isInvoice ? 255 : 30, isInvoice ? 255 : 64, isInvoice ? 255 : 175);
+                  doc.setTextColor(
+                    isInvoice ? 255 : 30,
+                    isInvoice ? 255 : 64,
+                    isInvoice ? 255 : 175
+                  );
                 } else {
                   doc.setFont('helvetica', 'normal');
                   doc.setTextColor(51, 51, 51);
@@ -3119,7 +3430,10 @@ export async function POST(request: NextRequest) {
           doc.setFillColor(248, 250, 252);
           doc.setDrawColor(30, 64, 175);
 
-          const quoteText = doc.splitTextToSize(cleanMarkdown(element.text).text, contentWidth - 15);
+          const quoteText = doc.splitTextToSize(
+            cleanMarkdown(element.text).text,
+            contentWidth - 15
+          );
           const quoteHeight = quoteText.length * 5 + 6;
 
           doc.rect(margin, y - 4, contentWidth, quoteHeight, 'F');
@@ -3190,7 +3504,7 @@ export async function POST(request: NextRequest) {
             try {
               const qrDataUrl = await QRCode.toDataURL(element.qrData, {
                 width: 400, // Higher resolution
-                margin: 2,  // Quiet zone
+                margin: 2, // Quiet zone
                 color: { dark: '#000000', light: '#ffffff' },
                 errorCorrectionLevel: 'M',
               });
@@ -3248,12 +3562,7 @@ export async function POST(request: NextRequest) {
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(148, 163, 184);
-        doc.text(
-          `${i} / ${pageCount}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: 'center' }
-        );
+        doc.text(`${i} / ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       }
     }
 
@@ -3292,7 +3601,7 @@ export async function POST(request: NextRequest) {
         log.error('PDF upload error', { error: pdfUploadError ?? 'Unknown error' });
         // Fallback to data URL
         const pdfBase64 = doc.output('datauristring');
-        return NextResponse.json({
+        return successResponse({
           success: true,
           format: 'pdf',
           title,
@@ -3305,14 +3614,15 @@ export async function POST(request: NextRequest) {
       log.info('PDF uploaded successfully', { pdfPath });
 
       // Generate clean proxy URL that hides Supabase details
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                      request.headers.get('origin') ||
-                      'https://jcil.ai';
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-      const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
+      const pdfToken = Buffer.from(
+        JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })
+      ).toString('base64url');
       const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         format: 'pdf',
         title,
@@ -3325,7 +3635,7 @@ export async function POST(request: NextRequest) {
 
     // Fallback: Return data URL if no Supabase or no userId
     const pdfBase64 = doc.output('datauristring');
-    return NextResponse.json({
+    return successResponse({
       success: true,
       format: 'pdf',
       title,
@@ -3333,12 +3643,8 @@ export async function POST(request: NextRequest) {
       filename: pdfFilename,
       storage: 'local',
     });
-
   } catch (error) {
     log.error('Error generating document', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to generate document' },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to generate document');
   }
 }

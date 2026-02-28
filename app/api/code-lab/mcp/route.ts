@@ -7,12 +7,13 @@
  * - Resource access
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getMCPManager, MCPServerConfig } from '@/lib/mcp/mcp-client';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('MCPAPI');
 
@@ -81,10 +82,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const rateLimit = await rateLimiters.codeLabEdit(auth.user!.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     const body = await request.json();
@@ -100,10 +98,7 @@ export async function POST(request: NextRequest) {
         const config = params.config as MCPServerConfig;
 
         if (!config || !config.id || !config.command) {
-          return NextResponse.json(
-            { error: 'Invalid server configuration. Required: id, command' },
-            { status: 400 }
-          );
+          return errors.badRequest('Invalid server configuration. Required: id, command');
         }
 
         log.info('Adding MCP server', { userId: auth.user.id, serverId: config.id });
@@ -111,7 +106,7 @@ export async function POST(request: NextRequest) {
         try {
           const client = await manager.addServer(config);
 
-          return NextResponse.json({
+          return successResponse({
             success: true,
             server: {
               id: config.id,
@@ -123,10 +118,7 @@ export async function POST(request: NextRequest) {
             },
           });
         } catch (error) {
-          return NextResponse.json(
-            { error: `Failed to add server: ${(error as Error).message}` },
-            { status: 500 }
-          );
+          return errors.serverError(`Failed to add server: ${(error as Error).message}`);
         }
       }
 
@@ -134,19 +126,19 @@ export async function POST(request: NextRequest) {
         const serverId = params.serverId as string;
 
         if (!serverId) {
-          return NextResponse.json({ error: 'Missing serverId' }, { status: 400 });
+          return errors.badRequest('Missing serverId');
         }
 
         await manager.removeServer(serverId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'startServer': {
         const serverId = params.serverId as string;
 
         if (!serverId) {
-          return NextResponse.json({ error: 'Missing serverId' }, { status: 400 });
+          return errors.badRequest('Missing serverId');
         }
 
         const client = manager.getClient(serverId);
@@ -155,7 +147,7 @@ export async function POST(request: NextRequest) {
           const defaultConfig = DEFAULT_SERVERS.find((s) => s.id === serverId);
           if (defaultConfig) {
             const newClient = await manager.addServer({ ...defaultConfig, enabled: true });
-            return NextResponse.json({
+            return successResponse({
               success: true,
               server: {
                 id: serverId,
@@ -164,12 +156,12 @@ export async function POST(request: NextRequest) {
               },
             });
           }
-          return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+          return errors.notFound('Server');
         }
 
         await client.connect();
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           server: {
             id: serverId,
@@ -183,17 +175,17 @@ export async function POST(request: NextRequest) {
         const serverId = params.serverId as string;
 
         if (!serverId) {
-          return NextResponse.json({ error: 'Missing serverId' }, { status: 400 });
+          return errors.badRequest('Missing serverId');
         }
 
         const client = manager.getClient(serverId);
         if (!client) {
-          return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+          return errors.notFound('Server');
         }
 
         await client.disconnect();
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'callTool': {
@@ -204,7 +196,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!serverId || !toolName) {
-          return NextResponse.json({ error: 'Missing serverId or toolName' }, { status: 400 });
+          return errors.badRequest('Missing serverId or toolName');
         }
 
         log.info('Calling MCP tool', { serverId, toolName });
@@ -212,22 +204,19 @@ export async function POST(request: NextRequest) {
         try {
           const result = await manager.callTool(serverId, toolName, args || {});
 
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result,
           });
         } catch (error) {
-          return NextResponse.json(
-            { error: `Tool call failed: ${(error as Error).message}` },
-            { status: 500 }
-          );
+          return errors.serverError(`Tool call failed: ${(error as Error).message}`);
         }
       }
 
       case 'listTools': {
         const tools = manager.getAllTools();
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           tools,
         });
@@ -237,26 +226,23 @@ export async function POST(request: NextRequest) {
         const { serverId, uri } = params as { serverId: string; uri: string };
 
         if (!serverId || !uri) {
-          return NextResponse.json({ error: 'Missing serverId or uri' }, { status: 400 });
+          return errors.badRequest('Missing serverId or uri');
         }
 
         const client = manager.getClient(serverId);
         if (!client) {
-          return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+          return errors.notFound('Server');
         }
 
         try {
           const result = await client.readResource(uri);
 
-          return NextResponse.json({
+          return successResponse({
             success: true,
             ...result,
           });
         } catch (error) {
-          return NextResponse.json(
-            { error: `Resource read failed: ${(error as Error).message}` },
-            { status: 500 }
-          );
+          return errors.serverError(`Resource read failed: ${(error as Error).message}`);
         }
       }
 
@@ -268,38 +254,32 @@ export async function POST(request: NextRequest) {
         };
 
         if (!serverId || !name) {
-          return NextResponse.json({ error: 'Missing serverId or name' }, { status: 400 });
+          return errors.badRequest('Missing serverId or name');
         }
 
         const client = manager.getClient(serverId);
         if (!client) {
-          return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+          return errors.notFound('Server');
         }
 
         try {
           const result = await client.getPrompt(name, args);
 
-          return NextResponse.json({
+          return successResponse({
             success: true,
             ...result,
           });
         } catch (error) {
-          return NextResponse.json(
-            { error: `Prompt get failed: ${(error as Error).message}` },
-            { status: 500 }
-          );
+          return errors.serverError(`Prompt get failed: ${(error as Error).message}`);
         }
       }
 
       default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+        return errors.badRequest(`Unknown action: ${action}`);
     }
   } catch (error) {
     log.error('MCP API error', error as Error);
-    return NextResponse.json(
-      { error: 'MCP operation failed', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('MCP operation failed');
   }
 }
 
@@ -325,10 +305,10 @@ export async function GET(request: NextRequest) {
       // Get specific server info
       const client = manager.getClient(serverId);
       if (!client) {
-        return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+        return errors.notFound('Server');
       }
 
-      return NextResponse.json({
+      return successResponse({
         server: {
           id: serverId,
           status: client.getStatus(),
@@ -351,13 +331,13 @@ export async function GET(request: NextRequest) {
       promptCount: client.prompts.length,
     }));
 
-    return NextResponse.json({
+    return successResponse({
       servers,
       availableDefaults: DEFAULT_SERVERS,
       totalTools: manager.getAllTools().length,
     });
   } catch (error) {
     log.error('MCP API error', error as Error);
-    return NextResponse.json({ error: 'Failed to get MCP info' }, { status: 500 });
+    return errors.serverError('Failed to get MCP info');
   }
 }

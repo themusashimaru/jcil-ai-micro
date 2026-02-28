@@ -6,7 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { requireUser } from '@/lib/auth/user-guard';
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     // Honeypot check - if filled, it's a bot
     if (honeypot) {
       // Pretend success but don't create ticket
-      return NextResponse.json({ success: true, ticketId: 'fake' });
+      return successResponse({ success: true, ticketId: 'fake' });
     }
 
     // Sanitize inputs (defense in depth)

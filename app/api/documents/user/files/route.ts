@@ -9,7 +9,8 @@
  * DELETE - Delete document
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
@@ -69,13 +70,15 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       log.error('Error fetching documents', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
+      return errors.serverError('Failed to fetch documents');
     }
 
     // Get user's stats for quota display
-    const { data: stats } = await supabase.rpc('get_user_document_stats', { p_user_id: auth.user.id });
+    const { data: stats } = await supabase.rpc('get_user_document_stats', {
+      p_user_id: auth.user.id,
+    });
 
-    return NextResponse.json({
+    return successResponse({
       documents,
       stats: stats?.[0] || {
         total_documents: 0,
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -102,28 +105,18 @@ export async function POST(request: NextRequest) {
     const customName = formData.get('name') as string | null;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return errors.badRequest('No file provided');
     }
 
     // Validate file type
     const fileType = ALLOWED_TYPES[file.type as keyof typeof ALLOWED_TYPES];
     if (!fileType) {
-      return NextResponse.json(
-        {
-          error: 'Invalid file type. Allowed: PDF, DOCX, XLSX, TXT, CSV',
-        },
-        { status: 400 }
-      );
+      return errors.badRequest('Invalid file type. Allowed: PDF, DOCX, XLSX, TXT, CSV');
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        {
-          error: 'File too large. Maximum size is 10MB',
-        },
-        { status: 400 }
-      );
+      return errors.badRequest('File too large. Maximum size is 10MB');
     }
 
     // Check document limit based on tier (we'll add tier check later)
@@ -135,11 +128,8 @@ export async function POST(request: NextRequest) {
     // Default limit - will be adjusted by tier
     const documentLimit = 30;
     if (count && count >= documentLimit) {
-      return NextResponse.json(
-        {
-          error: `Document limit reached (${documentLimit}). Upgrade your plan for more storage.`,
-        },
-        { status: 403 }
+      return errors.forbidden(
+        `Document limit reached (${documentLimit}). Upgrade your plan for more storage.`
       );
     }
 
@@ -162,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       log.error('Upload error', { error: uploadError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+      return errors.serverError('Failed to upload file');
     }
 
     // Create document record (use service role to bypass RLS for insert too)
@@ -187,16 +177,16 @@ export async function POST(request: NextRequest) {
       // Clean up uploaded file
       await storageClient.storage.from('user-documents').remove([storagePath]);
       log.error('Insert error', { error: insertError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
+      return errors.serverError('Failed to create document record');
     }
 
     // Note: Processing is triggered by the client after upload completes
     // This ensures proper error handling and UI feedback
 
-    return NextResponse.json({ document }, { status: 201 });
+    return successResponse({ document }, 201);
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -210,7 +200,7 @@ export async function PUT(request: NextRequest) {
     const { id, name, folderId } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
+      return errors.badRequest('Document ID is required');
     }
 
     const updateData: Record<string, unknown> = {};
@@ -227,13 +217,13 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       log.error('Update error', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to update document' }, { status: 500 });
+      return errors.serverError('Failed to update document');
     }
 
-    return NextResponse.json({ document });
+    return successResponse({ document });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -246,7 +236,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
+      return errors.badRequest('Document ID is required');
     }
 
     // Use service role client for storage and deletes
@@ -261,7 +251,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verify ownership
     if (!document || document.user_id !== auth.user.id) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+      return errors.notFound('Document');
     }
 
     if (document?.storage_path) {
@@ -277,12 +267,12 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       log.error('Delete error', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 });
+      return errors.serverError('Failed to delete document');
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }

@@ -6,7 +6,8 @@
  * Supports search, category filtering, and pagination
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { cookies } from 'next/headers';
 
 // Force dynamic for search params and auth
@@ -161,7 +162,7 @@ export async function GET(request: NextRequest) {
       storage: enrichedToolkits.filter((t) => t.category === 'storage'),
     };
 
-    return NextResponse.json({
+    return successResponse({
       toolkits: enrichedToolkits,
       grouped,
       total: enrichedToolkits.length,
@@ -169,6 +170,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Failed to get toolkits:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to get toolkits' }, { status: 500 });
+    return errors.serverError('Failed to get toolkits');
   }
 }

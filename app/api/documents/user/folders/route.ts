@@ -9,7 +9,8 @@
  * DELETE - Delete folder (and move contents to root)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
@@ -39,13 +40,13 @@ export async function GET() {
 
     if (error) {
       log.error('Error fetching folders', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
+      return errors.serverError('Failed to fetch folders');
     }
 
-    return NextResponse.json({ folders });
+    return successResponse({ folders });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     const { name, parentFolderId, color, icon } = body;
 
     if (!name || name.trim().length === 0) {
-      return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
+      return errors.badRequest('Folder name is required');
     }
 
     const db = createDbClient();
@@ -72,9 +73,9 @@ export async function POST(request: NextRequest) {
     // Default limit - will be adjusted by tier
     const folderLimit = 20;
     if (count && count >= folderLimit) {
-      return NextResponse.json({
-        error: `Folder limit reached (${folderLimit}). Upgrade your plan for more folders.`
-      }, { status: 403 });
+      return errors.forbidden(
+        `Folder limit reached (${folderLimit}). Upgrade your plan for more folders.`
+      );
     }
 
     const { data: folder, error } = await db
@@ -90,17 +91,18 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      if (error.code === '23505') { // Unique constraint violation
-        return NextResponse.json({ error: 'A folder with this name already exists' }, { status: 409 });
+      if (error.code === '23505') {
+        // Unique constraint violation
+        return errors.conflict('A folder with this name already exists');
       }
       log.error('Error creating folder', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
+      return errors.serverError('Failed to create folder');
     }
 
-    return NextResponse.json({ folder }, { status: 201 });
+    return successResponse({ folder }, 201);
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -113,7 +115,7 @@ export async function PUT(request: NextRequest) {
     const { id, name, color, icon, parentFolderId } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
+      return errors.badRequest('Folder ID is required');
     }
 
     const db = createDbClient();
@@ -126,7 +128,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!existing || existing.user_id !== auth.user.id) {
-      return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+      return errors.notFound('Folder');
     }
 
     const updateData: Record<string, unknown> = {};
@@ -144,16 +146,16 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({ error: 'A folder with this name already exists' }, { status: 409 });
+        return errors.conflict('A folder with this name already exists');
       }
       log.error('Error updating folder', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to update folder' }, { status: 500 });
+      return errors.serverError('Failed to update folder');
     }
 
-    return NextResponse.json({ folder });
+    return successResponse({ folder });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -166,7 +168,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
+      return errors.badRequest('Folder ID is required');
     }
 
     const db = createDbClient();
@@ -179,14 +181,11 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existing || existing.user_id !== auth.user.id) {
-      return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+      return errors.notFound('Folder');
     }
 
     // Move documents in this folder to root (folder_id = null)
-    await db
-      .from('user_documents')
-      .update({ folder_id: null })
-      .eq('folder_id', id);
+    await db.from('user_documents').update({ folder_id: null }).eq('folder_id', id);
 
     // Move subfolders to root
     await db
@@ -195,19 +194,16 @@ export async function DELETE(request: NextRequest) {
       .eq('parent_folder_id', id);
 
     // Delete the folder
-    const { error } = await db
-      .from('user_document_folders')
-      .delete()
-      .eq('id', id);
+    const { error } = await db.from('user_document_folders').delete().eq('id', id);
 
     if (error) {
       log.error('Error deleting folder', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to delete folder' }, { status: 500 });
+      return errors.serverError('Failed to delete folder');
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }

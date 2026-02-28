@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { captureAPIError } from '@/lib/api/utils';
+import { errors, captureAPIError } from '@/lib/api/utils';
 import {
   adminEarningsQuerySchema,
   validateQuery,
@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const validation = validateQuery(adminEarningsQuerySchema, searchParams);
     if (!validation.success) {
-      return NextResponse.json(validationErrorResponse(validation.error, validation.details), {
-        status: 400,
-      });
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
     }
     const { startDate, endDate } = validation.data;
 
@@ -238,6 +238,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error('Error generating Excel export:', error instanceof Error ? error : { error });
     captureAPIError(error, '/api/admin/earnings/export/excel');
-    return NextResponse.json({ error: 'Failed to generate export' }, { status: 500 });
+    return errors.serverError('Failed to generate export');
   }
 }

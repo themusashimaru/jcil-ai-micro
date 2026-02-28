@@ -5,7 +5,8 @@
  * No mocks, no placeholders - real Claude API calls for real-time coding assistance.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import {
   getPairProgrammer,
   CodeEdit,
@@ -93,14 +94,7 @@ export async function POST(request: NextRequest) {
     // SECURITY FIX: Use centralized rate limiting (Redis-backed)
     const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded. Please slow down.',
-          code: 'RATE_LIMIT_EXCEEDED',
-          retryAfter: rateLimitResult.retryAfter,
-        },
-        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
@@ -111,7 +105,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (!action) {
-      return NextResponse.json({ error: 'Missing action' }, { status: 400 });
+      return errors.badRequest('Missing action');
     }
 
     const pairProgrammer = getPairProgrammer();
@@ -119,7 +113,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'edit': {
         if (!edit || !context) {
-          return NextResponse.json({ error: 'Missing edit or context' }, { status: 400 });
+          return errors.badRequest('Missing edit or context');
         }
 
         log.info('Processing code edit', { file: context.currentFile, line: edit.startLine });
@@ -127,7 +121,7 @@ export async function POST(request: NextRequest) {
         const suggestions = await pairProgrammer.onEdit(edit, context);
         const convertedSuggestions = suggestions.map(convertSuggestion);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           suggestions: convertedSuggestions,
           timestamp: Date.now(),
@@ -136,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       case 'open': {
         if (!context) {
-          return NextResponse.json({ error: 'Missing context' }, { status: 400 });
+          return errors.badRequest('Missing context');
         }
 
         log.info('Processing file open', { file: context.currentFile });
@@ -144,7 +138,7 @@ export async function POST(request: NextRequest) {
         const suggestions = await pairProgrammer.onFileOpen(context);
         const convertedSuggestions = suggestions.map(convertSuggestion);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           suggestions: convertedSuggestions,
           timestamp: Date.now(),
@@ -153,7 +147,7 @@ export async function POST(request: NextRequest) {
 
       case 'complete': {
         if (!context) {
-          return NextResponse.json({ error: 'Missing context' }, { status: 400 });
+          return errors.badRequest('Missing context');
         }
 
         log.info('Generating completion', {
@@ -163,7 +157,7 @@ export async function POST(request: NextRequest) {
 
         const completion = await pairProgrammer.getCompletion(context, 'automatic');
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           completion,
           timestamp: Date.now(),
@@ -172,7 +166,7 @@ export async function POST(request: NextRequest) {
 
       case 'analyze': {
         if (!context) {
-          return NextResponse.json({ error: 'Missing context' }, { status: 400 });
+          return errors.badRequest('Missing context');
         }
 
         log.info('Running proactive analysis', { file: context.currentFile });
@@ -181,7 +175,7 @@ export async function POST(request: NextRequest) {
         const fileSuggestions = await pairProgrammer.onFileOpen(context);
         const convertedSuggestions = fileSuggestions.map(convertSuggestion);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           suggestions: convertedSuggestions,
           timestamp: Date.now(),
@@ -189,14 +183,11 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+        return errors.badRequest(`Unknown action: ${action}`);
     }
   } catch (error) {
     log.error('Pair programming error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -206,7 +197,7 @@ export async function POST(request: NextRequest) {
  * Health check and capability info
  */
 export async function GET() {
-  return NextResponse.json({
+  return successResponse({
     status: 'active',
     capabilities: ['edit', 'open', 'complete', 'analyze'],
     model: 'claude-sonnet-4-6',

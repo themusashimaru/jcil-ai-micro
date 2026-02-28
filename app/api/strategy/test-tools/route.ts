@@ -10,7 +10,7 @@
  * PROTECTED: Requires admin authentication
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse } from '@/lib/api/utils';
 import { executeScoutTool, getClaudeToolDefinitions } from '@/agents/strategy/tools';
 import type { ScoutToolCall } from '@/agents/strategy/tools/types';
 import { logger } from '@/lib/logger';
@@ -211,5 +211,5 @@ export async function GET() {
 
   log.info('Strategy tools test complete', results.summary as Record<string, unknown>);
 
-  return NextResponse.json(results);
+  return successResponse(results);
 }

@@ -7,7 +7,8 @@
  * @module api/files/parse
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import ExcelJS from 'exceljs';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/lib/auth/user-guard';
@@ -419,7 +420,7 @@ export async function POST(request: NextRequest) {
     const { fileName, fileType, content, extractStyle } = body;
 
     if (!content) {
-      return NextResponse.json({ error: 'No file content provided' }, { status: 400 });
+      return errors.badRequest('No file content provided');
     }
 
     let parsedText = '';
@@ -465,12 +466,12 @@ export async function POST(request: NextRequest) {
       // Plain text, return as-is
       parsedText = content;
     } else {
-      return NextResponse.json({ error: `Unsupported file type: ${fileType}` }, { status: 400 });
+      return errors.badRequest(`Unsupported file type: ${fileType}`);
     }
 
     log.info(`Parsed ${fileName} (${fileType}): ${parsedText.length} chars`);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       fileName,
       fileType,
@@ -480,6 +481,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('File parsing failed', error as Error);
-    return NextResponse.json({ error: 'Failed to parse file' }, { status: 500 });
+    return errors.serverError('Failed to parse file');
   }
 }

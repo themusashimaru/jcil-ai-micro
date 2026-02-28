@@ -14,12 +14,12 @@
  * 5. Audit log is maintained for compliance
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { auditLog, getAuditContext } from '@/lib/audit';
-import { checkRequestRateLimit } from '@/lib/api/utils';
+import { successResponse, errors, checkRequestRateLimit } from '@/lib/api/utils';
 
 const log = logger('AccountDeletion');
 
@@ -128,7 +128,7 @@ export async function DELETE(request: NextRequest) {
 
     if (userUpdateError) {
       log.error('Failed to mark user as deleted', { error: userUpdateError });
-      return NextResponse.json({ error: 'Failed to process deletion request' }, { status: 500 });
+      return errors.serverError('Failed to process deletion request');
     }
 
     // 7. Sign user out from all sessions
@@ -155,7 +155,7 @@ export async function DELETE(request: NextRequest) {
       scheduledPurge: scheduledPurgeDate,
     });
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: 'Your account has been scheduled for deletion.',
       details: {
@@ -167,7 +167,7 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     log.error('Account deletion error', error as Error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }
 
@@ -188,7 +188,7 @@ export async function GET() {
       .single();
 
     if (userData?.deleted_at) {
-      return NextResponse.json({
+      return successResponse({
         status: 'pending_deletion',
         deletedAt: userData.deleted_at,
         permanentDeletionAt: userData.scheduled_purge_at,
@@ -196,12 +196,12 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
+    return successResponse({
       status: 'active',
       deletionScheduled: false,
     });
   } catch (error) {
     log.error('Deletion status check error', error as Error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }

@@ -13,7 +13,8 @@
  * - Cost tracking
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { randomUUID } from 'crypto';
 import { requireUser } from '@/lib/auth/user-guard';
 import { safeParseJSON } from '@/lib/security/validation';
@@ -59,12 +60,8 @@ interface GenerationRequest {
 export async function POST(request: NextRequest) {
   // Check if BFL is configured
   if (!isBFLConfigured()) {
-    return NextResponse.json(
-      {
-        error: 'Image generation not available',
-        message: 'BLACK_FOREST_LABS_API_KEY is not configured',
-      },
-      { status: 503 }
+    return errors.serviceUnavailable(
+      'Image generation not available - BLACK_FOREST_LABS_API_KEY is not configured'
     );
   }
 
@@ -72,11 +69,10 @@ export async function POST(request: NextRequest) {
   if (!auth.authorized) return auth.response;
 
   try {
-
     // Parse request
     const parseResult = await safeParseJSON<GenerationRequest>(request);
     if (!parseResult.success) {
-      return NextResponse.json({ error: parseResult.error }, { status: 400 });
+      return errors.badRequest(parseResult.error);
     }
 
     const {
@@ -91,14 +87,11 @@ export async function POST(request: NextRequest) {
 
     // Validate prompt
     if (!prompt || prompt.trim().length === 0) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+      return errors.badRequest('Prompt is required');
     }
 
     if (prompt.length > 2000) {
-      return NextResponse.json(
-        { error: 'Prompt must be less than 2000 characters' },
-        { status: 400 }
-      );
+      return errors.badRequest('Prompt must be less than 2000 characters');
     }
 
     // Determine dimensions
@@ -120,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Validate dimensions
     const dimValidation = validateDimensions(model, width, height);
     if (!dimValidation.valid) {
-      return NextResponse.json({ error: dimValidation.error }, { status: 400 });
+      return errors.badRequest(dimValidation.error);
     }
 
     // Auto-enhance the prompt for better results
@@ -165,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       log.error('Failed to create generation record', { error: insertError });
-      return NextResponse.json({ error: 'Failed to start generation' }, { status: 500 });
+      return errors.serverError('Failed to start generation');
     }
 
     log.info('Starting image generation', {
@@ -207,14 +200,7 @@ export async function POST(request: NextRequest) {
         code: errorCode,
       });
 
-      return NextResponse.json(
-        {
-          error: 'Image generation failed',
-          message: errorMessage,
-          code: errorCode,
-        },
-        { status: 500 }
-      );
+      return errors.serverError('Image generation failed');
     }
 
     // Download and store the image (BFL URLs expire in 10 minutes)
@@ -236,13 +222,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', generationId);
 
-      return NextResponse.json(
-        {
-          error: 'Failed to store image',
-          message: 'The image was generated but could not be saved',
-        },
-        { status: 500 }
-      );
+      return errors.serverError('Failed to store image');
     }
 
     // Verify the generated image matches user intent (vision check)
@@ -289,7 +269,7 @@ export async function POST(request: NextRequest) {
       verified: verification?.matches,
     });
 
-    return NextResponse.json({
+    return successResponse({
       id: generationId,
       status: 'completed',
       imageUrl: storedUrl,
@@ -303,12 +283,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Image API error', error as Error);
-    return NextResponse.json(
-      {
-        error: 'Image generation failed',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Image generation failed');
   }
 }
 
@@ -341,7 +316,7 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({
+    return successResponse({
       generations: generations || [],
       pagination: {
         limit,
@@ -351,6 +326,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Failed to get generations', error as Error);
-    return NextResponse.json({ error: 'Failed to get generations' }, { status: 500 });
+    return errors.serverError('Failed to get generations');
   }
 }

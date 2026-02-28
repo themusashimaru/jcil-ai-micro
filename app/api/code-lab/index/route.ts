@@ -5,10 +5,11 @@
  * Use Code Lab grep/find tools for code search instead.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabIndex');
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -31,20 +32,17 @@ export async function GET(request: NextRequest) {
     const repo = searchParams.get('repo');
 
     if (!owner || !repo) {
-      return NextResponse.json({ error: 'Missing owner or repo' }, { status: 400 });
+      return errors.badRequest('Missing owner or repo');
     }
 
     // RAG indexing disabled - return not indexed status
-    return NextResponse.json({
+    return successResponse({
       indexed: false,
       message: 'Semantic indexing disabled. Use Code Lab grep/find tools for code search.',
     });
   } catch (error) {
     log.error('[Codebase Index API] GET error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Index check failed', code: 'INDEX_CHECK_FAILED' },
-      { status: 500 }
-    );
+    return errors.serverError('Index check failed');
   }
 }
 
@@ -63,27 +61,24 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const body = await request.json();
     const { owner, repo } = body;
 
     if (!owner || !repo) {
-      return NextResponse.json({ error: 'Missing owner or repo' }, { status: 400 });
+      return errors.badRequest('Missing owner or repo');
     }
 
     // RAG indexing disabled
-    return NextResponse.json({
+    return successResponse({
       success: false,
       message: 'Semantic indexing disabled. Use Code Lab grep/find tools for code search.',
     });
   } catch (error) {
     log.error('[Codebase Index API] POST error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Index creation failed', code: 'INDEX_CREATE_FAILED' },
-      { status: 500 }
-    );
+    return errors.serverError('Index creation failed');
   }
 }
 
@@ -102,7 +97,7 @@ export async function DELETE(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -110,19 +105,16 @@ export async function DELETE(request: NextRequest) {
     const repo = searchParams.get('repo');
 
     if (!owner || !repo) {
-      return NextResponse.json({ error: 'Missing owner or repo' }, { status: 400 });
+      return errors.badRequest('Missing owner or repo');
     }
 
     // RAG indexing disabled - nothing to delete
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: 'Semantic indexing disabled. Nothing to delete.',
     });
   } catch (error) {
     log.error('[Codebase Index API] DELETE error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Index deletion failed', code: 'INDEX_DELETE_FAILED' },
-      { status: 500 }
-    );
+    return errors.serverError('Index deletion failed');
   }
 }

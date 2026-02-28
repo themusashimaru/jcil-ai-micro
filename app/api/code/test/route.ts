@@ -12,7 +12,7 @@
  * PROTECTED: Requires admin authentication
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse } from '@/lib/api/utils';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 
@@ -234,7 +234,7 @@ export async function GET() {
     allPassed,
   });
 
-  return NextResponse.json({
+  return successResponse({
     timestamp: new Date().toISOString(),
     agent: 'Code Agent',
     summary: {

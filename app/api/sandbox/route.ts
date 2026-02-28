@@ -6,7 +6,7 @@
  * Rate limited by user subscription tier.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import {
   executeSandbox,
@@ -17,6 +17,7 @@ import {
   getMissingSandboxConfig,
 } from '@/lib/connectors/vercel-sandbox';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('SandboxAPI');
 
@@ -36,22 +37,12 @@ export async function POST(req: NextRequest) {
 
     // Check if sandbox is configured (OIDC from header OR access token from env)
     if (!isSandboxConfigured(oidcToken)) {
-      const missing = getMissingSandboxConfig();
-      return NextResponse.json(
-        {
-          error: 'Sandbox not configured',
-          missing,
-          hint: missing.includes('VERCEL_TEAM_ID')
-            ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
-            : undefined,
-        },
-        { status: 503 }
-      );
+      return errors.serviceUnavailable('Sandbox not configured');
     }
 
     const sandboxConfig = getSandboxConfig(oidcToken);
     if (!sandboxConfig) {
-      return NextResponse.json({ error: 'Invalid sandbox configuration' }, { status: 503 });
+      return errors.serviceUnavailable('Invalid sandbox configuration');
     }
 
     // Authenticate user
@@ -62,7 +53,7 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Get user's subscription tier from users table
@@ -95,15 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Check rate limit
     if (currentUsage >= limit) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          limit,
-          used: currentUsage,
-          tier,
-        },
-        { status: 429 }
-      );
+      return errors.rateLimited();
     }
 
     // Parse request
@@ -139,10 +122,7 @@ export async function POST(req: NextRequest) {
         break;
 
       default:
-        return NextResponse.json(
-          { error: 'Invalid execution type. Use: quick, build, or execute' },
-          { status: 400 }
-        );
+        return errors.badRequest('Invalid execution type. Use: quick, build, or execute');
     }
 
     // Track sandbox execution in token_usage
@@ -155,7 +135,7 @@ export async function POST(req: NextRequest) {
       output_tokens: 0,
     });
 
-    return NextResponse.json({
+    return successResponse({
       ...result,
       usage: {
         used: currentUsage + 1,
@@ -165,7 +145,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     log.error('Sandbox execution error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Code execution failed' }, { status: 500 });
+    return errors.serverError('Code execution failed');
   }
 }
 
@@ -180,7 +160,7 @@ export async function GET(req: NextRequest) {
 
     if (!configured) {
       const missing = getMissingSandboxConfig(oidcToken);
-      return NextResponse.json({
+      return successResponse({
         available: false,
         reason: 'Sandbox not configured',
         missing,
@@ -198,7 +178,7 @@ export async function GET(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({
+      return successResponse({
         available: configured,
         authenticated: false,
       });
@@ -232,7 +212,7 @@ export async function GET(req: NextRequest) {
 
     const currentUsage = executionsUsed || 0;
 
-    return NextResponse.json({
+    return successResponse({
       available: true,
       authenticated: true,
       tier,
@@ -244,6 +224,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     log.error('Sandbox status error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to get sandbox status' }, { status: 500 });
+    return errors.serverError('Failed to get sandbox status');
   }
 }

@@ -7,11 +7,12 @@
  * @version 1.0.0
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabSearch');
 
@@ -47,20 +48,13 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // SECURITY FIX: Add rate limiting
     const rateLimitResult = await rateLimiters.codeLabEdit(user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          code: 'RATE_LIMIT_EXCEEDED',
-          retryAfter: rateLimitResult.retryAfter,
-        },
-        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
@@ -68,20 +62,11 @@ export async function POST(request: NextRequest) {
 
     // SECURITY FIX: Validate query length and limit bounds
     if (!query || typeof query !== 'string' || query.length < 2) {
-      return NextResponse.json(
-        { error: 'Search query must be at least 2 characters', code: 'QUERY_TOO_SHORT' },
-        { status: 400 }
-      );
+      return errors.badRequest('Search query must be at least 2 characters');
     }
 
     if (query.length > MAX_QUERY_LENGTH) {
-      return NextResponse.json(
-        {
-          error: `Search query must be at most ${MAX_QUERY_LENGTH} characters`,
-          code: 'QUERY_TOO_LONG',
-        },
-        { status: 400 }
-      );
+      return errors.badRequest(`Search query must be at most ${MAX_QUERY_LENGTH} characters`);
     }
 
     // Clamp limit to safe range
@@ -100,7 +85,7 @@ export async function POST(request: NextRequest) {
     const { data: sessions } = await sessionsQuery;
 
     if (!sessions || sessions.length === 0) {
-      return NextResponse.json({
+      return successResponse({
         query,
         results: [],
         total: 0,
@@ -129,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       log.error('[CodeLab Search] Error:', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+      return errors.serverError('Search failed');
     }
 
     // Format results with context
@@ -157,7 +142,7 @@ export async function POST(request: NextRequest) {
       sessionCounts.set(r.sessionId, (sessionCounts.get(r.sessionId) || 0) + 1);
     });
 
-    return NextResponse.json({
+    return successResponse({
       query,
       results,
       total: results.length,
@@ -171,7 +156,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[CodeLab Search] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    return errors.serverError('Search failed');
   }
 }
 

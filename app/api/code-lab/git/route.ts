@@ -5,12 +5,13 @@
  * Integrates GitHubSyncBridge with E2B workspace
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabGit');
 
@@ -53,16 +54,13 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting
   const rateLimit = await rateLimiters.codeLabEdit(user.id);
   if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-      { status: 429 }
-    );
+    return errors.rateLimited(rateLimit.retryAfter);
   }
 
   try {
@@ -75,7 +73,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (!sessionId) {
-      return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+      return errors.badRequest('Session ID required');
     }
 
     // Verify session ownership
@@ -87,7 +85,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (sessionError || !sessionData) {
-      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+      return errors.sessionAccessDenied();
     }
 
     // Get user's GitHub token using service role client
@@ -101,10 +99,7 @@ export async function POST(request: NextRequest) {
     const userTokens = userData as { github_token?: string } | null;
 
     if (!userTokens?.github_token) {
-      return NextResponse.json(
-        { error: 'GitHub not connected. Please connect your GitHub account.' },
-        { status: 400 }
-      );
+      return errors.badRequest('GitHub not connected. Please connect your GitHub account.');
     }
 
     let githubToken: string;
@@ -113,12 +108,8 @@ export async function POST(request: NextRequest) {
     } catch {
       // SECURITY FIX: Don't log error details - could expose encryption info
       log.warn('Token decryption failed for user', { userId: user.id });
-      return NextResponse.json(
-        {
-          error: 'GitHub token decryption failed. Please reconnect your GitHub account.',
-          code: 'TOKEN_DECRYPT_FAILED',
-        },
-        { status: 400 }
+      return errors.badRequest(
+        'GitHub token decryption failed. Please reconnect your GitHub account.'
       );
     }
 
@@ -141,7 +132,7 @@ export async function POST(request: NextRequest) {
     switch (operation) {
       case 'clone': {
         if (!repo) {
-          return NextResponse.json({ error: 'Repository info required' }, { status: 400 });
+          return errors.badRequest('Repository info required');
         }
 
         // Connect to repo
@@ -151,10 +142,10 @@ export async function POST(request: NextRequest) {
         const cloneResult = await syncBridge.cloneToWorkspace(executeShell);
 
         if (!cloneResult.success) {
-          return NextResponse.json({ error: cloneResult.error }, { status: 500 });
+          return errors.serverError(cloneResult.error);
         }
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           filesChanged: cloneResult.filesChanged,
           commitSha: cloneResult.commitSha,
@@ -163,7 +154,7 @@ export async function POST(request: NextRequest) {
 
       case 'push': {
         if (!repo) {
-          return NextResponse.json({ error: 'Repository info required' }, { status: 400 });
+          return errors.badRequest('Repository info required');
         }
 
         await syncBridge.connect(repo.owner, repo.name);
@@ -174,7 +165,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!pushResult.success) {
-          return NextResponse.json({ error: pushResult.error }, { status: 500 });
+          return errors.serverError(pushResult.error);
         }
 
         // Get diff for UI
@@ -184,7 +175,7 @@ export async function POST(request: NextRequest) {
 
         const diff = parseDiffOutput(diffResult.stdout);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           filesChanged: pushResult.filesChanged,
           commitSha: pushResult.commitSha,
@@ -194,7 +185,7 @@ export async function POST(request: NextRequest) {
 
       case 'pull': {
         if (!repo) {
-          return NextResponse.json({ error: 'Repository info required' }, { status: 400 });
+          return errors.badRequest('Repository info required');
         }
 
         await syncBridge.connect(repo.owner, repo.name);
@@ -202,10 +193,10 @@ export async function POST(request: NextRequest) {
         const pullResult = await syncBridge.pullChanges(executeShell);
 
         if (!pullResult.success) {
-          return NextResponse.json({ error: pullResult.error }, { status: 500 });
+          return errors.serverError(pullResult.error);
         }
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           filesChanged: pullResult.filesChanged,
           commitSha: pullResult.commitSha,
@@ -214,14 +205,14 @@ export async function POST(request: NextRequest) {
 
       case 'status': {
         if (!repo) {
-          return NextResponse.json({ error: 'Repository info required' }, { status: 400 });
+          return errors.badRequest('Repository info required');
         }
 
         await syncBridge.connect(repo.owner, repo.name);
 
         const status = await syncBridge.getSyncStatus(executeShell);
 
-        return NextResponse.json({ status });
+        return successResponse({ status });
       }
 
       case 'commit': {
@@ -232,7 +223,7 @@ export async function POST(request: NextRequest) {
           `cd /workspace/repo && git add -A && git commit -m ${escapedMessage}`
         );
 
-        return NextResponse.json({
+        return successResponse({
           success: commitResult.exitCode === 0,
           output: commitResult.stdout,
           error: commitResult.stderr,
@@ -241,34 +232,34 @@ export async function POST(request: NextRequest) {
 
       case 'branch': {
         if (!branch) {
-          return NextResponse.json({ error: 'Branch name required' }, { status: 400 });
+          return errors.badRequest('Branch name required');
         }
 
         if (!repo) {
-          return NextResponse.json({ error: 'Repository info required' }, { status: 400 });
+          return errors.badRequest('Repository info required');
         }
 
         await syncBridge.connect(repo.owner, repo.name);
 
         const created = await syncBridge.createBranch(branch, executeShell);
 
-        return NextResponse.json({ success: created, branch });
+        return successResponse({ success: created, branch });
       }
 
       case 'checkout': {
         if (!branch) {
-          return NextResponse.json({ error: 'Branch name required' }, { status: 400 });
+          return errors.badRequest('Branch name required');
         }
 
         if (!repo) {
-          return NextResponse.json({ error: 'Repository info required' }, { status: 400 });
+          return errors.badRequest('Repository info required');
         }
 
         await syncBridge.connect(repo.owner, repo.name);
 
         const switched = await syncBridge.switchBranch(branch, executeShell);
 
-        return NextResponse.json({ success: switched, branch });
+        return successResponse({ success: switched, branch });
       }
 
       case 'diff': {
@@ -276,20 +267,17 @@ export async function POST(request: NextRequest) {
           'cd /workspace/repo && git diff --unified=3 2>/dev/null || echo ""'
         );
 
-        return NextResponse.json({
+        return successResponse({
           diff: diffResult.stdout,
         });
       }
 
       default:
-        return NextResponse.json({ error: 'Invalid operation' }, { status: 400 });
+        return errors.badRequest('Invalid operation');
     }
   } catch (error) {
     log.error('Git operation failed', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Git operation failed', code: 'GIT_OPERATION_FAILED' },
-      { status: 500 }
-    );
+    return errors.serverError('Git operation failed');
   }
 }
 

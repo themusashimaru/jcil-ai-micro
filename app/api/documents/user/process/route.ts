@@ -8,7 +8,8 @@
  * 4. Stores in database (no embeddings - uses keyword search)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
     const { documentId } = await request.json();
 
     if (!documentId) {
-      return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
+      return errors.badRequest('Document ID required');
     }
 
     const supabase = createServiceClient();
@@ -211,13 +212,13 @@ export async function POST(request: NextRequest) {
 
     if (docError || !document) {
       log.error('Document not found', { error: docError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+      return errors.notFound('Document');
     }
 
     // Verify document belongs to the authenticated user
     if (document.user_id !== auth.user.id) {
       log.error('Unauthorized document access attempt', { documentId, userId: auth.user.id });
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+      return errors.notFound('Document');
     }
 
     // Update status to processing
@@ -241,7 +242,7 @@ export async function POST(request: NextRequest) {
           documentId,
           claimedType: document.file_type,
         });
-        return NextResponse.json({ error: 'Invalid file format' }, { status: 400 });
+        return errors.badRequest('Invalid file format');
       }
 
       // Extract text content
@@ -299,7 +300,7 @@ export async function POST(request: NextRequest) {
 
       log.info('Processing complete', { documentId });
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         chunks: chunks.length,
         wordCount,
@@ -320,15 +321,12 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', documentId);
 
-      return NextResponse.json(
-        {
-          error: processingError instanceof Error ? processingError.message : 'Processing failed',
-        },
-        { status: 500 }
+      return errors.serverError(
+        processingError instanceof Error ? processingError.message : 'Processing failed'
       );
     }
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }

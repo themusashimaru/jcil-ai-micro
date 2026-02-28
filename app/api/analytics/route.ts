@@ -10,12 +10,13 @@
  * @module api/analytics
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import ExcelJS from 'exceljs';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/lib/auth/user-guard';
 import { v4 as uuidv4 } from 'uuid';
 import type { AnalyticsResult, ChartConfig, DataInsight, ChartDataPoint } from '@/app/chat/types';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('AnalyticsAPI');
 
@@ -483,7 +484,7 @@ export async function POST(request: NextRequest) {
     const { fileName, fileType, content, query } = body;
 
     if (!content) {
-      return NextResponse.json({ error: 'No file content provided' }, { status: 400 });
+      return errors.badRequest('No file content provided');
     }
 
     log.info(`Analyzing ${fileName} (${fileType})`);
@@ -505,14 +506,11 @@ export async function POST(request: NextRequest) {
       }
       rows = parseCSV(csvText);
     } else {
-      return NextResponse.json(
-        { error: `Unsupported file type for analytics: ${fileType}` },
-        { status: 400 }
-      );
+      return errors.badRequest(`Unsupported file type for analytics: ${fileType}`);
     }
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: 'No data found in file' }, { status: 400 });
+      return errors.badRequest('No data found in file');
     }
 
     // Perform analysis
@@ -520,12 +518,11 @@ export async function POST(request: NextRequest) {
 
     log.info(`Analysis complete: ${result.totalRows} rows, ${result.charts.length} charts`);
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       analytics: result,
     });
   } catch (error) {
     log.error('Analytics failed', error as Error);
-    return NextResponse.json({ error: 'Failed to analyze data' }, { status: 500 });
+    return errors.serverError('Failed to analyze data');
   }
 }

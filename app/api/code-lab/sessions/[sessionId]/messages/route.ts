@@ -4,11 +4,12 @@
  * Get messages for a session
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 // HIGH-006: Add rate limiting
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabMessages');
 
@@ -27,22 +28,13 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // HIGH-006: Rate limiting for GET
     const rateLimit = await rateLimiters.codeLabRead(user.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimit.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimit.remaining),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     // Verify session belongs to user
@@ -53,7 +45,7 @@ export async function GET(
       .single();
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
     // Get messages
@@ -67,7 +59,7 @@ export async function GET(
         '[CodeLab API] Error fetching messages:',
         error instanceof Error ? error : { error }
       );
-      return NextResponse.json({ messages: [] });
+      return successResponse({ messages: [] });
     }
 
     // Transform to expected format
@@ -84,9 +76,9 @@ export async function GET(
       summaryOutput: m.summary_output,
     }));
 
-    return NextResponse.json({ messages: formattedMessages });
+    return successResponse({ messages: formattedMessages });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ messages: [] });
+    return successResponse({ messages: [] });
   }
 }

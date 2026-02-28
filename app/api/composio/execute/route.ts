@@ -6,7 +6,8 @@
  * Used by AI agents to perform actions on behalf of users
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { cookies } from 'next/headers';
 
 // Force dynamic for auth
@@ -47,12 +48,12 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Check Composio configured
     if (!isComposioConfigured()) {
-      return NextResponse.json({ error: 'Composio is not configured' }, { status: 503 });
+      return errors.serviceUnavailable('Composio is not configured');
     }
 
     // Parse request
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     const { action, params } = body;
 
     if (!action) {
-      return NextResponse.json({ error: 'action is required' }, { status: 400 });
+      return errors.badRequest('action is required');
     }
 
     // Execute tool
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         action,
       });
-      return NextResponse.json({
+      return successResponse({
         success: true,
         data: result.data,
       });
@@ -81,10 +82,10 @@ export async function POST(request: NextRequest) {
         action,
         error: result.error,
       });
-      return NextResponse.json({ error: 'Execution failed' }, { status: 500 });
+      return errors.serverError('Execution failed');
     }
   } catch (error) {
     log.error('Execute API error', { error });
-    return NextResponse.json({ error: 'Execution failed' }, { status: 500 });
+    return errors.serverError('Execution failed');
   }
 }

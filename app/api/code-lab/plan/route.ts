@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { getPlanManager } from '@/lib/workspace/plan-mode';
+import { successResponse, errors } from '@/lib/api/utils';
 
 /**
  * Plan Mode API
@@ -19,22 +20,19 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting (using edit limiter for consistency)
   const rateLimit = await rateLimiters.codeLabEdit(user.id);
   if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-      { status: 429 }
-    );
+    return errors.rateLimited(rateLimit.retryAfter);
   }
 
   const planManager = getPlanManager();
   const plan = planManager.getCurrentPlan();
 
-  return NextResponse.json({
+  return successResponse({
     plan,
     progress: planManager.getProgress(),
     needsApproval: planManager.needsApproval(),
@@ -49,22 +47,19 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // CSRF validation
   const csrfResult = validateCSRF(request);
   if (!csrfResult.valid) {
-    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
+    return errors.csrfFailed();
   }
 
   // Rate limiting
   const rateLimit = await rateLimiters.codeLabEdit(user.id);
   if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-      { status: 429 }
-    );
+    return errors.rateLimited(rateLimit.retryAfter);
   }
 
   const body = await request.json();
@@ -78,7 +73,7 @@ export async function POST(request: NextRequest) {
       if (approved) {
         planManager.startPlan();
       }
-      return NextResponse.json({
+      return successResponse({
         success: approved,
         plan: planManager.getCurrentPlan(),
       });
@@ -86,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     case 'skip': {
       const skipped = planManager.skipCurrentStep(reason);
-      return NextResponse.json({
+      return successResponse({
         success: !!skipped,
         plan: planManager.getCurrentPlan(),
         skippedStep: skipped,
@@ -95,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     case 'complete': {
       const completed = planManager.completeCurrentStep(output);
-      return NextResponse.json({
+      return successResponse({
         success: !!completed,
         plan: planManager.getCurrentPlan(),
         completedStep: completed,
@@ -104,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     case 'fail': {
       const failed = planManager.failCurrentStep(reason);
-      return NextResponse.json({
+      return successResponse({
         success: !!failed,
         plan: planManager.getCurrentPlan(),
         failedStep: failed,
@@ -113,13 +108,13 @@ export async function POST(request: NextRequest) {
 
     case 'cancel': {
       const cancelled = planManager.cancelPlan();
-      return NextResponse.json({
+      return successResponse({
         success: cancelled,
         plan: planManager.getCurrentPlan(),
       });
     }
 
     default:
-      return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+      return errors.badRequest(`Unknown action: ${action}`);
   }
 }

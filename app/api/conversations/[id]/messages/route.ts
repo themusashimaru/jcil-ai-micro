@@ -9,7 +9,7 @@
  * Supports both JSON and multipart/form-data for file uploads
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import type { Json } from '@/lib/supabase/types';
@@ -28,13 +28,6 @@ const log = logger('MessagesAPI');
 export const runtime = 'nodejs';
 // Avoid static optimization; we accept uploads
 export const dynamic = 'force-dynamic';
-
-/**
- * Structured error response helper
- */
-function errorResponse(status: number, code: string, message: string, extra?: unknown) {
-  return NextResponse.json({ ok: false, error: { code, message, extra } }, { status });
-}
 
 /**
  * GET /api/conversations/[id]/messages
@@ -121,7 +114,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         formData = await request.formData();
       } catch (e) {
         log.error('[API] FormData parse error', e instanceof Error ? e : { error: e });
-        return errorResponse(400, 'BAD_FORMDATA', 'Failed to parse form data');
+        return errors.badRequest('Failed to parse form data');
       }
 
       // Extract text content from multiple possible field names
@@ -186,7 +179,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             '[API] attachments_json parse error',
             jsonError instanceof Error ? jsonError : { error: jsonError }
           );
-          return errorResponse(400, 'BAD_ATTACHMENTS_JSON', 'attachments_json is not valid JSON');
+          return errors.badRequest('attachments_json is not valid JSON');
         }
       }
     } else {
@@ -227,7 +220,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Validate: require at least text or attachments
     if (!normalizedContent && attachment_urls.length === 0) {
-      return errorResponse(400, 'EMPTY_MESSAGE', 'Provide text or at least one file');
+      return errors.badRequest('Provide text or at least one file');
     }
 
     // Verify conversation belongs to user
@@ -352,17 +345,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     try {
       body = await request.json();
     } catch {
-      return errorResponse(400, 'BAD_JSON', 'Invalid JSON body');
+      return errors.badRequest('Invalid JSON body');
     }
 
     const { messageId, content } = body;
 
     if (!messageId || typeof messageId !== 'string') {
-      return errorResponse(400, 'MISSING_MESSAGE_ID', 'messageId is required');
+      return errors.badRequest('messageId is required');
     }
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      return errorResponse(400, 'EMPTY_CONTENT', 'content cannot be empty');
+      return errors.badRequest('content cannot be empty');
     }
 
     // Verify conversation belongs to user
@@ -397,7 +390,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Only allow editing user messages (not assistant messages)
     if (existingMessage.role !== 'user') {
-      return errorResponse(403, 'CANNOT_EDIT_ROLE', 'Only user messages can be edited');
+      return errors.forbidden('Only user messages can be edited');
     }
 
     // Store the original content for audit purposes
@@ -461,13 +454,13 @@ export async function DELETE(
     try {
       body = await request.json();
     } catch {
-      return errorResponse(400, 'BAD_JSON', 'Invalid JSON body');
+      return errors.badRequest('Invalid JSON body');
     }
 
     const { messageId } = body;
 
     if (!messageId || typeof messageId !== 'string') {
-      return errorResponse(400, 'MISSING_MESSAGE_ID', 'messageId is required');
+      return errors.badRequest('messageId is required');
     }
 
     // Verify conversation belongs to user

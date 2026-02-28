@@ -8,7 +8,7 @@
  * - Sync state
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import {
   getCollaborationManager,
@@ -18,6 +18,7 @@ import { CRDTOperation } from '@/lib/collaboration/crdt-document';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CollaborationAPI');
 
@@ -41,10 +42,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const rateLimit = await rateLimiters.codeLabEdit(auth.user!.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     const body = await request.json();
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!documentId) {
-          return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
+          return errors.badRequest('Missing documentId');
         }
 
         log.info('Creating collaboration session', {
@@ -78,7 +76,7 @@ export async function POST(request: NextRequest) {
           initialContent || ''
         );
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           session: serializeSession(session),
         });
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
         const { sessionId } = params as { sessionId: string };
 
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         log.info('Joining collaboration session', {
@@ -103,10 +101,10 @@ export async function POST(request: NextRequest) {
         );
 
         if (!result) {
-          return NextResponse.json({ error: 'Session not found or inactive' }, { status: 404 });
+          return errors.notFound('Session');
         }
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           session: serializeSession(result.session),
           users: result.users,
@@ -118,12 +116,12 @@ export async function POST(request: NextRequest) {
         const { sessionId } = params as { sessionId: string };
 
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         manager.leaveSession(sessionId, auth.user.id);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'operation': {
@@ -133,12 +131,12 @@ export async function POST(request: NextRequest) {
         };
 
         if (!sessionId || !operation) {
-          return NextResponse.json({ error: 'Missing sessionId or operation' }, { status: 400 });
+          return errors.badRequest('Missing sessionId or operation');
         }
 
         const applied = manager.applyOperation(sessionId, auth.user.id, operation);
 
-        return NextResponse.json({
+        return successResponse({
           success: applied,
           message: applied ? 'Operation applied' : 'Operation rejected',
         });
@@ -152,12 +150,12 @@ export async function POST(request: NextRequest) {
         };
 
         if (!sessionId || position === undefined) {
-          return NextResponse.json({ error: 'Missing sessionId or position' }, { status: 400 });
+          return errors.badRequest('Missing sessionId or position');
         }
 
         manager.updateCursor(sessionId, auth.user.id, position, selection);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'sync': {
@@ -172,23 +170,20 @@ export async function POST(request: NextRequest) {
         };
 
         if (!sessionId || !state) {
-          return NextResponse.json({ error: 'Missing sessionId or state' }, { status: 400 });
+          return errors.badRequest('Missing sessionId or state');
         }
 
         manager.syncDocument(sessionId, auth.user.id, state);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+        return errors.badRequest(`Unknown action: ${action}`);
     }
   } catch (error) {
     log.error('Collaboration API error', error as Error);
-    return NextResponse.json(
-      { error: 'Collaboration operation failed', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Collaboration operation failed');
   }
 }
 
@@ -215,10 +210,10 @@ export async function GET(request: NextRequest) {
       // Get specific session
       const session = manager.getSession(sessionId);
       if (!session) {
-        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        return errors.notFound('Session');
       }
 
-      return NextResponse.json({
+      return successResponse({
         session: serializeSession(session),
       });
     }
@@ -226,19 +221,19 @@ export async function GET(request: NextRequest) {
     if (documentId) {
       // Get all sessions for document
       const sessions = manager.getDocumentSessions(documentId);
-      return NextResponse.json({
+      return successResponse({
         sessions: sessions.map(serializeSession),
       });
     }
 
     // Get all sessions for user
     const sessions = manager.getUserSessions(auth.user.id);
-    return NextResponse.json({
+    return successResponse({
       sessions: sessions.map(serializeSession),
     });
   } catch (error) {
     log.error('Collaboration API error', error as Error);
-    return NextResponse.json({ error: 'Failed to get collaboration info' }, { status: 500 });
+    return errors.serverError('Failed to get collaboration info');
   }
 }
 
