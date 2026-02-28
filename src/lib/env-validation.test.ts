@@ -94,6 +94,35 @@ describe('validateEnvironment', () => {
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Missing recommended'));
   });
 
+  it('should throw in production when Sentry DSN is missing', () => {
+    delete process.env.SKIP_ENV_VALIDATION;
+    // Set all core required vars
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
+    // Missing SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN
+    delete process.env.SENTRY_DSN;
+    delete process.env.NEXT_PUBLIC_SENTRY_DSN;
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+
+    expect(() => validateEnvironment()).toThrow('PRODUCTION-REQUIRED');
+  });
+
+  it('should accept Sentry DSN alternative (NEXT_PUBLIC_SENTRY_DSN)', () => {
+    delete process.env.SKIP_ENV_VALIDATION;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
+    process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://sentry.io/123';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://app.test.com';
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+
+    // Should not throw — NEXT_PUBLIC_SENTRY_DSN is accepted as alternative
+    expect(() => validateEnvironment()).not.toThrow();
+  });
+
   it('should log success when all vars are set', () => {
     delete process.env.SKIP_ENV_VALIDATION;
     // Set all required
@@ -101,8 +130,10 @@ describe('validateEnvironment', () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    // Set all recommended
+    // Set all production-required
+    process.env.SENTRY_DSN = 'https://sentry.io/123';
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.test.com';
+    // Set all recommended
     process.env.ENCRYPTION_KEY = 'enc-key';
     process.env.CRON_SECRET = 'cron-secret';
     process.env.UPSTASH_REDIS_REST_URL = 'https://redis.test.com';

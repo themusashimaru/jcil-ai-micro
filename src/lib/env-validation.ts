@@ -26,9 +26,18 @@ const REQUIRED_VARS: EnvVar[] = [
   },
 ];
 
+/** Production-required: Not needed in dev but mandatory for production deploys */
+const PRODUCTION_REQUIRED_VARS: EnvVar[] = [
+  {
+    name: 'SENTRY_DSN',
+    alternatives: ['NEXT_PUBLIC_SENTRY_DSN'],
+    description: 'Sentry error tracking (mandatory in production)',
+  },
+  { name: 'NEXT_PUBLIC_APP_URL', description: 'App URL for CSRF validation' },
+];
+
 /** Recommended: App works but with degraded functionality */
 const RECOMMENDED_VARS: EnvVar[] = [
-  { name: 'NEXT_PUBLIC_APP_URL', description: 'App URL for CSRF validation' },
   { name: 'ENCRYPTION_KEY', description: 'Token encryption (GitHub, BYOK)' },
   { name: 'CRON_SECRET', description: 'Cron job authentication' },
   {
@@ -71,6 +80,7 @@ export function validateEnvironment(): void {
   }
 
   const missing: string[] = [];
+  const prodMissing: string[] = [];
   const warnings: string[] = [];
 
   // Check required variables
@@ -78,6 +88,18 @@ export function validateEnvironment(): void {
     const allNames = [v.name, ...(v.alternatives || [])];
     if (!anySet(allNames)) {
       missing.push(`  - ${v.name}: ${v.description}`);
+    }
+  }
+
+  // Check production-required variables (error in prod, warning otherwise)
+  for (const v of PRODUCTION_REQUIRED_VARS) {
+    const allNames = [v.name, ...(v.alternatives || [])];
+    if (!anySet(allNames)) {
+      if (process.env.NODE_ENV === 'production') {
+        prodMissing.push(`  - ${v.name}: ${v.description}`);
+      } else {
+        warnings.push(`  - ${v.name}: ${v.description}`);
+      }
     }
   }
 
@@ -102,6 +124,13 @@ export function validateEnvironment(): void {
       // In development: warn but continue
       console.error(message);
     }
+  }
+
+  if (prodMissing.length > 0) {
+    const message =
+      `[ENV] MISSING PRODUCTION-REQUIRED environment variables:\n${prodMissing.join('\n')}\n` +
+      `These are mandatory for production deployments.`;
+    throw new Error(message);
   }
 
   if (warnings.length > 0) {

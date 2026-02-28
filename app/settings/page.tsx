@@ -38,13 +38,38 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import MembershipSection from '@/app/components/MembershipSection';
-import UsageMetricsSection from '@/app/components/UsageMetricsSection';
-import AccountSection from '@/app/components/AccountSection';
-import SupportSection from '@/app/components/SupportSection';
-import ConnectorsSection from '@/app/components/ConnectorsSection';
-import BYOKSection from '@/app/components/BYOKSection';
-import MemoryFeedbackSection from '@/app/components/MemoryFeedbackSection';
+import dynamic from 'next/dynamic';
+
+const SectionLoading = () => (
+  <div className="animate-pulse space-y-4 p-4">
+    <div className="h-6 w-48 rounded bg-glass" />
+    <div className="h-4 w-full rounded bg-glass opacity-60" />
+    <div className="h-4 w-3/4 rounded bg-glass opacity-40" />
+    <div className="h-32 rounded bg-glass opacity-30" />
+  </div>
+);
+
+const MembershipSection = dynamic(() => import('@/app/components/MembershipSection'), {
+  loading: SectionLoading,
+});
+const UsageMetricsSection = dynamic(() => import('@/app/components/UsageMetricsSection'), {
+  loading: SectionLoading,
+});
+const AccountSection = dynamic(() => import('@/app/components/AccountSection'), {
+  loading: SectionLoading,
+});
+const SupportSection = dynamic(() => import('@/app/components/SupportSection'), {
+  loading: SectionLoading,
+});
+const ConnectorsSection = dynamic(() => import('@/app/components/ConnectorsSection'), {
+  loading: SectionLoading,
+});
+const BYOKSection = dynamic(() => import('@/app/components/BYOKSection'), {
+  loading: SectionLoading,
+});
+const MemoryFeedbackSection = dynamic(() => import('@/app/components/MemoryFeedbackSection'), {
+  loading: SectionLoading,
+});
 
 type TabId =
   | 'membership'

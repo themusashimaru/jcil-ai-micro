@@ -460,15 +460,31 @@ export function hasToolLoader(toolName: string): boolean {
 }
 
 /**
+ * Cached tool definitions with TTL to avoid re-running availability checks
+ * on every request within the same server instance.
+ */
+let cachedToolDefs: UnifiedTool[] | null = null;
+let cachedToolDefsTimestamp = 0;
+const TOOL_DEFS_TTL_MS = 60_000; // 1 minute
+
+/**
  * Load available tool definitions for sending to Claude.
  * Only includes tools that are:
  * 1. In the loader map
  * 2. In the registry as 'active' or 'beta'
  * 3. Pass their availability check
  *
+ * Results are cached for 1 minute to avoid re-running availability checks
+ * on every request within the same server instance.
+ *
  * Returns lightweight tool definition objects (name + description + parameters).
  */
 export async function loadAvailableToolDefinitions(): Promise<UnifiedTool[]> {
+  // Return cached definitions if still fresh
+  if (cachedToolDefs && Date.now() - cachedToolDefsTimestamp < TOOL_DEFS_TTL_MS) {
+    return cachedToolDefs;
+  }
+
   const tools: UnifiedTool[] = [];
 
   // Only load tools that are active or beta in the registry
@@ -499,6 +515,10 @@ export async function loadAvailableToolDefinitions(): Promise<UnifiedTool[]> {
     if (tool) tools.push(tool);
   }
 
+  // Cache the result
+  cachedToolDefs = tools;
+  cachedToolDefsTimestamp = Date.now();
+
   return tools;
 }
 
@@ -518,8 +538,10 @@ export async function executeToolByName(
 }
 
 /**
- * Clear the module cache (for testing).
+ * Clear the module cache and definitions cache (for testing).
  */
 export function clearToolModuleCache(): void {
   moduleCache.clear();
+  cachedToolDefs = null;
+  cachedToolDefsTimestamp = 0;
 }

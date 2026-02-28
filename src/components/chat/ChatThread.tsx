@@ -18,6 +18,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
@@ -160,8 +161,13 @@ export function ChatThread({
               <div className="h-16 md:h-20 w-auto mx-auto" />
             ) : theme === 'light' ? (
               lightModeLogo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={lightModeLogo} alt="JCIL.ai" className="h-16 md:h-20 w-auto mx-auto" />
+                <Image
+                  src={lightModeLogo}
+                  alt="JCIL.ai"
+                  width={240}
+                  height={80}
+                  className="h-16 md:h-20 w-auto mx-auto"
+                />
               ) : (
                 <h1 className="text-4xl md:text-5xl font-normal">
                   <span className="text-text-primary">jcil.</span>
@@ -179,8 +185,13 @@ export function ChatThread({
                   className="h-16 md:h-20 w-auto mx-auto"
                 />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={mainLogo} alt="JCIL.ai" className="h-16 md:h-20 w-auto mx-auto" />
+                <Image
+                  src={mainLogo}
+                  alt="JCIL.ai"
+                  width={240}
+                  height={80}
+                  className="h-16 md:h-20 w-auto mx-auto"
+                />
               )
             ) : (
               <h1 className="text-4xl md:text-5xl font-normal">

@@ -1,7 +1,7 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
 **Last Updated:** 2026-02-27
-**Updated By:** Phase 2.6 — Test Coverage Push (15% → 41%, 12,107 tests)
+**Updated By:** Phase 3.3 — Containerization (Dockerfile, docker-compose, standalone output)
 **Branch:** `claude/fix-chat-crashes-L9aK6`
 
 > This document reflects verified, measured values only. No aspirational claims.
@@ -22,7 +22,7 @@
 | **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.  | 0 static inline styles | Complete — Phase 2.4.8      |
 | **Largest Component**          | 374 lines (was 2,631)                                                             | <400 lines             | Target met — decomposed     |
 | **Largest Route File**         | 537 lines (was 4,618)                                                             | <500 lines             | Decomposed into 10 modules  |
-| **Production Dependencies**    | 152                                                                               | <50                    | Needs audit                 |
+| **Production Dependencies**    | 77 (was 115, was 152)                                                             | <50                    | 33% reduction — Phase 3.1.8 |
 | **Tool Files (total)**         | 58 (was 82, deleted 23 stubs + index.ts)                                          | Lazy-loaded            | Lazy loading implemented    |
 | **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx) | All major sections     | Complete — Phase 2.5        |
 | **TypeScript Errors**          | TBD (verify)                                                                      | 0                      | Check each session          |
@@ -56,14 +56,15 @@
 
 ### Infrastructure
 
-| Component           | Status  | Notes                             |
-| ------------------- | ------- | --------------------------------- |
-| Next.js 14          | Working | SSR, API routes                   |
-| Supabase PostgreSQL | Working | Database with RLS                 |
-| Upstash Redis       | Working | Rate limiting                     |
-| Vercel Deployment   | Working | Production hosting                |
-| Stripe              | Partial | Integration exists, needs testing |
-| E2B Sandboxing      | Exists  | Code execution environment        |
+| Component           | Status  | Notes                                         |
+| ------------------- | ------- | --------------------------------------------- |
+| Next.js 14          | Working | SSR, API routes, standalone output for Docker |
+| Supabase PostgreSQL | Working | Database with RLS                             |
+| Upstash Redis       | Working | Rate limiting                                 |
+| Vercel Deployment   | Working | Production hosting                            |
+| Docker              | Ready   | Multi-stage Dockerfile + docker-compose.yml   |
+| Stripe              | Partial | Integration exists, needs testing             |
+| E2B Sandboxing      | Exists  | Code execution environment                    |
 
 ---
 
@@ -101,7 +102,7 @@ The vast majority of tools in `lib/ai/tools/` return simulated/fake data:
 
 - ~~`npm audit` has `continue-on-error: true`~~ — **FIXED** (all CI steps required) _(2026-02-22)_
 - ~~No coverage thresholds enforced~~ — **FIXED** (vitest thresholds enforced in CI) _(2026-02-22)_
-- No bundle size analysis
+- ~~No bundle size analysis~~ — **FIXED**: @next/bundle-analyzer + CI budget check (120 kB limit) _(2026-02-27)_
 - No staging environment / preview deployments
 
 ---
@@ -114,7 +115,7 @@ The vast majority of tools in `lib/ai/tools/` return simulated/fake data:
 4. ~~**In-memory state** (Maps) in serverless functions~~ — **FIXED** (chat rate limiting + admin cache migrated to Redis) _(2026-02-23)_
 5. ~~**393 tools loaded on every request**~~ — **FIXED** (lazy loading via `tool-loader.ts`, only loaded on demand) _(2026-02-22)_
 6. ~~**4,618-line chat route**~~ — **FIXED** (decomposed to 537-line orchestrator + 9 focused modules) _(2026-02-23)_
-7. **4,312-line system prompt** — ~15-20K tokens sent every request (~$0.05/request just for prompt)
+7. ~~**4,312-line system prompt**~~ — **FIXED**: Legacy 4,312-line file was dead code (deleted). Active prompt is 322 lines. Cached per calendar day. _(2026-02-27)_
 8. ~~**Fake aggregate rating** in Schema.org data~~ — **FIXED** (removed) _(2026-02-22)_
 
 ---
@@ -146,55 +147,68 @@ This document is updated whenever a verified metric changes. Each update include
 
 ### Change Log
 
-| Date       | Change                                           | Old Value                                   | New Value                                 |
-| ---------- | ------------------------------------------------ | ------------------------------------------- | ----------------------------------------- |
-| 2026-02-22 | Initial ground-truth baseline                    | (stale data)                                | All metrics above                         |
-| 2026-02-22 | Removed 311 unused tool files                    | 393 tool files                              | 82 tool files                             |
-| 2026-02-22 | Fixed admin permissions default                  | `?? true` (fail-open)                       | `?? false` (fail-closed)                  |
-| 2026-02-22 | Fixed rate limiting fail-open                    | `allowed: true` on Redis failure            | `allowed: false` (fail-closed)            |
-| 2026-02-22 | Fixed viewport scaling                           | `userScalable: false`                       | `userScalable: true`                      |
-| 2026-02-22 | Removed fake aggregate rating                    | 4.9/5 (150 reviews)                         | Removed                                   |
-| 2026-02-22 | Fixed vitest coverage config                     | 75% threshold (files-with-tests only)       | 5% threshold (all files)                  |
-| 2026-02-22 | Removed CI continue-on-error                     | Security audit non-blocking                 | Security audit blocks deploy              |
-| 2026-02-22 | Aligned Node version                             | package.json: 22.x                          | package.json: 20.x (matches .nvmrc, CI)   |
-| 2026-02-22 | Strengthened env validation                      | Log-only on missing vars                    | Throws in production                      |
-| 2026-02-22 | Google verification to env var                   | Hardcoded token                             | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`    |
-| 2026-02-22 | Deleted 23 stub tools + fixed index.ts           | 82 files, 4,033-line index.ts               | 58 files, ~430-line index.ts              |
-| 2026-02-22 | Cleaned route.ts of deleted tool refs            | ~8,366 lines of broken refs                 | All refs to real tools only               |
-| 2026-02-22 | Migrated 17 API routes to requireUser()          | Inline auth patterns                        | Centralized auth + CSRF                   |
-| 2026-02-22 | Added security tests (35 new)                    | 2130 tests                                  | 2165 tests across 75 files                |
-| 2026-02-22 | Implemented lazy tool loading (tool-loader.ts)   | 55 static imports + 90-case switch          | Dynamic import() on demand, cached        |
-| 2026-02-22 | Reduced route.ts via lazy loading                | 5,100 lines                                 | 4,618 lines (-484 lines)                  |
-| 2026-02-22 | Fixed Supabase types for build                   | Build broken (missing Relationships)        | Build passing (all types fixed)           |
-| 2026-02-22 | Added tool tests (82 new)                        | 2165 tests, 5.9% coverage                   | 2247 tests across 78 files, 15.05% cov    |
-| 2026-02-23 | Decomposed chat route.ts into 10 modules         | 4,618 lines, monolithic                     | 537-line orchestrator + 9 focused modules |
-| 2026-02-23 | Migrated rate limiting to Redis                  | 3 in-memory Maps (unreliable on serverless) | Redis-backed via checkRateLimit()         |
-| 2026-02-23 | Migrated admin cache to Redis                    | In-memory Map (lost across invocations)     | Redis cacheGet/cacheSet (5-min TTL)       |
-| 2026-02-23 | Added chat module tests (101 new)                | 2247 tests across 78 files                  | 2348 tests across 80 files                |
-| 2026-02-23 | Added hook tests (165 new)                       | 2348 tests across 80 files                  | 2513 tests across 85 files                |
-| 2026-02-23 | Decomposed MessageBubble.tsx                     | 1,689 lines                                 | 301 lines + 9 sub-components              |
-| 2026-02-23 | Decomposed ChatComposer.tsx                      | 1,667 lines                                 | 512 lines + 6 extracted modules           |
-| 2026-02-23 | Decomposed CodeLabComposer.tsx                   | 1,633 lines                                 | 328 lines + 3 sub-components + CSS file   |
-| 2026-02-23 | Decomposed CodeLabPairProgramming.tsx            | 1,499 lines                                 | 561 lines + CSS + usePairProgramming hook |
-| 2026-02-23 | Decomposed CodeLabCollaboration.tsx              | 1,486 lines                                 | 296 lines + CSS + 5 sub-components        |
-| 2026-02-23 | Decomposed CodeLabTerminal.tsx                   | 1,343 lines                                 | 599 lines + CSS + 4 sub-modules           |
-| 2026-02-23 | Decomposed CodeLabDebugger.tsx                   | 1,301 lines                                 | 647 lines + CSS file                      |
-| 2026-02-23 | Decomposed CodeLabSidebar.tsx                    | 1,296 lines                                 | 608 lines + CSS file                      |
-| 2026-02-23 | Decomposed ChatSidebar.tsx                       | 1,228 lines                                 | 613 lines + 5 sub-components              |
-| 2026-02-23 | Added decomposed component tests (122 new)       | 2513 tests across 85 files                  | 2635 tests across 89 files                |
-| 2026-02-24 | Added error boundaries to all major sections     | 0 error boundaries                          | 6 boundaries (chat×3, CodeLab, route×2)   |
-| 2026-02-24 | Added ToastProvider + toast errors to ChatClient | Silent console.error only                   | User-visible toast notifications          |
-| 2026-02-24 | Wired fetchWithRetry into key API calls          | Raw fetch() with no retry                   | Exponential backoff (max 2 retries)       |
-| 2026-02-24 | Added loading skeleton to ChatThread             | No loading state during msg fetch           | ThreadSkeleton shown while loading        |
-| 2026-02-24 | Added code-lab/error.tsx + loading.tsx           | No route-level error handling for code-lab  | Segment-level error boundary + skeleton   |
-| 2026-02-24 | Added error handling tests (78 new)              | 2635 tests across 89 files                  | 2724 tests across 93 files                |
-| 2026-02-27 | Fixed chat crashes (null guards)                 | Unprotected JSON.parse, null array access   | try/catch + null guards in 4 modules      |
-| 2026-02-27 | Fixed basic-ftp CVE (path traversal)             | basic-ftp 5.1.0 (vulnerable)                | basic-ftp 5.2.0 via pnpm override         |
-| 2026-02-27 | Added chat route tests (75 new)                  | 0 tests for auth/tools/image/doc/title      | 75 tests across 6 new test files          |
-| 2026-02-27 | Added code-lab route tests (24 new)              | 0 tests for lsp/memory/plan routes          | 24 tests across 3 new test files          |
-| 2026-02-27 | Added Stripe webhook tests (6 new)               | 0 tests for webhook handler                 | 6 tests covering all event types          |
-| 2026-02-27 | Coverage push: 15% → 41.25%                      | 2,724 tests, 15.05% lines                   | 12,107 tests, 41.25% lines, 410 files     |
-| 2026-02-27 | Updated vitest thresholds                        | 5% lines/statements                         | 35% lines/stmts, 60% branches/functions   |
+| Date       | Change                                           | Old Value                                   | New Value                                  |
+| ---------- | ------------------------------------------------ | ------------------------------------------- | ------------------------------------------ |
+| 2026-02-22 | Initial ground-truth baseline                    | (stale data)                                | All metrics above                          |
+| 2026-02-22 | Removed 311 unused tool files                    | 393 tool files                              | 82 tool files                              |
+| 2026-02-22 | Fixed admin permissions default                  | `?? true` (fail-open)                       | `?? false` (fail-closed)                   |
+| 2026-02-22 | Fixed rate limiting fail-open                    | `allowed: true` on Redis failure            | `allowed: false` (fail-closed)             |
+| 2026-02-22 | Fixed viewport scaling                           | `userScalable: false`                       | `userScalable: true`                       |
+| 2026-02-22 | Removed fake aggregate rating                    | 4.9/5 (150 reviews)                         | Removed                                    |
+| 2026-02-22 | Fixed vitest coverage config                     | 75% threshold (files-with-tests only)       | 5% threshold (all files)                   |
+| 2026-02-22 | Removed CI continue-on-error                     | Security audit non-blocking                 | Security audit blocks deploy               |
+| 2026-02-22 | Aligned Node version                             | package.json: 22.x                          | package.json: 20.x (matches .nvmrc, CI)    |
+| 2026-02-22 | Strengthened env validation                      | Log-only on missing vars                    | Throws in production                       |
+| 2026-02-22 | Google verification to env var                   | Hardcoded token                             | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`     |
+| 2026-02-22 | Deleted 23 stub tools + fixed index.ts           | 82 files, 4,033-line index.ts               | 58 files, ~430-line index.ts               |
+| 2026-02-22 | Cleaned route.ts of deleted tool refs            | ~8,366 lines of broken refs                 | All refs to real tools only                |
+| 2026-02-22 | Migrated 17 API routes to requireUser()          | Inline auth patterns                        | Centralized auth + CSRF                    |
+| 2026-02-22 | Added security tests (35 new)                    | 2130 tests                                  | 2165 tests across 75 files                 |
+| 2026-02-22 | Implemented lazy tool loading (tool-loader.ts)   | 55 static imports + 90-case switch          | Dynamic import() on demand, cached         |
+| 2026-02-22 | Reduced route.ts via lazy loading                | 5,100 lines                                 | 4,618 lines (-484 lines)                   |
+| 2026-02-22 | Fixed Supabase types for build                   | Build broken (missing Relationships)        | Build passing (all types fixed)            |
+| 2026-02-22 | Added tool tests (82 new)                        | 2165 tests, 5.9% coverage                   | 2247 tests across 78 files, 15.05% cov     |
+| 2026-02-23 | Decomposed chat route.ts into 10 modules         | 4,618 lines, monolithic                     | 537-line orchestrator + 9 focused modules  |
+| 2026-02-23 | Migrated rate limiting to Redis                  | 3 in-memory Maps (unreliable on serverless) | Redis-backed via checkRateLimit()          |
+| 2026-02-23 | Migrated admin cache to Redis                    | In-memory Map (lost across invocations)     | Redis cacheGet/cacheSet (5-min TTL)        |
+| 2026-02-23 | Added chat module tests (101 new)                | 2247 tests across 78 files                  | 2348 tests across 80 files                 |
+| 2026-02-23 | Added hook tests (165 new)                       | 2348 tests across 80 files                  | 2513 tests across 85 files                 |
+| 2026-02-23 | Decomposed MessageBubble.tsx                     | 1,689 lines                                 | 301 lines + 9 sub-components               |
+| 2026-02-23 | Decomposed ChatComposer.tsx                      | 1,667 lines                                 | 512 lines + 6 extracted modules            |
+| 2026-02-23 | Decomposed CodeLabComposer.tsx                   | 1,633 lines                                 | 328 lines + 3 sub-components + CSS file    |
+| 2026-02-23 | Decomposed CodeLabPairProgramming.tsx            | 1,499 lines                                 | 561 lines + CSS + usePairProgramming hook  |
+| 2026-02-23 | Decomposed CodeLabCollaboration.tsx              | 1,486 lines                                 | 296 lines + CSS + 5 sub-components         |
+| 2026-02-23 | Decomposed CodeLabTerminal.tsx                   | 1,343 lines                                 | 599 lines + CSS + 4 sub-modules            |
+| 2026-02-23 | Decomposed CodeLabDebugger.tsx                   | 1,301 lines                                 | 647 lines + CSS file                       |
+| 2026-02-23 | Decomposed CodeLabSidebar.tsx                    | 1,296 lines                                 | 608 lines + CSS file                       |
+| 2026-02-23 | Decomposed ChatSidebar.tsx                       | 1,228 lines                                 | 613 lines + 5 sub-components               |
+| 2026-02-23 | Added decomposed component tests (122 new)       | 2513 tests across 85 files                  | 2635 tests across 89 files                 |
+| 2026-02-24 | Added error boundaries to all major sections     | 0 error boundaries                          | 6 boundaries (chat×3, CodeLab, route×2)    |
+| 2026-02-24 | Added ToastProvider + toast errors to ChatClient | Silent console.error only                   | User-visible toast notifications           |
+| 2026-02-24 | Wired fetchWithRetry into key API calls          | Raw fetch() with no retry                   | Exponential backoff (max 2 retries)        |
+| 2026-02-24 | Added loading skeleton to ChatThread             | No loading state during msg fetch           | ThreadSkeleton shown while loading         |
+| 2026-02-24 | Added code-lab/error.tsx + loading.tsx           | No route-level error handling for code-lab  | Segment-level error boundary + skeleton    |
+| 2026-02-24 | Added error handling tests (78 new)              | 2635 tests across 89 files                  | 2724 tests across 93 files                 |
+| 2026-02-27 | Fixed chat crashes (null guards)                 | Unprotected JSON.parse, null array access   | try/catch + null guards in 4 modules       |
+| 2026-02-27 | Fixed basic-ftp CVE (path traversal)             | basic-ftp 5.1.0 (vulnerable)                | basic-ftp 5.2.0 via pnpm override          |
+| 2026-02-27 | Added chat route tests (75 new)                  | 0 tests for auth/tools/image/doc/title      | 75 tests across 6 new test files           |
+| 2026-02-27 | Added code-lab route tests (24 new)              | 0 tests for lsp/memory/plan routes          | 24 tests across 3 new test files           |
+| 2026-02-27 | Added Stripe webhook tests (6 new)               | 0 tests for webhook handler                 | 6 tests covering all event types           |
+| 2026-02-27 | Coverage push: 15% → 41.25%                      | 2,724 tests, 15.05% lines                   | 12,107 tests, 41.25% lines, 410 files      |
+| 2026-02-27 | Updated vitest thresholds                        | 5% lines/statements                         | 35% lines/stmts, 60% branches/functions    |
+| 2026-02-27 | Dynamic imports for ChatClient, CodeLabClient    | Static imports (all JS loaded at once)      | Lazy-loaded with loading skeletons         |
+| 2026-02-27 | Dynamic imports for Settings tab sections        | 7 sections loaded on page mount             | Only active tab loaded                     |
+| 2026-02-27 | Replaced <img> with next/image (5 files)         | Raw <img> tags (no optimization)            | next/image with AVIF/WebP, remote patterns |
+| 2026-02-27 | Cached tool definitions (1-min TTL)              | Availability checks on every request        | Cached across requests within instance     |
+| 2026-02-27 | Cached base system prompt (per calendar day)     | Rebuilt 322-line string on every request    | Built once per day, cached in memory       |
+| 2026-02-27 | Deleted legacy system prompt (5,010 lines)       | 3 dead files (4,312 + 502 + 196 lines)      | Deleted — active prompt is 322 lines       |
+| 2026-02-27 | Added @next/bundle-analyzer                      | No bundle analysis tooling                  | ANALYZE=true npm run analyze               |
+| 2026-02-27 | Added CI bundle size budget (120 kB)             | No size regression check                    | Fails CI if shared JS exceeds 120 kB       |
+| 2026-02-27 | Removed 38 unused production deps (115 → 77)     | 115 production dependencies                 | 77 production deps (33% reduction)         |
+| 2026-02-27 | Made Sentry mandatory in production              | Optional (enabled only if DSN set)          | Throws on startup if DSN missing in prod   |
+| 2026-02-27 | Phase 3.2 Observability audit (6/7 pre-existing) | Tasks marked as TODO                        | Verified: health, logging, tracing, Redis  |
+| 2026-02-27 | Added Docker containerization                    | No Dockerfile or compose                    | 3-stage Dockerfile + docker-compose.yml    |
+| 2026-02-27 | Enabled Next.js standalone output                | Standard build output                       | output: 'standalone' in next.config.js     |
 
 ---
 
