@@ -6,7 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
-import { requireAdmin } from '@/lib/auth/admin-guard';
+import { requireAdmin, checkPermission } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
@@ -34,6 +34,10 @@ export async function GET(
     // Require admin authentication
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+
+    // Require can_view_conversations permission
+    const perm = checkPermission(auth, 'can_view_conversations');
+    if (!perm.allowed) return perm.response;
 
     // Rate limit by admin
     const rateLimitResult = await checkRequestRateLimit(

@@ -372,7 +372,7 @@ describe('VirtualFileSystem', () => {
 
       const content = await vfs.readFile('/src/index.ts');
       expect(content).toBe('file contents here');
-    }, 30000);
+    });
 
     it('should throw when file not found', async () => {
       mockShellError('', 'No such file', 1);
