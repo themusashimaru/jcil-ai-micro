@@ -1,7 +1,9 @@
 # GitHub Branch Cleanup
 
 ## ✅ Local Branches Cleaned
+
 Only 2 local branches remain:
+
 - `claude/tools-launcher-pages-011CUzRNUtLxgcmiojwxhhha` (YOUR WORKING BRANCH)
 - `main`
 
@@ -10,9 +12,11 @@ Only 2 local branches remain:
 ## 🗑️ Delete These 16 Remote Branches from GitHub
 
 ### Option 1: GitHub UI
+
 Go to: https://github.com/themusashimaru/jcil-ai-micro/branches
 
 Delete these branches:
+
 1. claude/audit-refactor-jcil-mvp-011CUy4gztwEgob9tfPfAWP2
 2. claude/av-feature-011CUtq5QK4bKahsiNriuQg8
 3. claude/av-feature-011CUuYgaXDeFCEvPexv6jGv
@@ -31,6 +35,7 @@ Delete these branches:
 16. claude/trigger-deploy-011CUzRNUtLxgcmiojwxhhha
 
 ### Option 2: Command Line (if you have git access)
+
 ```bash
 git push origin --delete claude/audit-refactor-jcil-mvp-011CUy4gztwEgob9tfPfAWP2
 git push origin --delete claude/av-feature-011CUtq5QK4bKahsiNriuQg8
@@ -53,6 +58,7 @@ git push origin --delete claude/trigger-deploy-011CUzRNUtLxgcmiojwxhhha
 ---
 
 ## ✅ Keep Only:
+
 - `main`
 - `claude/tools-launcher-pages-011CUzRNUtLxgcmiojwxhhha`
 

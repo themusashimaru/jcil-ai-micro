@@ -9,9 +9,9 @@
  * SECURITY: Requires CRON_SECRET in Authorization header
  */
 
-import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CronCleanupRateLimits');
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   // Security check
   if (!verifyCronSecret(request)) {
     log.warn('Unauthorized cron access attempt');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   try {
@@ -60,10 +60,7 @@ export async function GET(request: Request) {
 
     if (deleteError) {
       log.error('Failed to delete old rate limits', deleteError);
-      return NextResponse.json(
-        { error: 'Cleanup failed', details: deleteError.message },
-        { status: 500 }
-      );
+      return errors.serverError('Cleanup failed');
     }
 
     const deletedCount = deletedEntries?.length || 0;
@@ -81,7 +78,7 @@ export async function GET(request: Request) {
       durationMs: duration,
     });
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       deleted: deletedCount,
       remaining: remainingCount,
@@ -90,7 +87,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     log.error('Cleanup cron error', error as Error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }
 

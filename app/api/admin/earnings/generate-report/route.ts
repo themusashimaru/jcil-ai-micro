@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
-import { captureAPIError } from '@/lib/api/utils';
+import { successResponse, errors, captureAPIError } from '@/lib/api/utils';
 import {
   adminReportGenerateSchema,
   validateBody,
@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validation = validateBody(adminReportGenerateSchema, body);
     if (!validation.success) {
-      return NextResponse.json(validationErrorResponse(validation.error, validation.details), {
-        status: 400,
-      });
+      return errors.badRequest(
+        validationErrorResponse(validation.error, validation.details).message
+      );
     }
     const { reportType, startDate, endDate } = validation.data;
 
@@ -272,7 +272,7 @@ Format the report professionally with clear sections, bullet points where approp
       // Continue anyway - report was generated
     }
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       data: {
         reportId: savedReport?.id,
@@ -288,6 +288,6 @@ Format the report professionally with clear sections, bullet points where approp
   } catch (error) {
     log.error('Error generating report:', error instanceof Error ? error : { error });
     captureAPIError(error, '/api/admin/earnings/generate-report');
-    return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
+    return errors.serverError('Failed to generate report');
   }
 }

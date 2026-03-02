@@ -10,10 +10,10 @@
  * PROTECTED: Requires admin authentication
  */
 
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 import { redis, isRedisAvailable } from '@/lib/redis/client';
+import { successResponse, errors } from '@/lib/api/utils';
 
 // Agent imports
 import { isCodeAgentEnabled, shouldUseCodeAgent, isCodeReviewRequest } from '@/agents/code';
@@ -267,7 +267,9 @@ export async function GET() {
   });
 
   // Return 503 if unhealthy so load balancers and monitors catch it
-  const httpStatus = overall === 'unhealthy' ? 503 : 200;
+  if (overall === 'unhealthy') {
+    return errors.serviceUnavailable('System unhealthy');
+  }
 
-  return NextResponse.json(response, { status: httpStatus });
+  return successResponse(response);
 }

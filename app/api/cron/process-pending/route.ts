@@ -8,7 +8,7 @@
  * Runs every minute via Vercel Cron.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import {
   getPendingRequestsToProcess,
   markRequestProcessing,
@@ -20,6 +20,7 @@ import { completeChat } from '@/lib/ai/chat-router';
 import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CronProcessPending');
 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
   if (!cronSecret) {
     log.warn('CRON_SECRET not configured — cron jobs will be rejected');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   if (authHeader !== `Bearer ${cronSecret}`) {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
       headerFormat: authHeader ? (authHeader.startsWith('Bearer ') ? 'Bearer' : 'other') : 'none',
       source: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
     });
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   log.info('[Cron] Starting pending requests processing');
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     if (pendingRequests.length === 0) {
       log.info('[Cron] No pending requests to process');
-      return NextResponse.json({ processed: 0 });
+      return successResponse({ processed: 0 });
     }
 
     log.info('[Cron] Found pending requests', { count: pendingRequests.length });
@@ -128,13 +129,13 @@ export async function GET(request: NextRequest) {
 
     log.info('[Cron] Completed', { processed, failed });
 
-    return NextResponse.json({
+    return successResponse({
       processed,
       failed,
       total: pendingRequests.length,
     });
   } catch (error) {
     log.error('[Cron] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to process pending requests' }, { status: 500 });
+    return errors.serverError('Failed to process pending requests');
   }
 }

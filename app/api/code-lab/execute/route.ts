@@ -10,11 +10,12 @@
  * @version 1.0.0
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('ExecuteAPI');
 
@@ -64,9 +65,19 @@ const DANGEROUS_PATTERNS: RegExp[] = [
 
 // System paths that should not be modified
 const PROTECTED_PATHS = [
-  '/etc/', '/var/', '/usr/', '/bin/', '/sbin/',
-  '/boot/', '/dev/', '/proc/', '/sys/', '/root/',
-  '/lib/', '/lib64/', '/opt/',
+  '/etc/',
+  '/var/',
+  '/usr/',
+  '/bin/',
+  '/sbin/',
+  '/boot/',
+  '/dev/',
+  '/proc/',
+  '/sys/',
+  '/root/',
+  '/lib/',
+  '/lib64/',
+  '/opt/',
 ];
 
 /**
@@ -155,21 +166,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const rateLimitResult = await rateLimiters.codeLabDebug(auth.user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          retryAfter: rateLimitResult.retryAfter,
-          remaining: rateLimitResult.remaining,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': String(rateLimitResult.resetAt),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
@@ -188,11 +185,11 @@ export async function POST(request: NextRequest) {
     };
 
     if (!command || typeof command !== 'string') {
-      return NextResponse.json({ error: 'Command is required' }, { status: 400 });
+      return errors.badRequest('Command is required');
     }
 
     if (!sessionId) {
-      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+      return errors.badRequest('Session ID is required');
     }
 
     // Validate command safety
@@ -203,7 +200,7 @@ export async function POST(request: NextRequest) {
         command: command.substring(0, 100),
         reason: safetyCheck.reason,
       });
-      return NextResponse.json({ error: safetyCheck.reason }, { status: 403 });
+      return errors.forbidden(safetyCheck.reason);
     }
 
     log.info('Executing command', {
@@ -227,7 +224,7 @@ export async function POST(request: NextRequest) {
           cwd,
         });
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           stdout: result.stdout,
           stderr: result.stderr,
@@ -239,28 +236,14 @@ export async function POST(request: NextRequest) {
 
         // In production, fail loudly - don't fall back to simulation
         if (isProduction) {
-          return NextResponse.json(
-            {
-              error: 'Sandbox execution failed',
-              details: 'Unable to connect to execution sandbox. Please try again.',
-              code: 'SANDBOX_CONNECTION_FAILED',
-            },
-            { status: 503 }
-          );
+          return errors.serviceUnavailable('Sandbox execution failed');
         }
         // In development, log warning and continue to simulation
         log.warn('E2B execution failed, falling back to simulation (dev mode only)');
       }
     } else if (isProduction) {
       // In production, require a sandbox ID
-      return NextResponse.json(
-        {
-          error: 'Sandbox required',
-          details: 'No sandbox ID provided. Please ensure workspace is initialized.',
-          code: 'SANDBOX_ID_MISSING',
-        },
-        { status: 400 }
-      );
+      return errors.badRequest('Sandbox required');
     }
 
     // Development-only fallback: Simulated execution
@@ -268,7 +251,7 @@ export async function POST(request: NextRequest) {
     log.info('Using simulated execution (development mode)');
     const simulatedResult = simulateCommand(command, cwd);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       ...simulatedResult,
       mode: 'simulated',
@@ -276,10 +259,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Execute API error', error as Error);
-    return NextResponse.json(
-      { error: 'Command execution failed', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Command execution failed');
   }
 }
 
@@ -480,22 +460,19 @@ export async function DELETE(request: NextRequest) {
     const processId = searchParams.get('processId');
 
     if (!sessionId) {
-      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+      return errors.badRequest('Session ID is required');
     }
 
     log.info('Killing process', { userId: auth.user.id, sessionId, processId });
 
     // In a real implementation, this would kill the running process
     // For now, just acknowledge the request
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: 'Process termination signal sent',
     });
   } catch (error) {
     log.error('Kill process error', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to kill process', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to kill process');
   }
 }

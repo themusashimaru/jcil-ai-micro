@@ -14,7 +14,8 @@
  * - SUPABASE_SERVICE_ROLE_KEY (for admin operations)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -83,10 +84,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errors.unauthorized();
     }
 
     const body: UsageUpdateRequest = await request.json();
@@ -94,10 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Validate type
     if (!type || !['chat', 'image'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Invalid type. Must be "chat" or "image"' },
-        { status: 400 }
-      );
+      return errors.badRequest('Invalid type. Must be "chat" or "image"');
     }
 
     // Determine target user
@@ -113,10 +108,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!adminCheck?.is_admin) {
-        return NextResponse.json(
-          { error: 'Only admins can update other users\' usage' },
-          { status: 403 }
-        );
+        return errors.forbidden("Only admins can update other users' usage");
       }
 
       targetUserId = userId;
@@ -136,14 +128,14 @@ export async function POST(request: NextRequest) {
         .eq('id', targetUserId);
 
       if (updateError) {
-        log.error('[Usage API] Reset error:', updateError instanceof Error ? updateError : { updateError });
-        return NextResponse.json(
-          { error: 'Failed to reset usage' },
-          { status: 500 }
+        log.error(
+          '[Usage API] Reset error:',
+          updateError instanceof Error ? updateError : { updateError }
         );
+        return errors.serverError('Failed to reset usage');
       }
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         message: `${type} usage reset successfully`,
         userId: targetUserId,
@@ -158,7 +150,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (rpcError) {
-      log.error('[Usage API] Increment error:', rpcError instanceof Error ? rpcError : { rpcError });
+      log.error(
+        '[Usage API] Increment error:',
+        rpcError instanceof Error ? rpcError : { rpcError }
+      );
 
       // Fallback: manual update
       const updateField = type === 'chat' ? 'messages_used_today' : 'images_generated_today';
@@ -179,13 +174,10 @@ export async function POST(request: NextRequest) {
         .eq('id', targetUserId);
 
       if (fallbackError) {
-        return NextResponse.json(
-          { error: 'Failed to update usage' },
-          { status: 500 }
-        );
+        return errors.serverError('Failed to update usage');
       }
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         type,
         newCount: currentCount + 1,
@@ -193,18 +185,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       type,
       newCount: newCount || 1,
       userId: targetUserId,
     });
-
   } catch (error) {
     log.error('[Usage API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to update usage' },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to update usage');
   }
 }

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import OpenAI from 'openai';
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Get the form data with audio file
@@ -47,13 +48,13 @@ export async function POST(request: NextRequest) {
     const prompt = formData.get('prompt') as string | null;
 
     if (!audioFile) {
-      return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
+      return errors.badRequest('No audio file provided');
     }
 
     // Check file size (max 25MB for Whisper)
     const MAX_SIZE = 25 * 1024 * 1024;
     if (audioFile.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'Audio file too large (max 25MB)' }, { status: 400 });
+      return errors.badRequest('Audio file too large (max 25MB)');
     }
 
     // Call OpenAI Whisper API with verbose_json to get no_speech_prob
@@ -77,14 +78,14 @@ export async function POST(request: NextRequest) {
     // If average no_speech_prob > 0.5, Whisper thinks it's mostly silence
     if (avgNoSpeechProb > 0.5) {
       log.debug('Filtered likely hallucination', { avgNoSpeechProb });
-      return NextResponse.json({
+      return successResponse({
         text: '',
         filtered: true,
         reason: 'no_speech_detected',
       });
     }
 
-    return NextResponse.json({
+    return successResponse({
       text: transcription.text,
       no_speech_prob: avgNoSpeechProb,
     });
@@ -100,6 +101,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: 'Failed to transcribe audio' }, { status: 500 });
+    return errors.serverError('Failed to transcribe audio');
   }
 }

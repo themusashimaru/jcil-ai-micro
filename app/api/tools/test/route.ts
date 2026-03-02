@@ -7,7 +7,7 @@
  * GET /api/tools/test/[tool] - Test a specific tool
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { requireAdmin } from '@/lib/auth/admin-guard';
@@ -78,7 +78,7 @@ export async function GET() {
         }
       });
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         timestamp: results.timestamp,
         summary: results.summary,
@@ -107,7 +107,7 @@ export async function GET() {
     // No cached results - return tool inventory
     const toolFiles = fs.readdirSync(TOOLS_DIR).filter((f) => f.endsWith('-tool.ts'));
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: 'No test results cached. Run tests first.',
       toolCount: toolFiles.length,
@@ -115,13 +115,7 @@ export async function GET() {
       runTestsCommand: 'npx tsx scripts/tests/tool-test-runner.ts',
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return errors.serverError(error instanceof Error ? error.message : 'Unknown error');
   }
 }
 
@@ -165,7 +159,7 @@ export async function POST(request: Request) {
     const failed = results.filter((r) => r.status === 'fail').length;
     const skipped = results.filter((r) => r.status === 'skip').length;
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       duration: totalDuration,
       summary: {
@@ -178,13 +172,7 @@ export async function POST(request: Request) {
       results,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return errors.serverError(error instanceof Error ? error.message : 'Unknown error');
   }
 }
 

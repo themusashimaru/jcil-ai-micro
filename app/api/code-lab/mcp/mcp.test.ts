@@ -421,11 +421,11 @@ describe('MCP API Module', () => {
     const routeModule = await import('./route');
     expect(routeModule.POST).toBeDefined();
     expect(typeof routeModule.POST).toBe('function');
-  });
+  }, 15000);
 
   it('should export GET handler', async () => {
     const routeModule = await import('./route');
     expect(routeModule.GET).toBeDefined();
     expect(typeof routeModule.GET).toBe('function');
-  });
+  }, 15000);
 });

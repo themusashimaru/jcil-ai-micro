@@ -7,10 +7,11 @@
  * - DELETE: Delete session
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabSessionDetail');
 
@@ -24,46 +25,49 @@ export async function GET(
   try {
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
-    const { data: session, error } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: session, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .select('*')
       .eq('id', sessionId)
       .eq('user_id', user.id)
       .single();
 
     if (error || !session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
-    return NextResponse.json({
+    return successResponse({
       session: {
         id: session.id,
         title: session.title,
         createdAt: session.created_at,
         updatedAt: session.updated_at,
-        repo: session.repo_owner ? {
-          owner: session.repo_owner,
-          name: session.repo_name,
-          branch: session.repo_branch || 'main',
-          fullName: `${session.repo_owner}/${session.repo_name}`,
-        } : null,
+        repo: session.repo_owner
+          ? {
+              owner: session.repo_owner,
+              name: session.repo_name,
+              branch: session.repo_branch || 'main',
+              fullName: `${session.repo_owner}/${session.repo_name}`,
+            }
+          : null,
         isActive: true,
         messageCount: session.message_count || 0,
         hasSummary: session.has_summary || false,
         linesAdded: session.lines_added || 0,
         linesRemoved: session.lines_removed || 0,
         filesChanged: session.files_changed || 0,
-      }
+      },
     });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to get session' }, { status: 500 });
+    return errors.serverError('Failed to get session');
   }
 }
 
@@ -80,10 +84,12 @@ export async function PATCH(
 
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const body = await request.json();
@@ -109,8 +115,7 @@ export async function PATCH(
       }
     }
 
-    const { data: session, error } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: session, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .update(updates)
       .eq('id', sessionId)
       .eq('user_id', user.id)
@@ -118,33 +123,38 @@ export async function PATCH(
       .single();
 
     if (error) {
-      log.error('[CodeLab API] Error updating session:', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
+      log.error(
+        '[CodeLab API] Error updating session:',
+        error instanceof Error ? error : { error }
+      );
+      return errors.serverError('Failed to update session');
     }
 
-    return NextResponse.json({
+    return successResponse({
       session: {
         id: session.id,
         title: session.title,
         createdAt: session.created_at,
         updatedAt: session.updated_at,
-        repo: session.repo_owner ? {
-          owner: session.repo_owner,
-          name: session.repo_name,
-          branch: session.repo_branch || 'main',
-          fullName: `${session.repo_owner}/${session.repo_name}`,
-        } : null,
+        repo: session.repo_owner
+          ? {
+              owner: session.repo_owner,
+              name: session.repo_name,
+              branch: session.repo_branch || 'main',
+              fullName: `${session.repo_owner}/${session.repo_name}`,
+            }
+          : null,
         isActive: true,
         messageCount: session.message_count || 0,
         hasSummary: session.has_summary || false,
         linesAdded: session.lines_added || 0,
         linesRemoved: session.lines_removed || 0,
         filesChanged: session.files_changed || 0,
-      }
+      },
     });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
+    return errors.serverError('Failed to update session');
   }
 }
 
@@ -161,15 +171,18 @@ export async function DELETE(
 
     const { sessionId } = await params;
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // SECURITY FIX: First verify the session belongs to the user BEFORE deleting anything
-    const { data: session, error: verifyError } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: session, error: verifyError } = await (
+      supabase.from('code_lab_sessions') as AnySupabase
+    )
       .select('id')
       .eq('id', sessionId)
       .eq('user_id', user.id)
@@ -177,35 +190,36 @@ export async function DELETE(
 
     if (verifyError || !session) {
       log.warn('[CodeLab API] Unauthorized delete attempt', { sessionId, userId: user.id });
-      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
     // Now safe to delete messages - ownership verified
-    const { error: messagesError } = await (supabase
-      .from('code_lab_messages') as AnySupabase)
+    const { error: messagesError } = await (supabase.from('code_lab_messages') as AnySupabase)
       .delete()
       .eq('session_id', sessionId);
 
     if (messagesError) {
       log.error('[CodeLab API] Error deleting messages:', messagesError);
-      return NextResponse.json({ error: 'Failed to delete session messages' }, { status: 500 });
+      return errors.serverError('Failed to delete session messages');
     }
 
     // Delete session
-    const { error } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { error } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .delete()
       .eq('id', sessionId)
       .eq('user_id', user.id);
 
     if (error) {
-      log.error('[CodeLab API] Error deleting session:', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
+      log.error(
+        '[CodeLab API] Error deleting session:',
+        error instanceof Error ? error : { error }
+      );
+      return errors.serverError('Failed to delete session');
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
+    return errors.serverError('Failed to delete session');
   }
 }

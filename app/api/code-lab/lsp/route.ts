@@ -10,13 +10,14 @@
  * - Rename
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getLSPManager } from '@/lib/lsp/lsp-client';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { validateCSRF } from '@/lib/security/csrf';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('LSPAPI');
 
@@ -62,21 +63,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const rateLimitResult = await rateLimiters.codeLabLSP(auth.user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          retryAfter: rateLimitResult.retryAfter,
-          remaining: rateLimitResult.remaining,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': String(rateLimitResult.resetAt),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body: LSPRequestBody = await request.json();
@@ -92,11 +79,11 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!operation) {
-      return NextResponse.json({ error: 'Missing operation' }, { status: 400 });
+      return errors.badRequest('Missing operation');
     }
 
     if (!sessionId) {
-      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+      return errors.badRequest('Missing sessionId');
     }
 
     log.debug('LSP operation', { operation, file, userId: auth.user.id });
@@ -107,26 +94,20 @@ export async function POST(request: NextRequest) {
     switch (operation) {
       case 'initialize': {
         if (!file || content === undefined) {
-          return NextResponse.json(
-            { error: 'initialize requires file and content' },
-            { status: 400 }
-          );
+          return errors.badRequest('initialize requires file and content');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json(
-            { error: `No language server available for file: ${file}` },
-            { status: 400 }
-          );
+          return errors.badRequest(`No language server available for file: ${file}`);
         }
 
         await client.openDocument(sanitizedFile, content);
         const language = detectLanguage(file);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: { initialized: true, language },
         });
@@ -134,36 +115,30 @@ export async function POST(request: NextRequest) {
 
       case 'update_document': {
         if (!file || content === undefined) {
-          return NextResponse.json(
-            { error: 'update_document requires file and content' },
-            { status: 400 }
-          );
+          return errors.badRequest('update_document requires file and content');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({ success: true });
+          return successResponse({ success: true });
         }
 
         await client.updateDocument(sanitizedFile, content);
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'goto_definition': {
         if (!file || line === undefined || column === undefined) {
-          return NextResponse.json(
-            { error: 'goto_definition requires file, line, and column' },
-            { status: 400 }
-          );
+          return errors.badRequest('goto_definition requires file, line, and column');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { definitions: [] },
           });
@@ -174,7 +149,7 @@ export async function POST(request: NextRequest) {
         const result = await client.gotoDefinition(sanitizedFile, position);
 
         if (!result) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { definitions: [] },
           });
@@ -189,7 +164,7 @@ export async function POST(request: NextRequest) {
           endColumn: loc.range.end.character + 1,
         }));
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: { definitions },
         });
@@ -197,17 +172,14 @@ export async function POST(request: NextRequest) {
 
       case 'find_references': {
         if (!file || line === undefined || column === undefined) {
-          return NextResponse.json(
-            { error: 'find_references requires file, line, and column' },
-            { status: 400 }
-          );
+          return errors.badRequest('find_references requires file, line, and column');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { references: [], count: 0 },
           });
@@ -224,7 +196,7 @@ export async function POST(request: NextRequest) {
           endColumn: loc.range.end.character + 1,
         }));
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: { references, count: references.length },
         });
@@ -232,17 +204,14 @@ export async function POST(request: NextRequest) {
 
       case 'hover': {
         if (!file || line === undefined || column === undefined) {
-          return NextResponse.json(
-            { error: 'hover requires file, line, and column' },
-            { status: 400 }
-          );
+          return errors.badRequest('hover requires file, line, and column');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: null,
           });
@@ -252,7 +221,7 @@ export async function POST(request: NextRequest) {
         const hover = await client.hover(sanitizedFile, position);
 
         if (!hover) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: null,
           });
@@ -270,7 +239,7 @@ export async function POST(request: NextRequest) {
           content = JSON.stringify(hover.contents);
         }
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: {
             content,
@@ -292,17 +261,14 @@ export async function POST(request: NextRequest) {
 
       case 'completions': {
         if (!file || line === undefined || column === undefined) {
-          return NextResponse.json(
-            { error: 'completions requires file, line, and column' },
-            { status: 400 }
-          );
+          return errors.badRequest('completions requires file, line, and column');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { items: [] },
           });
@@ -321,7 +287,7 @@ export async function POST(request: NextRequest) {
           insertText: item.insertText,
         }));
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: { items },
         });
@@ -329,14 +295,14 @@ export async function POST(request: NextRequest) {
 
       case 'document_symbols': {
         if (!file) {
-          return NextResponse.json({ error: 'document_symbols requires file' }, { status: 400 });
+          return errors.badRequest('document_symbols requires file');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { symbols: [] },
           });
@@ -353,7 +319,7 @@ export async function POST(request: NextRequest) {
           endColumn: sym.range.end.character + 1,
         }));
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: { symbols },
         });
@@ -361,17 +327,14 @@ export async function POST(request: NextRequest) {
 
       case 'rename': {
         if (!file || line === undefined || column === undefined || !newName) {
-          return NextResponse.json(
-            { error: 'rename requires file, line, column, and newName' },
-            { status: 400 }
-          );
+          return errors.badRequest('rename requires file, line, column, and newName');
         }
 
         const sanitizedFile = sanitizeFilePath(file, workspaceRoot);
         const client = await lspManager.getClientForFile(sanitizedFile);
 
         if (!client) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { changes: [] },
           });
@@ -381,7 +344,7 @@ export async function POST(request: NextRequest) {
         const edit = await client.rename(sanitizedFile, position, newName);
 
         if (!edit || !edit.changes) {
-          return NextResponse.json({
+          return successResponse({
             success: true,
             result: { changes: [] },
           });
@@ -398,18 +361,18 @@ export async function POST(request: NextRequest) {
           })),
         }));
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           result: { changes },
         });
       }
 
       default:
-        return NextResponse.json({ error: `Unknown operation: ${operation}` }, { status: 400 });
+        return errors.badRequest(`Unknown operation: ${operation}`);
     }
   } catch (error) {
     log.error('LSP API error', { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 

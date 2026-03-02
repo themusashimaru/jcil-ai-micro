@@ -5,13 +5,14 @@
  * Integrates with E2B sandbox for isolated execution
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabFiles');
 
@@ -42,22 +43,13 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-        },
-      }
-    );
+    return errors.rateLimited(rateLimitResult.retryAfter);
   }
 
   const { searchParams } = new URL(request.url);
@@ -65,13 +57,13 @@ export async function GET(request: NextRequest) {
   const path = searchParams.get('path');
 
   if (!sessionId) {
-    return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+    return errors.badRequest('Session ID required');
   }
 
   // Verify session ownership
   const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
   if (!hasAccess) {
-    return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+    return errors.sessionAccessDenied();
   }
 
   try {
@@ -81,21 +73,15 @@ export async function GET(request: NextRequest) {
       // Sanitize and read specific file
       const safePath = sanitizeFilePath(path);
       const content = await container.readFile(sessionId, safePath);
-      return NextResponse.json({ content, path: safePath });
+      return successResponse({ content, path: safePath });
     } else {
       // List all files recursively
       const files = await container.listDirectory(sessionId, '/workspace');
-      return NextResponse.json({ files });
+      return successResponse({ files });
     }
   } catch (error) {
     log.error('[Files API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        error: 'Failed to access files',
-        code: 'FILES_ACCESS_FAILED',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to access files');
   }
 }
 
@@ -112,35 +98,26 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-        },
-      }
-    );
+    return errors.rateLimited(rateLimitResult.retryAfter);
   }
 
   try {
     const { sessionId, path, content = '' } = await request.json();
 
     if (!sessionId || !path) {
-      return NextResponse.json({ error: 'Session ID and path required' }, { status: 400 });
+      return errors.badRequest('Session ID and path required');
     }
 
     // Verify session ownership
     const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+      return errors.sessionAccessDenied();
     }
 
     // Sanitize path
@@ -149,16 +126,10 @@ export async function POST(request: NextRequest) {
     const container = getContainerManager();
     await container.writeFile(sessionId, safePath, content);
 
-    return NextResponse.json({ success: true, path: safePath });
+    return successResponse({ success: true, path: safePath });
   } catch (error) {
     log.error('[Files API] Error creating file:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        error: 'Failed to create file',
-        code: 'FILE_CREATE_FAILED',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to create file');
   }
 }
 
@@ -175,35 +146,26 @@ export async function PUT(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-        },
-      }
-    );
+    return errors.rateLimited(rateLimitResult.retryAfter);
   }
 
   try {
     const { sessionId, path, content } = await request.json();
 
     if (!sessionId || !path) {
-      return NextResponse.json({ error: 'Session ID and path required' }, { status: 400 });
+      return errors.badRequest('Session ID and path required');
     }
 
     // Verify session ownership
     const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+      return errors.sessionAccessDenied();
     }
 
     // Sanitize path
@@ -212,16 +174,10 @@ export async function PUT(request: NextRequest) {
     const container = getContainerManager();
     await container.writeFile(sessionId, safePath, content);
 
-    return NextResponse.json({ success: true, path: safePath });
+    return successResponse({ success: true, path: safePath });
   } catch (error) {
     log.error('[Files API] Error updating file:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        error: 'Failed to update file',
-        code: 'FILE_UPDATE_FAILED',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to update file');
   }
 }
 
@@ -238,22 +194,13 @@ export async function DELETE(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-        },
-      }
-    );
+    return errors.rateLimited(rateLimitResult.retryAfter);
   }
 
   const { searchParams } = new URL(request.url);
@@ -261,13 +208,13 @@ export async function DELETE(request: NextRequest) {
   const path = searchParams.get('path');
 
   if (!sessionId || !path) {
-    return NextResponse.json({ error: 'Session ID and path required' }, { status: 400 });
+    return errors.badRequest('Session ID and path required');
   }
 
   // Verify session ownership
   const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
   if (!hasAccess) {
-    return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+    return errors.sessionAccessDenied();
   }
 
   try {
@@ -277,15 +224,9 @@ export async function DELETE(request: NextRequest) {
     const container = getContainerManager();
     await container.deleteFile(sessionId, safePath);
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('[Files API] Error deleting file:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        error: 'Failed to delete file',
-        code: 'FILE_DELETE_FAILED',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to delete file');
   }
 }

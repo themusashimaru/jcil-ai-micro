@@ -8,12 +8,13 @@
  * - Variable inspection
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getDebugManager } from '@/lib/debugger/debug-manager';
 import { DebugConfiguration, Source } from '@/lib/debugger/debug-adapter';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('DebugAPI');
 
@@ -31,21 +32,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const rateLimitResult = await rateLimiters.codeLabDebug(auth.user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          retryAfter: rateLimitResult.retryAfter,
-          remaining: rateLimitResult.remaining,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': String(rateLimitResult.resetAt),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
@@ -63,17 +50,14 @@ export async function POST(request: NextRequest) {
         const workspaceId = (params.workspaceId as string) || auth.user.id;
 
         if (!config || !config.type || !config.program) {
-          return NextResponse.json(
-            { error: 'Invalid debug configuration. Required: type, program' },
-            { status: 400 }
-          );
+          return errors.badRequest('Invalid debug configuration. Required: type, program');
         }
 
         log.info('Starting debug session', { userId: auth.user.id, type: config.type });
 
         const debugSession = await debugManager.startSession(auth.user.id, workspaceId, config);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           session: debugSession,
         });
@@ -81,17 +65,17 @@ export async function POST(request: NextRequest) {
 
       case 'stop': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         await debugManager.stopSession(sessionId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'setBreakpoints': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const source = params.source as Source;
@@ -102,12 +86,12 @@ export async function POST(request: NextRequest) {
         }>;
 
         if (!source || !breakpoints) {
-          return NextResponse.json({ error: 'Missing source or breakpoints' }, { status: 400 });
+          return errors.badRequest('Missing source or breakpoints');
         }
 
         const verified = await debugManager.setBreakpoints(sessionId, source, breakpoints);
 
-        return NextResponse.json({
+        return successResponse({
           success: true,
           breakpoints: verified,
         });
@@ -115,72 +99,72 @@ export async function POST(request: NextRequest) {
 
       case 'continue': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threadId = (params.threadId as number) || 1;
         await debugManager.continue(sessionId, threadId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'stepOver': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threadId = (params.threadId as number) || 1;
         await debugManager.stepOver(sessionId, threadId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'stepInto': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threadId = (params.threadId as number) || 1;
         await debugManager.stepInto(sessionId, threadId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'stepOut': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threadId = (params.threadId as number) || 1;
         await debugManager.stepOut(sessionId, threadId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'pause': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threadId = (params.threadId as number) || 1;
         await debugManager.pause(sessionId, threadId);
 
-        return NextResponse.json({ success: true });
+        return successResponse({ success: true });
       }
 
       case 'getThreads': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threads = await debugManager.getThreads(sessionId);
 
-        return NextResponse.json({ success: true, threads });
+        return successResponse({ success: true, threads });
       }
 
       case 'getStackTrace': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const threadId = (params.threadId as number) || 1;
@@ -194,47 +178,47 @@ export async function POST(request: NextRequest) {
           levels
         );
 
-        return NextResponse.json({ success: true, stackFrames });
+        return successResponse({ success: true, stackFrames });
       }
 
       case 'getScopes': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const frameId = params.frameId as number;
         if (frameId === undefined) {
-          return NextResponse.json({ error: 'Missing frameId' }, { status: 400 });
+          return errors.badRequest('Missing frameId');
         }
 
         const scopes = await debugManager.getScopes(sessionId, frameId);
 
-        return NextResponse.json({ success: true, scopes });
+        return successResponse({ success: true, scopes });
       }
 
       case 'getVariables': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const variablesReference = params.variablesReference as number;
         if (variablesReference === undefined) {
-          return NextResponse.json({ error: 'Missing variablesReference' }, { status: 400 });
+          return errors.badRequest('Missing variablesReference');
         }
 
         const variables = await debugManager.getVariables(sessionId, variablesReference);
 
-        return NextResponse.json({ success: true, variables });
+        return successResponse({ success: true, variables });
       }
 
       case 'evaluate': {
         if (!sessionId) {
-          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+          return errors.badRequest('Missing sessionId');
         }
 
         const expression = params.expression as string;
         if (!expression) {
-          return NextResponse.json({ error: 'Missing expression' }, { status: 400 });
+          return errors.badRequest('Missing expression');
         }
 
         const frameId = params.frameId as number | undefined;
@@ -242,18 +226,15 @@ export async function POST(request: NextRequest) {
 
         const result = await debugManager.evaluate(sessionId, expression, frameId, context);
 
-        return NextResponse.json({ success: true, ...result });
+        return successResponse({ success: true, ...result });
       }
 
       default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+        return errors.badRequest(`Unknown action: ${action}`);
     }
   } catch (error) {
     log.error('Debug API error', error as Error);
-    return NextResponse.json(
-      { error: 'Debug operation failed', details: (error as Error).message },
-      { status: 500 }
-    );
+    return errors.serverError('Debug operation failed');
   }
 }
 
@@ -280,23 +261,23 @@ export async function GET(request: NextRequest) {
       // Get specific session
       const debugSession = debugManager.getSession(sessionId);
       if (!debugSession) {
-        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        return errors.sessionNotFound();
       }
 
-      return NextResponse.json({ session: debugSession });
+      return successResponse({ session: debugSession });
     }
 
     if (workspaceId) {
       // Get all sessions for workspace
       const sessions = debugManager.getWorkspaceSessions(workspaceId);
-      return NextResponse.json({ sessions });
+      return successResponse({ sessions });
     }
 
     // Get all sessions for user
     const sessions = debugManager.getUserSessions(auth.user.id);
-    return NextResponse.json({ sessions });
+    return successResponse({ sessions });
   } catch (error) {
     log.error('Debug API error', error as Error);
-    return NextResponse.json({ error: 'Failed to get debug sessions' }, { status: 500 });
+    return errors.serverError('Failed to get debug sessions');
   }
 }

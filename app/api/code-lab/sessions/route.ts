@@ -6,12 +6,13 @@
  * - POST: Create new session
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 // HIGH-006: Add rate limiting to GET endpoints
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabSessions');
 
@@ -31,16 +32,7 @@ export async function GET() {
     // HIGH-006: Rate limiting for GET
     const rateLimit = await rateLimiters.codeLabRead(auth.user.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimit.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimit.remaining),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     // Fetch sessions for user
@@ -55,7 +47,7 @@ export async function GET() {
         error instanceof Error ? error : { error }
       );
       // Return empty array if table doesn't exist yet
-      return NextResponse.json({ sessions: [] });
+      return successResponse({ sessions: [] });
     }
 
     // Transform to expected format
@@ -82,10 +74,10 @@ export async function GET() {
       filesChanged: s.files_changed || 0,
     }));
 
-    return NextResponse.json({ sessions: formattedSessions });
+    return successResponse({ sessions: formattedSessions });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ sessions: [] });
+    return successResponse({ sessions: [] });
   }
 }
 
@@ -130,7 +122,7 @@ export async function POST(request: NextRequest) {
         error instanceof Error ? error : { error }
       );
       // Return a mock session if table doesn't exist
-      return NextResponse.json({
+      return successResponse({
         session: {
           id: sessionId,
           title,
@@ -144,7 +136,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return successResponse({
       session: {
         id: session.id,
         title: session.title,
@@ -165,9 +157,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to create session', code: 'SESSION_CREATE_FAILED' },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to create session');
   }
 }

@@ -7,10 +7,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('MessageDetailAPI');
 
@@ -64,10 +65,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const { messageId } = await params;
 
     const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const supabase = getSupabaseAdmin();
@@ -89,16 +93,17 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (messageError || !message) {
-      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+      return errors.notFound('Message');
     }
 
     // Verify user can access this message
     const isDirectMessage = message.recipient_user_id === user.id;
-    const isBroadcast = message.is_broadcast &&
+    const isBroadcast =
+      message.is_broadcast &&
       (message.recipient_tier === 'all' || message.recipient_tier === userTier);
 
     if (!isDirectMessage && !isBroadcast) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return errors.forbidden('Access denied');
     }
 
     // Get status
@@ -111,24 +116,25 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     // Check if deleted
     if (status?.is_deleted) {
-      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+      return errors.notFound('Message');
     }
 
     // Auto-mark as read when viewing
     if (!status?.is_read) {
-      await supabase
-        .from('user_message_status')
-        .upsert({
+      await supabase.from('user_message_status').upsert(
+        {
           message_id: messageId,
           user_id: user.id,
           is_read: true,
           read_at: new Date().toISOString(),
-        }, {
+        },
+        {
           onConflict: 'message_id,user_id',
-        });
+        }
+      );
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: {
         ...message,
         is_read: true, // Now read
@@ -137,10 +143,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     log.error('[Message Detail API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -160,10 +163,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { is_read, is_starred } = body;
 
     const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const supabase = getSupabaseAdmin();
@@ -181,35 +187,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No valid updates provided' }, { status: 400 });
+      return errors.badRequest('No valid updates provided');
     }
 
     // Upsert status
-    const { error: updateError } = await supabase
-      .from('user_message_status')
-      .upsert({
+    const { error: updateError } = await supabase.from('user_message_status').upsert(
+      {
         message_id: messageId,
         user_id: user.id,
         ...updates,
-      }, {
+      },
+      {
         onConflict: 'message_id,user_id',
-      });
+      }
+    );
 
     if (updateError) {
-      log.error('[Message Detail API] Update error:', updateError instanceof Error ? updateError : { updateError });
-      return NextResponse.json(
-        { error: 'Failed to update message' },
-        { status: 500 }
+      log.error(
+        '[Message Detail API] Update error:',
+        updateError instanceof Error ? updateError : { updateError }
       );
+      return errors.serverError('Failed to update message');
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('[Message Detail API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -227,40 +231,41 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { messageId } = await params;
 
     const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const supabase = getSupabaseAdmin();
 
     // Soft delete - mark as deleted for this user
-    const { error: deleteError } = await supabase
-      .from('user_message_status')
-      .upsert({
+    const { error: deleteError } = await supabase.from('user_message_status').upsert(
+      {
         message_id: messageId,
         user_id: user.id,
         is_deleted: true,
         deleted_at: new Date().toISOString(),
-      }, {
+      },
+      {
         onConflict: 'message_id,user_id',
-      });
+      }
+    );
 
     if (deleteError) {
-      log.error('[Message Detail API] Delete error:', deleteError instanceof Error ? deleteError : { deleteError });
-      return NextResponse.json(
-        { error: 'Failed to delete message' },
-        { status: 500 }
+      log.error(
+        '[Message Detail API] Delete error:',
+        deleteError instanceof Error ? deleteError : { deleteError }
       );
+      return errors.serverError('Failed to delete message');
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('[Message Detail API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

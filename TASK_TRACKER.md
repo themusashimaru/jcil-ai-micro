@@ -244,7 +244,7 @@
 > **Why:** No versioning, inconsistent responses, no OpenAPI docs.
 
 - [x] **3.5.1** Standard API response format already exists in `src/lib/api/utils.ts`: `APIResponse<T>` with `successResponse()`, `errorResponse()`, 15+ error helpers (`errors.unauthorized()`, `.forbidden()`, `.notFound()`, etc.), Zod body/query/param validation, rate limiting. _(2026-02-27)_
-- [ ] **3.5.2** Apply standard format to all API routes — 45/129 routes use standard helpers, 87 still use raw `NextResponse.json()`. Large migration, deferred to dedicated session.
+- [x] **3.5.2** Apply standard format to all API routes — migrated 68 routes to `successResponse()`/`errors.*` helpers. 16 routes legitimately retain `NextResponse.json()` (streaming, webhooks, binary, CORS, dynamic status codes). Net -618 lines. _(2026-02-28)_
 - [ ] **3.5.3** Add API versioning prefix (`/api/v1/`) — requires URL restructuring, deferred
 - [ ] **3.5.4** Generate OpenAPI spec from Zod schemas — deferred
 - [x] **3.5.5** Centralized service role client: `createServiceRoleClient()` (singleton, audit-logged) + `SecureServiceRoleClient` (per-request, scoped ops). Eliminated 2 inline `createClient(url, serviceKey)` calls in code-lab/chat and process-pending routes. 6 files use legacy client, 2 use secure client. _(2026-02-27)_
@@ -318,10 +318,10 @@
 
 > **Why:** 50+ stale markdown files with contradictory claims. Clean house.
 
-- [ ] **DC.1** Archive stale root-level `.md` files to `docs/archive/` (keep README, CONTRIBUTING, CLAUDE.md, PROJECT_STATUS.md, TASK_TRACKER.md, SESSION_HANDOFF.md, APP_ASSESSMENT_AND_RECOMMENDATIONS.md, CTO_ASSESSMENT_REPORT.md)
-- [ ] **DC.2** Archive stale `docs/*.md` files that contain outdated claims
-- [ ] **DC.3** Ensure all remaining docs are dated and accurate
-- [ ] **DC.4** Remove duplicate audit reports (keep only the Feb 22 versions)
+- [x] **DC.1** Archive stale root-level `.md` files to `docs/archive/` (keep README, CONTRIBUTING, CLAUDE.md, PROJECT*STATUS.md, TASK_TRACKER.md, SESSION_HANDOFF.md, APP_ASSESSMENT_AND_RECOMMENDATIONS.md, CTO_ASSESSMENT_REPORT.md) *(2026-02-28)\_
+- [x] **DC.2** Archive stale `docs/*.md` files that contain outdated claims — 27 files archived total _(2026-02-28)_
+- [x] **DC.3** Ensure all remaining docs are dated and accurate — 11 root + 13 docs/ files retained, all current _(2026-02-28)_
+- [x] **DC.4** Remove duplicate audit reports (keep only the Feb 22 versions) — COMPREHENSIVE*AUDIT_REPORT duplicate archived with \_docs suffix *(2026-02-28)\_
 
 ---
 

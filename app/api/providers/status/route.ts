@@ -16,12 +16,12 @@
  * }
  */
 
-import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { getAvailableProviderIds } from '@/lib/ai/providers/registry';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('ProviderStatusAPI');
 
@@ -90,8 +90,7 @@ export async function GET() {
       ? 'claude'
       : allConfigured[0] || 'claude';
 
-    return NextResponse.json({
-      ok: true,
+    return successResponse({
       configured: allConfigured,
       platformConfigured,
       userConfigured,
@@ -99,16 +98,6 @@ export async function GET() {
     });
   } catch (error) {
     log.error('Error fetching provider status:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: 'Failed to fetch provider status',
-        configured: ['claude'], // Fallback to Claude
-        platformConfigured: ['claude'],
-        userConfigured: [],
-        default: 'claude',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to fetch provider status');
   }
 }

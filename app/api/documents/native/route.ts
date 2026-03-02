@@ -12,14 +12,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import {
-  generateDocument,
-  validateDocumentJSON,
-  type DocumentData,
-} from '@/lib/documents';
+import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -54,7 +51,10 @@ async function getAuthenticatedUserId(): Promise<string | null> {
       }
     );
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
     if (error || !user) return null;
     return user.id;
   } catch {
@@ -86,31 +86,29 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     const userId = await getAuthenticatedUserId();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Parse request body
     const body = await request.json();
-    const { documentData, filename, returnType = 'url' } = body as {
+    const {
+      documentData,
+      filename,
+      returnType = 'url',
+    } = body as {
       documentData: unknown;
       filename?: string;
       returnType?: 'url' | 'binary' | 'base64';
     };
 
     if (!documentData) {
-      return NextResponse.json(
-        { error: 'Missing documentData in request body' },
-        { status: 400 }
-      );
+      return errors.badRequest('Missing documentData in request body');
     }
 
     // Validate document structure
     const validation = validateDocumentJSON(documentData);
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: `Invalid document data: ${validation.error}` },
-        { status: 400 }
-      );
+      return errors.badRequest(`Invalid document data: ${validation.error}`);
     }
 
     const docData = documentData as DocumentData;
@@ -150,7 +148,7 @@ export async function POST(request: NextRequest) {
     if (returnType === 'base64') {
       const base64 = result.buffer.toString('base64');
       const dataUrl = `data:${result.mimeType};base64,${base64}`;
-      return NextResponse.json({
+      return successResponse({
         success: true,
         format: result.extension,
         title: getDocumentTitle(docData),
@@ -167,7 +165,7 @@ export async function POST(request: NextRequest) {
       // Fallback to base64 if no Supabase
       const base64 = result.buffer.toString('base64');
       const dataUrl = `data:${result.mimeType};base64,${base64}`;
-      return NextResponse.json({
+      return successResponse({
         success: true,
         format: result.extension,
         title: getDocumentTitle(docData),
@@ -203,7 +201,7 @@ export async function POST(request: NextRequest) {
       // Fallback to base64
       const base64 = result.buffer.toString('base64');
       const dataUrl = `data:${result.mimeType};base64,${base64}`;
-      return NextResponse.json({
+      return successResponse({
         success: true,
         format: result.extension,
         title: getDocumentTitle(docData),
@@ -217,19 +215,20 @@ export async function POST(request: NextRequest) {
     log.info('Uploaded to', { filePath });
 
     // Generate proxy URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                    request.headers.get('origin') ||
-                    'https://jcil.ai';
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-    const token = Buffer.from(JSON.stringify({
-      u: userId,
-      f: result.filename,
-      t: result.extension,
-    })).toString('base64url');
+    const token = Buffer.from(
+      JSON.stringify({
+        u: userId,
+        f: result.filename,
+        t: result.extension,
+      })
+    ).toString('base64url');
 
     const downloadUrl = `${baseUrl}/api/documents/download?token=${token}`;
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       format: result.extension,
       title: getDocumentTitle(docData),
@@ -239,13 +238,9 @@ export async function POST(request: NextRequest) {
       expiresIn: '1 hour',
       storage: 'supabase',
     });
-
   } catch (error) {
     log.error('Error generating document', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to generate document' },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to generate document');
   }
 }
 
@@ -253,7 +248,7 @@ export async function POST(request: NextRequest) {
  * GET - Return schema information
  */
 export async function GET() {
-  return NextResponse.json({
+  return successResponse({
     description: 'Native Document Generation API',
     info: 'Generates real DOCX and XLSX files from structured JSON',
     endpoint: {

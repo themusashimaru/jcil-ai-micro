@@ -5,7 +5,7 @@
  * instead of waiting for the cron job.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { completeChat } from '@/lib/ai/chat-router';
@@ -13,7 +13,7 @@ import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
-import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 const log = logger('ProcessPendingAPI');
@@ -54,7 +54,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   // Rate limiting - strict since this triggers AI completion
@@ -66,7 +66,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    return errors.serverError('Server configuration error');
   }
 
   try {
@@ -83,7 +83,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
     if (fetchError || !pendingRequest) {
       // No pending request - that's fine, maybe it was already processed
-      return NextResponse.json({ status: 'no_pending_request' });
+      return successResponse({ status: 'no_pending_request' });
     }
 
     log.info('[ProcessPending] Found pending request:', pendingRequest.id);
@@ -120,7 +120,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
         })
         .eq('id', pendingRequest.id);
 
-      return NextResponse.json({ status: 'failed', error: 'Empty response' });
+      return successResponse({ status: 'failed', error: 'Empty response' });
     }
 
     // Check if there's already a recent assistant message (partial content from interrupted stream)
@@ -196,15 +196,12 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
     log.info('[ProcessPending] Successfully processed request:', pendingRequest.id);
 
-    return NextResponse.json({
+    return successResponse({
       status: 'completed',
       content: responseText,
     });
   } catch (error) {
     log.error('[ProcessPending] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { status: 'error', error: 'Failed to process message' },
-      { status: 500 }
-    );
+    return errors.serverError('Failed to process message');
   }
 }

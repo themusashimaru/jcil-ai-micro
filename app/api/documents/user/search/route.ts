@@ -5,7 +5,8 @@
  * Uses simple keyword matching (embeddings removed to eliminate Google dependency)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
@@ -36,23 +37,29 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const body = await request.json();
     const { query, matchCount = 5 } = body;
 
     if (!query || query.trim().length === 0) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+      return errors.badRequest('Query is required');
     }
 
     // Extract keywords
-    const keywords = query.toLowerCase().split(/\W+/).filter((w: string) => w.length > 2);
+    const keywords = query
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((w: string) => w.length > 2);
 
     if (keywords.length === 0) {
-      return NextResponse.json({ results: [], query, matchCount: 0 });
+      return successResponse({ results: [], query, matchCount: 0 });
     }
 
     // Build ILIKE search pattern
@@ -61,47 +68,51 @@ export async function POST(request: NextRequest) {
     // Search chunks using keyword matching
     const { data: results, error: searchError } = await supabase
       .from('user_document_chunks')
-      .select(`
+      .select(
+        `
         id,
         document_id,
         content,
         user_documents!inner (
           name
         )
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .or(searchPatterns.map((p: string) => `content.ilike.${p}`).join(','))
       .limit(matchCount);
 
     if (searchError) {
       log.error('Search error', { error: searchError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+      return errors.serverError('Search failed');
     }
 
     // Format results
-    const formattedResults = (results || []).map((r: {
-      id: string;
-      document_id: string;
-      content: string;
-      user_documents: { name: string } | { name: string }[];
-    }) => ({
-      chunk_id: r.id,
-      document_id: r.document_id,
-      document_name: Array.isArray(r.user_documents)
-        ? r.user_documents[0]?.name || 'Unknown'
-        : r.user_documents?.name || 'Unknown',
-      content: r.content,
-      similarity: 0.8, // Placeholder for keyword match
-    }));
+    const formattedResults = (results || []).map(
+      (r: {
+        id: string;
+        document_id: string;
+        content: string;
+        user_documents: { name: string } | { name: string }[];
+      }) => ({
+        chunk_id: r.id,
+        document_id: r.document_id,
+        document_name: Array.isArray(r.user_documents)
+          ? r.user_documents[0]?.name || 'Unknown'
+          : r.user_documents?.name || 'Unknown',
+        content: r.content,
+        similarity: 0.8, // Placeholder for keyword match
+      })
+    );
 
-    return NextResponse.json({
+    return successResponse({
       results: formattedResults,
       query,
       matchCount: formattedResults.length,
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -132,9 +143,12 @@ export async function GET() {
       }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const { count } = await supabase
@@ -143,12 +157,12 @@ export async function GET() {
       .eq('user_id', user.id)
       .eq('status', 'ready');
 
-    return NextResponse.json({
+    return successResponse({
       hasDocuments: (count || 0) > 0,
       documentCount: count || 0,
     });
   } catch (error) {
     log.error('Unexpected error', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }

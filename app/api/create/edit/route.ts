@@ -13,7 +13,8 @@
  * - Image modifications with natural language
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -62,12 +63,8 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 export async function POST(request: NextRequest) {
   // Check if BFL is configured
   if (!isBFLConfigured()) {
-    return NextResponse.json(
-      {
-        error: 'Image editing not available',
-        message: 'BLACK_FOREST_LABS_API_KEY is not configured',
-      },
-      { status: 503 }
+    return errors.serviceUnavailable(
+      'Image editing not available - BLACK_FOREST_LABS_API_KEY is not configured'
     );
   }
 
@@ -84,13 +81,13 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Parse request
     const parseResult = await safeParseJSON<EditRequest>(request);
     if (!parseResult.success) {
-      return NextResponse.json({ error: parseResult.error }, { status: 400 });
+      return errors.badRequest(parseResult.error);
     }
 
     const {
@@ -105,38 +102,26 @@ export async function POST(request: NextRequest) {
 
     // Validate prompt
     if (!prompt || prompt.trim().length === 0) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+      return errors.badRequest('Prompt is required');
     }
 
     if (prompt.length > 2000) {
-      return NextResponse.json(
-        { error: 'Prompt must be less than 2000 characters' },
-        { status: 400 }
-      );
+      return errors.badRequest('Prompt must be less than 2000 characters');
     }
 
     // Validate images
     if (!images || images.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one reference image is required' },
-        { status: 400 }
-      );
+      return errors.badRequest('At least one reference image is required');
     }
 
     const modelConfig = FLUX_MODELS[model];
     if (!modelConfig.capabilities.imageEditing) {
-      return NextResponse.json(
-        { error: `Model ${modelConfig.name} does not support image editing` },
-        { status: 400 }
-      );
+      return errors.badRequest(`Model ${modelConfig.name} does not support image editing`);
     }
 
     if (images.length > modelConfig.capabilities.maxReferenceImages) {
-      return NextResponse.json(
-        {
-          error: `Maximum ${modelConfig.capabilities.maxReferenceImages} reference images allowed for ${modelConfig.name}`,
-        },
-        { status: 400 }
+      return errors.badRequest(
+        `Maximum ${modelConfig.capabilities.maxReferenceImages} reference images allowed for ${modelConfig.name}`
       );
     }
 
@@ -148,10 +133,7 @@ export async function POST(request: NextRequest) {
       // Check size (rough estimate from base64)
       const estimatedSize = (imageData.length * 3) / 4;
       if (estimatedSize > MAX_IMAGE_SIZE) {
-        return NextResponse.json(
-          { error: `Image ${i + 1} exceeds maximum size of 10MB` },
-          { status: 400 }
-        );
+        return errors.badRequest(`Image ${i + 1} exceeds maximum size of 10MB`);
       }
 
       // Extract base64 if data URL
@@ -161,12 +143,12 @@ export async function POST(request: NextRequest) {
     // Validate dimensions
     const dimValidation = validateDimensions(model, width, height);
     if (!dimValidation.valid) {
-      return NextResponse.json({ error: dimValidation.error }, { status: 400 });
+      return errors.badRequest(dimValidation.error);
     }
 
     // Validate strength
     if (strength < 0 || strength > 1) {
-      return NextResponse.json({ error: 'Strength must be between 0 and 1' }, { status: 400 });
+      return errors.badRequest('Strength must be between 0 and 1');
     }
 
     // Vision-aware prompt enhancement
@@ -210,7 +192,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       log.error('Failed to create generation record', { error: insertError });
-      return NextResponse.json({ error: 'Failed to start edit' }, { status: 500 });
+      return errors.serverError('Failed to start edit');
     }
 
     log.info('Starting image edit', {
@@ -252,14 +234,7 @@ export async function POST(request: NextRequest) {
         code: errorCode,
       });
 
-      return NextResponse.json(
-        {
-          error: 'Image edit failed',
-          message: errorMessage,
-          code: errorCode,
-        },
-        { status: 500 }
-      );
+      return errors.serverError('Image edit failed');
     }
 
     // Download and store the image (BFL URLs expire in 10 minutes)
@@ -281,13 +256,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', generationId);
 
-      return NextResponse.json(
-        {
-          error: 'Failed to store image',
-          message: 'The edit was completed but could not be saved',
-        },
-        { status: 500 }
-      );
+      return errors.serverError('Failed to store image');
     }
 
     // Update generation record with success
@@ -310,7 +279,7 @@ export async function POST(request: NextRequest) {
       cost: result.cost,
     });
 
-    return NextResponse.json({
+    return successResponse({
       id: generationId,
       status: 'completed',
       imageUrl: storedUrl,
@@ -323,11 +292,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Edit API error', error as Error);
-    return NextResponse.json(
-      {
-        error: 'Edit generation failed',
-      },
-      { status: 500 }
-    );
+    return errors.serverError('Edit generation failed');
   }
 }

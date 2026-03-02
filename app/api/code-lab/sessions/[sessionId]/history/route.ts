@@ -14,6 +14,7 @@ import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 // HIGH-006: Add rate limiting
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabHistory');
 
@@ -62,22 +63,13 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // HIGH-006: Rate limiting for GET
     const rateLimit = await rateLimiters.codeLabRead(user.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimit.retryAfter),
-            'X-RateLimit-Remaining': String(rateLimit.remaining),
-          },
-        }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     // Verify session belongs to user
@@ -88,7 +80,7 @@ export async function GET(
       .single()) as { data: Session | null };
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
     // Get all messages
@@ -102,7 +94,7 @@ export async function GET(
 
     if (format === 'json') {
       // Return raw JSON
-      return NextResponse.json({
+      return successResponse({
         session: {
           id: session.id,
           title: session.title,
@@ -135,7 +127,7 @@ export async function GET(
     });
   } catch (error) {
     log.error('[CodeLab History] Export error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to export session' }, { status: 500 });
+    return errors.serverError('Failed to export session');
   }
 }
 
@@ -158,28 +150,22 @@ export async function POST(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const body = await request.json();
     const { query, role, limit = 50 } = body;
 
     if (!query || typeof query !== 'string') {
-      return NextResponse.json({ error: 'Search query required' }, { status: 400 });
+      return errors.badRequest('Search query required');
     }
 
     // SECURITY: Validate query length to prevent DoS
     if (query.length < 2) {
-      return NextResponse.json(
-        { error: 'Query too short', code: 'QUERY_TOO_SHORT' },
-        { status: 400 }
-      );
+      return errors.badRequest('Query too short');
     }
     if (query.length > 500) {
-      return NextResponse.json(
-        { error: 'Query too long', code: 'QUERY_TOO_LONG' },
-        { status: 400 }
-      );
+      return errors.badRequest('Query too long');
     }
 
     // Verify session belongs to user
@@ -190,7 +176,7 @@ export async function POST(
       .single();
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
     // Search messages with ILIKE for case-insensitive search
@@ -212,7 +198,7 @@ export async function POST(
 
     if (error) {
       log.error('[CodeLab History] Search error:', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+      return errors.serverError('Search failed');
     }
 
     // Highlight search matches in content
@@ -227,14 +213,14 @@ export async function POST(
       matchContext: extractMatchContext(m.content, query),
     }));
 
-    return NextResponse.json({
+    return successResponse({
       query,
       results: highlightedMessages,
       total: highlightedMessages.length,
     });
   } catch (error) {
     log.error('[CodeLab History] Search error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    return errors.serverError('Search failed');
   }
 }
 

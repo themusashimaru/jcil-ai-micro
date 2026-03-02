@@ -4,11 +4,11 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
-import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('ConversationFolderAPI');
 
@@ -61,7 +61,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Rate limiting
@@ -81,7 +81,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         .single();
 
       if (folderError || !folder) {
-        return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+        return errors.notFound('Folder');
       }
     }
 
@@ -99,15 +99,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (updateError) {
       if (updateError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+        return errors.notFound('Conversation');
       }
       log.error('[Conversation Folder API] Error:', { error: updateError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Failed to move conversation' }, { status: 500 });
+      return errors.serverError('Failed to move conversation');
     }
 
-    return NextResponse.json({ conversation });
+    return successResponse({ conversation });
   } catch (error) {
     log.error('[Conversation Folder API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }

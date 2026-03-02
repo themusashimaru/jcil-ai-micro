@@ -5,10 +5,11 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('FolderDetailAPI');
 
@@ -55,9 +56,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const supabase = await getSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const body = await request.json();
@@ -71,10 +75,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (name !== undefined) {
       const trimmedName = name?.trim();
       if (!trimmedName) {
-        return NextResponse.json({ error: 'Folder name cannot be empty' }, { status: 400 });
+        return errors.badRequest('Folder name cannot be empty');
       }
       if (trimmedName.length > 50) {
-        return NextResponse.json({ error: 'Folder name must be 50 characters or less' }, { status: 400 });
+        return errors.badRequest('Folder name must be 50 characters or less');
       }
       updates.name = trimmedName;
     }
@@ -98,22 +102,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (updateError) {
       if (updateError.code === '23505') {
-        return NextResponse.json(
-          { error: 'A folder with this name already exists' },
-          { status: 400 }
-        );
+        return errors.badRequest('A folder with this name already exists');
       }
       if (updateError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+        return errors.notFound('Folder');
       }
-      log.error('[Folders API] Error updating folder:', updateError instanceof Error ? updateError : { updateError });
-      return NextResponse.json({ error: 'Failed to update folder' }, { status: 500 });
+      log.error(
+        '[Folders API] Error updating folder:',
+        updateError instanceof Error ? updateError : { updateError }
+      );
+      return errors.serverError('Failed to update folder');
     }
 
-    return NextResponse.json({ folder });
+    return successResponse({ folder });
   } catch (error) {
     log.error('[Folders API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }
 
@@ -130,9 +134,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const supabase = await getSupabaseClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Delete the folder (ON DELETE SET NULL will unfiled conversations automatically)
@@ -143,13 +150,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq('user_id', user.id);
 
     if (deleteError) {
-      log.error('[Folders API] Error deleting folder:', deleteError instanceof Error ? deleteError : { deleteError });
-      return NextResponse.json({ error: 'Failed to delete folder' }, { status: 500 });
+      log.error(
+        '[Folders API] Error deleting folder:',
+        deleteError instanceof Error ? deleteError : { deleteError }
+      );
+      return errors.serverError('Failed to delete folder');
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('[Folders API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }

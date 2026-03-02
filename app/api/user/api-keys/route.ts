@@ -14,12 +14,13 @@
  * DELETE: Remove an API key
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { encrypt, decrypt } from '@/lib/security/crypto';
 import { auditLog, getAuditContext } from '@/lib/audit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('UserAPIKeys');
 
@@ -205,10 +206,10 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ providers: configuredProviders });
+    return successResponse({ providers: configuredProviders });
   } catch (error) {
     log.error('Error fetching API keys', { error });
-    return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 });
+    return errors.serverError('Failed to fetch API keys');
   }
 }
 
@@ -225,44 +226,36 @@ export async function POST(request: NextRequest) {
 
     // Validate provider
     if (!SUPPORTED_PROVIDERS.includes(provider)) {
-      return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
+      return errors.badRequest('Invalid provider');
     }
 
     // Action: test - Just test the key without saving
     if (action === 'test') {
       if (!apiKey) {
-        return NextResponse.json({ error: 'API key required for testing' }, { status: 400 });
+        return errors.badRequest('API key required for testing');
       }
 
       const testResult = await testApiKey(provider, apiKey);
-      return NextResponse.json(testResult);
+      return successResponse(testResult);
     }
 
     // Action: save (default) - Validate and save the key
     if (!apiKey) {
-      return NextResponse.json({ error: 'API key required' }, { status: 400 });
+      return errors.badRequest('API key required');
     }
 
     // Validate key format
     const info = PROVIDER_INFO[provider as ProviderId];
     if (!apiKey.startsWith(info.keyPrefix)) {
-      return NextResponse.json(
-        {
-          error: `Invalid ${info.name} API key format. Key should start with "${info.keyPrefix}"`,
-        },
-        { status: 400 }
+      return errors.badRequest(
+        `Invalid ${info.name} API key format. Key should start with "${info.keyPrefix}"`
       );
     }
 
     // Test the key before saving
     const testResult = await testApiKey(provider, apiKey);
     if (!testResult.valid) {
-      return NextResponse.json(
-        {
-          error: testResult.error || 'Invalid API key',
-        },
-        { status: 400 }
-      );
+      return errors.badRequest(testResult.error || 'Invalid API key');
     }
 
     // Encrypt and save with optional custom model
@@ -305,7 +298,7 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) {
       log.error('Error saving API key', { error: upsertError });
-      return NextResponse.json({ error: 'Failed to save API key' }, { status: 500 });
+      return errors.serverError('Failed to save API key');
     }
 
     log.info('API key saved', {
@@ -327,7 +320,7 @@ export async function POST(request: NextRequest) {
       log.error('auditLog failed', err instanceof Error ? err : undefined)
     );
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: `${info.name} API key saved successfully`,
       lastChars: apiKey.slice(-4),
@@ -335,7 +328,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Error in POST /api/user/api-keys', { error });
-    return NextResponse.json({ error: 'Failed to save API key' }, { status: 500 });
+    return errors.serverError('Failed to save API key');
   }
 }
 
@@ -351,7 +344,7 @@ export async function DELETE(request: NextRequest) {
     const provider = searchParams.get('provider');
 
     if (!provider || !SUPPORTED_PROVIDERS.includes(provider as ProviderId)) {
-      return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
+      return errors.badRequest('Invalid provider');
     }
 
     const adminClient = createClient(
@@ -368,7 +361,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json({ error: 'No API keys found' }, { status: 404 });
+      return errors.notFound('API keys');
     }
 
     const existingKeys = (existing.provider_api_keys || {}) as Record<
@@ -388,7 +381,7 @@ export async function DELETE(request: NextRequest) {
 
     if (updateError) {
       log.error('Error deleting API key', { error: updateError });
-      return NextResponse.json({ error: 'Failed to delete API key' }, { status: 500 });
+      return errors.serverError('Failed to delete API key');
     }
 
     log.info('API key deleted', { userId: auth.user.id, provider });
@@ -406,12 +399,12 @@ export async function DELETE(request: NextRequest) {
       log.error('auditLog failed', err instanceof Error ? err : undefined)
     );
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: `${PROVIDER_INFO[provider as ProviderId].name} API key removed`,
     });
   } catch (error) {
     log.error('Error in DELETE /api/user/api-keys', { error });
-    return NextResponse.json({ error: 'Failed to delete API key' }, { status: 500 });
+    return errors.serverError('Failed to delete API key');
   }
 }

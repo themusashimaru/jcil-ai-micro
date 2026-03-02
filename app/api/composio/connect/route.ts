@@ -7,7 +7,8 @@
  * Stores connectionId in cookie for callback to use
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { cookies } from 'next/headers';
 
 // Force dynamic for auth
@@ -53,12 +54,12 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Check Composio configured
     if (!isComposioConfigured()) {
-      return NextResponse.json({ error: 'Composio is not configured' }, { status: 503 });
+      return errors.serviceUnavailable('Composio is not configured');
     }
 
     // Parse request
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     const { toolkit, redirectUrl, apiKey } = body;
 
     if (!toolkit) {
-      return NextResponse.json({ error: 'Toolkit is required' }, { status: 400 });
+      return errors.badRequest('Toolkit is required');
     }
 
     // Validate toolkit exists
@@ -83,9 +84,8 @@ export async function POST(request: NextRequest) {
     if (apiKey) {
       // Validate that this toolkit actually uses API key auth
       if (toolkitConfig && toolkitConfig.authType !== 'api_key') {
-        return NextResponse.json(
-          { error: `${toolkitConfig.displayName} uses OAuth, not API key authentication` },
-          { status: 400 }
+        return errors.badRequest(
+          `${toolkitConfig.displayName} uses OAuth, not API key authentication`
         );
       }
 
@@ -94,10 +94,7 @@ export async function POST(request: NextRequest) {
       const result = await connectWithApiKey(userId, toolkit, apiKey);
 
       if (!result.success) {
-        return NextResponse.json(
-          { error: result.error || 'Failed to connect with API key' },
-          { status: 500 }
-        );
+        return errors.serverError(result.error || 'Failed to connect with API key');
       }
 
       log.info('API key connection successful', {
@@ -106,7 +103,7 @@ export async function POST(request: NextRequest) {
         connectionId: result.connectionId,
       });
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         connectionId: result.connectionId,
         toolkit: toolkit.toUpperCase(),
@@ -117,25 +114,14 @@ export async function POST(request: NextRequest) {
 
     // OAuth flow - check if this toolkit requires API key instead
     if (toolkitConfig && toolkitConfig.authType === 'api_key') {
-      return NextResponse.json(
-        {
-          error: `${toolkitConfig.displayName} requires an API key`,
-          requiresApiKey: true,
-          toolkit: toolkit.toUpperCase(),
-          toolkitName: toolkitConfig.displayName,
-        },
-        { status: 400 }
-      );
+      return errors.badRequest(`${toolkitConfig.displayName} requires an API key`);
     }
 
     // Build callback URL - validate it's a proper URL
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     if (!appUrl) {
       log.error('NEXT_PUBLIC_APP_URL not configured');
-      return NextResponse.json(
-        { error: 'Server configuration error - callback URL not available' },
-        { status: 500 }
-      );
+      return errors.serverError('Server configuration error - callback URL not available');
     }
 
     // SEC-011: Validate redirectUrl against app origin to prevent open redirect
@@ -146,11 +132,11 @@ export async function POST(request: NextRequest) {
         const appParsed = new URL(appUrl);
         if (redirectParsed.origin !== appParsed.origin) {
           log.warn('Rejected cross-origin redirect URL', { redirectUrl, appUrl });
-          return NextResponse.json({ error: 'Invalid redirect URL' }, { status: 400 });
+          return errors.badRequest('Invalid redirect URL');
         }
         callbackUrl = redirectUrl;
       } catch {
-        return NextResponse.json({ error: 'Invalid redirect URL format' }, { status: 400 });
+        return errors.badRequest('Invalid redirect URL format');
       }
     } else {
       callbackUrl = `${appUrl}/api/composio/callback?toolkit=${toolkit}`;
@@ -161,7 +147,7 @@ export async function POST(request: NextRequest) {
       new URL(callbackUrl);
     } catch {
       log.error('Invalid callback URL', { callbackUrl, appUrl });
-      return NextResponse.json({ error: 'Invalid callback URL configuration' }, { status: 500 });
+      return errors.serverError('Invalid callback URL configuration');
     }
 
     log.info('Initiating OAuth connection with callback URL', { callbackUrl, toolkit });
@@ -191,7 +177,7 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       connectionId: connectionRequest.id,
       redirectUrl: connectionRequest.redirectUrl,
@@ -201,6 +187,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Failed to initiate connection', { error });
-    return NextResponse.json({ error: 'Failed to initiate connection' }, { status: 500 });
+    return errors.serverError('Failed to initiate connection');
   }
 }

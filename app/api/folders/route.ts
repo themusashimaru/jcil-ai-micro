@@ -4,9 +4,10 @@
  * POST - Create a new folder (max 20 per user)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('FoldersAPI');
 
@@ -43,18 +44,21 @@ export async function GET() {
       .order('position', { ascending: true });
 
     if (error) {
-      log.error('[Folders API] Error fetching folders:', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
+      log.error(
+        '[Folders API] Error fetching folders:',
+        error instanceof Error ? error : { error }
+      );
+      return errors.serverError('Failed to fetch folders');
     }
 
-    return NextResponse.json({
+    return successResponse({
       folders: folders || [],
       maxFolders: MAX_FOLDERS_PER_USER,
       availableColors: FOLDER_COLORS,
     });
   } catch (error) {
     log.error('[Folders API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }
 
@@ -72,12 +76,12 @@ export async function POST(request: NextRequest) {
 
     // Validate name
     if (!name?.trim()) {
-      return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
+      return errors.badRequest('Folder name is required');
     }
 
     const trimmedName = name.trim();
     if (trimmedName.length > 50) {
-      return NextResponse.json({ error: 'Folder name must be 50 characters or less' }, { status: 400 });
+      return errors.badRequest('Folder name must be 50 characters or less');
     }
 
     // Check folder limit
@@ -87,10 +91,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', auth.user.id);
 
     if ((count || 0) >= MAX_FOLDERS_PER_USER) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_FOLDERS_PER_USER} folders allowed` },
-        { status: 400 }
-      );
+      return errors.badRequest(`Maximum ${MAX_FOLDERS_PER_USER} folders allowed`);
     }
 
     // Get next position
@@ -119,18 +120,18 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       // Check for unique constraint violation
       if (insertError.code === '23505') {
-        return NextResponse.json(
-          { error: 'A folder with this name already exists' },
-          { status: 400 }
-        );
+        return errors.badRequest('A folder with this name already exists');
       }
-      log.error('[Folders API] Error creating folder:', insertError instanceof Error ? insertError : { insertError });
-      return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
+      log.error(
+        '[Folders API] Error creating folder:',
+        insertError instanceof Error ? insertError : { insertError }
+      );
+      return errors.serverError('Failed to create folder');
     }
 
-    return NextResponse.json({ folder }, { status: 201 });
+    return successResponse({ folder }, 201);
   } catch (error) {
     log.error('[Folders API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }

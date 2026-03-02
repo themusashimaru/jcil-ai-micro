@@ -5,7 +5,7 @@
  * GET /api/tools/health - Quick health summary
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { requireAdmin } from '@/lib/auth/admin-guard';
@@ -98,7 +98,7 @@ export async function GET() {
 
     const duration = Date.now() - startTime;
 
-    return NextResponse.json({
+    return successResponse({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       duration: `${duration}ms`,
@@ -117,12 +117,6 @@ export async function GET() {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return errors.serverError(error instanceof Error ? error.message : 'Unknown error');
   }
 }

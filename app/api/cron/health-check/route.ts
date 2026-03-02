@@ -12,12 +12,12 @@
  * SECURITY: Requires CRON_SECRET in Authorization header
  */
 
-import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/client';
 import { redis, isRedisAvailable } from '@/lib/redis/client';
 import { getQueueStatus } from '@/lib/queue';
 import { getAnthropicKeyStats, isAnthropicConfigured } from '@/lib/anthropic/client';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CronHealthCheck');
 
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
   // Security check
   if (!verifyCronSecret(request)) {
     log.warn('Unauthorized cron access attempt');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
   const alerts: string[] = [];
@@ -237,9 +237,11 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json(result, {
-    status: overallStatus === 'unhealthy' ? 503 : 200,
-  });
+  if (overallStatus === 'unhealthy') {
+    return errors.serviceUnavailable('System unhealthy');
+  }
+
+  return successResponse(result);
 }
 
 // Also support POST for manual triggers

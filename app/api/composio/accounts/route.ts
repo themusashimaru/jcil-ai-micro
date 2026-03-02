@@ -6,7 +6,8 @@
  * DELETE: Disconnect a specific account
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import { cookies } from 'next/headers';
 
 // Force dynamic for auth
@@ -60,12 +61,12 @@ export async function GET() {
     // Check auth
     const user = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Check Composio configured
     if (!isComposioConfigured()) {
-      return NextResponse.json({ accounts: [], configured: false });
+      return successResponse({ accounts: [], configured: false });
     }
 
     // Get accounts
@@ -82,13 +83,13 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({
+    return successResponse({
       accounts: enrichedAccounts,
       configured: true,
     });
   } catch (error) {
     log.error('Failed to get connected accounts', { error });
-    return NextResponse.json({ error: 'Failed to get accounts' }, { status: 500 });
+    return errors.serverError('Failed to get accounts');
   }
 }
 
@@ -100,7 +101,7 @@ export async function DELETE(request: NextRequest) {
     // Check auth
     const user = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Get connectionId and toolkit from query params
@@ -109,7 +110,7 @@ export async function DELETE(request: NextRequest) {
     const toolkit = searchParams.get('toolkit');
 
     if (!connectionId) {
-      return NextResponse.json({ error: 'connectionId is required' }, { status: 400 });
+      return errors.badRequest('connectionId is required');
     }
 
     // Disconnect - pass userId and toolkit to update local cache
@@ -121,12 +122,12 @@ export async function DELETE(request: NextRequest) {
         connectionId,
         toolkit,
       });
-      return NextResponse.json({ success: true });
+      return successResponse({ success: true });
     } else {
-      return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 });
+      return errors.serverError('Failed to disconnect');
     }
   } catch (error) {
     log.error('Failed to disconnect account', { error });
-    return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 });
+    return errors.serverError('Failed to disconnect');
   }
 }

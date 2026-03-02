@@ -6,9 +6,9 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('ConversationHistoryAPI');
 
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Fetch recent conversations
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
 
     if (convError) {
       log.error('Error fetching conversations:', { error: convError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
+      return errors.serverError('Failed to fetch conversations');
     }
 
     // Fetch messages for each conversation (limit to last 10 messages per conversation)
@@ -111,7 +111,7 @@ export async function GET(request: Request) {
       })
     );
 
-    return NextResponse.json({
+    return successResponse({
       conversations: conversationsWithMessages,
       count: conversationsWithMessages.length,
     });
@@ -120,6 +120,6 @@ export async function GET(request: Request) {
       'Error in GET /api/conversations/history:',
       error instanceof Error ? error : { error }
     );
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError();
   }
 }

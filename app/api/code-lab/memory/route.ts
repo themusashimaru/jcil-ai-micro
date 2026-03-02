@@ -7,12 +7,13 @@
  * @version 1.0.0
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { untypedFrom } from '@/lib/supabase/workspace-client';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('API:Memory');
 
@@ -34,14 +35,14 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
 
     if (!sessionId) {
-      return NextResponse.json({ error: 'sessionId required' }, { status: 400 });
+      return errors.badRequest('sessionId required');
     }
 
     // Get session with settings
@@ -53,13 +54,13 @@ export async function GET(request: NextRequest) {
 
     if (error || !session) {
       log.warn('Session not found', { sessionId, error });
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
     const typedSession = session as SessionWithSettings;
     const memoryContent = typedSession.settings?.memory_content || '';
 
-    return NextResponse.json({
+    return successResponse({
       path: '/workspace/CLAUDE.md',
       content: memoryContent,
       exists: !!memoryContent,
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Memory GET error', error as Error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }
 
@@ -83,27 +84,20 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // SECURITY FIX: Add rate limiting
     const rateLimitResult = await rateLimiters.codeLabEdit(user.id);
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          code: 'RATE_LIMIT_EXCEEDED',
-          retryAfter: rateLimitResult.retryAfter,
-        },
-        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter) } }
-      );
+      return errors.rateLimited(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
     const { sessionId, content } = body;
 
     if (!sessionId) {
-      return NextResponse.json({ error: 'sessionId required' }, { status: 400 });
+      return errors.badRequest('sessionId required');
     }
 
     log.info('Saving memory file', { sessionId, userId: user.id, contentLength: content?.length });
@@ -116,7 +110,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (getError || !session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return errors.sessionNotFound();
     }
 
     const typedSession = session as SessionWithSettings;
@@ -137,16 +131,16 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       log.error('Failed to save memory', { error: updateError });
-      return NextResponse.json({ error: 'Failed to save memory file' }, { status: 500 });
+      return errors.serverError('Failed to save memory file');
     }
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       path: '/workspace/CLAUDE.md',
       lastModified: new Date().toISOString(),
     });
   } catch (error) {
     log.error('Memory POST error', error as Error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errors.serverError('Internal server error');
   }
 }

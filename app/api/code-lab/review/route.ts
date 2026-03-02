@@ -6,11 +6,12 @@
  * - GET: Get PR info
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
+import { successResponse, errors } from '@/lib/api/utils';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const prNumber = searchParams.get('pr');
 
     if (!owner || !repo || !prNumber) {
-      return NextResponse.json({ error: 'Missing owner, repo, or pr number' }, { status: 400 });
+      return errors.badRequest('Missing owner, repo, or pr number');
     }
 
     // Get GitHub token
@@ -70,25 +71,25 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!userData?.github_token) {
-      return NextResponse.json({ error: 'GitHub not connected' }, { status: 400 });
+      return errors.badRequest('GitHub not connected');
     }
 
     const githubToken = decryptToken(userData.github_token);
     if (!githubToken) {
-      return NextResponse.json({ error: 'Invalid GitHub token' }, { status: 400 });
+      return errors.badRequest('Invalid GitHub token');
     }
 
     // Fetch PR info
     const prInfo = await fetchPRInfo(owner, repo, parseInt(prNumber), githubToken);
 
     if (!prInfo) {
-      return NextResponse.json({ error: 'PR not found' }, { status: 404 });
+      return errors.notFound('PR');
     }
 
-    return NextResponse.json({ pr: prInfo });
+    return successResponse({ pr: prInfo });
   } catch (error) {
     log.error('[Review API] GET error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }
 
@@ -107,23 +108,20 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Rate limiting
     const rateLimit = await rateLimiters.codeLabEdit(user.id);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
-      );
+      return errors.rateLimited(rateLimit.retryAfter);
     }
 
     const body = await request.json();
     const { owner, repo, prNumber, options = {}, postToGitHub = false } = body;
 
     if (!owner || !repo || !prNumber) {
-      return NextResponse.json({ error: 'Missing owner, repo, or prNumber' }, { status: 400 });
+      return errors.badRequest('Missing owner, repo, or prNumber');
     }
 
     // Get GitHub token
@@ -140,12 +138,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!userData?.github_token) {
-      return NextResponse.json({ error: 'GitHub not connected' }, { status: 400 });
+      return errors.badRequest('GitHub not connected');
     }
 
     const githubToken = decryptToken(userData.github_token);
     if (!githubToken) {
-      return NextResponse.json({ error: 'Invalid GitHub token' }, { status: 400 });
+      return errors.badRequest('Invalid GitHub token');
     }
 
     log.info(`[Review API] Reviewing PR #${prNumber} in ${owner}/${repo}`);
@@ -153,13 +151,13 @@ export async function POST(request: NextRequest) {
     // Fetch PR info
     const prInfo = await fetchPRInfo(owner, repo, prNumber, githubToken);
     if (!prInfo) {
-      return NextResponse.json({ error: 'PR not found' }, { status: 404 });
+      return errors.notFound('PR');
     }
 
     // Fetch PR diff
     const diffs = await fetchPRDiff(owner, repo, prNumber, githubToken);
     if (diffs.length === 0) {
-      return NextResponse.json({ error: 'No changes found in PR' }, { status: 400 });
+      return errors.badRequest('No changes found in PR');
     }
 
     // Perform review
@@ -174,7 +172,7 @@ export async function POST(request: NextRequest) {
       postedToGitHub = await postReviewToGitHub(owner, repo, prNumber, review, githubToken);
     }
 
-    return NextResponse.json({
+    return successResponse({
       review,
       markdown,
       pr: prInfo,
@@ -182,6 +180,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Review API] POST error:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return errors.serverError('Internal error');
   }
 }

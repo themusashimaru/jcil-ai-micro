@@ -7,7 +7,8 @@
  * Security: Verifies QStash signature to prevent unauthorized access.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import {
   JobPayload,
   ChatJobPayload,
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       const isValid = await verifyWebhookSignature(signature, body);
       if (!isValid) {
         log.warn('Invalid QStash signature');
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+        return errors.unauthorized();
       }
     }
 
@@ -59,13 +60,13 @@ export async function POST(request: NextRequest) {
         break;
       default:
         log.error('Unknown job type', new Error(`Unknown type: ${(payload as JobPayload).type}`));
-        return NextResponse.json({ error: 'Unknown job type' }, { status: 400 });
+        return errors.badRequest('Unknown job type');
     }
 
     const duration = Date.now() - startTime;
     log.info('QStash job completed', { type: payload.type, duration });
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       result,
       duration,
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     log.error('QStash job failed', err);
 
     // Return 500 to trigger QStash retry
-    return NextResponse.json({ error: 'Job processing failed' }, { status: 500 });
+    return errors.serverError('Job processing failed');
   }
 }
 

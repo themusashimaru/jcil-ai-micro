@@ -7,7 +7,7 @@
  * GET /api/tools/inventory?search=crypto - Search tools
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse, errors } from '@/lib/api/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { requireAdmin } from '@/lib/auth/admin-guard';
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
       categorySummary[cat] = (categorySummary[cat] || 0) + 1;
     });
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       total: toolFiles.length,
       filtered: tools.length,
@@ -181,12 +181,6 @@ export async function GET(request: Request) {
       tools,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return errors.serverError(error instanceof Error ? error.message : 'Unknown error');
   }
 }

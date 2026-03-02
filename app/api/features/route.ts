@@ -4,10 +4,10 @@
  * This is a public endpoint (no auth required)
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse } from '@/lib/api/utils';
 
 export async function GET() {
-  return NextResponse.json({
+  return successResponse({
     // Image generation is not available (Claude + Perplexity only)
     imageGeneration: false,
     // Video generation is not available

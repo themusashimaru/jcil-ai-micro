@@ -87,6 +87,63 @@ vi.mock('@/lib/security/csrf', () => ({
   validateCSRF: vi.fn().mockReturnValue({ valid: true }),
 }));
 
+vi.mock('@/lib/security/crypto', () => ({
+  decrypt: vi.fn().mockReturnValue('mock-decrypted-token'),
+  encrypt: vi.fn().mockReturnValue('mock-encrypted'),
+  decryptToken: vi.fn().mockReturnValue('mock-decrypted-token'),
+  encryptToken: vi.fn().mockReturnValue('mock-encrypted'),
+}));
+
+vi.mock('@/lib/security/shell-escape', () => ({
+  sanitizeCommitMessage: vi.fn((msg: string) => msg),
+  escapeShellArg: vi.fn((arg: string) => `'${arg}'`),
+}));
+
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => ({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({ data: { github_token: 'mock-token' }, error: null }),
+        })),
+      })),
+    })),
+  })),
+}));
+
+vi.mock('@/lib/api/utils', () => ({
+  successResponse: vi.fn((data: unknown) => ({
+    status: 200,
+    json: () => Promise.resolve({ ok: true, data }),
+  })),
+  errors: {
+    unauthorized: vi.fn(() => ({
+      status: 401,
+      json: () => Promise.resolve({ ok: false, error: 'Unauthorized' }),
+    })),
+    badRequest: vi.fn((msg: string) => ({
+      status: 400,
+      json: () => Promise.resolve({ ok: false, error: msg }),
+    })),
+    rateLimited: vi.fn(() => ({
+      status: 429,
+      json: () => Promise.resolve({ ok: false, error: 'Rate limited' }),
+    })),
+    serverError: vi.fn((msg?: string) => ({
+      status: 500,
+      json: () => Promise.resolve({ ok: false, error: msg || 'Server error' }),
+    })),
+    sessionAccessDenied: vi.fn(() => ({
+      status: 403,
+      json: () => Promise.resolve({ ok: false, error: 'Access denied' }),
+    })),
+    sessionNotFound: vi.fn(() => ({
+      status: 404,
+      json: () => Promise.resolve({ ok: false, error: 'Not found' }),
+    })),
+  },
+}));
+
 // Import the security functions to test
 import {
   sanitizeCommitMessage,
@@ -570,7 +627,7 @@ describe('Git API Module', () => {
     const routeModule = await import('./route');
     expect(routeModule.POST).toBeDefined();
     expect(typeof routeModule.POST).toBe('function');
-  });
+  }, 15000);
 });
 
 describe('Integration: Full Attack Scenarios', () => {

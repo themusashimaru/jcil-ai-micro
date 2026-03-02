@@ -109,9 +109,10 @@ describe('GET /api/code-lab/memory', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.content).toBe('# Project Notes\nThis is a test.');
-    expect(data.exists).toBe(true);
-    expect(data.path).toBe('/workspace/CLAUDE.md');
+    expect(data.ok).toBe(true);
+    expect(data.data.content).toBe('# Project Notes\nThis is a test.');
+    expect(data.data.exists).toBe(true);
+    expect(data.data.path).toBe('/workspace/CLAUDE.md');
   });
 
   it('returns empty content when no memory set', async () => {
@@ -125,8 +126,8 @@ describe('GET /api/code-lab/memory', () => {
     const res = await GET(req);
     const data = await res.json();
 
-    expect(data.content).toBe('');
-    expect(data.exists).toBe(false);
+    expect(data.data.content).toBe('');
+    expect(data.data.exists).toBe(false);
   });
 });
 
@@ -192,8 +193,9 @@ describe('POST /api/code-lab/memory', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.path).toBe('/workspace/CLAUDE.md');
+    expect(data.ok).toBe(true);
+    expect(data.data.success).toBe(true);
+    expect(data.data.path).toBe('/workspace/CLAUDE.md');
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         settings: expect.objectContaining({ memory_content: '# New memory content' }),
