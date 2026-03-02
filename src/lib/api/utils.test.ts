@@ -4,6 +4,8 @@ import {
   successResponse,
   errorResponse,
   errors,
+  chatErrorResponse,
+  exceptionToResponse,
   validateQuery,
   validateParams,
   checkRequestRateLimit,
@@ -363,6 +365,92 @@ describe('API Utils', () => {
     it('should handle missing user agent', () => {
       const request = createMockRequest();
       expect(isBot(request)).toBe(false);
+    });
+  });
+
+  describe('chatErrorResponse', () => {
+    it('should create a raw Response with error body', async () => {
+      const response = chatErrorResponse(400, {
+        error: 'Bad request',
+        code: 'BAD_REQUEST',
+      });
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Bad request');
+      expect(body.code).toBe('BAD_REQUEST');
+    });
+
+    it('should include optional fields when provided', async () => {
+      const response = chatErrorResponse(429, {
+        error: 'Rate limited',
+        code: 'RATE_LIMITED',
+        message: 'Please slow down',
+        retryAfter: 30,
+        action: 'retry',
+      });
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Retry-After')).toBe('30');
+      const body = await response.json();
+      expect(body.message).toBe('Please slow down');
+      expect(body.retryAfter).toBe(30);
+      expect(body.action).toBe('retry');
+    });
+
+    it('should include usage stats when provided', async () => {
+      const response = chatErrorResponse(403, {
+        error: 'Quota exceeded',
+        code: 'QUOTA_EXCEEDED',
+        usage: { used: 1000, limit: 1000, percentage: 100 },
+        action: 'upgrade',
+      });
+
+      const body = await response.json();
+      expect(body.usage.used).toBe(1000);
+      expect(body.usage.limit).toBe(1000);
+      expect(body.action).toBe('upgrade');
+    });
+  });
+
+  describe('exceptionToResponse', () => {
+    it('should convert "not found" errors to 404', async () => {
+      const response = exceptionToResponse(new Error('Resource not found'));
+      expect(response.status).toBe(404);
+    });
+
+    it('should convert "unauthorized" errors to 401', async () => {
+      const response = exceptionToResponse(new Error('User unauthorized'));
+      expect(response.status).toBe(401);
+    });
+
+    it('should convert "forbidden" errors to 403', async () => {
+      const response = exceptionToResponse(new Error('Access forbidden'));
+      expect(response.status).toBe(403);
+    });
+
+    it('should convert "rate limit" errors to 429', async () => {
+      const response = exceptionToResponse(new Error('rate limit exceeded'));
+      expect(response.status).toBe(429);
+    });
+
+    it('should convert unknown errors to 500', async () => {
+      const response = exceptionToResponse(new Error('Something went wrong'));
+      expect(response.status).toBe(500);
+    });
+
+    it('should use default message for non-Error objects', async () => {
+      const response = exceptionToResponse('string error');
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.error).toBe('Operation failed');
+    });
+
+    it('should use custom default message', async () => {
+      const response = exceptionToResponse(new Error('oops'), 'Custom failure');
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.error).toBe('Custom failure');
     });
   });
 });

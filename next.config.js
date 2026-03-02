@@ -14,11 +14,10 @@ const nextConfig = {
   // Standalone output for Docker deployments
   output: 'standalone',
 
-  // Server-side native packages (for @napi-rs/canvas)
-  serverExternalPackages: ['@napi-rs/canvas'],
-
   // App Router optimizations
   experimental: {
+    // Server-side native packages (for @napi-rs/canvas) — must be under experimental in Next.js 14.x
+    serverComponentsExternalPackages: ['@napi-rs/canvas'],
     serverActions: {
       bodySizeLimit: '10mb',
     },
@@ -143,7 +142,9 @@ const sentryWebpackPluginOptions = {
   hideSourceMaps: true,
 
   // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 };
 
 // Export config wrapped with Sentry (only if Sentry is configured) and bundle analyzer

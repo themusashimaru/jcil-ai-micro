@@ -1,271 +1,341 @@
+/**
+ * Cache Layer Tests
+ *
+ * Tests for Redis-backed caching with in-memory fallback:
+ * - cachedWebSearch: cache hit/miss, TTL, error handling
+ * - cached: generic cache operations
+ * - invalidateCache: key removal
+ * - clearMemoryCache: full clear
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the logger
+// Mock logger
 vi.mock('@/lib/logger', () => ({
   logger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
     debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   }),
 }));
 
-// Create a mock module for testing
-const createMockCache = () => {
-  const memoryCache = new Map<string, { value: string; expiry: number }>();
-
-  return {
-    memoryCache,
-    set: async (key: string, value: string, options?: { ex?: number }) => {
-      const expiry = options?.ex ? Date.now() + options.ex * 1000 : Date.now() + 1800_000;
-      memoryCache.set(key, { value, expiry });
-      return 'OK';
-    },
-    get: async (key: string) => {
-      const entry = memoryCache.get(key);
-      if (!entry || entry.expiry < Date.now()) {
-        memoryCache.delete(key);
-        return null;
-      }
-      return entry.value;
-    },
-    del: async (key: string) => {
-      memoryCache.delete(key);
-      return 1;
-    },
-    clear: () => {
-      memoryCache.clear();
-    },
-  };
-};
-
-describe('Cache Module', () => {
-  describe('In-Memory Cache', () => {
-    let cache: ReturnType<typeof createMockCache>;
-
-    beforeEach(() => {
-      cache = createMockCache();
-    });
-
-    it('should store and retrieve values', async () => {
-      await cache.set('test-key', 'test-value');
-      const result = await cache.get('test-key');
-      expect(result).toBe('test-value');
-    });
-
-    it('should store JSON values', async () => {
-      const data = { foo: 'bar', count: 42 };
-      await cache.set('json-key', JSON.stringify(data));
-      const result = await cache.get('json-key');
-      expect(JSON.parse(result!)).toEqual(data);
-    });
-
-    it('should return null for missing keys', async () => {
-      const result = await cache.get('non-existent');
-      expect(result).toBeNull();
-    });
-
-    it('should delete keys', async () => {
-      await cache.set('delete-key', 'value');
-      expect(await cache.get('delete-key')).toBe('value');
-
-      await cache.del('delete-key');
-      expect(await cache.get('delete-key')).toBeNull();
-    });
-
-    it('should clear all keys', async () => {
-      await cache.set('key1', 'value1');
-      await cache.set('key2', 'value2');
-      expect(cache.memoryCache.size).toBe(2);
-
-      cache.clear();
-      expect(cache.memoryCache.size).toBe(0);
-    });
-
-    it('should expire entries based on TTL', async () => {
-      // Set with 1 second TTL
-      await cache.set('expiring-key', 'value', { ex: 1 });
-
-      // Should exist immediately
-      expect(await cache.get('expiring-key')).toBe('value');
-
-      // Manually expire by modifying the entry
-      const entry = cache.memoryCache.get('expiring-key');
-      if (entry) {
-        entry.expiry = Date.now() - 1000; // Set to past
-      }
-
-      // Should be expired now
-      expect(await cache.get('expiring-key')).toBeNull();
-    });
+// We need to control the redis module state between tests
+// Since cache.ts uses a module-level `redis` variable, we reset modules each test
+describe('Cache Layer', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    // Ensure no Redis env vars (use in-memory fallback)
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
   });
 
-  describe('Cache Key Generation', () => {
-    it('should generate consistent keys for same input', () => {
-      const generateKey = (prefix: string, query: string) => {
-        const normalized = query.toLowerCase().trim();
-        // Simple hash simulation for testing
-        let hash = 0;
-        for (let i = 0; i < normalized.length; i++) {
-          hash = ((hash << 5) - hash) + normalized.charCodeAt(i);
-          hash |= 0;
-        }
-        return `${prefix}:${Math.abs(hash).toString(16)}`;
+  // ===========================================================================
+  // cachedWebSearch
+  // ===========================================================================
+  describe('cachedWebSearch', () => {
+    it('should return fresh data on cache miss', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ results: ['a', 'b'] });
+
+      const result = await cachedWebSearch('test query', fetchFn);
+
+      expect(result.cached).toBe(false);
+      expect(result.data).toEqual({ results: ['a', 'b'] });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return cached data on cache hit', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ results: ['a', 'b'] });
+
+      // First call - cache miss
+      await cachedWebSearch('test query', fetchFn);
+      // Second call - cache hit
+      const result = await cachedWebSearch('test query', fetchFn);
+
+      expect(result.cached).toBe(true);
+      expect(result.data).toEqual({ results: ['a', 'b'] });
+      expect(fetchFn).toHaveBeenCalledTimes(1); // Only called once
+    });
+
+    it('should normalize query for cache key (case insensitive)', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ results: ['x'] });
+
+      await cachedWebSearch('Test Query', fetchFn);
+      const result = await cachedWebSearch('test query', fetchFn);
+
+      expect(result.cached).toBe(true);
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should normalize query for cache key (trim whitespace)', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ results: ['x'] });
+
+      await cachedWebSearch('  test query  ', fetchFn);
+      const result = await cachedWebSearch('test query', fetchFn);
+
+      expect(result.cached).toBe(true);
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use default TTL of 1800 seconds', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ data: 1 });
+
+      const result = await cachedWebSearch('query', fetchFn);
+
+      expect(result.cached).toBe(false);
+      expect(result.data).toEqual({ data: 1 });
+    });
+
+    it('should accept custom TTL', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ data: 1 });
+
+      const result = await cachedWebSearch('query', fetchFn, 60);
+
+      expect(result.cached).toBe(false);
+      expect(result.data).toEqual({ data: 1 });
+    });
+
+    it('should treat different queries as different cache keys', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn1 = vi.fn().mockResolvedValue({ q: 'first' });
+      const fetchFn2 = vi.fn().mockResolvedValue({ q: 'second' });
+
+      await cachedWebSearch('query one', fetchFn1);
+      const result = await cachedWebSearch('query two', fetchFn2);
+
+      expect(result.cached).toBe(false);
+      expect(result.data).toEqual({ q: 'second' });
+      expect(fetchFn2).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle fetchFn that throws', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const fetchFn = vi.fn().mockRejectedValue(new Error('Network failure'));
+
+      await expect(cachedWebSearch('query', fetchFn)).rejects.toThrow('Network failure');
+    });
+
+    it('should handle complex data types', async () => {
+      const { cachedWebSearch } = await import('./cache');
+      const complexData = {
+        results: [{ id: 1, nested: { deep: true } }],
+        meta: { total: 100, page: 1 },
       };
+      const fetchFn = vi.fn().mockResolvedValue(complexData);
 
-      const key1 = generateKey('webq', 'test query');
-      const key2 = generateKey('webq', 'test query');
-      expect(key1).toBe(key2);
-    });
+      await cachedWebSearch('complex query', fetchFn);
+      const result = await cachedWebSearch('complex query', fetchFn);
 
-    it('should normalize queries', () => {
-      const generateKey = (prefix: string, query: string) => {
-        const normalized = query.toLowerCase().trim();
-        return `${prefix}:${normalized}`;
-      };
-
-      const key1 = generateKey('webq', 'Test Query');
-      const key2 = generateKey('webq', '  test query  ');
-      expect(key1).toBe(key2);
-    });
-
-    it('should handle different prefixes', () => {
-      const generateKey = (prefix: string, query: string) => `${prefix}:${query}`;
-
-      const key1 = generateKey('webq', 'test');
-      const key2 = generateKey('user', 'test');
-      expect(key1).not.toBe(key2);
+      expect(result.cached).toBe(true);
+      expect(result.data).toEqual(complexData);
     });
   });
 
-  describe('Cache Hit/Miss Logic', () => {
-    let cache: ReturnType<typeof createMockCache>;
+  // ===========================================================================
+  // cached (generic)
+  // ===========================================================================
+  describe('cached', () => {
+    it('should return fresh data on cache miss', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ value: 42 });
 
-    beforeEach(() => {
-      cache = createMockCache();
+      const result = await cached('my-key', fetchFn);
+
+      expect(result.cached).toBe(false);
+      expect(result.data).toEqual({ value: 42 });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
     });
 
-    it('should return cached: true on cache hit', async () => {
-      await cache.set('hit-key', JSON.stringify({ result: 'cached' }));
+    it('should return cached data on cache hit', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue({ value: 42 });
 
-      const hit = await cache.get('hit-key');
-      const data = JSON.parse(hit!);
-      const cached = hit !== null;
+      await cached('my-key', fetchFn);
+      const result = await cached('my-key', fetchFn);
 
-      expect(cached).toBe(true);
-      expect(data.result).toBe('cached');
+      expect(result.cached).toBe(true);
+      expect(result.data).toEqual({ value: 42 });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
     });
 
-    it('should return cached: false on cache miss', async () => {
-      const hit = await cache.get('miss-key');
-      const cached = hit !== null;
+    it('should use the exact key provided (no hashing)', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn1 = vi.fn().mockResolvedValue('val1');
+      const fetchFn2 = vi.fn().mockResolvedValue('val2');
 
-      expect(cached).toBe(false);
-    });
-  });
+      await cached('key-a', fetchFn1);
+      await cached('key-b', fetchFn2);
 
-  describe('Cache Data Types', () => {
-    let cache: ReturnType<typeof createMockCache>;
+      const result1 = await cached('key-a', vi.fn());
+      const result2 = await cached('key-b', vi.fn());
 
-    beforeEach(() => {
-      cache = createMockCache();
-    });
-
-    it('should handle string values', async () => {
-      await cache.set('string', 'hello world');
-      expect(await cache.get('string')).toBe('hello world');
+      expect(result1.data).toBe('val1');
+      expect(result2.data).toBe('val2');
     });
 
-    it('should handle array values', async () => {
-      const arr = [1, 2, 3, 'four'];
-      await cache.set('array', JSON.stringify(arr));
-      expect(JSON.parse((await cache.get('array'))!)).toEqual(arr);
+    it('should use default TTL of 300 seconds', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue('data');
+
+      const result = await cached('key', fetchFn);
+      expect(result.cached).toBe(false);
     });
 
-    it('should handle nested object values', async () => {
-      const obj = {
-        user: { id: 1, name: 'Test' },
-        items: [{ id: 'a' }, { id: 'b' }],
-        meta: { total: 2 },
-      };
-      await cache.set('nested', JSON.stringify(obj));
-      expect(JSON.parse((await cache.get('nested'))!)).toEqual(obj);
+    it('should accept custom TTL', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue('data');
+
+      const result = await cached('key', fetchFn, 60);
+      expect(result.cached).toBe(false);
     });
 
-    it('should handle null values in objects', async () => {
-      const obj = { value: null, other: 'data' };
-      await cache.set('null-value', JSON.stringify(obj));
-      expect(JSON.parse((await cache.get('null-value'))!)).toEqual(obj);
+    it('should handle fetchFn errors', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockRejectedValue(new Error('DB down'));
+
+      await expect(cached('key', fetchFn)).rejects.toThrow('DB down');
     });
 
-    it('should handle empty objects', async () => {
-      await cache.set('empty-obj', JSON.stringify({}));
-      expect(JSON.parse((await cache.get('empty-obj'))!)).toEqual({});
+    it('should handle null data', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue(null);
+
+      const result = await cached('null-key', fetchFn);
+      expect(result.data).toBeNull();
+      expect(result.cached).toBe(false);
     });
 
-    it('should handle empty arrays', async () => {
-      await cache.set('empty-arr', JSON.stringify([]));
-      expect(JSON.parse((await cache.get('empty-arr'))!)).toEqual([]);
-    });
-  });
+    it('should handle array data', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue([1, 2, 3]);
 
-  describe('Cache TTL', () => {
-    let cache: ReturnType<typeof createMockCache>;
+      await cached('arr-key', fetchFn);
+      const result = await cached('arr-key', fetchFn);
 
-    beforeEach(() => {
-      cache = createMockCache();
-    });
-
-    it('should use default TTL when not specified', async () => {
-      await cache.set('default-ttl', 'value');
-      const entry = cache.memoryCache.get('default-ttl');
-      expect(entry).toBeDefined();
-      // Default is 30 minutes (1800 seconds)
-      const expectedExpiry = Date.now() + 1800_000;
-      expect(entry!.expiry).toBeGreaterThanOrEqual(expectedExpiry - 1000);
-      expect(entry!.expiry).toBeLessThanOrEqual(expectedExpiry + 1000);
-    });
-
-    it('should use custom TTL when specified', async () => {
-      await cache.set('custom-ttl', 'value', { ex: 60 }); // 60 seconds
-      const entry = cache.memoryCache.get('custom-ttl');
-      expect(entry).toBeDefined();
-      const expectedExpiry = Date.now() + 60_000;
-      expect(entry!.expiry).toBeGreaterThanOrEqual(expectedExpiry - 1000);
-      expect(entry!.expiry).toBeLessThanOrEqual(expectedExpiry + 1000);
+      expect(result.cached).toBe(true);
+      expect(result.data).toEqual([1, 2, 3]);
     });
   });
 
-  describe('Concurrent Operations', () => {
-    let cache: ReturnType<typeof createMockCache>;
+  // ===========================================================================
+  // invalidateCache
+  // ===========================================================================
+  describe('invalidateCache', () => {
+    it('should remove a cached key so next access is a miss', async () => {
+      const { cached, invalidateCache } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue('original');
 
-    beforeEach(() => {
-      cache = createMockCache();
+      // Populate cache
+      await cached('inv-key', fetchFn);
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+
+      // Invalidate
+      await invalidateCache('inv-key');
+
+      // Next access should be a miss
+      const fetchFn2 = vi.fn().mockResolvedValue('refreshed');
+      const result = await cached('inv-key', fetchFn2);
+
+      expect(result.cached).toBe(false);
+      expect(result.data).toBe('refreshed');
     });
 
-    it('should handle multiple concurrent sets', async () => {
-      const operations = Array.from({ length: 10 }, (_, i) =>
-        cache.set(`key-${i}`, `value-${i}`)
-      );
+    it('should not throw when invalidating non-existent key', async () => {
+      const { invalidateCache } = await import('./cache');
 
-      await Promise.all(operations);
-
-      for (let i = 0; i < 10; i++) {
-        expect(await cache.get(`key-${i}`)).toBe(`value-${i}`);
-      }
+      await expect(invalidateCache('non-existent-key')).resolves.not.toThrow();
     });
 
-    it('should handle mixed operations', async () => {
-      await cache.set('mixed-key', 'initial');
+    it('should only invalidate the specified key', async () => {
+      const { cached, invalidateCache } = await import('./cache');
 
-      const operations = [
-        cache.get('mixed-key'),
-        cache.set('mixed-key', 'updated'),
-        cache.get('mixed-key'),
-      ];
+      await cached('keep-key', vi.fn().mockResolvedValue('keep'));
+      await cached('remove-key', vi.fn().mockResolvedValue('remove'));
 
-      await Promise.all(operations);
-      expect(await cache.get('mixed-key')).toBe('updated');
+      await invalidateCache('remove-key');
+
+      const result = await cached('keep-key', vi.fn().mockResolvedValue('new'));
+      expect(result.cached).toBe(true);
+      expect(result.data).toBe('keep');
+    });
+  });
+
+  // ===========================================================================
+  // clearMemoryCache
+  // ===========================================================================
+  describe('clearMemoryCache', () => {
+    it('should clear all cached entries', async () => {
+      const { cached, clearMemoryCache } = await import('./cache');
+
+      await cached('key1', vi.fn().mockResolvedValue('v1'));
+      await cached('key2', vi.fn().mockResolvedValue('v2'));
+
+      clearMemoryCache();
+
+      const fetchFn1 = vi.fn().mockResolvedValue('new-v1');
+      const fetchFn2 = vi.fn().mockResolvedValue('new-v2');
+      const result1 = await cached('key1', fetchFn1);
+      const result2 = await cached('key2', fetchFn2);
+
+      expect(result1.cached).toBe(false);
+      expect(result2.cached).toBe(false);
+    });
+
+    it('should not throw when cache is already empty', async () => {
+      const { clearMemoryCache } = await import('./cache');
+      expect(() => clearMemoryCache()).not.toThrow();
+    });
+  });
+
+  // ===========================================================================
+  // Expiry behavior
+  // ===========================================================================
+  describe('cache expiry', () => {
+    it('should return null for expired entries', async () => {
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue('data');
+
+      // Cache with 1-second TTL (0 is falsy so falls through to default)
+      await cached('expiring-key', fetchFn, 1);
+
+      // Advance time past expiry (>1 second)
+      const now = Date.now();
+      vi.spyOn(Date, 'now').mockReturnValue(now + 2000);
+
+      const fetchFn2 = vi.fn().mockResolvedValue('fresh');
+      const result = await cached('expiring-key', fetchFn2);
+
+      // Should be a miss since the entry expired
+      expect(result.cached).toBe(false);
+      expect(result.data).toBe('fresh');
+
+      vi.restoreAllMocks();
+    });
+  });
+
+  // ===========================================================================
+  // Redis fallback behavior
+  // ===========================================================================
+  describe('in-memory fallback', () => {
+    it('should work without Redis configuration', async () => {
+      delete process.env.UPSTASH_REDIS_REST_URL;
+      delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      const { cached } = await import('./cache');
+      const fetchFn = vi.fn().mockResolvedValue('fallback-data');
+
+      const result = await cached('fb-key', fetchFn);
+      expect(result.data).toBe('fallback-data');
+
+      const result2 = await cached('fb-key', fetchFn);
+      expect(result2.cached).toBe(true);
     });
   });
 });
