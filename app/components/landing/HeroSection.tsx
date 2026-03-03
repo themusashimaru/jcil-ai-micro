@@ -73,7 +73,7 @@ export default function HeroSection() {
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-slate-500">
             <TrustBadge>Powered by Anthropic Claude</TrustBadge>
             <TrustBadge>51 Real AI Tools</TrustBadge>
-            <TrustBadge>17,500+ Automated Tests</TrustBadge>
+            <TrustBadge>12,100+ Automated Tests</TrustBadge>
             <TrustBadge>E2B Sandboxed Execution</TrustBadge>
           </div>
         </div>

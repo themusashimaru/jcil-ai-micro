@@ -22,33 +22,27 @@ const toolCategories: ToolCategory[] = [
   {
     name: 'Web & Research',
     color: 'blue',
-    tools: ['Google Search', 'URL Fetch', 'Site Crawler', 'Research Agent', 'Citation Builder'],
+    tools: ['Google Search', 'URL Fetch', 'Site Crawler', 'Research Agent', 'YouTube Transcript'],
   },
   {
     name: 'Code & Dev',
     color: 'fuchsia',
-    tools: [
-      'GitHub Integration',
-      'Project Scaffold',
-      'Code Review',
-      'Dependency Audit',
-      'Test Generator',
-    ],
+    tools: ['GitHub Integration', 'Error Fixer', 'Code Refactor', 'Diff Compare', 'SQL Query'],
   },
   {
     name: 'Documents',
     color: 'green',
-    tools: ['Word Generator', 'Excel Builder', 'PDF Creator', 'CSV Parser', 'Markdown Converter'],
+    tools: ['Word Generator', 'Excel Builder', 'PDF Creator', 'Table Extractor', 'PDF Manipulate'],
   },
   {
     name: 'Media & Data',
     color: 'purple',
     tools: [
-      'Image Generation',
+      'Image Analysis',
       'Chart Creator',
-      'Data Transform',
-      'JSON Validator',
       'Image Transform',
+      'OCR Text Extract',
+      'Audio Transcribe',
     ],
   },
   {
@@ -133,7 +127,7 @@ export default function ToolsShowcase() {
 
       <div className="mt-8 text-center">
         <p className="text-sm text-slate-500">
-          Plus 136+ additional integrations via Composio (GitHub, Slack, Notion, Google Drive, and
+          Plus 67+ additional integrations via Composio (GitHub, Slack, Notion, Google Drive, and
           more)
         </p>
       </div>

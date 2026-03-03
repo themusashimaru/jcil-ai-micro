@@ -28,8 +28,8 @@ export default function CapabilitiesSection() {
         />
         <FeatureCard
           icon={<PlugIcon className="w-6 h-6" />}
-          title="136+ Integrations"
-          description="Connect to GitHub, Slack, Notion, Google Drive, and 130+ more apps through Composio."
+          title="67+ Integrations"
+          description="Connect to GitHub, Slack, Notion, Google Drive, and 60+ more apps through Composio."
           variant="outlined"
           color="blue"
         />

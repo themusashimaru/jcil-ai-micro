@@ -1,6 +1,6 @@
 /**
- * VIDEO GENERATION TOOL
- * PURPOSE: AI video generation
+ * VIDEO CONTENT TOOL
+ * PURPOSE: AI-assisted video scripting and planning
  */
 
 'use client';
@@ -20,57 +20,46 @@ const ToolLauncher = dynamic(
 const VIDEO_CONFIG: ToolConfig = {
   id: 'video',
   icon: '🎬',
-  title: 'Video Generator',
-  description: 'Create AI-generated videos from text prompts.',
+  title: 'Video Script & Planning',
+  description: 'AI-assisted video scripting, storyboarding, and content planning.',
   fields: [
     {
       name: 'prompt',
-      label: 'Video Description',
+      label: 'Video Concept',
       type: 'textarea',
       placeholder:
-        'Describe the video you want to create...\ne.g., A time-lapse of clouds moving over a mountain range...',
+        'Describe the video you want to plan...\ne.g., A 5-minute tutorial on setting up a React project...',
       required: true,
       rows: 4,
     },
     {
       name: 'duration',
-      label: 'Duration',
+      label: 'Target Length',
       type: 'select',
       required: true,
       options: [
-        { value: '3', label: '3 seconds' },
-        { value: '5', label: '5 seconds' },
-        { value: '10', label: '10 seconds' },
+        { value: 'short', label: 'Short (under 1 min)' },
+        { value: 'medium', label: 'Medium (1-5 min)' },
+        { value: 'long', label: 'Long (5+ min)' },
       ],
     },
     {
       name: 'style',
-      label: 'Video Style',
+      label: 'Content Type',
       type: 'select',
       required: true,
       options: [
-        { value: 'cinematic', label: 'Cinematic' },
-        { value: 'animated', label: 'Animated' },
-        { value: 'realistic', label: 'Realistic' },
-        { value: 'artistic', label: 'Artistic' },
-      ],
-    },
-    {
-      name: 'aspectRatio',
-      label: 'Aspect Ratio',
-      type: 'select',
-      required: true,
-      options: [
-        { value: '16:9', label: '16:9 (Widescreen)' },
-        { value: '9:16', label: '9:16 (Vertical)' },
-        { value: '1:1', label: '1:1 (Square)' },
+        { value: 'tutorial', label: 'Tutorial' },
+        { value: 'presentation', label: 'Presentation' },
+        { value: 'storytelling', label: 'Storytelling' },
+        { value: 'marketing', label: 'Marketing' },
       ],
     },
   ],
   examples: [
-    'Ocean waves crashing on shore',
-    'Bustling city street time-lapse',
-    'Northern lights dancing in sky',
+    'Write a script for a product demo video',
+    'Create a storyboard for a church announcement',
+    'Plan a tutorial video for our API',
   ],
 };
 
