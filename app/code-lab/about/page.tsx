@@ -2,7 +2,7 @@
  * CODE LAB TECHNICAL SPECIFICATIONS PAGE
  *
  * Comprehensive technical documentation for developers
- * Full Claude Code parity showcase
+ * Enterprise AI IDE feature breakdown
  * Enterprise-grade feature breakdown
  */
 
@@ -13,14 +13,13 @@ import Section, { SectionHeader } from '../../components/landing/Section';
 import FeatureCard, { StatCard } from '../../components/landing/FeatureCard';
 
 export const metadata = {
-  title: 'Code Lab - Enterprise AI Development Environment | 100% Claude Code Parity',
+  title: 'Code Lab - Enterprise AI Development Environment | JCIL.AI',
   description:
-    'Enterprise-grade agentic IDE with 55+ tools, 5 MCP servers, visual debugging for 32 languages, real-time collaboration, and cloud-sandboxed execution. 100% Claude Code feature parity.',
-  keywords:
-    'AI IDE, Claude Code, agentic development, visual debugging, MCP servers, cloud IDE, code execution sandbox',
+    'AI development environment with 51 real tools, 5 AI models, E2B sandboxed execution, and 67+ Composio integrations. Build in your browser with zero installation.',
+  keywords: 'AI IDE, agentic development, cloud IDE, code execution sandbox, E2B, multi-model AI',
 };
 
-// 55+ Agentic Tools organized by category
+// 51 Real Tools organized by category
 const TOOL_CATEGORIES = [
   {
     title: 'File Operations',
@@ -65,40 +64,28 @@ const TOOL_CATEGORIES = [
     ],
   },
   {
-    title: 'Visual Debugging',
+    title: 'Web & Research',
     icon: '🔍',
     color: 'purple',
     tools: [
-      { name: 'debug_start', desc: 'Initialize debug session for any language' },
-      { name: 'debug_set_breakpoint', desc: 'Line, conditional, logpoint breakpoints' },
-      { name: 'debug_step', desc: 'Step over, into, out of frames' },
-      { name: 'debug_continue', desc: 'Continue to next breakpoint' },
-      { name: 'debug_evaluate', desc: 'Evaluate expressions in context' },
-      { name: 'debug_stop', desc: 'Terminate debug session cleanly' },
+      { name: 'web_search', desc: 'Google search with real results' },
+      { name: 'fetch_url', desc: 'HTTP fetch with HTML parsing' },
+      { name: 'capture_webpage', desc: 'Screenshot and PDF capture' },
+      { name: 'parallel_research', desc: 'Multi-source research agent' },
+      { name: 'youtube_transcript', desc: 'Extract video transcripts' },
     ],
   },
   {
-    title: 'Deployment',
-    icon: '🚀',
+    title: 'Documents & Media',
+    icon: '📄',
     color: 'cyan',
     tools: [
-      { name: 'deploy_vercel', desc: 'Serverless, Edge, Preview deployments' },
-      { name: 'deploy_netlify', desc: 'Continuous deployment, Forms, Edge' },
-      { name: 'deploy_railway', desc: 'Containers, Databases, Cron jobs' },
-      { name: 'deploy_cloudflare', desc: 'Workers, Pages, R2, D1' },
-    ],
-  },
-  {
-    title: 'Planning & Agents',
-    icon: '📋',
-    color: 'fuchsia',
-    tools: [
-      { name: 'enter_plan_mode', desc: 'Start structured planning session' },
-      { name: 'write_plan', desc: 'Create multi-step execution plans' },
-      { name: 'exit_plan_mode', desc: 'Finalize and begin execution' },
-      { name: 'spawn_subagent', desc: 'Delegate to specialized agents' },
-      { name: 'create_task', desc: 'Add tasks to execution queue' },
-      { name: 'evaluate_plan', desc: 'Assess plan viability' },
+      { name: 'create_document', desc: 'Generate Word and Markdown files' },
+      { name: 'excel_advanced', desc: 'Create spreadsheets with formulas' },
+      { name: 'pdf_manipulate', desc: 'Create, merge, and split PDFs' },
+      { name: 'create_chart', desc: 'Generate charts and visualizations' },
+      { name: 'transform_image', desc: 'Resize, compress, watermark images' },
+      { name: 'analyze_image', desc: 'Claude Vision image analysis' },
     ],
   },
 ];
@@ -150,7 +137,7 @@ const MCP_SERVERS = [
   },
 ];
 
-// 32 Supported Debug Languages
+// 30+ Supported Debug Languages
 const DEBUG_LANGUAGES = {
   full: [
     'JavaScript',
@@ -190,46 +177,33 @@ const DEBUG_LANGUAGES = {
   ],
 };
 
-// Claude Code Parity Features
-const PARITY_FEATURES = [
-  {
-    feature: 'Terminal Access',
-    claudeCode: true,
-    codeLab: true,
-    notes: 'Full PTY with ANSI colors',
-  },
-  {
-    feature: 'File Operations',
-    claudeCode: true,
-    codeLab: true,
-    notes: '7 tools with glob support',
-  },
-  {
-    feature: 'Git Integration',
-    claudeCode: true,
-    codeLab: true,
-    notes: '9 git tools + GitHub API',
-  },
-  { feature: 'MCP Servers', claudeCode: true, codeLab: true, notes: '5 production servers' },
-  { feature: 'Custom Commands', claudeCode: true, codeLab: true, notes: '.claude/commands/*.md' },
-  { feature: 'Hook System', claudeCode: true, codeLab: true, notes: '8 hook types' },
-  { feature: 'Plan Mode', claudeCode: true, codeLab: true, notes: 'Visual UI with steps' },
-  { feature: 'Plugins', claudeCode: true, codeLab: true, notes: 'Marketplace included' },
-  { feature: 'Output Styles', claudeCode: true, codeLab: true, notes: '4 formatting modes' },
-  { feature: 'Vim Mode', claudeCode: true, codeLab: true, notes: 'Full Vim keybindings' },
-  { feature: 'Extended Thinking', claudeCode: true, codeLab: true, notes: 'Visual tree/timeline' },
-  { feature: 'Checkpoints', claudeCode: true, codeLab: true, notes: 'Full workspace snapshots' },
-  { feature: 'Session Forking', claudeCode: true, codeLab: true, notes: 'Parallel workspaces' },
-  { feature: 'Tool Permissions', claudeCode: true, codeLab: true, notes: 'Glob-based allow/deny' },
+// Core IDE Features (all verified implementations)
+const IDE_FEATURES = [
+  { feature: 'Terminal Access', notes: 'Full PTY with ANSI colors' },
+  { feature: 'File Operations', notes: '7 tools with glob support' },
+  { feature: 'Git Integration', notes: '9 git tools + GitHub API' },
+  { feature: 'MCP Servers', notes: '5 production servers' },
+  { feature: 'Custom Commands', notes: '.claude/commands/*.md' },
+  { feature: 'Hook System', notes: '10 hook types' },
+  { feature: 'Plan Mode', notes: 'Visual UI with steps' },
+  { feature: 'Plugin Marketplace', notes: 'Browse and install extensions' },
+  { feature: 'Vim Mode', notes: 'Full Vim keybindings (952-line impl)' },
+  { feature: 'Extended Thinking', notes: 'Visual tree/timeline' },
+  { feature: 'Checkpoints', notes: 'Full workspace snapshots' },
+  { feature: 'Session Forking', notes: 'Branch conversations at any point' },
+  { feature: 'Tool Permissions', notes: 'Glob-based allow/deny' },
+  { feature: 'Real-Time Collaboration', notes: 'CRDT + WebSocket multi-user' },
 ];
 
-// Code Lab Exclusive Features
+// Code Lab Exclusive Features (all verified with real implementations)
 const EXCLUSIVE_FEATURES = [
   { feature: 'Zero Installation', description: 'Start coding instantly in your browser' },
   { feature: 'Cloud Sandboxed Execution', description: 'Enterprise security by default with E2B' },
-  { feature: 'Visual Debugging', description: '32-language integrated debugger with DAP/CDP' },
-  { feature: 'Real-Time Collaboration', description: 'Multi-user development with shared cursors' },
-  { feature: 'One-Click Deployment', description: 'Vercel, Netlify, Railway, Cloudflare' },
+  { feature: 'Visual Debugging', description: '30+ language integrated debugger with DAP/CDP' },
+  {
+    feature: 'Real-Time Collaboration',
+    description: 'CRDT-based multi-user editing via WebSocket',
+  },
   {
     feature: 'Extended Thinking Visualization',
     description: "See Claude's reasoning in tree/timeline view",
@@ -238,6 +212,10 @@ const EXCLUSIVE_FEATURES = [
   { feature: 'Browser Automation', description: 'Built-in Puppeteer MCP server' },
   { feature: 'Plugin Marketplace', description: 'Discover and install community extensions' },
   { feature: 'Checkpoint/Rewind System', description: 'Full workspace recovery at any point' },
+  {
+    feature: 'BYOK (Bring Your Own Key)',
+    description: 'Use your own API keys for all 5 providers',
+  },
 ];
 
 // Tech Stack
@@ -269,7 +247,7 @@ const TECH_STACK = [
   {
     name: 'Debug Adapter Protocol',
     category: 'Debugging',
-    desc: '32 language support via DAP/CDP',
+    desc: '30+ language support via DAP/CDP',
     icon: '🔍',
   },
   {
@@ -316,7 +294,7 @@ export default function CodeLabTechnicalPage() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-fuchsia-500"></span>
               </span>
               <span className="text-sm font-medium text-fuchsia-300">
-                100% Claude Code Parity Achieved
+                Enterprise AI Development Environment
               </span>
             </div>
 
@@ -331,18 +309,17 @@ export default function CodeLabTechnicalPage() {
 
             {/* Subheadline */}
             <p className="mx-auto max-w-3xl text-lg sm:text-xl text-slate-400 leading-relaxed mb-8">
-              The most powerful AI development environment on the web. 55+ autonomous tools, 5
-              production MCP servers, visual debugging for 32 languages, and real-time
-              collaboration—all with{' '}
+              A powerful AI development environment on the web. 51 real tools, 5 MCP servers, E2B
+              sandboxed execution, and real-time collaboration—all with{' '}
               <span className="text-fuchsia-400 font-semibold">zero installation required</span>.
             </p>
 
             {/* Stats Row */}
             <div className="flex flex-wrap items-center justify-center gap-6 lg:gap-10 mb-10">
-              <StatCard value="55+" label="Agentic Tools" color="fuchsia" />
+              <StatCard value="51" label="Real Tools" color="fuchsia" />
               <StatCard value="5" label="MCP Servers" color="fuchsia" />
-              <StatCard value="32" label="Debug Languages" color="fuchsia" />
-              <StatCard value="2,128" label="Tests Passing" color="fuchsia" />
+              <StatCard value="5" label="AI Models" color="fuchsia" />
+              <StatCard value="12,100+" label="Tests Passing" color="fuchsia" />
             </div>
 
             {/* CTA Buttons */}
@@ -374,8 +351,8 @@ export default function CodeLabTechnicalPage() {
       <Section background="muted" padding="md" className="border-y border-white/5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto text-center">
           <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
-            <div className="text-3xl font-bold text-fuchsia-400 mb-1">100%</div>
-            <div className="text-sm text-slate-400">Claude Code Parity</div>
+            <div className="text-3xl font-bold text-fuchsia-400 mb-1">51</div>
+            <div className="text-sm text-slate-400">Real AI Tools</div>
           </div>
           <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
             <div className="text-3xl font-bold text-fuchsia-400 mb-1">200K</div>
@@ -404,29 +381,28 @@ export default function CodeLabTechnicalPage() {
                 Claude Code in Your Browser
               </h2>
               <p className="text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
-                What started as an ambitious goal to bring Claude Code&apos;s power to the web has
-                evolved into something far more capable: a complete IDE that not only matches every
-                Claude Code feature but extends beyond with visual debugging, real-time
-                collaboration, and enterprise-grade security.
+                A complete AI development environment in your browser. 51 real tools, E2B sandboxed
+                execution, multi-model support, and enterprise-grade security—with collaboration,
+                Vim mode, and checkpoint/rewind built in.
               </p>
             </div>
 
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
-                <div className="text-2xl font-bold text-white mb-1">2,128</div>
+                <div className="text-2xl font-bold text-white mb-1">12,100+</div>
                 <div className="text-sm text-slate-400">Tests Passing</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
-                <div className="text-2xl font-bold text-white mb-1">55+</div>
-                <div className="text-sm text-slate-400">Agentic Tools</div>
+                <div className="text-2xl font-bold text-white mb-1">51</div>
+                <div className="text-sm text-slate-400">Real Tools</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
                 <div className="text-2xl font-bold text-white mb-1">5</div>
                 <div className="text-sm text-slate-400">MCP Servers</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
-                <div className="text-2xl font-bold text-white mb-1">100%</div>
-                <div className="text-sm text-slate-400">Feature Parity</div>
+                <div className="text-2xl font-bold text-white mb-1">67+</div>
+                <div className="text-sm text-slate-400">Composio Integrations</div>
               </div>
             </div>
           </div>
@@ -537,13 +513,13 @@ export default function CodeLabTechnicalPage() {
         </div>
       </Section>
 
-      {/* 55+ Agentic Tools */}
+      {/* 51 Real Tools */}
       <Section padding="lg">
         <SectionHeader
-          badge="55+ Tools"
+          badge="51 Tools"
           badgeColor="blue"
-          title="Complete Agentic Toolkit"
-          description="Claude doesn't just suggest—it builds, tests, debugs, and deploys. Every tool designed for autonomous execution."
+          title="Complete AI Toolkit"
+          description="Every tool listed here is real, implemented, and deployed. No stubs, no fakes."
         />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
@@ -635,7 +611,7 @@ export default function CodeLabTechnicalPage() {
       {/* Visual Debugging */}
       <Section padding="lg">
         <SectionHeader
-          badge="32 Languages"
+          badge="30+ Languages"
           badgeColor="blue"
           title="Visual Debugging System"
           description="Not just print statements. Full breakpoint debugging with variables, call stacks, and expression evaluation."
@@ -750,108 +726,42 @@ export default function CodeLabTechnicalPage() {
         </div>
       </Section>
 
-      {/* Claude Code Parity */}
+      {/* Comprehensive Feature Set */}
       <Section background="gradient" padding="lg" className="border-t border-white/5">
         <SectionHeader
-          badge="100% Parity"
+          badge="Full IDE"
           badgeColor="green"
-          title="Complete Claude Code Feature Parity"
-          description="Every feature from Claude Code CLI, plus exclusive capabilities only available in Code Lab."
+          title="Comprehensive Feature Set"
+          description="Everything you need for AI-powered development, plus exclusive capabilities only available in Code Lab."
         />
 
         <div className="max-w-5xl mx-auto">
-          {/* Parity Table */}
-          <div className="bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-800 mb-12">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-800/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-white">
-                      Feature
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">
-                      Claude Code CLI
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-fuchsia-300">
-                      Code Lab
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
-                      Notes
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {PARITY_FEATURES.map((row, i) => (
-                    <tr key={i} className="hover:bg-slate-800/30">
-                      <td className="px-6 py-3 text-sm text-white">{row.feature}</td>
-                      <td className="px-6 py-3 text-center">
-                        {row.claudeCode ? (
-                          <svg
-                            className="w-5 h-5 text-green-400 mx-auto"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-5 h-5 text-slate-600 mx-auto"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 text-center">
-                        {row.codeLab ? (
-                          <svg
-                            className="w-5 h-5 text-fuchsia-400 mx-auto"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-5 h-5 text-slate-600 mx-auto"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-400">{row.notes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {/* Feature Grid */}
+          <div className="grid sm:grid-cols-2 gap-4 mb-12">
+            {IDE_FEATURES.map((row, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 bg-slate-900/50 rounded-xl p-4 border border-slate-800"
+              >
+                <svg
+                  className="w-5 h-5 text-green-400 mt-0.5 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <div>
+                  <div className="text-sm font-medium text-white">{row.feature}</div>
+                  <div className="text-xs text-slate-400">{row.notes}</div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Exclusive Features */}
@@ -922,7 +832,7 @@ Deploy version $1 to staging:
           <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
             <h3 className="text-lg font-bold text-white mb-4">Hook System</h3>
             <p className="text-sm text-slate-400 mb-4">
-              Intercept and modify behavior at 8 hook points:
+              Intercept and modify behavior at 10 hook points:
             </p>
             <div className="space-y-2">
               {[
@@ -934,6 +844,8 @@ Deploy version $1 to staging:
                 'SessionEnd',
                 'PreCompact',
                 'Notification',
+                'Stop',
+                'SubagentStop',
               ].map((hook, i) => (
                 <span
                   key={i}
@@ -1016,11 +928,93 @@ Deploy version $1 to staging:
           />
           <FeatureCard
             emoji="✅"
-            title="Compliance Ready"
-            description="SOC 2 Type II in progress. GDPR compliant with data residency. HIPAA eligible with BAA."
+            title="Security Infrastructure"
+            description="Rate limiting, CSRF protection, Zod input validation, Row-Level Security, and DOMPurify sanitization."
             variant="gradient"
             color="green"
           />
+        </div>
+      </Section>
+
+      {/* BYOK - Bring Your Own Key */}
+      <Section padding="lg">
+        <SectionHeader
+          badge="BYOK"
+          badgeColor="amber"
+          title="Bring Your Own Key"
+          description="Use your own API keys to unlock unlimited usage with your preferred providers. Keys are encrypted and never shown after saving."
+        />
+
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Provider Cards */}
+            <div className="space-y-4">
+              {[
+                { name: 'Anthropic (Claude)', model: 'claude-sonnet-4-6', color: 'amber' },
+                { name: 'OpenAI', model: 'gpt-4o', color: 'green' },
+                { name: 'Google (Gemini)', model: 'gemini-2.0-flash', color: 'blue' },
+                { name: 'xAI (Grok)', model: 'grok-3', color: 'slate' },
+                { name: 'DeepSeek', model: 'deepseek-chat', color: 'cyan' },
+              ].map((provider, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between bg-slate-900/50 rounded-xl p-4 border border-slate-800"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-white">{provider.name}</div>
+                    <div className="text-xs text-slate-500 font-mono">
+                      Default: {provider.model}
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full bg-${provider.color}-500/20 text-${provider.color}-300`}
+                  >
+                    Supported
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Benefits */}
+            <div className="bg-gradient-to-br from-amber-950/50 to-slate-950 rounded-2xl p-6 border border-amber-500/20">
+              <h3 className="text-lg font-bold text-white mb-4">Why use your own keys?</h3>
+              <div className="space-y-4">
+                {[
+                  { title: 'No usage limits', desc: 'Use your own quota from each provider' },
+                  { title: 'Direct billing', desc: 'Pay providers directly at their rates' },
+                  { title: 'Latest models', desc: 'Access newest releases immediately' },
+                  { title: 'Privacy', desc: 'API requests go directly to providers' },
+                  { title: 'Custom models', desc: 'Specify any model ID for each provider' },
+                ].map((benefit, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-amber-400 mt-0.5 shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <div className="text-sm font-medium text-white">{benefit.title}</div>
+                      <div className="text-xs text-slate-400">{benefit.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 p-3 rounded-lg bg-black/30 border border-white/5">
+                <p className="text-xs text-slate-400">
+                  Keys are encrypted with AES-256 before storage. Write-only design — your keys are
+                  never displayed after saving. Test before you save.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </Section>
 
@@ -1043,7 +1037,6 @@ POST   /api/code-lab/sessions       # Create new session
 POST   /api/code-lab/sessions/[id]/fork  # Fork session
 POST   /api/code-lab/files          # File operations
 POST   /api/code-lab/git            # Git operations
-POST   /api/code-lab/deploy         # Initiate deployment
 POST   /api/code-lab/mcp            # Execute MCP tool
 POST   /api/code-lab/debug          # Debug operations`}
             </pre>
@@ -1135,8 +1128,8 @@ POST   /api/code-lab/debug          # Debug operations`}
               Ready to Code Differently?
             </h2>
             <p className="text-lg text-slate-400 mb-8 max-w-xl mx-auto">
-              Experience enterprise-grade AI development with 100% Claude Code parity. No
-              installation. No configuration. Just code.
+              Enterprise-grade AI development in your browser. 51 real tools, 5 AI models, E2B
+              sandbox. No installation. No configuration. Just code.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -1153,7 +1146,7 @@ POST   /api/code-lab/debug          # Debug operations`}
               </Link>
             </div>
             <p className="mt-6 text-sm text-slate-500">
-              Free tier available • 2,128 tests passing • Built with precision
+              Free tier available • 12,100+ tests passing • Built with precision
             </p>
           </div>
         </div>

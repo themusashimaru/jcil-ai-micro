@@ -50,7 +50,7 @@ export default function AboutPage() {
               <p>
                 So we built our own. Not a watered-down alternative. Not a &quot;safe&quot; version
                 with fewer features. A full enterprise-grade AI platform with 51 real tools, E2B
-                sandboxed execution, persistent memory, multi-model support, and 136+ Composio
+                sandboxed execution, persistent memory, multi-model support, and 67+ Composio
                 integrations.
               </p>
               <p className="text-slate-300">

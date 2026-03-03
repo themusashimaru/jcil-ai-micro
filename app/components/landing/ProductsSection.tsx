@@ -66,7 +66,7 @@ export default function ProductsSection() {
                 'Sermon & Bible study preparation',
                 'Web search & real-time fact checking',
                 'Document generation (Word, Excel, PDF)',
-                'Image generation & analysis',
+                'Image analysis & document processing',
               ].map((feature) => (
                 <div key={feature} className="flex items-center gap-3 text-sm text-slate-300">
                   <CheckMark className="text-amber-400" />
@@ -112,11 +112,11 @@ export default function ProductsSection() {
                 <div className="text-[10px] text-slate-400">Tools</div>
               </div>
               <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-fuchsia-300">6+</div>
+                <div className="text-lg font-bold text-fuchsia-300">5</div>
                 <div className="text-[10px] text-slate-400">Models</div>
               </div>
               <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-fuchsia-300">136+</div>
+                <div className="text-lg font-bold text-fuchsia-300">67+</div>
                 <div className="text-[10px] text-slate-400">Integrations</div>
               </div>
               <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
@@ -127,11 +127,11 @@ export default function ProductsSection() {
 
             <div className="space-y-2 mb-6">
               {[
-                'Claude Opus 4.6 + GPT-5.2 + Gemini + more',
+                'Claude Opus 4.6, GPT-5.2, Gemini, Grok, DeepSeek',
                 'E2B sandboxed code execution',
                 'GitHub integration & project scaffolding',
                 'Web search, scraping & research tools',
-                'Composio: 136+ app integrations',
+                'Composio: 67+ app integrations',
               ].map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm text-slate-300">
                   <CheckMark className="text-fuchsia-400" />

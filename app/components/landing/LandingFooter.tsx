@@ -34,7 +34,6 @@ const footerLinks: Record<string, FooterSection> = {
     links: [
       { label: 'Documentation', href: '/docs' },
       { label: 'Code Lab Docs', href: '/docs/code-lab' },
-      { label: 'API Reference', href: '/docs/api' },
       { label: 'Status', href: 'https://status.jcil.ai', external: true },
     ],
   },
@@ -44,7 +43,6 @@ const footerLinks: Record<string, FooterSection> = {
       { label: 'About', href: '/about' },
       { label: 'FAQ', href: '/faq' },
       { label: 'Contact', href: '/contact' },
-      { label: 'Careers', href: '/careers' },
     ],
   },
   legal: {
@@ -53,7 +51,6 @@ const footerLinks: Record<string, FooterSection> = {
       { label: 'Privacy Policy', href: '/privacy' },
       { label: 'Terms of Service', href: '/terms' },
       { label: 'Cookie Policy', href: '/cookies' },
-      { label: 'Security', href: '/security' },
     ],
   },
 };

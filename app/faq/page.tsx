@@ -18,11 +18,11 @@ const faqs = [
     questions: [
       {
         q: 'What is JCIL.AI?',
-        a: 'JCIL.AI is an enterprise-grade AI platform with 51 real tools, multi-model support (Claude, GPT, Gemini, Grok, DeepSeek), persistent memory, 136+ Composio integrations, and E2B sandboxed execution. Built on faith, open to all.',
+        a: 'JCIL.AI is an enterprise-grade AI platform with 51 real tools, multi-model support (Claude, GPT, Gemini, Grok, DeepSeek), persistent memory, 67+ Composio integrations, and E2B sandboxed execution. Built on faith, open to all.',
       },
       {
         q: 'How is this different from other AI tools?',
-        a: 'We compete on capability, not limitations. 51 real tools (zero stubs), multi-model AI, full GitHub integration, E2B sandboxed code execution, and 136+ app integrations via Composio. We also prioritize Scripture-grounded responses and Christian values.',
+        a: 'We compete on capability, not limitations. 51 real tools (zero stubs), multi-model AI, full GitHub integration, E2B sandboxed code execution, and 67+ app integrations via Composio. We also prioritize Scripture-grounded responses and Christian values.',
       },
       {
         q: 'What is Code Lab?',
@@ -50,8 +50,8 @@ const faqs = [
         a: 'Yes. Persistent memory stores your preferences, projects, and context across sessions. Tell us something once, we remember it.',
       },
       {
-        q: 'What are the 136+ integrations?',
-        a: 'Through Composio, JCIL connects to GitHub, Slack, Notion, Google Drive, Trello, Jira, Linear, and 130+ more applications. These are real, production integrations\u2014not stubs.',
+        q: 'What are the 67+ integrations?',
+        a: 'Through Composio, JCIL connects to GitHub, Slack, Notion, Google Drive, Trello, Jira, Linear, and 60+ more applications. These are real, production integrations\u2014not stubs.',
       },
     ],
   },

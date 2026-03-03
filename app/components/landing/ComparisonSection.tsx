@@ -17,11 +17,11 @@ const comparisons: ComparisonRow[] = [
   { feature: 'Scripture-grounded responses', jcil: true, generic: false },
   { feature: 'Faith-aligned content filtering', jcil: true, generic: false },
   { feature: 'Real code execution (E2B sandbox)', jcil: true, generic: 'Limited' },
-  { feature: 'Multi-model support', jcil: '6+ models', generic: '1 model' },
+  { feature: 'Multi-model support', jcil: '5 models', generic: '1 model' },
   { feature: 'Real AI tools (not stubs)', jcil: '51 tools', generic: 'Varies' },
   { feature: 'Document generation (Word, Excel, PDF)', jcil: true, generic: 'Limited' },
   { feature: 'Web search with citations', jcil: true, generic: 'Some' },
-  { feature: 'Composio integrations', jcil: '136+ apps', generic: false },
+  { feature: 'Composio integrations', jcil: '67+ apps', generic: false },
   { feature: 'Data never used for training', jcil: true, generic: 'Varies' },
   { feature: 'Built for churches & ministries', jcil: true, generic: false },
 ];
