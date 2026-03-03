@@ -32,6 +32,44 @@ import { processConversationForMemory } from '@/lib/memory';
 
 const log = logger('ChatStreaming');
 
+// ── Auto Model Routing ──
+
+const HAIKU_MODEL_ID = 'claude-haiku-4-5-20251001';
+
+/**
+ * Patterns that indicate a trivial message suitable for Haiku.
+ * Only greetings, single-word queries, and very short simple questions qualify.
+ */
+const TRIVIAL_PATTERNS = [
+  /^(hi|hey|hello|howdy|sup|yo|hola|greetings|good\s*(morning|afternoon|evening|night))[\s!?.]*$/i,
+  /^(thanks|thank\s*you|thx|ty|ok|okay|sure|got\s*it|cool|nice|great|awesome|perfect)[\s!?.]*$/i,
+  /^(yes|no|yep|nope|yeah|nah)[\s!?.]*$/i,
+  /^what('?s|\s+is)\s+your\s+name[\s?]*$/i,
+  /^who\s+are\s+you[\s?]*$/i,
+  /^how\s+are\s+you[\s?]*$/i,
+];
+
+/**
+ * Classify whether a message is trivial enough for Haiku or needs Sonnet.
+ * Conservative: when in doubt, use Sonnet (quality safeguard).
+ */
+export function classifyMessageComplexity(messageContent: string): 'trivial' | 'standard' {
+  const trimmed = messageContent.trim();
+
+  // Empty or very short
+  if (trimmed.length === 0) return 'trivial';
+
+  // Only classify as trivial if it matches a known trivial pattern
+  // AND is short (under 50 chars to avoid false positives)
+  if (trimmed.length <= 50) {
+    for (const pattern of TRIVIAL_PATTERNS) {
+      if (pattern.test(trimmed)) return 'trivial';
+    }
+  }
+
+  return 'standard';
+}
+
 export interface StreamConfig {
   messages: CoreMessage[];
   systemPrompt: string;
@@ -53,12 +91,22 @@ export interface StreamConfig {
 }
 
 /**
- * Resolve the model and provider based on user selection.
- * Returns an error response if the selected provider is unavailable.
+ * Resolve the model and provider based on user selection + auto routing.
+ *
+ * When no provider is explicitly selected, auto-routes:
+ *   - Trivial messages (greetings, yes/no) → Haiku (fast, cheap)
+ *   - Everything else → Sonnet (quality safeguard)
+ *
+ * @param provider - User-selected provider (if any)
+ * @param messageContent - Last user message for auto-routing (optional)
  */
-export function resolveProvider(provider: string | undefined): {
+export function resolveProvider(
+  provider: string | undefined,
+  messageContent?: string
+): {
   selectedModel: string;
   selectedProviderId: string;
+  autoRouted?: boolean;
   error?: Response;
 } {
   let selectedModel = getDefaultChatModelId();
@@ -82,6 +130,14 @@ export function resolveProvider(provider: string | undefined): {
         code: ERROR_CODES.INVALID_INPUT,
       }),
     };
+  } else if (!provider && messageContent) {
+    // Auto model routing: Haiku for trivial, Sonnet for everything else
+    const complexity = classifyMessageComplexity(messageContent);
+    if (complexity === 'trivial') {
+      selectedModel = HAIKU_MODEL_ID;
+      log.info('Auto-routed to Haiku (trivial message)', { model: selectedModel });
+      return { selectedModel, selectedProviderId, autoRouted: true };
+    }
   }
 
   return { selectedModel, selectedProviderId };

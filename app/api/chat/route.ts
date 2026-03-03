@@ -380,8 +380,12 @@ export async function POST(request: NextRequest) {
 
     log.debug('Available chat tools', { toolCount: tools.length });
 
-    // Resolve provider
-    const { selectedModel, selectedProviderId, error: providerError } = resolveProvider(provider);
+    // Resolve provider (with auto model routing for Claude)
+    const {
+      selectedModel,
+      selectedProviderId,
+      error: providerError,
+    } = resolveProvider(provider, lastUserContent);
     if (providerError) return providerError;
 
     const sessionId = conversationId || `chat_${userId}_${Date.now()}`;
