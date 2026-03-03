@@ -52,7 +52,6 @@ describe('Tool Registry', () => {
         'data',
         'scientific',
         'security',
-        'devtools',
       ];
       for (const tool of TOOL_REGISTRY) {
         expect(validCategories).toContain(tool.category);
@@ -85,10 +84,11 @@ describe('Tool Registry', () => {
       expect(entry).toBeUndefined();
     });
 
-    it('should return correct entry for beta tool', () => {
-      const entry = getToolEntry('ml_model_serving');
+    it('should return correct entry for a code tool', () => {
+      const entry = getToolEntry('format_code');
       expect(entry).toBeDefined();
-      expect(entry!.status).toBe('beta');
+      expect(entry!.status).toBe('active');
+      expect(entry!.category).toBe('code');
     });
   });
 
@@ -99,10 +99,9 @@ describe('Tool Registry', () => {
       expect(active.every((t) => t.status === 'active')).toBe(true);
     });
 
-    it('should return beta tools', () => {
+    it('should return empty for beta (all stubs removed)', () => {
       const beta = getToolsByStatus('beta');
-      expect(beta.length).toBeGreaterThanOrEqual(1);
-      expect(beta.every((t) => t.status === 'beta')).toBe(true);
+      expect(beta.length).toBe(0);
     });
 
     it('should return empty array for planned (none exist currently)', () => {
@@ -119,9 +118,8 @@ describe('Tool Registry', () => {
     });
 
     it('should return empty array for category with no tools', () => {
-      // All categories currently have tools, but the function should handle edge cases
-      const result = getToolsByCategory('devtools');
-      expect(result.every((t) => t.category === 'devtools')).toBe(true);
+      const result = getToolsByCategory('security');
+      expect(result.every((t) => t.category === 'security')).toBe(true);
     });
   });
 

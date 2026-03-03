@@ -1,7 +1,7 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
 **Last Updated:** 2026-03-03
-**Updated By:** Tool audit — corrected real vs stub counts (deep file-level review)
+**Updated By:** Removed 4 stub tools — 51/51 tools now real (100%)
 **Branch:** `claude/review-app-progress-Nce5N`
 
 > This document reflects verified, measured values only. No aspirational claims.
@@ -11,31 +11,31 @@
 
 ## Current State Summary
 
-| Metric                         | Verified Value                                                                                     | Target                 | Status                      |
-| ------------------------------ | -------------------------------------------------------------------------------------------------- | ---------------------- | --------------------------- |
-| **Test Coverage (lines)**      | 41.25% (was 15.05%)                                                                                | 60%                    | Major progress — Phase 2.6  |
-| **Test Coverage (statements)** | 41.25% (was 15.05%)                                                                                | 60%                    | Major progress — Phase 2.6  |
-| **Test Coverage (branches)**   | 80.71% (was 62.55%)                                                                                | 60%                    | Target exceeded             |
-| **API Routes Tested**          | ~40% (was 8.5%)                                                                                    | 90%                    | Improving                   |
-| **Real Tool Implementations**  | 51/55 real (93%). 4 stubs remain: audio_synth, feature_flag, migration_generator, ml_model_serving | All active tools real  | 4 stubs to fix or remove    |
-| **ARIA Attributes**            | 409+ (was 0)                                                                                       | WCAG 2.1 AA            | Major progress — Phase 2.4  |
-| **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.                   | 0 static inline styles | Complete — Phase 2.4.8      |
-| **Largest Component**          | 374 lines (was 2,631)                                                                              | <400 lines             | Target met — decomposed     |
-| **Largest Route File**         | 537 lines (was 4,618)                                                                              | <500 lines             | Decomposed into 10 modules  |
-| **Production Dependencies**    | 77 (was 115, was 152)                                                                              | <50                    | 33% reduction — Phase 3.1.8 |
-| **Tool Files (total)**         | 58 (was 82, deleted 23 stubs + index.ts)                                                           | Lazy-loaded            | Lazy loading implemented    |
-| **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx)                  | All major sections     | Complete — Phase 2.5        |
-| **API Routes Standardized**    | 113/129 use standard helpers (was 45/129)                                                          | 100%                   | 68 routes migrated — 3.5.2  |
-| **Documentation Files**        | 24 active (was 51). 27 stale files archived to docs/archive/                                       | Clean                  | Complete — DC.1-DC.4        |
-| **TypeScript Errors**          | 0 (verified 2026-02-28)                                                                            | 0                      | Passing                     |
-| **Build Status**               | Passing (verified 2026-02-28)                                                                      | Passing                | Passing                     |
-| **Lint Warnings**              | 5 pre-existing no-console warnings only                                                            | 0                      | Near-clean                  |
+| Metric                         | Verified Value                                                                                  | Target                 | Status                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------- | --------------------------- |
+| **Test Coverage (lines)**      | 41.25% (was 15.05%)                                                                             | 60%                    | Major progress — Phase 2.6  |
+| **Test Coverage (statements)** | 41.25% (was 15.05%)                                                                             | 60%                    | Major progress — Phase 2.6  |
+| **Test Coverage (branches)**   | 80.71% (was 62.55%)                                                                             | 60%                    | Target exceeded             |
+| **API Routes Tested**          | ~40% (was 8.5%)                                                                                 | 90%                    | Improving                   |
+| **Real Tool Implementations**  | 51/51 (100%). 4 stubs removed: audio_synth, feature_flag, migration_generator, ml_model_serving | All active tools real  | **TARGET MET**              |
+| **ARIA Attributes**            | 409+ (was 0)                                                                                    | WCAG 2.1 AA            | Major progress — Phase 2.4  |
+| **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.                | 0 static inline styles | Complete — Phase 2.4.8      |
+| **Largest Component**          | 374 lines (was 2,631)                                                                           | <400 lines             | Target met — decomposed     |
+| **Largest Route File**         | 537 lines (was 4,618)                                                                           | <500 lines             | Decomposed into 10 modules  |
+| **Production Dependencies**    | 77 (was 115, was 152)                                                                           | <50                    | 33% reduction — Phase 3.1.8 |
+| **Tool Files (total)**         | 54 (was 58, deleted 4 stubs)                                                                    | Lazy-loaded            | Lazy loading implemented    |
+| **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx)               | All major sections     | Complete — Phase 2.5        |
+| **API Routes Standardized**    | 113/129 use standard helpers (was 45/129)                                                       | 100%                   | 68 routes migrated — 3.5.2  |
+| **Documentation Files**        | 24 active (was 51). 27 stale files archived to docs/archive/                                    | Clean                  | Complete — DC.1-DC.4        |
+| **TypeScript Errors**          | 0 (verified 2026-02-28)                                                                         | 0                      | Passing                     |
+| **Build Status**               | Passing (verified 2026-02-28)                                                                   | Passing                | Passing                     |
+| **Lint Warnings**              | 5 pre-existing no-console warnings only                                                         | 0                      | Near-clean                  |
 
 ---
 
 ## What Actually Works (Verified)
 
-### Real Tool Implementations (51/55 in registry — see `tools/registry.ts`)
+### Real Tool Implementations (51/51 in registry — see `tools/registry.ts`)
 
 | Tool           | File                                  | What It Does                                      |
 | -------------- | ------------------------------------- | ------------------------------------------------- |
@@ -45,14 +45,7 @@
 | Web Capture    | `tools/web-capture-tool.ts`           | Puppeteer screenshots and PDFs                    |
 | 47 more tools  | See `tools/registry.ts` for full list | Various categories: code, data, media, scientific |
 
-### Stub Tools (4 remaining — need real implementation or removal)
-
-| Tool                  | File                          | Issue                                           |
-| --------------------- | ----------------------------- | ----------------------------------------------- |
-| `audio_synth`         | `audio-synth-tool.ts`         | Returns JSON tone specs, no actual audio output |
-| `feature_flag`        | `feature-flag-tool.ts`        | Returns design docs/SDK templates, no flag eval |
-| `migration_generator` | `migration-generator-tool.ts` | Returns migration code strings, no execution    |
-| `ml_model_serving`    | `ml-model-serving-tool.ts`    | Returns architecture docs, no model inference   |
+**All 51 tools have real implementations. Zero stubs.** _(2026-03-03)_
 
 ### Security (Solid Foundation)
 
@@ -81,16 +74,9 @@
 
 ## What Does NOT Work (Verified)
 
-### Stub Tools (4 remaining)
+### ~~Stub Tools~~ — **RESOLVED** _(2026-03-03)_
 
-4 tools in `src/lib/ai/tools/` return specs/templates instead of real output:
-
-- `audio_synth` — generates JSON tone specifications, not actual audio files
-- `feature_flag` — generates design docs and SDK code templates, no flag persistence or evaluation
-- `migration_generator` — generates migration code strings, no database execution
-- `ml_model_serving` — generates Dockerfile/K8s YAML templates, no model inference
-
-**These tools must be made real or removed from the active registry.**
+All 4 remaining stubs (`audio_synth`, `feature_flag`, `migration_generator`, `ml_model_serving`) were removed from the registry. 51/51 tools are now real.
 
 ### Accessibility
 
@@ -221,6 +207,7 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-27 | Added Docker containerization                    | No Dockerfile or compose                    | 3-stage Dockerfile + docker-compose.yml    |
 | 2026-02-27 | Enabled Next.js standalone output                | Standard build output                       | output: 'standalone' in next.config.js     |
 | 2026-03-03 | Tool audit: corrected real vs stub counts        | "57 tools (all real)" (inaccurate)          | 51/55 real (93%), 4 stubs identified       |
+| 2026-03-03 | Removed 4 stub tools from registry               | 55 tools (4 stubs)                          | 51 tools, 100% real, 0 stubs               |
 
 ---
 

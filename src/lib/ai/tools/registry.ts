@@ -20,8 +20,7 @@ export type ToolCategory =
   | 'media'
   | 'data'
   | 'scientific'
-  | 'security'
-  | 'devtools';
+  | 'security';
 
 export interface ToolRegistryEntry {
   /** Tool name as registered with Claude (matches tool.name) */
@@ -40,7 +39,7 @@ export interface ToolRegistryEntry {
 
 /**
  * Master registry of all tools.
- * 55 tools total — all with real implementations.
+ * 51 tools total — all with real implementations.
  */
 export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   // =========================================================================
@@ -198,22 +197,6 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'Run SQL queries in-browser via SQL.js',
     dependencies: ['sql.js'],
   },
-  {
-    name: 'feature_flag',
-    file: 'feature-flag-tool.ts',
-    status: 'active',
-    category: 'code',
-    description: 'Design feature flag systems with SDK generation and rollout strategies',
-    dependencies: ['crypto'],
-  },
-  {
-    name: 'migration_generator',
-    file: 'migration-generator-tool.ts',
-    status: 'active',
-    category: 'code',
-    description: 'Generate database migrations for Prisma, Knex, TypeORM, Sequelize',
-    dependencies: [],
-  },
 
   // =========================================================================
   // DOCUMENT — Document creation and manipulation
@@ -285,14 +268,6 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     category: 'media',
     description: 'Transcribe audio using Whisper',
     dependencies: ['Whisper API'],
-  },
-  {
-    name: 'audio_synth',
-    file: 'audio-synth-tool.ts',
-    status: 'active',
-    category: 'media',
-    description: 'Synthesize audio and music via Tone.js',
-    dependencies: ['tone'],
   },
   {
     name: 'media_process',
@@ -505,18 +480,6 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     category: 'security',
     description: 'WCAG accessibility checking via axe-core',
     dependencies: ['axe-core'],
-  },
-
-  // =========================================================================
-  // DEVTOOLS — ML serving (beta)
-  // =========================================================================
-  {
-    name: 'ml_model_serving',
-    file: 'ml-model-serving-tool.ts',
-    status: 'beta',
-    category: 'devtools',
-    description: 'ML model serving infrastructure (registry is real, configs are templates)',
-    dependencies: ['AWS SDK patterns'],
   },
 ];
 

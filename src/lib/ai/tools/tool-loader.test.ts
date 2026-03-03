@@ -27,9 +27,10 @@ describe('Tool Loader', () => {
       expect(names).toContain('run_code');
     });
 
-    it('should include beta tools', () => {
+    it('should include media tools', () => {
       const names = getRegisteredToolNames();
-      expect(names).toContain('ml_model_serving');
+      expect(names).toContain('create_chart');
+      expect(names).toContain('transform_image');
     });
   });
 

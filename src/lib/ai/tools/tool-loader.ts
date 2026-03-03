@@ -169,18 +169,6 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeSQL',
     availabilityExport: 'isSQLAvailable',
   },
-  feature_flag: {
-    importPath: './feature-flag-tool',
-    toolExport: 'featureFlagTool',
-    executorExport: 'executeFeatureFlag',
-    availabilityExport: 'isFeatureFlagAvailable',
-  },
-  migration_generator: {
-    importPath: './migration-generator-tool',
-    toolExport: 'migrationGeneratorTool',
-    executorExport: 'executeMigrationGenerator',
-    availabilityExport: 'isMigrationGeneratorAvailable',
-  },
 
   // Document tools
   create_document: {
@@ -232,12 +220,6 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     toolExport: 'audioTranscribeTool',
     executorExport: 'executeAudioTranscribe',
     availabilityExport: 'isAudioTranscribeAvailable',
-  },
-  audio_synth: {
-    importPath: './audio-synth-tool',
-    toolExport: 'audioSynthTool',
-    executorExport: 'executeAudioSynth',
-    availabilityExport: 'isAudioSynthAvailable',
   },
   media_process: {
     importPath: './media-tool',
@@ -394,14 +376,6 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     toolExport: 'accessibilityTool',
     executorExport: 'executeAccessibility',
     availabilityExport: 'isAccessibilityAvailable',
-  },
-
-  // DevTools (beta)
-  ml_model_serving: {
-    importPath: './ml-model-serving-tool',
-    toolExport: 'mlModelServingTool',
-    executorExport: 'executeMlModelServing',
-    availabilityExport: 'isMlModelServingAvailable',
   },
 };
 

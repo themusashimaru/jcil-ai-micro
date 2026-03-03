@@ -84,23 +84,6 @@ export {
   getRepoSummaryForPrompt,
 } from './github-tool';
 
-// Feature Flag Tool
-export { featureFlagTool, executeFeatureFlag, isFeatureFlagAvailable } from './feature-flag-tool';
-
-// Migration Generator Tool
-export {
-  migrationGeneratorTool,
-  executeMigrationGenerator,
-  isMigrationGeneratorAvailable,
-} from './migration-generator-tool';
-
-// ML Model Serving (beta)
-export {
-  mlModelServingTool,
-  executeMlModelServing,
-  isMlModelServingAvailable,
-} from './ml-model-serving-tool';
-
 // Screenshot Tool (Puppeteer)
 export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
 
@@ -186,9 +169,6 @@ export { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } from './s
 
 // Data Validation (validator.js)
 export { validatorTool, executeValidator, isValidatorAvailable } from './validator-tool';
-
-// Audio Synthesis (Tone.js)
-export { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } from './audio-synth-tool';
 
 // Geospatial Calculations (turf.js)
 export { geospatialTool, executeGeospatial, isGeospatialAvailable } from './geospatial-tool';
@@ -349,10 +329,6 @@ async function initializeTools() {
   const { validatorTool, executeValidator, isValidatorAvailable } = await import(
     './validator-tool'
   );
-  const { audioSynthTool, executeAudioSynth, isAudioSynthAvailable } = await import(
-    './audio-synth-tool'
-  );
-
   // Scientific & research tools
   const { geospatialTool, executeGeospatial, isGeospatialAvailable } = await import(
     './geospatial-tool'
@@ -389,16 +365,8 @@ async function initializeTools() {
   );
   const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
 
-  // GitHub, feature flags, migrations, ML serving
+  // GitHub
   const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
-  const { featureFlagTool, executeFeatureFlag, isFeatureFlagAvailable } = await import(
-    './feature-flag-tool'
-  );
-  const { migrationGeneratorTool, executeMigrationGenerator, isMigrationGeneratorAvailable } =
-    await import('./migration-generator-tool');
-  const { mlModelServingTool, executeMlModelServing, isMlModelServingAvailable } = await import(
-    './ml-model-serving-tool'
-  );
 
   // Register all tools
   CHAT_TOOLS.push(
@@ -493,8 +461,6 @@ async function initializeTools() {
       checkAvailability: isSearchIndexAvailable,
     },
     { tool: validatorTool, executor: executeValidator, checkAvailability: isValidatorAvailable },
-    { tool: audioSynthTool, executor: executeAudioSynth, checkAvailability: isAudioSynthAvailable },
-
     // Scientific & research tools
     { tool: geospatialTool, executor: executeGeospatial, checkAvailability: isGeospatialAvailable },
     { tool: phoneTool, executor: executePhone, checkAvailability: isPhoneAvailable },
@@ -537,23 +503,8 @@ async function initializeTools() {
     { tool: errorFixerTool, executor: executeErrorFixer, checkAvailability: isErrorFixerAvailable },
     { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
 
-    // GitHub, feature flags, migrations, ML serving
-    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
-    {
-      tool: featureFlagTool,
-      executor: executeFeatureFlag,
-      checkAvailability: isFeatureFlagAvailable,
-    },
-    {
-      tool: migrationGeneratorTool,
-      executor: executeMigrationGenerator,
-      checkAvailability: isMigrationGeneratorAvailable,
-    },
-    {
-      tool: mlModelServingTool,
-      executor: executeMlModelServing,
-      checkAvailability: isMlModelServingAvailable,
-    }
+    // GitHub
+    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable }
   );
 
   toolsInitialized = true;
