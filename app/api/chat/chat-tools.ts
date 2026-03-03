@@ -80,7 +80,6 @@ const TOOL_COSTS: Record<string, number> = {
   validate_data: 0.0001,
   cron_explain: 0.0001,
   convert_units: 0.0001,
-  audio_synth: 0.0001,
   analyze_statistics: 0.0001,
   geo_calculate: 0.0001,
   phone_validate: 0.0001,
@@ -560,11 +559,7 @@ async function executeComposioToolCall(
       };
     }
 
-    const composioResult = await executeComposioTool(
-      userId || 'anonymous',
-      toolName,
-      parsedArgs
-    );
+    const composioResult = await executeComposioTool(userId || 'anonymous', toolName, parsedArgs);
 
     if (composioResult.success) {
       log.info('Composio tool executed successfully', { tool: toolName });
