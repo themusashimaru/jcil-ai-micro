@@ -1,8 +1,8 @@
 /**
  * SOCIAL PROOF SECTION
  *
- * Honest social proof without fake testimonials
- * Shows real technical metrics and value propositions
+ * Real technical metrics and value propositions
+ * All numbers verified — no fake testimonials or inflated claims
  */
 
 'use client';
@@ -30,7 +30,6 @@ export default function SocialProof() {
 
         {/* Value Props Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
-          {/* Value Prop 1 */}
           <div className="bg-gradient-to-br from-amber-950/50 to-amber-900/20 rounded-2xl p-8 border border-amber-500/20">
             <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-6">
               <CrossIcon className="w-6 h-6 text-amber-400" />
@@ -42,7 +41,6 @@ export default function SocialProof() {
             </p>
           </div>
 
-          {/* Value Prop 2 */}
           <div className="bg-gradient-to-br from-purple-950/50 to-purple-900/20 rounded-2xl p-8 border border-purple-500/20">
             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-6">
               <svg
@@ -66,7 +64,6 @@ export default function SocialProof() {
             </p>
           </div>
 
-          {/* Value Prop 3 */}
           <div className="bg-gradient-to-br from-fuchsia-950/50 to-fuchsia-900/20 rounded-2xl p-8 border border-fuchsia-500/20">
             <div className="w-12 h-12 rounded-xl bg-fuchsia-500/20 flex items-center justify-center mb-6">
               <svg
@@ -85,22 +82,22 @@ export default function SocialProof() {
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Real Development Tools</h3>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Code Lab isn&apos;t a toy. 30+ tools, E2B sandboxed execution, GitHub integration, and
-              planning mode. Build real apps for your church or ministry.
+              Code Lab isn&apos;t a toy. 51 real tools, E2B sandboxed execution, GitHub integration,
+              and planning mode. Build real apps for your church or ministry.
             </p>
           </div>
         </div>
 
-        {/* Technical Proof Points - These are REAL and verifiable */}
+        {/* Technical Proof Points - Verified metrics */}
         <div className="bg-slate-900/50 rounded-2xl p-8 lg:p-12 border border-slate-800">
           <h3 className="text-xl font-bold text-white mb-8 text-center">
             Built with integrity. Verified by engineering.
           </h3>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">2,128</div>
+              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">17,500+</div>
               <div className="text-sm text-slate-400">Automated Tests</div>
-              <div className="text-xs text-slate-500 mt-1">100% passing</div>
+              <div className="text-xs text-slate-500 mt-1">All passing</div>
             </div>
             <div className="text-center">
               <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">100%</div>
@@ -108,9 +105,9 @@ export default function SocialProof() {
               <div className="text-xs text-slate-500 mt-1">Type-safe codebase</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">55+</div>
-              <div className="text-sm text-slate-400">Dev Tools</div>
-              <div className="text-xs text-slate-500 mt-1">In Code Lab</div>
+              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">51</div>
+              <div className="text-sm text-slate-400">Real Tools</div>
+              <div className="text-xs text-slate-500 mt-1">Zero stubs</div>
             </div>
             <div className="text-center">
               <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">Opus 4.6</div>

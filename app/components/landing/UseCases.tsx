@@ -41,8 +41,13 @@ const useCases: UseCase[] = [
     title: 'Christian Developers',
     audience: 'Full-stack development, DevOps, mobile apps',
     description:
-      'Code Lab gives you Claude Code capabilities in your browser. Build apps for your church, ministry, or faith-based startup with an AI that shares your values.',
-    features: ['30+ dev tools', 'GitHub integration', 'Sandboxed execution', 'Project persistence'],
+      'Code Lab gives you a full AI development environment in your browser. Build apps for your church, ministry, or faith-based startup with an AI that shares your values.',
+    features: [
+      '51 real tools',
+      'GitHub integration',
+      'E2B sandboxed execution',
+      'Project persistence',
+    ],
     cta: 'Try Code Lab',
     href: '/code-lab/about',
     color: 'fuchsia',
