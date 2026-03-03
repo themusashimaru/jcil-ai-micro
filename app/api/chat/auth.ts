@@ -37,6 +37,8 @@ export interface AuthResult {
   isAdmin: boolean;
   userPlanKey: string;
   customInstructions: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any;
 }
 
 export interface AuthError {
@@ -127,6 +129,7 @@ export async function authenticateRequest(): Promise<AuthResult | AuthError> {
       isAdmin,
       userPlanKey,
       customInstructions,
+      supabase,
     };
   } catch (authErr) {
     log.error('Auth check failed', {

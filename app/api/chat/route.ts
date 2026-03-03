@@ -38,6 +38,7 @@ import { searchUserDocuments } from '@/lib/documents/userSearch';
 
 // Local modules
 import { authenticateRequest } from './auth';
+import { getUserBYOKConfig } from '@/lib/ai/byok';
 import { checkChatRateLimit } from './rate-limiting';
 import { getLastUserContent, truncateMessages, clampMaxTokens } from './helpers';
 import { buildFullSystemPrompt } from './system-prompt';
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { userId, isAdmin, userPlanKey, customInstructions } = authResult;
+    const { userId, isAdmin, userPlanKey, customInstructions, supabase } = authResult;
 
     // ── Context Loading (memory, learning, RAG) ──
     let memoryContext = '';
@@ -381,12 +382,22 @@ export async function POST(request: NextRequest) {
     log.debug('Available chat tools', { toolCount: tools.length });
 
     // Resolve provider (with auto model routing for Claude)
-    const {
+    let {
       selectedModel,
       selectedProviderId,
       error: providerError,
     } = resolveProvider(provider, lastUserContent);
     if (providerError) return providerError;
+
+    // BYOK: Check if user has their own API key for the selected provider
+    let userApiKey: string | undefined;
+    const byokConfig = await getUserBYOKConfig(supabase, userId, selectedProviderId);
+    if (byokConfig) {
+      userApiKey = byokConfig.apiKey;
+      if (byokConfig.model) {
+        selectedModel = byokConfig.model;
+      }
+    }
 
     const sessionId = conversationId || `chat_${userId}_${Date.now()}`;
     const toolExecutor = createToolExecutor(userId, sessionId);
@@ -417,6 +428,7 @@ export async function POST(request: NextRequest) {
       isAuthenticated: true,
       requestStartTime,
       request,
+      userApiKey,
     };
 
     // Non-Claude providers use adapter directly

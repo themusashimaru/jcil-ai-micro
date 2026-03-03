@@ -314,6 +314,8 @@ export interface ChatRouteOptions {
     enabled: boolean;
     budgetTokens?: number;
   };
+  /** BYOK: User's own API key for the selected provider */
+  userApiKey?: string;
 }
 
 /**
@@ -466,6 +468,7 @@ export async function routeChatWithTools(
     tools = [],
     onUsage,
     thinking,
+    userApiKey,
   } = options;
 
   if (tools.length === 0) {
@@ -506,6 +509,7 @@ export async function routeChatWithTools(
     thinking, // Extended thinking config (Anthropic only)
     tools,
     onProviderSwitch,
+    ...(userApiKey ? { userApiKey } : {}),
   };
 
   const finalResult: ProviderChatResult = {
