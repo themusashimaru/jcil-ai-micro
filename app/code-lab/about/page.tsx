@@ -212,6 +212,10 @@ const EXCLUSIVE_FEATURES = [
   { feature: 'Browser Automation', description: 'Built-in Puppeteer MCP server' },
   { feature: 'Plugin Marketplace', description: 'Discover and install community extensions' },
   { feature: 'Checkpoint/Rewind System', description: 'Full workspace recovery at any point' },
+  {
+    feature: 'BYOK (Bring Your Own Key)',
+    description: 'Use your own API keys for all 5 providers',
+  },
 ];
 
 // Tech Stack
@@ -929,6 +933,88 @@ Deploy version $1 to staging:
             variant="gradient"
             color="green"
           />
+        </div>
+      </Section>
+
+      {/* BYOK - Bring Your Own Key */}
+      <Section padding="lg">
+        <SectionHeader
+          badge="BYOK"
+          badgeColor="amber"
+          title="Bring Your Own Key"
+          description="Use your own API keys to unlock unlimited usage with your preferred providers. Keys are encrypted and never shown after saving."
+        />
+
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Provider Cards */}
+            <div className="space-y-4">
+              {[
+                { name: 'Anthropic (Claude)', model: 'claude-sonnet-4-6', color: 'amber' },
+                { name: 'OpenAI', model: 'gpt-4o', color: 'green' },
+                { name: 'Google (Gemini)', model: 'gemini-2.0-flash', color: 'blue' },
+                { name: 'xAI (Grok)', model: 'grok-3', color: 'slate' },
+                { name: 'DeepSeek', model: 'deepseek-chat', color: 'cyan' },
+              ].map((provider, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between bg-slate-900/50 rounded-xl p-4 border border-slate-800"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-white">{provider.name}</div>
+                    <div className="text-xs text-slate-500 font-mono">
+                      Default: {provider.model}
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full bg-${provider.color}-500/20 text-${provider.color}-300`}
+                  >
+                    Supported
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Benefits */}
+            <div className="bg-gradient-to-br from-amber-950/50 to-slate-950 rounded-2xl p-6 border border-amber-500/20">
+              <h3 className="text-lg font-bold text-white mb-4">Why use your own keys?</h3>
+              <div className="space-y-4">
+                {[
+                  { title: 'No usage limits', desc: 'Use your own quota from each provider' },
+                  { title: 'Direct billing', desc: 'Pay providers directly at their rates' },
+                  { title: 'Latest models', desc: 'Access newest releases immediately' },
+                  { title: 'Privacy', desc: 'API requests go directly to providers' },
+                  { title: 'Custom models', desc: 'Specify any model ID for each provider' },
+                ].map((benefit, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-amber-400 mt-0.5 shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <div className="text-sm font-medium text-white">{benefit.title}</div>
+                      <div className="text-xs text-slate-400">{benefit.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 p-3 rounded-lg bg-black/30 border border-white/5">
+                <p className="text-xs text-slate-400">
+                  Keys are encrypted with AES-256 before storage. Write-only design — your keys are
+                  never displayed after saving. Test before you save.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </Section>
 

@@ -25,6 +25,7 @@ import UseCases from './components/landing/UseCases';
 import EmailCapture from './components/landing/EmailCapture';
 import LogoCarousel from './components/landing/LogoCarousel';
 import Section from './components/landing/Section';
+import IntegrationsShowcase from './components/landing/IntegrationsShowcase';
 import PricingSection from './components/PricingSection';
 
 export default function HomePage() {
@@ -38,6 +39,8 @@ export default function HomePage() {
       <Section background="muted" padding="md" className="border-y border-white/5">
         <LogoCarousel title="Powered by industry-leading technology" speed="normal" />
       </Section>
+
+      <IntegrationsShowcase />
 
       <WhyJcilSection />
 
