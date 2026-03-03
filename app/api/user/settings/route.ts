@@ -69,7 +69,7 @@ export async function PUT(request: NextRequest) {
   const bodyValidation = await validateBody(request, userSettingsSchema);
   if (!bodyValidation.success) return bodyValidation.response;
 
-  const { theme, custom_instructions } = bodyValidation.data;
+  const { theme, custom_instructions, first_run_completed } = bodyValidation.data;
 
   // Validate theme - light mode is admin only for now
   if (theme === 'light') {
@@ -94,6 +94,10 @@ export async function PUT(request: NextRequest) {
   };
   if (custom_instructions !== undefined) {
     upsertData.custom_instructions = custom_instructions;
+  }
+  if (first_run_completed === true) {
+    upsertData.first_run_completed = true;
+    upsertData.first_run_completed_at = new Date().toISOString();
   }
 
   // Upsert settings

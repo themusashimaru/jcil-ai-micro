@@ -49,6 +49,7 @@ import {
   type SuggestedAction,
 } from '@/lib/response-analysis';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
+import { FirstRunModal } from '@/components/onboarding/FirstRunModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
@@ -127,6 +128,8 @@ function ChatClientInner() {
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+  // First-run onboarding
+  const [showFirstRun, setShowFirstRun] = useState(false);
   // REMOVED: selectedTool state - all tools now handled naturally in chat
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
@@ -195,6 +198,33 @@ function ChatClientInner() {
       return () => clearTimeout(timer);
     }
   }, [showPasskeyPrompt]);
+
+  // First-run onboarding check
+  useEffect(() => {
+    // Quick check from localStorage first
+    if (localStorage.getItem('jcil-first-run-completed') === 'true') return;
+
+    // Check DB for first-run status
+    const checkFirstRun = async () => {
+      try {
+        const response = await fetch('/api/user/settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.settings?.first_run_completed) {
+            setShowFirstRun(true);
+          } else {
+            localStorage.setItem('jcil-first-run-completed', 'true');
+          }
+        }
+      } catch {
+        // If settings fetch fails, show first-run anyway for new users without profile
+        if (!hasProfile) {
+          setShowFirstRun(true);
+        }
+      }
+    };
+    checkFirstRun();
+  }, [hasProfile]);
 
   // Check admin status on mount
   useEffect(() => {
@@ -3656,6 +3686,12 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
             </ErrorBoundary>
           </main>
         </div>
+
+        {/* First-Run Onboarding Modal */}
+        <FirstRunModal
+          isOpen={showFirstRun}
+          onComplete={() => setShowFirstRun(false)}
+        />
 
         {/* User Profile Modal */}
         <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
