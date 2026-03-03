@@ -20,6 +20,7 @@ import {
   executeToolByName,
   hasToolLoader,
 } from '@/lib/ai/tools/tool-loader';
+import type { ToolTier } from '@/lib/ai/tools/registry';
 import type { UnifiedTool } from '@/lib/ai/providers/types';
 import type { ToolExecutor } from '@/lib/ai/chat-router';
 import { getMCPManager, MCPClientManager } from '@/lib/mcp/mcp-client';
@@ -225,12 +226,59 @@ export interface LoadedTools {
   composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null;
 }
 
+// Keyword patterns that trigger extended-tier tools
+const EXTENDED_PATTERNS =
+  /\b(code|program|debug|error|fix|refactor|format|diff|sql|query|document|pdf|excel|spreadsheet|word|docx|table|chart|graph|visualize|image|photo|resize|compress|video|audio|transcribe|ocr|screenshot|browser|scrape|webpage|github|repo|http|api|url|link|convert|youtube|media)\b/i;
+
+// Keyword patterns that trigger specialist-tier tools
+const SPECIALIST_PATTERNS =
+  /\b(dna|protein|genome|sequence|signal|fft|filter|geospatial|geo|coordinate|latitude|longitude|medical|bmi|dosage|clinical|constraint|grammar|parse|barcode|qr\s*code|zip|archive|compress|search\s*index|nlp|sentiment|tokenize|encrypt|decrypt|hash|cipher|jwt|jwe|phone\s*number|validate\s*phone|accessibility|wcag|a11y|3d|ray\s*trac|hough|vision|exif|metadata|fake\s*data|faker|mock\s*data)\b/i;
+
+/**
+ * Determine which tool tiers to load based on the user's message content.
+ * - Core: always loaded (web_search, fetch_url, run_code, analyze_image, etc.)
+ * - Extended: loaded when the message mentions code, documents, media, web browsing, etc.
+ * - Specialist: loaded when the message mentions niche domains (science, crypto, etc.)
+ */
+export function selectToolTiers(messageContent: string): ToolTier[] {
+  const tiers: ToolTier[] = ['core'];
+
+  if (EXTENDED_PATTERNS.test(messageContent)) {
+    tiers.push('extended');
+  }
+
+  if (SPECIALIST_PATTERNS.test(messageContent)) {
+    tiers.push('specialist');
+  }
+
+  // If message is long (likely complex), include extended by default
+  if (messageContent.length > 200 && !tiers.includes('extended')) {
+    tiers.push('extended');
+  }
+
+  return tiers;
+}
+
 /**
  * Load all available tools: built-in (lazy), MCP, and Composio.
+ * Uses smart tiered loading to send only relevant tools per request.
+ *
+ * @param userId - The authenticated user ID
+ * @param messageContext - The last user message for tier selection (optional; loads all tiers if omitted)
  */
-export async function loadAllTools(userId: string | null): Promise<LoadedTools> {
-  // Lazy-load built-in tools from registry
-  const tools: UnifiedTool[] = await loadAvailableToolDefinitions();
+export async function loadAllTools(
+  userId: string | null,
+  messageContext?: string
+): Promise<LoadedTools> {
+  // Determine which tiers to load based on message content
+  const tiers = messageContext ? selectToolTiers(messageContext) : undefined;
+
+  // Lazy-load built-in tools from registry, filtered by tier
+  const tools: UnifiedTool[] = await loadAvailableToolDefinitions(tiers);
+
+  if (tiers) {
+    log.info('Smart tool loading', { tiers, toolCount: tools.length });
+  }
   const mcpToolNames: string[] = [];
   let composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null = null;
 

@@ -367,8 +367,8 @@ export async function POST(request: NextRequest) {
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
     const clampedMaxTokens = clampMaxTokens(max_tokens);
 
-    // Build system prompt with all context
-    const { tools, composioToolContext } = await loadAllTools(userId);
+    // Build system prompt with all context (smart tiered tool loading)
+    const { tools, composioToolContext } = await loadAllTools(userId, lastUserContent);
 
     const fullSystemPrompt = buildFullSystemPrompt({
       customInstructions,
