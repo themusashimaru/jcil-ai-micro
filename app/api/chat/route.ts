@@ -382,8 +382,8 @@ export async function POST(request: NextRequest) {
     log.debug('Available chat tools', { toolCount: tools.length });
 
     // Resolve provider (with auto model routing for Claude)
-    let {
-      selectedModel,
+    const {
+      selectedModel: resolvedModel,
       selectedProviderId,
       error: providerError,
     } = resolveProvider(provider, lastUserContent);
@@ -391,6 +391,7 @@ export async function POST(request: NextRequest) {
 
     // BYOK: Check if user has their own API key for the selected provider
     let userApiKey: string | undefined;
+    let selectedModel = resolvedModel;
     const byokConfig = await getUserBYOKConfig(supabase, userId, selectedProviderId);
     if (byokConfig) {
       userApiKey = byokConfig.apiKey;
