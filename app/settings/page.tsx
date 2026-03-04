@@ -41,7 +41,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
 const SectionLoading = () => (
-  <div className="animate-pulse space-y-4 p-4">
+  <div className="animate-pulse space-y-4 p-4" aria-busy="true" aria-label="Loading section">
     <div className="h-6 w-48 rounded bg-glass" />
     <div className="h-4 w-full rounded bg-glass opacity-60" />
     <div className="h-4 w-3/4 rounded bg-glass opacity-40" />
@@ -290,8 +290,11 @@ export default function SettingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen p-4 md:p-8 flex items-center justify-center bg-background">
-          <div className="text-center">
+        <div
+          className="min-h-screen p-4 md:p-8 flex items-center justify-center bg-background"
+          aria-busy="true"
+        >
+          <div className="text-center" role="status" aria-label="Loading settings">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4 border-primary"></div>
             <p className="text-text-secondary">Loading settings...</p>
           </div>
