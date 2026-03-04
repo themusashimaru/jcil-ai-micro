@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { getPlanManager } from '@/lib/workspace/plan-mode';
 import { successResponse, errors } from '@/lib/api/utils';
@@ -14,14 +13,9 @@ import { successResponse, errors } from '@/lib/api/utils';
 
 // GET - Get current plan status
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
   // Rate limiting (using edit limiter for consistency)
   const rateLimit = await rateLimiters.codeLabEdit(user.id);
@@ -41,20 +35,10 @@ export async function GET() {
 
 // POST - Plan actions (approve, skip, cancel, complete)
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
-
-  // CSRF validation
-  const csrfResult = validateCSRF(request);
-  if (!csrfResult.valid) {
-    return errors.csrfFailed();
-  }
+  // Auth + CSRF protection for POST
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
   // Rate limiting
   const rateLimit = await rateLimiters.codeLabEdit(user.id);

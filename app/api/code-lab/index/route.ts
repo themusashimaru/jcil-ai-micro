@@ -6,9 +6,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabIndex');
@@ -18,14 +17,8 @@ const log = logger('CodeLabIndex');
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     const searchParams = request.nextUrl.searchParams;
     const owner = searchParams.get('owner');
@@ -50,19 +43,10 @@ export async function GET(request: NextRequest) {
  * POST - Index a repository (disabled)
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const body = await request.json();
     const { owner, repo } = body;
@@ -86,19 +70,10 @@ export async function POST(request: NextRequest) {
  * DELETE - Remove an index (disabled)
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for DELETE
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     const searchParams = request.nextUrl.searchParams;
     const owner = searchParams.get('owner');
