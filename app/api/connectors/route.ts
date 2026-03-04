@@ -8,9 +8,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
 import {
@@ -38,45 +37,13 @@ const log = logger('ConnectorsAPI');
 export const runtime = 'nodejs';
 
 /**
- * Get GitHub token from database (stored via Personal Access Token)
+ * Get GitHub token from database for an authenticated user
  */
-async function getGitHubToken(): Promise<{
+async function getGitHubToken(userId: string): Promise<{
   token: string | null;
-  userId: string | null;
   username: string | null;
   error?: string;
 }> {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors in read-only contexts
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { token: null, userId: null, username: null, error: 'Not authenticated' };
-  }
-
   // Get token from database
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,13 +54,12 @@ async function getGitHubToken(): Promise<{
   const { data: userData } = await adminClient
     .from('users')
     .select('github_token, github_username')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single();
 
   if (!userData?.github_token) {
     return {
       token: null,
-      userId: user.id,
       username: null,
       error: 'GitHub not connected. Add your Personal Access Token in Connectors.',
     };
@@ -103,47 +69,39 @@ async function getGitHubToken(): Promise<{
     const decryptedToken = decryptToken(userData.github_token);
     return {
       token: decryptedToken,
-      userId: user.id,
       username: userData.github_username,
     };
   } catch (err) {
     // Handle different error types differently
     if (err instanceof EncryptionError && err.code === 'NO_KEY') {
-      // Server configuration issue - ENCRYPTION_KEY not set
-      // DON'T clear the token - this is a server problem, not a token problem
       log.error('[Connectors] ENCRYPTION_KEY not configured - cannot decrypt GitHub token');
       return {
         token: null,
-        userId: user.id,
         username: null,
         error: 'Server encryption not configured. Please contact support.',
       };
     }
 
     if (err instanceof DecryptionError) {
-      // Token was encrypted with different key or is corrupted
       log.warn('[Connectors] Clearing invalid GitHub token due to decryption failure', {
         code: err.code,
       });
       await adminClient
         .from('users')
         .update({ github_token: null, github_username: null })
-        .eq('id', user.id);
+        .eq('id', userId);
       return {
         token: null,
-        userId: user.id,
         username: null,
         error: 'GitHub session expired. Please reconnect your GitHub account in Settings.',
       };
     }
 
-    // Unknown error - log but don't clear token
     log.error('[Connectors] Unexpected error decrypting GitHub token', {
       error: err instanceof Error ? err.message : err,
     });
     return {
       token: null,
-      userId: user.id,
       username: null,
       error: 'Failed to access GitHub token. Please try again.',
     };
@@ -158,14 +116,14 @@ export async function GET(request: NextRequest) {
     return errors.serviceUnavailable('Connectors not enabled');
   }
 
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const userId = auth.user.id;
+
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action') || 'status';
 
-  const { token, userId, username, error: tokenError } = await getGitHubToken();
-
-  if (!userId) {
-    return errors.unauthorized();
-  }
+  const { token, username, error: tokenError } = await getGitHubToken(userId);
 
   try {
     switch (action) {
@@ -224,11 +182,11 @@ export async function POST(request: NextRequest) {
     return errors.serviceUnavailable('Connectors not enabled');
   }
 
-  const { token, userId, error: tokenError } = await getGitHubToken();
+  // Auth + CSRF protection for POST
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
-  if (!userId) {
-    return errors.unauthorized();
-  }
+  const { token, error: tokenError } = await getGitHubToken(auth.user.id);
 
   if (!token) {
     return errors.badRequest(

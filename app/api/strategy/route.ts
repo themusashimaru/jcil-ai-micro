@@ -13,10 +13,9 @@
 
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
 import { createServerClient as createAdminClient } from '@/lib/supabase/client';
 import { untypedFrom } from '@/lib/supabase/workspace-client';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 import {
@@ -74,7 +73,7 @@ const activeSessions = new Map<string, ActiveSession>();
  * Run `npx supabase gen types` to regenerate types if needed
  */
 async function createSessionInDB(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   sessionId: string,
   attachments?: StrategyAttachment[],
@@ -118,7 +117,7 @@ async function createSessionInDB(
  * Update session phase in the database
  */
 async function updateSessionPhase(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   phase: SessionPhase,
   additionalData?: Record<string, unknown>
@@ -142,7 +141,7 @@ async function updateSessionPhase(
  * Store problem data after intake
  */
 async function storeProblemData(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   problemSummary: string,
   problemData: unknown
@@ -163,7 +162,7 @@ async function storeProblemData(
  * Get problem data from database (for session restoration before execution)
  */
 async function getProblemData(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<unknown | null> {
   const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
@@ -183,7 +182,7 @@ async function getProblemData(
  * This allows us to restore the agent on a different serverless instance
  */
 async function storeIntakeMessages(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<void> {
@@ -200,7 +199,7 @@ async function storeIntakeMessages(
  * Get intake messages from database
  */
 async function getIntakeMessages(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<Array<{ role: 'user' | 'assistant'; content: string }> | null> {
   const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
@@ -219,7 +218,7 @@ async function getIntakeMessages(
  * Store a finding in the database
  */
 async function storeFinding(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dbSessionId: string,
   finding: Finding
 ): Promise<void> {
@@ -242,7 +241,7 @@ async function storeFinding(
  * Store final result and usage
  */
 async function storeResultAndUsage(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   dbSessionId: string,
   userId: string,
@@ -329,7 +328,7 @@ async function storeResultAndUsage(
  * Add user context to session
  */
 async function addUserContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   message: string
 ): Promise<void> {
@@ -356,7 +355,7 @@ async function addUserContext(
  * Only stores tool execution events that drive the UI
  */
 async function storeEvent(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   event: StrategyStreamEvent
 ): Promise<void> {
@@ -402,7 +401,7 @@ async function storeEvent(
  * Get stored events for a session (for replay on reconnect)
  */
 async function getStoredEvents(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<StrategyStreamEvent[]> {
   const { data, error } = await untypedFrom(supabase, 'strategy_events')
@@ -428,7 +427,7 @@ async function getStoredEvents(
  * Get session from database
  */
 async function getSessionFromDB(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<{
   id: string;
@@ -496,28 +495,16 @@ async function getUserPlanKey(
  * POST - Start strategy or process intake input
  */
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
+  // Auth + CSRF protection for POST
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
-  // Use anon client for auth verification only
-  const authClient = await createClient();
   // Use service-role client for all DB operations (bypasses RLS)
   // Strategy tables need INSERT/UPDATE which RLS policies don't fully allow for anon users
   const supabase = createAdminClient();
 
   try {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     // Check admin status (for context tracking, not access control)
     // Deep Strategy Agent is now available to all users
     const isAdmin = await isUserAdmin(user.id, supabase);
@@ -601,25 +588,14 @@ export async function POST(request: NextRequest) {
  * DELETE - Cancel current strategy
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
+  // Auth + CSRF protection for DELETE
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
-  const authClient = await createClient();
   const supabase = createAdminClient();
 
   try {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const sessionId = request.nextUrl.searchParams.get('sessionId');
     if (!sessionId) {
       return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -659,21 +635,13 @@ export async function DELETE(request: NextRequest) {
  * GET - Get session status or list sessions
  */
 export async function GET(request: NextRequest) {
-  const authClient = await createClient();
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
+
   const supabase = createAdminClient();
 
   try {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const sessionId = request.nextUrl.searchParams.get('sessionId');
 
     if (!sessionId) {
@@ -834,7 +802,7 @@ export async function GET(request: NextRequest) {
  * Start a new strategy session
  */
 async function handleStart(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   isAdmin: boolean,
   attachments?: StrategyAttachment[],
@@ -980,7 +948,7 @@ async function handleStart(
  * Process intake input
  */
 async function handleInput(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string | undefined,
   input: string | undefined,
   userId: string,
@@ -1131,7 +1099,7 @@ async function handleInput(
  * Add context during execution
  */
 async function handleContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string | undefined,
   message: string | undefined
 ): Promise<Response> {
@@ -1211,7 +1179,7 @@ async function handleContext(
  * Execute the full strategy
  */
 async function handleExecute(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   sessionId: string | undefined,
   isAdmin: boolean = false,
