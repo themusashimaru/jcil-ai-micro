@@ -52,6 +52,7 @@ import {
   detectDocumentTypeFromMessage,
   isGenericTitle,
   formatActionSuccessMessage,
+  formatMessagesForApi,
 } from './chatUtils';
 import { useChatState } from './useChatState';
 import { useChatInit } from './useChatInit';
@@ -883,83 +884,8 @@ function ChatClientInner() {
         };
       }
 
-      // Find last image message index
-      let lastImageMessageIndex = -1;
-      for (let i = allMessages.length - 1; i >= 0; i--) {
-        if (
-          allMessages[i].role === 'user' &&
-          allMessages[i].attachments?.some((att) => att.type.startsWith('image/'))
-        ) {
-          lastImageMessageIndex = i;
-          break;
-        }
-      }
-
-      // Format messages for API
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const apiMessages = allMessages.map((msg, index) => {
-        const imageAttachments = msg.attachments?.filter(
-          (att) => att.type.startsWith('image/') && att.thumbnail
-        );
-        const documentAttachments = msg.attachments?.filter(
-          (att) => !att.type.startsWith('image/') && att.url
-        );
-        let messageContent = msg.content || '';
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const documentParts: any[] = [];
-
-        if (index === allMessages.length - 1 && documentAttachments?.length) {
-          documentAttachments.forEach((doc) => {
-            const fileContent = doc.url || '';
-            const rawBase64 = doc.rawData || '';
-            const isBase64 = fileContent.startsWith('data:');
-            if (doc.type === 'application/pdf') {
-              const pdfData = rawBase64 || fileContent;
-              if (pdfData.startsWith('data:'))
-                documentParts.push({
-                  type: 'document',
-                  name: doc.name,
-                  mediaType: 'application/pdf',
-                  data: pdfData,
-                });
-              if (!isBase64 && fileContent)
-                messageContent = `[Document: ${doc.name}]\n\n${fileContent}\n\n---\n\n${messageContent}`;
-            } else if (isBase64) {
-              messageContent = `[File: ${doc.name} - Unable to extract content]\n\n${messageContent}`;
-            } else {
-              const label =
-                doc.type.includes('spreadsheet') || doc.type.includes('excel')
-                  ? 'Spreadsheet'
-                  : 'File';
-              messageContent = `[${label}: ${doc.name}]\n\n${fileContent}\n\n---\n\n${messageContent}`;
-            }
-          });
-        }
-
-        if (documentParts.length > 0 && !imageAttachments?.length) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const contentParts: any[] = [...documentParts];
-          if (messageContent.trim()) contentParts.push({ type: 'text', text: messageContent });
-          return { role: msg.role, content: contentParts };
-        }
-
-        if (!imageAttachments?.length)
-          return {
-            role: msg.role,
-            content:
-              messageContent.trim() || (msg.role === 'assistant' ? '[Response]' : '[Message]'),
-          };
-        if (index !== lastImageMessageIndex)
-          return { role: msg.role, content: messageContent || '[User shared an image]' };
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const contentParts: any[] = [];
-        imageAttachments.forEach((image) =>
-          contentParts.push({ type: 'image', image: image.thumbnail })
-        );
-        if (messageContent) contentParts.push({ type: 'text', text: messageContent });
-        return { role: msg.role, content: contentParts };
-      });
+      // Format messages for API (handles images, documents, plain text)
+      const apiMessages = formatMessagesForApi(allMessages);
 
       const userContext = hasProfile
         ? {
