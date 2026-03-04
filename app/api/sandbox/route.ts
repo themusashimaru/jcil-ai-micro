@@ -7,7 +7,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import {
   executeSandbox,
   quickTest,
@@ -45,21 +45,15 @@ export async function POST(req: NextRequest) {
       return errors.serviceUnavailable('Invalid sandbox configuration');
     }
 
-    // Authenticate user
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Authenticate user (with CSRF protection for POST)
+    const auth = await requireUser(req);
+    if (!auth.authorized) return auth.response;
+    const user = auth.user;
 
     // Get user's subscription tier from users table
     let tier = 'free';
     try {
-      const { data: userData } = await supabase
+      const { data: userData } = await auth.supabase
         .from('users')
         .select('subscription_tier')
         .eq('id', user.id)
@@ -75,7 +69,7 @@ export async function POST(req: NextRequest) {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { count: executionsUsed } = await supabase
+    const { count: executionsUsed } = await auth.supabase
       .from('token_usage')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
@@ -126,7 +120,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Track sandbox execution in token_usage
-    await supabase.from('token_usage').insert({
+    await auth.supabase.from('token_usage').insert({
       user_id: user.id,
       model: 'vercel-sandbox',
       route: 'sandbox',
@@ -171,23 +165,19 @@ export async function GET(req: NextRequest) {
     }
 
     // Authenticate user
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    const getAuth = await requireUser();
+    if (!getAuth.authorized) {
       return successResponse({
         available: configured,
         authenticated: false,
       });
     }
+    const user = getAuth.user;
 
     // Get user's subscription tier
     let tier = 'free';
     try {
-      const { data: userData } = await supabase
+      const { data: userData } = await getAuth.supabase
         .from('users')
         .select('subscription_tier')
         .eq('id', user.id)
@@ -203,7 +193,7 @@ export async function GET(req: NextRequest) {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { count: executionsUsed } = await supabase
+    const { count: executionsUsed } = await getAuth.supabase
       .from('token_usage')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
