@@ -127,7 +127,7 @@ export const userSettingsSchema = z.object({
   display_name: z.string().min(1).max(100).optional(),
   avatar_url: urlSchema.optional().nullable(),
   preferences: z.record(z.unknown()).optional(),
-  theme: z.enum(['light', 'dark', 'system']).optional(),
+  theme: z.enum(['pro', 'light', 'dark', 'ocean']).optional(),
   language: z.string().min(2).max(10).optional(),
   notifications_enabled: z.boolean().optional(),
   custom_instructions: z.string().max(2000).optional().nullable(),

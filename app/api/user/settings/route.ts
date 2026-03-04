@@ -71,20 +71,6 @@ export async function PUT(request: NextRequest) {
 
   const { theme, custom_instructions, first_run_completed } = bodyValidation.data;
 
-  // Validate theme - light mode is admin only for now
-  if (theme === 'light') {
-    // Check if user is admin (using admin_users table)
-    const { data: adminUser } = await auth.supabase
-      .from('admin_users')
-      .select('id')
-      .eq('user_id', auth.user.id)
-      .single();
-
-    if (!adminUser) {
-      return errors.forbidden('Light mode is currently only available for admins');
-    }
-  }
-
   // Build upsert payload (only include fields that were provided)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const upsertData: Record<string, any> = {

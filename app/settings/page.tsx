@@ -70,6 +70,9 @@ const BYOKSection = dynamic(() => import('@/app/components/BYOKSection'), {
 const MemoryFeedbackSection = dynamic(() => import('@/app/components/MemoryFeedbackSection'), {
   loading: SectionLoading,
 });
+const PreferencesSection = dynamic(() => import('@/app/components/PreferencesSection'), {
+  loading: SectionLoading,
+});
 
 type TabId =
   | 'membership'
@@ -241,20 +244,16 @@ function SettingsContent() {
           {activeTab === 'memory' && <MemoryFeedbackSection />}
 
           {activeTab === 'preferences' && (
-            <section className="glass-morphism rounded-2xl p-6">
-              <h2 className="mb-4 text-xl font-semibold text-text-primary">Preferences</h2>
-              <p className="text-text-secondary">Model and safety preferences coming soon</p>
-              <div className="mt-4 space-y-3 text-sm text-text-muted">
-                <p>Future features will include:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>AI model selection</li>
-                  <li>Response tone preferences</li>
-                  <li>Safety and content filtering levels</li>
-                  <li>Language preferences</li>
-                  <li>Notification settings</li>
-                </ul>
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2 text-text-primary">Preferences</h2>
+                <p className="text-text-secondary">
+                  Customize your AI experience — theme, tone, document styling, and custom
+                  instructions.
+                </p>
               </div>
-            </section>
+              <PreferencesSection />
+            </div>
           )}
 
           {activeTab === 'privacy' && (
