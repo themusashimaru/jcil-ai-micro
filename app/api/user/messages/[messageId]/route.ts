@@ -6,11 +6,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('MessageDetailAPI');
@@ -29,30 +27,6 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-async function getAuthenticatedClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 interface RouteParams {
   params: Promise<{ messageId: string }>;
 }
@@ -64,15 +38,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
     const { messageId } = await params;
 
-    const authClient = await getAuthenticatedClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const supabase = getSupabaseAdmin();
 
@@ -151,26 +119,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  * PATCH - Update message status
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  // SECURITY: CSRF protection for state-changing operation
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) {
-    return csrfCheck.response!;
-  }
-
   try {
     const { messageId } = await params;
     const body = await request.json();
     const { is_read, is_starred } = body;
 
-    const authClient = await getAuthenticatedClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for PATCH
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const supabase = getSupabaseAdmin();
 
@@ -221,24 +178,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  * DELETE - Soft delete message for user
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  // SECURITY: CSRF protection for state-changing operation
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) {
-    return csrfCheck.response!;
-  }
-
   try {
     const { messageId } = await params;
 
-    const authClient = await getAuthenticatedClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for DELETE
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const supabase = getSupabaseAdmin();
 

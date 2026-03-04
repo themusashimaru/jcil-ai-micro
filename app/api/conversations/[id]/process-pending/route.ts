@@ -6,13 +6,11 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { completeChat } from '@/lib/ai/chat-router';
 import { getMainChatSystemPrompt } from '@/lib/prompts/main-chat';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
@@ -29,33 +27,13 @@ function getSupabaseAdmin() {
   }
 }
 
-export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(_request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: conversationId } = await params;
 
-  // Get authenticated user
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return errors.unauthorized();
-  }
+  // Auth + CSRF protection for POST
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
   // Rate limiting - strict since this triggers AI completion
   const rateLimitResult = await checkRequestRateLimit(

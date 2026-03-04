@@ -4,58 +4,20 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { createBillingPortalSession } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { stripePortalSchema } from '@/lib/validation/schemas';
-import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('StripePortal');
 
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
 export async function POST(request: NextRequest) {
   try {
-    // CSRF Protection
-    const csrfCheck = validateCSRF(request);
-    if (!csrfCheck.valid) return csrfCheck.response!;
-
-    const supabase = await getSupabaseClient();
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(

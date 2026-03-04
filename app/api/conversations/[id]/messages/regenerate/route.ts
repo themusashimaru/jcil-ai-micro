@@ -11,40 +11,14 @@
  * This approach keeps the chat logic in one place and maintains streaming support.
  */
 
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
-import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('RegenerateAPI');
 
 export const runtime = 'nodejs';
-
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ ok: false, error: { code, message } }, { status });
@@ -59,22 +33,13 @@ function errorResponse(status: number, code: string, message: string) {
  * returning the context needed to generate a fresh response.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await getSupabaseClient();
     const { id: conversationId } = await params;
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limiting - use strict limit for regeneration
     const rateLimitResult = await checkRequestRateLimit(`regenerate:${user.id}`, rateLimits.strict);
