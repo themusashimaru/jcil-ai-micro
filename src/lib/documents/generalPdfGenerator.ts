@@ -11,7 +11,8 @@
  */
 
 import PDFDocument from 'pdfkit';
-import type { GeneralPdfDocument, PdfParagraph, PdfTable, PdfSection } from './types';
+import type { GeneralPdfDocument, PdfParagraph, PdfTable, PdfImage, PdfSection } from './types';
+import { fetchImageBuffer } from './imageFetcher';
 
 // Default styling - Professional document standards
 const DEFAULT_PRIMARY_COLOR = '#1e3a5f'; // Navy blue
@@ -23,6 +24,18 @@ const DEFAULT_LINE_HEIGHT = 1.5; // Professional line spacing
  * Generate a PDF document from general document JSON
  */
 export async function generateGeneralPdf(doc: GeneralPdfDocument): Promise<Buffer> {
+  // Pre-fetch all images before starting synchronous PDF generation
+  const imageCache = new Map<string, Buffer>();
+  for (const section of doc.sections) {
+    if (section.type === 'image' && section.content) {
+      const imgData = section.content as PdfImage;
+      if (imgData.url) {
+        const result = await fetchImageBuffer(imgData.url);
+        if (result) imageCache.set(imgData.url, result.buffer);
+      }
+    }
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const margins = doc.format?.margins || DEFAULT_MARGINS;
@@ -56,7 +69,15 @@ export async function generateGeneralPdf(doc: GeneralPdfDocument): Promise<Buffe
       for (let i = 0; i < doc.sections.length; i++) {
         const section = doc.sections[i];
         const isFirstSection = i === 0;
-        renderSection(pdfDoc, section, baseFontSize, primaryColor, fontFamily, isFirstSection);
+        renderSection(
+          pdfDoc,
+          section,
+          baseFontSize,
+          primaryColor,
+          fontFamily,
+          isFirstSection,
+          imageCache
+        );
       }
 
       // Add footer if specified
@@ -91,7 +112,8 @@ function renderSection(
   baseFontSize: number,
   primaryColor: string,
   fontFamily: string,
-  isFirstSection: boolean = false
+  isFirstSection: boolean = false,
+  imageCache: Map<string, Buffer> = new Map()
 ): void {
   const margins = { left: 72, right: 72 }; // Match default margins
 
@@ -127,11 +149,67 @@ function renderSection(
       }
       break;
 
+    case 'image':
+      if (section.content) {
+        const imgData = section.content as PdfImage;
+        const imgBuffer = imageCache.get(imgData.url);
+        if (imgBuffer) {
+          if (!isFirstSection) pdfDoc.moveDown(0.5);
+
+          const pageWidth = pdfDoc.page.width - margins.left - margins.right;
+          const imgWidth = Math.min(imgData.width || pageWidth, pageWidth);
+          const imgHeight = imgData.height || undefined;
+
+          const imgOptions: PDFKit.Mixins.ImageOption = {
+            width: imgWidth,
+            ...(imgHeight ? { height: imgHeight } : { fit: [imgWidth, 400] }),
+          };
+
+          // Handle alignment
+          const alignment = imgData.alignment || 'center';
+          let x = margins.left;
+          if (alignment === 'center') {
+            x = margins.left + (pageWidth - imgWidth) / 2;
+          } else if (alignment === 'right') {
+            x = margins.left + pageWidth - imgWidth;
+          }
+
+          try {
+            pdfDoc.image(imgBuffer, x, pdfDoc.y, imgOptions);
+            pdfDoc.moveDown(0.5);
+
+            // Add caption if provided
+            if (imgData.caption) {
+              pdfDoc
+                .font(fontFamily)
+                .fontSize(baseFontSize - 1)
+                .fillColor('#666666')
+                .text(imgData.caption, margins.left, pdfDoc.y, {
+                  align: alignment,
+                  width: pageWidth,
+                });
+              pdfDoc.moveDown(0.5);
+            }
+          } catch {
+            // If image rendering fails, add placeholder text
+            pdfDoc
+              .font(fontFamily)
+              .fontSize(baseFontSize)
+              .fillColor('#999999')
+              .text(`[Image: ${imgData.caption || imgData.url}]`, {
+                align: imgData.alignment || 'center',
+              });
+            pdfDoc.moveDown(0.5);
+          }
+        }
+      }
+      break;
+
     case 'pageBreak':
       pdfDoc.addPage();
       break;
 
-    case 'horizontalRule':
+    case 'horizontalRule': {
       pdfDoc.moveDown(0.5);
       const currentY = pdfDoc.y;
       pdfDoc
@@ -142,6 +220,7 @@ function renderSection(
         .stroke();
       pdfDoc.moveDown(1);
       break;
+    }
 
     case 'spacer':
       pdfDoc.moveDown(1.5); // More generous spacing

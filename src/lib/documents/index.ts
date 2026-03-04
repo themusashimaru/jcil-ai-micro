@@ -250,7 +250,7 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
         return { valid: false, error: 'Document missing "sections" array' };
       }
       // Validate each section has a type
-      const validSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule'];
+      const validSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule', 'image'];
       for (let i = 0; i < obj.sections.length; i++) {
         const section = obj.sections[i] as Record<string, unknown>;
         if (!section.type || typeof section.type !== 'string') {
@@ -318,7 +318,14 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
         return { valid: false, error: 'PDF missing "sections" array' };
       }
       // Validate each section has a type
-      const validPdfSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule', 'spacer'];
+      const validPdfSectionTypes = [
+        'paragraph',
+        'table',
+        'pageBreak',
+        'horizontalRule',
+        'spacer',
+        'image',
+      ];
       for (let i = 0; i < obj.sections.length; i++) {
         const section = obj.sections[i] as Record<string, unknown>;
         if (!section.type || typeof section.type !== 'string') {

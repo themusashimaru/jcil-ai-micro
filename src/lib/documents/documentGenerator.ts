@@ -10,6 +10,7 @@ import {
   Document,
   Paragraph,
   TextRun,
+  ImageRun,
   HeadingLevel,
   AlignmentType,
   Table,
@@ -22,7 +23,14 @@ import {
   Header,
   Footer,
 } from 'docx';
-import type { WordDocument, DocumentSection, DocumentParagraph, DocumentTable } from './types';
+import type {
+  WordDocument,
+  DocumentSection,
+  DocumentParagraph,
+  DocumentTable,
+  DocumentImage,
+} from './types';
+import { fetchImageBuffer, getImageDimensions } from './imageFetcher';
 
 // Default styling - Professional document standards
 const DEFAULT_FONT = 'Calibri';
@@ -35,6 +43,18 @@ const DEFAULT_PARAGRAPH_SPACING = 160; // 8pt after paragraphs (in twentieths of
 export async function generateWordDocx(wordDoc: WordDocument): Promise<Buffer> {
   const fontFamily = wordDoc.format?.fontFamily || DEFAULT_FONT;
   const baseFontSize = (wordDoc.format?.fontSize || 11) * 2; // Convert pt to half-pt
+
+  // Pre-fetch all images before building the document
+  const imageCache = new Map<string, { buffer: Buffer; mimeType: string }>();
+  for (const section of wordDoc.sections) {
+    if (section.type === 'image' && section.content) {
+      const imgData = section.content as DocumentImage;
+      if (imgData.url) {
+        const result = await fetchImageBuffer(imgData.url);
+        if (result) imageCache.set(imgData.url, result);
+      }
+    }
+  }
 
   const children: (Paragraph | Table)[] = [];
 
@@ -52,6 +72,60 @@ export async function generateWordDocx(wordDoc: WordDocument): Promise<Buffer> {
       case 'table':
         if (section.content) {
           children.push(createTable(section.content as DocumentTable, fontFamily, baseFontSize));
+        }
+        break;
+
+      case 'image':
+        if (section.content) {
+          const imgData = section.content as DocumentImage;
+          const cached = imageCache.get(imgData.url);
+          if (cached) {
+            const dims = getImageDimensions(cached.buffer, cached.mimeType);
+            // Scale to fit page width (max ~600px = 6 inches at 100dpi)
+            const maxWidth = imgData.width || 600;
+            const scale = Math.min(1, maxWidth / dims.width);
+            const finalWidth = Math.round(dims.width * scale);
+            const finalHeight = imgData.height || Math.round(dims.height * scale);
+
+            // Determine alignment
+            let alignment: (typeof AlignmentType)[keyof typeof AlignmentType] =
+              AlignmentType.CENTER;
+            if (imgData.alignment === 'left') alignment = AlignmentType.LEFT;
+            if (imgData.alignment === 'right') alignment = AlignmentType.RIGHT;
+
+            children.push(
+              new Paragraph({
+                alignment,
+                children: [
+                  new ImageRun({
+                    data: cached.buffer,
+                    transformation: { width: finalWidth, height: finalHeight },
+                    type: 'png',
+                  }),
+                ],
+                spacing: { before: 100, after: 100 },
+              })
+            );
+
+            // Add caption
+            if (imgData.caption) {
+              children.push(
+                new Paragraph({
+                  alignment,
+                  children: [
+                    new TextRun({
+                      text: imgData.caption,
+                      font: fontFamily,
+                      size: baseFontSize - 2,
+                      italics: true,
+                      color: '666666',
+                    }),
+                  ],
+                  spacing: { after: 200 },
+                })
+              );
+            }
+          }
         }
         break;
 

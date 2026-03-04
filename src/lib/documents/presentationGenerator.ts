@@ -8,6 +8,7 @@
 
 import { logger } from '@/lib/logger';
 import type { PresentationDocument, PresentationSlide } from './types';
+import { fetchImageBuffer } from './imageFetcher';
 
 const log = logger('PresentationGenerator');
 
@@ -65,6 +66,19 @@ export async function generatePresentationPptx(doc: PresentationDocument): Promi
   const primaryColor = doc.format?.primaryColor?.replace('#', '') || COLORS.primary;
   const accentColor = doc.format?.accentColor?.replace('#', '') || COLORS.secondary;
 
+  // Pre-fetch all slide images
+  const imageCache = new Map<string, string>(); // URL -> base64 data string
+  for (const slideData of doc.slides) {
+    if (slideData.imageUrl) {
+      const result = await fetchImageBuffer(slideData.imageUrl);
+      if (result) {
+        // pptxgenjs needs data:mime;base64,... format
+        const b64 = result.buffer.toString('base64');
+        imageCache.set(slideData.imageUrl, `data:${result.mimeType};base64,${b64}`);
+      }
+    }
+  }
+
   // Generate each slide
   for (let i = 0; i < doc.slides.length; i++) {
     const slideData = doc.slides[i];
@@ -88,7 +102,7 @@ export async function generatePresentationPptx(doc: PresentationDocument): Promi
         break;
       case 'image_left':
       case 'image_right':
-        renderImageSlide(slide, slideData, primaryColor);
+        renderImageSlide(slide, slideData, primaryColor, imageCache);
         break;
       case 'blank':
         renderBlankSlide(slide, slideData);
@@ -413,7 +427,8 @@ function renderTwoColumnSlide(
 function renderImageSlide(
   slide: ReturnType<InstanceType<typeof import('pptxgenjs').default>['addSlide']>,
   data: PresentationSlide,
-  primaryColor: string
+  primaryColor: string,
+  imageCache: Map<string, string> = new Map()
 ): void {
   const isLeft = data.layout === 'image_left';
 
@@ -439,11 +454,24 @@ function renderImageSlide(
     valign: 'middle',
   });
 
-  // Image placeholder (gray box with text since we may not have the actual image)
   const imgX = isLeft ? 0.6 : 7.0;
   const textX = isLeft ? 6.6 : 0.6;
 
-  if (data.imageUrl) {
+  // Use pre-fetched image data if available
+  const cachedImage = data.imageUrl ? imageCache.get(data.imageUrl) : null;
+
+  if (cachedImage) {
+    // Embed the pre-fetched image as base64 data
+    slide.addImage({
+      data: cachedImage,
+      x: imgX,
+      y: 1.6,
+      w: 5.8,
+      h: 5.2,
+      sizing: { type: 'contain', w: 5.8, h: 5.2 },
+    });
+  } else if (data.imageUrl) {
+    // Try direct path as fallback (works for local files)
     try {
       slide.addImage({
         path: data.imageUrl,
@@ -454,7 +482,7 @@ function renderImageSlide(
         sizing: { type: 'contain', w: 5.8, h: 5.2 },
       });
     } catch {
-      // Fallback: placeholder box if image fails
+      // Fallback: placeholder box
       slide.addShape('rect', {
         x: imgX,
         y: 1.6,

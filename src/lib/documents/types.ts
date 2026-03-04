@@ -125,9 +125,17 @@ export interface DocumentTable {
   };
 }
 
+export interface DocumentImage {
+  url: string; // URL or data URL of the image
+  width?: number; // Width in EMU (default: 600px equivalent)
+  height?: number; // Height in EMU
+  alignment?: 'left' | 'center' | 'right';
+  caption?: string;
+}
+
 export interface DocumentSection {
-  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule';
-  content?: DocumentParagraph | DocumentTable;
+  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'image';
+  content?: DocumentParagraph | DocumentTable | DocumentImage;
 }
 
 export interface WordDocument {
@@ -218,9 +226,17 @@ export interface PdfTable {
   };
 }
 
+export interface PdfImage {
+  url: string; // URL or data URL of the image
+  width?: number; // Width in points (default: auto-fit to page width)
+  height?: number; // Height in points
+  alignment?: 'left' | 'center' | 'right';
+  caption?: string;
+}
+
 export interface PdfSection {
-  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'spacer';
-  content?: PdfParagraph | PdfTable;
+  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'spacer' | 'image';
+  content?: PdfParagraph | PdfTable | PdfImage;
 }
 
 export interface GeneralPdfDocument {
