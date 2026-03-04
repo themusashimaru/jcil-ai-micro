@@ -313,7 +313,7 @@ async function storeResultAndUsage(
     trackingPromises.push(
       trackTokenUsage({
         userId,
-        modelName: 'claude-haiku-4-5-20251001',
+        modelName: 'claude-sonnet-4-6',
         inputTokens: modelUsage.haiku.tokens,
         outputTokens: 0,
         source: 'strategy',

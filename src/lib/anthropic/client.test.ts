@@ -48,7 +48,7 @@ vi.mock('@supabase/supabase-js', () => ({
 function makeTextResponse(text: string, extras?: Record<string, unknown>) {
   return {
     content: [{ type: 'text', text }],
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-sonnet-4-6',
     usage: { input_tokens: 10, output_tokens: 20 },
     stop_reason: 'end_turn',
     ...extras,
@@ -68,7 +68,7 @@ function makeToolUseResponse(
   content.push({ type: 'tool_use', id: toolId, name: toolName, input: toolInput });
   return {
     content,
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-sonnet-4-6',
     usage: { input_tokens: 10, output_tokens: 20 },
     stop_reason: 'tool_use',
   };
@@ -93,9 +93,9 @@ afterEach(() => {
 // ===================================================================
 
 describe('Anthropic Client — Exports & Constants', () => {
-  it('exports CLAUDE_HAIKU constant with correct model id', async () => {
+  it('exports CLAUDE_HAIKU constant aliased to Sonnet 4.6', async () => {
     const { CLAUDE_HAIKU } = await import('./client');
-    expect(CLAUDE_HAIKU).toBe('claude-haiku-4-5-20251001');
+    expect(CLAUDE_HAIKU).toBe('claude-sonnet-4-6');
   });
 
   it('exports CLAUDE_SONNET constant with correct model id', async () => {
@@ -442,7 +442,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
     });
 
     expect(result.text).toBe('Hello from Claude');
-    expect(result.model).toBe('claude-haiku-4-5-20251001'); // DEFAULT_MODEL
+    expect(result.model).toBe('claude-sonnet-4-6'); // DEFAULT_MODEL
   });
 
   it('uses provided model, maxTokens, temperature, and systemPrompt', async () => {
@@ -478,7 +478,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         temperature: 0.7,
       })
@@ -492,7 +492,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
         { type: 'text', text: 'Part 1' },
         { type: 'text', text: 'Part 2' },
       ],
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
@@ -1261,7 +1261,7 @@ describe('Anthropic Client — createAnthropicStreamingCompletion', () => {
       messages: [{ role: 'user', content: 'Hi' }],
     });
 
-    expect(result.model).toBe('claude-haiku-4-5-20251001');
+    expect(result.model).toBe('claude-sonnet-4-6');
     expect(typeof result.toTextStreamResponse).toBe('function');
   });
 
@@ -1495,7 +1495,7 @@ describe('Anthropic Client — Edge Cases', () => {
         { type: 'thinking', thinking: 'internal thought' }, // non-text block
         { type: 'text', text: 'World' },
       ],
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 

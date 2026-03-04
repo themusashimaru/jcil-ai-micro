@@ -152,7 +152,7 @@ describe('Claude provider configuration', () => {
   });
 
   it('should have multiple models', () => {
-    expect(PROVIDERS.claude.models.length).toBeGreaterThanOrEqual(3);
+    expect(PROVIDERS.claude.models.length).toBeGreaterThanOrEqual(2);
   });
 
   it('should have claude-sonnet-4-6 as default model', () => {
@@ -523,9 +523,9 @@ describe('getModel', () => {
   });
 
   it('should return model with correct tier', () => {
-    const model = getModel('claude', 'claude-haiku-4-5-20251001');
+    const model = getModel('claude', 'claude-sonnet-4-6');
     expect(model).toBeDefined();
-    expect(model!.tier).toBe('budget');
+    expect(model!.tier).toBe('standard');
   });
 });
 
@@ -660,11 +660,10 @@ describe('getDefaultChatModelId', () => {
 describe('getModelsForProvider', () => {
   it('should return all models for Claude', () => {
     const models = getModelsForProvider('claude');
-    expect(models.length).toBeGreaterThanOrEqual(3);
+    expect(models.length).toBeGreaterThanOrEqual(2);
     const ids = models.map((m) => m.id);
     expect(ids).toContain('claude-opus-4-6');
     expect(ids).toContain('claude-sonnet-4-6');
-    expect(ids).toContain('claude-haiku-4-5-20251001');
   });
 
   it('should return all models for xAI', () => {

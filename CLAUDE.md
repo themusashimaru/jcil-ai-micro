@@ -72,37 +72,42 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 
 ---
 
-## Architecture Overview (Ground Truth — Feb 22, 2026)
+## Architecture Overview (Updated Mar 4, 2026)
 
 ### What Actually Works
 
-| Component | Status | Notes |
-|---|---|---|
-| Google Search tool | Real | `lib/tools/google-search.ts` |
-| Web Scraping tool | Real | `lib/tools/web-scraping.ts` |
-| Code Execution tool | Real | `lib/tools/code-execution.ts` |
-| Supabase RLS | Real | Properly configured |
-| Zod input validation | Real | 50+ schemas |
-| Rate limiting (Redis) | Real | `src/lib/security/rate-limit.ts` |
-| CSRF protection | Real | Implemented |
-| NextAuth | Real | Working auth flow |
-| Stripe integration | Partial | Needs testing |
+| Component             | Status     | Notes                                              |
+| --------------------- | ---------- | -------------------------------------------------- |
+| 51 AI tools           | Real       | All registered tools have real implementations     |
+| AI Model              | Sonnet 4.6 | All calls (chat, internal, utility) use Sonnet 4.6 |
+| Supabase RLS          | Real       | Properly configured                                |
+| Zod input validation  | Real       | 50+ schemas                                        |
+| Rate limiting (Redis) | Real       | `src/lib/security/rate-limit.ts`                   |
+| CSRF protection       | Real       | Implemented                                        |
+| NextAuth              | Real       | Working auth flow                                  |
+| Stripe integration    | Partial    | Needs testing                                      |
 
-### What Does NOT Work (Stubs)
+### What Still Needs Work
 
-~297 of ~300 tools in `lib/ai/tools/` and `lib/tools/` return fake/simulated data. These must be removed from the active registry or replaced with real implementations.
+- **ChatClient.tsx** at 3,764 lines — needs decomposition (10x over 400-line limit)
+- **documents/generate/route.ts** at 3,650 lines — needs decomposition
+- **code-lab/chat/route.ts** at 2,478 lines — needs decomposition
+- **~73 API routes** lack centralized auth guards
+- **105 component files** exceed the 300-line threshold
 
-### Key Metrics (Verified Feb 22, 2026)
+### Key Metrics (Verified Mar 4, 2026)
 
-| Metric | Actual Value |
-|---|---|
-| Test coverage | 5.9% |
-| ARIA attributes | 0 |
-| Inline styles | 554 |
-| Real tools (of 300+) | 3 |
-| Largest component | 2,631 lines (CodeLab.tsx) |
-| Production dependencies | 152 |
-| Tools loaded per request | ~393 |
+| Metric                    | Actual Value                                 |
+| ------------------------- | -------------------------------------------- |
+| Test coverage             | 41.25% lines (12,107 tests across 410 files) |
+| ARIA attributes           | 428+ (but unevenly distributed)              |
+| Inline styles             | 161 (down from 554)                          |
+| Real tools                | 51/51 (100%)                                 |
+| Largest component         | 3,764 lines (ChatClient.tsx)                 |
+| Largest route file        | 3,650 lines (documents/generate/route.ts)    |
+| Production dependencies   | 78 (down from 152)                           |
+| AI model                  | Sonnet 4.6 for all calls                     |
+| Components over 400 lines | 105 files                                    |
 
 ---
 
@@ -143,6 +148,7 @@ Scopes: tools, chat, codelab, auth, db, ci, ui, a11y
 ```
 
 Examples:
+
 - `fix(tools): remove stub tools from active registry`
 - `refactor(chat): decompose route.ts into modules`
 - `test(auth): add integration tests for login flow`

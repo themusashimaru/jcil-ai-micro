@@ -1,8 +1,8 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
-**Last Updated:** 2026-03-03
-**Updated By:** Removed 4 stub tools — 51/51 tools now real (100%)
-**Branch:** `claude/review-app-progress-Nce5N`
+**Last Updated:** 2026-03-04
+**Updated By:** Removed Haiku model routing — all calls use Sonnet 4.6. Updated metrics from codebase audit.
+**Branch:** `claude/recover-crashed-session-xni5u`
 
 > This document reflects verified, measured values only. No aspirational claims.
 > Previous versions of this file contained inaccurate metrics. This is the corrected baseline.
@@ -20,8 +20,8 @@
 | **Real Tool Implementations**  | 51/51 (100%). 4 stubs removed: audio_synth, feature_flag, migration_generator, ml_model_serving | All active tools real  | **TARGET MET**              |
 | **ARIA Attributes**            | 409+ (was 0)                                                                                    | WCAG 2.1 AA            | Major progress — Phase 2.4  |
 | **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.                | 0 static inline styles | Complete — Phase 2.4.8      |
-| **Largest Component**          | 374 lines (was 2,631)                                                                           | <400 lines             | Target met — decomposed     |
-| **Largest Route File**         | 537 lines (was 4,618)                                                                           | <500 lines             | Decomposed into 10 modules  |
+| **Largest Component**          | 3,764 lines (ChatClient.tsx). CodeLab.tsx decomposed to 374 lines.                              | <400 lines             | ChatClient needs decomp     |
+| **Largest Route File**         | 3,650 lines (documents/generate/route.ts). chat/route.ts decomposed to 537 lines.               | <500 lines             | 2 routes need decomp        |
 | **Production Dependencies**    | 77 (was 115, was 152)                                                                           | <50                    | 33% reduction — Phase 3.1.8 |
 | **Tool Files (total)**         | 54 (was 58, deleted 4 stubs)                                                                    | Lazy-loaded            | Lazy loading implemented    |
 | **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx)               | All major sections     | Complete — Phase 2.5        |
@@ -119,18 +119,18 @@ All 4 remaining stubs (`audio_synth`, `feature_flag`, `migration_generator`, `ml
 
 ## Technology Stack
 
-| Layer      | Technology               | Version         |
-| ---------- | ------------------------ | --------------- |
-| Frontend   | Next.js                  | 14.2            |
-| Language   | TypeScript               | 5.4             |
-| UI         | React + Tailwind CSS     | 18.3            |
-| Database   | Supabase PostgreSQL      | -               |
-| Cache      | Upstash Redis            | -               |
-| Auth       | NextAuth / Supabase Auth | -               |
-| Payments   | Stripe                   | -               |
-| Sandboxing | E2B                      | -               |
-| AI         | Anthropic Claude         | Multiple models |
-| Hosting    | Vercel                   | -               |
+| Layer      | Technology               | Version                |
+| ---------- | ------------------------ | ---------------------- |
+| Frontend   | Next.js                  | 14.2                   |
+| Language   | TypeScript               | 5.4                    |
+| UI         | React + Tailwind CSS     | 18.3                   |
+| Database   | Supabase PostgreSQL      | -                      |
+| Cache      | Upstash Redis            | -                      |
+| Auth       | NextAuth / Supabase Auth | -                      |
+| Payments   | Stripe                   | -                      |
+| Sandboxing | E2B                      | -                      |
+| AI         | Anthropic Claude         | Sonnet 4.6 (all calls) |
+| Hosting    | Vercel                   | -                      |
 
 ---
 
@@ -208,6 +208,12 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-27 | Enabled Next.js standalone output                | Standard build output                       | output: 'standalone' in next.config.js     |
 | 2026-03-03 | Tool audit: corrected real vs stub counts        | "57 tools (all real)" (inaccurate)          | 51/55 real (93%), 4 stubs identified       |
 | 2026-03-03 | Removed 4 stub tools from registry               | 55 tools (4 stubs)                          | 51 tools, 100% real, 0 stubs               |
+| 2026-03-04 | Removed Haiku auto-routing from chat streaming   | Haiku for trivial msgs, Sonnet for rest     | Sonnet 4.6 for all messages                |
+| 2026-03-04 | Switched all internal utility calls to Sonnet    | Haiku for title gen, summaries, prompts     | Sonnet 4.6 for everything                  |
+| 2026-03-04 | Removed Haiku from model registry & UI           | 3 Claude models (Opus, Sonnet, Haiku)       | 2 Claude models (Opus, Sonnet)             |
+| 2026-03-04 | Fixed stale model ID in imageRequestDetector     | claude-3-5-haiku-20241022 (legacy)          | claude-sonnet-4-6                          |
+| 2026-03-04 | Corrected largest component metric               | "374 lines" (only CodeLab.tsx)              | ChatClient.tsx at 3,764 lines              |
+| 2026-03-04 | Corrected largest route file metric              | "537 lines" (only chat/route.ts)            | documents/generate/route.ts at 3,650 lines |
 
 ---
 

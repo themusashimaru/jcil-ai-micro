@@ -214,7 +214,7 @@ export class ContextCompactionManager {
       .join('\n\n');
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001', // Use Haiku 4.5 for fast, cheap summaries
+      model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,
       system: `You are a conversation summarizer. Create a concise but comprehensive summary of the conversation.
 Preserve:

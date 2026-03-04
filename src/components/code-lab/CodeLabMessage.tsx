@@ -58,7 +58,6 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   // Claude models
   'claude-sonnet-4-6': 'Sonnet 4.6',
   'claude-opus-4-6': 'Opus 4.6',
-  'claude-haiku-4-5-20251001': 'Haiku 4.5',
   'claude-sonnet-4-6-thinking': 'Sonnet 4.6 (Thinking)',
   'claude-opus-4-6-thinking': 'Opus 4.6 (Thinking)',
   // OpenAI models

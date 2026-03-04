@@ -11,7 +11,6 @@ const MODEL_DISPLAY_NAMES: Record<
 > = {
   'claude-sonnet-4-6': { name: 'Sonnet 4.6', description: 'Fast & capable', provider: 'claude' },
   'claude-opus-4-6': { name: 'Opus', description: 'Most capable', provider: 'claude' },
-  'claude-haiku-4-5-20251001': { name: 'Haiku 4.5', description: 'Fastest', provider: 'claude' },
   'claude-sonnet-4-6-thinking': {
     name: 'Sonnet (Thinking)',
     description: 'Deep reasoning',

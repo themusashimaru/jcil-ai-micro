@@ -50,15 +50,6 @@ const CLAUDE_CONFIG: ProviderConfig = {
       tier: 'standard',
       isDefault: true,
     },
-    {
-      id: 'claude-haiku-4-5-20251001',
-      name: 'Claude Haiku 4.5',
-      contextWindow: 200000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.8,
-      outputPricePer1M: 4,
-      tier: 'budget',
-    },
   ],
 };
 

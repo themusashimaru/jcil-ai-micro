@@ -55,16 +55,6 @@ const claudeConfig: ProviderConfig = {
       tier: 'standard',
       isDefault: true,
     },
-    {
-      id: 'claude-haiku-4-5-20251001',
-      name: 'Claude Haiku 4.5',
-      contextWindow: 200000,
-      maxOutputTokens: 8192,
-      inputPricePer1M: 0.8,
-      outputPricePer1M: 4,
-      tier: 'budget',
-      capabilities: { vision: false } as Partial<ProviderCapabilities> as ProviderCapabilities,
-    },
   ],
 };
 
@@ -225,11 +215,6 @@ describe('hasCapability', () => {
   it('delegates to getModelCapabilities when modelId is provided', () => {
     hasCapability('claude', 'vision', 'claude-opus-4-6');
     expect(mockGetModelCapabilities).toHaveBeenCalledWith('claude', 'claude-opus-4-6');
-  });
-
-  it('uses model-specific capability overrides', () => {
-    // claude-haiku has vision:false override
-    expect(hasCapability('claude', 'vision', 'claude-haiku-4-5-20251001')).toBe(false);
   });
 
   it('returns false when provider lookup throws', () => {

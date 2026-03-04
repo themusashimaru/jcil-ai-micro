@@ -154,7 +154,7 @@ Rules:
 - Return valid JSON only`;
 
   const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001', // Haiku for planning (cheap)
+    model: 'claude-sonnet-4-6', // Haiku for planning (cheap)
     max_tokens: 2048,
     messages: [{ role: 'user', content: planPrompt }],
   });
@@ -234,7 +234,7 @@ Return your findings in a clear, structured format.
 Be concise but thorough. Focus ONLY on your assigned aspect.`;
 
     const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       messages: [{ role: 'user', content: agentPrompt }],
     });
