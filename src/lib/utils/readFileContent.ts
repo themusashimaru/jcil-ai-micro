@@ -4,6 +4,8 @@
  * - XLSX: Keep base64 for analytics, also parse for AI context
  * - TXT: Read as text directly
  * - PDF: Parse to extract readable text + keep raw base64 for Claude vision
+ * - DOCX: Parse to extract text + keep raw base64
+ * - PPTX: Keep base64 for future processing
  */
 export async function readFileContent(file: File): Promise<{ content: string; rawData?: string }> {
   // For CSV files, read as text - this IS the data we need for analytics
@@ -28,7 +30,7 @@ export async function readFileContent(file: File): Promise<{ content: string; ra
     return { content: textContent };
   }
 
-  // For Excel and PDF, read as base64
+  // For Excel, PDF, DOCX, and PPTX, read as base64
   const base64Content = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
@@ -36,15 +38,8 @@ export async function readFileContent(file: File): Promise<{ content: string; ra
     reader.readAsDataURL(file);
   });
 
-  // Keep raw data for Excel (analytics) and PDF (Claude native vision analysis)
-  const isExcel =
-    file.type === 'application/vnd.ms-excel' ||
-    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-    file.name.endsWith('.xlsx') ||
-    file.name.endsWith('.xls');
-
-  const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
-  const keepRawData = isExcel || isPdf;
+  // Keep raw data for all document types (analytics, Claude vision, re-processing)
+  const keepRawData = true;
 
   // Send to parsing API to get readable text for AI context
   try {
