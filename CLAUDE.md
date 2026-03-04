@@ -1,6 +1,6 @@
 # JCIL AI Micro — Claude Code Session Instructions
 
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-03-04
 **Authoritative Assessment:** `APP_ASSESSMENT_AND_RECOMMENDATIONS.md`
 **Task Tracker:** `TASK_TRACKER.md`
 **CTO Report:** `CTO_ASSESSMENT_REPORT.md`
@@ -76,38 +76,39 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 
 ### What Actually Works
 
-| Component             | Status     | Notes                                              |
-| --------------------- | ---------- | -------------------------------------------------- |
-| 51 AI tools           | Real       | All registered tools have real implementations     |
-| AI Model              | Sonnet 4.6 | All calls (chat, internal, utility) use Sonnet 4.6 |
-| Supabase RLS          | Real       | Properly configured                                |
-| Zod input validation  | Real       | 50+ schemas                                        |
-| Rate limiting (Redis) | Real       | `src/lib/security/rate-limit.ts`                   |
-| CSRF protection       | Real       | Implemented                                        |
-| NextAuth              | Real       | Working auth flow                                  |
-| Stripe integration    | Partial    | Needs testing                                      |
+| Component             | Status     | Notes                                               |
+| --------------------- | ---------- | --------------------------------------------------- |
+| 51 AI tools           | Real       | All registered tools have real implementations      |
+| AI Model              | Sonnet 4.6 | All calls (chat, internal, utility) use Sonnet 4.6  |
+| Supabase RLS          | Real       | Properly configured                                 |
+| Zod input validation  | Real       | 50+ schemas                                         |
+| Rate limiting (Redis) | Real       | `src/lib/security/rate-limit.ts`                    |
+| CSRF protection       | Real       | Built into `requireUser(request)` guard             |
+| Auth guards           | Real       | 45 route files migrated to requireUser/requireAdmin |
+| NextAuth              | Real       | Working auth flow                                   |
+| Stripe integration    | Partial    | Needs testing                                       |
 
 ### What Still Needs Work
 
-- **ChatClient.tsx** at 3,764 lines — needs decomposition (10x over 400-line limit)
-- **documents/generate/route.ts** at 3,650 lines — needs decomposition
-- **code-lab/chat/route.ts** at 2,478 lines — needs decomposition
-- **~73 API routes** lack centralized auth guards
+- **code-lab/chat/route.ts** at 2,478 lines — needs decomposition + auth migration (last route using raw auth)
+- **app/api/chat/route.ts** at 554 lines — uses `validateCSRF` directly (requireUser built into auth.ts module)
+- **~10 routes** have redundant double CSRF (both `validateCSRF` + `requireUser(request)`) — harmless but should be cleaned up
 - **105 component files** exceed the 300-line threshold
 
 ### Key Metrics (Verified Mar 4, 2026)
 
-| Metric                    | Actual Value                                 |
-| ------------------------- | -------------------------------------------- |
-| Test coverage             | 41.25% lines (12,107 tests across 410 files) |
-| ARIA attributes           | 428+ (but unevenly distributed)              |
-| Inline styles             | 161 (down from 554)                          |
-| Real tools                | 51/51 (100%)                                 |
-| Largest component         | 3,764 lines (ChatClient.tsx)                 |
-| Largest route file        | 3,650 lines (documents/generate/route.ts)    |
-| Production dependencies   | 78 (down from 152)                           |
-| AI model                  | Sonnet 4.6 for all calls                     |
-| Components over 400 lines | 105 files                                    |
+| Metric                    | Actual Value                                       |
+| ------------------------- | -------------------------------------------------- |
+| Test coverage             | 41.25% lines (12,107 tests across 410 files)       |
+| ARIA attributes           | 428+ (but unevenly distributed)                    |
+| Inline styles             | 161 (down from 554)                                |
+| Real tools                | 51/51 (100%)                                       |
+| Largest route file        | 2,478 lines (code-lab/chat/route.ts)               |
+| Routes with auth guards   | 45 files use requireUser/requireAdmin/optionalUser |
+| Routes with raw auth      | 1 (code-lab/chat/route.ts — needs decomp)          |
+| Production dependencies   | 78 (down from 152)                                 |
+| AI model                  | Sonnet 4.6 for all calls                           |
+| Components over 400 lines | 105 files                                          |
 
 ---
 
@@ -115,12 +116,16 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 
 ```
 Key source files:
-  app/api/chat/route.ts          — Main chat route (5,840 lines — needs decomposition)
+  app/api/chat/route.ts          — Main chat route (554 lines, decomposed)
+  app/api/code-lab/chat/route.ts — Code-lab chat (2,478 lines — needs decomposition + auth migration)
+  app/api/documents/generate/route.ts — Document generation (1,217 lines, decomposed from 3,650)
   lib/ai/tools.ts                — Tool registry (~393 tools loaded per request)
   lib/ai/tools/index.ts          — Tool barrel export (4,033 lines)
-  components/code-lab.tsx         — CodeLab component (2,631 lines — needs decomposition)
-  components/tool-result.tsx      — Tool result renderer (1,300+ lines)
   lib/prompts/systemPrompt.ts    — System prompt (4,312 lines)
+
+Key auth files:
+  src/lib/auth/user-guard.ts     — requireUser() / optionalUser() with built-in CSRF
+  src/lib/auth/admin-guard.ts    — requireAdmin() with built-in CSRF
 
 Key documentation (trust these):
   CLAUDE.md                       — This file (session instructions)

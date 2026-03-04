@@ -1,7 +1,7 @@
 # JCIL AI Micro — Master Task Tracker
 
 **Created:** 2026-02-22
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-03-04
 **Purpose:** Single source of truth for all work items. Check off tasks as they're completed. Carry this across every session.
 
 > **Instructions for new sessions:** Find the first unchecked `[ ]` item. That's your starting point. Mark tasks `[x]` with the completion date when done.
@@ -74,6 +74,7 @@
 - [x] **1.5.6** Remove `userScalable: false` from viewport config (`app/layout.tsx`) _(2026-02-22)_
 - [x] **1.5.7** Remove fake `aggregateRating` from Schema.org data (`app/layout.tsx:146-150`) _(2026-02-22)_
 - [x] **1.5.8** Migrated 17 API routes from inline auth (createServerClient + getUser) to centralized `requireUser()` guard. Adds CSRF protection to all state-changing endpoints, eliminates ~300 lines of boilerplate. Support tickets POST kept as-is (external contact form needs optional auth). _(2026-02-22)_
+- [x] **1.5.11** Migrated 28 more API routes to `requireUser()`/`requireAdmin()`/`optionalUser()` guards — conversations, folders, stripe, composio, documents, strategy, connectors, support, MCP, all code-lab routes, queue, files, design-settings, webauthn, dismiss-passkey. Total: 45 route files using centralized auth. Only `code-lab/chat/route.ts` remains (needs decomposition first). Net -1,273 lines of auth boilerplate. _(2026-03-04)_
 - [x] **1.5.9** Write tests for each security fix — admin-permissions.test.ts (5 tests: permissions default to FALSE), rate-limit fail-closed tests (3 tests), registry.test.ts (20 tests), safety.test.ts (10 tests). 35 new tests, 2157 total passing. _(2026-02-22)_
 - [x] **1.5.10** Verify all security changes pass build and tests — all 74 test files pass, zero TS errors in new code _(2026-02-22)_
 
@@ -331,10 +332,10 @@
 | ----------------------------- | ----------- | --------- | ---------- |
 | Phase 1: Foundation           | 47          | 47        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
-| Phase 3: Production Readiness | 37          | 24        | 65%        |
+| Phase 3: Production Readiness | 38          | 25        | 66%        |
 | Phase 4: Differentiation      | 23          | 0         | 0%         |
-| Doc Cleanup                   | 4           | 0         | 0%         |
-| **Total**                     | **168**     | **128**   | **76%**    |
+| Doc Cleanup                   | 4           | 4         | 100%       |
+| **Total**                     | **169**     | **133**   | **79%**    |
 
 > Update this summary table as tasks are completed.
 
@@ -379,6 +380,27 @@
 
 - Investigate and fix document generation bug (files not downloadable)
 - Phase 2.2: CodeLab decomposition (2,631 lines → multiple files <400 lines each)
+
+### Session: 2026-03-04 (Auth Hardening Session)
+
+**What was done:**
+
+- Unified all AI model calls to Sonnet 4.6 (removed Haiku auto-routing)
+- Decomposed ChatClient.tsx (3,764 → ~1,130 lines)
+- Decomposed documents/generate/route.ts (3,650 → 1,217 lines)
+- **Major auth hardening**: Migrated 45 route files from raw Supabase auth + manual CSRF to centralized `requireUser()`/`requireAdmin()`/`optionalUser()` guards
+  - 7 batches across all API areas: conversations, folders, composio, documents, strategy, connectors, support, MCP, all code-lab routes, queue, files, design-settings, webauthn, passkeys
+  - Net -1,273 lines of auth boilerplate removed
+  - Built-in CSRF protection on all state-changing endpoints (POST/PUT/PATCH/DELETE)
+  - All commits pass TSC, ESLint, and full build
+- Updated all documentation (CLAUDE.md, PROJECT_STATUS.md, TASK_TRACKER.md)
+
+**What's next:**
+
+- Decompose `code-lab/chat/route.ts` (2,478 lines) — last route using raw auth, too complex for simple migration
+- Clean up ~10 routes with redundant double CSRF (`validateCSRF` + `requireUser(request)`)
+- Dependency cleanup (3 duplicate PDF libs, deprecated Supabase packages)
+- Phase 3.6: Test coverage push (40% → 60%)
 
 ---
 
