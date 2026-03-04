@@ -546,9 +546,24 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
                 <p>• Runs in background if you leave — results will be waiting</p>
                 <p>• You can add context anytime during execution</p>
                 <p>
-                  • Estimated: <span className="text-white">2-10 min</span> |{' '}
-                  <span className="text-white">$5-20</span> depending on complexity
+                  • Estimated: <span className="text-white">2-10 min</span> | Token usage varies by
+                  complexity
                 </p>
+              </div>
+
+              {/* Token usage warning */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-blue-200/80">
+                    <p className="font-medium text-blue-300 mb-1">Token Usage</p>
+                    <p>
+                      Agents use tokens faster because they spawn multiple AI calls in parallel.
+                      Usage counts toward your monthly plan limit. Check your remaining tokens in
+                      Settings.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Buttons */}

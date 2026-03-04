@@ -536,6 +536,7 @@ export interface StrategyStreamEvent {
     totalAgents?: number;
     completedAgents?: number;
     cost?: number;
+    tokensUsed?: number;
     finding?: Finding;
     issue?: QualityIssue;
     phase?: string;

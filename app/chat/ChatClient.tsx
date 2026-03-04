@@ -1052,7 +1052,6 @@ function ChatClientInner() {
 
 **This is a completed Deep Strategy session from ${new Date(data.started).toLocaleString()}**
 
-**Cost:** $${data.totalCost?.toFixed(2) || '0.00'}
 **Agents:** ${data.totalAgents || 0}
 **Searches:** ${data.totalSearches || 0}
 

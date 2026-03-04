@@ -29,6 +29,7 @@ import {
   type Artifact,
 } from '@/agents/strategy';
 import { trackTokenUsage } from '@/lib/usage/track';
+import { canMakeRequest, getTokenUsage, incrementTokenUsage, formatTokenCount } from '@/lib/limits';
 
 const log = logger('StrategyAPI');
 
@@ -471,6 +472,22 @@ async function isUserAdmin(
   return !!adminUser;
 }
 
+/**
+ * Get user's subscription tier for token quota enforcement
+ */
+async function getUserPlanKey(
+  userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any
+): Promise<string> {
+  const { data } = await supabase
+    .from('users')
+    .select('subscription_tier')
+    .eq('id', userId)
+    .single();
+  return data?.subscription_tier || 'free';
+}
+
 // =============================================================================
 // API HANDLERS
 // =============================================================================
@@ -505,6 +522,28 @@ export async function POST(request: NextRequest) {
     // Deep Strategy Agent is now available to all users
     const isAdmin = await isUserAdmin(user.id, supabase);
 
+    // Check token quota before allowing agent usage
+    const userPlanKey = await getUserPlanKey(user.id, supabase);
+    const canProceed = await canMakeRequest(user.id, userPlanKey);
+    if (!canProceed) {
+      const usage = await getTokenUsage(user.id, userPlanKey);
+      const isFreeUser = userPlanKey === 'free';
+      log.warn('Token quota exceeded for strategy agent', {
+        userId: user.id,
+        plan: userPlanKey,
+        usage: usage.percentage,
+      });
+      return new Response(
+        JSON.stringify({
+          error: isFreeUser
+            ? "You've used your free trial tokens. Upgrade your plan to use agents."
+            : `You've reached your monthly token limit (${formatTokenCount(usage.used)} / ${formatTokenCount(usage.limit)}). Your limit resets next month, or upgrade for more tokens.`,
+          code: 'QUOTA_EXCEEDED',
+        }),
+        { status: 402, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Parse request body
     const jsonResult = await safeParseJSON<{
       action: 'start' | 'input' | 'execute' | 'context';
@@ -533,7 +572,7 @@ export async function POST(request: NextRequest) {
         return handleInput(supabase, sessionId, input, user.id, isAdmin);
 
       case 'execute':
-        return handleExecute(supabase, user.id, sessionId, isAdmin);
+        return handleExecute(supabase, user.id, sessionId, isAdmin, userPlanKey);
 
       case 'context':
         return handleContext(supabase, sessionId, message);
@@ -1175,7 +1214,8 @@ async function handleExecute(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   sessionId: string | undefined,
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
+  userPlanKey: string = 'free'
 ): Promise<Response> {
   if (!sessionId) {
     return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -1312,6 +1352,17 @@ async function handleExecute(
       // Store result and usage in database
       await storeResultAndUsage(supabase, sessionId, session.dbId, userId, result);
 
+      // Increment token quota so agent usage counts against monthly limit
+      const totalAgentTokens =
+        (result.metadata.modelUsage?.opus?.tokens || 0) +
+        (result.metadata.modelUsage?.sonnet?.tokens || 0) +
+        (result.metadata.modelUsage?.haiku?.tokens || 0);
+      if (totalAgentTokens > 0) {
+        incrementTokenUsage(userId, userPlanKey, totalAgentTokens).catch((err) => {
+          log.error('Failed to increment token usage for strategy', err);
+        });
+      }
+
       // Collect artifacts generated during synthesis
       const artifacts = session.agent.getArtifacts();
 
@@ -1325,6 +1376,7 @@ async function handleExecute(
             data: {
               result,
               cost: result.metadata.totalCost,
+              tokensUsed: totalAgentTokens,
               agents: result.metadata.totalAgents,
               searches: result.metadata.totalSearches,
               artifacts: artifacts.map((a: Artifact) => ({

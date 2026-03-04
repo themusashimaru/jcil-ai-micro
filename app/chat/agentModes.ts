@@ -89,7 +89,8 @@ Don't summarize. Don't filter. Don't worry about being organized. Just... tell m
 **What's going on? What are you trying to figure out?**
 
 ---
-*Estimated: 2-5 min | $8-15 | Stop anytime by typing "cancel"*`,
+*Estimated: 2-5 min | Uses tokens from your plan | Stop anytime by typing "cancel"*
+*Note: Agents use tokens faster because they spawn multiple AI calls in parallel.*`,
     execMessage: `## ⚡ Deploying Strategy Army...
 
 Research is now underway. This will take 2-5 minutes.
@@ -125,7 +126,8 @@ Tell me the topic, your questions, and what you'll use this research for. The mo
 **What topic do you want me to research?**
 
 ---
-*Estimated: 2-5 min | $8-15 | Stop anytime by typing "cancel"*`,
+*Estimated: 2-5 min | Uses tokens from your plan | Stop anytime by typing "cancel"*
+*Note: Agents use tokens faster because they spawn multiple AI calls in parallel.*`,
     execMessage: `## 🔬 Deploying Research Army...
 
 Research is now underway. This will take 2-5 minutes.
@@ -153,7 +155,8 @@ I'll deploy a focused research team to investigate your topic.
 - **All research tools:** Browser automation, web search, PDF extraction, vision analysis
 - **Opus synthesis:** Claude Opus 4.6 compiles findings
 
-**Estimated: 1-2 min | $2-3**
+**Estimated: 1-2 min | Uses tokens from your plan**
+*Agents use tokens faster due to parallel AI calls.*
 
 **What do you want me to research?**`,
     execMessage: `## 🚀 Deploying Research Scouts...
@@ -183,7 +186,8 @@ I'll deploy a focused team to help you make this decision.
 - **All research tools:** Browser automation, web search, data analysis
 - **Opus synthesis:** Claude Opus 4.6 analyzes and recommends
 
-**Estimated: 1-2 min | $2-3**
+**Estimated: 1-2 min | Uses tokens from your plan**
+*Agents use tokens faster due to parallel AI calls.*
 
 **What decision do you need help with?**`,
     execMessage: `## 🚀 Deploying Strategy Scouts...
@@ -392,11 +396,11 @@ ${artifactSection}
 ### Research Metadata
 - **Agents Deployed:** ${result.metadata.totalAgents}
 - **Searches Conducted:** ${result.metadata.totalSearches}
-- **Total Cost:** $${result.metadata.totalCost.toFixed(2)}
+- **Tokens Used:** ${((result.metadata.modelUsage?.opus?.tokens || 0) + (result.metadata.modelUsage?.sonnet?.tokens || 0) + (result.metadata.modelUsage?.haiku?.tokens || 0)).toLocaleString()}
 - **Duration:** ${Math.round(result.metadata.executionTime / 1000)}s
 
 ---
-*Strategy complete. Ask follow-up questions or start a new strategy.*`;
+*Strategy complete. Token usage has been applied to your monthly plan. Ask follow-up questions or start a new strategy.*`;
 }
 
 /**
@@ -437,11 +441,11 @@ ${artifactSection}
 ### Research Metadata
 - **Investigators Deployed:** ${result.metadata.totalAgents}
 - **Searches Conducted:** ${result.metadata.totalSearches}
-- **Total Cost:** $${result.metadata.totalCost.toFixed(2)}
+- **Tokens Used:** ${((result.metadata.modelUsage?.opus?.tokens || 0) + (result.metadata.modelUsage?.sonnet?.tokens || 0) + (result.metadata.modelUsage?.haiku?.tokens || 0)).toLocaleString()}
 - **Duration:** ${Math.round(result.metadata.executionTime / 1000)}s
 
 ---
-*Research complete. Ask follow-up questions or start a new research session.*`;
+*Research complete. Token usage has been applied to your monthly plan. Ask follow-up questions or start a new research session.*`;
 }
 
 /**
