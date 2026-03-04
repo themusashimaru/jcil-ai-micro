@@ -8,8 +8,7 @@ interface ThemeToggleProps {
 
 /**
  * Theme toggle button for switching between themes.
- * Non-admin users: Only pro mode (no toggle shown)
- * Admin users: pro → light → dark → ocean → pro
+ * All users: pro → light → dark → ocean → pro
  */
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, toggleTheme, isLoading } = useTheme();

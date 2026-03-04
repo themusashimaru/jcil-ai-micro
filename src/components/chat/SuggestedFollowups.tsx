@@ -25,7 +25,7 @@ export const SuggestedFollowups = memo(function SuggestedFollowups({
     onSelect(suggestion);
   };
 
-  const isDark = theme === 'dark';
+  const isDark = theme !== 'light';
 
   return (
     <div
