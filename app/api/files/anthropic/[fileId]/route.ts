@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { downloadAnthropicFile } from '@/lib/anthropic/client';
 import { logger } from '@/lib/logger';
 
@@ -22,14 +22,8 @@ export const maxDuration = 60;
 
 export async function GET(_request: NextRequest, { params }: { params: { fileId: string } }) {
   try {
-    // Authenticate user
-    const session = await getServerSession();
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // User is authenticated (session.user verified above)
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
 
     const { fileId } = params;
 

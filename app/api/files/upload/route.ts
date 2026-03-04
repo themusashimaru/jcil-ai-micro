@@ -12,7 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { uploadFile } from '@/lib/anthropic/files';
 import { logger } from '@/lib/logger';
 
@@ -40,11 +40,10 @@ const ALLOWED_MIME_TYPES = [
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
-    const session = await getServerSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Auth + CSRF protection
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -78,7 +77,7 @@ export async function POST(request: NextRequest) {
     const result = await uploadFile(buffer, file.name, file.type);
 
     log.info('File uploaded successfully', {
-      userId: session.user.id,
+      userId: user.id,
       fileId: result.id,
       filename: result.filename,
       sizeBytes: result.sizeBytes,

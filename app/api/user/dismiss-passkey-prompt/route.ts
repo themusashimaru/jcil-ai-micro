@@ -4,7 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { getServerSession } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
@@ -27,24 +27,20 @@ function getSupabaseAdmin() {
 
 export async function POST() {
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `passkey:dismiss:${session.user.id}`,
+      `passkey:dismiss:${user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     // Update user's passkey prompt dismissed flag
-    await supabase
-      .from('users')
-      .update({ passkey_prompt_dismissed: true })
-      .eq('id', session.user.id);
+    await supabase.from('users').update({ passkey_prompt_dismissed: true }).eq('id', user.id);
 
     return successResponse({ success: true });
   } catch (error) {

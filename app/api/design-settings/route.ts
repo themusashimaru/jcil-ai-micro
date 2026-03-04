@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 import { cacheGet, cacheSet, cacheDelete } from '@/lib/redis/client';
 import { logger } from '@/lib/logger';
 import {
@@ -114,27 +114,9 @@ export async function POST(request: NextRequest) {
     const rateLimitCheck = await checkRequestRateLimit(clientIP, rateLimits.strict);
     if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
-    // Check admin authentication
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
-
-    // Check if user is admin
-    const { data: adminUser } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!adminUser) {
-      return errors.forbidden();
-    }
+    // Admin authentication + CSRF protection
+    const auth = await requireAdmin(request);
+    if (!auth.authorized) return auth.response;
 
     // Validate request body
     const validation = await validateBody(request, designSettingsSchema);

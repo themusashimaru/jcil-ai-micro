@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSession } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import {
   generatePasskeyRegistrationOptions,
   verifyPasskeyRegistration,
@@ -110,22 +110,20 @@ async function deleteChallenge(key: string): Promise<void> {
  */
 export async function POST(_request: NextRequest) {
   try {
-    // Require authentication
-    const session = await getServerSession();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `webauthn:register:${session.user.id}`,
+      `webauthn:register:${user.id}`,
       rateLimits.auth
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
-    const userId = session.user.id;
-    const userEmail = session.user.email || '';
+    const userId = user.id;
+    const userEmail = user.email || '';
 
     // Get user's display name
     const { data: userData } = await supabase
@@ -165,20 +163,19 @@ export async function POST(_request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    // Require authentication
-    const session = await getServerSession();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for PUT
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `webauthn:verify:${session.user.id}`,
+      `webauthn:verify:${user.id}`,
       rateLimits.auth
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Get stored challenge from Redis
     const storedChallenge = await getChallenge(userId);

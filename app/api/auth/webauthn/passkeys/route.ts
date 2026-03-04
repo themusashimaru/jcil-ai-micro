@@ -6,10 +6,9 @@
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSession } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
-import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('WebAuthnPasskeys');
 
@@ -33,14 +32,13 @@ function getSupabaseAdmin() {
  */
 export async function GET() {
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `passkeys:get:${session.user.id}`,
+      `passkeys:get:${user.id}`,
       rateLimits.standard
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -49,7 +47,7 @@ export async function GET() {
     const { data: passkeys, error } = await supabase
       .from('user_passkeys')
       .select('id, device_name, created_at, last_used_at')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -68,19 +66,15 @@ export async function GET() {
  * DELETE - Remove a passkey
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF Protection - Critical for credential deletion
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for DELETE
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(
-      `passkeys:delete:${session.user.id}`,
+      `passkeys:delete:${user.id}`,
       rateLimits.strict
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
@@ -98,7 +92,7 @@ export async function DELETE(request: NextRequest) {
       .from('user_passkeys')
       .delete()
       .eq('id', passkeyId)
-      .eq('user_id', session.user.id);
+      .eq('user_id', user.id);
 
     if (error) {
       log.error('Failed to delete passkey:', error instanceof Error ? error : { error });
