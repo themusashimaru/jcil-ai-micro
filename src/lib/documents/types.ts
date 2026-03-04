@@ -244,6 +244,36 @@ export interface GeneralPdfDocument {
 }
 
 // ========================================
+// PRESENTATION / POWERPOINT TYPES
+// ========================================
+
+export interface PresentationSlide {
+  layout: 'title' | 'content' | 'section' | 'two_column' | 'image_left' | 'image_right' | 'blank';
+  title: string;
+  subtitle?: string;
+  body?: string;
+  bullets?: string[];
+  speakerNotes?: string;
+  imageUrl?: string;
+  backgroundColor?: string;
+  table?: {
+    headers?: string[];
+    rows: string[][];
+  };
+}
+
+export interface PresentationDocument {
+  type: 'presentation';
+  title: string;
+  slides: PresentationSlide[];
+  format?: {
+    primaryColor?: string;
+    accentColor?: string;
+    fontFamily?: string;
+  };
+}
+
+// ========================================
 // UNION TYPE FOR ALL DOCUMENTS
 // ========================================
 
@@ -252,7 +282,8 @@ export type DocumentData =
   | SpreadsheetDocument
   | WordDocument
   | InvoiceDocument
-  | GeneralPdfDocument;
+  | GeneralPdfDocument
+  | PresentationDocument;
 
 // Helper to detect document type from AI response
 export function isResumeDocument(doc: DocumentData): doc is ResumeDocument {
@@ -273,4 +304,8 @@ export function isInvoiceDocument(doc: DocumentData): doc is InvoiceDocument {
 
 export function isGeneralPdfDocument(doc: DocumentData): doc is GeneralPdfDocument {
   return doc.type === 'general_pdf';
+}
+
+export function isPresentationDocument(doc: DocumentData): doc is PresentationDocument {
+  return doc.type === 'presentation';
 }

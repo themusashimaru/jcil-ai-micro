@@ -14,6 +14,7 @@ export { generateSpreadsheetXlsx, createBudgetTemplate } from './spreadsheetGene
 export { generateInvoicePdf } from './invoiceGenerator';
 export { generateWordDocx, createLetterTemplate } from './documentGenerator';
 export { generateGeneralPdf } from './generalPdfGenerator';
+export { generatePresentationPptx } from './presentationGenerator';
 
 // Excel Formula Helpers
 export { ExcelFormulas, columnToLetter, cellRef, rangeRef } from './excelFormulas';
@@ -25,6 +26,7 @@ export {
   isWordDocument,
   isInvoiceDocument,
   isGeneralPdfDocument,
+  isPresentationDocument,
 } from './types';
 
 /**
@@ -38,12 +40,14 @@ import {
   isWordDocument,
   isInvoiceDocument,
   isGeneralPdfDocument,
+  isPresentationDocument,
 } from './types';
 import { generateResumeDocx } from './resumeGenerator';
 import { generateSpreadsheetXlsx } from './spreadsheetGenerator';
 import { generateInvoicePdf } from './invoiceGenerator';
 import { generateWordDocx } from './documentGenerator';
 import { generateGeneralPdf } from './generalPdfGenerator';
+import { generatePresentationPptx } from './presentationGenerator';
 
 export interface GeneratedDocument {
   buffer: Buffer;
@@ -115,6 +119,17 @@ export async function generateDocument(
     };
   }
 
+  if (isPresentationDocument(data)) {
+    const buffer = await generatePresentationPptx(data);
+    const filename = customFilename || `${sanitizeFilename(data.title)}.pptx`;
+    return {
+      buffer,
+      filename,
+      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      extension: 'pptx',
+    };
+  }
+
   throw new Error(`Unknown document type: ${(data as { type: string }).type}`);
 }
 
@@ -141,7 +156,14 @@ export function detectDocumentType(json: unknown): string | null {
     return null;
   }
 
-  const validTypes = ['resume', 'spreadsheet', 'document', 'invoice', 'general_pdf'];
+  const validTypes = [
+    'resume',
+    'spreadsheet',
+    'document',
+    'invoice',
+    'general_pdf',
+    'presentation',
+  ];
   return validTypes.includes(obj.type) ? obj.type : null;
 }
 
@@ -304,6 +326,40 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
         }
         if (!validPdfSectionTypes.includes(section.type)) {
           return { valid: false, error: `PDF Section[${i}] has invalid type: ${section.type}` };
+        }
+      }
+      break;
+    }
+
+    case 'presentation': {
+      if (!obj.title || typeof obj.title !== 'string') {
+        return { valid: false, error: 'Presentation missing valid "title" field' };
+      }
+      if (!obj.slides || !Array.isArray(obj.slides)) {
+        return { valid: false, error: 'Presentation missing "slides" array' };
+      }
+      if (obj.slides.length === 0) {
+        return { valid: false, error: 'Presentation must have at least one slide' };
+      }
+      const validLayouts = [
+        'title',
+        'content',
+        'section',
+        'two_column',
+        'image_left',
+        'image_right',
+        'blank',
+      ];
+      for (let i = 0; i < obj.slides.length; i++) {
+        const slide = obj.slides[i] as Record<string, unknown>;
+        if (!slide.title || typeof slide.title !== 'string') {
+          return { valid: false, error: `Slide[${i}] missing valid "title"` };
+        }
+        if (!slide.layout || typeof slide.layout !== 'string') {
+          return { valid: false, error: `Slide[${i}] missing valid "layout"` };
+        }
+        if (!validLayouts.includes(slide.layout)) {
+          return { valid: false, error: `Slide[${i}] has invalid layout: ${slide.layout}` };
         }
       }
       break;

@@ -170,6 +170,17 @@ export function detectDocumentSubtype(documentType: string, userMessage: string)
     return 'general_pdf';
   }
 
+  if (documentType === 'pptx') {
+    if (/pitch|investor|funding|startup/i.test(msg)) return 'pitch_deck';
+    if (/onboarding|orientation|new (hire|employee)/i.test(msg)) return 'onboarding';
+    if (/training|workshop|course|lesson/i.test(msg)) return 'training';
+    if (/sales|product|demo/i.test(msg)) return 'sales_deck';
+    if (/quarterly|annual|review|status|progress/i.test(msg)) return 'business_review';
+    if (/project|plan|roadmap|strategy/i.test(msg)) return 'project_plan';
+    if (/education|lecture|class|teach/i.test(msg)) return 'educational';
+    return 'general_presentation';
+  }
+
   return 'general';
 }
 
@@ -1224,6 +1235,94 @@ ALIGNMENT: left, center, right, justify
 FONTS: Helvetica (clean), Times-Roman (formal), Courier (technical)
 
 Create content appropriate for the specific document type requested. Write complete, professional text.`;
+  }
+
+  // ========================================
+  // POWERPOINT PRESENTATION PROMPTS
+  // ========================================
+  if (documentType === 'pptx') {
+    return `${baseInstruction}
+
+Generate a professional PowerPoint presentation JSON. Structure:
+{
+  "type": "presentation",
+  "title": "Presentation Title",
+  "slides": [
+    {
+      "layout": "title",
+      "title": "Main Title of Presentation",
+      "subtitle": "Subtitle or tagline",
+      "bullets": ["Presented by Name | Date"]
+    },
+    {
+      "layout": "content",
+      "title": "Slide Title",
+      "bullets": [
+        "Key point one with clear, concise language",
+        "Key point two with supporting detail",
+        "Key point three with actionable insight"
+      ],
+      "speakerNotes": "Additional context for the presenter"
+    },
+    {
+      "layout": "section",
+      "title": "Section Divider Title",
+      "subtitle": "Brief description of this section"
+    },
+    {
+      "layout": "two_column",
+      "title": "Comparison or Split Content",
+      "bullets": [
+        "Left column point 1",
+        "Left column point 2",
+        "Left column point 3",
+        "Right column point 1",
+        "Right column point 2",
+        "Right column point 3"
+      ]
+    },
+    {
+      "layout": "content",
+      "title": "Data Slide with Table",
+      "body": "Optional introductory text above the table.",
+      "table": {
+        "headers": ["Metric", "Q1", "Q2", "Q3", "Q4"],
+        "rows": [["Revenue", "$1.2M", "$1.5M", "$1.8M", "$2.1M"]]
+      }
+    }
+  ],
+  "format": {
+    "primaryColor": "#1e3a5f",
+    "accentColor": "#2563eb"
+  }
+}
+
+SLIDE LAYOUTS:
+- "title" — Opening slide with large title, subtitle, and optional date/author
+- "content" — Standard slide with title, bullets, optional body text and table
+- "section" — Section divider with colored background and section heading
+- "two_column" — Split bullets into two columns (first half left, second half right)
+- "image_left" / "image_right" — Image on one side, text on the other
+- "blank" — Minimal slide with just title and body text
+
+PRESENTATION DESIGN RULES:
+1. Start with a "title" layout slide
+2. Use "section" layout slides to divide major topics
+3. Keep bullet points to 4-6 per slide maximum
+4. Each bullet should be concise (under 15 words)
+5. Include speaker notes for complex slides
+6. End with a summary/conclusion or Q&A slide
+7. Aim for 8-15 slides for a standard presentation
+8. Use tables for comparative or numerical data
+9. Vary layouts to keep the presentation visually engaging
+10. Write COMPLETE, PROFESSIONAL content — not placeholder text
+
+CONTENT QUALITY:
+- Write actual presentation content, not "[Add your content here]"
+- Make bullet points actionable and specific
+- Include data and examples where relevant
+- Speaker notes should add value beyond what's on the slide
+- Maintain consistent tone and messaging throughout`;
   }
 
   // Default fallback
