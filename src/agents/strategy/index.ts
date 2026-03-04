@@ -4,9 +4,9 @@
  * The most advanced self-replicating AI agent ever built.
  *
  * Uses:
- * - Opus 4.6: Master Architect, Quality Control, Final Synthesis
- * - Sonnet 4.6: Project Managers (coordination)
- * - Haiku 4.5: Scout Army (research execution)
+ * - Opus 4.6: Master Architect, Synthesizer, Final Synthesis
+ * - Sonnet 4.6: Forensic Intake, Quality Control, Scouts
+ * - Haiku 4.5: Lightweight tasks
  *
  * Features:
  * - Self-designing agent architecture
