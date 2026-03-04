@@ -8,7 +8,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { createClient } from '@supabase/supabase-js';
 import { successResponse, errors } from '@/lib/api/utils';
 import {
@@ -19,7 +19,6 @@ import {
   getUserTasks,
 } from '@/lib/autonomous-task';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 // SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
 // (no fallback to SERVICE_ROLE_KEY for separation of concerns)
@@ -37,14 +36,9 @@ function decryptToken(encryptedData: string): string {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get('id');
@@ -72,19 +66,11 @@ export async function GET(request: NextRequest) {
  * POST - Create and start a new autonomous task
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limiting
     const rateLimit = await rateLimiters.codeLabEdit(user.id);
@@ -100,7 +86,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify session ownership
-    const { data: sessionData, error: sessionError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sessionData, error: sessionError } = await (supabase as any)
       .from('code_lab_sessions')
       .select('id')
       .eq('id', sessionId)
@@ -174,14 +161,10 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for DELETE
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get('id');

@@ -6,9 +6,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { requireUser } from '@/lib/auth/user-guard';
 import { createClient } from '@supabase/supabase-js';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
@@ -35,11 +34,10 @@ type GitOperation =
   | 'diff';
 
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createServerClient();
+  // Auth + CSRF protection
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user, supabase } = auth;
 
   // SECURITY FIX: Use service role client to access github_token
   // Per migration 20250102_add_github_token.sql: "github_token column is only accessed via service_role"
@@ -48,14 +46,6 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
 
   // Rate limiting
   const rateLimit = await rateLimiters.codeLabEdit(user.id);
@@ -77,7 +67,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify session ownership
-    const { data: sessionData, error: sessionError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sessionData, error: sessionError } = await (supabase as any)
       .from('code_lab_sessions')
       .select('id')
       .eq('id', sessionId)

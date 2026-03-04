@@ -6,12 +6,11 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '@/lib/auth/user-guard';
 import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabFiles');
@@ -36,15 +35,9 @@ async function verifySessionOwnership(
 
 // GET - List files or read file content
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const { user, supabase } = auth;
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
@@ -87,19 +80,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new file
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user, supabase } = auth;
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
@@ -135,19 +118,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update existing file
 export async function PUT(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user, supabase } = auth;
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
@@ -183,19 +156,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete file
 export async function DELETE(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user, supabase } = auth;
 
   // Rate limiting
   const rateLimitResult = await rateLimiters.codeLabFiles(user.id);

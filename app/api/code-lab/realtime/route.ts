@@ -12,7 +12,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { untypedRpc } from '@/lib/supabase/workspace-client';
 import { logger } from '@/lib/logger';
 import {
@@ -20,7 +20,6 @@ import {
   type CollaborationEvent,
 } from '@/lib/collaboration/collaboration-manager';
 import { getDebugEventBroadcaster, type DebugEvent } from '@/lib/debugger/debug-event-broadcaster';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('RealtimeAPI');
@@ -163,18 +162,9 @@ startCleanupInterval();
 export async function GET(request: NextRequest) {
   try {
     // Auth check
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // HIGH-001: Check max connections per user
     let userConnectionCount = 0;
@@ -339,29 +329,11 @@ export async function GET(request: NextRequest) {
  * Send event to session (for clients that need to push updates)
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) {
-    return new Response(JSON.stringify({ error: 'Invalid CSRF token' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
   try {
-    // Auth check
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    // Auth + CSRF protection
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limiting
     const rateLimit = await rateLimiters.codeLabEdit(user.id);
