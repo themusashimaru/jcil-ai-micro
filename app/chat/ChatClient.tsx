@@ -2007,6 +2007,10 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
         // Build message content with any document data
         let messageContent = msg.content || '';
 
+        // Collect document content blocks for native Claude PDF vision
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const documentParts: any[] = [];
+
         // If this is the current message and has document attachments, include content
         if (
           index === allMessages.length - 1 &&
@@ -2015,27 +2019,54 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
         ) {
           documentAttachments.forEach((doc) => {
             const fileContent = doc.url || '';
+            const rawBase64 = doc.rawData || '';
 
             // Check if content is base64 (unparsed) or text (parsed)
             const isBase64 = fileContent.startsWith('data:');
 
-            if (isBase64) {
-              // File wasn't parsed - just note it exists
+            // For PDFs: send as native document content block for Claude vision
+            if (doc.type === 'application/pdf') {
+              const pdfData = rawBase64 || fileContent;
+              if (pdfData.startsWith('data:')) {
+                documentParts.push({
+                  type: 'document',
+                  name: doc.name,
+                  mediaType: 'application/pdf',
+                  data: pdfData,
+                });
+              }
+              // Also include extracted text if available
+              if (!isBase64 && fileContent) {
+                messageContent = `[Document: ${doc.name}]\n\n${fileContent}\n\n---\n\n${messageContent}`;
+              }
+            } else if (isBase64) {
+              // Non-PDF binary file - note it exists
               messageContent = `[File: ${doc.name} - Unable to extract content]\n\n${messageContent}`;
             } else {
               // File was parsed - include the actual content
               const fileLabel =
                 doc.type.includes('spreadsheet') || doc.type.includes('excel')
                   ? 'Spreadsheet'
-                  : doc.type.includes('pdf')
-                    ? 'Document'
-                    : 'File';
+                  : 'File';
               messageContent = `[${fileLabel}: ${doc.name}]\n\n${fileContent}\n\n---\n\n${messageContent}`;
             }
           });
         }
 
-        // If no images, send message with any document content appended
+        // If we have document parts (PDFs for vision), send as multimodal content
+        if (documentParts.length > 0 && !imageAttachments?.length) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const contentParts: any[] = [...documentParts];
+          if (messageContent.trim()) {
+            contentParts.push({ type: 'text', text: messageContent });
+          }
+          return {
+            role: msg.role,
+            content: contentParts,
+          };
+        }
+
+        // If no images and no document parts, send message with any document content appended
         if (!imageAttachments || imageAttachments.length === 0) {
           // Ensure non-empty content for Claude API validation
           const content =
@@ -3688,10 +3719,7 @@ This session ${data.phase === 'error' ? 'encountered an error' : data.phase === 
         </div>
 
         {/* First-Run Onboarding Modal */}
-        <FirstRunModal
-          isOpen={showFirstRun}
-          onComplete={() => setShowFirstRun(false)}
-        />
+        <FirstRunModal isOpen={showFirstRun} onComplete={() => setShowFirstRun(false)} />
 
         {/* User Profile Modal */}
         <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />

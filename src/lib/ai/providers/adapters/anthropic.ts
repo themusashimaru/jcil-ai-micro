@@ -293,6 +293,11 @@ export class AnthropicAdapter extends BaseAIAdapter {
     const contentBlocks: Array<
       | { type: 'text'; text: string }
       | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+      | {
+          type: 'document';
+          source: { type: 'base64'; media_type: string; data: string };
+          title?: string;
+        }
       | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
       | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
     > = [];
@@ -312,6 +317,20 @@ export class AnthropicAdapter extends BaseAIAdapter {
                 media_type: block.source.mediaType || 'image/png',
                 data: block.source.data,
               },
+            });
+          }
+          break;
+
+        case 'document':
+          if (block.source.type === 'base64' && block.source.data) {
+            contentBlocks.push({
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: block.source.mediaType || 'application/pdf',
+                data: block.source.data,
+              },
+              title: block.name,
             });
           }
           break;
@@ -387,6 +406,21 @@ export class AnthropicAdapter extends BaseAIAdapter {
             mediaType: imageBlock.source.media_type,
             data: imageBlock.source.data,
           },
+        });
+      } else if (block.type === 'document') {
+        const docBlock = block as {
+          type: 'document';
+          source: { type: 'base64'; media_type: string; data: string };
+          title?: string;
+        };
+        unifiedContent.push({
+          type: 'document',
+          source: {
+            type: 'base64',
+            mediaType: docBlock.source.media_type,
+            data: docBlock.source.data,
+          },
+          name: docBlock.title,
         });
       } else if (block.type === 'tool_use') {
         const toolBlock = block as Anthropic.ToolUseBlockParam;

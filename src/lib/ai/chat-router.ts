@@ -25,6 +25,7 @@ import type {
   UnifiedContentBlock,
   UnifiedTextBlock,
   UnifiedImageBlock,
+  UnifiedDocumentBlock,
   UnifiedToolUseBlock,
   UnifiedToolResultBlock,
   UnifiedTool,
@@ -115,6 +116,34 @@ function convertContentPart(part: unknown): UnifiedContentBlock | null {
             } as UnifiedImageBlock;
           }
         }
+      }
+      return null;
+
+    case 'document':
+      // Handle document parts (PDF, XLSX, DOCX sent for AI analysis)
+      if (p.data && typeof p.data === 'string') {
+        const dataStr = p.data as string;
+        let base64Data = dataStr;
+        let mediaType = String(p.mediaType || 'application/pdf');
+
+        // Handle data URL format: "data:application/pdf;base64,..."
+        if (dataStr.startsWith('data:')) {
+          const matches = dataStr.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mediaType = matches[1];
+            base64Data = matches[2];
+          }
+        }
+
+        return {
+          type: 'document',
+          source: {
+            type: 'base64',
+            mediaType,
+            data: base64Data,
+          },
+          name: p.name ? String(p.name) : undefined,
+        } as UnifiedDocumentBlock;
       }
       return null;
 

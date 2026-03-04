@@ -337,8 +337,27 @@ const imageContentPartSchema = z.object({
   image: z.string().max(10000000), // Base64 data URL (up to ~7MB)
 });
 
+/** Document content part for multimodal messages (PDF, XLSX, DOCX) */
+const documentContentPartSchema = z.object({
+  type: z.literal('document'),
+  name: z.string().max(500), // Filename
+  mediaType: z.enum([
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/csv',
+    'text/plain',
+  ]),
+  data: z.string().max(30000000), // Base64 data (up to ~22MB decoded)
+});
+
 /** Content part union for multimodal messages */
-const contentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
+const contentPartSchema = z.union([
+  textContentPartSchema,
+  imageContentPartSchema,
+  documentContentPartSchema,
+]);
 
 /** Chat message content - either string or array of content parts (for multimodal) */
 const chatContentSchema = z.union([
@@ -391,6 +410,7 @@ export const chatRequestSchema = z.object({
       'doc_word',
       'doc_excel',
       'doc_pdf',
+      'doc_pptx',
       'resume_generator',
     ])
     .optional(),
