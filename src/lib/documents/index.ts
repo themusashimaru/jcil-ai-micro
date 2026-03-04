@@ -16,6 +16,10 @@ export { generateWordDocx, createLetterTemplate } from './documentGenerator';
 export { generateGeneralPdf } from './generalPdfGenerator';
 export { generatePresentationPptx } from './presentationGenerator';
 
+// Chart Rendering
+export { renderChart } from './chartRenderer';
+export type { ChartConfig, ChartDataSeries } from './chartRenderer';
+
 // Excel Formula Helpers
 export { ExcelFormulas, columnToLetter, cellRef, rangeRef } from './excelFormulas';
 
@@ -236,6 +240,28 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
           const row = sheet.rows[j] as Record<string, unknown>;
           if (!row.cells || !Array.isArray(row.cells)) {
             return { valid: false, error: `Sheet[${i}].row[${j}] missing "cells" array` };
+          }
+        }
+        // Validate charts if present
+        if (sheet.charts !== undefined) {
+          if (!Array.isArray(sheet.charts)) {
+            return { valid: false, error: `Sheet[${i}] "charts" must be an array` };
+          }
+          const validChartTypes = ['bar', 'line', 'pie'];
+          for (let k = 0; k < sheet.charts.length; k++) {
+            const chart = sheet.charts[k] as Record<string, unknown>;
+            if (!chart.type || !validChartTypes.includes(chart.type as string)) {
+              return {
+                valid: false,
+                error: `Sheet[${i}].chart[${k}] has invalid type (must be bar, line, or pie)`,
+              };
+            }
+            if (!chart.categories || !Array.isArray(chart.categories)) {
+              return { valid: false, error: `Sheet[${i}].chart[${k}] missing "categories" array` };
+            }
+            if (!chart.series || !Array.isArray(chart.series)) {
+              return { valid: false, error: `Sheet[${i}].chart[${k}] missing "series" array` };
+            }
           }
         }
       }

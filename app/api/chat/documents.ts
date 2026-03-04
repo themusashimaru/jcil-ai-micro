@@ -809,12 +809,44 @@ Use multiple sheets when:
 - Monthly data needs annual summary
 - Reference data (dropdowns, categories) should be separate
 
+**CHARTS** (EMBEDDED IN EXCEL):
+You can embed charts as images in sheets. Add a "charts" array to any sheet:
+{
+  "name": "Sales Report",
+  "rows": [...],
+  "charts": [{
+    "type": "bar",
+    "title": "Monthly Sales",
+    "categories": ["Jan", "Feb", "Mar", "Apr"],
+    "series": [
+      { "label": "Revenue", "values": [12000, 15000, 13500, 18000] },
+      { "label": "Costs", "values": [8000, 9500, 8500, 11000] }
+    ],
+    "showValues": true,
+    "anchorCell": "F2"
+  }]
+}
+
+Chart types: "bar", "line", "pie"
+- Bar: great for comparisons (supports multiple series)
+- Line: great for trends over time (supports multiple series)
+- Pie: great for proportions (uses first series only)
+Options: width (default 600), height (default 400), showLegend (default true), showValues, colors (array of hex)
+anchorCell: where to place the chart (e.g. "F2" = column F, row 2). Default: right of data.
+
+When to add charts:
+- Budget/financial data → bar chart comparing categories
+- Time-series data → line chart showing trends
+- Category breakdowns → pie chart for proportions
+- Always reference the same data shown in the rows
+
 **SMART DEFAULTS**:
 - If user mentions "monthly", create 12-month structure
 - If user mentions "quarterly", create Q1-Q4 columns
 - If user mentions "comparison", create side-by-side columns
 - If user mentions "tracking", include date column and running totals
 - Always include a TOTALS row at the bottom with SUM formulas
+- Add a chart when data is visual (budgets, sales, trends, breakdowns)
 
 The user expects CALCULABLE spreadsheets, not just formatted text tables.`;
 

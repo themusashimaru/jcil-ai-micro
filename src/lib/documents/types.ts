@@ -82,12 +82,33 @@ export interface SpreadsheetRow {
   height?: number;
 }
 
+export interface SpreadsheetChartSeries {
+  label: string;
+  values: number[];
+  color?: string; // Hex color
+}
+
+export interface SpreadsheetChart {
+  type: 'bar' | 'line' | 'pie';
+  title?: string;
+  categories: string[]; // X-axis labels or pie slice labels
+  series: SpreadsheetChartSeries[];
+  width?: number; // Image width in px (default 600)
+  height?: number; // Image height in px (default 400)
+  showLegend?: boolean;
+  showValues?: boolean; // Show value labels on data points
+  colors?: string[]; // Custom color palette (hex)
+  /** Where to place the chart image in the sheet (e.g. "E2") */
+  anchorCell?: string;
+}
+
 export interface SpreadsheetSheet {
   name: string;
   rows: SpreadsheetRow[];
   columnWidths?: number[]; // Width for each column
   freezeRow?: number; // Freeze rows above this (for headers)
   freezeColumn?: number; // Freeze columns to the left
+  charts?: SpreadsheetChart[]; // Embedded charts
 }
 
 export interface SpreadsheetDocument {

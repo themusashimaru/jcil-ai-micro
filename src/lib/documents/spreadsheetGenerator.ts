@@ -8,6 +8,7 @@
 
 import ExcelJS from 'exceljs';
 import type { SpreadsheetDocument, SpreadsheetCell } from './types';
+import { renderChart } from './chartRenderer';
 
 // Default styling - Professional spreadsheet standards
 const DEFAULT_HEADER_COLOR = '1e3a5f'; // Navy blue
@@ -169,6 +170,41 @@ export async function generateSpreadsheetXlsx(spreadsheet: SpreadsheetDocument):
         bottom: { style: 'thin', color: { argb: 'a0a0a0' } },
       };
     }
+
+    // Embed charts as images
+    if (sheetData.charts && sheetData.charts.length > 0) {
+      for (const chart of sheetData.charts) {
+        const chartPng = renderChart({
+          type: chart.type,
+          title: chart.title,
+          categories: chart.categories,
+          series: chart.series,
+          width: chart.width,
+          height: chart.height,
+          showLegend: chart.showLegend,
+          showValues: chart.showValues,
+          colors: chart.colors,
+        });
+
+        const imageId = workbook.addImage({
+          base64: chartPng.toString('base64'),
+          extension: 'png',
+        });
+
+        // Default: place chart to the right of data
+        const anchor = chart.anchorCell || `${columnLetter(lastCol + 2)}2`;
+        const colMatch = anchor.match(/^([A-Z]+)(\d+)$/);
+        const anchorCol = colMatch ? letterToColumn(colMatch[1]) - 1 : lastCol + 1;
+        const anchorRow = colMatch ? parseInt(colMatch[2]) - 1 : 1;
+        const chartW = chart.width || 600;
+        const chartH = chart.height || 400;
+
+        worksheet.addImage(imageId, {
+          tl: { col: anchorCol, row: anchorRow },
+          ext: { width: chartW, height: chartH },
+        });
+      }
+    }
   }
 
   // Generate buffer
@@ -313,4 +349,29 @@ export function createBudgetTemplate(
       alternatingRowColors: true,
     },
   };
+}
+
+/**
+ * Convert a 1-based column number to Excel column letter (1 → A, 27 → AA)
+ */
+function columnLetter(col: number): string {
+  let result = '';
+  let n = col;
+  while (n > 0) {
+    n--;
+    result = String.fromCharCode(65 + (n % 26)) + result;
+    n = Math.floor(n / 26);
+  }
+  return result;
+}
+
+/**
+ * Convert an Excel column letter to 1-based number (A → 1, AA → 27)
+ */
+function letterToColumn(letters: string): number {
+  let col = 0;
+  for (let i = 0; i < letters.length; i++) {
+    col = col * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return col;
 }
