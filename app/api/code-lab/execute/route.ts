@@ -13,7 +13,6 @@
 import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { rateLimiters } from '@/lib/security/rate-limit';
-import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
 
@@ -152,12 +151,8 @@ function isCommandSafe(command: string): { safe: boolean; reason?: string } {
  * Execute a command in the sandbox
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
@@ -444,12 +439,8 @@ function simulateCommand(
  * Kill a running process
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;

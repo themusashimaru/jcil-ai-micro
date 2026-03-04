@@ -14,7 +14,6 @@ import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getLSPManager } from '@/lib/lsp/lsp-client';
 import { rateLimiters } from '@/lib/security/rate-limit';
-import { validateCSRF } from '@/lib/security/csrf';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
@@ -49,12 +48,8 @@ interface LSPRequestBody {
  * hover, completions, document_symbols, rename
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;

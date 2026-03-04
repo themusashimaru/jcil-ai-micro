@@ -14,7 +14,6 @@ import { NextRequest } from 'next/server';
 import type { CoreMessage } from 'ai';
 import { logger } from '@/lib/logger';
 import { generateTitleSchema } from '@/lib/validation/schemas';
-import { validateCSRF } from '@/lib/security/csrf';
 import { checkRequestRateLimit, rateLimits, errors } from '@/lib/api/utils';
 import { requireUser } from '@/lib/auth/user-guard';
 
@@ -22,15 +21,11 @@ const log = logger('GenerateTitleAPI');
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
     }
-
-    // CSRF Protection
-    const csrfCheck = validateCSRF(request);
-    if (!csrfCheck.valid) return csrfCheck.response!;
 
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
