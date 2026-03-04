@@ -731,7 +731,12 @@ CRITICAL RULES:
 3. Use professional business language appropriate for the document type
 4. Include all necessary sections for this type of document
 5. Make smart assumptions based on context if information is missing
-6. Numbers, dates, and data should be realistic and properly formatted`;
+6. Numbers, dates, and data should be realistic and properly formatted
+
+THEME PRESETS — add "theme" to the format object to apply a named color scheme:
+Available themes: "corporate_blue" (navy, professional), "modern_dark" (charcoal + teal), "warm_earth" (brown + amber), "clean_minimal" (light gray + green), "bold_red" (red + gold).
+Example: "format": { "theme": "modern_dark" }
+If user mentions a color scheme or style preference, pick the closest theme. You can also set explicit colors alongside a theme — explicit colors override the theme.`;
 
   // ========================================
   // SPREADSHEET PROMPTS (with sub-type intelligence)

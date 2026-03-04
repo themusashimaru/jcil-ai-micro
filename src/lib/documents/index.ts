@@ -20,6 +20,10 @@ export { generatePresentationPptx } from './presentationGenerator';
 export { renderChart } from './chartRenderer';
 export type { ChartConfig, ChartDataSeries } from './chartRenderer';
 
+// Themes
+export { resolveTheme, getThemeNames, THEMES } from './themes';
+export type { DocumentTheme } from './themes';
+
 // Excel Formula Helpers
 export { ExcelFormulas, columnToLetter, cellRef, rangeRef } from './excelFormulas';
 
@@ -52,6 +56,7 @@ import { generateInvoicePdf } from './invoiceGenerator';
 import { generateWordDocx } from './documentGenerator';
 import { generateGeneralPdf } from './generalPdfGenerator';
 import { generatePresentationPptx } from './presentationGenerator';
+import { resolveTheme } from './themes';
 
 export interface GeneratedDocument {
   buffer: Buffer;
@@ -68,6 +73,9 @@ export async function generateDocument(
   data: DocumentData,
   customFilename?: string
 ): Promise<GeneratedDocument> {
+  // Apply theme colors if a theme is specified and no explicit color is set
+  applyTheme(data);
+
   if (isResumeDocument(data)) {
     const buffer = await generateResumeDocx(data);
     const filename = customFilename || `${sanitizeFilename(data.name)}_Resume.docx`;
@@ -145,6 +153,37 @@ function sanitizeFilename(name: string): string {
     .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters
     .replace(/\s+/g, '_') // Replace spaces with underscores
     .substring(0, 50); // Limit length
+}
+
+/**
+ * Apply theme colors to document format (only fills in missing color fields).
+ */
+function applyTheme(data: DocumentData): void {
+  const format = (data as { format?: { theme?: string } }).format;
+  if (!format?.theme) return;
+
+  const theme = resolveTheme(format.theme);
+  if (!theme) return;
+
+  if (isResumeDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+  } else if (isSpreadsheetDocument(data)) {
+    data.format = data.format || {};
+    data.format.headerColor = data.format.headerColor || theme.headerBg;
+  } else if (isWordDocument(data)) {
+    // Word docs don't have a primaryColor field but theme is noted for future use
+  } else if (isInvoiceDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+  } else if (isGeneralPdfDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+  } else if (isPresentationDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+    data.format.accentColor = data.format.accentColor || theme.accentColor;
+  }
 }
 
 /**

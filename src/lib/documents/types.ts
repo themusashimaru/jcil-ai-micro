@@ -52,6 +52,7 @@ export interface ResumeDocument {
   certifications?: ResumeCertification[];
   // Formatting preferences (user can adjust via chat)
   format?: {
+    theme?: string; // Theme preset name (e.g., 'corporate_blue', 'modern_dark')
     fontFamily?: 'Arial' | 'Calibri' | 'Times New Roman' | 'Georgia';
     fontSize?: number; // Base font size in pt
     primaryColor?: string; // Hex color for headers
@@ -117,6 +118,7 @@ export interface SpreadsheetDocument {
   sheets: SpreadsheetSheet[];
   // Formatting preferences
   format?: {
+    theme?: string; // Theme preset name
     defaultFontFamily?: string;
     defaultFontSize?: number;
     alternatingRowColors?: boolean;
@@ -165,6 +167,7 @@ export interface WordDocument {
   sections: DocumentSection[];
   // Formatting preferences
   format?: {
+    theme?: string; // Theme preset name
     fontFamily?: 'Arial' | 'Calibri' | 'Times New Roman' | 'Georgia';
     fontSize?: number;
     margins?: {
@@ -217,6 +220,7 @@ export interface InvoiceDocument {
   paymentTerms?: string;
   // Formatting
   format?: {
+    theme?: string; // Theme preset name
     primaryColor?: string;
     logoUrl?: string;
     currency?: string; // USD, EUR, etc.
@@ -266,6 +270,7 @@ export interface GeneralPdfDocument {
   sections: PdfSection[];
   // Formatting preferences
   format?: {
+    theme?: string; // Theme preset name
     fontFamily?: 'Helvetica' | 'Times-Roman' | 'Courier';
     fontSize?: number;
     margins?: {
@@ -304,6 +309,7 @@ export interface PresentationDocument {
   title: string;
   slides: PresentationSlide[];
   format?: {
+    theme?: string; // Theme preset name
     primaryColor?: string;
     accentColor?: string;
     fontFamily?: string;
