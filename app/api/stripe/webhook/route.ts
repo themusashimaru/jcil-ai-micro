@@ -10,6 +10,7 @@ import { stripe } from '@/lib/stripe/client';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { logger } from '@/lib/logger';
+import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('StripeWebhook');
 
@@ -61,6 +62,11 @@ async function markEventProcessed(eventId: string, eventType: string): Promise<v
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent webhook endpoint flooding
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const rateLimitResult = await checkRequestRateLimit(`stripe:webhook:${ip}`, rateLimits.standard);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
+
   const body = await request.text();
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');

@@ -117,6 +117,11 @@ describe('validateEnvironment', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://sentry.io/123';
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.test.com';
+    process.env.STRIPE_SECRET_KEY = 'sk_test_123';
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_123';
+    process.env.STRIPE_PRICE_ID_PLUS = 'price_plus';
+    process.env.STRIPE_PRICE_ID_PRO = 'price_pro';
+    process.env.STRIPE_PRICE_ID_EXECUTIVE = 'price_exec';
     (process.env as Record<string, string>).NODE_ENV = 'production';
 
     // Should not throw — NEXT_PUBLIC_SENTRY_DSN is accepted as alternative
@@ -140,6 +145,9 @@ describe('validateEnvironment', () => {
     process.env.E2B_API_KEY = 'e2b-key';
     process.env.STRIPE_SECRET_KEY = 'sk_test_123';
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_123';
+    process.env.STRIPE_PRICE_ID_PLUS = 'price_plus';
+    process.env.STRIPE_PRICE_ID_PRO = 'price_pro';
+    process.env.STRIPE_PRICE_ID_EXECUTIVE = 'price_exec';
     process.env.COMPOSIO_API_KEY = 'composio-key';
     process.env.PERPLEXITY_API_KEY = 'pplx-key';
     (process.env as Record<string, string>).NODE_ENV = 'development';

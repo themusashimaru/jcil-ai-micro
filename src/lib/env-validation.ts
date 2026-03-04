@@ -34,6 +34,11 @@ const PRODUCTION_REQUIRED_VARS: EnvVar[] = [
     description: 'Sentry error tracking (mandatory in production)',
   },
   { name: 'NEXT_PUBLIC_APP_URL', description: 'App URL for CSRF validation' },
+  { name: 'STRIPE_SECRET_KEY', description: 'Stripe API key for payments' },
+  { name: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook signature verification' },
+  { name: 'STRIPE_PRICE_ID_PLUS', description: 'Stripe price ID for Plus tier' },
+  { name: 'STRIPE_PRICE_ID_PRO', description: 'Stripe price ID for Pro tier' },
+  { name: 'STRIPE_PRICE_ID_EXECUTIVE', description: 'Stripe price ID for Executive tier' },
 ];
 
 /** Recommended: App works but with degraded functionality */
@@ -45,8 +50,6 @@ const RECOMMENDED_VARS: EnvVar[] = [
     description: 'Redis for rate limiting (falls back to in-memory)',
   },
   { name: 'E2B_API_KEY', description: 'E2B sandbox for code execution and browser tools' },
-  { name: 'STRIPE_SECRET_KEY', description: 'Stripe payments (subscriptions, billing)' },
-  { name: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook signature verification' },
   { name: 'COMPOSIO_API_KEY', description: 'Composio connector integrations (150+ apps)' },
   {
     name: 'PERPLEXITY_API_KEY',
