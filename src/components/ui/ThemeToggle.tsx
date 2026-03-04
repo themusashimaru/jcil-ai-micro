@@ -12,14 +12,9 @@ interface ThemeToggleProps {
  * Admin users: pro → light → dark → ocean → pro
  */
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
-  const { theme, toggleTheme, isLoading, isAdmin } = useTheme();
+  const { theme, toggleTheme, isLoading } = useTheme();
 
-  // Don't show toggle for non-admin users - they only have pro mode
-  if (!isAdmin) {
-    return null;
-  }
-
-  // Get next theme name for aria-label (admin only)
+  // Get next theme name for aria-label
   const getNextTheme = () => {
     const themes = ['pro', 'light', 'dark', 'ocean'];
     const currentIndex = themes.indexOf(theme);
@@ -42,7 +37,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       title={`Switch to ${nextTheme} mode`}
     >
       {theme === 'dark' ? (
-        // Moon icon - currently dark (admin only)
+        // Moon icon - currently dark
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -65,7 +60,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
       ) : theme === 'ocean' ? (
-        // Wave icon - currently ocean (admin only)
+        // Wave icon - currently ocean
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
