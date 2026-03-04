@@ -381,12 +381,12 @@ export async function POST(request: NextRequest) {
 
     log.debug('Available chat tools', { toolCount: tools.length });
 
-    // Resolve provider (with auto model routing for Claude)
+    // Resolve provider — all messages use Sonnet 4.6 by default
     const {
       selectedModel: resolvedModel,
       selectedProviderId,
       error: providerError,
-    } = resolveProvider(provider, lastUserContent);
+    } = resolveProvider(provider);
     if (providerError) return providerError;
 
     // BYOK: Check if user has their own API key for the selected provider

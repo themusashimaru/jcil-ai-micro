@@ -32,53 +32,6 @@ import { processConversationForMemory } from '@/lib/memory';
 
 const log = logger('ChatStreaming');
 
-// ── Auto Model Routing ──
-
-const HAIKU_MODEL_ID = 'claude-haiku-4-5-20251001';
-
-/**
- * Patterns that indicate a trivial message suitable for Haiku.
- *
- * IMPORTANT: Haiku 4.5 does NOT support web search or reliable tool calling.
- * Only pure conversational fluff goes to Haiku — greetings, acknowledgements,
- * and yes/no responses. These are full-line anchored patterns (^ ... $) so
- * they ONLY match when the entire message is the trivial phrase.
- *
- * Everything else — including questions, requests, follow-ups, or anything
- * that might trigger search/tool use based on conversation context — stays
- * on Sonnet 4.6 which has full search and tool-calling capabilities.
- */
-const TRIVIAL_PATTERNS = [
-  /^(hi|hey|hello|howdy|sup|yo|hola|greetings|good\s*(morning|afternoon|evening|night))[\s!?.]*$/i,
-  /^(thanks|thank\s*you|thx|ty|ok|okay|sure|got\s*it|cool|nice|great|awesome|perfect)[\s!?.]*$/i,
-  /^(yes|no|yep|nope|yeah|nah)[\s!?.]*$/i,
-];
-
-/**
- * Classify whether a message is trivial enough for Haiku or needs Sonnet.
- *
- * Conservative by design: Sonnet 4.6 is the default for everything.
- * Haiku only handles greetings and acknowledgements — never questions,
- * never anything that could require search, tools, or reasoning.
- */
-export function classifyMessageComplexity(messageContent: string): 'trivial' | 'standard' {
-  const trimmed = messageContent.trim();
-
-  // Empty message (e.g. accidental send)
-  if (trimmed.length === 0) return 'trivial';
-
-  // Only classify as trivial if it matches a known trivial pattern
-  // AND is short (under 30 chars to avoid any false positives)
-  if (trimmed.length <= 30) {
-    for (const pattern of TRIVIAL_PATTERNS) {
-      if (pattern.test(trimmed)) return 'trivial';
-    }
-  }
-
-  // Everything else goes to Sonnet — search, tools, reasoning, questions
-  return 'standard';
-}
-
 export interface StreamConfig {
   messages: CoreMessage[];
   systemPrompt: string;
@@ -102,22 +55,12 @@ export interface StreamConfig {
 }
 
 /**
- * Resolve the model and provider based on user selection + auto routing.
- *
- * When no provider is explicitly selected, auto-routes:
- *   - Trivial messages (greetings, yes/no) → Haiku (fast, cheap)
- *   - Everything else → Sonnet (quality safeguard)
- *
- * @param provider - User-selected provider (if any)
- * @param messageContent - Last user message for auto-routing (optional)
+ * Resolve the model and provider based on user selection.
+ * All messages use Sonnet 4.6 by default (full search + tool support).
  */
-export function resolveProvider(
-  provider: string | undefined,
-  messageContent?: string
-): {
+export function resolveProvider(provider: string | undefined): {
   selectedModel: string;
   selectedProviderId: string;
-  autoRouted?: boolean;
   error?: Response;
 } {
   let selectedModel = getDefaultChatModelId();
@@ -141,14 +84,6 @@ export function resolveProvider(
         code: ERROR_CODES.INVALID_INPUT,
       }),
     };
-  } else if (!provider && messageContent) {
-    // Auto model routing: Haiku for trivial, Sonnet for everything else
-    const complexity = classifyMessageComplexity(messageContent);
-    if (complexity === 'trivial') {
-      selectedModel = HAIKU_MODEL_ID;
-      log.info('Auto-routed to Haiku (trivial message)', { model: selectedModel });
-      return { selectedModel, selectedProviderId, autoRouted: true };
-    }
   }
 
   return { selectedModel, selectedProviderId };
