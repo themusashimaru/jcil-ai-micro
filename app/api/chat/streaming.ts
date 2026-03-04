@@ -38,35 +38,44 @@ const HAIKU_MODEL_ID = 'claude-haiku-4-5-20251001';
 
 /**
  * Patterns that indicate a trivial message suitable for Haiku.
- * Only greetings, single-word queries, and very short simple questions qualify.
+ *
+ * IMPORTANT: Haiku 4.5 does NOT support web search or reliable tool calling.
+ * Only pure conversational fluff goes to Haiku — greetings, acknowledgements,
+ * and yes/no responses. These are full-line anchored patterns (^ ... $) so
+ * they ONLY match when the entire message is the trivial phrase.
+ *
+ * Everything else — including questions, requests, follow-ups, or anything
+ * that might trigger search/tool use based on conversation context — stays
+ * on Sonnet 4.6 which has full search and tool-calling capabilities.
  */
 const TRIVIAL_PATTERNS = [
   /^(hi|hey|hello|howdy|sup|yo|hola|greetings|good\s*(morning|afternoon|evening|night))[\s!?.]*$/i,
   /^(thanks|thank\s*you|thx|ty|ok|okay|sure|got\s*it|cool|nice|great|awesome|perfect)[\s!?.]*$/i,
   /^(yes|no|yep|nope|yeah|nah)[\s!?.]*$/i,
-  /^what('?s|\s+is)\s+your\s+name[\s?]*$/i,
-  /^who\s+are\s+you[\s?]*$/i,
-  /^how\s+are\s+you[\s?]*$/i,
 ];
 
 /**
  * Classify whether a message is trivial enough for Haiku or needs Sonnet.
- * Conservative: when in doubt, use Sonnet (quality safeguard).
+ *
+ * Conservative by design: Sonnet 4.6 is the default for everything.
+ * Haiku only handles greetings and acknowledgements — never questions,
+ * never anything that could require search, tools, or reasoning.
  */
 export function classifyMessageComplexity(messageContent: string): 'trivial' | 'standard' {
   const trimmed = messageContent.trim();
 
-  // Empty or very short
+  // Empty message (e.g. accidental send)
   if (trimmed.length === 0) return 'trivial';
 
   // Only classify as trivial if it matches a known trivial pattern
-  // AND is short (under 50 chars to avoid false positives)
-  if (trimmed.length <= 50) {
+  // AND is short (under 30 chars to avoid any false positives)
+  if (trimmed.length <= 30) {
     for (const pattern of TRIVIAL_PATTERNS) {
       if (pattern.test(trimmed)) return 'trivial';
     }
   }
 
+  // Everything else goes to Sonnet — search, tools, reasoning, questions
   return 'standard';
 }
 
