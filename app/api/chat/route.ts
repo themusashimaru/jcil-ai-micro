@@ -25,7 +25,6 @@
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
-import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { chatErrorResponse } from '@/lib/api/utils';
@@ -64,11 +63,6 @@ const log = logger('ChatRoute');
 
 export async function POST(request: NextRequest) {
   const requestStartTime = Date.now();
-
-  // ── CSRF Protection ──
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   const requestId = generateRequestId();
   let slotAcquired = false;
   let isStreamingResponse = false;
@@ -117,8 +111,8 @@ export async function POST(request: NextRequest) {
     const { messages, temperature, max_tokens, searchMode, conversationId, provider, thinking } =
       validation.data;
 
-    // ── Authentication ──
-    const authResult = await authenticateRequest();
+    // ── Authentication + CSRF ──
+    const authResult = await authenticateRequest(request);
     if (!authResult.authenticated) {
       return new Response(JSON.stringify(authResult.body), {
         status: authResult.status,
